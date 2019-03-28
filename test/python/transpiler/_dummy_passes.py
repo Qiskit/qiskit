@@ -163,7 +163,16 @@ class PassI_Bad_AP(DummyAP):
     def run(self, dag):
         super().run(dag)
         cx_runs = dag.collect_runs(["cx"])
-        logging.getLogger(logger).info('cx_runs: %s', cx_runs)
+
+        # Convert to ID so thatcan be checked if in correct order
+        cx_runs_ids = set()
+        for run in cx_runs:
+            curr = []
+            for node in run:
+                curr.append(node._node_id)
+            cx_runs_ids.add(tuple(curr))
+
+        logging.getLogger(logger).info('cx_runs: %s', cx_runs_ids)
         dag._remove_op_node(cx_runs.pop()[0])
         logging.getLogger(logger).info('done removing')
 
