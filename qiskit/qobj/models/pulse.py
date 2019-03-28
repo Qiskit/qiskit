@@ -9,13 +9,13 @@
 
 from marshmallow.validate import Range, Regexp, Length, OneOf
 
-from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
-                   QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
-                   QobjExperiment, QobjConfig)
 from qiskit.qobj.utils import MeasReturnType
 from qiskit.validation import bind_schema, BaseSchema, BaseModel
 from qiskit.validation.fields import (Integer, String, Number, Complex,
                                       List, Nested, MeasurementParameter)
+from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
+                   QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
+                   QobjExperiment, QobjConfig)
 
 
 class QobjMeasurementOptionSchema(BaseSchema):
