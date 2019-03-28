@@ -63,6 +63,9 @@ class Unitary(Gate):
             if isinstance(value, numpy.ndarray):
                 if not numpy.array_equal(value, getattr(self, attrib)):
                     return False
+            elif isinstance(value, sympy.Matrix):
+                if not numpy.array_equal(value, getattr(self, attrib)):
+                    return False
             elif getattr(self, attrib) != getattr(other, attrib):
                 return False
         return True
