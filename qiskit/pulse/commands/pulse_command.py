@@ -9,6 +9,7 @@
 Base command.
 """
 from abc import ABCMeta, abstractmethod
+
 from qiskit.pulse.exceptions import CommandsError
 
 
@@ -27,11 +28,21 @@ class PulseCommand(metaclass=ABCMeta):
         """
 
         if isinstance(duration, int):
-            self.duration = duration
+            self._duration = duration
         else:
             raise CommandsError('Pulse duration should be integer.')
 
-        self.name = name
+        self._name = name
+
+    @property
+    def duration(self) -> int:
+        """Duration of this command. """
+        return self._duration
+
+    @property
+    def name(self) -> str:
+        """Name of this command. """
+        return self._name
 
     def __eq__(self, other):
         """Two PulseCommands are the same if they are of the same type
@@ -44,11 +55,11 @@ class PulseCommand(metaclass=ABCMeta):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.duration == other.duration and\
-                self.name == other.name:
+                self._duration == other._duration and \
+                self._name == other._name:
             return True
         return False
 
     def __repr__(self):
         return '%s(name=%s, duration=%d)' % (self.__class__.__name__,
-                                             self.name, self.duration)
+                                             self._name, self._duration)

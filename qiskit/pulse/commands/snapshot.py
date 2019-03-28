@@ -12,11 +12,11 @@ from typing import Set
 
 from qiskit.pulse.channels import Channel, SnapshotChannel
 from qiskit.pulse.common.interfaces import Pulse
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from qiskit.pulse.common.timeslots import TimeslotOccupancy
 from .pulse_command import PulseCommand
 
 
-class Snapshot(PulseCommand):
+class Snapshot(PulseCommand, Pulse):
     """Snapshot."""
 
     def __init__(self, label, snap_type):
@@ -33,6 +33,8 @@ class Snapshot(PulseCommand):
 
         self.label = label
         self.type = snap_type
+        self._channel = SnapshotChannel()
+        self._occupancy = TimeslotOccupancy([])
 
     def __eq__(self, other):
         """Two Snapshots are the same if they are of the same type
@@ -50,18 +52,6 @@ class Snapshot(PulseCommand):
             return True
         return False
 
-    def __call__(self) -> 'SnapshotPulse':
-        return SnapshotPulse(self)
-
-
-class SnapshotPulse(Pulse):
-    """Pulse to keep persistent value. """
-
-    def __init__(self, command: Snapshot):
-        self._command = command
-        self._channel = SnapshotChannel()
-        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), self._channel)])
-
     @property
     def duration(self):
         return 0
@@ -73,3 +63,16 @@ class SnapshotPulse(Pulse):
     @property
     def occupancy(self):
         return self._occupancy
+
+    @property
+    def command(self) -> 'Snapshot':
+        """Snapshot command. """
+        return self
+
+    @property
+    def channel(self) -> SnapshotChannel:
+        """Snapshot channel. """
+        return self._channel
+
+    def __repr__(self):
+        return '%s(%s, %s) >> %s' % (self.__class__.__name__, self.label, self.type, self._channel)

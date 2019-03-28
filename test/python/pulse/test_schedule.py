@@ -13,7 +13,7 @@ import numpy as np
 
 from qiskit.pulse.channels import DeviceSpecification, Qubit
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, RegisterSlot, ControlChannel
-from qiskit.pulse.commands import function, FrameChange, Acquire, PersistentValue
+from qiskit.pulse.commands import function, FrameChange, Acquire, PersistentValue, Snapshot
 from qiskit.pulse.schedule import Schedule
 from qiskit.test import QiskitTestCase
 
@@ -48,6 +48,7 @@ class TestSchedule(QiskitTestCase):
         sched.insert(30, gp1(device.q[1].drive))
         sched.insert(60, FrameChange(phase=-1.57)(device.q[0].drive))
         sched.insert(60, gp0(device.q[0].control))
+        sched.insert(80, Snapshot("label", "snap_type"))
         sched.insert(90, fc_pi_2(device.q[0].drive))
         sched.insert(90, acquire(device.q[1], device.mem[1], device.c[1]))
         # print(sched)
