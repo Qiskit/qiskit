@@ -154,19 +154,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
             eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
 
-        initial_layout (dict): A mapping of qubit to qubit::
-
-                              {
-                                ("q", start(int)): ("q", final(int)),
-                                ...
-                              }
-                              eg.
-                              {
-                                ("q", 0): ("q", 0),
-                                ("q", 1): ("q", 1),
-                                ("q", 2): ("q", 2),
-                                ("q", 3): ("q", 3)
-                              }
+        initial_layout (Layout): A layout object
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
@@ -180,6 +168,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
     # TODO: `coupling_map`, `initial_layout`, `seed_mapper` removed after mapper pass.
 
     # TODO: move this to the mapper pass
+
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
     if num_qubits == 1:
         coupling_map = None
@@ -209,7 +198,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
         if coupling_map:
             logger.info("pre-mapping properties: %s",
                         dag.properties())
-            # Insert swap gates
+
             coupling = CouplingMap(coupling_map)
 
             # Extend and enlarge the the dag/layout with ancillas using the full coupling map

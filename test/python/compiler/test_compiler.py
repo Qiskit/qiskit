@@ -24,6 +24,7 @@ from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper.compiling import two_qubit_kak
 from qiskit.mapper.mapping import MapperError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.mapper import CouplingMap, Layout
 
 
 class TestCompiler(QiskitTestCase):
@@ -625,7 +626,8 @@ class TestCompiler(QiskitTestCase):
 
         circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
         dag_circuit = circuit_to_dag(circ)
-        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map)
+        layout = Layout.generate_trivial_layout(*circ.qregs)
+        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map, initial_layout=layout)
 
         self.assertTrue(mock_pass.called)
 
