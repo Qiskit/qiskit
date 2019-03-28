@@ -10,7 +10,7 @@ Sample pulse.
 """
 from typing import Set
 
-from qiskit.pulse.channels import PulseChannel, OutputChannel
+from qiskit.pulse.channels import Channel, OutputChannel
 from qiskit.pulse.common.interfaces import Pulse
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from .pulse_command import PulseCommand
@@ -86,7 +86,7 @@ class DrivePulse(Pulse):
         return self._command.duration
 
     @property
-    def channelset(self) -> Set[PulseChannel]:
+    def channelset(self) -> Set[Channel]:
         return {self._channel}
 
     @property

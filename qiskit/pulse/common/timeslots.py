@@ -12,7 +12,7 @@ import logging
 from collections import defaultdict
 from typing import List, Optional, Set
 
-from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ class Interval:
 class Timeslot:
     """Namedtuple of (Interval, PulseChannel)."""
 
-    def __init__(self, interval: Interval, channel: PulseChannel):
+    def __init__(self, interval: Interval, channel: Channel):
         """Create a timeslot.
 
         Args:
@@ -99,7 +99,7 @@ class TimeslotOccupancy:
         return self._timeslots
 
     @property
-    def channelset(self) -> Set[PulseChannel]:
+    def channelset(self) -> Set[Channel]:
         return {key for key in self._table.keys()}
 
     def is_mergeable_with(self, occupancy: 'TimeslotOccupancy') -> bool:

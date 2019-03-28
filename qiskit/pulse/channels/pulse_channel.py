@@ -11,7 +11,7 @@ Channels.
 from abc import ABCMeta, abstractmethod
 
 
-class PulseChannel(metaclass=ABCMeta):
+class Channel(metaclass=ABCMeta):
     """Pulse channel."""
 
     prefix = None
@@ -37,7 +37,7 @@ class PulseChannel(metaclass=ABCMeta):
         """Two channels are the same if they are of the same type, and have the same index.
 
         Args:
-            other (PulseChannel): other PulseChannel
+            other (Channel): other PulseChannel
 
         Returns:
             bool: are self and other equal.
@@ -51,7 +51,7 @@ class PulseChannel(metaclass=ABCMeta):
         return hash((type(self), self._index))
 
 
-class AcquireChannel(PulseChannel):
+class AcquireChannel(Channel):
     """Acquire channel."""
 
     prefix = 'a'
@@ -65,7 +65,7 @@ class AcquireChannel(PulseChannel):
         super().__init__(index)
 
 
-class SnapshotChannel(PulseChannel):
+class SnapshotChannel(Channel):
     """Snapshot channel."""
 
     prefix = 's'
@@ -75,7 +75,7 @@ class SnapshotChannel(PulseChannel):
         super().__init__(0)
 
 
-class MemorySlot(PulseChannel):
+class MemorySlot(Channel):
     """Memory slot."""
 
     prefix = 'm'
@@ -89,7 +89,7 @@ class MemorySlot(PulseChannel):
         super().__init__(index)
 
 
-class RegisterSlot(PulseChannel):
+class RegisterSlot(Channel):
     """Classical resister slot channel."""
 
     prefix = 'c'

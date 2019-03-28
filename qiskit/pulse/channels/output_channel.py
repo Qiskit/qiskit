@@ -10,10 +10,10 @@ Channels support signal output.
 """
 from abc import abstractmethod
 
-from .pulse_channel import PulseChannel
+from .pulse_channel import Channel
 
 
-class OutputChannel(PulseChannel):
+class OutputChannel(Channel):
     """Output Channel."""
 
     @abstractmethod

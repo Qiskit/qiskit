@@ -10,7 +10,7 @@ Acquire.
 """
 from typing import Union, List, Set
 
-from qiskit.pulse.channels import PulseChannel, Qubit, MemorySlot, RegisterSlot
+from qiskit.pulse.channels import Channel, Qubit, MemorySlot, RegisterSlot
 from qiskit.pulse.common.interfaces import Pulse
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from qiskit.pulse.exceptions import CommandsError
@@ -110,7 +110,7 @@ class AcquirePulse(Pulse):
         return self._command.duration
 
     @property
-    def channelset(self) -> Set[PulseChannel]:
+    def channelset(self) -> Set[Channel]:
         channels = []
         channels.extend(self._acquire_channels)
         channels.extend(self._mem_slots)
