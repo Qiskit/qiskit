@@ -9,11 +9,11 @@
 
 from marshmallow.validate import Range, Length, Regexp
 
+from qiskit.validation import bind_schema, BaseSchema, BaseModel
+from qiskit.validation.fields import List, Integer, InstructionParameter, Nested, String
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
-from qiskit.validation import bind_schema, BaseSchema, BaseModel
-from qiskit.validation.fields import List, Integer, InstructionParameter, Nested, String
 
 
 class QobjConditionalSchema(BaseSchema):
