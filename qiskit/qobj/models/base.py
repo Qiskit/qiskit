@@ -5,55 +5,33 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Models for Qobj and its related components."""
+"""The generic qobj models."""
 
-from marshmallow.validate import Length, Range, Regexp
+from marshmallow.validate import Length, Range
 
-from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import Integer, List, Nested, Raw, String
-
-
-class QobjConditionalSchema(BaseSchema):
-    """Schema for QobjConditional."""
-
-    # Required properties.
-    mask = String(required=True, validate=Regexp('^0x([0-9A-Fa-f])+$'))
-    type = String(required=True)
-    val = String(required=True, validate=Regexp('^0x([0-9A-Fa-f])+$'))
+from qiskit.validation import BaseSchema, bind_schema, BaseModel
+from qiskit.validation.fields import String, Nested, Integer
 
 
 class QobjInstructionSchema(BaseSchema):
-    """Schema for QobjInstruction."""
+    """Base Schema for QobjInstruction."""
 
-    # Required properties.
+    # Required properties
     name = String(required=True)
-
-    # Optional properties.
-    qubits = List(Integer(validate=Range(min=0)),
-                  validate=Length(min=1))
-    params = List(Raw())
-    memory = List(Integer(validate=Range(min=0)),
-                  validate=Length(min=1))
-    conditional = Nested(QobjConditionalSchema)
 
 
 class QobjExperimentHeaderSchema(BaseSchema):
-    """Schema for QobjExperimentHeader."""
+    """Base Schema for QobjExperimentHeader."""
     pass
 
 
 class QobjExperimentConfigSchema(BaseSchema):
-    """Schema for QobjExperimentConfig."""
-
-    # Required properties.
-
-    # Optional properties.
-    memory_slots = Integer(validate=Range(min=0))
-    n_qubits = Integer(validate=Range(min=1))
+    """Base Schema for QobjExperimentConfig."""
+    pass
 
 
 class QobjExperimentSchema(BaseSchema):
-    """Schema for QobjExperiment."""
+    """Base Schema for QobjExperiment."""
 
     # Required properties.
     instructions = Nested(QobjInstructionSchema, required=True, many=True,
@@ -65,47 +43,21 @@ class QobjExperimentSchema(BaseSchema):
 
 
 class QobjConfigSchema(BaseSchema):
-    """Schema for QobjConfig."""
-
-    # Required properties.
+    """Base Schema for QobjConfig."""
 
     # Optional properties.
     max_credits = Integer()
     seed = Integer()
     memory_slots = Integer(validate=Range(min=0))
-    n_qubits = Integer(validate=Range(min=1))
     shots = Integer(validate=Range(min=1))
 
 
 class QobjHeaderSchema(BaseSchema):
-    """Schema for QobjHeader."""
-
-    # Required properties.
+    """Base Schema for QobjHeader."""
 
     # Optional properties.
     backend_name = String()
     backend_version = String()
-
-
-@bind_schema(QobjConditionalSchema)
-class QobjConditional(BaseModel):
-    """Model for QobjConditional.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QobjConditionalSchema``.
-
-    Attributes:
-        mask (str): hexadecimal mask of the conditional
-        type (str): type of the conditional
-        val (str): hexadecimal value of the conditional
-    """
-    def __init__(self, mask, type, val, **kwargs):
-        # pylint: disable=redefined-builtin
-        self.mask = mask
-        self.type = type
-        self.val = val
-
-        super().__init__(**kwargs)
 
 
 @bind_schema(QobjInstructionSchema)

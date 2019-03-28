@@ -13,7 +13,7 @@
 import pkgutil
 
 # First, check for required Python and API version
-from . import _util
+from . import util
 
 # qiskit errors operator
 from .exceptions import QiskitError
@@ -53,3 +53,4 @@ except ImportError:
     pass
 
 from .version import __version__
+from .version import __qiskit_version__
