@@ -43,34 +43,18 @@ class ScheduleNode(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def t0(self) -> int:
-        """Relative begin time of this pulse. """
-        pass
-
-    @property
-    @abstractmethod
-    def parent(self) -> Optional['ScheduleNode']:
-        """Parent node of this schedule node. """
-        pass
-
-    @property
-    @abstractmethod
-    def children(self) -> Optional[List['ScheduleNode']]:
+    def children(self) -> List['ScheduleNode']:
         """Child nodes of this schedule node. """
         pass
 
+    @property
     @abstractmethod
     def begin_time(self) -> int:
-        """Absolute begin time of this schedule node. """
-        pass
-
-    @abstractmethod
-    def end_time(self) -> int:
-        """Absolute end time of this schedule node. """
+        """Relative begin time of this schedule node. """
         pass
 
     @property
     @abstractmethod
-    def duration(self) -> int:
-        """Duration of this schedule node. """
+    def end_time(self) -> int:
+        """Relative end time of this schedule node. """
         pass

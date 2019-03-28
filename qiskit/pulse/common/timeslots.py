@@ -28,6 +28,10 @@ class Interval:
             begin: begin time of this interval
             duration: duration of this interval
         """
+        if begin < 0:
+            raise PulseError("Cannot create Interval with negative begin time")
+        if duration < 0:
+            raise PulseError("Cannot create Interval with negative duration")
         self._begin = begin
         self._end = begin + duration
 
@@ -122,23 +126,18 @@ class TimeslotOccupancy:
         Returns:
             A new TimeslotOccupancy object merged with a specified `occupancy`.
         """
-        timeslots = [Timeslot(slot.interval, slot.channel) for slot in self.timeslots]
-        timeslots.extend([Timeslot(slot.interval, slot.channel) for slot in occupancy.timeslots])
-        return TimeslotOccupancy(timeslots)
+        slots = [Timeslot(slot.interval, slot.channel) for slot in self.timeslots]
+        slots.extend([Timeslot(slot.interval, slot.channel) for slot in occupancy.timeslots])
+        return TimeslotOccupancy(slots)
 
     def shifted(self, time: int) -> 'TimeslotOccupancy':
-        """Return a new TimeslotOccupancy shifted by a non-negative `time`.
+        """Return a new TimeslotOccupancy shifted by `time`.
 
         Args:
-            time:
+            time: time to be shifted
 
         Returns:
-            A new TimeslotOccupancy object shifted by a `time`.
+            A new TimeslotOccupancy object shifted by `time`.
         """
-        """Return  """
-        if time < 0:
-            raise PulseError("Cannot shift TimeslotOccupancy by negative time")
-        timeslots = []
-        for slot in self.timeslots:
-            timeslots.append(Timeslot(slot.interval.shifted(time), slot.channel))
-        return TimeslotOccupancy(timeslots)
+        slots = [Timeslot(slot.interval.shifted(time), slot.channel) for slot in self.timeslots]
+        return TimeslotOccupancy(slots)

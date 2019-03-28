@@ -12,12 +12,9 @@
 Schedule.
 """
 import logging
-import pprint
-from collections import defaultdict
-from typing import List, Tuple, Optional, Set
+from typing import List, Tuple, Set
 
 from qiskit.pulse.channels import DeviceSpecification, PulseChannel
-from qiskit.pulse.commands import PulseCommand, SamplePulse
 from qiskit.pulse.common.interfaces import Pulse, ScheduleNode
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
 from qiskit.pulse.exceptions import ScheduleError
@@ -27,52 +24,40 @@ logger = logging.getLogger(__name__)
 
 class TimedPulse(ScheduleNode):
     """A `Pulse` with begin time relative to its parent,
-    which is a leaf in a schedule tree."""
+    which is a non-root node in a schedule tree."""
 
-    def __init__(self, t0: int, pulse: Pulse, parent: ScheduleNode):
-        self._t0 = t0
-        self._pulse = pulse
-        self._parent = parent
+    def __init__(self, begin_time: int, block: Pulse):
+        self._begin_time = begin_time
+        self._block = block
 
     @property
     def pulse(self) -> Pulse:
-        return self._pulse
+        return self._block
 
     @property
-    def t0(self) -> int:
-        """Relative begin time of this pulse. """
-        return self._t0
-
-    @property
-    def parent(self) -> Optional['ScheduleNode']:
-        """Parent node of this schedule node. """
-        return self._parent
-
-    @property
-    def children(self) -> Optional[List['ScheduleNode']]:
+    def children(self) -> List[ScheduleNode]:
         """Child nodes of this schedule node. """
-        return None
+        if isinstance(self._block, Schedule):
+            return self._block.children
+        return []
 
+    @property
     def begin_time(self) -> int:
-        """Absolute begin time of this pulse. """
-        t0 = self._t0
-        point = self._parent
-        while point:
-            t0 += point.t0
-            point = point.parent
-        return t0
+        """Relative begin time of this pulse. """
+        return self._begin_time
 
+    @property
     def end_time(self) -> int:
-        """Absolute end time of this pulse. """
-        return self.begin_time() + self.duration
+        """Relative end time of this pulse. """
+        return self.begin_time + self.duration
 
     @property
     def duration(self) -> int:
         """Duration of this pulse. """
-        return self._pulse.duration
+        return self._block.duration
 
     def __str__(self):
-        return "(%s, %d)" % (self._pulse, self._t0)
+        return "(%d, %s)" % (self._begin_time, self._block)
 
 
 class Schedule(ScheduleNode, Pulse):
@@ -111,76 +96,57 @@ class Schedule(ScheduleNode, Pulse):
     def device(self) -> DeviceSpecification:
         return self._device
 
-    def insert(self, t0: int, pulse: Pulse):
+    def insert(self, begin_time: int, block: Pulse):
         """Insert a new pulse at `begin_time`.
 
         Args:
-            t0:
-            pulse (Pulse):
+            begin_time:
+            block (Pulse):
         """
-        # self._check_channels(pulse)
-        if isinstance(pulse, Schedule):
-            raise NotImplementedError("This version doesn't support schedule of schedules.")
-        elif isinstance(pulse, Pulse):
-            shifted = pulse.occupancy.shifted(t0)
-            if self._occupancy.is_mergeable_with(shifted):
-                self._occupancy = self._occupancy.merged(shifted)
-                self._children.append(TimedPulse(t0, pulse, parent=self))
-            else:
-                logger.warning("Fail to insert %s at %s due to timing overlap", pulse, t0)
-                raise ScheduleError("Fail to insert %s at %s due to overlap" % (str(pulse), t0))
+        if not isinstance(block, Pulse):
+            raise ScheduleError("Invalid to be inserted: %s" % block.__class__.__name__)
+        # self._check_channels(block)
+        shifted = block.occupancy.shifted(begin_time)
+        if self._occupancy.is_mergeable_with(shifted):
+            self._occupancy = self._occupancy.merged(shifted)
+            self._children.append(TimedPulse(begin_time, block))
         else:
-            raise ScheduleError("Invalid to be inserted: %s" % pulse.__class__.__name__)
+            logger.warning("Fail to insert %s at %s due to timing overlap", block, begin_time)
+            raise ScheduleError("Fail to insert %s at %s due to overlap" % (str(block), begin_time))
 
-    def append(self, pulse: Pulse):
+    def append(self, block: Pulse):
         """Append a new pulse on a channel at the timing
         just after the last pulse finishes.
 
         Args:
-            pulse (Pulse):
+            block (Pulse):
         """
-        # self._check_channels(pulse)
-        if isinstance(pulse, Schedule):
-            raise NotImplementedError("This version doesn't support schedule of schedules.")
-        elif isinstance(pulse, Pulse):
-            t0 = self.end_time()
-            try:
-                self.insert(t0, pulse)
-            except ScheduleError:
-                logger.warning("Fail to append %s due to timing overlap", pulse)
-                raise ScheduleError("Fail to append %s due to overlap" % str(pulse))
-        else:
-            raise ScheduleError("Invalid to be appended: %s" % pulse.__class__.__name__)
+        if not isinstance(block, Pulse):
+            raise ScheduleError("Invalid to be inserted: %s" % block.__class__.__name__)
+        # self._check_channels(block)
+        begin_time = self.end_time
+        try:
+            self.insert(begin_time, block)
+        except ScheduleError:
+            logger.warning("Fail to append %s due to timing overlap", block)
+            raise ScheduleError("Fail to append %s due to overlap" % str(block))
 
     @property
-    def t0(self) -> int:
-        """Relative begin time of this pulse. """
-        return 0
-
-    @property
-    def parent(self) -> Optional['ScheduleNode']:
-        """Parent node of this schedule node. """
-        return None
-
-    @property
-    def children(self) -> Optional[List['ScheduleNode']]:
+    def children(self) -> List[ScheduleNode]:
         """Child nodes of this schedule node. """
         return self._children
 
+    @property
     def begin_time(self) -> int:
         return 0
 
+    @property
     def end_time(self) -> int:
-        # TODO: Handle schedule of schedules
-        for child in self._children:
-            if not isinstance(child, TimedPulse):
-                raise NotImplementedError("This version doesn't support schedule of schedules.")
-        # This implementation only works for flat schedule
-        return max([child.end_time() for child in self._children], default=0)
+        return max([slot.interval.end for slot in self._occupancy.timeslots], default=0)
 
     @property
     def duration(self) -> int:
-        return self.end_time()
+        return self.end_time
 
     @property
     def channelset(self) -> Set[PulseChannel]:
@@ -192,9 +158,8 @@ class Schedule(ScheduleNode, Pulse):
 
     def _check_channels(self, pulse: Pulse):
         if isinstance(pulse, Schedule):
-            # if pulse._device != self._device:
-            #     raise ScheduleError("Additional schedule must have same device as self")
-            raise NotImplementedError("This version doesn't support schedule of schedules.")
+            if pulse._device != self._device:
+                raise ScheduleError("Additional schedule must have same device as self")
         else:
             # check if all the channels of pulse are defined in the device
             for ch in pulse.channelset:
@@ -204,7 +169,7 @@ class Schedule(ScheduleNode, Pulse):
     def __str__(self):
         # TODO: Handle schedule of schedules
         for child in self._children:
-            if not isinstance(child, TimedPulse):
+            if child.children:
                 raise NotImplementedError("This version doesn't support schedule of schedules.")
         res = []
         for child in self._children:
@@ -212,21 +177,9 @@ class Schedule(ScheduleNode, Pulse):
         res = sorted(res)
         return '\n'.join(["%4d: %s" % i for i in res])
 
-    def get_sample_pulses(self) -> List[PulseCommand]:
-        # TODO: Handle schedule of schedules
-        for child in self._children:
-            if not isinstance(child, TimedPulse):
-                raise NotImplementedError("This version doesn't support schedule of schedules.")
-        lib = []
-        for tp in self._children:
-            if isinstance(tp.command, SamplePulse) and \
-                    tp.command not in lib:
-                lib.append(tp.command)
-        return lib
-
     def flat_pulse_sequence(self) -> List[TimedPulse]:
         # TODO: Handle schedule of schedules
         for child in self._children:
-            if not isinstance(child, TimedPulse):
+            if child.children:
                 raise NotImplementedError("This version doesn't support schedule of schedules.")
         return self._children
