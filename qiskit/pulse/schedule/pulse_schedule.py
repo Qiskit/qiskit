@@ -173,7 +173,7 @@ class Schedule(ScheduleNode, Pulse):
                 raise NotImplementedError("This version doesn't support schedule of schedules.")
         res = []
         for child in self._children:
-            res.append((child.begin_time(), str(child.pulse)))
+            res.append((child.begin_time, str(child.pulse)))
         res = sorted(res)
         return '\n'.join(["%4d: %s" % i for i in res])
 

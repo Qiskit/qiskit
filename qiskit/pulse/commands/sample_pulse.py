@@ -69,6 +69,9 @@ class SamplePulse(PulseCommand):
             return True
         return False
 
+    def __repr__(self):
+        return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
+
     def __call__(self, channel: OutputChannel) -> 'DrivePulse':
         return DrivePulse(self, channel)
 
@@ -93,6 +96,15 @@ class DrivePulse(Pulse):
     def occupancy(self):
         return self._occupancy
 
+    @property
+    def command(self) -> SamplePulse:
+        """SamplePulse command. """
+        return self._command
+
+    @property
+    def channel(self) -> OutputChannel:
+        """OutputChannel command. """
+        return self._channel
+
     def __repr__(self):
-        return '%s(name=%s, duration=%d, channelset=%s)' % \
-               (self.__class__.__name__, self._command.name, self.duration, self.channelset)
+        return '%s >> %s' % (self._command, self._channel)
