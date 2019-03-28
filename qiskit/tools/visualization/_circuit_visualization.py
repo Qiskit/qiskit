@@ -468,5 +468,4 @@ def _matplotlib_circuit_drawer(circuit,
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits)
-    qcd.parse_circuit(circuit)
     return qcd.draw(filename, verbose=True)
