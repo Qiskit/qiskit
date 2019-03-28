@@ -1081,7 +1081,7 @@
                         },
                         "dt": {
                             "minimum": 0,
-                            "type": "integer"
+                            "type": "number"
                         },
                         "ode_options": {
                             "properties": {
