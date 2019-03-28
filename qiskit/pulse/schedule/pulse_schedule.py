@@ -5,6 +5,9 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# TODO: Pylint
+# pylint: disable=invalid-name, missing-docstring, missing-param-doc, missing-raises-doc
+
 """
 Schedule.
 """
@@ -149,13 +152,6 @@ class Schedule(TimedPulseBlock):
         return max([self._end_time(child) for child in self._children], default=0)
 
     def end_time_by(self, channel: Channel) -> int:
-        """End time of the occupation in this schedule on a `channel`.
-        Args:
-            channel:
-
-        Returns:
-
-        """
         #  TODO: Handle schedule of schedules
         end_time = 0
         for child in self._children:
