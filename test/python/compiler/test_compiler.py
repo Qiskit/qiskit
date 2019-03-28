@@ -596,10 +596,10 @@ class TestCompiler(QiskitTestCase):
             self._get_resource_path('move_measurements.qasm', Path.QASMS))
 
         dag_circuit = circuit_to_dag(circ)
-        lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
+        lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
                ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
                ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
-               ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
+               ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
         out_dag = transpile_dag(dag_circuit, initial_layout=lay, coupling_map=cmap)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
