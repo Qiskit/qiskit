@@ -50,6 +50,7 @@ class TestOptimize1qGates(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Optimize1qGates())
         result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
+
         self.assertEqual(expected, result)
 
     def test_optimize_1q_gates_collapse_identity(self):
@@ -75,6 +76,7 @@ class TestOptimize1qGates(QiskitTestCase):
 
         dag = circuit_to_dag(qc)
         simplified_dag = Optimize1qGates().run(dag)
+
         num_u1_gates_remaining = len(simplified_dag.named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 0)
 
@@ -103,9 +105,8 @@ class TestOptimize1qGates(QiskitTestCase):
         simplified_dag = Optimize1qGates().run(dag)
 
         params = set()
-        for node_id in simplified_dag.named_nodes('u1'):
-            node = simplified_dag.node(node_id)
-            params.add(node['op'].params[0])
+        for node in simplified_dag.named_nodes('u1'):
+            params.add(node.op.params[0])
 
         expected_params = {sympy.Number(-3 * np.pi / 2),
                            sympy.Number(1.0 + 0.55 * np.pi),
@@ -136,6 +137,28 @@ class TestOptimize1qGates(QiskitTestCase):
         expected.u1(0.1, qr).c_if(cr, 1)
         expected.u1(0.2, qr).c_if(cr, 3)
         expected.u1(0.7, qr)
+
+        pass_ = Optimize1qGates()
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_in_the_back(self):
+        """Optimizations can be in the back of the circuit.
+        See https://github.com/Qiskit/qiskit-terra/issues/2004.
+
+        qr0:--[U1]-[U1]-[H]--    qr0:--[U1]-[H]--
+        """
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.u1(0.3, qr)
+        circuit.u1(0.4, qr)
+        circuit.h(qr)
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr,)
+        expected.u1(0.7, qr)
+        expected.h(qr)
 
         pass_ = Optimize1qGates()
         after = pass_.run(dag)

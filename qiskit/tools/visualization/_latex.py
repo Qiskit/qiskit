@@ -915,3 +915,4 @@ def _truncate_float(matchobj, format_str='0.2g'):
     if matchobj.group(0):
         return format(float(matchobj.group(0)), format_str)
     return ''
+  

@@ -18,7 +18,7 @@ from qiskit.transpiler import PassManager, transpile, transpile_dag
 from qiskit import compile, execute
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
-from qiskit.qobj import Qobj
+from qiskit.qobj import QasmQobj
 from qiskit.converters import circuit_to_dag
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper.compiling import two_qubit_kak
@@ -576,7 +576,7 @@ class TestCompiler(QiskitTestCase):
         circ1.rz(0.7, qr[1])
         circ1.rx(1.570796, qr[1])
         qobj1 = compile(circ1, backend)
-        self.assertIsInstance(qobj1, Qobj)
+        self.assertIsInstance(qobj1, QasmQobj)
 
         circ2 = QuantumCircuit(qr)
         circ2.y(qr[0])
@@ -584,7 +584,7 @@ class TestCompiler(QiskitTestCase):
         circ2.s(qr[0])
         circ2.h(qr[0])
         qobj2 = compile(circ2, backend)
-        self.assertIsInstance(qobj2, Qobj)
+        self.assertIsInstance(qobj2, QasmQobj)
 
     def test_move_measurements(self):
         """Measurements applied AFTER swap mapping.
@@ -599,12 +599,11 @@ class TestCompiler(QiskitTestCase):
                ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
                ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
                ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
-        out_dag = transpile_dag(dag_circuit, initial_layout=lay,
-                                coupling_map=cmap)
+        out_dag = transpile_dag(dag_circuit, initial_layout=lay, coupling_map=cmap)
         meas_nodes = out_dag.named_nodes('measure')
-        for n in meas_nodes:
-            is_last_measure = all([after_measure in out_dag.output_map.values()
-                                   for after_measure in out_dag.quantum_successors(n)])
+        for meas_node in meas_nodes:
+            is_last_measure = all([after_measure.type == 'out'
+                                   for after_measure in out_dag.quantum_successors(meas_node)])
             self.assertTrue(is_last_measure)
 
     def test_kak_decomposition(self):
