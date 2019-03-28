@@ -231,22 +231,22 @@ class QCircuitImage:
             for op in layer:
                 # useful information for determining row spacing
 
-                if op['name'] in boxed_gates:
+                if op.name in boxed_gates:
                     self.has_box = True
-                if op['name'] in target_gates:
+                if op.name in target_gates:
                     self.has_target = True
 
                 # useful information for determining column widths and final image
                 # scaling
-                if op['name'] not in ['measure', 'reset', 'barrier']:
-                    qarglist = op['qargs']
+                if op.name not in ['measure', 'reset', 'barrier']:
+                    qarglist = op.qargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     if len(qarglist) == 1:
                         pos_1 = self.img_regs[(qarglist[0][0],
                                                qarglist[0][1])]
-                        if 'condition' in op and op['condition']:
-                            mask = self._get_mask(op['condition'][0])
+                        if op.condition:
+                            mask = self._get_mask(op.condition[0])
                             cl_reg = self.clbit_list[self._ffs(mask)]
                             if_reg = cl_reg[0]
                             pos_2 = self.img_regs[cl_reg]
@@ -270,8 +270,8 @@ class QCircuitImage:
                         pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
                         pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
 
-                        if 'condition' in op and op['condition']:
-                            mask = self._get_mask(op['condition'][0])
+                        if op.condition:
+                            mask = self._get_mask(op.condition[0])
                             cl_reg = self.clbit_list[self._ffs(mask)]
                             if_reg = cl_reg[0]
                             pos_3 = self.img_regs[(if_reg, 0)]
@@ -296,7 +296,7 @@ class QCircuitImage:
                                             is_occupied[j] = True
                                         break
                             # symetric gates have angle labels
-                            if op['name'] in ['cu1']:
+                            if op.name == 'cu1':
                                 columns += 1
                                 is_occupied = [False] * self.img_width
                                 is_occupied[max(pos_1, pos_2)] = True
@@ -316,7 +316,7 @@ class QCircuitImage:
                                         is_occupied[j] = True
                                     break
                             # symetric gates have angle labels
-                            if op['name'] in ['cu1']:
+                            if op.name == 'cu1':
                                 columns += 1
                                 is_occupied = [False] * self.img_width
                                 is_occupied[top] = True
@@ -326,8 +326,8 @@ class QCircuitImage:
                         pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
                         pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
 
-                        if 'condition' in op and op['condition']:
-                            mask = self._get_mask(op['condition'][0])
+                        if op.condition:
+                            mask = self._get_mask(op.condition[0])
                             cl_reg = self.clbit_list[self._ffs(mask)]
                             if_reg = cl_reg[0]
                             pos_4 = self.img_regs[(if_reg, 0)]
@@ -364,7 +364,7 @@ class QCircuitImage:
 
                     # update current column width
                     arg_str_len = 0
-                    for arg in op['op'].params:
+                    for arg in op.op.params:
                         arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
                                          _truncate_float, str(arg))
                         arg_str_len += len(arg_str)
@@ -372,14 +372,14 @@ class QCircuitImage:
                         max_column_width[columns] = 0
                     max_column_width[columns] = max(arg_str_len,
                                                     max_column_width[columns])
-                elif op['name'] == "measure":
-                    if len(op['cargs']) != 1 or len(op['qargs']) != 1:
+                elif op.name == "measure":
+                    if len(op.cargs) != 1 or len(op.qargs) != 1:
                         raise exceptions.VisualizationError("bad operation record")
-                    if 'condition' in op and op['condition']:
+                    if op.condition:
                         raise exceptions.VisualizationError(
                             'conditional measures currently not supported.')
-                    qname, qindex = op['qargs'][0]
-                    cname, cindex = op['cargs'][0]
+                    qname, qindex = op.qargs[0]
+                    cname, cindex = op.cargs[0]
                     if aliases:
                         newq = aliases[(qname, qindex)]
                         qname = newq[0]
@@ -401,11 +401,11 @@ class QCircuitImage:
                     # update current column width
                     if columns not in max_column_width:
                         max_column_width[columns] = 0
-                elif op['name'] == "reset":
-                    if 'conditional' in op and op['condition']:
+                elif op.name == "reset":
+                    if op.condition:
                         raise exceptions.VisualizationError(
                             'conditional reset currently not supported.')
-                    qname, qindex = op['qargs'][0]
+                    qname, qindex = op.qargs[0]
                     if aliases:
                         newq = aliases[(qname, qindex)]
                         qname = newq[0]
@@ -417,16 +417,16 @@ class QCircuitImage:
                         columns += 1
                         is_occupied = [False] * self.img_width
                         is_occupied[pos_1] = True
-                elif op['name'] in ["barrier", 'snapshot', 'load', 'save',
-                                    'noise']:
+                elif op.name in ['barrier', 'snapshot', 'load', 'save',
+                                 'noise']:
                     if self.plot_barriers:
-                        qarglist = op['qargs']
+                        qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]
                         start_bit = self.qubit_list[min(indexes)]
                         if aliases is not None:
                             qarglist = map(lambda x: aliases[x], qarglist)
                         start = self.img_regs[start_bit]
-                        span = len(op['qargs']) - 1
+                        span = len(op.qargs) - 1
                         for i in range(start, start + span + 1):
                             if is_occupied[i] is False:
                                 is_occupied[i] = True
@@ -498,25 +498,25 @@ class QCircuitImage:
         """
         for column, layer in enumerate(self.ops, 1):
             for op in layer:
-                if 'condition' in op and op['condition']:
-                    mask = self._get_mask(op['condition'][0])
+                if op.condition:
+                    mask = self._get_mask(op.condition[0])
                     cl_reg = self.clbit_list[self._ffs(mask)]
                     if_reg = cl_reg[0]
                     pos_2 = self.img_regs[cl_reg]
-                    if_value = format(op['condition'][1],
+                    if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
-                if op['name'] not in ['measure', 'barrier', 'snapshot', 'load',
-                                      'save', 'noise']:
-                    nm = op['name']
-                    qarglist = op['qargs']
+                if op.name not in ['measure', 'barrier', 'snapshot', 'load',
+                                   'save', 'noise']:
+                    nm = op.name
+                    qarglist = op.qargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     if len(qarglist) == 1:
                         pos_1 = self.img_regs[(qarglist[0][0],
                                                qarglist[0][1])]
 
-                        if 'condition' in op and op['condition']:
-                            mask = self._get_mask(op['condition'][0])
+                        if op.condition:
+                            mask = self._get_mask(op.condition[0])
                             cl_reg = self.clbit_list[self._ffs(mask)]
                             if_reg = cl_reg[0]
                             pos_2 = self.img_regs[cl_reg]
@@ -539,28 +539,28 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{T^\\dag}"
                             elif nm == "u0":
                                 self._latex[pos_1][column] = "\\gate{U_0(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "u1":
                                 self._latex[pos_1][column] = "\\gate{U_1(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "u2":
                                 self._latex[pos_1][column] = \
                                     "\\gate{U_2\\left(%s,%s\\right)}" % (
-                                        op["op"].params[0], op["op"].params[1])
+                                        op.op.params[0], op.op.params[1])
                             elif nm == "u3":
                                 self._latex[pos_1][column] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                    op["op"].params[0],
-                                    op["op"].params[1],
-                                    op["op"].params[2]))
+                                    op.op.params[0],
+                                    op.op.params[1],
+                                    op.op.params[2]))
                             elif nm == "rx":
                                 self._latex[pos_1][column] = "\\gate{R_x(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "ry":
                                 self._latex[pos_1][column] = "\\gate{R_y(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "rz":
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
 
                             gap = pos_2 - pos_1
                             for i in range(self.cregs[if_reg]):
@@ -592,28 +592,28 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{T^\\dag}"
                             elif nm == "u0":
                                 self._latex[pos_1][column] = "\\gate{U_0(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "u1":
                                 self._latex[pos_1][column] = "\\gate{U_1(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "u2":
                                 self._latex[pos_1][column] = \
                                     "\\gate{U_2\\left(%s,%s\\right)}" % (
-                                        op["op"].params[0], op["op"].params[1])
+                                        op.op.params[0], op.op.params[1])
                             elif nm == "u3":
                                 self._latex[pos_1][column] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                    op["op"].params[0],
-                                    op["op"].params[1],
-                                    op["op"].params[2]))
+                                    op.op.params[0],
+                                    op.op.params[1],
+                                    op.op.params[2]))
                             elif nm == "rx":
                                 self._latex[pos_1][column] = "\\gate{R_x(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "ry":
                                 self._latex[pos_1][column] = "\\gate{R_y(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "rz":
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
-                                    op["op"].params[0])
+                                    op.op.params[0])
                             elif nm == "reset":
                                 self._latex[pos_1][column] = (
                                     "\\push{\\rule{.6em}{0em}\\ket{0}\\"
@@ -623,7 +623,7 @@ class QCircuitImage:
                         pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
                         pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
 
-                        if 'condition' in op and op['condition']:
+                        if op.condition:
                             pos_3 = self.img_regs[(if_reg, 0)]
                             temp = [pos_1, pos_2, pos_3]
                             temp.sort(key=int)
@@ -664,21 +664,21 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = \
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
-                                    "\\gate{R_z(%s)}" % (op["op"].params[0])
+                                    "\\gate{R_z(%s)}" % (op.op.params[0])
                             elif nm == "cu1":
                                 self._latex[pos_1][column - 1] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column - 1] = "\\control\\qw"
                                 self._latex[min(pos_1, pos_2)][column] = \
-                                    "\\dstick{%s}\\qw" % (op["op"].params[0])
+                                    "\\dstick{%s}\\qw" % (op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column] = "\\qw"
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = \
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
-                                    "\\gate{U_3(%s,%s,%s)}" % (op["op"].params[0],
-                                                               op["op"].params[1],
-                                                               op["op"].params[2])
+                                    "\\gate{U_3(%s,%s,%s)}" % (op.op.params[0],
+                                                               op.op.params[1],
+                                                               op.op.params[2])
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -707,28 +707,28 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
-                                    "\\gate{R_z(%s)}" % (op["op"].params[0])
+                                    "\\gate{R_z(%s)}" % (op.op.params[0])
                             elif nm == "cu1":
                                 self._latex[pos_1][column - 1] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column - 1] = "\\control\\qw"
                                 self._latex[min(pos_1, pos_2)][column] = \
-                                    "\\dstick{%s}\\qw" % (op["op"].params[0])
+                                    "\\dstick{%s}\\qw" % (op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column] = "\\qw"
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                    op["op"].params[0],
-                                    op["op"].params[1],
-                                    op["op"].params[2]))
+                                    op.op.params[0],
+                                    op.op.params[1],
+                                    op.op.params[2]))
 
                     elif len(qarglist) == 3:
                         pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
                         pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
                         pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
 
-                        if 'condition' in op and op['condition']:
+                        if op.condition:
                             pos_4 = self.img_regs[(if_reg, 0)]
 
                             temp = [pos_1, pos_2, pos_3, pos_4]
@@ -799,18 +799,18 @@ class QCircuitImage:
                                 self._latex[pos_3][column] = \
                                     "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
 
-                elif op["name"] == "measure":
-                    if (len(op['cargs']) != 1
-                            or len(op['qargs']) != 1
-                            or op['op'].params):
+                elif op.name == "measure":
+                    if (len(op.cargs) != 1
+                            or len(op.qargs) != 1
+                            or op.op.params):
                         raise exceptions.VisualizationError("bad operation record")
 
-                    if 'condition' in op and op['condition']:
+                    if op.condition:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")
 
-                    qname, qindex = op['qargs'][0]
-                    cname, cindex = op['cargs'][0]
+                    qname, qindex = op.qargs[0]
+                    cname, cindex = op.cargs[0]
                     if aliases:
                         newq = aliases[(qname, qindex)]
                         qname = newq[0]
@@ -837,14 +837,14 @@ class QCircuitImage:
                     except Exception as e:
                         raise exceptions.VisualizationError(
                             'Error during Latex building: %s' % str(e))
-                elif op['name'] in ["barrier", 'snapshot', 'load', 'save',
-                                    'noise']:
+                elif op.name in ['barrier', 'snapshot', 'load', 'save',
+                                 'noise']:
                     if self.plot_barriers:
-                        qarglist = op['qargs']
+                        qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]
                         start_bit = self.qubit_list[min(indexes)]
                         start = self.img_regs[start_bit]
-                        span = len(op['qargs']) - 1
+                        span = len(op.qargs) - 1
 
                         self._latex[start][column] = "\\qw \\barrier{" + str(
                             span) + "}"
@@ -915,4 +915,3 @@ def _truncate_float(matchobj, format_str='0.2g'):
     if matchobj.group(0):
         return format(float(matchobj.group(0)), format_str)
     return ''
-  

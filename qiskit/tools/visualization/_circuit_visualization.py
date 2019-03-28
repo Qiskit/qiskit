@@ -415,7 +415,7 @@ def _generate_latex_source(circuit, filename=None,
         str: Latex string appropriate for writing to file.
     """
     qregs, cregs, ops = _utils._get_layered_instructions(circuit,
-                                                         reversebits=reverse_bits,
+                                                         reverse_bits=reverse_bits,
                                                          justify=justify)
 
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,

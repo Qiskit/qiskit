@@ -172,39 +172,44 @@ class TestVisualizationUtils(QiskitTestCase):
         self.circuit.cx(self.qr1[1], self.qr1[0])
         self.circuit.measure(self.qr1[1], self.cr1[1])
 
-    def test_get_instructions(self):
+    def test_get_layered_instructions(self):
         """ _get_instructions without reverse_bits """
-        (qregs, cregs, ops) = _utils._get_instructions(self.circuit)
+        (qregs, cregs, layered_ops) = _utils._get_layered_instructions(self.circuit)
 
-        exp = [('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], []),
-               ('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
-               ('measure', [(QuantumRegister(2, 'qr1'), 0)], [(ClassicalRegister(2, 'cr1'), 0)]),
-               ('cx', [(QuantumRegister(2, 'qr1'), 1), (QuantumRegister(2, 'qr1'), 0)], []),
-               ('measure', [(QuantumRegister(2, 'qr1'), 1)], [(ClassicalRegister(2, 'cr1'), 1)]),
-               ('measure', [(QuantumRegister(2, 'qr2'), 0)], [(ClassicalRegister(2, 'cr2'), 0)]),
-               ('cx', [(QuantumRegister(2, 'qr2'), 1), (QuantumRegister(2, 'qr2'), 0)], []),
-               ('measure', [(QuantumRegister(2, 'qr2'), 1)], [(ClassicalRegister(2, 'cr2'), 1)])]
+        exp = [[('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
+                ('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], [])],
+               [('measure', [(QuantumRegister(2, 'qr2'), 0)], [(ClassicalRegister(2, 'cr2'), 0)])],
+               [('measure', [(QuantumRegister(2, 'qr1'), 0)], [(ClassicalRegister(2, 'cr1'), 0)])],
+               [],
+               [('cx', [(QuantumRegister(2, 'qr2'), 1), (QuantumRegister(2, 'qr2'), 0)], []),
+                ('cx', [(QuantumRegister(2, 'qr1'), 1), (QuantumRegister(2, 'qr1'), 0)], [])],
+               [('measure', [(QuantumRegister(2, 'qr2'), 1)], [(ClassicalRegister(2, 'cr2'), 1)])],
+               [('measure', [(QuantumRegister(2, 'qr1'), 1)], [(ClassicalRegister(2, 'cr1'), 1)])],
+               []]
 
         self.assertEqual([(self.qr1, 0), (self.qr1, 1), (self.qr2, 0), (self.qr2, 1)], qregs)
         self.assertEqual([(self.cr1, 0), (self.cr1, 1), (self.cr2, 0), (self.cr2, 1)], cregs)
-        self.assertEqual(exp, [(op.name, op.qargs, op.cargs) for op in ops])
+        self.assertEqual(exp, [[(op.name, op.qargs, op.cargs) for op in ops]for ops in layered_ops])
 
-    def test_get_instructions_reverse_bits(self):
+    def test_get_layered_instructions_reverse_bits(self):
         """ _get_instructions with reverse_bits=True """
-        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reverse_bits=True)
+        (qregs, cregs, layered_ops) = _utils._get_layered_instructions(self.circuit,
+                                                                       reverse_bits=True)
 
-        exp = [('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], []),
-               ('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
-               ('measure', [(QuantumRegister(2, 'qr1'), 0)], [(ClassicalRegister(2, 'cr1'), 0)]),
-               ('cx', [(QuantumRegister(2, 'qr1'), 1), (QuantumRegister(2, 'qr1'), 0)], []),
-               ('measure', [(QuantumRegister(2, 'qr1'), 1)], [(ClassicalRegister(2, 'cr1'), 1)]),
-               ('measure', [(QuantumRegister(2, 'qr2'), 0)], [(ClassicalRegister(2, 'cr2'), 0)]),
-               ('cx', [(QuantumRegister(2, 'qr2'), 1), (QuantumRegister(2, 'qr2'), 0)], []),
-               ('measure', [(QuantumRegister(2, 'qr2'), 1)], [(ClassicalRegister(2, 'cr2'), 1)])]
+        exp = [[('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
+                ('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], [])],
+               [('measure', [(QuantumRegister(2, 'qr2'), 0)], [(ClassicalRegister(2, 'cr2'), 0)])],
+               [('measure', [(QuantumRegister(2, 'qr1'), 0)], [(ClassicalRegister(2, 'cr1'), 0)])],
+               [],
+               [('cx', [(QuantumRegister(2, 'qr2'), 1), (QuantumRegister(2, 'qr2'), 0)], []),
+                ('cx', [(QuantumRegister(2, 'qr1'), 1), (QuantumRegister(2, 'qr1'), 0)], [])],
+               [('measure', [(QuantumRegister(2, 'qr2'), 1)], [(ClassicalRegister(2, 'cr2'), 1)])],
+               [('measure', [(QuantumRegister(2, 'qr1'), 1)], [(ClassicalRegister(2, 'cr1'), 1)])],
+               []]
 
         self.assertEqual([(self.qr2, 1), (self.qr2, 0), (self.qr1, 1), (self.qr1, 0)], qregs)
         self.assertEqual([(self.cr2, 1), (self.cr2, 0), (self.cr1, 1), (self.cr1, 0)], cregs)
-        self.assertEqual(exp, [(op.name, op.qargs, op.cargs) for op in ops])
+        self.assertEqual(exp, [[(op.name, op.qargs, op.cargs) for op in ops]for ops in layered_ops])
 
 
 if __name__ == '__main__':
