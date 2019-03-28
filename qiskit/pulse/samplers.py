@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=missing-return-doc
+
 """Sampler module for sampling of analytic pulses to discrete pulses."""
 
 import functools
@@ -44,8 +46,8 @@ def sampler(sample_function: Callable) -> Callable:
         def call_sampler(duration: int, *args, **kwargs) -> FunctionalPulse:
             """Replace the call to the analytic function with a call to the sampler applied
             to the anlytic pulse function."""
-
-            return sample_function(analytic_pulse, duration, *args, **kwargs)
+            sampled_pulse = sample_function(analytic_pulse, duration, *args, **kwargs)
+            return np.asarray(sampled_pulse, dtype=np.complex)
 
         # wrap with functional pulse
         return FunctionalPulse(call_sampler)
@@ -55,7 +57,7 @@ def sampler(sample_function: Callable) -> Callable:
 
 @sampler
 def left(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
-    """Left sampling strategy decorator.
+    r"""Left sampling strategy decorator.
 
     See `pulse.samplers.sampler` for more information.
 
@@ -66,7 +68,7 @@ def left(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray
         analytic_pulse: Analytic pulse function to sample.
         duration: Duration to sample for.
         *args: Analytic pulse function args.
-        *kkwargs: Analytic pulse function kwargs.
+        *kwargs: Analytic pulse function kwargs.
     """
     times = np.arange(duration)
     return analytic_pulse(times, *args, **kwargs)
@@ -74,7 +76,7 @@ def left(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray
 
 @sampler
 def right(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
-    """Right sampling strategy decorator.
+    r"""Right sampling strategy decorator.
 
     For `duration`, return:
         $$\{f(t) \in \mathbb{C} | t \in \mathbb{Z} \wedge  0<t<=\texttt{duration}\}$$
@@ -91,7 +93,7 @@ def right(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarra
 
 @sampler
 def midpoint(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
-    """Midpoint sampling strategy decorator.
+    r"""Midpoint sampling strategy decorator.
 
     For `duration`, return:
         $$\{f(t+0.5) \in \mathbb{C} | t \in \mathbb{Z} \wedge  0<=t<\texttt{duration}\}$$
