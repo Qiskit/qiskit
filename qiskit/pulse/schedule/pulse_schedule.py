@@ -206,10 +206,11 @@ class Schedule(ScheduleNode, Pulse):
         for child in self._children:
             if not isinstance(child, TimedPulse):
                 raise NotImplementedError("This version doesn't support schedule of schedules.")
-        dic = defaultdict(list)
-        for c in self._children:
-            dic[c.channel.name].append(str(c))
-        return pprint.pformat(dic)
+        res = []
+        for child in self._children:
+            res.append((child.begin_time(), str(child.pulse)))
+        res = sorted(res)
+        return '\n'.join(["%4d: %s" % i for i in res])
 
     def get_sample_pulses(self) -> List[PulseCommand]:
         # TODO: Handle schedule of schedules

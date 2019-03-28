@@ -18,27 +18,6 @@ from qiskit.pulse.exceptions import CommandsError
 from .pulse_command import PulseCommand
 
 
-class PersistentValuePulse(Pulse):
-    """Pulse to keep persistent value. """
-
-    def __init__(self, command: 'PersistentValue', channel: OutputChannel):
-        self._command = command
-        self._channel = channel
-        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), channel)])
-
-    @property
-    def duration(self):
-        return 0
-
-    @property
-    def channelset(self) -> Set[PulseChannel]:
-        return {self._channel}
-
-    @property
-    def occupancy(self):
-        return self._occupancy
-
-
 class PersistentValue(PulseCommand):
     """Persistent value."""
 
@@ -52,7 +31,7 @@ class PersistentValue(PulseCommand):
             CommandsError: when input value exceed 1.
         """
 
-        super(PersistentValue, self).__init__(duration=0, name='pv')
+        super().__init__(duration=0, name='pv')
 
         if abs(value) > 1:
             raise CommandsError("Absolute value of PV amplitude exceeds 1.")
@@ -74,5 +53,30 @@ class PersistentValue(PulseCommand):
             return True
         return False
 
-    def __call__(self, channel: OutputChannel) -> PersistentValuePulse:
+    def __call__(self, channel: OutputChannel) -> 'PersistentValuePulse':
         return PersistentValuePulse(self, channel)
+
+
+class PersistentValuePulse(Pulse):
+    """Pulse to keep persistent value. """
+
+    def __init__(self, command: PersistentValue, channel: OutputChannel):
+        self._command = command
+        self._channel = channel
+        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), channel)])
+
+    @property
+    def duration(self):
+        return 0
+
+    @property
+    def channelset(self) -> Set[PulseChannel]:
+        return {self._channel}
+
+    @property
+    def occupancy(self):
+        return self._occupancy
+
+    def __repr__(self):
+        return '%s(value=%s, channelset=%s)' % \
+               (self.__class__.__name__, str(self._command.value), self.channelset)
