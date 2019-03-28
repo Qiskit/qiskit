@@ -11,7 +11,7 @@ from marshmallow.validate import Range, Regexp, Length, OneOf
 
 from qiskit.qobj.utils import MeasReturnType
 from qiskit.validation import bind_schema, BaseSchema, BaseModel
-from qiskit.validation.fields import (Integer, String, Number, Complex,
+from qiskit.validation.fields import (Integer, String, Number, Complex, Boolean,
                                       List, Nested, DictParameters)
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
@@ -37,6 +37,7 @@ class QobjPulseLibrarySchema(BaseSchema):
 
 class QobjHamiltonianSchema(BaseSchema):
     """Schema for QobjHamiltonian."""
+    # pylint: disable=invalid-name
 
     # Required properties.
     h_latex = String(required=True)
@@ -45,6 +46,41 @@ class QobjHamiltonianSchema(BaseSchema):
                           required=True)
     osc = DictParameters(valid_value_types=(int, ),
                          required=True)
+
+
+class QobjOscillatorNoiseSchema(BaseSchema):
+    """Schema for QobjOscillatorNoise."""
+
+    # Required properties.
+    n_th = DictParameters(valid_value_types=(int, float),
+                          required=True)
+    coupling = DictParameters(valid_value_types=(int, float),
+                              required=True)
+
+
+class QobjNoiseSchema(BaseSchema):
+    """Schema for QobjNoise."""
+
+    # Required properties.
+    qubit = DictParameters(valid_value_types=(int, ),
+                           required=True)
+    oscillator = Nested(QobjOscillatorNoiseSchema,
+                        required=True)
+
+
+class QobjOdeOptionsSchema(BaseSchema):
+    """Schema for OdeOptions."""
+
+    # Optional properties.
+    atol = Number()
+    rtol = Number()
+    nsteps = Integer(validate=Range(min=0))
+    max_step = Integer(validate=Range(min=0))
+    num_cpus = Integer(validate=Range(min=0))
+    norm_tol = Number()
+    norm_steps = Integer(validate=Range(min=0))
+    rhs_reuse = Boolean()
+    rhs_filename = String()
 
 
 class PulseQobjInstructionSchema(QobjInstructionSchema):
@@ -88,11 +124,10 @@ class PulseQobjExperimentSchema(QobjExperimentSchema):
     config = Nested(PulseQobjExperimentConfigSchema)
 
 
-class PulseQobjConfigSchema(QobjConfigSchema):
-    """Schema for PulseQobjConfig."""
+class PulseQobjDevConfigSchema(QobjConfigSchema):
+    """Schema for PulseQobjDevConfig of device backend."""
 
     # Required properties.
-    # TODO : check if they are always required by backend
     meas_level = Integer(required=True, validate=Range(min=0, max=2))
     memory_slot_size = Integer(required=True)
     pulse_library = Nested(QobjPulseLibrarySchema, many=True, required=True)
@@ -101,6 +136,22 @@ class PulseQobjConfigSchema(QobjConfigSchema):
     rep_time = Integer(required=True)
     meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                  MeasReturnType.SINGLE)))
+
+
+class PulseQobjSimConfigSchema(BaseSchema):
+    """Schema for PulseQobjDevConfig of simulator."""
+    # pylint: disable=invalid-name
+
+    # Requested properties.
+    pulse_library = Nested(QobjPulseLibrarySchema, many=True, required=True)
+    qubit_lo_freq = List(Number(), required=True)
+    meas_lo_freq = List(Number(), required=True)
+    hamiltonian = Nested(QobjHamiltonianSchema, required=True)
+    dt = Number(required=True)
+
+    # Optional properties.
+    noise = Nested(QobjNoiseSchema)
+    ode_options = Nested(QobjOdeOptionsSchema)
 
 
 @bind_schema(QobjMeasurementOptionSchema)
@@ -186,12 +237,12 @@ class PulseQobjExperiment(QobjExperiment):
                          **kwargs)
 
 
-@bind_schema(PulseQobjConfigSchema)
-class PulseQobjConfig(QobjConfig):
-    """Model for PulseQobjConfig inherit from QobjConfig.
+@bind_schema(PulseQobjDevConfigSchema)
+class PulseQobjDevConfig(QobjConfig):
+    """Model for PulseQobjDevConfig inherit from QobjConfig.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseQobjConfigSchema``.
+    full description of the model, please check ``PulseQobjDevConfigSchema``.
 
     Attributes:
         meas_level (int): a value represents the level of measurement.
@@ -220,4 +271,35 @@ class PulseQobjConfig(QobjConfig):
                          qubit_lo_freq=qubit_lo_freq,
                          meas_lo_freq=meas_lo_freq,
                          rep_time=rep_time,
+                         **kwargs)
+
+
+@bind_schema(PulseQobjSimConfigSchema)
+class PulseQobjSimConfig(QobjConfig):
+    """Model for PulseQobjSimConfig inherit from QobjConfig.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``PulseQobjSimConfigSchema``.
+
+    Attributes:
+        pulse_library (list[QobjPulseLibrary]): a pulse library.
+        qubit_lo_freq (list): the list of frequencies for qubit drive LO's in GHz.
+        meas_lo_freq (list): the list of frequencies for measurement drive LO's in GHz.
+        hamiltonian (dict): the dictionary defining system Hamiltonian.
+        dt (float): time interval of pulse envelope.
+    """
+    def __init__(self, pulse_library, qubit_lo_freq, meas_lo_freq,
+                 hamiltonian, dt, **kwargs):
+        # pylint: disable=invalid-name
+        self.pulse_library = pulse_library
+        self.qubit_lo_freq = qubit_lo_freq
+        self.meas_lo_freq = meas_lo_freq
+        self.hamiltonian = hamiltonian
+        self.dt = dt
+
+        super().__init__(pulse_library=pulse_library,
+                         qubit_lo_freq=qubit_lo_freq,
+                         meas_lo_freq=meas_lo_freq,
+                         hamiltonian=hamiltonian,
+                         dt=dt,
                          **kwargs)
