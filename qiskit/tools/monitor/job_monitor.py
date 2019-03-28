@@ -19,7 +19,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.display import display    # pylint: disable=import-error
 
 
-def _text_checker(job, interval, _interval_set=False, quiet=False, to_err=False):
+def _text_checker(job, interval, _interval_set=False, quiet=False, to_file=None):
     """A text-based job status checker
 
     Args:
@@ -27,10 +27,10 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, to_err=False)
         interval (int): The interval at which to check.
         _interval_set (bool): Was interval time set by user?
         quiet (bool): If True, do not print status messages.
-        to_err (bool): If True, print status messages to stderr instead of stdout
+        to_file (file): If file print status messages to it, else to stdout.
 
     """
-    _outstream = sys.stderr if to_err else sys.stdout
+    _outstream = to_file if to_file else sys.stdout
     status = job.status()
     msg = status.value
     prev_msg = msg
@@ -64,7 +64,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, to_err=False)
         print('', file=_outstream)
 
 
-def job_monitor(job, interval=None, monitor_async=False, quiet=False, to_err=False):
+def job_monitor(job, interval=None, monitor_async=False, quiet=False, to_file=None):
     """Monitor the status of a IBMQJob instance.
 
     Args:
@@ -72,7 +72,7 @@ def job_monitor(job, interval=None, monitor_async=False, quiet=False, to_err=Fal
         interval (int): Time interval between status queries.
         monitor_async (bool): Monitor asyncronously (in Jupyter only).
         quiet (bool): If True, do not print status messages.
-        to_err (bool): If True, print status messages to stderr instead of stdout
+        to_file (file): If file print status messages to it, else to stdout.
 
     Raises:
         QiskitError: When trying to run async outside of Jupyter
@@ -103,10 +103,10 @@ def job_monitor(job, interval=None, monitor_async=False, quiet=False, to_err=Fal
             thread.start()
         else:
             _text_checker(job, interval, _interval_set,
-                          quiet=quiet, to_err=to_err)
+                          quiet=quiet, to_file=to_file)
 
     else:
         if monitor_async:
             raise QiskitError(
                 'monitor_async only available in Jupyter notebooks.')
-        _text_checker(job, interval, _interval_set, quiet=quiet, to_err=to_err)
+        _text_checker(job, interval, _interval_set, quiet=quiet, to_file=to_file)
