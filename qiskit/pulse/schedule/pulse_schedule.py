@@ -14,7 +14,7 @@ Schedule.
 import logging
 from typing import List, Tuple, Set
 
-from qiskit.pulse.channels import DeviceSpecification, PulseChannel
+from qiskit.pulse.channels import DeviceSpecification, Channel
 from qiskit.pulse.common.interfaces import Pulse, ScheduleNode
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
 from qiskit.pulse.exceptions import ScheduleError
@@ -149,7 +149,7 @@ class Schedule(ScheduleNode, Pulse):
         return self.end_time
 
     @property
-    def channelset(self) -> Set[PulseChannel]:
+    def channelset(self) -> Set[Channel]:
         return self._occupancy.channelset
 
     @property
