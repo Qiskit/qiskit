@@ -72,7 +72,8 @@ class Optimizer(Pluggable):
         self._bounds_support_level = self._configuration['support_level']['bounds']
         self._initial_point_support_level = self._configuration['support_level']['initial_point']
         self._options = {}
-        self._batch_mode = False
+        self._max_evals_grouped = 1
+
 
     @classmethod
     def init_params(cls, params):
@@ -109,7 +110,7 @@ class Optimizer(Pluggable):
         logger.debug('options: {}'.format(self._options))
 
     @staticmethod
-    def gradient_num_diff(x_center, f, epsilon):
+    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
         """
         We compute the gradient with the numeric differentiation in the parallel way, around the point x_center.
         Args:
@@ -121,7 +122,7 @@ class Optimizer(Pluggable):
 
         """
         forig = f(*((x_center,)))
-        grad = np.zeros((len(x_center),), float)
+        grad = []
         ei = np.zeros((len(x_center),), float)
         todos = []
         for k in range(len(x_center)):
@@ -129,11 +130,28 @@ class Optimizer(Pluggable):
             d = epsilon * ei
             todos.append(x_center + d)
             ei[k] = 0.0
-        parallel_parameters = np.concatenate(todos)
-        todos_results = f(parallel_parameters)
-        for k in range(len(x_center)):
-            grad[k] = (todos_results[k] - forig) / epsilon
-        return grad
+
+        counter = 0
+        chunk = []
+        chunks = []
+        length = len(todos)
+        for i in range(length): # split all points to chunks, where each chunk has batch_size points
+            x = todos[i]
+            chunk.append(x)
+            counter+=1
+            if counter == max_evals_grouped or i == length-1: # the last one does not have to reach batch_size
+                chunks.append(chunk)
+                chunk = []
+                counter = 0
+
+        for chunk in chunks: # eval the chunks in order
+            parallel_parameters = np.concatenate(chunk)
+            todos_results = f(parallel_parameters) # eval the points in a chunk (order preserved)
+            for todor in todos_results:
+                grad.append((todor - forig) / epsilon)
+
+        return np.array(grad)
+
 
     @staticmethod
     def wrap_function(function, args):
@@ -259,5 +277,5 @@ class Optimizer(Pluggable):
         for name in sorted(self._options):
             logger.debug('{:s} = {:s}'.format(name, str(self._options[name])))
 
-    def set_batch_mode(self, mode):
-        self._batch_mode = mode
+    def set_max_evals_grouped(self, limit):
+        self._max_evals_grouped = limit

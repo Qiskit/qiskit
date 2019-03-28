@@ -174,7 +174,7 @@ class SPSA(Optimizer):
             theta_plus = theta + c_spsa * delta
             theta_minus = theta - c_spsa * delta
             # cost function for the two directions
-            if self._batch_mode:
+            if self._max_evals_grouped > 1:
                 cost_plus, cost_minus = obj_fun(np.concatenate((theta_plus, theta_minus)))
             else:
                 cost_plus = obj_fun(theta_plus)
@@ -230,7 +230,7 @@ class SPSA(Optimizer):
             delta = 2 * np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
             theta_plus = initial_theta + initial_c * delta
             theta_minus = initial_theta - initial_c * delta
-            if self._batch_mode:
+            if self._max_evals_grouped > 1:
                 obj_plus, obj_minus = obj_fun(np.concatenate((theta_plus, theta_minus)))
             else:
                 obj_plus = obj_fun(theta_plus)
