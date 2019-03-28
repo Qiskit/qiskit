@@ -14,6 +14,10 @@ environment:
           PYTHON: C:\Python35
           CIBW_BEFORE_BUILD: pip install -U Cython
           CIBW_SKIP: cp27-* cp34-*
+          TWINE_USERNAME: qiskit
+          TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
+          CIBW_TEST_REQUIRES: vcrpy jupyter stestr qiskit-aer qiskit-ibmq-provider
+          CIBW_TEST_COMMAND: cd {project} && stestr run
 
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid

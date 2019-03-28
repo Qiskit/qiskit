@@ -90,6 +90,10 @@ jobs:
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP="cp27-* cp34-*"
+        - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_REQUIRES="vcrpy jupyter stestr qiskit-aer qiskit-ibmq-provider"
+        - CIBW_TEST_COMMAND=cd {project} && stestr run
 #      if: tag IS present
       script:
         - sudo pip install cibuildwheel==0.10.1
@@ -100,6 +104,10 @@ jobs:
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP="cp27-* cp34-*"
+        - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_REQUIRES="vcrpy jupyter stestr qiskit-aer qiskit-ibmq-provider"
+        - CIBW_TEST_COMMAND=cd {project} && stestr run
       script:
         - sudo pip2 install cibuildwheel==0.10.1
         - cibuildwheel --output-dir wheelhouse
