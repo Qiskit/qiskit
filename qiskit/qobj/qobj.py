@@ -46,7 +46,6 @@ class QasmQobjSchema(QobjSchema):
     # Required properties.
     config = Nested(QasmQobjConfigSchema, required=True)
     experiments = Nested(QasmQobjExperimentSchema, required=True, many=True)
-    header = Nested(QobjHeaderSchema, required=True)
 
     type = String(required=True, validate=Equal(QobjType.QASM),
                   missing=QobjType.QASM)
@@ -58,7 +57,6 @@ class PulseQobjSchema(QobjSchema):
     # Required properties.
     config = Nested(PulseQobjConfigSchema, required=True)
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
-    header = Nested(QobjHeaderSchema, required=True)
 
     type = String(required=True, validate=Equal(QobjType.PULSE),
                   missing=QobjType.PULSE)
