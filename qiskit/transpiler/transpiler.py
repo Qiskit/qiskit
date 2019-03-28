@@ -59,8 +59,13 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
 
     # Check for valid parameters for the experiments.
     basis_gates = basis_gates or backend.configuration().basis_gates
-    coupling_map = coupling_map or getattr(backend.configuration(),
-                                           'coupling_map', None)
+    if coupling_map:
+        coupling_map = coupling_map
+    elif backend:
+        # This needs to be removed once Aer 0.2 is out
+        coupling_map = getattr(backend.configuration(), 'coupling_map', None)
+    else:
+        coupling_map = None
 
     if not basis_gates:
         raise TranspilerError('no basis_gates or backend to compile to')
@@ -182,7 +187,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
     # TODO: move this to the mapper pass
     num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
-    if num_qubits == 1 or coupling_map == "all-to-all":
+    if num_qubits == 1:
         coupling_map = None
 
     if basis_gates is None:

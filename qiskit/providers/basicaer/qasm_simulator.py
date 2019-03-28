@@ -32,7 +32,7 @@ from math import log2
 from collections import Counter
 import numpy as np
 
-from qiskit._util import local_hardware_info
+from qiskit.util import local_hardware_info
 from qiskit.providers.models import BackendConfiguration
 from qiskit.result import Result
 from qiskit.providers import BaseBackend
@@ -61,6 +61,7 @@ class QasmSimulatorPy(BaseBackend):
         'open_pulse': False,
         'memory': True,
         'max_shots': 65536,
+        'coupling_map': None,
         'description': 'A python simulator for qasm experiments',
         'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [

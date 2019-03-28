@@ -28,17 +28,18 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         # Collect DAG nodes which are followed only by barriers or other measures.
         final_op_types = ['measure', 'barrier']
         final_ops = []
-        for candidate_op in dag.named_nodes(*final_op_types):
+        for candidate_node in dag.named_nodes(*final_op_types):
             is_final_op = True
-            for _, child_successors in dag.bfs_successors(candidate_op):
-                if any(dag.node(suc)['type'] == 'op' and
-                       dag.node(suc)['op'].name not in final_op_types
+
+            for _, child_successors in dag.bfs_successors(candidate_node):
+
+                if any(suc.type == 'op' and suc.name not in final_op_types
                        for suc in child_successors):
                     is_final_op = False
                     break
 
             if is_final_op:
-                final_ops.append(candidate_op)
+                final_ops.append(candidate_node)
 
         if not final_ops:
             return dag
@@ -50,36 +51,41 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for creg in dag.cregs.values():
             barrier_layer.add_creg(creg)
 
-        final_qubits = set(dag.node(final_op)['qargs'][0]
+        final_qubits = set(final_op.qargs[0]
+
                            for final_op in final_ops)
 
-        new_barrier_id = barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
+        new_barrier_node = barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
 
         # Preserve order of final ops collected earlier from the original DAG.
-        ordered_node_ids = [node_id for node_id in dag.node_nums_in_topological_order()
-                            if node_id in set(final_ops)]
-        ordered_final_nodes = [dag.node(node) for node in ordered_node_ids]
+        ordered_final_nodes = [node for node in dag.nodes_in_topological_order()
+                               if node in set(final_ops)]
 
         # Move final ops to the new layer and append the new layer to the DAG.
         for final_node in ordered_final_nodes:
-            barrier_layer.apply_operation_back(final_node['op'])
+            barrier_layer.apply_operation_back(final_node.op)
 
         for final_op in final_ops:
             dag._remove_op_node(final_op)
 
         # Check to see if the new barrier added to the DAG is equivalent to any
         # existing barriers, and if so, consolidate the two.
-        our_ancestors = barrier_layer.ancestors(new_barrier_id)
-        our_descendants = barrier_layer.descendants(new_barrier_id)
+        our_ancestors = barrier_layer.ancestors(new_barrier_node)
+        our_descendants = barrier_layer.descendants(new_barrier_node)
         our_qubits = final_qubits
 
-        existing_barriers = barrier_layer.named_nodes('barrier')
-        existing_barriers.remove(new_barrier_id)
+        existing_barriers = sorted(barrier_layer.named_nodes('barrier'))
+        # remove element from the list
+        for i, node in enumerate(existing_barriers):
+            if node == new_barrier_node:
+                del existing_barriers[i]
+                break
 
         for candidate_barrier in existing_barriers:
             their_ancestors = barrier_layer.ancestors(candidate_barrier)
             their_descendants = barrier_layer.descendants(candidate_barrier)
-            their_qubits = set(barrier_layer.node(candidate_barrier)['op'].qargs)
+
+            their_qubits = set(candidate_barrier.qargs)
 
             if (
                     not our_qubits.isdisjoint(their_qubits)
@@ -87,15 +93,15 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                     and our_descendants.isdisjoint(their_ancestors)
             ):
                 merge_barrier = Barrier(qubits=(our_qubits | their_qubits))
-                merge_barrier_id = barrier_layer.apply_operation_front(merge_barrier)
+                merge_barrier_node = barrier_layer.apply_operation_front(merge_barrier)
 
                 our_ancestors = our_ancestors | their_ancestors
                 our_descendants = our_descendants | their_descendants
 
                 barrier_layer._remove_op_node(candidate_barrier)
-                barrier_layer._remove_op_node(new_barrier_id)
+                barrier_layer._remove_op_node(new_barrier_node)
 
-                new_barrier_id = merge_barrier_id
+                new_barrier_node = merge_barrier_node
 
         dag.extend_back(barrier_layer)
 

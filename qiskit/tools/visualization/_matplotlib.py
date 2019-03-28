@@ -482,16 +482,16 @@ class MatplotlibDrawer:
             layer_width = 1
 
             for op in layer:
-                if op['name'] in _wide_gate:
+                if op.name in _wide_gate:
                     layer_width = 2
 
             for op in layer:
 
-                _iswide = op['name'] in _wide_gate
+                _iswide = op.name in _wide_gate
                 # get qreg index
-                if 'qargs' in op.keys():
+                if op.qargs:
                     q_idxs = []
-                    for qarg in op['qargs']:
+                    for qarg in op.qargs:
                         for index, reg in self._qreg_dict.items():
                             if (reg['group'] == qarg[0] and
                                     reg['index'] == qarg[1]):
@@ -500,9 +500,9 @@ class MatplotlibDrawer:
                 else:
                     q_idxs = []
                 # get creg index
-                if 'cargs' in op.keys():
+                if op.cargs:
                     c_idxs = []
-                    for carg in op['cargs']:
+                    for carg in op.cargs:
                         for index, reg in self._creg_dict.items():
                             if (reg['group'] == carg[0] and
                                     reg['index'] == carg[1]):
@@ -520,7 +520,7 @@ class MatplotlibDrawer:
                     this_anc, layer_width) for jj in q_list]
                 if all(locs):
                     for ii in q_list:
-                        if op['name'] in ['barrier', 'snapshot', 'load', 'save', 'noise'] \
+                        if op.name in ['barrier', 'snapshot', 'load', 'save', 'noise'] \
                                 and not self.plot_barriers:
                             q_anchors[ii].set_index(this_anc - 1, layer_width)
                         else:
@@ -537,19 +537,19 @@ class MatplotlibDrawer:
                 if verbose:
                     print(op)
 
-                if 'op' in op.keys() and hasattr(op['op'], 'param'):
-                    param = self.param_parse(op['op'].params, self._style.pimode)
+                if op.type == 'op' and hasattr(op.op, 'params'):
+                    param = self.param_parse(op.op.params, self._style.pimode)
                 else:
                     param = None
                 # conditional gate
-                if 'condition' in op.keys() and op['condition']:
+                if op.condition:
                     c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width) for
                             ii in self._creg_dict]
                     mask = 0
                     for index, cbit in enumerate(self._creg):
-                        if cbit.reg == op['condition'][0]:
+                        if cbit.reg == op.condition[0]:
                             mask |= (1 << index)
-                    val = op['condition'][1]
+                    val = op.condition[1]
                     # cbit list to consider
                     fmt_c = '{{:0{}b}}'.format(len(c_xy))
                     cmask = list(fmt_c.format(mask))[::-1]
@@ -575,11 +575,11 @@ class MatplotlibDrawer:
                 #
                 # draw special gates
                 #
-                if op['name'] == 'measure':
+                if op.name == 'measure':
                     vv = self._creg_dict[c_idxs[0]]['index']
                     self._measure(q_xy[0], c_xy[0], vv)
-                elif op['name'] in ['barrier', 'snapshot', 'load', 'save',
-                                    'noise']:
+                elif op.name in ['barrier', 'snapshot', 'load', 'save',
+                                 'noise']:
                     _barriers = {'coord': [], 'group': []}
                     for index, qbit in enumerate(q_idxs):
                         q_group = self._qreg_dict[qbit]['group']
@@ -593,7 +593,7 @@ class MatplotlibDrawer:
                 # draw single qubit gates
                 #
                 elif len(q_xy) == 1:
-                    disp = op['name']
+                    disp = op.name
                     if param:
                         self._gate(q_xy[0], wide=_iswide, text=disp,
                                    subtext='{}'.format(param))
@@ -604,21 +604,21 @@ class MatplotlibDrawer:
                 #
                 elif len(q_xy) == 2:
                     # cx
-                    if op['name'] in ['cx']:
+                    if op.name == 'cx':
                         self._ctrl_qubit(q_xy[0])
                         self._tgt_qubit(q_xy[1])
                     # cz for latexmode
-                    elif op['name'] == 'cz':
+                    elif op.name == 'cz':
                         if self._style.latexmode:
                             self._ctrl_qubit(q_xy[0])
                             self._ctrl_qubit(q_xy[1])
                         else:
-                            disp = op['name'].replace('c', '')
+                            disp = op.name.replace('c', '')
                             self._ctrl_qubit(q_xy[0])
                             self._gate(q_xy[1], wide=_iswide, text=disp)
                     # control gate
-                    elif op['name'] in ['cy', 'ch', 'cu3', 'crz']:
-                        disp = op['name'].replace('c', '')
+                    elif op.name in ['cy', 'ch', 'cu3', 'crz']:
+                        disp = op.name.replace('c', '')
                         self._ctrl_qubit(q_xy[0])
                         if param:
                             self._gate(q_xy[1], wide=_iswide, text=disp,
@@ -626,8 +626,8 @@ class MatplotlibDrawer:
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp)
                     # cu1 for latexmode
-                    elif op['name'] in ['cu1']:
-                        disp = op['name'].replace('c', '')
+                    elif op.name == 'cu1':
+                        disp = op.name.replace('c', '')
                         self._ctrl_qubit(q_xy[0])
                         if self._style.latexmode:
                             self._ctrl_qubit(q_xy[1])
@@ -636,7 +636,7 @@ class MatplotlibDrawer:
                             self._gate(q_xy[1], wide=_iswide, text=disp,
                                        subtext='{}'.format(param))
                     # swap gate
-                    elif op['name'] == 'swap':
+                    elif op.name == 'swap':
                         self._swap(q_xy[0])
                         self._swap(q_xy[1])
                     # add qubit-qubit wiring
@@ -646,12 +646,12 @@ class MatplotlibDrawer:
                 #
                 elif len(q_xy) == 3:
                     # cswap gate
-                    if op['name'] == 'cswap':
+                    if op.name == 'cswap':
                         self._ctrl_qubit(q_xy[0])
                         self._swap(q_xy[1])
                         self._swap(q_xy[2])
                     # ccx gate
-                    elif op['name'] == 'ccx':
+                    elif op.name == 'ccx':
                         self._ctrl_qubit(q_xy[0])
                         self._ctrl_qubit(q_xy[1])
                         self._tgt_qubit(q_xy[2])
