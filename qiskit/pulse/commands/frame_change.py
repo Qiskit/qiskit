@@ -16,27 +16,6 @@ from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from .pulse_command import PulseCommand
 
 
-class FrameChangePulse(Pulse):
-    """Pulse to acquire measurement result. """
-
-    def __init__(self, command: 'FrameChange', channel: OutputChannel):
-        self._command = command
-        self._channel = channel
-        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), channel)])
-
-    @property
-    def duration(self):
-        return 0
-
-    @property
-    def channelset(self) -> Set[PulseChannel]:
-        return {self._channel}
-
-    @property
-    def occupancy(self):
-        return self._occupancy
-
-
 class FrameChange(PulseCommand):
     """Frame change pulse."""
 
@@ -48,7 +27,7 @@ class FrameChange(PulseCommand):
                 The allowable precision is device specific.
         """
 
-        super(FrameChange, self).__init__(duration=0, name='fc')
+        super().__init__(duration=0, name='fc')
 
         self.phase = phase
 
@@ -67,5 +46,30 @@ class FrameChange(PulseCommand):
             return True
         return False
 
-    def __call__(self, channel: OutputChannel) -> FrameChangePulse:
+    def __call__(self, channel: OutputChannel) -> 'FrameChangePulse':
         return FrameChangePulse(self, channel)
+
+
+class FrameChangePulse(Pulse):
+    """Pulse to acquire measurement result. """
+
+    def __init__(self, command: FrameChange, channel: OutputChannel):
+        self._command = command
+        self._channel = channel
+        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), channel)])
+
+    @property
+    def duration(self):
+        return 0
+
+    @property
+    def channelset(self) -> Set[PulseChannel]:
+        return {self._channel}
+
+    @property
+    def occupancy(self):
+        return self._occupancy
+
+    def __repr__(self):
+        return '%s(phase=%.3f, channelset=%s)' % \
+               (self.__class__.__name__, self._command.phase, self.channelset)

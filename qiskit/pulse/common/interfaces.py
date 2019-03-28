@@ -33,6 +33,10 @@ class Pulse(metaclass=ABCMeta):
     def occupancy(self) -> TimeslotOccupancy:
         pass
 
+    def __repr__(self):
+        return '%s(duration=%d, channelset=%s)' % \
+               (self.__class__.__name__, self.duration, self.channelset)
+
 
 class ScheduleNode(metaclass=ABCMeta):
     """Common interface for nodes of a schedule tree. """

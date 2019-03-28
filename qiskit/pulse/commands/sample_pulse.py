@@ -16,27 +16,6 @@ from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from .pulse_command import PulseCommand
 
 
-class DrivePulse(Pulse):
-    """Pulse to drive a pulse shape to a `OutputChannel`. """
-
-    def __init__(self, command: 'SamplePulse', channel: OutputChannel):
-        self._command = command
-        self._channel = channel
-        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, command.duration), channel)])
-
-    @property
-    def duration(self):
-        return self._command.duration
-
-    @property
-    def channelset(self) -> Set[PulseChannel]:
-        return {self._channel}
-
-    @property
-    def occupancy(self):
-        return self._occupancy
-
-
 class SamplePulse(PulseCommand):
     """Container for functional pulse."""
 
@@ -52,7 +31,7 @@ class SamplePulse(PulseCommand):
         else:
             _name = name
 
-        super(SamplePulse, self).__init__(duration=len(samples), name=_name)
+        super().__init__(duration=len(samples), name=_name)
 
         self.samples = samples
 
@@ -90,5 +69,30 @@ class SamplePulse(PulseCommand):
             return True
         return False
 
-    def __call__(self, channel: OutputChannel) -> DrivePulse:
+    def __call__(self, channel: OutputChannel) -> 'DrivePulse':
         return DrivePulse(self, channel)
+
+
+class DrivePulse(Pulse):
+    """Pulse to drive a pulse shape to a `OutputChannel`. """
+
+    def __init__(self, command: SamplePulse, channel: OutputChannel):
+        self._command = command
+        self._channel = channel
+        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, command.duration), channel)])
+
+    @property
+    def duration(self):
+        return self._command.duration
+
+    @property
+    def channelset(self) -> Set[PulseChannel]:
+        return {self._channel}
+
+    @property
+    def occupancy(self):
+        return self._occupancy
+
+    def __repr__(self):
+        return '%s(name=%s, duration=%d, channelset=%s)' % \
+               (self.__class__.__name__, self._command.name, self.duration, self.channelset)
