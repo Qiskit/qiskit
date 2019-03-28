@@ -171,8 +171,7 @@ def execute_schedules(schedules, backend, **kwargs):
         'meas_lo_freq': backend_config.defaults['meas_freq_est'],
         'rep_time': backend_config.rep_times[-1]
     }
-    for key, value in kwargs.items():
-        config[key] = value
+    config.update(kwargs)
 
     # filling in the header with the backend name the qobj was run on
     header = {
