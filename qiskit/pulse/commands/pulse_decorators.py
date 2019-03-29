@@ -11,6 +11,7 @@
 Pulse decorators.
 """
 
+import functools
 import numpy as np
 
 from qiskit.pulse.exceptions import CommandsError
@@ -24,6 +25,7 @@ def functional_pulse(func):
     Raises:
         CommandsError: when invalid function is specified.
     """
+    @functools.wraps(func)
     def to_pulse(duration, *args, name=None, **kwargs):
         """Return SamplePulse."""
         if isinstance(duration, int) and duration > 0:
