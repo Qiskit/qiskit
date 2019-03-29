@@ -7,7 +7,7 @@
 
 """The generic qobj models."""
 
-from marshmallow.validate import Length, Range
+from marshmallow.validate import Range
 
 from qiskit.validation import BaseSchema, bind_schema, BaseModel
 from qiskit.validation.fields import String, Nested, Integer
