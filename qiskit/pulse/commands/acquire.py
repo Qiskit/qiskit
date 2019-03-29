@@ -11,9 +11,9 @@
 Acquire.
 """
 
-from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands.meas_opts import MeasOpts
-from qiskit.pulse.commands.pulse_command import PulseCommand
+from qiskit.pulse.exceptions import CommandsError
+from .meas_opts import MeasOpts
+from .pulse_command import PulseCommand
 
 
 class Acquire(PulseCommand):
@@ -31,7 +31,7 @@ class Acquire(PulseCommand):
                 (if applicable) if the measurement level is 1 or 2.
 
         Raises:
-            QiskitError: when invalid discriminator or kernel object is input.
+            CommandsError: when invalid discriminator or kernel object is input.
         """
 
         super(Acquire, self).__init__(duration=duration, name='acquire')
@@ -40,7 +40,7 @@ class Acquire(PulseCommand):
             if isinstance(discriminator, Discriminator):
                 self.discriminator = discriminator
             else:
-                raise QiskitError('Invalid discriminator object is specified.')
+                raise CommandsError('Invalid discriminator object is specified.')
         else:
             self.discriminator = Discriminator()
 
@@ -48,7 +48,7 @@ class Acquire(PulseCommand):
             if isinstance(kernel, Kernel):
                 self.kernel = kernel
             else:
-                raise QiskitError('Invalid kernel object is specified.')
+                raise CommandsError('Invalid kernel object is specified.')
         else:
             self.kernel = Kernel()
 
