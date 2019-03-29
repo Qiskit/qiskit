@@ -274,6 +274,34 @@ class TestDagOperations(QiskitTestCase):
 
         self.assertEqual(len(self.dag.gate_nodes()), 0)
 
+    def test_remove_op_node_longer(self):
+        """ Test remove_op_node method in a "longer" dag"""
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit1))
+        self.dag.apply_operation_back(HGate(self.qubit0))
+        self.dag.apply_operation_back(CnotGate(self.qubit2, self.qubit1))
+        self.dag.apply_operation_back(CnotGate(self.qubit0, self.qubit2))
+        self.dag.apply_operation_back(HGate(self.qubit2))
+
+        named_nodes = [node for node in self.dag.nodes_in_topological_order()]
+        self.dag.remove_op_node(named_nodes[2])
+
+        expected = [('qr[0]', []),
+                    ('h', [self.qubit0]),
+                    ('qr[1]', []),
+                    ('qr[2]', []),
+                    ('cx', [self.qubit2, self.qubit1]),
+                    ('cx', [self.qubit0, self.qubit2]),
+                    ('h', [self.qubit2]),
+                    ('qr[0]', []),
+                    ('qr[1]', []),
+                    ('qr[2]', []),
+                    ('cr[0]', []),
+                    ('cr[0]', []),
+                    ('cr[1]', []),
+                    ('cr[1]', [])]
+        self.assertEqual(expected,
+                         [(i.name, i.qargs) for i in self.dag.nodes_in_topological_order()])
+
     def test_remove_non_op_node(self):
         """ Try to remove a non-op node with remove_op_node method."""
         self.dag.apply_operation_back(HGate(self.qubit0))
