@@ -15,9 +15,6 @@ from qiskit.pulse.commands.pulse_command import PulseCommand
 class SamplePulse(PulseCommand):
     """Container for functional pulse."""
 
-    # index of sample pulse
-    _pulseIndex = 0
-
     def __init__(self, samples, name=None):
         """Create new sample pulse command.
 
