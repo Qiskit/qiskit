@@ -114,7 +114,8 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
                 else:
                     current_layer.append(node)
 
-            layers.append(current_layer)
+            if current_layer:
+                layers.append(current_layer)
             ops += layers
 
     if justify == 'right':
