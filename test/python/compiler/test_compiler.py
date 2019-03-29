@@ -24,7 +24,7 @@ from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper.compiling import two_qubit_kak
 from qiskit.mapper.mapping import MapperError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.mapper import CouplingMap, Layout
+from qiskit.mapper import Layout
 
 
 class TestCompiler(QiskitTestCase):
