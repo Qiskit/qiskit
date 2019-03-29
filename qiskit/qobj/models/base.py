@@ -34,8 +34,7 @@ class QobjExperimentSchema(BaseSchema):
     """Base Schema for QobjExperiment."""
 
     # Required properties.
-    instructions = Nested(QobjInstructionSchema, required=True, many=True,
-                          validate=Length(min=1))
+    instructions = Nested(QobjInstructionSchema, required=True, many=True)
 
     # Optional properties.
     header = Nested(QobjExperimentHeaderSchema)
