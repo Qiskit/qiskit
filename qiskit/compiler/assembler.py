@@ -154,8 +154,8 @@ def assemble_schedules(schedules, dict_config, dict_header):
                 dict_config['pulse_library'].append({'name': cmd.name, 'samples': cmd.samples})
 
         lo_freqs = {
-            'qubit_lo_freq': schedule.channels.drive.lo_frequencies(),
-            'meas_lo_freq': schedule.channels.measure.lo_frequencies()
+            'qubit_lo_freq': [q.drive.lo_frequency for q in schedule.device.q],
+            'meas_lo_freq': [q.measure.lo_frequency for q in schedule.device.q]
         }
 
         # generate experimental configuration
