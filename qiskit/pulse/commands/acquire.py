@@ -8,9 +8,9 @@
 """
 Acquire.
 """
-from typing import Union, List, Set
+from typing import Union, List
 
-from qiskit.pulse.channels import Channel, Qubit, MemorySlot, RegisterSlot
+from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot
 from qiskit.pulse.common.interfaces import Instruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from qiskit.pulse.exceptions import CommandsError
@@ -113,14 +113,6 @@ class AcquireInstruction(Instruction):
     @property
     def duration(self):
         return self._command.duration
-
-    @property
-    def channelset(self) -> Set[Channel]:
-        channels = []
-        channels.extend(self._acquire_channels)
-        channels.extend(self._mem_slots)
-        channels.extend(self._reg_slots)
-        return {_ for _ in channels}
 
     @property
     def occupancy(self):

@@ -8,9 +8,8 @@
 """
 Snapshot.
 """
-from typing import Set
 
-from qiskit.pulse.channels import Channel, SnapshotChannel
+from qiskit.pulse.channels import SnapshotChannel
 from qiskit.pulse.common.interfaces import Instruction
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
 from .pulse_command import PulseCommand
@@ -55,10 +54,6 @@ class Snapshot(PulseCommand, Instruction):
     @property
     def duration(self):
         return 0
-
-    @property
-    def channelset(self) -> Set[Channel]:
-        return {self._channel}
 
     @property
     def occupancy(self):
