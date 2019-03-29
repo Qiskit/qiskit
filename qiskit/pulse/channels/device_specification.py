@@ -50,8 +50,8 @@ class DeviceSpecification:
         n_registers = config.n_registers
         n_uchannels = config.n_uchannels
 
-        if n_uchannels != n_qubits:
-            raise PulseError("This version assumes #U-cannels == #qubits.")
+        if n_uchannels > 0 and n_uchannels != n_qubits:
+            raise PulseError("This version assumes no U-channels or #U-cannels==#qubits.")
 
         # frequency information
         qubit_lo_freqs = config.defaults['qubit_freq_est']
@@ -61,9 +61,11 @@ class DeviceSpecification:
 
         # generate channels with assuming their numberings are aligned with qubits
         drives = [DriveChannel(i, qubit_lo_freqs[i]) for i in range(n_qubits)]   # TODO: lo_ranges
-        controls = [ControlChannel(i) for i in range(n_uchannels)]
         measures = [MeasureChannel(i, meas_lo_freqs[i]) for i in range(n_qubits)]  # TODO: lo_ranges
         acquires = [AcquireChannel(i) for i in range(n_qubits)]
+        controls = [ControlChannel(i) for i in range(n_uchannels)]
+        if n_uchannels == 0:
+            controls = [[] for _ in range(n_qubits)]
 
         qubits = []
         for i in range(n_qubits):
