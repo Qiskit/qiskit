@@ -9,28 +9,31 @@
 Sample pulse.
 """
 
-from qiskit.pulse.commands.pulse_command import PulseCommand
+import numpy as np
+from .pulse_command import PulseCommand
+from qiskit.pulse.exceptions import CommandsError
 
 
 class SamplePulse(PulseCommand):
     """Container for functional pulse."""
 
-    def __init__(self, duration, samples, name):
+    def __init__(self, samples, name=None):
         """Create new sample pulse command.
 
         Args:
-            duration (int): Duration of pulse.
             samples (ndarray): Complex array of pulse envelope.
             name (str): Unique name to identify the pulse.
+        Raises:
+            CommandsError: when pulse envelope amplitude exceeds 1.
         """
         if not name:
             _name = str('pulse_object_%s' % id(self))
         else:
             _name = name
 
-        super(SamplePulse, self).__init__(duration=duration, name=_name)
+        super(SamplePulse, self).__init__(duration=len(samples), name=_name)
 
-        self._samples = samples
+        self.samples = samples
 
     @property
     def samples(self):
@@ -42,6 +45,8 @@ class SamplePulse(PulseCommand):
     def samples(self, samples):
         """Set sample.
         """
+        if np.any(np.abs(samples) > 1):
+            raise CommandsError('Absolute value of pulse envelope amplitude exceeds 1.')
         self._samples = samples
         self.duration = len(samples)
 
