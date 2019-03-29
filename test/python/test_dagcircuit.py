@@ -274,6 +274,13 @@ class TestDagOperations(QiskitTestCase):
 
         self.assertEqual(len(self.dag.gate_nodes()), 0)
 
+    def test_remove_non_op_node(self):
+        """ Try to remove a non-op node with remove_op_node method."""
+        self.dag.apply_operation_back(HGate(self.qubit0))
+
+        in_node = next(self.dag.nodes_in_topological_order())
+        self.assertRaises(DAGCircuitError, self.dag.remove_op_node, in_node)
+
 
 class TestDagLayers(QiskitTestCase):
     """Test finding layers on the dag"""

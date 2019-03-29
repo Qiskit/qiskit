@@ -1232,6 +1232,10 @@ class DAGCircuit:
                           DeprecationWarning, 2)
             node = self._id_to_node[node]
 
+        if node.type is not 'op':
+            raise DAGCircuitError('The method remove_op_node only works on op node types. An "%s" '
+                                  'node type was wrongly provided.' % node.type)
+
         pred_map, succ_map = self._make_pred_succ_maps(node)
 
         # remove from graph and map
