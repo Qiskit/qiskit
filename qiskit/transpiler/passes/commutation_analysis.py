@@ -21,7 +21,7 @@ A rule-based analysis would be potentially faster, but more limited.
 
 from collections import defaultdict
 import numpy as np
-from ..exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
