@@ -8,10 +8,11 @@
 """Command classes for pulse."""
 
 from .pulse_command import PulseCommand
-from .sample_pulse import SamplePulse
 
+from .sample_pulse import SamplePulse
 from .acquire import Acquire, Discriminator, Kernel
 from .frame_change import FrameChange
 from .persistent_value import PersistentValue
-from .functional_pulse import FunctionalPulse
 from .snapshot import Snapshot
+
+from .pulse_decorators import functional_pulse
