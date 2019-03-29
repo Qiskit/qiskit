@@ -16,7 +16,6 @@ environment:
           CIBW_SKIP: cp27-* cp34-*
           TWINE_USERNAME: qiskit
           TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
-          CIBW_TEST_REQUIRES: vcrpy jupyter qiskit-aer qiskit-ibmq-provider
           CIBW_TEST_COMMAND: python3 {project}/examples/python/teleport.py
 
     # Set Travis CI variables for skipping the CI-unavailable tests.

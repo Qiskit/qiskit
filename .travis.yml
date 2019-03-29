@@ -92,7 +92,6 @@ jobs:
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
-        - CIBW_TEST_REQUIRES="vcrpy jupyter qiskit-aer qiskit-ibmq-provider"
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/teleport.py"
 #      if: tag IS present
       script:
@@ -106,7 +105,6 @@ jobs:
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
-        - CIBW_TEST_REQUIRES="vcrpy jupyter qiskit-aer qiskit-ibmq-provider"
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/teleport.py"
       script:
         - sudo pip2 install cibuildwheel==0.10.1
