@@ -1,24 +1,36 @@
+# -*- coding: utf-8 -*-
+
+# Copyright 2019, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+
+"""
+Channels.
+"""
 from abc import ABCMeta, abstractmethod
 
 from qiskit.pulse import commands
 
 
-class PulseChannel(metaclass=ABCMeta):
-    """Pulse Channel."""
+class Channel(metaclass=ABCMeta):
+    """Pulse channel."""
 
     supported = None
     prefix = None
 
     @abstractmethod
-    def __init__(self, index: int):
+    def __init__(self, index: int = None):
         self._index = index
 
     @property
     def index(self) -> int:
+        """Return the index of this channel."""
         return self._index
 
     @property
     def name(self) -> str:
+        """Return the name of this channel."""
         return '%s%d' % (self.__class__.prefix, self._index)
 
     def __repr__(self):
@@ -28,7 +40,7 @@ class PulseChannel(metaclass=ABCMeta):
         """Two channels are the same if they are of the same type, and have the same index.
 
         Args:
-            other (PulseChannel): other PulseChannel
+            other (Channel): other PulseChannel
 
         Returns:
             bool: are self and other equal.
@@ -39,8 +51,8 @@ class PulseChannel(metaclass=ABCMeta):
         return False
 
 
-class AcquireChannel(PulseChannel):
-    """Acquire Channel."""
+class AcquireChannel(Channel):
+    """Acquire channel."""
 
     supported = commands.Acquire
     prefix = 'a'
@@ -54,14 +66,40 @@ class AcquireChannel(PulseChannel):
         super().__init__(index)
 
 
-class SnapshotChannel(PulseChannel):
-    """Snapshot Channel."""
+class SnapshotChannel(Channel):
+    """Snapshot channel."""
 
     supported = commands.Snapshot
     prefix = 's'
 
+    def __init__(self):
+        """Create new snapshot channel."""
+        super().__init__(0)
+
+
+class MemorySlot(Channel):
+    """Memory slot."""
+
+    supported = commands.Acquire
+    prefix = 'm'
+
     def __init__(self, index):
-        """Create new snapshot channel.
+        """Create new memory slot.
+
+        Args:
+            index (int): Index of the channel.
+        """
+        super().__init__(index)
+
+
+class RegisterSlot(Channel):
+    """Classical resister slot channel."""
+
+    supported = commands.Acquire
+    prefix = 'c'
+
+    def __init__(self, index):
+        """Create new register slot.
 
         Args:
             index (int): Index of the channel.
