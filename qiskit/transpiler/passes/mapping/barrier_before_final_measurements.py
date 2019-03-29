@@ -77,8 +77,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         existing_barriers = barrier_layer.named_nodes('barrier')
         # remove element from the list
         for i, node in enumerate(existing_barriers):
-            # TODO tidy this up when DAGNode equality is sorted
-            if node._node_id == new_barrier_node._node_id:
+            if node == new_barrier_node:
                 del existing_barriers[i]
                 break
 
