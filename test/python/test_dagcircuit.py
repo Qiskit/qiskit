@@ -4,6 +4,7 @@
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
+# pylint: disable=invalid-name
 
 """Test for the DAGCircuit object"""
 
@@ -519,6 +520,75 @@ class TestDagSubstitute(QiskitTestCase):
     def test_substitute_circuit_one_back(self):
         """The method substitute_node_with_dag() replaces a leaf-in-the-back node with a DAG."""
         pass
+
+
+class TestDagProperties(QiskitTestCase):
+    """ Test the DAG properties.
+    """
+
+    def test_dag_depth_empty(self):
+        """ Empty circuit DAG is zero depth
+        """
+        q = QuantumRegister(5, 'q')
+        qc = QuantumCircuit(q)
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), 0)
+
+    def test_dag_depth1(self):
+        """ Test DAG depth #1
+        """
+        q1 = QuantumRegister(3, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        c = ClassicalRegister(5, 'c')
+        qc = QuantumCircuit(q1, q2, c)
+        qc.h(q1[0])
+        qc.h(q1[1])
+        qc.h(q1[2])
+        qc.h(q2[0])
+        qc.h(q2[1])
+        qc.ccx(q2[1], q1[0], q2[0])
+        qc.cx(q1[0], q1[1])
+        qc.cx(q1[1], q2[1])
+        qc.cx(q2[1], q1[2])
+        qc.cx(q1[2], q2[0])
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), 6)
+
+    def test_dag_depth2(self):
+        """Test barrier increases DAG depth
+        """
+        q = QuantumRegister(5, 'q')
+        c = ClassicalRegister(1, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.cx(q[0], q[4])
+        qc.x(q[2])
+        qc.x(q[2])
+        qc.x(q[2])
+        qc.x(q[4])
+        qc.cx(q[4], q[1])
+        qc.barrier(q)
+        qc.measure(q[1], c[0])
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), 6)
+
+    def test_dag_depth3(self):
+        """Test DAG depth for silly circuit.
+        """
+        q = QuantumRegister(6, 'q')
+        c = ClassicalRegister(1, 'c')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.cx(q[0], q[1])
+        qc.cx(q[1], q[2])
+        qc.cx(q[2], q[3])
+        qc.cx(q[3], q[4])
+        qc.cx(q[4], q[5])
+        qc.barrier(q[0])
+        qc.barrier(q[0])
+        qc.measure(q[0], c[0])
+        dag = circuit_to_dag(qc)
+        self.assertEqual(dag.depth(), 6)
 
 
 if __name__ == '__main__':
