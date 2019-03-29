@@ -12,6 +12,7 @@ Pulse decorators.
 """
 
 import functools
+
 import numpy as np
 
 from qiskit.pulse.exceptions import CommandsError
