@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
+# pylint: disable=missing-return-doc, missing-return-type-doc
 
 """
 Pulse decorators.

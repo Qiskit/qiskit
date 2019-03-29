@@ -11,9 +11,9 @@
 Acquire.
 """
 
+from qiskit.pulse.exceptions import CommandsError
 from .meas_opts import MeasOpts
 from .pulse_command import PulseCommand
-from qiskit.pulse.exceptions import CommandsError
 
 
 class Acquire(PulseCommand):
