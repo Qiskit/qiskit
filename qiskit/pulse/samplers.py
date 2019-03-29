@@ -11,6 +11,8 @@
 
 import functools
 from typing import Callable
+import textwrap
+import pydoc
 
 import numpy as np
 
@@ -37,26 +39,30 @@ def _update_docstring(discretized_pulse: Callable, sampler: Callable) -> Callabl
         discretized_pulse: Discretized decorated analytic pulse.
         sampler: Applied sampler.
     """
-
+    wrapped_docstring = pydoc.render_doc(discretized_pulse, '%s')
+    header, body = wrapped_docstring.split('\n', 1)
+    body = textwrap.indent(body, '                    ')
+    wrapped_docstring = header+body
     updated_ds = """
-     Discretized analytic pulse function: `{analytic_name}` using sampler: `{sampler_name}`.
+                Discretized analytic pulse function: `{analytic_name}` using
+                sampler: `{sampler_name}`.
 
-     The first argument (time) of the analytic pulse function has been replaced with
-     a discretized `duration` of type (int).
+                 The first argument (time) of the analytic pulse function has been replaced with
+                 a discretized `duration` of type (int).
 
-     Args:
-         duration (int)
-         *args: Remaining arguments of analytic pulse function.
-                See analytic pulse function signature below.
-         **kwargs: Remaining kwargs of analytic pulse function.
-                   See analytic pulse function signature below.
+                 Args:
+                     duration (int)
+                     *args: Remaining arguments of analytic pulse function.
+                            See analytic pulse function documentation below.
+                     **kwargs: Remaining kwargs of analytic pulse function.
+                               See analytic pulse function documentation below.
 
-    Analytic function docstring:
+                 Sampled analytic function:
 
-    {analytic_doc}
-    """.format(analytic_name=discretized_pulse.__qualname__,
-               sampler_name=sampler.__qualname__,
-               analytic_doc=discretized_pulse.__doc__)
+                    {analytic_doc}
+                """.format(analytic_name=discretized_pulse.__name__,
+                           sampler_name=sampler.__name__,
+                           analytic_doc=wrapped_docstring)
 
     discretized_pulse.__doc__ = updated_ds
     return discretized_pulse
@@ -83,20 +89,23 @@ def sampler(sample_function: Callable) -> Callable:
         sample_function: A sampler function to be decorated.
     """
 
-    @functools.wraps(sample_function)
     def generate_sampler(analytic_pulse: Callable) -> Callable:
         """Return a decorated sampler function."""
 
-        @functools.wraps(analytic_pulse, updated=tuple())
+        @functools.wraps(analytic_pulse)
         def call_sampler(duration: int, *args, **kwargs) -> FunctionalPulse:
             """Replace the call to the analytic function with a call to the sampler applied
             to the anlytic pulse function."""
             sampled_pulse = sample_function(analytic_pulse, duration, *args, **kwargs)
             return np.asarray(sampled_pulse, dtype=np.complex)
 
-        # update type annotations for wrapped analytic function to be discrete
+        # Update type annotations for wrapped analytic function to be discrete
         call_sampler = _update_annotations(call_sampler)
+        # Update docstring with that of the sampler and include sampled function documentation.
         call_sampler = _update_docstring(call_sampler, sample_function)
+        # Unset wrapped to return base sampler signature
+        # but still get rest of benefits of wraps
+        # such as __name__, __qualname__
         call_sampler.__dict__.pop('__wrapped__')
         # wrap with functional pulse
         return FunctionalPulse(call_sampler)
@@ -104,8 +113,7 @@ def sampler(sample_function: Callable) -> Callable:
     return generate_sampler
 
 
-@sampler
-def left(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+def left(analytic_pulse: Callable):
     r"""Left sampling strategy decorator.
 
     See `pulse.samplers.sampler` for more information.
@@ -114,44 +122,67 @@ def left(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray
         $$\{f(t) \in \mathbb{C} | t \in \mathbb{Z} \wedge  0<=t<\texttt{duration}\}$$
 
     Args:
-        analytic_pulse: Analytic pulse function to sample.
-        duration: Duration to sample for.
-        *args: Analytic pulse function args.
-        *kwargs: Analytic pulse function kwargs.
+        analytic_pulse: To sample.
     """
-    times = np.arange(duration)
-    return analytic_pulse(times, *args, **kwargs)
+    def _left(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+        """Sampling strategy for decorator.
+        Args:
+            analytic_pulse: Analytic pulse function to sample.
+            duration: Duration to sample for.
+            *args: Analytic pulse function args.
+            *kwargs: Analytic pulse function kwargs.
+        """
+        times = np.arange(duration)
+        return analytic_pulse(times, *args, **kwargs)
+
+    return sampler(_left)(analytic_pulse)
 
 
-@sampler
-def right(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+def right(analytic_pulse: Callable):
     r"""Right sampling strategy decorator.
+
+    See `pulse.samplers.sampler` for more information.
 
     For `duration`, return:
         $$\{f(t) \in \mathbb{C} | t \in \mathbb{Z} \wedge  0<t<=\texttt{duration}\}$$
 
     Args:
-        analytic_pulse: Analytic pulse function to sample.
-        duration: Duration to sample for.
-        *args: Analytic pulse function args.
-        **kwargs: Analytic pulse function kwargs.
+        analytic_pulse: To sample.
     """
-    times = np.arange(1, duration+1)
-    return analytic_pulse(times, *args, **kwargs)
+    def _right(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+        """Sampling strategy for decorator.
+        Args:
+            analytic_pulse: Analytic pulse function to sample.
+            duration: Duration to sample for.
+            *args: Analytic pulse function args.
+            *kwargs: Analytic pulse function kwargs.
+        """
+        times = np.arange(1, duration+1)
+        return analytic_pulse(times, *args, **kwargs)
+
+    return sampler(_right)(analytic_pulse)
 
 
-@sampler
-def midpoint(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+def midpoint(analytic_pulse: Callable):
     r"""Midpoint sampling strategy decorator.
+
+    See `pulse.samplers.sampler` for more information.
 
     For `duration`, return:
         $$\{f(t+0.5) \in \mathbb{C} | t \in \mathbb{Z} \wedge  0<=t<\texttt{duration}\}$$
 
     Args:
-        analytic_pulse: Analytic pulse function to sample.
-        duration: Duration to sample for.
-        *args: Analytic pulse function args.
-        **kwargs: Analytic pulse function kwargs.
+        analytic_pulse: To sample.
     """
-    times = np.arange(1/2, (duration) + 1/2)
-    return analytic_pulse(times, *args, **kwargs)
+    def _midpoint(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+        """Sampling strategy for decorator.
+        Args:
+            analytic_pulse: Analytic pulse function to sample.
+            duration: Duration to sample for.
+            *args: Analytic pulse function args.
+            *kwargs: Analytic pulse function kwargs.
+        """
+        times = np.arange(1/2, (duration) + 1/2)
+        return analytic_pulse(times, *args, **kwargs)
+
+    return sampler(_midpoint)(analytic_pulse)
