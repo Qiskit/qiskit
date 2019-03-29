@@ -7,13 +7,13 @@
 
 # pylint: disable=missing-return-doc
 
-"""Sampler module for sampling of analytic pulses to discrete pulses.
+"""Sampler module for sampling of continuous pulses to discrete pulses.
 
 Some atypical boilerplate has been added to solve the problem of decorators not preserving
 their wrapped function signatures. Below we explain the problem that samplers solve and how
 we implement this.
 
-A sampler is a function that takes an analytic pulse function with signature:
+A sampler is a function that takes an continuous pulse function with signature:
     ```python
     def f(times: np.ndarray, *args, **kwargs) -> np.ndarray:
         ...
@@ -22,7 +22,7 @@ and returns a new function
     def f(duration: int, *args, **kwargs) -> SamplePulse:
         ...
 
-Samplers are used to build up pulse commands from analytic pulse functions.
+Samplers are used to build up pulse commands from continuous pulse functions.
 
 In Python the creation of a dynamic function that wraps another function will cause
 the underlying signature and documentation of the underlying function to be overwritten.
@@ -32,14 +32,14 @@ wrapped function as those of the dynamic function.
 
 Samplers are implemented by creating a function with signature
     @sampler
-    def left(analytic_pulse: Callable, duration: int, *args, **kwargs)
+    def left(continuous_pulse: Callable, duration: int, *args, **kwargs)
         ...
 
 This will create a sampler function for `left`. Since it is a dynamic function it would not
 have the docstring of `left` available too `help`. This could be fixed by wrapping with
 `functools.wraps` in the `sampler`, but this would then cause the signature to be that of the
-sampler function which is called on the analytic pulse, below:
-    `(analytic_pulse: Callable, duration: int, *args, **kwargs)``
+sampler function which is called on the continuous pulse, below:
+    `(continuous_pulse: Callable, duration: int, *args, **kwargs)``
 This is not correct for the sampler as the output sampled functions accept only a function.
 For the standard sampler we get around this by not using `functools.wraps` and
 explicitly defining our samplers such as `left`, `right` and `midpoint` and
@@ -54,11 +54,11 @@ still create their own sampler with
 However, in this case it will be missing documentation of the underlying sampling methods.
 We believe that the definition of custom samplers will be rather infrequent.
 
-However, users will frequently apply sampler instances too analytic pulses. Therefore, a different
-approach was required for sampled analytic functions (the output of an analytic pulse function
+However, users will frequently apply sampler instances too continuous pulses. Therefore, a different
+approach was required for sampled continuous functions (the output of an continuous pulse function
 decorated by a sampler instance).
 
-A sampler instance is a decorator that may be used to wrap analytic pulse functions such as
+A sampler instance is a decorator that may be used to wrap continuous pulse functions such as
 linear below:
 ```python
     @left
@@ -81,20 +81,20 @@ Which after decoration may be called with a duration rather than an array of tim
 If one calls help on `linear` they will find
     ```
     linear(duration:int, *args, **kwargs) -> numpy.ndarray
-    Discretized analytic pulse function: `linear` using
+    Discretized continuous pulse function: `linear` using
     sampler: `_left`.
 
-     The first argument (time) of the analytic pulse function has been replaced with
+     The first argument (time) of the continuous pulse function has been replaced with
      a discretized `duration` of type (int).
 
      Args:
          duration (int)
-         *args: Remaining arguments of analytic pulse function.
-                See analytic pulse function documentation below.
-         **kwargs: Remaining kwargs of analytic pulse function.
-                   See analytic pulse function documentation below.
+         *args: Remaining arguments of continuous pulse function.
+                See continuous pulse function documentation below.
+         **kwargs: Remaining kwargs of continuous pulse function.
+                   See continuous pulse function documentation below.
 
-     Sampled analytic function:
+     Sampled continuous function:
 
         function linear in module test.python.pulse.test_samplers
         linear(x:numpy.ndarray, m:float, b:float) -> numpy.ndarray
@@ -108,7 +108,7 @@ If one calls help on `linear` they will find
     ```
 This is partly because `functools.wraps` has been used on the underlying function.
 This in itself is not sufficient as the signature of the sampled function has
-`duration`, whereas the signature of the analytic function is `time`.
+`duration`, whereas the signature of the continuous function is `time`.
 
 This is acheived by removing `__wrapped__` set by `functools.wraps` in order to preserve
 the correct signature and also applying `_update_annotations` and `_update_docstring`
@@ -116,7 +116,7 @@ to the generated function which corrects the function annotations and adds an in
 docstring respectively.
 
 The user therefore has access to the correct sampled function docstring in its entirety, while
-still seeing the signature for the analytic pulse function and all of its arguments.
+still seeing the signature for the continuous pulse function and all of its arguments.
 """
 
 import functools
@@ -130,10 +130,10 @@ import qiskit.pulse.commands as commands
 
 
 def _update_annotations(discretized_pulse: Callable) -> Callable:
-    """Update annotations of discretized analytic pulse function with duration.
+    """Update annotations of discretized continuous pulse function with duration.
 
     Args:
-        discretized_pulse: Discretized decorated analytic pulse.
+        discretized_pulse: Discretized decorated continuous pulse.
     """
     undecorated_annotations = list(discretized_pulse.__annotations__.items())
     decorated_annotations = undecorated_annotations[1:]
@@ -143,10 +143,10 @@ def _update_annotations(discretized_pulse: Callable) -> Callable:
 
 
 def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Callable:
-    """Update annotations of discretized analytic pulse function.
+    """Update annotations of discretized continuous pulse function.
 
     Args:
-        discretized_pulse: Discretized decorated analytic pulse.
+        discretized_pulse: Discretized decorated continuous pulse.
         sampler_inst: Applied sampler.
     """
     wrapped_docstring = pydoc.render_doc(discretized_pulse, '%s')
@@ -154,25 +154,25 @@ def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Ca
     body = textwrap.indent(body, '                    ')
     wrapped_docstring = header+body
     updated_ds = """
-                Discretized analytic pulse function: `{analytic_name}` using
+                Discretized continuous pulse function: `{continuous_name}` using
                 sampler: `{sampler_name}`.
 
-                 The first argument (time) of the analytic pulse function has been replaced with
+                 The first argument (time) of the continuous pulse function has been replaced with
                  a discretized `duration` of type (int).
 
                  Args:
                      duration (int)
-                     *args: Remaining arguments of analytic pulse function.
-                            See analytic pulse function documentation below.
-                     **kwargs: Remaining kwargs of analytic pulse function.
-                               See analytic pulse function documentation below.
+                     *args: Remaining arguments of continuous pulse function.
+                            See continuous pulse function documentation below.
+                     **kwargs: Remaining kwargs of continuous pulse function.
+                               See continuous pulse function documentation below.
 
-                 Sampled analytic function:
+                 Sampled continuous function:
 
-                    {analytic_doc}
-                """.format(analytic_name=discretized_pulse.__name__,
+                    {continuous_doc}
+                """.format(continuous_name=discretized_pulse.__name__,
                            sampler_name=sampler_inst.__name__,
-                           analytic_doc=wrapped_docstring)
+                           continuous_doc=wrapped_docstring)
 
     discretized_pulse.__doc__ = updated_ds
     return discretized_pulse
@@ -181,7 +181,7 @@ def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Ca
 def sampler(sample_function: Callable) -> Callable:
     """Sampler decorator base method.
 
-    Samplers are used for converting an analytic function to a discretized pulse.
+    Samplers are used for converting an continuous function to a discretized pulse.
 
     They operate on a function with the signature:
         `def f(times: np.ndarray, *args, **kwargs) -> np.ndarray`
@@ -190,7 +190,7 @@ def sampler(sample_function: Callable) -> Callable:
     instance of `FunctionalPulse` with signature:
         `def g(duration: int, *args, **kwargs) -> SamplePulse`
 
-    Note if your analytic pulse function outputs a `complex` scalar rather than a
+    Note if your continuous pulse function outputs a `complex` scalar rather than a
     `np.array`, you should first vectorize it before applying a sampler.
 
     This class implements the sampler boilerplate for the sampler.
@@ -199,17 +199,17 @@ def sampler(sample_function: Callable) -> Callable:
         sample_function: A sampler function to be decorated.
     """
 
-    def generate_sampler(analytic_pulse: Callable) -> Callable:
+    def generate_sampler(continuous_pulse: Callable) -> Callable:
         """Return a decorated sampler function."""
 
-        @functools.wraps(analytic_pulse)
+        @functools.wraps(continuous_pulse)
         def call_sampler(duration: int, *args, **kwargs) -> commands.SamplePulse:
-            """Replace the call to the analytic function with a call to the sampler applied
+            """Replace the call to the continuous function with a call to the sampler applied
             to the anlytic pulse function."""
-            sampled_pulse = sample_function(analytic_pulse, duration, *args, **kwargs)
+            sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)
             return np.asarray(sampled_pulse, dtype=np.complex)
 
-        # Update type annotations for wrapped analytic function to be discrete
+        # Update type annotations for wrapped continuous function to be discrete
         call_sampler = _update_annotations(call_sampler)
         # Update docstring with that of the sampler and include sampled function documentation.
         call_sampler = _update_docstring(call_sampler, sample_function)
@@ -223,7 +223,7 @@ def sampler(sample_function: Callable) -> Callable:
     return generate_sampler
 
 
-def left(analytic_pulse: Callable) -> Callable:
+def left(continuous_pulse: Callable) -> Callable:
     r"""Left sampling strategy decorator.
 
     See `pulse.samplers.sampler` for more information.
@@ -232,23 +232,23 @@ def left(analytic_pulse: Callable) -> Callable:
         $$\{f(t) \in \mathbb{C} | t \in \mathbb{Z} \wedge  0<=t<\texttt{duration}\}$$
 
     Args:
-        analytic_pulse: To sample.
+        continuous_pulse: To sample.
     """
-    def _left(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+    def _left(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
         """Sampling strategy for decorator.
         Args:
-            analytic_pulse: Analytic pulse function to sample.
+            continuous_pulse: Continuous pulse function to sample.
             duration: Duration to sample for.
-            *args: Analytic pulse function args.
-            *kwargs: Analytic pulse function kwargs.
+            *args: Continuous pulse function args.
+            *kwargs: Continuous pulse function kwargs.
         """
         times = np.arange(duration)
-        return analytic_pulse(times, *args, **kwargs)
+        return continuous_pulse(times, *args, **kwargs)
 
-    return sampler(_left)(analytic_pulse)
+    return sampler(_left)(continuous_pulse)
 
 
-def right(analytic_pulse: Callable) -> Callable:
+def right(continuous_pulse: Callable) -> Callable:
     r"""Right sampling strategy decorator.
 
     See `pulse.samplers.sampler` for more information.
@@ -257,23 +257,23 @@ def right(analytic_pulse: Callable) -> Callable:
         $$\{f(t) \in \mathbb{C} | t \in \mathbb{Z} \wedge  0<t<=\texttt{duration}\}$$
 
     Args:
-        analytic_pulse: To sample.
+        continuous_pulse: To sample.
     """
-    def _right(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+    def _right(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
         """Sampling strategy for decorator.
         Args:
-            analytic_pulse: Analytic pulse function to sample.
+            continuous_pulse: Continuous pulse function to sample.
             duration: Duration to sample for.
-            *args: Analytic pulse function args.
-            *kwargs: Analytic pulse function kwargs.
+            *args: Continuous pulse function args.
+            *kwargs: Continuous pulse function kwargs.
         """
         times = np.arange(1, duration+1)
-        return analytic_pulse(times, *args, **kwargs)
+        return continuous_pulse(times, *args, **kwargs)
 
-    return sampler(_right)(analytic_pulse)
+    return sampler(_right)(continuous_pulse)
 
 
-def midpoint(analytic_pulse: Callable) -> Callable:
+def midpoint(continuous_pulse: Callable) -> Callable:
     r"""Midpoint sampling strategy decorator.
 
     See `pulse.samplers.sampler` for more information.
@@ -282,17 +282,17 @@ def midpoint(analytic_pulse: Callable) -> Callable:
         $$\{f(t+0.5) \in \mathbb{C} | t \in \mathbb{Z} \wedge  0<=t<\texttt{duration}\}$$
 
     Args:
-        analytic_pulse: To sample.
+        continuous_pulse: To sample.
     """
-    def _midpoint(analytic_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+    def _midpoint(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
         """Sampling strategy for decorator.
         Args:
-            analytic_pulse: Analytic pulse function to sample.
+            continuous_pulse: Continuous pulse function to sample.
             duration: Duration to sample for.
-            *args: Analytic pulse function args.
-            *kwargs: Analytic pulse function kwargs.
+            *args: Continuous pulse function args.
+            *kwargs: Continuous pulse function kwargs.
         """
         times = np.arange(1/2, duration + 1/2)
-        return analytic_pulse(times, *args, **kwargs)
+        return continuous_pulse(times, *args, **kwargs)
 
-    return sampler(_midpoint)(analytic_pulse)
+    return sampler(_midpoint)(continuous_pulse)
