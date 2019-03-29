@@ -22,7 +22,8 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-
+- Sampler decorator and standard sampler library for conversion of analytic pulses
+  to `SamplePulse`s (#2042).
 - Core StochasticSwap routine implimented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
