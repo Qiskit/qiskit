@@ -1232,7 +1232,7 @@ class DAGCircuit:
                           DeprecationWarning, 2)
             node = self._id_to_node[node]
 
-        if node.type is not 'op':
+        if node.type != 'op':
             raise DAGCircuitError('The method remove_op_node only works on op node types. An "%s" '
                                   'node type was wrongly provided.' % node.type)
 
