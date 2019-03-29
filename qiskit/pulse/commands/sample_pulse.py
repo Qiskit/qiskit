@@ -34,22 +34,10 @@ class SamplePulse(PulseCommand):
 
         super(SamplePulse, self).__init__(duration=len(samples), name=_name)
 
-        self.samples = samples
-
-    @property
-    def samples(self):
-        """Return sample.
-        """
-        return self._samples
-
-    @samples.setter
-    def samples(self, samples):
-        """Set sample.
-        """
         if np.any(np.abs(samples) > 1):
             raise CommandsError('Absolute value of pulse envelope amplitude exceeds 1.')
-        self._samples = samples
-        self.duration = len(samples)
+
+        self.samples = samples
 
     def draw(self, **kwargs):
         """Plot the interpolated envelope of pulse.
