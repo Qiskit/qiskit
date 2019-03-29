@@ -7,7 +7,117 @@
 
 # pylint: disable=missing-return-doc
 
-"""Sampler module for sampling of analytic pulses to discrete pulses."""
+"""Sampler module for sampling of analytic pulses to discrete pulses.
+
+Some atypical boilerplate has been added to solve the problem of decorators not preserving
+their wrapped function signatures. Below we explain the problem that samplers solve and how
+we implement this.
+
+A sampler is a function that takes an analytic pulse function with signature:
+    ```python
+    def f(times: np.ndarray, *args, **kwargs) -> np.ndarray:
+        ...
+    ```
+and returns a new function
+    def f(duration: int, *args, **kwargs) -> SamplePulse:
+        ...
+
+Samplers are used to build up pulse commands from analytic pulse functions.
+
+In Python the creation of a dynamic function that wraps another function will cause
+the underlying signature and documentation of the underlying function to be overwritten.
+In order to circumvent this issue the Python standard library provides the decorator
+`functools.wraps` which allows the programmer to expose the names and signature of the
+wrapped function as those of the dynamic function.
+
+Samplers are implemented by creating a function with signature
+    @sampler
+    def left(analytic_pulse: Callable, duration: int, *args, **kwargs)
+        ...
+
+This will create a sampler function for `left`. Since it is a dynamic function it would not
+have the docstring of `left` available too `help`. This could be fixed by wrapping with
+`functools.wraps` in the `sampler`, but this would then cause the signature to be that of the
+sampler function which is called on the analytic pulse, below:
+    `(analytic_pulse: Callable, duration: int, *args, **kwargs)``
+This is not correct for the sampler as the output sampled functions accept only a function.
+For the standard sampler we get around this by not using `functools.wraps` and
+explicitly defining our samplers such as `left`, `right` and `midpoint` and
+calling `sampler` internally on the function that implements the sampling schemes such as
+`_left`, `_right` and `_midpoint` respectively. See `left` for an example of this.
+
+In this way our standard samplers will expose the proper help signature, but a user can
+still create their own sampler with
+    @sampler
+    def custom_sampler(time, *args, **kwargs):
+        ...
+However, in this case it will be missing documentation of the underlying sampling methods.
+We believe that the definition of custom samplers will be rather infrequent.
+
+However, users will frequently apply sampler instances too analytic pulses. Therefore, a different
+approach was required for sampled analytic functions (the output of an analytic pulse function
+decorated by a sampler instance).
+
+A sampler instance is a decorator that may be used to wrap analytic pulse functions such as
+linear below:
+```python
+    @left
+    def linear(times: np.ndarray, m: float, b: float) -> np.ndarray:
+        ```Linear test function
+        Args:
+            times: Input times.
+            m: Slope.
+            b: Intercept
+        Returns:
+            np.ndarray
+        ```
+        return m*times+b
+```
+Which after decoration may be called with a duration rather than an array of times
+    ```python
+    duration = 10
+    pulse_command = linear(10, 0.1, 0.1)
+    ```
+If one calls help on `linear` they will find
+    ```
+    linear(duration:int, *args, **kwargs) -> numpy.ndarray
+    Discretized analytic pulse function: `linear` using
+    sampler: `_left`.
+
+     The first argument (time) of the analytic pulse function has been replaced with
+     a discretized `duration` of type (int).
+
+     Args:
+         duration (int)
+         *args: Remaining arguments of analytic pulse function.
+                See analytic pulse function documentation below.
+         **kwargs: Remaining kwargs of analytic pulse function.
+                   See analytic pulse function documentation below.
+
+     Sampled analytic function:
+
+        function linear in module test.python.pulse.test_samplers
+        linear(x:numpy.ndarray, m:float, b:float) -> numpy.ndarray
+            Linear test function
+            Args:
+                x: Input times.
+                m: Slope.
+                b: Intercept
+            Returns:
+                np.ndarray
+    ```
+This is partly because `functools.wraps` has been used on the underlying function.
+This in itself is not sufficient as the signature of the sampled function has
+`duration`, whereas the signature of the analytic function is `time`.
+
+This is acheived by removing `__wrapped__` set by `functools.wraps` in order to preserve
+the correct signature and also applying `_update_annotations` and `_update_docstring`
+to the generated function which corrects the function annotations and adds an informative
+docstring respectively.
+
+The user therefore has access to the correct sampled function docstring in its entirety, while
+still seeing the signature for the analytic pulse function and all of its arguments.
+"""
 
 import functools
 from typing import Callable
@@ -32,12 +142,12 @@ def _update_annotations(discretized_pulse: Callable) -> Callable:
     return discretized_pulse
 
 
-def _update_docstring(discretized_pulse: Callable, sampler: Callable) -> Callable:
+def _update_docstring(discretized_pulse: Callable, sampler_inst: Callable) -> Callable:
     """Update annotations of discretized analytic pulse function.
 
     Args:
         discretized_pulse: Discretized decorated analytic pulse.
-        sampler: Applied sampler.
+        sampler_inst: Applied sampler.
     """
     wrapped_docstring = pydoc.render_doc(discretized_pulse, '%s')
     header, body = wrapped_docstring.split('\n', 1)
@@ -61,7 +171,7 @@ def _update_docstring(discretized_pulse: Callable, sampler: Callable) -> Callabl
 
                     {analytic_doc}
                 """.format(analytic_name=discretized_pulse.__name__,
-                           sampler_name=sampler.__name__,
+                           sampler_name=sampler_inst.__name__,
                            analytic_doc=wrapped_docstring)
 
     discretized_pulse.__doc__ = updated_ds
@@ -113,7 +223,7 @@ def sampler(sample_function: Callable) -> Callable:
     return generate_sampler
 
 
-def left(analytic_pulse: Callable):
+def left(analytic_pulse: Callable) -> Callable:
     r"""Left sampling strategy decorator.
 
     See `pulse.samplers.sampler` for more information.
@@ -138,7 +248,7 @@ def left(analytic_pulse: Callable):
     return sampler(_left)(analytic_pulse)
 
 
-def right(analytic_pulse: Callable):
+def right(analytic_pulse: Callable) -> Callable:
     r"""Right sampling strategy decorator.
 
     See `pulse.samplers.sampler` for more information.
@@ -163,7 +273,7 @@ def right(analytic_pulse: Callable):
     return sampler(_right)(analytic_pulse)
 
 
-def midpoint(analytic_pulse: Callable):
+def midpoint(analytic_pulse: Callable) -> Callable:
     r"""Midpoint sampling strategy decorator.
 
     See `pulse.samplers.sampler` for more information.
@@ -182,7 +292,7 @@ def midpoint(analytic_pulse: Callable):
             *args: Analytic pulse function args.
             *kwargs: Analytic pulse function kwargs.
         """
-        times = np.arange(1/2, (duration) + 1/2)
+        times = np.arange(1/2, duration + 1/2)
         return analytic_pulse(times, *args, **kwargs)
 
     return sampler(_midpoint)(analytic_pulse)

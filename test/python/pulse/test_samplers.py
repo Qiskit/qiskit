@@ -16,16 +16,16 @@ from qiskit.pulse.commands.functional_pulse import FunctionalPulseCommand
 import qiskit.pulse.samplers as samplers
 
 
-def linear(x: np.ndarray, m: float, b: float) -> np.ndarray:
+def linear(times: np.ndarray, m: float, b: float) -> np.ndarray:
     """Linear test function
     Args:
-        x: Input times.
+        times: Input times.
         m: Slope.
         b: Intercept
     Returns:
         np.ndarray
     """
-    return m*x+b
+    return m*times+b
 
 
 class TestSampler(QiskitTestCase):
