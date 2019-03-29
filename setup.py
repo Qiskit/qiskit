@@ -31,7 +31,9 @@ CYTHON_EXTS = ['utils', '_swap_trial']
 CYTHON_MODULE = 'qiskit.transpiler.passes.mapping.cython.stochastic_swap'
 CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/mapping/cython/stochastic_swap'
 
-PACKAGE_DATA = {}
+PACKAGE_DATA = {'qiskit': ['tools/jupyter/qiskit_toolbar/*.md',
+                           'tools/jupyter/qiskit_toolbar/*.js',
+                           'tools/jupyter/qiskit_toolbar/*.yaml']}
 
 INCLUDE_DIRS = []
 # Extra link args

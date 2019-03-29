@@ -1,0 +1,8 @@
+Type: Jupyter Notebook Extension
+Compatibility: 4.x, 5.x, 6.x
+Name: Qiskit Toolbar
+Main: main.js
+Link: README.md
+Description: |
+  Loads all the commonly used functionality in Qiskit for you.
+Parameters:
