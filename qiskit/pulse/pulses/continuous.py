@@ -7,4 +7,4 @@
 
 # pylint: disable=missing-return-doc
 
-"""Module for builtin analytic pulse functions."""
+"""Module for builtin continuous pulse functions."""

@@ -7,13 +7,13 @@
 
 # pylint: disable=invalid-name, unexpected-keyword-arg, no-value-for-parameter
 
-"""Tests analytic pulse functions."""
+"""Tests continuous pulse functions."""
 
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-import qiskit.pulse.pulses.analytic as analytic
+import qiskit.pulse.pulses.continuous as continuous
 
 
-class TestAnalyticPulses(QiskitTestCase):
+class TestContinuousPulses(QiskitTestCase):
     pass
