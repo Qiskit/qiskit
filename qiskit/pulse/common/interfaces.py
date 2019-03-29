@@ -26,19 +26,9 @@ class Instruction(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def channelset(self) -> Set[Channel]:
-        """Set of channels used by this instruction. """
-        pass
-
-    @property
-    @abstractmethod
     def occupancy(self) -> TimeslotOccupancy:
         """Occupied time slots by this instruction. """
         pass
-
-    def __repr__(self):
-        return '%s(duration=%d, channelset=%s)' % \
-               (self.__class__.__name__, self.duration, self.channelset)
 
 
 class ScheduleNode(metaclass=ABCMeta):

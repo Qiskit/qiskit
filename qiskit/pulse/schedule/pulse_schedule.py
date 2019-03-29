@@ -146,22 +146,8 @@ class Schedule(ScheduleNode, Instruction):
         return self.end_time
 
     @property
-    def channelset(self) -> Set[Channel]:
-        return self._occupancy.channelset
-
-    @property
     def occupancy(self) -> TimeslotOccupancy:
         return self._occupancy
-
-    def _check_channels(self, block: Instruction):
-        if isinstance(block, Schedule):
-            if block._device != self._device:
-                raise ScheduleError("Additional schedule must have same device as self")
-        else:
-            # check if all the channels of block are defined in the device
-            for ch in block.channelset:
-                if not self._device.has_channel(ch):
-                    raise ScheduleError("%s has no channel %s" % (self._device, ch))
 
     def __str__(self):
         # TODO: Handle schedule of schedules

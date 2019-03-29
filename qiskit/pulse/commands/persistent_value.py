@@ -9,9 +9,7 @@
 Persistent value.
 """
 
-from typing import Set
-
-from qiskit.pulse.channels import Channel, OutputChannel
+from qiskit.pulse.channels import OutputChannel
 from qiskit.pulse.common.interfaces import Instruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from qiskit.pulse.exceptions import CommandsError
@@ -71,10 +69,6 @@ class PersistentValueInstruction(Instruction):
     @property
     def duration(self):
         return 0
-
-    @property
-    def channelset(self) -> Set[Channel]:
-        return {self._channel}
 
     @property
     def occupancy(self):
