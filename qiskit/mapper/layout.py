@@ -164,7 +164,7 @@ class Layout():
         defined, `bit` will be mapped to a new physical bit (extending the length of the
         layout by one.)
         Args:
-            virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'),2).
+            virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'), 2).
             physical_bit (int): A physical bit. For example, 3.
         """
         if physical_bit is None:

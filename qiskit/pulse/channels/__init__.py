@@ -7,14 +7,9 @@
 
 """Channel classes for pulse."""
 
-from .channel_store import ChannelStore
-from .channel_list import AcquireChannelList, SnapshotChannelList
-from .channel_list import ChannelList
+from .device_specification import DeviceSpecification
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
 from .output_channel import OutputChannel
-from .output_channel_list import (DriveChannelList,
-                                  ControlChannelList,
-                                  MeasureChannelList)
-from .output_channel_list import OutputChannelList
-from .pulse_channel import AcquireChannel, SnapshotChannel
-from .pulse_channel import PulseChannel
+from .pulse_channel import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
+from .pulse_channel import Channel
+from .qubit import Qubit

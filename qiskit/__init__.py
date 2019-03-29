@@ -13,7 +13,7 @@
 import pkgutil
 
 # First, check for required Python and API version
-from . import _util
+from . import util
 
 # qiskit errors operator
 from .exceptions import QiskitError
@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 # pylint: disable=redefined-builtin
 from qiskit.tools.compiler import compile  # TODO remove after 0.8
-from qiskit.execute import (execute_circuits, execute)
+from qiskit.execute import (execute_circuits, execute_schedules, execute)
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
@@ -53,3 +53,4 @@ except ImportError:
     pass
 
 from .version import __version__
+from .version import __qiskit_version__

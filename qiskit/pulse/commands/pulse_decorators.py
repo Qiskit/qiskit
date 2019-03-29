@@ -5,7 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
+# TODO: pylint
+# pylint: disable=redefined-builtin, missing-return-doc, missing-return-type-doc
 
 """
 Pulse decorators.
@@ -13,8 +14,8 @@ Pulse decorators.
 
 import numpy as np
 
-from qiskit.pulse.commands import SamplePulse
-from qiskit.pulse import CommandsError
+from qiskit.pulse.exceptions import CommandsError
+from .sample_pulse import SamplePulse
 
 
 def function(func):
@@ -25,7 +26,12 @@ def function(func):
     Raises:
         CommandsError: when invalid function is specified.
     """
+<<<<<<< HEAD
     def to_pulse(duration, *args, **kwargs):
+=======
+
+    def to_pulse(duration, *args, name=None, **kwargs):
+>>>>>>> d032ec38b6cf105f96ae13988251a3e9f23e9e45
 
         if isinstance(duration, int) and duration > 0:
             samples = func(duration, *args, **kwargs)
