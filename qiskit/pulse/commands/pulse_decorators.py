@@ -26,19 +26,14 @@ def function(func):
     Raises:
         CommandsError: when invalid function is specified.
     """
-<<<<<<< HEAD
-    def to_pulse(duration, *args, **kwargs):
-=======
-
     def to_pulse(duration, *args, name=None, **kwargs):
->>>>>>> d032ec38b6cf105f96ae13988251a3e9f23e9e45
 
         if isinstance(duration, int) and duration > 0:
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
             if np.any(np.abs(samples) > 1):
                 raise CommandsError('Absolute value of pulse amplitude exceeds 1.')
-            return SamplePulse(samples=samples)
+            return SamplePulse(samples=samples, name=name)
         raise CommandsError('The first argument must be an integer value representing duration.')
 
     return to_pulse

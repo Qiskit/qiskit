@@ -34,7 +34,7 @@ class Acquire(PulseCommand):
             QiskitError: when invalid discriminator or kernel object is input.
         """
 
-        super(Acquire, self).__init__(duration=duration, name='acquire')
+        super(Acquire, self).__init__(duration=duration)
 
         if discriminator:
             if isinstance(discriminator, Discriminator):

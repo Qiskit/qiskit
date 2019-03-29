@@ -25,14 +25,8 @@ class SamplePulse(PulseCommand):
             samples (ndarray): Complex array of pulse envelope.
             name (str): Unique name to identify the pulse.
         """
-        if not name:
-            _name = str('p%d' % SamplePulse._pulseIndex)
-            SamplePulse._pulseIndex += 1
-        else:
-            # we specify pulse name when it is created from backend pulse_lib
-            _name = name
 
-        super(SamplePulse, self).__init__(duration=len(samples), name=_name)
+        super(SamplePulse, self).__init__(duration=len(samples), name=name)
 
         self.samples = samples
 
