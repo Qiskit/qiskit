@@ -17,6 +17,51 @@ import numpy as np
 from .commands import FunctionalPulse
 
 
+def _update_annotations(discretized_pulse: Callable) -> Callable:
+    """Update annotations of discretized analytic pulse function with duration.
+
+    Args:
+        discretized_pulse: Discretized decorated analytic pulse.
+    """
+    undecorated_annotations = list(discretized_pulse.__annotations__.items())
+    decorated_annotations = undecorated_annotations[1:]
+    decorated_annotations.insert(0, ('duration', int))
+    discretized_pulse.__annotations__ = dict(decorated_annotations)
+    return discretized_pulse
+
+
+def _update_docstring(discretized_pulse: Callable, sampler: Callable) -> Callable:
+    """Update annotations of discretized analytic pulse function.
+
+    Args:
+        discretized_pulse: Discretized decorated analytic pulse.
+        sampler: Applied sampler.
+    """
+
+    updated_ds = """
+     Discretized analytic pulse function: `{analytic_name}` using sampler: `{sampler_name}`.
+
+     The first argument (time) of the analytic pulse function has been replaced with
+     a discretized `duration` of type (int).
+
+     Args:
+         duration (int)
+         *args: Remaining arguments of analytic pulse function.
+                See analytic pulse function signature below.
+         **kwargs: Remaining kwargs of analytic pulse function.
+                   See analytic pulse function signature below.
+
+    Analytic function docstring:
+
+    {analytic_doc}
+    """.format(analytic_name=discretized_pulse.__qualname__,
+               sampler_name=sampler.__qualname__,
+               analytic_doc=discretized_pulse.__doc__)
+
+    discretized_pulse.__doc__ = updated_ds
+    return discretized_pulse
+
+
 def sampler(sample_function: Callable) -> Callable:
     """Sampler decorator base method.
 
@@ -42,13 +87,17 @@ def sampler(sample_function: Callable) -> Callable:
     def generate_sampler(analytic_pulse: Callable) -> Callable:
         """Return a decorated sampler function."""
 
-        @functools.wraps(analytic_pulse)
+        @functools.wraps(analytic_pulse, updated=tuple())
         def call_sampler(duration: int, *args, **kwargs) -> FunctionalPulse:
             """Replace the call to the analytic function with a call to the sampler applied
             to the anlytic pulse function."""
             sampled_pulse = sample_function(analytic_pulse, duration, *args, **kwargs)
             return np.asarray(sampled_pulse, dtype=np.complex)
 
+        # update type annotations for wrapped analytic function to be discrete
+        call_sampler = _update_annotations(call_sampler)
+        call_sampler = _update_docstring(call_sampler, sample_function)
+        call_sampler.__dict__.pop('__wrapped__')
         # wrap with functional pulse
         return FunctionalPulse(call_sampler)
 
