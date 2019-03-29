@@ -70,10 +70,13 @@ class TestFunction(QiskitTestCase):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        pulse_command = gaussian(duration=10, amp=1, t0=5, sig=1)
+        pulse_command = gaussian(duration=10, name='test_pulse', amp=1, t0=5, sig=1)
         _y = 1 * np.exp(-(np.linspace(0, 9, 10) - 5)**2 / 1**2)
 
         self.assertListEqual(list(pulse_command.samples), list(_y))
+
+        # check name
+        self.assertEqual(pulse_command.name, 'test_pulse')
 
         # check duration
         self.assertEqual(pulse_command.duration, 10)
