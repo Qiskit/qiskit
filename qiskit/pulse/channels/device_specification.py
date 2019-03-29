@@ -64,14 +64,12 @@ class DeviceSpecification:
         measures = [MeasureChannel(i, meas_lo_freqs[i]) for i in range(n_qubits)]  # TODO: lo_ranges
         acquires = [AcquireChannel(i) for i in range(n_qubits)]
         controls = [ControlChannel(i) for i in range(n_uchannels)]
-        if n_uchannels == 0:
-            controls = [[] for _ in range(n_qubits)]
 
         qubits = []
         for i in range(n_qubits):
             qubit = Qubit(i,
                           drive_channels=[drives[i]],
-                          control_channels=[controls[i]],
+                          control_channels=None if n_uchannels == 0 else controls[i],
                           measure_channels=[measures[i]],
                           acquire_channels=[acquires[i]])
             qubits.append(qubit)

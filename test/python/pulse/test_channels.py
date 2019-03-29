@@ -12,6 +12,7 @@ import unittest
 from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
 from qiskit.pulse.channels import DeviceSpecification, Qubit
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
+from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 
 
@@ -134,6 +135,38 @@ class TestDeviceSpecification(QiskitTestCase):
         self.assertEqual(spec.q[1].acquire, AcquireChannel(1))
         self.assertEqual(spec.mem[0], MemorySlot(0))
         self.assertEqual(spec.c[1], RegisterSlot(1))
+
+    def test_creation_from_backend_with_zero_u_channels(self):
+        """Test creation of device specification from backend with u_channels == 0.
+        """
+
+        class DummyBackend:
+            def configuration(self):
+                class DummyConfig:
+                    @property
+                    def n_qubits(self):
+                        return 2
+
+                    @property
+                    def n_registers(self):
+                        return 2
+
+                    @property
+                    def n_uchannels(self):
+                        return 0
+
+                    @property
+                    def defaults(self):
+                        return {'qubit_freq_est': [1.2, 3.4],
+                                'meas_freq_est': [1.2, 3.4]}
+
+                return DummyConfig()
+
+        device = DeviceSpecification.create_from(DummyBackend())
+
+        self.assertEqual(device.q[0].drive, DriveChannel(0, 1.2))
+        with self.assertRaises(PulseError):
+            _ = device.q[0].control
 
 
 if __name__ == '__main__':
