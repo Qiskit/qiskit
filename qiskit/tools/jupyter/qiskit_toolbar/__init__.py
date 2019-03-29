@@ -7,6 +7,7 @@
 
 """Qiskit Jupyter toolbar extension"""
 
+
 def _jupyter_nbextension_paths():
     return [dict(section="notebook",
                  # relative path to the module directory
