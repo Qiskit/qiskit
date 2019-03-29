@@ -126,7 +126,7 @@ import pydoc
 
 import numpy as np
 
-from .commands import FunctionalPulse
+import qiskit.pulse.commands as commands
 
 
 def _update_annotations(discretized_pulse: Callable) -> Callable:
@@ -203,7 +203,7 @@ def sampler(sample_function: Callable) -> Callable:
         """Return a decorated sampler function."""
 
         @functools.wraps(analytic_pulse)
-        def call_sampler(duration: int, *args, **kwargs) -> FunctionalPulse:
+        def call_sampler(duration: int, *args, **kwargs) -> commands.SamplePulse:
             """Replace the call to the analytic function with a call to the sampler applied
             to the anlytic pulse function."""
             sampled_pulse = sample_function(analytic_pulse, duration, *args, **kwargs)
@@ -218,7 +218,7 @@ def sampler(sample_function: Callable) -> Callable:
         # such as __name__, __qualname__
         call_sampler.__dict__.pop('__wrapped__')
         # wrap with functional pulse
-        return FunctionalPulse(call_sampler)
+        return commands.functional_pulse(call_sampler)
 
     return generate_sampler
 
