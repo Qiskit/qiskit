@@ -29,7 +29,7 @@ def linear(times: np.ndarray, m: float, b: float = 0.1) -> np.ndarray:
 
 
 class TestSampler(QiskitTestCase):
-    """Test analytic pulse function samplers."""
+    """Test continuous pulse function samplers."""
 
     def test_left_sampler(self):
         """Test left sampler."""
