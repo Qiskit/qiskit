@@ -10,8 +10,9 @@ Sample pulse.
 """
 
 import numpy as np
-from .pulse_command import PulseCommand
+
 from qiskit.pulse.exceptions import CommandsError
+from .pulse_command import PulseCommand
 
 
 class SamplePulse(PulseCommand):

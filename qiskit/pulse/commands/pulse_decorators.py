@@ -13,8 +13,8 @@ Pulse decorators.
 
 import numpy as np
 
-from .sample_pulse import SamplePulse
 from qiskit.pulse.exceptions import CommandsError
+from .sample_pulse import SamplePulse
 
 
 def functional_pulse(func):
