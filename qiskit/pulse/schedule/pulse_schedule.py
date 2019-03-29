@@ -15,23 +15,23 @@ import logging
 from typing import List, Tuple, Set
 
 from qiskit.pulse.channels import DeviceSpecification, Channel
-from qiskit.pulse.common.interfaces import Pulse, ScheduleNode
+from qiskit.pulse.common.interfaces import Instruction, ScheduleNode
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
 from qiskit.pulse.exceptions import ScheduleError
 
 logger = logging.getLogger(__name__)
 
 
-class TimedPulse(ScheduleNode):
+class TimedInstruction(ScheduleNode):
     """A `Pulse` with begin time relative to its parent,
     which is a non-root node in a schedule tree."""
 
-    def __init__(self, begin_time: int, block: Pulse):
+    def __init__(self, begin_time: int, block: Instruction):
         self._begin_time = begin_time
         self._block = block
 
     @property
-    def pulse(self) -> Pulse:
+    def instruction(self) -> Instruction:
         return self._block
 
     @property
@@ -60,12 +60,12 @@ class TimedPulse(ScheduleNode):
         return "(%d, %s)" % (self._begin_time, self._block)
 
 
-class Schedule(ScheduleNode, Pulse):
+class Schedule(ScheduleNode, Instruction):
     """Schedule of pulses with timing. The root of a schedule tree."""
 
     def __init__(self,
                  device: DeviceSpecification,
-                 schedules: List[Tuple[int, Pulse]] = None,
+                 schedules: List[Tuple[int, Instruction]] = None,
                  name: str = None
                  ):
         """Create schedule.
@@ -79,14 +79,11 @@ class Schedule(ScheduleNode, Pulse):
         self._name = name
         self._occupancy = TimeslotOccupancy(timeslots=[])
         self._children = []
-        if schedules:
-            for t0, pulse in schedules:
-                if isinstance(pulse, Schedule):
-                    raise NotImplementedError("This version doesn't support schedule of schedules.")
-                elif isinstance(pulse, Pulse):
-                    self.insert(t0, pulse)
-                else:
-                    raise ScheduleError("Invalid to be scheduled: %s" % pulse.__class__.__name__)
+        for t0, instruction in schedules or []:
+            if isinstance(instruction, Instruction):
+                self.insert(t0, instruction)
+            else:
+                raise ScheduleError("Invalid to be scheduled: %s" % instruction.__class__.__name__)
 
     @property
     def name(self) -> str:
@@ -96,32 +93,32 @@ class Schedule(ScheduleNode, Pulse):
     def device(self) -> DeviceSpecification:
         return self._device
 
-    def insert(self, begin_time: int, block: Pulse):
-        """Insert a new pulse at `begin_time`.
+    def insert(self, begin_time: int, block: Instruction):
+        """Insert a new block at `begin_time`.
 
         Args:
             begin_time:
-            block (Pulse):
+            block (Instruction):
         """
-        if not isinstance(block, Pulse):
+        if not isinstance(block, Instruction):
             raise ScheduleError("Invalid to be inserted: %s" % block.__class__.__name__)
         # self._check_channels(block)
         shifted = block.occupancy.shifted(begin_time)
         if self._occupancy.is_mergeable_with(shifted):
             self._occupancy = self._occupancy.merged(shifted)
-            self._children.append(TimedPulse(begin_time, block))
+            self._children.append(TimedInstruction(begin_time, block))
         else:
             logger.warning("Fail to insert %s at %s due to timing overlap", block, begin_time)
             raise ScheduleError("Fail to insert %s at %s due to overlap" % (str(block), begin_time))
 
-    def append(self, block: Pulse):
-        """Append a new pulse on a channel at the timing
-        just after the last pulse finishes.
+    def append(self, block: Instruction):
+        """Append a new block on a channel at the timing
+        just after the last block finishes.
 
         Args:
-            block (Pulse):
+            block (Instruction):
         """
-        if not isinstance(block, Pulse):
+        if not isinstance(block, Instruction):
             raise ScheduleError("Invalid to be inserted: %s" % block.__class__.__name__)
         # self._check_channels(block)
         begin_time = self.end_time
@@ -156,13 +153,13 @@ class Schedule(ScheduleNode, Pulse):
     def occupancy(self) -> TimeslotOccupancy:
         return self._occupancy
 
-    def _check_channels(self, pulse: Pulse):
-        if isinstance(pulse, Schedule):
-            if pulse._device != self._device:
+    def _check_channels(self, block: Instruction):
+        if isinstance(block, Schedule):
+            if block._device != self._device:
                 raise ScheduleError("Additional schedule must have same device as self")
         else:
-            # check if all the channels of pulse are defined in the device
-            for ch in pulse.channelset:
+            # check if all the channels of block are defined in the device
+            for ch in block.channelset:
                 if not self._device.has_channel(ch):
                     raise ScheduleError("%s has no channel %s" % (self._device, ch))
 
@@ -173,11 +170,11 @@ class Schedule(ScheduleNode, Pulse):
                 raise NotImplementedError("This version doesn't support schedule of schedules.")
         res = []
         for child in self._children:
-            res.append((child.begin_time, str(child.pulse)))
+            res.append((child.begin_time, str(child.instruction)))
         res = sorted(res)
         return '\n'.join(["%4d: %s" % i for i in res])
 
-    def flat_pulse_sequence(self) -> List[TimedPulse]:
+    def flat_instruction_sequence(self) -> List[TimedInstruction]:
         # TODO: Handle schedule of schedules
         for child in self._children:
             if child.children:

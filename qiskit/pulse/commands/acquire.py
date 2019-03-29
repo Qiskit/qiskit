@@ -11,7 +11,7 @@ Acquire.
 from typing import Union, List, Set
 
 from qiskit.pulse.channels import Channel, Qubit, MemorySlot, RegisterSlot
-from qiskit.pulse.common.interfaces import Pulse
+from qiskit.pulse.common.interfaces import Instruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from qiskit.pulse.exceptions import CommandsError
 from .meas_opts import Discriminator, Kernel
@@ -78,11 +78,11 @@ class Acquire(PulseCommand):
     def __call__(self,
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None) -> 'AcquirePulse':
-        return AcquirePulse(self, qubits, mem_slots, reg_slots)
+                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None) -> 'AcquireInstruction':
+        return AcquireInstruction(self, qubits, mem_slots, reg_slots)
 
 
-class AcquirePulse(Pulse):
+class AcquireInstruction(Instruction):
     """Pulse to acquire measurement result. """
 
     def __init__(self,

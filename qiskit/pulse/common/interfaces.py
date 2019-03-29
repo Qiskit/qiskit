@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Pulse = Command with its operands (Channels).
+Instruction = Command with its operands (Channels).
 """
 from abc import ABCMeta, abstractmethod
 from typing import Set, List
@@ -15,25 +15,25 @@ from qiskit.pulse.channels import Channel
 from .timeslots import TimeslotOccupancy
 
 
-class Pulse(metaclass=ABCMeta):
+class Instruction(metaclass=ABCMeta):
     """Common interface for `Command with its operands (Channels)`. """
 
     @property
     @abstractmethod
     def duration(self) -> int:
-        """Duration of this instruction block. """
+        """Duration of this instruction. """
         pass
 
     @property
     @abstractmethod
     def channelset(self) -> Set[Channel]:
-        """Set of channels used by this instruction block. """
+        """Set of channels used by this instruction. """
         pass
 
     @property
     @abstractmethod
     def occupancy(self) -> TimeslotOccupancy:
-        """Occupied time slots by this instruction block. """
+        """Occupied time slots by this instruction. """
         pass
 
     def __repr__(self):
