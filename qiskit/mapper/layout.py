@@ -30,6 +30,14 @@ class Layout():
         if isinstance(input_, list):
             self.from_list(input_)
 
+    def __repr__(self):
+        """Representation of a Layout"""
+        str_list = []
+        for key, val in self._p2v.items():
+            str_list.append("{k}: {v},".format(k=key, v=val))
+        str_list[-1] = str_list[-1][:-1]
+        return "Layout({\n" + "\n".join(str_list) + "\n})"
+
     def from_dict(self, input_dict):
         """
         Populates a Layout from a dictionary.
@@ -70,8 +78,10 @@ class Layout():
 
         for key, value in input_dict.items():
             virtual, physical = Layout.order_based_on_type(key, value)
-            self._v2p[virtual] = physical
             self._p2v[physical] = virtual
+            if virtual is None:
+                continue
+            self._v2p[virtual] = physical
 
     def from_list(self, input_list):
         """
