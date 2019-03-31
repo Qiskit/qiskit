@@ -16,7 +16,7 @@ from typing import List
 
 from qiskit.pulse.common.interfaces import Instruction, TimedInstruction
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
-from qiskit.pulse.exceptions import ScheduleError
+from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class Schedule(Instruction, TimedInstruction):
             if isinstance(timed, TimedInstruction):
                 self.insert(timed.begin_time, timed.instruction)
             else:
-                raise ScheduleError("Invalid to be scheduled: %s" % timed.__class__.__name__)
+                raise PulseError("Invalid to be scheduled: %s" % timed.__class__.__name__)
         self._name = name
 
     @property
@@ -93,16 +93,16 @@ class Schedule(Instruction, TimedInstruction):
             block (Instruction):
         """
         if not isinstance(block, Instruction):
-            raise ScheduleError("Invalid to be inserted: %s" % block.__class__.__name__)
+            raise PulseError("Invalid to be inserted: %s" % block.__class__.__name__)
         if block == self:
-            raise ScheduleError("Cannot insert self to avoid infinite recursion")
+            raise PulseError("Cannot insert self to avoid infinite recursion")
         shifted = block.occupancy.shifted(begin_time)
         if self._occupancy.is_mergeable_with(shifted):
             self._occupancy = self._occupancy.merged(shifted)
             self._children.append(SubSchedule(begin_time, block))
         else:
             logger.warning("Fail to insert %s at %s due to timing overlap", block, begin_time)
-            raise ScheduleError("Fail to insert %s at %s due to overlap" % (str(block), begin_time))
+            raise PulseError("Fail to insert %s at %s due to overlap" % (str(block), begin_time))
 
     def append(self, block: Instruction):
         """Append a new block on a channel at the timing
@@ -112,15 +112,15 @@ class Schedule(Instruction, TimedInstruction):
             block (Instruction):
         """
         if not isinstance(block, Instruction):
-            raise ScheduleError("Invalid to be inserted: %s" % block.__class__.__name__)
+            raise PulseError("Invalid to be inserted: %s" % block.__class__.__name__)
         if block == self:
-            raise ScheduleError("Cannot insert self to avoid infinite recursion")
+            raise PulseError("Cannot insert self to avoid infinite recursion")
         begin_time = self.end_time
         try:
             self.insert(begin_time, block)
-        except ScheduleError:
+        except PulseError:
             logger.warning("Fail to append %s due to timing overlap", block)
-            raise ScheduleError("Fail to append %s due to overlap" % str(block))
+            raise PulseError("Fail to append %s due to overlap" % str(block))
 
     @property
     def children(self) -> List[TimedInstruction]:

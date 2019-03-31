@@ -14,7 +14,7 @@ Pulse decorators.
 
 import numpy as np
 
-from qiskit.pulse.exceptions import CommandsError
+from qiskit.pulse.exceptions import PulseError
 from .sample_pulse import SamplePulse
 
 
@@ -33,8 +33,8 @@ def function(func):
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
             if np.any(np.abs(samples) > 1):
-                raise CommandsError('Absolute value of pulse amplitude exceeds 1.')
+                raise PulseError('Absolute value of pulse amplitude exceeds 1.')
             return SamplePulse(samples=samples, name=name)
-        raise CommandsError('The first argument must be an integer value representing duration.')
+        raise PulseError('The first argument must be an integer value representing duration.')
 
     return to_pulse
