@@ -10,7 +10,7 @@ Base command.
 """
 from abc import ABCMeta, abstractmethod
 
-from qiskit.pulse.exceptions import CommandsError
+from qiskit.pulse.exceptions import PulseError
 
 
 class PulseCommand(metaclass=ABCMeta):
@@ -30,7 +30,7 @@ class PulseCommand(metaclass=ABCMeta):
         if isinstance(duration, int):
             self._duration = duration
         else:
-            raise CommandsError('Pulse duration should be integer.')
+            raise PulseError('Pulse duration should be integer.')
 
         self._name = name
 

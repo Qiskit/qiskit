@@ -13,7 +13,7 @@ from typing import Union, List
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot
 from qiskit.pulse.common.interfaces import Instruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
-from qiskit.pulse.exceptions import CommandsError
+from qiskit.pulse.exceptions import PulseError
 from .meas_opts import Discriminator, Kernel
 from .pulse_command import PulseCommand
 
@@ -33,7 +33,7 @@ class Acquire(PulseCommand):
                 (if applicable) if the measurement level is 1 or 2.
 
         Raises:
-            CommandsError: when invalid discriminator or kernel object is input.
+            PulseError: when invalid discriminator or kernel object is input.
         """
 
         super().__init__(duration=duration, name='acquire')
@@ -42,7 +42,7 @@ class Acquire(PulseCommand):
             if isinstance(discriminator, Discriminator):
                 self.discriminator = discriminator
             else:
-                raise CommandsError('Invalid discriminator object is specified.')
+                raise PulseError('Invalid discriminator object is specified.')
         else:
             self.discriminator = Discriminator()
 
@@ -50,7 +50,7 @@ class Acquire(PulseCommand):
             if isinstance(kernel, Kernel):
                 self.kernel = kernel
             else:
-                raise CommandsError('Invalid kernel object is specified.')
+                raise PulseError('Invalid kernel object is specified.')
         else:
             self.kernel = Kernel()
 
@@ -98,7 +98,7 @@ class AcquireInstruction(Instruction):
             if isinstance(reg_slots, RegisterSlot):
                 reg_slots = [reg_slots]
             if len(qubits) != len(reg_slots):
-                raise CommandsError("#reg_slots must be equals to #qubits")
+                raise PulseError("#reg_slots must be equals to #qubits")
         else:
             reg_slots = []
         self._command = command

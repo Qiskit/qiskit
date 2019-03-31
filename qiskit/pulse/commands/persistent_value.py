@@ -12,7 +12,7 @@ Persistent value.
 from qiskit.pulse.channels import OutputChannel
 from qiskit.pulse.common.interfaces import Instruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
-from qiskit.pulse.exceptions import CommandsError
+from qiskit.pulse.exceptions import PulseError
 from .pulse_command import PulseCommand
 
 
@@ -32,7 +32,7 @@ class PersistentValue(PulseCommand):
         super().__init__(duration=0, name='pv')
 
         if abs(value) > 1:
-            raise CommandsError("Absolute value of PV amplitude exceeds 1.")
+            raise PulseError("Absolute value of PV amplitude exceeds 1.")
 
         self.value = value
 
