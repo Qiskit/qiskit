@@ -17,6 +17,10 @@
 
 import numpy as np
 
+from qiskit import transpiler, BasicAer
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import Unroller
+
 
 def cry(theta, q_control, q_target, qc):
     qc.u3(theta / 2, 0, 0, q_target)
@@ -156,3 +160,12 @@ def register_to_list(q, start=0, end=None):
     if end is None:
         end = len(q)
     return [q[i] for i in range(start, end)]
+
+
+def convert_to_basis_gates(circuit):
+    # get the circuits from compiled circuit
+    unroller = Unroller(basis=['u1', 'u2', 'u3', 'cx', 'id'])
+    pm = PassManager(passes=[unroller])
+    qc = transpiler.transpile(circuit, BasicAer.get_backend('qasm_simulator'),
+                              pass_manager=pm)
+    return qc
