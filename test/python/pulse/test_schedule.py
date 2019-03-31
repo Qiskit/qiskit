@@ -8,8 +8,8 @@
 # pylint: disable=invalid-name,unexpected-keyword-arg
 
 """Test cases for the pulse schedule."""
-
 import numpy as np
+import pprint
 
 from qiskit.pulse.channels import DeviceSpecification, Qubit
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, RegisterSlot, ControlChannel
@@ -42,7 +42,7 @@ class TestSchedule(QiskitTestCase):
 
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
-        sched = Schedule(device)
+        sched = Schedule()
         sched.insert(0, gp0(device.q[0].drive))
         sched.insert(0, PersistentValue(value=0.2+0.4j)(device.q[0].control))
         sched.insert(30, gp1(device.q[1].drive))
@@ -52,5 +52,11 @@ class TestSchedule(QiskitTestCase):
         sched.insert(90, fc_pi_2(device.q[0].drive))
         sched.insert(90, acquire(device.q[1], device.mem[1], device.c[1]))
         # print(sched)
+
+        new_sched = Schedule()
+        new_sched.append(sched)
+        new_sched.append(sched)
+        _ = new_sched.flat_instruction_sequence()
+        # print(pprint.pformat(new_sched.flat_instruction_sequence()))
 
         self.assertTrue(True)

@@ -9,9 +9,8 @@
 Instruction = Command with its operands (Channels).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Set, List
+from typing import List
 
-from qiskit.pulse.channels import Channel
 from .timeslots import TimeslotOccupancy
 
 
@@ -36,18 +35,28 @@ class ScheduleNode(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def children(self) -> List['ScheduleNode']:
+    def children(self) -> List['TimedInstruction']:
         """Child nodes of this schedule node. """
+        pass
+
+
+class TimedInstruction(ScheduleNode):
+    """Common interface for instruction with timing context. """
+
+    @property
+    @abstractmethod
+    def instruction(self) -> Instruction:
+        """Instruction. """
         pass
 
     @property
     @abstractmethod
     def begin_time(self) -> int:
-        """Relative begin time of this schedule node. """
+        """Relative begin time of this instruction. """
         pass
 
     @property
     @abstractmethod
     def end_time(self) -> int:
-        """Relative end time of this schedule node. """
+        """Relative end time of this instruction. """
         pass
