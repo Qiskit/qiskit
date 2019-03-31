@@ -33,3 +33,18 @@ def is_power_of_2(num):
     Check if the input number is a power of 2.
     """
     return num != 0 and ((num & (num - 1)) == 0)
+
+
+def log2(num):
+    """
+    Compute the log2 of the input number. Use bit operation if the input is a power of 2.
+    """
+    if is_power_of_2(num):
+        ret = 0
+        while True:
+            if num >> ret == 1:
+                return ret
+            else:
+                ret += 1
+    else:
+        return np.log2(num)
