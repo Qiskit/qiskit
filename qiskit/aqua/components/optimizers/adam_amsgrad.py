@@ -1,15 +1,33 @@
+
+# -*- coding: utf-8 -*-
+
+# Copyright 2018 IBM.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# =============================================================================
+
+
 import logging
 
 import csv
 import numpy as np
 
 from qiskit.aqua.components.optimizers import Optimizer
-
-
+from qiskit.aqua import aqua_globals
 logger = logging.getLogger(__name__)
 
 
-class Adam(Optimizer):
+class ADAM(Optimizer):
 
     """
     Adam
@@ -27,16 +45,12 @@ class Adam(Optimizer):
         'description': 'Adam Optimizer',
         'input_schema': {
             '$schema': 'http://json-schema.org/schema#',
-            'id': 'cg_schema',
+            'id': 'adam_schema',
             'type': 'object',
             'properties': {
                 'maxiter': {
                     'type': 'integer',
                     'default': 10000
-                },
-                'save': {
-                    'type': 'boolean',
-                    'default': False
                 },
                 'tol': {
                     'type': 'number',
@@ -50,21 +64,29 @@ class Adam(Optimizer):
                     'type': 'number',
                     'default': 0.7
                 },
-                'beta_1': {
+                'beta_2': {
                     'type': 'number',
                     'default': 0.999
                 },
-                'eps': {
+                'noise_factor': {
                     'type': 'number',
                     'default': 1e-06
                 },
-                'eps_fin_diff': {
+                'eps': {
                    'type': 'number',
                            'default': 1e-03
                 },
                 'amsgrad': {
                     'type': 'boolean',
                     'default': False
+                },
+                'save': {
+                    'type': 'boolean',
+                    'default': False
+                },
+                'path': {
+                    'type': 'string',
+                    'default': ''
                 }
             },
             'additionalProperties': False
@@ -74,25 +96,25 @@ class Adam(Optimizer):
             'bounds': Optimizer.SupportLevel.ignored,
             'initial_point': Optimizer.SupportLevel.supported
         },
-        'options': ['maxiter', 'save', 'tol', 'lr', 'beta_1', 'beta_2', 'eps', 'eps_fin_diff', 'amsgrad'],
+        'options': ['maxiter', 'tol', 'lr', 'beta_1', 'beta_2', 'noise_factor', 'eps', 'amsgrad', 'save', 'path'],
         'optimizer': ['local']
     }
 
-    def __init__(self, maxiter=10000, save=False, path='', tol=1e-4, lr=1e-3, beta_1=0.7, beta_2=0.999, eps=1e-6,
-                 eps_fin_diff = 1e-2, amsgrad=False):
+    def __init__(self, maxiter=10000, tol=1e-4, lr=1e-3, beta_1=0.7, beta_2=0.999, noise_factor=1e-6,
+                 eps = 1e-3, amsgrad=False, save=False, path=''):
         """
         Constructor.
 
         maxiter: int, Maximum number of iterations
-        save: Boolean, if True - save the optimizer's parameter after every step
-        path: str, path where to save optimizer's parameters if save==True
         tol: float, Tolerance for termination
         lr: float >= 0, Learning rate.
         beta_1: float, 0 < beta < 1, Generally close to 1.
         beta_2: float, 0 < beta < 1, Generally close to 1.
-        eps: float >= 0, Noise factor
-        eps_fin_diff: float >=0, Epsilon to be used for finite differences if no analytic gradient method is given.
+        noise_factor: float >= 0, Noise factor
+        eps: float >=0, Epsilon to be used for finite differences if no analytic gradient method is given.
         amsgrad: Boolean, use AMSGRAD or not
+        save: Boolean, if True - save the optimizer's parameter after every step
+        path: str, path where to save optimizer's parameters if save==True
         """
         self.validate(locals())
         super().__init__()
@@ -106,8 +128,8 @@ class Adam(Optimizer):
         self._lr = lr
         self._beta_1 = beta_1
         self._beta_2 = beta_2
+        self._noise_factor = noise_factor
         self._eps = eps
-        self._eps_fin_diff = eps_fin_diff
         self._amsgrad = amsgrad
         self._t = 0 #time steps
 
@@ -139,10 +161,10 @@ class Adam(Optimizer):
             self._v = self._beta_2 * self._v + (1 - self._beta_2) * np.power(derivative, 2 * np.ones(np.shape(derivative)))
             lr_eff = self._lr * np.sqrt(1 - self._beta_2 ** self._t) / (1 - self._beta_1 ** self._t)
             if not self._amsgrad:
-                params_new = (params - lr_eff * self._m.flatten() / (np.sqrt(self._v.flatten()) + self._eps))
+                params_new = (params - lr_eff * self._m.flatten() / (np.sqrt(self._v.flatten()) + self._noise_factor))
             else:
                 self._v_eff = np.maximum(self._v_eff, self._v)
-                params_new = (params - lr_eff * self._m.flatten() / (np.sqrt(self._v_eff.flatten()) + self._eps))
+                params_new = (params - lr_eff * self._m.flatten() / (np.sqrt(self._v_eff.flatten()) + self._noise_factor))
 
             if self._save:
                 if self._amsgrad:
@@ -161,10 +183,7 @@ class Adam(Optimizer):
             else:
                 params = params_new
 
-
-
         return params_new, objective_function(params_new), self._t
-
 
     def optimize(self, num_vars, objective_function, gradient_function = None, variable_bounds = None,
                  initial_point= None):
@@ -185,16 +204,11 @@ class Adam(Optimizer):
                value: is a float with the objective function value
                nfev: number of objective function calls made if available or None
         """
-
         super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
         if initial_point is None:
-            initial_point = np.random.rand(num_vars)
+            initial_point = aqua_globals.random.rand(num_vars)
         if gradient_function is None:
-            """
-            take fin diff of Aqua
-            derivative = 
-            """
-            gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff, (objective_function, self._eps_fin_diff))
+            gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff, (objective_function, self._eps))
 
         point, value, nfev = self.minimize(objective_function, initial_point, gradient_function)
         return point, value, nfev
