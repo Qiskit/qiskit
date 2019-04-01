@@ -146,7 +146,34 @@ class TestPulseQobj(QiskitTestCase):
                                    ],
                                    qubit_lo_freq=[4.9],
                                    meas_lo_freq=[6.9],
-                                   rep_time=1000),
+                                   rep_time=1000,
+                                   hamiltonian={
+                                       'h_str': [
+                                           '2*pi*v0*O0',
+                                           'X0||D0'
+                                       ],
+                                       'vars': {'v0': 5.1},
+                                       'osc': {},
+                                       'qub': {'0': 2}
+                                   },
+                                   noise={
+                                       'qubit': {
+                                           '0': {
+                                               'Sm': 0.006
+                                           }
+                                       },
+                                       'oscillator': {
+                                           'n_th': {},
+                                           'coupling': {}
+                                       }
+                                   },
+                                   ode_options={
+                                       'atol': 1e-18,
+                                       'nsteps': 50000,
+                                       'rhs_reuse': False,
+                                       'rhs_filename': 'rhs'
+                                   },
+                                   dt=1.0),
             experiments=[
                 PulseQobjExperiment(instructions=[
                     PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
@@ -178,8 +205,31 @@ class TestPulseQobj(QiskitTestCase):
                                          ],
                        'qubit_lo_freq': [4.9],
                        'meas_lo_freq': [6.9],
-                       'rep_time': 1000
+                       'rep_time': 1000,
+                       'hamiltonian': {
+                           'h_str': ['2*pi*v0*O0', 'X0||D0'],
+                           'vars': {'v0': 5.1},
+                           'osc': {},
+                           'qub': {'0': 2}
                        },
+                       'noise': {
+                           'qubit': {
+                               '0': {
+                                   'Sm': 0.006
+                               }
+                           },
+                           'oscillator': {
+                               'n_th': {},
+                               'coupling': {}
+                           }
+                       },
+                       'ode_options': {
+                           'atol': 1e-18,
+                           'nsteps': 50000,
+                           'rhs_reuse': False,
+                           'rhs_filename': 'rhs'
+                       },
+                       'dt': 1.0},
             'experiments': [
                 {'instructions': [
                     {'name': 'pulse0', 't0': 0, 'ch': 'd0'},
@@ -218,14 +268,65 @@ class TestPulseQobj(QiskitTestCase):
                                     QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j])
                                 ],
                                 qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
-                                rep_time=1000),
+                                rep_time=1000,
+                                hamiltonian={
+                                    'h_str': [
+                                        '2*pi*v0*O0',
+                                        'X0||D0'
+                                    ],
+                                    'vars': {'v0': 5.1},
+                                    'osc': {},
+                                    'qub': {'0': 2}
+                                },
+                                noise={
+                                    'qubit': {
+                                        '0': {
+                                            'Sm': 0.006
+                                        }
+                                    },
+                                    'oscillator': {
+                                        'n_th': {},
+                                        'coupling': {}
+                                    }
+                                },
+                                ode_options={
+                                    'atol': 1e-18,
+                                    'nsteps': 50000,
+                                    'rhs_reuse': False,
+                                    'rhs_filename': 'rhs'
+                                },
+                                dt=1.0),
                 {'meas_level': 1,
                  'memory_slot_size': 8192,
                  'meas_return': 'avg',
                  'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
                  'qubit_lo_freq': [4.9],
                  'meas_lo_freq': [6.9],
-                 'rep_time': 1000}
+                 'rep_time': 1000,
+                 'hamiltonian': {
+                     'h_str': ['2*pi*v0*O0', 'X0||D0'],
+                     'vars': {'v0': 5.1},
+                     'osc': {},
+                     'qub': {'0': 2}
+                 },
+                 'noise': {
+                     'qubit': {
+                         '0': {
+                             'Sm': 0.006
+                         }
+                     },
+                     'oscillator': {
+                         'n_th': {},
+                         'coupling': {}
+                     }
+                 },
+                 'ode_options': {
+                     'atol': 1e-18,
+                     'nsteps': 50000,
+                     'rhs_reuse': False,
+                     'rhs_filename': 'rhs'
+                 },
+                 'dt': 1.0},
             ),
             QobjPulseLibrary: (
                 QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j]),
