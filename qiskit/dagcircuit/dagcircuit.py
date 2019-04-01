@@ -1159,6 +1159,19 @@ class DAGCircuit:
 
         return self.multi_graph.successors(node)
 
+    def ordered_successors(self, node):
+        """Returns list of the successors of a node as DAGNodes
+        in the order they were added to  the DAG."""
+        if isinstance(node, int):
+            warnings.warn('Calling ordered_successors() with a node id is deprecated,'
+                          ' use a DAGNode instead',
+                          DeprecationWarning, 2)
+            node = self._id_to_node[node]
+
+        # Python 3.5 returns the successors in reverse order for some reason
+        # therefore we have to sort based on node_id to get them into the correct order
+        return sorted(self.multi_graph.successors(node), key=lambda x: x._node_id)
+
     def predecessors(self, node):
         """Returns list of the predecessors of a node as DAGNodes."""
         if isinstance(node, int):
@@ -1479,7 +1492,8 @@ class DAGCircuit:
             if current_node.type == 'op' or not only_ops:
                 yield current_node
 
-            for node in self.successors(current_node):
+            for node in self.ordered_successors(current_node):
+
                 # check if this node includes the given wire
                 if (node.type in ['in', 'out'] and wire == node.wire) or \
                    (node.type == 'op' and wire in node.qargs + node.cargs):
