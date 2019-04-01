@@ -52,7 +52,6 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
             barrier_layer.add_creg(creg)
 
         final_qubits = set(final_op.qargs[0]
-
                            for final_op in final_ops)
 
         new_barrier_node = barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
@@ -76,10 +75,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         existing_barriers = barrier_layer.named_nodes('barrier')
         # remove element from the list
-        for i, node in enumerate(existing_barriers):
-            if node == new_barrier_node:
-                del existing_barriers[i]
-                break
+        existing_barriers.remove(new_barrier_node)
 
         barrier_to_add = None
         for candidate_barrier in existing_barriers:

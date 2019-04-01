@@ -44,7 +44,6 @@ class CommutationAnalysis(AnalysisPass):
         # Build a dictionary to keep track of the gates on each qubit
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
-            self.gates_on_wire[wire_name] = []
             self.property_set['commutation_set'][wire_name] = []
 
         # Add edges to the dictionary for each qubit
@@ -52,27 +51,18 @@ class CommutationAnalysis(AnalysisPass):
             for (start_node, end_node, edge_data) in dag.multi_graph.edges(node, data=True):
 
                 edge_name = edge_data['name']
-
-                self.gates_on_wire[edge_name].append(start_node)
                 self.property_set['commutation_set'][(node, edge_name)] = -1
-
-                if end_node.type == "out":
-                    self.gates_on_wire[edge_name].append(end_node)
 
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
 
-            for current_gate in self.gates_on_wire[wire_name]:
+            for current_gate in dag.nodes_on_wire(wire):
 
                 current_comm_set = self.property_set['commutation_set'][wire_name]
                 if not current_comm_set:
                     current_comm_set.append([current_gate])
 
-                # must be the exact same objects whereas == is True
-                # for semantically equivalent objects
-                id_for_gates = [x._node_id for x in current_comm_set[-1]]
-
-                if current_gate._node_id not in id_for_gates:
+                if current_gate not in current_comm_set[-1]:
                     prev_gate = current_comm_set[-1][-1]
                     if _commute(current_gate, prev_gate):
                         current_comm_set[-1].append(current_gate)
