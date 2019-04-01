@@ -11,6 +11,7 @@ from .unroller import Unroller
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
 from .dag_fixed_point import DAGFixedPoint
+from .adjacent_barriers import MergeAdjacentBarriers
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .unroll_3q_or_more import Unroll3qOrMore
