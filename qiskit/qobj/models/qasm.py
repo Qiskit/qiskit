@@ -9,11 +9,11 @@
 
 from marshmallow.validate import Range, Length, Regexp
 
+from qiskit.validation import bind_schema, BaseSchema, BaseModel
+from qiskit.validation.fields import List, Integer, InstructionParameter, Nested, String
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
-from qiskit.validation import bind_schema, BaseSchema, BaseModel
-from qiskit.validation.fields import List, Integer, InstructionParameter, Nested, String
 
 
 class QobjConditionalSchema(BaseSchema):
@@ -49,8 +49,7 @@ class QasmQobjExperimentSchema(QobjExperimentSchema):
     """Schema for QasmQobjExperiment."""
 
     # Required properties.
-    instructions = Nested(QasmQobjInstructionSchema, required=True, many=True,
-                          validate=Length(min=1))
+    instructions = Nested(QasmQobjInstructionSchema, required=True, many=True)
 
     # Optional properties.
     config = Nested(QasmQobjExperimentConfigSchema)
