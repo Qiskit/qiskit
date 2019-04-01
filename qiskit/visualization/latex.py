@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
+# pylint: disable=consider-using-enumerate
 
 """latex circuit visualization backends."""
 
