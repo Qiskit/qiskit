@@ -60,8 +60,10 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
     swap circuit has been applied. The trivial_flag is set if the layer
     has no multi-qubit gates.
     """
-    if seed is not None:
-        np.random.seed(seed)
+    if seed is None:
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+    rng = np.random.RandomState(seed)
+    logger.debug("layer_permutation RandomState seeded with seed=%s", seed)
     logger.debug("layer_permutation: ----- enter -----")
     logger.debug("layer_permutation: layer_partition = %s",
                  pprint.pformat(layer_partition))
@@ -113,7 +115,7 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
             i = (QR, i)
             for j in coupling.physical_qubits:
                 j = (QR, j)
-                scale = 1 + np.random.normal(0, 1 / n)
+                scale = 1 + rng.normal(0, 1 / n)
                 xi[i][j] = scale * coupling.distance(i[1], j[1]) ** 2
                 xi[j][i] = xi[i][j]
 

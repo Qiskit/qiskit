@@ -270,6 +270,29 @@ class LayoutTest(QiskitTestCase):
         with self.assertRaises(LayoutError):
             layout[0] = 1
 
+    def test_layout_repr(self):
+        """Layout repr reproduces layout"""
+        qr = QuantumRegister(5, 'qr')
+        layout = Layout({(qr, 0): 2,
+                         (qr, 1): 4,
+                         (qr, 2): 3,
+                         (qr, 3): 0,
+                         (qr, 4): 1,
+                         })
+
+        repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
+        self.assertDictEqual(layout._p2v, repr_layout._p2v)
+        self.assertDictEqual(layout._v2p, repr_layout._v2p)
+
+    def test_layout_repr_with_holes(self):
+        """A non-bijective Layout repr reproduces layout"""
+        qr = QuantumRegister(5, 'qr')
+        layout = Layout([(qr, 0), None, None, (qr, 1), (qr, 2), (qr, 3), (qr, 4), None])
+
+        repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
+        self.assertDictEqual(layout._p2v, repr_layout._p2v)
+        self.assertDictEqual(layout._v2p, repr_layout._v2p)
+
 
 if __name__ == '__main__':
     unittest.main()
