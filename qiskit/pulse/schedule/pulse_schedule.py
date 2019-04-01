@@ -11,52 +11,16 @@
 """
 Schedule.
 """
+import copy
 import logging
 from typing import List
 
+from qiskit.pulse.common.command_schedule import CommandSchedule, PrimitiveInstruction
 from qiskit.pulse.common.interfaces import Instruction, TimedInstruction
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
 from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)
-
-
-class SubSchedule(TimedInstruction):
-    """An instruction block with begin time relative to its parent,
-    which is a non-root node in a schedule tree."""
-
-    def __init__(self, begin_time: int, block: Instruction):
-        self._begin_time = begin_time
-        self._block = block
-
-    @property
-    def children(self) -> List[TimedInstruction]:
-        """Child nodes of this schedule node. """
-        if isinstance(self._block, Schedule):
-            return self._block.children
-        return []
-
-    @property
-    def begin_time(self) -> int:
-        """Relative begin time of this instruction block. """
-        return self._begin_time
-
-    @property
-    def instruction(self) -> Instruction:
-        return self._block
-
-    @property
-    def end_time(self) -> int:
-        """Relative end time of this instruction block. """
-        return self.begin_time + self.duration
-
-    @property
-    def duration(self) -> int:
-        """Duration of this instruction block. """
-        return self._block.duration
-
-    def __repr__(self):
-        return "(%d, %s)" % (self._begin_time, self._block)
 
 
 class Schedule(Instruction, TimedInstruction):
@@ -74,53 +38,70 @@ class Schedule(Instruction, TimedInstruction):
         """
         self._occupancy = TimeslotOccupancy(timeslots=[])
         self._children = []
-        for timed in schedules or []:
-            if isinstance(timed, TimedInstruction):
-                self.insert(timed.begin_time, timed.instruction)
+        for block in schedules or []:
+            if isinstance(block, TimedInstruction):
+                self._insert(block.begin_time, block.instruction)
             else:
-                raise PulseError("Invalid to be scheduled: %s" % timed.__class__.__name__)
+                raise PulseError("Invalid to be scheduled: %s" % block.__class__.__name__)
         self._name = name
 
     @property
     def name(self) -> str:
         return self._name
 
-    def insert(self, begin_time: int, block: Instruction):
-        """Insert a new block at `begin_time`.
+    def inserted(self, block: TimedInstruction):
+        """Return a new schedule with inserting an instruction with timing.
+
+        Args:
+            block (TimedInstruction): instruction with timing to be inserted
+        """
+        if not isinstance(block, TimedInstruction):
+            raise PulseError("Invalid to be inserted: %s" % block.__class__.__name__)
+        news = copy.copy(self)
+        try:
+            news._insert(block.begin_time, block.instruction)
+        except PulseError as err:
+            raise PulseError(err.message)
+        return news
+
+    def _insert(self, begin_time: int, inst: Instruction):
+        """Insert a new instruction at `begin_time`.
 
         Args:
             begin_time:
-            block (Instruction):
+            inst (Instruction):
         """
-        if not isinstance(block, Instruction):
-            raise PulseError("Invalid to be inserted: %s" % block.__class__.__name__)
-        if block == self:
+        if inst == self:
             raise PulseError("Cannot insert self to avoid infinite recursion")
-        shifted = block.occupancy.shifted(begin_time)
+        shifted = inst.occupancy.shifted(begin_time)
         if self._occupancy.is_mergeable_with(shifted):
             self._occupancy = self._occupancy.merged(shifted)
-            self._children.append(SubSchedule(begin_time, block))
+            if isinstance(inst, PrimitiveInstruction):
+                self._children.append(CommandSchedule(begin_time, inst))
+            elif isinstance(inst, Schedule):
+                self._children.append(SubSchedule(begin_time, inst))
+            else:
+                raise PulseError("Invalid instruction to be inserted: %s" % inst.__class__.__name__)
         else:
-            logger.warning("Fail to insert %s at %s due to timing overlap", block, begin_time)
-            raise PulseError("Fail to insert %s at %s due to overlap" % (str(block), begin_time))
+            logger.warning("Fail to insert %s at %s due to timing overlap", inst, begin_time)
+            raise PulseError("Fail to insert %s at %s due to overlap" % (str(inst), begin_time))
 
-    def append(self, block: Instruction):
-        """Append a new block on a channel at the timing
-        just after the last block finishes.
+    def appended(self, instruction: Instruction):
+        """Return a new schedule with appending an instruction with timing
+        just after the last instruction finishes.
 
         Args:
-            block (Instruction):
+            instruction (Instruction):
         """
-        if not isinstance(block, Instruction):
-            raise PulseError("Invalid to be inserted: %s" % block.__class__.__name__)
-        if block == self:
-            raise PulseError("Cannot insert self to avoid infinite recursion")
-        begin_time = self.end_time
+        if not isinstance(instruction, Instruction):
+            raise PulseError("Invalid to be appended: %s" % instruction.__class__.__name__)
+        news = copy.copy(self)
         try:
-            self.insert(begin_time, block)
+            news._insert(self.end_time, instruction)
         except PulseError:
-            logger.warning("Fail to append %s due to timing overlap", block)
-            raise PulseError("Fail to append %s due to overlap" % str(block))
+            logger.warning("Fail to append %s due to timing overlap", instruction)
+            raise PulseError("Fail to append %s due to overlap" % str(instruction))
+        return news
 
     @property
     def children(self) -> List[TimedInstruction]:
@@ -159,7 +140,7 @@ class Schedule(Instruction, TimedInstruction):
         res = sorted(res)
         return '\n'.join(["%4d: %s" % i for i in res])
 
-    def flat_instruction_sequence(self) -> List[SubSchedule]:
+    def flat_instruction_sequence(self) -> List[CommandSchedule]:
         return [_ for _ in Schedule._flatten_generator(self, self.begin_time)]
 
     @staticmethod
@@ -168,4 +149,40 @@ class Schedule(Instruction, TimedInstruction):
             for child in node.children:
                 yield from Schedule._flatten_generator(child, time + node.begin_time)
         else:
-            yield SubSchedule(time + node.begin_time, node.instruction)
+            yield CommandSchedule(time + node.begin_time, node.instruction)
+
+
+class SubSchedule(TimedInstruction):
+    """An instruction block with begin time relative to its parent,
+    which is a non-root node in a schedule tree."""
+
+    def __init__(self, begin_time: int, schedule: Schedule):
+        self._begin_time = begin_time
+        self._block = schedule
+
+    @property
+    def children(self) -> List[TimedInstruction]:
+        """Child nodes of this schedule node. """
+        return self._block.children
+
+    @property
+    def begin_time(self) -> int:
+        """Relative begin time of this instruction block. """
+        return self._begin_time
+
+    @property
+    def instruction(self) -> Instruction:
+        return self._block
+
+    @property
+    def end_time(self) -> int:
+        """Relative end time of this instruction block. """
+        return self.begin_time + self.duration
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction block. """
+        return self._block.duration
+
+    def __repr__(self):
+        return "(%d, %s)" % (self._begin_time, self._block)

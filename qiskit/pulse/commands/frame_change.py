@@ -10,7 +10,7 @@ Frame change pulse.
 """
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.interfaces import Instruction
+from qiskit.pulse.common.command_schedule import PrimitiveInstruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from .pulse_command import PulseCommand
 
@@ -48,11 +48,11 @@ class FrameChange(PulseCommand):
     def __repr__(self):
         return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)
 
-    def __call__(self, channel: OutputChannel) -> 'FrameChangeInstruction':
+    def to(self, channel: OutputChannel) -> 'FrameChangeInstruction':
         return FrameChangeInstruction(self, channel)
 
 
-class FrameChangeInstruction(Instruction):
+class FrameChangeInstruction(PrimitiveInstruction):
     """Pulse to acquire measurement result. """
 
     def __init__(self, command: FrameChange, channel: OutputChannel):
