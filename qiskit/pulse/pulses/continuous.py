@@ -43,10 +43,10 @@ def square(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> 
         phase: Pulse phase.
     """
     x = times/period+phase/np.pi
-    return 2*amp*(2*np.floor(x) - np.floor(2*x)) + 1
+    return amp*(2*(2*np.floor(x) - np.floor(2*x)) + 1)
 
 
-def sawtooth(times: np.ndarray, amp: complex, period: float, phase: float = np.pi/2) -> np.ndarray:
+def sawtooth(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
     """Continuous sawtooth wave.
 
     Args:
@@ -55,10 +55,11 @@ def sawtooth(times: np.ndarray, amp: complex, period: float, phase: float = np.p
         period: Pulse period, units of dt.
         phase: Pulse phase.
     """
-    return 2*amp*((times/period + phase/np.pi) % 1) - 1
+    x = times/period+phase/np.pi
+    return amp*2*(x-np.floor(1/2+x))
 
 
-def triangle(times: np.ndarray, amp: complex, period: float, phase: float = np.pi/2) -> np.ndarray:
+def triangle(times: np.ndarray, amp: complex, period: float, phase: float = 0) -> np.ndarray:
     """Continuous triangle wave.
 
     Args:
@@ -67,7 +68,7 @@ def triangle(times: np.ndarray, amp: complex, period: float, phase: float = np.p
         period: Pulse period, units of dt.
         phase: Pulse phase.
     """
-    return -2*np.abs(sawtooth(times, amp, period, phase/2)) + 1
+    return amp*(-2*np.abs(sawtooth(times, 1, period, (phase-np.pi/2)/2)) + 1)
 
 
 def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -79,7 +80,7 @@ def cos(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
         freq: Pulse frequency, units of 1/dt.
         phase: Pulse phase.
     """
-    return amp*np.cos(times*freq+phase)
+    return amp*np.cos(2*np.pi*freq*times+phase)
 
 
 def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.ndarray:
@@ -91,7 +92,7 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
         freq: Pulse frequency, units of 1/dt.
         phase: Pulse phase.
     """
-    return amp*np.sin(times*freq+phase)
+    return amp*np.sin(2*np.pi*freq*times+phase)
 
 
 def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float) -> np.ndarray:
