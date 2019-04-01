@@ -12,7 +12,7 @@ import sympy
 
 from marshmallow.utils import is_collection
 from marshmallow.exceptions import ValidationError
-from marshmallow.compat import Mapping, Iterable
+from marshmallow.compat import Mapping
 
 from qiskit.validation import ModelTypeValidator
 
@@ -171,16 +171,16 @@ class DictParameters(ModelTypeValidator):
 
         return value
 
-    def _serialize_sub(self, value):
+    def _validate_values(self, value):
         # pylint: disable=too-many-return-statements
         if value is None:
             return None
         if isinstance(value, self.valid_value_types):
             return value
-        if isinstance(value, Iterable):
-            return [self._serialize_sub(each) for each in value]
+        if is_collection(value):
+            return [self._validate_values(each) for each in value]
         if isinstance(value, Mapping):
-            return {str(k): self._serialize_sub(v) for k, v in value.items()}
+            return {str(k): self._validate_values(v) for k, v in value.items()}
 
         return self.fail('invalid', input=value)
 
@@ -189,7 +189,7 @@ class DictParameters(ModelTypeValidator):
         if value is None:
             return None
         if isinstance(value, Mapping):
-            return {str(k): self._serialize_sub(v) for k, v in value.items()}
+            return {str(k): self._validate_values(v) for k, v in value.items()}
 
         return self.fail('invalid_mapping')
 

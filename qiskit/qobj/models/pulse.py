@@ -10,9 +10,10 @@
 from marshmallow.validate import Range, Regexp, Length, OneOf
 
 from qiskit.qobj.utils import MeasReturnType
-from qiskit.validation import bind_schema, BaseSchema, BaseModel
-from qiskit.validation.fields import (Integer, String, Number, Complex, Boolean,
-                                      List, Nested, DictParameters)
+from qiskit.validation import BaseSchema, bind_schema, BaseModel
+from qiskit.validation.fields import (Integer, String, Number, Complex, List, Nested, Boolean,
+                                      Dict, DictParameters, InstructionParameter)
+from qiskit.validation.validate import PatternProperties
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
@@ -33,54 +34,6 @@ class QobjPulseLibrarySchema(BaseSchema):
     # Required properties.
     name = String(required=True)
     samples = List(Complex(), required=True, validate=Length(min=1))
-
-
-class QobjHamiltonianSchema(BaseSchema):
-    """Schema for QobjHamiltonian."""
-    # pylint: disable=invalid-name
-
-    # Required properties.
-    h_latex = String(required=True)
-    h_str = List(String(), required=True, validate=Length(min=1))
-    vars = DictParameters(valid_value_types=(int, float, complex),
-                          required=True)
-    osc = DictParameters(valid_value_types=(int, ),
-                         required=True)
-
-
-class QobjOscillatorNoiseSchema(BaseSchema):
-    """Schema for QobjOscillatorNoise."""
-
-    # Required properties.
-    n_th = DictParameters(valid_value_types=(int, float),
-                          required=True)
-    coupling = DictParameters(valid_value_types=(int, float),
-                              required=True)
-
-
-class QobjNoiseSchema(BaseSchema):
-    """Schema for QobjNoise."""
-
-    # Required properties.
-    qubit = DictParameters(valid_value_types=(int, ),
-                           required=True)
-    oscillator = Nested(QobjOscillatorNoiseSchema,
-                        required=True)
-
-
-class QobjOdeOptionsSchema(BaseSchema):
-    """Schema for OdeOptions."""
-
-    # Optional properties.
-    atol = Number()
-    rtol = Number()
-    nsteps = Integer(validate=Range(min=0))
-    max_step = Integer(validate=Range(min=0))
-    num_cpus = Integer(validate=Range(min=0))
-    norm_tol = Number()
-    norm_steps = Integer(validate=Range(min=0))
-    rhs_reuse = Boolean()
-    rhs_filename = String()
 
 
 class PulseQobjInstructionSchema(QobjInstructionSchema):
@@ -138,10 +91,46 @@ class PulseQobjConfigSchema(QobjConfigSchema):
                                                  MeasReturnType.SINGLE)))
 
     # Optional properties.
-    hamiltonian = Nested(QobjHamiltonianSchema)
-    noise = Nested(QobjNoiseSchema)
+    hamiltonian = Dict(validate=PatternProperties({
+        Regexp('h_latex'): String(),
+        Regexp('h_str'): List(String(), validate=Length(min=1)),
+        Regexp('vars'): Dict(validate=PatternProperties({
+            Regexp('^([a-z0-9])+$'): InstructionParameter()
+        })),
+        Regexp('osc'): Dict(validate=PatternProperties({
+            Regexp('^([0-9])+$'): Integer(validate=Range(min=1))
+        })),
+        Regexp('qub'): Dict(validate=PatternProperties({
+            Regexp('^([0-9])+$'): Integer(validate=Range(min=2))
+        }))
+    }))
     dt = Number()
-    ode_options = Nested(QobjOdeOptionsSchema)
+    noise = Dict(validate=PatternProperties({
+        Regexp('qubit'): Dict(validate=PatternProperties({
+            Regexp('^([0-9])+$'): Dict(validate=PatternProperties({
+                Regexp('^([A-Za-z])+$'): Number()
+            }))
+        })),
+        Regexp('oscillator'): Dict(validate=PatternProperties({
+            Regexp('n_th'): Dict(validate=PatternProperties({
+                Regexp('^([0-9])+$'): Number()
+            })),
+            Regexp('coupling'): Dict(validate=PatternProperties({
+                Regexp('^([0-9])+$'): Number()
+            }))
+        }))
+    }))
+    ode_options = Dict(validate=PatternProperties({
+        Regexp('atol'): Number(),
+        Regexp('rtol'): Number(),
+        Regexp('nsteps'): Integer(validate=Range(min=0)),
+        Regexp('max_steps'): Integer(validate=Range(min=0)),
+        Regexp('num_cpus'): Integer(validate=Range(min=0)),
+        Regexp('norm_tol'): Number(),
+        Regexp('norm_steps'): Integer(validate=Range(min=0)),
+        Regexp('rhs_reuse'): Boolean(),
+        Regexp('rhs_filename'): String(validate=Length(min=1))
+    }))
 
 
 @bind_schema(QobjMeasurementOptionSchema)
@@ -238,7 +227,7 @@ class PulseQobjConfig(QobjConfig):
         meas_level (int): a value represents the level of measurement.
         memory_slot_size (int): size of memory slot
         meas_return (str): a level of measurement information.
-        pulse_library (list[QobjPulseLibrary]): a pulse library.
+        pulse_library (list[qiskit.qobj.QobjPulseLibrary]): a pulse library.
         qubit_lo_freq (list): the list of frequencies for qubit drive LO's in GHz.
         meas_lo_freq (list): the list of frequencies for measurement drive LO's in GHz.
         rep_time (int): the value of repetition time of experiment in us.

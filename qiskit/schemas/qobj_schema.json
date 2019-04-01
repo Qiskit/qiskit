@@ -1002,7 +1002,7 @@
                                     "description": "Variables in Hamiltonian.",
                                     "type": "object",
                                     "patternProperties": {
-                                        "^[a-z0-9]+$": {
+                                        "^([a-z0-9])+$": {
                                             "type": "number"
                                         }
                                     },
@@ -1012,8 +1012,19 @@
                                     "description": "Oscillator Fock states.",
                                     "type": "object",
                                     "patternProperties": {
-                                        "^[0-9]+$": {
+                                        "^([0-9])+$": {
                                             "minimum": 1,
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "additionalProperties": false
+                                },
+                                "qub": {
+                                    "description": "Qubit Fock states.",
+                                    "type": "object",
+                                    "patternProperties": {
+                                        "^([0-9])+$": {
+                                            "minimum": 2,
                                             "type": "integer"
                                         }
                                     },
@@ -1021,22 +1032,22 @@
                                 }
                             },
                             "required": [
-                                "h_latex",
                                 "h_str",
                                 "vars",
-                                "osc"
+                                "osc",
+                                "qub"
                             ]
                         },
                         "noise": {
                             "properties": {
-                                "pubit": {
+                                "qubit": {
                                     "description": "Qubit noise configuration.",
                                     "type": "object",
                                     "patternProperties": {
-                                        "^[0-9]+$": {
+                                        "^([0-9])+$": {
                                             "type": "object",
                                             "patternProperties": {
-                                                "^[A-Za-z]+$": {
+                                                "^([A-Za-z])+$": {
                                                     "type": "number"
                                                 }
                                             },
@@ -1051,7 +1062,7 @@
                                             "description": "Thermal noise amplitude.",
                                             "type": "object",
                                             "patternProperties": {
-                                                "^[0-9]+$": {
+                                                "^([0-9])+$": {
                                                     "type": "number"
                                                 }
                                             },
@@ -1061,7 +1072,7 @@
                                             "description": "Coupling intensity to bath.",
                                             "type": "object",
                                             "patternProperties": {
-                                                "^[0-9]+$": {
+                                                "^([0-9])+$": {
                                                     "type": "number"
                                                 }
                                             },
@@ -1123,30 +1134,18 @@
                                         }
                                     ]
                                 }
-                            }
+                            },
+                            "additionalProperties": false
                         }
                     },
-                    "oneOf": [
-                        {
-                            "required": [
-                                "meas_level",
-                                "pulse_library",
-                                "memory_slot_size",
-                                "meas_return",
-                                "qubit_lo_freq",
-                                "meas_lo_freq",
-                                "rep_time"
-                            ]
-                        },
-                        {
-                            "required": [
-                                "pulse_library",
-                                "qubit_lo_freq",
-                                "meas_lo_freq",
-                                "hamiltonian",
-                                "dt"
-                            ]
-                        }
+                    "required": [
+                        "meas_level",
+                        "pulse_library",
+                        "memory_slot_size",
+                        "meas_return",
+                        "qubit_lo_freq",
+                        "meas_lo_freq",
+                        "rep_time"
                     ]
                 },
                 "experiments": {

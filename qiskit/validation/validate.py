@@ -7,6 +7,8 @@
 
 """Validators for Qiskit validated classes."""
 
+from collections.abc import Mapping
+
 from marshmallow import ValidationError
 from marshmallow.validate import Validator
 
@@ -68,7 +70,13 @@ class PatternProperties(Validator):
 
     def __call__(self, value):
         errors = {}
-        for key, value_ in value.__dict__.items():
+
+        if isinstance(value, Mapping):
+            _dict = value
+        else:
+            _dict = value.__dict__
+
+        for key, value_ in _dict.items():
             # Attempt to validate the keys against any field.
             field = None
             for validator, candidate in self.pattern_properties.items():
@@ -82,6 +90,7 @@ class PatternProperties(Validator):
             if field:
                 errors.pop(key, None)
                 try:
+                    field.check_type(value=value_, attr=key, data=value)
                     field.deserialize(value_)
                 except ValidationError as ex:
                     errors[key] = ex.messages
