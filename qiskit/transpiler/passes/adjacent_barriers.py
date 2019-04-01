@@ -44,8 +44,11 @@ class MergeAdjacentBarriers(TransformationPass):
                     if node in node_to_barrier:
                         new_dag.apply_operation_back(node_to_barrier[node])
                 else:
-                    new_dag.apply_operation_back(node.op)
-
+                    # copy the condition over too
+                    if node.condition:
+                        new_dag.apply_operation_back(node.op, condition=node.condition)
+                    else:
+                        new_dag.apply_operation_back(node.op)
         return new_dag
 
     @staticmethod
