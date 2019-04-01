@@ -37,8 +37,6 @@ class ADAM(Optimizer):
     AMSGRAD
     Sashank J. Reddi and Satyen Kale and Sanjiv Kumar. (2018).
     On the Convergence of Adam and Beyond. International Conference on Learning Representations.
-
-    Default parameters follow those provided in the original paper.
     """
     CONFIGURATION = {
         'name': 'Adam',
@@ -54,7 +52,7 @@ class ADAM(Optimizer):
                 },
                 'tol': {
                     'type': 'number',
-                    'default': 1e-04
+                    'default': 1e-06
                 },
                 'lr': {
                     'type': 'number',
@@ -62,19 +60,19 @@ class ADAM(Optimizer):
                 },
                 'beta_1': {
                     'type': 'number',
-                    'default': 0.7
+                    'default': 0.9
                 },
                 'beta_2': {
                     'type': 'number',
-                    'default': 0.999
+                    'default': 0.99
                 },
                 'noise_factor': {
                     'type': 'number',
-                    'default': 1e-06
+                    'default': 1e-08
                 },
                 'eps': {
-                   'type': 'number',
-                           'default': 1e-03
+                    'type': 'number',
+                    'default': 1e-10
                 },
                 'amsgrad': {
                     'type': 'boolean',
@@ -100,8 +98,8 @@ class ADAM(Optimizer):
         'optimizer': ['local']
     }
 
-    def __init__(self, maxiter=10000, tol=1e-4, lr=1e-3, beta_1=0.7, beta_2=0.999, noise_factor=1e-6,
-                 eps = 1e-3, amsgrad=False, save=False, path=''):
+    def __init__(self, maxiter=10000, tol=1e-6, lr=1e-3, beta_1=0.9, beta_2=0.99, noise_factor=1e-8,
+                 eps=1e-10, amsgrad=False, save=False, path=''):
         """
         Constructor.
 
@@ -136,7 +134,6 @@ class ADAM(Optimizer):
 
     def minimize(self, objective_function, initial_point, gradient_function):
         derivative = gradient_function(initial_point)
-
         self._m = np.zeros(np.shape(derivative))
         self._v = np.zeros(np.shape(derivative))
         if self._amsgrad:
@@ -144,12 +141,12 @@ class ADAM(Optimizer):
 
         if self._save:
             if self._amsgrad:
-                with open(self._path + 'optim_params.csv', mode='w') as csv_file:
+                with open(self._path + 'adam_params.csv', mode='w') as csv_file:
                     fieldnames = ['v', 'v_eff', 'm', 't']
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
             else:
-                with open(self._path + 'optim_params.csv', mode='w') as csv_file:
+                with open(self._path + 'adam_params.csv', mode='w') as csv_file:
                     fieldnames = ['v', 'm', 't']
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
@@ -158,7 +155,7 @@ class ADAM(Optimizer):
             derivative = gradient_function(params)
             self._t += 1
             self._m = self._beta_1 * self._m + (1 - self._beta_1) * derivative
-            self._v = self._beta_2 * self._v + (1 - self._beta_2) * np.power(derivative, 2 * np.ones(np.shape(derivative)))
+            self._v = self._beta_2 * self._v + (1 - self._beta_2) * derivative * derivative
             lr_eff = self._lr * np.sqrt(1 - self._beta_2 ** self._t) / (1 - self._beta_1 ** self._t)
             if not self._amsgrad:
                 params_new = (params - lr_eff * self._m.flatten() / (np.sqrt(self._v.flatten()) + self._noise_factor))
@@ -168,13 +165,13 @@ class ADAM(Optimizer):
 
             if self._save:
                 if self._amsgrad:
-                    with open(self._path + 'optim_params.csv', mode='a') as csv_file:
+                    with open(self._path + 'adam_params.csv', mode='a') as csv_file:
                         fieldnames = ['v', 'v_eff', 'm', 't']
                         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                         writer.writerow({'v': self._v, 'v_eff': self._v_eff,
                                          'm': self._m, 't': self._t})
                 else:
-                    with open(self._path + 'optim_params.csv', mode='a') as csv_file:
+                    with open(self._path + 'adam_params.csv', mode='a') as csv_file:
                         fieldnames = ['v', 'm', 't']
                         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                         writer.writerow({'v': self._v, 'm': self._m, 't': self._t})
@@ -185,8 +182,8 @@ class ADAM(Optimizer):
 
         return params_new, objective_function(params_new), self._t
 
-    def optimize(self, num_vars, objective_function, gradient_function = None, variable_bounds = None,
-                 initial_point= None):
+    def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None,
+                 initial_point=None):
         """
         Perform optimization.
         Args:
