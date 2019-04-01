@@ -9,6 +9,7 @@
 Instruction = Command with its operands (Channels).
 """
 from abc import ABCMeta, abstractmethod
+from typing import List
 
 from .timeslots import TimeslotOccupancy
 
@@ -26,4 +27,41 @@ class Instruction(metaclass=ABCMeta):
     @abstractmethod
     def occupancy(self) -> TimeslotOccupancy:
         """Occupied time slots by this instruction. """
+        pass
+
+    @abstractmethod
+    def at(self, begin_time: int) -> 'TimedInstruction':
+        """Return timed instruction. """
+        pass
+
+
+class ScheduleNode(metaclass=ABCMeta):
+    """Common interface for nodes of a schedule tree. """
+
+    @property
+    @abstractmethod
+    def children(self) -> List['TimedInstruction']:
+        """Child nodes of this schedule node. """
+        pass
+
+
+class TimedInstruction(ScheduleNode):
+    """Common interface for instruction with timing context. """
+
+    @property
+    @abstractmethod
+    def instruction(self) -> Instruction:
+        """Instruction. """
+        pass
+
+    @property
+    @abstractmethod
+    def begin_time(self) -> int:
+        """Relative begin time of this instruction. """
+        pass
+
+    @property
+    @abstractmethod
+    def end_time(self) -> int:
+        """Relative end time of this instruction. """
         pass

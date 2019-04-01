@@ -82,7 +82,10 @@ class SamplePulse(PulseCommand):
     def __repr__(self):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
 
-    def to(self, channel: OutputChannel) -> 'DriveInstruction':
+    def __call__(self, channel: OutputChannel) -> 'DriveInstruction':
+        return DriveInstruction(self, channel)
+
+    def __rshift__(self, channel: OutputChannel) -> 'DriveInstruction':
         return DriveInstruction(self, channel)
 
 

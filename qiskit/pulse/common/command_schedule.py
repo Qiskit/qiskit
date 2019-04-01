@@ -37,6 +37,10 @@ class PrimitiveInstruction(Instruction):
         """Return timed instruction. """
         return CommandSchedule(begin_time, self)
 
+    def __or__(self, begin_time: int):
+        """Return timed instruction. """
+        return CommandSchedule(begin_time, self)
+
 
 class CommandSchedule(TimedInstruction):
     """An instruction with begin time relative to its parent,

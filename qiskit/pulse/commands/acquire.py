@@ -74,10 +74,16 @@ class Acquire(PulseCommand):
                (self.__class__.__name__, self.name, self.duration,
                 self.kernel, self.discriminator)
 
-    def to(self,
+    def __call__(self,
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
                  reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None) -> 'AcquireInstruction':
+        return AcquireInstruction(self, qubits, mem_slots, reg_slots)
+
+    def __rshift__(self, args) -> 'AcquireInstruction':
+        qubits = args[0]
+        mem_slots = args[1]
+        reg_slots = args[2] if len(args) == 3 else None
         return AcquireInstruction(self, qubits, mem_slots, reg_slots)
 
 

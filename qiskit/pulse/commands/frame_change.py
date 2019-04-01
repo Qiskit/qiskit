@@ -46,7 +46,10 @@ class FrameChange(PulseCommand):
     def __repr__(self):
         return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)
 
-    def to(self, channel: OutputChannel) -> 'FrameChangeInstruction':
+    def __call__(self, channel: OutputChannel) -> 'FrameChangeInstruction':
+        return FrameChangeInstruction(self, channel)
+
+    def __rshift__(self, channel: OutputChannel) -> 'FrameChangeInstruction':
         return FrameChangeInstruction(self, channel)
 
 
