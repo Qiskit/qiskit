@@ -60,3 +60,27 @@ class TestSchedule(QiskitTestCase):
         # print(pprint.pformat(new_sched.flat_instruction_sequence()))
 
         self.assertTrue(True)
+
+    def test_absolute_begin_time_of_grandchild(self):
+        """Test correct calculation of begin time of grandchild of a schedule.
+        """
+        qubits = [
+            Qubit(0, acquire_channels=[AcquireChannel(0)]),
+        ]
+        registers = [RegisterSlot(i) for i in range(1)]
+        device = DeviceSpecification(qubits, registers)
+
+        acquire = Acquire(10)
+        children = Schedule()
+        children.insert(20, acquire(device.q[0], device.mem[0]))   # grand child 1
+        children.append(acquire(device.q[0], device.mem[0]))       # grand child 2
+
+        sched = Schedule()
+        sched.append(acquire(device.q[0], device.mem[0]))   # child
+        sched.append(children)
+
+        begin_times = sorted([i.begin_time for i in sched.flat_instruction_sequence()])
+        # print(pprint.pformat(sched.flat_instruction_sequence()))
+        # print(begin_times)
+
+        self.assertEqual(begin_times, [0, 30, 40])
