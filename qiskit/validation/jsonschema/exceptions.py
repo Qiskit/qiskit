@@ -5,7 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Error handling for Qobj."""
+"""Error handling for jsonschema validation."""
+
 from qiskit.exceptions import QiskitError
 
 
@@ -30,14 +31,10 @@ class _SummaryValidationError(QiskitError):
         super().__init__(self._shorten_message(str(validation_error)))
         self.validation_error = validation_error
 
-    def _shorten_message(self, message):
+    @staticmethod
+    def _shorten_message(message):
         if len(message) > 1000:
             return 'Original message too long to be useful: {}[...]'\
                    ''.format(message[:1000])
 
         return message
-
-
-class QobjValidationError(QiskitError):
-    """Represents an error during Qobj validation."""
-    pass
