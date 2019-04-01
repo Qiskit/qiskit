@@ -39,8 +39,8 @@ class ADAM(Optimizer):
     On the Convergence of Adam and Beyond. International Conference on Learning Representations.
     """
     CONFIGURATION = {
-        'name': 'Adam',
-        'description': 'Adam Optimizer',
+        'name': 'ADAM',
+        'description': 'ADAM Optimizer',
         'input_schema': {
             '$schema': 'http://json-schema.org/schema#',
             'id': 'adam_schema',
