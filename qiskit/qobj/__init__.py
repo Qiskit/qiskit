@@ -11,7 +11,7 @@ from qiskit.qobj.models.base import (QobjInstruction, QobjExperimentHeader, Qobj
                                      QobjExperiment, QobjConfig, QobjHeader)
 
 from qiskit.qobj.models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
-                                      PulseQobjExperiment, PulseQobjDevConfig, PulseQobjSimConfig,
+                                      PulseQobjExperiment, PulseQobjConfig,
                                       QobjMeasurementOption, QobjPulseLibrary)
 
 from qiskit.qobj.models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,

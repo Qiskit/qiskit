@@ -10,8 +10,7 @@
 from marshmallow.validate import Equal, OneOf
 
 from qiskit.qobj.models.base import QobjExperimentSchema, QobjConfigSchema, QobjHeaderSchema
-from qiskit.qobj.models.pulse import (PulseQobjExperimentSchema,
-                                      PulseQobjDevConfigSchema, PulseQobjSimConfigSchema)
+from qiskit.qobj.models.pulse import PulseQobjExperimentSchema, PulseQobjConfigSchema
 from qiskit.qobj.models.qasm import QasmQobjExperimentSchema, QasmQobjConfigSchema
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Nested, String
@@ -56,7 +55,7 @@ class PulseQobjSchema(QobjSchema):
     """Schema for PulseQobj."""
 
     # Required properties.
-    config = Nested(PulseQobjDevConfigSchema, required=True)
+    config = Nested(PulseQobjConfigSchema, required=True)
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
 
     type = String(required=True, validate=Equal(QobjType.PULSE),
@@ -124,7 +123,7 @@ class PulseQobj(Qobj):
 
     Attributes:
         qobj_id (str): Qobj identifier.
-        config (PulseQobjDevConfig): config settings for the Qobj.
+        config (PulseQobjConfig): config settings for the Qobj.
         experiments (list[PulseQobjExperiment]): list of experiments.
         header (QobjHeader): headers.
     """

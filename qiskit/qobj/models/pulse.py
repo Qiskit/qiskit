@@ -124,8 +124,8 @@ class PulseQobjExperimentSchema(QobjExperimentSchema):
     config = Nested(PulseQobjExperimentConfigSchema)
 
 
-class PulseQobjDevConfigSchema(QobjConfigSchema):
-    """Schema for PulseQobjDevConfig of device backend."""
+class PulseQobjConfigSchema(QobjConfigSchema):
+    """Schema for PulseQobjConfig of device backend."""
 
     # Required properties.
     meas_level = Integer(required=True, validate=Range(min=0, max=2))
@@ -137,20 +137,10 @@ class PulseQobjDevConfigSchema(QobjConfigSchema):
     meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                  MeasReturnType.SINGLE)))
 
-
-class PulseQobjSimConfigSchema(BaseSchema):
-    """Schema for PulseQobjDevConfig of simulator."""
-    # pylint: disable=invalid-name
-
-    # Requested properties.
-    pulse_library = Nested(QobjPulseLibrarySchema, many=True, required=True)
-    qubit_lo_freq = List(Number(), required=True)
-    meas_lo_freq = List(Number(), required=True)
-    hamiltonian = Nested(QobjHamiltonianSchema, required=True)
-    dt = Number(required=True)
-
     # Optional properties.
+    hamiltonian = Nested(QobjHamiltonianSchema)
     noise = Nested(QobjNoiseSchema)
+    dt = Number()
     ode_options = Nested(QobjOdeOptionsSchema)
 
 
@@ -237,12 +227,12 @@ class PulseQobjExperiment(QobjExperiment):
                          **kwargs)
 
 
-@bind_schema(PulseQobjDevConfigSchema)
-class PulseQobjDevConfig(QobjConfig):
-    """Model for PulseQobjDevConfig inherit from QobjConfig.
+@bind_schema(PulseQobjConfigSchema)
+class PulseQobjConfig(QobjConfig):
+    """Model for PulseQobjConfig inherit from QobjConfig.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseQobjDevConfigSchema``.
+    full description of the model, please check ``PulseQobjConfigSchema``.
 
     Attributes:
         meas_level (int): a value represents the level of measurement.
@@ -271,35 +261,4 @@ class PulseQobjDevConfig(QobjConfig):
                          qubit_lo_freq=qubit_lo_freq,
                          meas_lo_freq=meas_lo_freq,
                          rep_time=rep_time,
-                         **kwargs)
-
-
-@bind_schema(PulseQobjSimConfigSchema)
-class PulseQobjSimConfig(QobjConfig):
-    """Model for PulseQobjSimConfig inherit from QobjConfig.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseQobjSimConfigSchema``.
-
-    Attributes:
-        pulse_library (list[QobjPulseLibrary]): a pulse library.
-        qubit_lo_freq (list): the list of frequencies for qubit drive LO's in GHz.
-        meas_lo_freq (list): the list of frequencies for measurement drive LO's in GHz.
-        hamiltonian (dict): the dictionary defining system Hamiltonian.
-        dt (float): time interval of pulse envelope.
-    """
-    def __init__(self, pulse_library, qubit_lo_freq, meas_lo_freq,
-                 hamiltonian, dt, **kwargs):
-        # pylint: disable=invalid-name
-        self.pulse_library = pulse_library
-        self.qubit_lo_freq = qubit_lo_freq
-        self.meas_lo_freq = meas_lo_freq
-        self.hamiltonian = hamiltonian
-        self.dt = dt
-
-        super().__init__(pulse_library=pulse_library,
-                         qubit_lo_freq=qubit_lo_freq,
-                         meas_lo_freq=meas_lo_freq,
-                         hamiltonian=hamiltonian,
-                         dt=dt,
                          **kwargs)
