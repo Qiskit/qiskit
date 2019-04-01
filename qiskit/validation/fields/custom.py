@@ -138,6 +138,8 @@ class DictParameters(ModelTypeValidator):
         Args:
             valid_value_types (tuple): valid types as values.
         """
+        # pylint: disable=missing-param-doc
+
         super(DictParameters, self).__init__(**kwargs)
         self.valid_value_types = valid_value_types
 

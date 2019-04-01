@@ -79,6 +79,7 @@ class PulseQobjExperimentSchema(QobjExperimentSchema):
 
 class PulseQobjConfigSchema(QobjConfigSchema):
     """Schema for PulseQobjConfig of device backend."""
+    # pylint: disable=invalid-name
 
     # Required properties.
     meas_level = Integer(required=True, validate=Range(min=0, max=2))
