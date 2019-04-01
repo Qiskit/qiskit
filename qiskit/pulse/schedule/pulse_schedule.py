@@ -13,9 +13,9 @@ Schedule.
 """
 import copy
 import logging
-from typing import List
+from typing import List, Union
 
-from qiskit.pulse.common.command_schedule import CommandSchedule, PrimitiveInstruction
+from qiskit.pulse.common.command_schedule import CommandSchedule
 from qiskit.pulse.common.interfaces import Instruction, TimedInstruction
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
 from qiskit.pulse.exceptions import PulseError
@@ -49,17 +49,18 @@ class Schedule(Instruction, TimedInstruction):
     def name(self) -> str:
         return self._name
 
-    def inserted(self, block: TimedInstruction):
-        """Return a new schedule with inserting an instruction with timing.
+    def inserted(self, begin_time: int, instruction: Instruction):
+        """Return a new schedule with inserting an instruction at `begin_time`.
 
         Args:
-            block (TimedInstruction): instruction with timing to be inserted
+            begin_time: begin time of the instruction
+            instruction (Instruction): instruction to be inserted
         """
-        if not isinstance(block, TimedInstruction):
-            raise PulseError("Invalid to be inserted: %s" % block.__class__.__name__)
+        if not isinstance(instruction, Instruction):
+            raise PulseError("Invalid to be inserted: %s" % instruction.__class__.__name__)
         news = copy.copy(self)
         try:
-            news._insert(block.begin_time, block.instruction)
+            news._insert(begin_time, instruction)
         except PulseError as err:
             raise PulseError(err.message)
         return news
@@ -68,20 +69,15 @@ class Schedule(Instruction, TimedInstruction):
         """Insert a new instruction at `begin_time`.
 
         Args:
-            begin_time:
-            inst (Instruction):
+            begin_time: begin time of the instruction
+            inst (Instruction): instruction to be inserted
         """
         if inst == self:
             raise PulseError("Cannot insert self to avoid infinite recursion")
         shifted = inst.occupancy.shifted(begin_time)
         if self._occupancy.is_mergeable_with(shifted):
             self._occupancy = self._occupancy.merged(shifted)
-            if isinstance(inst, PrimitiveInstruction):
-                self._children.append(CommandSchedule(begin_time, inst))
-            elif isinstance(inst, Schedule):
-                self._children.append(SubSchedule(begin_time, inst))
-            else:
-                raise PulseError("Invalid instruction to be inserted: %s" % inst.__class__.__name__)
+            self._children.append(inst.at(begin_time))
         else:
             logger.warning("Fail to insert %s at %s due to timing overlap", inst, begin_time)
             raise PulseError("Fail to insert %s at %s due to overlap" % (str(inst), begin_time))
@@ -128,6 +124,20 @@ class Schedule(Instruction, TimedInstruction):
     @property
     def occupancy(self) -> TimeslotOccupancy:
         return self._occupancy
+
+    def at(self, begin_time: int) -> TimedInstruction:
+        return SubSchedule(begin_time, self)
+
+    def __or__(self, begin_time: int):
+        return SubSchedule(begin_time, self)
+
+    def __add__(self, block: Union[Instruction, TimedInstruction]):
+        if isinstance(block, Instruction):
+            return self.appended(block)
+        elif isinstance(block, TimedInstruction):
+            return self.inserted(block.begin_time, block.instruction)
+        else:
+            raise PulseError("Invalid to be added: %s" % block.__class__.__name__)
 
     def __str__(self):
         # TODO: Handle schedule of schedules

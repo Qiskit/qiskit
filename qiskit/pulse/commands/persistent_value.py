@@ -54,7 +54,10 @@ class PersistentValue(PulseCommand):
     def __repr__(self):
         return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
 
-    def to(self, channel: OutputChannel) -> 'PersistentValueInstruction':
+    def __call__(self, channel: OutputChannel) -> 'PersistentValueInstruction':
+        return PersistentValueInstruction(self, channel)
+
+    def __rshift__(self, channel: OutputChannel) -> 'PersistentValueInstruction':
         return PersistentValueInstruction(self, channel)
 
 

@@ -29,6 +29,11 @@ class Instruction(metaclass=ABCMeta):
         """Occupied time slots by this instruction. """
         pass
 
+    @abstractmethod
+    def at(self, begin_time: int) -> 'TimedInstruction':
+        """Return timed instruction. """
+        pass
+
 
 class ScheduleNode(metaclass=ABCMeta):
     """Common interface for nodes of a schedule tree. """
