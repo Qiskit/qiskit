@@ -96,16 +96,18 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
 
 
 def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float) -> np.ndarray:
-    """Continuous gaussian wave.
+    r"""Continuous unnormalized gaussian wave.
+
+    Integrated area under curve is $A(amp, sigma) = amp \times np.sqrt(2\pi \sigma^2)$
 
     Args:
         times: Times to output pulse for.
-        amp: Pulse amplitude.
+        amp: Pulse amplitude at `center`.
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
     """
     x = (times-center)/sigma
-    return amp*np.exp(-x**2/2)/np.sqrt(2*np.pi)
+    return amp*np.exp(-x**2/2)
 
 
 def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,
@@ -123,8 +125,8 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float
     """
     square_start = center-width/2
     square_stop = center+width/2
-    funclist = [functools.partial(gaussian, amp=gaussian, center=square_start, sigma=sigma),
-                functools.partial(gaussian, amp=gaussian, center=square_stop, sigma=sigma),
+    funclist = [functools.partial(gaussian, amp=amp, center=square_start, sigma=sigma),
+                functools.partial(gaussian, amp=amp, center=square_stop, sigma=sigma),
                 functools.partial(constant, amp=amp)]
     condlist = [times <= square_start, times >= square_stop]
     return np.piecewise(times, condlist, funclist)

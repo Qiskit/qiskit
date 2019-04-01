@@ -104,3 +104,48 @@ class TestContinuousPulses(QiskitTestCase):
         # Assert bounded between -amp and amp
         self.assertTrue(np.all((-0.5 <= sin_arr) & (sin_arr <= 0.5)))
         self.assertEqual(len(sin_arr), 101)
+
+    def test_gaussian(self):
+        """Test gaussian pulse."""
+        amp = 0.5
+        center = 10
+        sigma = 2
+        times, dt = np.linspace(0, 20, 1001, retstep=True)
+        gaussian_arr = continuous.gaussian(times, amp, center, sigma)
+        center_time = np.argmax(gaussian_arr)
+        self.assertTrue(times[center_time], center)
+        self.assertTrue(gaussian_arr[center_time], amp)
+        self.assertAlmostEqual(np.sum(gaussian_arr*dt), amp*np.sqrt(2*np.pi*sigma**2), places=3)
+
+    def test_gaussian_square(self):
+        """Test gaussian square pulse."""
+        amp = 0.5
+        center = 10
+        width = 2
+        sigma = 0.1
+        times, dt = np.linspace(0, 20, 2001, retstep=True)
+        gaussian_square_arr = continuous.gaussian_square(times, amp, center, width, sigma)
+
+        self.assertEqual(gaussian_square_arr[1000], amp)
+        # test half gaussian rise/fall
+        self.assertAlmostEqual(np.sum(gaussian_square_arr[:900]*dt)*2,
+                               amp*np.sqrt(2*np.pi*sigma**2), places=2)
+        self.assertAlmostEqual(np.sum(gaussian_square_arr[1100:]*dt)*2,
+                               amp*np.sqrt(2*np.pi*sigma**2), places=2)
+
+        # test for continuity at gaussian/square boundaries
+        gauss_rise_end_time = center-width/2
+        gauss_fall_start_time = center+width/2
+        epsilon = 0.01
+        rise_times, dt_rise = np.linspace(gauss_rise_end_time-epsilon,
+                                          gauss_rise_end_time+epsilon, 1001, retstep=True)
+        fall_times, dt_fall = np.linspace(gauss_fall_start_time-epsilon,
+                                          gauss_fall_start_time+epsilon, 1001, retstep=True)
+        gaussian_square_rise_arr = continuous.gaussian_square(rise_times, amp, center, width, sigma)
+        gaussian_square_fall_arr = continuous.gaussian_square(fall_times, amp, center, width, sigma)
+
+        # should be locally approximated by amp*dt^2/(2*sigma^2)
+        self.assertAlmostEqual(amp*dt_rise**2/(2*sigma**2),
+                               gaussian_square_rise_arr[500]-gaussian_square_rise_arr[499])
+        self.assertAlmostEqual(amp*dt_fall**2/(2*sigma**2),
+                               gaussian_square_fall_arr[501]-gaussian_square_fall_arr[500])
