@@ -284,7 +284,7 @@ class Layout():
         return layout
 
     @staticmethod
-    def integer_layout(int_list, circuit):
+    def intlist_layout(int_list, circuit):
         """Converts a list of integers to a Layout
         mapping virtual qubits (index of the list) to
         physical qubits (the list values).

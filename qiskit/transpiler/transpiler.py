@@ -77,7 +77,7 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
             circ = circuits[0]
         else:
             circ = circuits
-        initial_layout = Layout.integer_layout(initial_layout, circ)
+        initial_layout = Layout.intlist_layout(initial_layout, circ)
 
     if initial_layout is not None and not isinstance(initial_layout, Layout):
         initial_layout = Layout(initial_layout)
