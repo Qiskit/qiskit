@@ -64,7 +64,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, to_file=None)
         print('', file=_outstream)
 
 
-def job_monitor(job, interval=None, monitor_async=False, quiet=False, to_file=None):
+def job_monitor(job, interval=None, monitor_async=False, quiet=False, output=sys.stdout):
     """Monitor the status of a IBMQJob instance.
 
     Args:
