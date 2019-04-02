@@ -475,7 +475,7 @@ class MatplotlibDrawer:
         #
         # draw gates
         #
-        prev_anc = 0
+        prev_anc = -1
         for layer_no, layer in enumerate(self._ops):
             layer_width = 1
 
