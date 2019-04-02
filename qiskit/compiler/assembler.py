@@ -12,7 +12,9 @@ import numpy
 import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.pulse import Schedule, SamplePulse, FrameChange, PersistentValue, Acquire, Snapshot
+from qiskit.pulse import Schedule, Snapshot
+from qiskit.pulse.commands import (DriveInstruction, FrameChangeInstruction,
+                                   PersistentValueInstruction, AcquireInstruction)
 from qiskit.compiler.run_config import RunConfig
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
@@ -145,13 +147,7 @@ def assemble_schedules(schedules, dict_config, dict_header):
 
     experiments = []
 
-    for schedule in schedules:
-
-        # add new pulses in the schedule
-        cmds = schedule.get_sample_pulses()
-        for cmd in cmds:
-            if cmd.name not in [libcmd['name'] for libcmd in dict_config['pulse_library']]:
-                dict_config['pulse_library'].append({'name': cmd.name, 'samples': cmd.samples})
+    for ii, schedule in enumerate(schedules):
 
         lo_freqs = {
             'qubit_lo_freq': [q.drive.lo_frequency for q in schedule.device.q],
@@ -162,51 +158,68 @@ def assemble_schedules(schedules, dict_config, dict_header):
         experimentconfig = PulseQobjExperimentConfig(**lo_freqs)
 
         # generate experimental header
-        experimentheader = QobjExperimentHeader(name=schedule.name)
+        experimentheader = QobjExperimentHeader(name=schedule.name or 'Schedule-%d' % ii)
 
-        # TODO: support conditional gate
         commands = []
-        for pulse in schedule.flat_pulse_sequence():
-            current_command = PulseQobjInstruction(name=pulse.command.name,
-                                                   t0=pulse.start_time())
-            if isinstance(pulse.command, SamplePulse):
-                current_command.ch = pulse.channel.name
-            elif isinstance(pulse.command, FrameChange):
-                current_command.ch = pulse.channel.name
-                current_command.phase = pulse.command.phase
-            elif isinstance(pulse.command, PersistentValue):
-                current_command.ch = pulse.channel.name
-                current_command.val = pulse.command.value
-            elif isinstance(pulse.command, Acquire):
-                # TODO: now all qubit are measured at once regardless of channel definition
-                n_qubit = dict_config['memory_slots']
-                current_command.duration = pulse.command.duration
-                current_command.qubits = list(range(n_qubit))
-                current_command.memory_slot = list(range(n_qubit))
-                # apply discriminator
-                if dict_config['meas_level'] == 2:
-                    current_command.register_slot = list(range(n_qubit))
-                    _discriminator = pulse.command.discriminator
+        user_pulselib = []
+        for block in schedule.flat_instruction_sequence():
+            pulse_instr = block.instruction
+            current_command = PulseQobjInstruction(name=pulse_instr.name,
+                                                   t0=block.begin_time)
+            if isinstance(pulse_instr, DriveInstruction):
+                # Sample pulses
+                # required: `ch`
+                # optional:
+                current_command.ch = pulse_instr.channel.name
+                # TODO: support conditional gate
+                if pulse_instr.command not in [p for p in user_pulselib]:
+                    user_pulselib.append(pulse_instr.command)
+            elif isinstance(pulse_instr, FrameChangeInstruction):
+                # Frame change
+                # required: `ch`, `phase`
+                # optional:
+                current_command.ch = pulse_instr.channel.name
+                current_command.phase = pulse_instr.command.phase
+            elif isinstance(pulse_instr, PersistentValueInstruction):
+                # Persistent value
+                # required: `ch`, `val`
+                # optional:
+                current_command.ch = pulse_instr.channel.name
+                current_command.val = pulse_instr.command.value
+            elif isinstance(pulse_instr, AcquireInstruction):
+                # Acquire
+                # required: `duration`, `qubits`, `memory_slot`
+                # optional: `discriminators`, `kernels`, `register_slot`
+                current_command.duration = pulse_instr.duration
+                current_command.qubits = [acqs.index for acqs in pulse_instr.acquire_channels]
+                current_command.memory_slot = [mems.index for mems in pulse_instr.mem_slots]
+                if dict_config.get('meas_level', 2) == 2:
+                    # apply discriminator for level 2 measurement
+                    current_command.register_slot = [regs.index for regs in pulse_instr.reg_slots]
+                    _discriminator = pulse_instr.command.discriminator
                     if _discriminator:
                         qobj_discriminator = QobjMeasurementOption(name=_discriminator.name,
                                                                    params=_discriminator.params)
                         current_command.discriminators = [qobj_discriminator]
                     else:
                         current_command.discriminators = []
-                # apply kernel
-                if dict_config['meas_level'] >= 1:
-                    _kernel = pulse.command.kernel
+                if dict_config.get('meas_level', 2) >= 1:
+                    # apply kernel for level 1, 2 measurements
+                    _kernel = pulse_instr.command.kernel
                     if _kernel:
                         qobj_kernel = QobjMeasurementOption(name=_kernel.name,
                                                             params=_kernel.params)
                         current_command.kernels = [qobj_kernel]
                     else:
                         current_command.kernels = []
-            elif isinstance(pulse.command, Snapshot):
-                current_command.label = pulse.command.label
-                current_command.type = pulse.command.type
+            elif isinstance(pulse_instr, Snapshot):
+                # Snapshot
+                # required: `label`, `type`
+                # optional:
+                current_command.label = pulse_instr.label
+                current_command.type = pulse_instr.type
             else:
-                raise QiskitError('Invalid command is given, %s' % pulse.command.name)
+                raise QiskitError('Invalid command is given, %s' % pulse_instr.command.name)
 
             commands.append(current_command)
 
@@ -215,11 +228,16 @@ def assemble_schedules(schedules, dict_config, dict_header):
                                                config=experimentconfig))
 
     # generate qobj pulse library
-    qobj_pulselib = []
-    for pulse in dict_config['pulse_library']:
-        qobj_pulselib.append(QobjPulseLibrary(name=pulse['name'],
-                                              samples=pulse['samples']))
-    dict_config['pulse_library'] = qobj_pulselib
+    qobj_default_pulselib = list(map(lambda p:
+                                     QobjPulseLibrary(name=p['name'], samples=p['samples']),
+                                     dict_config.get('pulse_library', []))
+                                 )
+    qobj_user_pulselib = list(map(lambda p:
+                                  QobjPulseLibrary(name=p.name, samples=p.samples),
+                                  user_pulselib)
+                              )
+
+    dict_config['pulse_library'] = qobj_default_pulselib + qobj_user_pulselib
 
     qobj_config = PulseQobjConfig(**dict_config)
     qobj_header = QobjHeader(**dict_header)
