@@ -283,36 +283,34 @@ class Layout():
             layout.add_register(reg)
         return layout
 
+    @staticmethod
+    def integer_layout(int_list, circuit):
+        """Converts a list of integers to a Layout
+        mapping virtual qubits (index of the list) to
+        physical qubits (the list values).
 
-def ints_to_layout(int_list, circuit):
-    """Converts a list of integers to a Layout
-    mapping virtual qubits (index of the list) to
-    physical qubits (the list values).
-
-    Args:
-        int_list (list): A list of integers.
-        circuit (QuantumCircuit): The circuit to apply
-            the layout to.
-
-    Returns:
-        Layout: The corresponding Layout object.
-
-    Raises:
-        QiskitError: Invalid input layout.
-    """
-    # check for duplicate values in list
-    if len(int_list) != len(set(int_list)):
-        raise QiskitError('Duplicate values not permitted in integer layout.')
-    n_qubits = sum(reg.size for reg in circuit.qregs)
-    # Check if list does not cover all qubits
-    if len(int_list) != n_qubits:
-        err_msg = 'Integer list length must equal number of qubits in circuit.'
-        raise QiskitError(err_msg)
-    out = Layout()
-    qregs = circuit.qregs
-    main_idx = 0
-    for qreg in qregs:
-        for idx in range(qreg.size):
-            out[(qreg, idx)] = int_list[main_idx]
-            main_idx += 1
-    return out
+        Args:
+            int_list (list): A list of integers.
+            circuit (QuantumCircuit): The circuit to apply
+                the layout to.
+        Returns:
+            Layout: The corresponding Layout object.
+        Raises:
+            QiskitError: Invalid input layout.
+        """
+        # check for duplicate values in list
+        if len(int_list) != len(set(int_list)):
+            raise QiskitError('Duplicate values not permitted in integer layout.')
+        n_qubits = sum(reg.size for reg in circuit.qregs)
+        # Check if list does not cover all qubits
+        if len(int_list) != n_qubits:
+            err_msg = 'Integer list length must equal number of qubits in circuit.'
+            raise QiskitError(err_msg)
+        out = Layout()
+        qregs = circuit.qregs
+        main_idx = 0
+        for qreg in qregs:
+            for idx in range(qreg.size):
+                out[(qreg, idx)] = int_list[main_idx]
+                main_idx += 1
+        return out

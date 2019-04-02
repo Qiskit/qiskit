@@ -15,7 +15,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.mapper.layout import Layout, ints_to_layout
+from qiskit.mapper.layout import Layout
 from qiskit.transpiler.passes.unroller import Unroller
 
 from .passes.cx_cancellation import CXCancellation
@@ -77,7 +77,7 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
             circ = circuits[0]
         else:
             circ = circuits
-        initial_layout = ints_to_layout(initial_layout, circ)
+        initial_layout = Layout.integer_layout(initial_layout, circ)
 
     if initial_layout is not None and not isinstance(initial_layout, Layout):
         initial_layout = Layout(initial_layout)
