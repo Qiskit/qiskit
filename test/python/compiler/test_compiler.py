@@ -137,14 +137,22 @@ class TestCompiler(QiskitTestCase):
 
     def test_transpiler_layout_from_intlist(self):
         """A list of ints gives layout to correctly map circuit.
+        virtual  physical
+         q1_0  -  4   ---[H]---
+         q2_0  -  5
+         q2_1  -  6   ---[H]---
+         q3_0  -  8
+         q3_1  -  9
+         q3_2  -  10  ---[H]---
+
         """
-        q1 = QuantumRegister(1, 'q1')
-        q2 = QuantumRegister(2, 'q2')
-        q3 = QuantumRegister(3, 'q3')
-        qc = QuantumCircuit(q1, q2, q3)
-        qc.h(q1[0])
-        qc.h(q2[1])
-        qc.h(q3[2])
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        qr3 = QuantumRegister(3, 'qr3')
+        qc = QuantumCircuit(qr1, qr2, qr3)
+        qc.h(qr1[0])
+        qc.h(qr2[1])
+        qc.h(qr3[2])
         layout = [4, 5, 6, 8, 9, 10]
 
         cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
