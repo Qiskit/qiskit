@@ -26,7 +26,7 @@ class PersistentValue(PulseCommand):
             CommandsError: when input value exceed 1.
         """
 
-        super(PersistentValue, self).__init__(duration=0, name='pv')
+        super(PersistentValue, self).__init__(duration=0)
 
         if abs(value) > 1:
             raise CommandsError("Absolute value of PV amplitude exceeds 1.")

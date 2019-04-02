@@ -27,12 +27,8 @@ class SamplePulse(PulseCommand):
         Raises:
             CommandsError: when pulse envelope amplitude exceeds 1.
         """
-        if not name:
-            _name = str('pulse_object_%s' % id(self))
-        else:
-            _name = name
 
-        super(SamplePulse, self).__init__(duration=len(samples), name=_name)
+        super(SamplePulse, self).__init__(duration=len(samples), name=name)
 
         if np.any(np.abs(samples) > 1):
             raise CommandsError('Absolute value of pulse envelope amplitude exceeds 1.')
