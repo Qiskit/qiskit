@@ -30,7 +30,6 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         output (file): The file like object to write status messages to. By default this is sys.stdout.
 
     """
-    _outstream = to_file if to_file else sys.stdout
     status = job.status()
     msg = status.value
     prev_msg = msg
