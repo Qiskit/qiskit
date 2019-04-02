@@ -58,7 +58,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
             msg_len = len(msg)
 
         if msg != prev_msg and not quiet:
-            print('\r%s: %s' % ('Job Status', msg), end='', file=_outstream)
+            print('\r%s: %s' % ('Job Status', msg), end='', file=output)
             prev_msg = msg
     if not quiet:
         print('', file=output)
