@@ -9,8 +9,8 @@
 Persistent value.
 """
 
-from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands.pulse_command import PulseCommand
+from qiskit.pulse.exceptions import CommandsError
+from .pulse_command import PulseCommand
 
 
 class PersistentValue(PulseCommand):
@@ -23,13 +23,13 @@ class PersistentValue(PulseCommand):
             value (complex): Complex value to apply, bounded by an absolute value of 1.
                 The allowable precision is device specific.
         Raises:
-            QiskitError: when input value exceed 1.
+            CommandsError: when input value exceed 1.
         """
 
         super(PersistentValue, self).__init__(duration=0)
 
         if abs(value) > 1:
-            raise QiskitError("Absolute value of PV amplitude exceeds 1.")
+            raise CommandsError("Absolute value of PV amplitude exceeds 1.")
 
         self.value = value
 

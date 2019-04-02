@@ -7,19 +7,18 @@
 
 """Module for the Qobj structure."""
 
-from qiskit.qobj.models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
-                                     QobjExperiment, QobjConfig, QobjHeader)
+from .models.base import (QobjInstruction, QobjExperimentHeader,
+                          QobjExperimentConfig, QobjExperiment,
+                          QobjConfig, QobjHeader)
 
-from qiskit.qobj.models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
-                                      PulseQobjExperiment, PulseQobjConfig,
-                                      QobjMeasurementOption, QobjPulseLibrary)
+from .models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
+                           PulseQobjExperiment, PulseQobjConfig,
+                           QobjMeasurementOption, QobjPulseLibrary)
 
-from qiskit.qobj.models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,
-                                     QasmQobjExperiment, QasmQobjConfig,
-                                     QobjConditional)
-
-from ._validation import validate_qobj_against_schema
-
-from .exceptions import QobjValidationError
+from .models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,
+                          QasmQobjExperiment, QasmQobjConfig,
+                          QobjConditional)
 
 from .qobj import Qobj, QasmQobj, PulseQobj
+
+from .utils import validate_qobj_against_schema
