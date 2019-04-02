@@ -132,7 +132,7 @@ def assemble_schedules(schedules, dict_config, dict_header):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:
-        schedules (list[PulseSchedule] or PulseSchedule): schedules to assemble
+        schedules (list[Schedule] or PulseSchedule): schedules to assemble
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
 
@@ -149,10 +149,24 @@ def assemble_schedules(schedules, dict_config, dict_header):
 
     for ii, schedule in enumerate(schedules):
 
-        lo_freqs = {
-            'qubit_lo_freq': [q.drive.lo_frequency for q in schedule.device.q],
-            'meas_lo_freq': [q.measure.lo_frequency for q in schedule.device.q]
-        }
+        # use LO frequency configs
+        default_qubit_lo_freq = dict_config.get('qubit_lo_freq', None)
+        default_meas_lo_freq = dict_config.get('meas_lo_freq', None)
+
+        # TODO: scheudle has no information of LO frequency
+        # lo_freqs = {}
+        # user_qubit_lo_freq = [q.drive.lo_frequency for q in schedule.device.q]
+        # if default_qubit_lo_freq:
+        #     if default_qubit_lo_freq != user_qubit_lo_freq:
+        #         lo_freqs['qubit_lo_freq'] = user_qubit_lo_freq
+        # else:
+        #     lo_freqs['qubit_lo_freq'] = user_qubit_lo_freq
+        # user_meas_lo_freq = [q.measure.lo_frequency for q in schedule.device.q]
+        # if default_meas_lo_freq:
+        #     if default_meas_lo_freq != user_meas_lo_freq:
+        #         lo_freqs['meas_lo_freq'] = user_meas_lo_freq
+        # else:
+        #     lo_freqs['meas_lo_freq'] = user_meas_lo_freq
 
         # generate experimental configuration
         experimentconfig = PulseQobjExperimentConfig(**lo_freqs)
