@@ -72,7 +72,7 @@ def job_monitor(job, interval=None, monitor_async=False, quiet=False, output=sys
         interval (int): Time interval between status queries.
         monitor_async (bool): Monitor asyncronously (in Jupyter only).
         quiet (bool): If True, do not print status messages.
-        to_file (file): If file print status messages to it, else to stdout.
+        output (file): The file like object to write status messages to. By default this is sys.stdout.
 
     Raises:
         QiskitError: When trying to run async outside of Jupyter
