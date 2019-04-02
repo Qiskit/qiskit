@@ -49,6 +49,7 @@ class Anchor:
         self.__fold = fold
         self.__reg_num = reg_num
         self.__gate_placed = []
+        self.gate_index = 0
 
     def plot_coord(self, index, gate_width):
         h_pos = index % self.__fold + 1
@@ -62,6 +63,8 @@ class Anchor:
             x_pos = index + 1 + 0.5 * (gate_width - 1)
             y_pos = self.__yind
 
+        # could have been updated, so need to store
+        self.gate_index = index
         return x_pos, y_pos
 
     def is_locatable(self, index, gate_width):
@@ -455,10 +458,6 @@ class MatplotlibDrawer:
     def _draw_ops(self, verbose=False):
         _wide_gate = 'u2 u3 cu2 cu3'.split()
         _barriers = {'coord': [], 'group': []}
-        next_ops = self._ops.copy()
-        if next_ops:
-            next_ops.pop(0)
-        this_anc = 0
 
         #
         # generate coordinate manager
@@ -476,55 +475,38 @@ class MatplotlibDrawer:
         #
         # draw gates
         #
-        prev_width = 0
+        prev_anc = 0
         for layer_no, layer in enumerate(self._ops):
-
             layer_width = 1
 
             for op in layer:
                 if op.name in _wide_gate:
                     layer_width = 2
 
+            this_anc = prev_anc + 1
+
             for op in layer:
 
                 _iswide = op.name in _wide_gate
                 # get qreg index
-                if op.qargs:
-                    q_idxs = []
-                    for qarg in op.qargs:
+                q_idxs = []
+                for qarg in op.qargs:
                         for index, reg in self._qreg_dict.items():
                             if (reg['group'] == qarg[0] and
                                     reg['index'] == qarg[1]):
                                 q_idxs.append(index)
                                 break
-                else:
-                    q_idxs = []
+
                 # get creg index
-                if op.cargs:
-                    c_idxs = []
-                    for carg in op.cargs:
+                c_idxs = []
+                for carg in op.cargs:
                         for index, reg in self._creg_dict.items():
                             if (reg['group'] == carg[0] and
                                     reg['index'] == carg[1]):
                                 c_idxs.append(index)
                                 break
-                else:
-                    c_idxs = []
-
-                this_anc = layer_no + prev_width
-
-                occupied = q_idxs
-                q_list = [ii for ii in range(min(occupied),
-                                             max(occupied) + 1)]
-                locs = [q_anchors[jj].is_locatable(
-                    this_anc, layer_width) for jj in q_list]
-                if all(locs):
-                    for ii in q_list:
-                        if op.name in ['barrier', 'snapshot', 'load', 'save', 'noise'] \
-                                and not self.plot_barriers:
-                            q_anchors[ii].set_index(this_anc - 1, layer_width)
-                        else:
-                            q_anchors[ii].set_index(this_anc, layer_width)
+                for ii in q_idxs:
+                    q_anchors[ii].set_index(this_anc, layer_width)
 
                 # qreg coordinate
                 q_xy = [q_anchors[ii].plot_coord(this_anc, layer_width) for ii in q_idxs]
@@ -533,6 +515,9 @@ class MatplotlibDrawer:
                 # bottom and top point of qreg
                 qreg_b = min(q_xy, key=lambda xy: xy[1])
                 qreg_t = max(q_xy, key=lambda xy: xy[1])
+
+                # update index based on the value from plotting
+                this_anc = q_anchors[q_idxs[0]].gate_index
 
                 if verbose:
                     print(op)
@@ -661,7 +646,7 @@ class MatplotlibDrawer:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
 
-            prev_width = layer_width - 1
+            prev_anc = this_anc + layer_width - 1
         #
         # adjust window size and draw horizontal lines
         #
