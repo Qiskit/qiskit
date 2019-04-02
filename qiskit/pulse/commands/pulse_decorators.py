@@ -25,10 +25,7 @@ def functional_pulse(func):
     Raises:
         CommandsError: when invalid function is specified.
     """
-<<<<<<< HEAD
-=======
     @functools.wraps(func)
->>>>>>> cf93b7cc55aab45643bdbcd6c6259f491eb9ba8f
     def to_pulse(duration, *args, name=None, **kwargs):
         """Return SamplePulse."""
         if isinstance(duration, int) and duration > 0:
