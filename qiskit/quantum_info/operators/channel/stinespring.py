@@ -129,40 +129,17 @@ class Stinespring(QuantumChannel):
         check = np.dot(np.transpose(np.conj(self._data[0])), self._data[0])
         return is_identity_matrix(check, rtol=self.rtol, atol=self.atol)
 
-    def conjugate(self, inplace=False):
-        """Return the conjugate of the  QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Stinespring: the conjugate of the quantum channel as a
-            Stinespring object.
-        """
+    def conjugate(self):
+        """Return the conjugate of the QuantumChannel."""
         # pylint: disable=assignment-from-no-return
-        if inplace:
-            np.conjugate(self._data[0], out=self._data[0])
-            if self._data[1] is not None:
-                np.conjugate(self._data[1], out=self._data[1])
-            return self
         stine_l = np.conjugate(self._data[0])
         stine_r = None
         if self._data[1] is not None:
             stine_r = np.conjugate(self._data[1])
         return Stinespring((stine_l, stine_r), *self.dims)
 
-    def transpose(self, inplace=False):
-        """Return the transpose of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Stinespring: the transpose of the quantum channel as a
-            Stinespring object.
-        """
+    def transpose(self):
+        """Return the transpose of the QuantumChannel."""
         din, dout = self.dims
         dtr = self._data[0].shape[0] // dout
         stine = [None, None]
@@ -171,34 +148,13 @@ class Stinespring(QuantumChannel):
                 stine[i] = np.reshape(
                     np.transpose(np.reshape(mat, (dout, dtr, din)), (2, 1, 0)),
                     (din * dtr, dout))
-        if inplace:
-            self._data = tuple(stine)
-            self._input_dim = dout
-            self._output_dim = din
-            return self
-        # Return new stinespring operator with output and input dims swapped
         return Stinespring(tuple(stine), input_dim=dout, output_dim=din)
 
-    def adjoint(self, inplace=False):
-        """Return the adjoint of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Stinespring: the adjoint of the quantum channel as a
-            Stinespring object.
-        """
-        return super().adjoint(inplace=inplace)
-
-    def compose(self, other, inplace=False, front=False):
+    def compose(self, other, front=False):
         """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -221,22 +177,14 @@ class Stinespring(QuantumChannel):
                 'input_dim of other must match output_dim of self')
         # Since we cannot directly compose two channels in Stinespring
         # representation we convert to the Kraus representation
-        tmp = Stinespring(
-            Kraus(self).compose(other, inplace=True, front=front))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-            return self
-        return tmp
+        return Stinespring(
+            Kraus(self).compose(other, front=front))
 
-    def power(self, n, inplace=False):
+    def power(self, n):
         """Return the compose of a QuantumChannel with itself n times.
 
         Args:
             n (int): the number of times to compose with self (n>0).
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
 
         Returns:
             Stinespring: the n-times composition channel as a Stinespring
@@ -247,15 +195,13 @@ class Stinespring(QuantumChannel):
             QuantumChannel are not equal, or the power is not a positive
             integer.
         """
-        return super().power(n, inplace=inplace)
+        return super().power(n)
 
-    def tensor(self, other, inplace=False):
+    def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Stinespring: the tensor product channel other ⊗ self as a
@@ -264,15 +210,13 @@ class Stinespring(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=False)
+        return self._tensor_product(other, reverse=False)
 
-    def expand(self, other, inplace=False):
+    def expand(self, other):
         """Return the tensor product channel other ⊗ self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Stinespring: the tensor product channel other ⊗ self as a
@@ -281,15 +225,13 @@ class Stinespring(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=True)
+        return self._tensor_product(other, reverse=True)
 
-    def add(self, other, inplace=False):
+    def add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Stinespring: the linear addition self + other as a
@@ -301,21 +243,13 @@ class Stinespring(QuantumChannel):
         """
         # Since we cannot directly add two channels in the Stinespring
         # representation we convert to the Choi representation
-        tmp = Stinespring(Choi(self).add(other, inplace=True))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-            return self
-        return tmp
+        return Stinespring(Choi(self).add(other))
 
-    def subtract(self, other, inplace=False):
+    def subtract(self, other):
         """Return the QuantumChannel self - other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Stinespring: the linear subtraction self - other as
@@ -327,21 +261,13 @@ class Stinespring(QuantumChannel):
         """
         # Since we cannot directly subtract two channels in the Stinespring
         # representation we convert to the Choi representation
-        tmp = Stinespring(Choi(self).subtract(other, inplace=True))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-            return self
-        return tmp
+        return Stinespring(Choi(self).subtract(other))
 
-    def multiply(self, other, inplace=False):
+    def multiply(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (complex): a complex number
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (complex): a complex number.
 
         Returns:
             Stinespring: the scalar multiplication other * self as a
@@ -357,21 +283,10 @@ class Stinespring(QuantumChannel):
         # the Choi representation
         if isinstance(other, complex) or other < 1:
             # Convert to Choi-matrix
-            tmp = Stinespring(Choi(self).multiply(other, inplace=True))
-            if inplace:
-                self._data = tmp._data
-                self._input_dim = tmp._input_dim
-                self._output_dim = tmp._output_dim
-                return self
-            return tmp
+            return Stinespring(Choi(self).multiply(other))
         # If the number is real we can update the Kraus operators
         # directly
         num = np.sqrt(other)
-        if inplace:
-            self._data[0] *= num
-            if self._data[1] is not None:
-                self._data[1] *= num
-            return self
         stine_l, stine_r = self._data
         stine_l = num * self._data[0]
         stine_r = None
@@ -379,13 +294,11 @@ class Stinespring(QuantumChannel):
             stine_r = num * self._data[1]
         return Stinespring((stine_l, stine_r), *self.dims)
 
-    def _tensor_product(self, other, inplace=False, reverse=False):
+    def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [default: False]
+            other (QuantumChannel): a quantum channel subclass.
             reverse (bool): If False return self ⊗ other, if True return
                             if True return (other ⊗ self) [Default: False]
         Returns:
@@ -442,9 +355,4 @@ class Stinespring(QuantumChannel):
             sab_r = np.reshape(
                 np.transpose(np.reshape(sab_r, shape_in), (0, 2, 1, 3, 4)),
                 shape_out)
-        if inplace:
-            self._data = (sab_l, sab_r)
-            self._input_dim = din_a * din_b
-            self._output_dim = dout_a * dout_b
-            return self
         return Stinespring((sab_l, sab_r), din_a * din_b, dout_a * dout_b)

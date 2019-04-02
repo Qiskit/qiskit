@@ -92,65 +92,25 @@ class Chi(QuantumChannel):
         """
         return Choi(self)._evolve(state)
 
-    def conjugate(self, inplace=False):
-        """Return the conjugate of the  QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Chi: the conjugate of the quantum channel as a Chi object.
-        """
+    def conjugate(self):
+        """Return the conjugate of the QuantumChannel."""
         # Since conjugation is basis dependent we transform
         # to the Choi representation to compute the
         # conjugate channel
-        tmp = Chi(Choi(self).conjugate(inplace=True))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-        return tmp
+        return Chi(Choi(self).conjugate())
 
-    def transpose(self, inplace=False):
-        """Return the transpose of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Chi: the transpose of the quantum channel as a Chi object.
-        """
+    def transpose(self):
+        """Return the transpose of the QuantumChannel."""
         # Since conjugation is basis dependent we transform
         # to the Choi representation to compute the
         # conjugate channel
-        tmp = Chi(Choi(self).transpose(inplace=True))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-        return tmp
+        return Chi(Choi(self).transpose())
 
-    def adjoint(self, inplace=False):
-        """Return the adjoint of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Chi: the adjoint of the quantum channel as a Chi object.
-        """
-        return super().adjoint(inplace=inplace)
-
-    def compose(self, other, inplace=False, front=False):
+    def compose(self, other, front=False):
         """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -173,21 +133,13 @@ class Chi(QuantumChannel):
                 'input_dim of other must match output_dim of self')
         # Since we cannot directly add two channels in the Chi
         # representation we convert to the Choi representation
-        tmp = Chi(Choi(self).compose(other, inplace=True, front=front))
-        if inplace:
-            self._data = tmp._data
-            self._input_dim = tmp._input_dim
-            self._output_dim = tmp._output_dim
-            return self
-        return tmp
+        return Chi(Choi(self).compose(other, front=front))
 
-    def power(self, n, inplace=False):
+    def power(self, n):
         """Return the compose of a QuantumChannel with itself n times.
 
         Args:
             n (int): the number of times to compose with self (n>0).
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
 
         Returns:
             Chi: the n-times composition channel as a Chi object.
@@ -197,15 +149,13 @@ class Chi(QuantumChannel):
             QuantumChannel are not equal, or the power is not a positive
             integer.
         """
-        return super().power(n, inplace=inplace)
+        return super().power(n)
 
-    def tensor(self, other, inplace=False):
+    def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Chi: the tensor product channel self ⊗ other as a Chi object.
@@ -213,15 +163,13 @@ class Chi(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=False)
+        return self._tensor_product(other, reverse=False)
 
-    def expand(self, other, inplace=False):
+    def expand(self, other):
         """Return the tensor product channel other ⊗ self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Chi: the tensor product channel other ⊗ self as a Chi object.
@@ -229,15 +177,13 @@ class Chi(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=True)
+        return self._tensor_product(other, reverse=True)
 
-    def add(self, other, inplace=False):
+    def add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Chi: the linear addition self + other as a Chi object.
@@ -252,19 +198,14 @@ class Chi(QuantumChannel):
             raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, Chi):
             other = Chi(other)
-        if inplace:
-            self._data += other._data
-            return self
         input_dim, output_dim = self.dims
         return Chi(self._data + other.data, input_dim, output_dim)
 
-    def subtract(self, other, inplace=False):
+    def subtract(self, other):
         """Return the QuantumChannel self - other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Chi: the linear subtraction self - other as Chi object.
@@ -279,19 +220,14 @@ class Chi(QuantumChannel):
             raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, Chi):
             other = Chi(other)
-        if inplace:
-            self._data -= other.data
-            return self
         input_dim, output_dim = self.dims
         return Chi(self._data - other.data, input_dim, output_dim)
 
-    def multiply(self, other, inplace=False):
+    def multiply(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (complex): a complex number
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (complex): a complex number.
 
         Returns:
             Chi: the scalar multiplication other * self as a Chi object.
@@ -301,19 +237,14 @@ class Chi(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        if inplace:
-            self._data *= other
-            return self
         input_dim, output_dim = self.dims
         return Chi(other * self._data, input_dim, output_dim)
 
-    def _tensor_product(self, other, inplace=False, reverse=False):
+    def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [default: False]
+            other (QuantumChannel): a quantum channel subclass.
             reverse (bool): If False return self ⊗ other, if True return
                             if True return (other ⊗ self) [Default: False
         Returns:
@@ -335,10 +266,4 @@ class Chi(QuantumChannel):
             data = np.kron(other.data, self._data)
         else:
             data = np.kron(self._data, other.data)
-        if inplace:
-            self._data = data
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
-        # return new object
         return Chi(data, input_dim, output_dim)
