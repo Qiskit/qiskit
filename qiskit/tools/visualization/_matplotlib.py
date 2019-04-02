@@ -49,7 +49,7 @@ class Anchor:
         self.__fold = fold
         self.__reg_num = reg_num
         self.__gate_placed = []
-        self.gate_index = 0
+        self.gate_anchor = 0
 
     def plot_coord(self, index, gate_width):
         h_pos = index % self.__fold + 1
@@ -64,7 +64,7 @@ class Anchor:
             y_pos = self.__yind
 
         # could have been updated, so need to store
-        self.gate_index = index
+        self.gate_anchor = index
         return x_pos, y_pos
 
     def is_locatable(self, index, gate_width):
@@ -517,7 +517,7 @@ class MatplotlibDrawer:
                 qreg_t = max(q_xy, key=lambda xy: xy[1])
 
                 # update index based on the value from plotting
-                this_anc = q_anchors[q_idxs[0]].gate_index
+                this_anc = q_anchors[q_idxs[0]].gate_anchor
 
                 if verbose:
                     print(op)
