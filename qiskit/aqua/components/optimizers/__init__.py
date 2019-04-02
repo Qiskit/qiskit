@@ -16,6 +16,7 @@
 # =============================================================================
 
 from .optimizer import Optimizer
+from .adam_amsgrad import ADAM
 from .cg import CG
 from .cobyla import COBYLA
 from .l_bfgs_b import L_BFGS_B
@@ -27,7 +28,9 @@ from .spsa import SPSA
 from .tnc import TNC
 from .aqgd import AQGD
 
+
 __all__ = ['Optimizer',
+           'ADAM',
            'CG',
            'COBYLA',
            'L_BFGS_B',

@@ -147,8 +147,11 @@ class Optimizer(Pluggable):
         for chunk in chunks: # eval the chunks in order
             parallel_parameters = np.concatenate(chunk)
             todos_results = f(parallel_parameters) # eval the points in a chunk (order preserved)
-            for todor in todos_results:
-                grad.append((todor - forig) / epsilon)
+            if isinstance(todos_results,float):
+                grad.append((todos_results - forig) / epsilon)
+            else:
+                for todor in todos_results:
+                    grad.append((todor - forig) / epsilon)
 
         return np.array(grad)
 
