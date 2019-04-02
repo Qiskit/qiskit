@@ -14,5 +14,4 @@ from .acquire import Acquire, Discriminator, Kernel
 from .frame_change import FrameChange
 from .persistent_value import PersistentValue
 from .snapshot import Snapshot
-
-from .pulse_decorators import function
+from .pulse_decorators import functional_pulse

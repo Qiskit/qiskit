@@ -11,7 +11,7 @@
 Base command.
 """
 
-from qiskit.exceptions import QiskitError
+from qiskit.pulse.exceptions import CommandsError
 
 
 class PulseCommand:
@@ -24,13 +24,13 @@ class PulseCommand:
             duration (int): Duration of pulse.
             name (str): Name of pulse command.
         Raises:
-            QiskitError: when duration is not number of points.
+            CommandsError: when duration is not number of points.
         """
 
         if isinstance(duration, int):
             self.duration = duration
         else:
-            raise QiskitError('Pulse duration should be integer.')
+            raise CommandsError('Pulse duration should be integer.')
 
         self.name = name
 
