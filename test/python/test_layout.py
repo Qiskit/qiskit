@@ -293,6 +293,63 @@ class LayoutTest(QiskitTestCase):
         self.assertDictEqual(layout._p2v, repr_layout._p2v)
         self.assertDictEqual(layout._v2p, repr_layout._v2p)
 
+    def test_layout_from_intlist(self):
+        """Create a layout from a list of integers.
+        virtual  physical
+         q1_0  ->  4
+         q2_0  ->  5
+         q2_1  ->  6
+         q3_0  ->  8
+         q3_1  ->  9
+         q3_2  ->  10
+        """
+        q1 = QuantumRegister(1, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        q3 = QuantumRegister(3, 'q3')
+        intlist_layout = [4, 5, 6, 8, 9, 10]
+        layout = Layout.intlist_layout(intlist_layout, q1, q2, q3)
+
+        expected = Layout({4: (QuantumRegister(1, 'q1'), 0),
+                           5: (QuantumRegister(2, 'q2'), 0),
+                           6: (QuantumRegister(2, 'q2'), 1),
+                           8: (QuantumRegister(3, 'q3'), 0),
+                           9: (QuantumRegister(3, 'q3'), 1),
+                           10: (QuantumRegister(3, 'q3'), 2)
+                           })
+        self.assertDictEqual(layout._p2v, expected._p2v)
+        self.assertDictEqual(layout._v2p, expected._v2p)
+
+    def test_layout_from_intlist_short(self):
+        """If the intlist is longer that your quantum register, fail.
+        virtual  physical
+         q1_0  ->  4
+         q2_0  ->  5
+         q2_1  ->  6
+         X     ->  8
+         X     ->  9
+         X     ->  10
+        """
+        q1 = QuantumRegister(1, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        intlist_layout = [4, 5, 6, 8, 9, 10]
+
+        with self.assertRaises(LayoutError):
+            _ = Layout.intlist_layout(intlist_layout, q1, q2)
+
+    def test_layout_from_intlist_duplicated(self):
+        """If the intlist contains duplicated ints, fail.
+        virtual  physical
+         q1_0  ->  4
+         q2_0  ->  6 -- This is
+         q2_1  ->  6 -- not allowed
+        """
+        q1 = QuantumRegister(1, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        intlist_layout = [4, 6, 6]
+
+        with self.assertRaises(LayoutError):
+            _ = Layout.intlist_layout(intlist_layout, q1, q2)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -17,7 +17,6 @@ import warnings
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.mapper.exceptions import LayoutError
 from qiskit.circuit.register import Register
-from qiskit.qiskiterror import QiskitError
 
 
 class Layout():
@@ -296,16 +295,16 @@ class Layout():
         Returns:
             Layout: The corresponding Layout object.
         Raises:
-            QiskitError: Invalid input layout.
+            LayoutError: Invalid input layout.
         """
         # check for duplicate values in list
         if len(int_list) != len(set(int_list)):
-            raise QiskitError('Duplicate values not permitted in integer layout.')
+            raise LayoutError('Duplicate values not permitted in integer layout.')
         n_qubits = sum(reg.size for reg in qregs)
         # Check if list does not cover all qubits
         if len(int_list) != n_qubits:
             err_msg = 'Integer list length must equal number of qubits in circuit.'
-            raise QiskitError(err_msg)
+            raise LayoutError(err_msg)
         out = Layout()
         main_idx = 0
         for qreg in qregs:
