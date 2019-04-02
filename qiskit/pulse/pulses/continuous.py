@@ -96,7 +96,7 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
 
 
 def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float) -> np.ndarray:
-    r"""Continuous unnormalized gaussian wave.
+    r"""Continuous unnormalized gaussian pulse.
 
     Integrated area under curve is $A(amp, sigma) = amp \times np.sqrt(2\pi \sigma^2)$
 
@@ -108,6 +108,19 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float) -> np
     """
     x = (times-center)/sigma
     return amp*np.exp(-x**2/2)
+
+
+def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float) -> np.ndarray:
+    r"""Continuous unnormalized gaussian derivative pulse.
+
+    Args:
+        times: Times to output pulse for.
+        amp: Pulse amplitude at `center`.
+        center: Center (mean) of pulse.
+        sigma: Width (standard deviation) of pulse.
+    """
+    x = (times-center)/sigma
+    return -x/sigma*gaussian(times, amp=amp, center=center, sigma=sigma)
 
 
 def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,

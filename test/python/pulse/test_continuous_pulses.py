@@ -136,6 +136,21 @@ class TestContinuousPulses(QiskitTestCase):
         self.assertTrue(gaussian_arr[center_time], amp)
         self.assertAlmostEqual(np.sum(gaussian_arr*dt), amp*np.sqrt(2*np.pi*sigma**2), places=3)
 
+    def test_gaussian_deriv(self):
+        """Test gaussian derivative pulse."""
+        amp = 0.5
+        center = 10
+        sigma = 2
+        times, dt = np.linspace(0, 20, 1000, retstep=True)
+        deriv_prefactor = -sigma**2/(times-center)
+
+        gaussian_deriv_arr = continuous.gaussian_deriv(times, amp, center, sigma)
+        gaussian_arr = gaussian_deriv_arr*deriv_prefactor
+
+        self.assertAlmostEqual(continuous.gaussian_deriv(np.array([0]), amp, center, sigma)[0],
+                               0, places=5)
+        self.assertAlmostEqual(np.sum(gaussian_arr*dt), amp*np.sqrt(2*np.pi*sigma**2), places=3)
+
     def test_gaussian_square(self):
         """Test gaussian square pulse."""
         amp = 0.5
