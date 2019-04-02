@@ -61,7 +61,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
             print('\r%s: %s' % ('Job Status', msg), end='', file=_outstream)
             prev_msg = msg
     if not quiet:
-        print('', file=_outstream)
+        print('', file=output)
 
 
 def job_monitor(job, interval=None, monitor_async=False, quiet=False, output=sys.stdout):
