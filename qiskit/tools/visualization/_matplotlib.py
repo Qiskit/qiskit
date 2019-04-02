@@ -476,7 +476,7 @@ class MatplotlibDrawer:
         # draw gates
         #
         prev_anc = -1
-        for layer_no, layer in enumerate(self._ops):
+        for layer in self._ops:
             layer_width = 1
 
             for op in layer:
@@ -491,20 +491,20 @@ class MatplotlibDrawer:
                 # get qreg index
                 q_idxs = []
                 for qarg in op.qargs:
-                        for index, reg in self._qreg_dict.items():
-                            if (reg['group'] == qarg[0] and
-                                    reg['index'] == qarg[1]):
-                                q_idxs.append(index)
-                                break
+                    for index, reg in self._qreg_dict.items():
+                        if (reg['group'] == qarg[0] and
+                                reg['index'] == qarg[1]):
+                            q_idxs.append(index)
+                            break
 
                 # get creg index
                 c_idxs = []
                 for carg in op.cargs:
-                        for index, reg in self._creg_dict.items():
-                            if (reg['group'] == carg[0] and
-                                    reg['index'] == carg[1]):
-                                c_idxs.append(index)
-                                break
+                    for index, reg in self._creg_dict.items():
+                        if (reg['group'] == carg[0] and
+                                reg['index'] == carg[1]):
+                            c_idxs.append(index)
+                            break
                 for ii in q_idxs:
                     q_anchors[ii].set_index(this_anc, layer_width)
 
