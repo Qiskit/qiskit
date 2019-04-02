@@ -10,8 +10,7 @@
 import copy
 import unittest
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import transpile
+from qiskit import QuantumRegister
 from qiskit.mapper.layout import Layout
 from qiskit.mapper.exceptions import LayoutError
 from qiskit.test import QiskitTestCase
@@ -293,33 +292,6 @@ class LayoutTest(QiskitTestCase):
         repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
         self.assertDictEqual(layout._p2v, repr_layout._p2v)
         self.assertDictEqual(layout._v2p, repr_layout._v2p)
-
-    def test_layout_from_intlist(self):
-        """A list of ints gives layout to correctly map circuit.
-        """
-        q1 = QuantumRegister(1, 'q1')
-        q2 = QuantumRegister(2, 'q2')
-        q3 = QuantumRegister(3, 'q3')
-        qc = QuantumCircuit(q1, q2, q3)
-        qc.h(q1[0])
-        qc.h(q2[1])
-        qc.h(q3[2])
-        layout = [4, 5, 6, 8, 9, 10]
-
-        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
-                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
-                [9, 8], [9, 10], [11, 3], [11, 10],
-                [11, 12], [12, 2], [13, 1], [13, 12]]
-
-        new_circ = transpile(qc, backend=None,
-                             coupling_map=cmap,
-                             basis_gates=['u2'],
-                             initial_layout=layout)
-        mapped_qubits = []
-        for gate in new_circ.data:
-            mapped_qubits.append(gate.qargs[0][1])
-
-        self.assertEqual(mapped_qubits, [4, 6, 10])
 
 
 if __name__ == '__main__':
