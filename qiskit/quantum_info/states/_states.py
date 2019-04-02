@@ -12,9 +12,11 @@ A collection of useful quantum information functions for states.
 
 
 """
-
+import logging
 import numpy as np
 from qiskit.exceptions import QiskitError
+
+logger = logging.getLogger(__name__)
 
 
 def basis_state(str_state, num):
@@ -50,14 +52,16 @@ def random_state(dim, seed=None):
     Returns:
         ndarray:  state(2**num) a random quantum state.
     """
-    if seed is not None:
-        np.random.seed(seed)
+    if seed is None:
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+    rng = np.random.RandomState(seed)
+    logger.debug("random_state RandomState seeded with seed=%s", seed)
     # Random array over interval (0, 1]
-    x = np.random.random(dim)
+    x = rng.rand(dim)
     x += x == 0
     x = -np.log(x)
     sumx = sum(x)
-    phases = np.random.random(dim)*2.0*np.pi
+    phases = rng.rand(dim)*2.0*np.pi
     return np.sqrt(x/sumx)*np.exp(1j*phases)
 
 
