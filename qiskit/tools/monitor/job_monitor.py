@@ -19,7 +19,7 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     from IPython.display import display    # pylint: disable=import-error
 
 
-def _text_checker(job, interval, _interval_set=False, quiet=False, to_file=None):
+def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.stdout):
     """A text-based job status checker
 
     Args:
