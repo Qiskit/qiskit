@@ -108,4 +108,4 @@ def job_monitor(job, interval=None, monitor_async=False, quiet=False, output=sys
         if monitor_async:
             raise QiskitError(
                 'monitor_async only available in Jupyter notebooks.')
-        _text_checker(job, interval, _interval_set, quiet=quiet, to_file=to_file)
+        _text_checker(job, interval, _interval_set, quiet=quiet, output=output)
