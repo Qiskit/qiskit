@@ -307,7 +307,7 @@ class LayoutTest(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qr2')
         qr3 = QuantumRegister(3, 'qr3')
         intlist_layout = [4, 5, 6, 8, 9, 10]
-        layout = Layout.intlist_layout(intlist_layout, qr1, qr2, qr3)
+        layout = Layout.generate_from_intlist(intlist_layout, qr1, qr2, qr3)
 
         expected = Layout({4: (QuantumRegister(1, 'qr1'), 0),
                            5: (QuantumRegister(2, 'qr2'), 0),
@@ -333,7 +333,7 @@ class LayoutTest(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qr2')
 
         intlist_layout = [4, 5, 6, 8, 9, 10]
-        layout = Layout.intlist_layout(intlist_layout, qr1, qr2)
+        layout = Layout.generate_from_intlist(intlist_layout, qr1, qr2)
 
         expected = Layout({4: (QuantumRegister(1, 'qr1'), 0),
                            5: (QuantumRegister(2, 'qr2'), 0),
@@ -361,7 +361,7 @@ class LayoutTest(QiskitTestCase):
         intlist_layout = [4, 5, 6, 8]
 
         with self.assertRaises(LayoutError):
-            _ = Layout.intlist_layout(intlist_layout, qr1, qr2, qr3)
+            _ = Layout.generate_from_intlist(intlist_layout, qr1, qr2, qr3)
 
     def test_layout_from_intlist_duplicated(self):
         """If the intlist contains duplicated ints, fail.
@@ -375,7 +375,7 @@ class LayoutTest(QiskitTestCase):
         intlist_layout = [4, 6, 6]
 
         with self.assertRaises(LayoutError):
-            _ = Layout.intlist_layout(intlist_layout, qr1, qr2)
+            _ = Layout.generate_from_intlist(intlist_layout, qr1, qr2)
 
 
 if __name__ == '__main__':

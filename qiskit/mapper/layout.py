@@ -283,7 +283,7 @@ class Layout():
         return layout
 
     @staticmethod
-    def intlist_layout(int_list, *qregs):
+    def generate_from_intlist(int_list, *qregs):
         """Converts a list of integers to a Layout
         mapping virtual qubits (index of the list) to
         physical qubits (the list values).

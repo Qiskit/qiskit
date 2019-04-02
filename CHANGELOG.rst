@@ -95,7 +95,7 @@ Changed
 - Separate ``Qobj`` into ``PulseQobj`` and ``QasmQobj`` (#1969).
 - It is possible to define a layout as a list of integers that would map the list of
 qubits in the declaration order to each of the physical qubits defined in the list of
-integers using ``Layout.intlist_layout``(#1946)
+integers using ``Layout.generate_from_intlist``(#1946)
 
 Deprecated
 ----------
