@@ -79,6 +79,30 @@ class TestSchedule(QiskitTestCase):
         sched = sched.appended(children)
 
         begin_times = sorted([i.begin_time for i in sched.flat_instruction_sequence()])
-        # print(pprint.pformat(sched.flat_instruction_sequence()))
 
-        self.assertEqual(begin_times, [0, 30, 40])
+        self.assertEqual([0, 30, 40], begin_times)
+
+    def test_keep_original_schedule_after_attached_to_another_schedule(self):
+        """Test if a schedule keeps its children after attached to another schedule.
+        """
+        device = self.two_qubit_device
+
+        acquire = Acquire(10)
+        children = Schedule()\
+            .inserted(20, acquire(device.q[1], device.mem[1]))\
+            .appended(acquire(device.q[1], device.mem[1]))
+        self.assertEqual(2, len(children.flat_instruction_sequence()))
+
+        sched = Schedule()\
+            .appended(acquire(device.q[1], device.mem[1]))\
+            .appended(children)
+        self.assertEqual(3, len(sched.flat_instruction_sequence()))
+
+        children = children.inserted(100, acquire(device.q[1], device.mem[1]))
+        self.assertEqual(3, len(children.flat_instruction_sequence()))
+        # sched must keep 3 instructions (must not update to 4 instructions)
+        self.assertEqual(3, len(sched.flat_instruction_sequence()))
+
+
+if __name__ == '__main__':
+    unittest.main()
