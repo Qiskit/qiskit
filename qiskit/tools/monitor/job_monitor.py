@@ -27,7 +27,7 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         interval (int): The interval at which to check.
         _interval_set (bool): Was interval time set by user?
         quiet (bool): If True, do not print status messages.
-        to_file (file): If file print status messages to it, else to stdout.
+        output (file): The file like object to write status messages to. By default this is sys.stdout.
 
     """
     _outstream = to_file if to_file else sys.stdout
