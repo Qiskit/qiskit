@@ -45,6 +45,13 @@ class Schedule(Instruction, TimedInstruction):
                 raise PulseError("Invalid to be scheduled: %s" % block.__class__.__name__)
         self._name = name
 
+    def __copy__(self):
+        news = Schedule()
+        news._occupancy = self._occupancy
+        news._children = copy.copy(self._children)
+        news._name = self._name
+        return news
+
     @property
     def name(self) -> str:
         return self._name
