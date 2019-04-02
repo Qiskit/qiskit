@@ -320,21 +320,48 @@ class LayoutTest(QiskitTestCase):
         self.assertDictEqual(layout._v2p, expected._v2p)
 
     def test_layout_from_intlist_short(self):
-        """If the intlist is longer that your quantum register, fail.
+        """If the intlist is longer that your quantum register, map them to None.
         virtual  physical
          q1_0  ->  4
          q2_0  ->  5
          q2_1  ->  6
-         X     ->  8
-         X     ->  9
-         X     ->  10
+         None  ->  8
+         None  ->  9
+         None  ->  10
         """
         q1 = QuantumRegister(1, 'q1')
         q2 = QuantumRegister(2, 'q2')
+
         intlist_layout = [4, 5, 6, 8, 9, 10]
+        layout = Layout.intlist_layout(intlist_layout, q1, q2)
+
+        expected = Layout({4: (QuantumRegister(1, 'q1'), 0),
+                           5: (QuantumRegister(2, 'q2'), 0),
+                           6: (QuantumRegister(2, 'q2'), 1),
+                           8: None,
+                           9: None,
+                           10: None
+                           })
+        self.assertDictEqual(layout._p2v, expected._p2v)
+        self.assertDictEqual(layout._v2p, expected._v2p)
+
+    def test_layout_from_intlist_long(self):
+        """If the intlist is shorter that your quantum register, fail.
+        virtual  physical
+         q1_0  ->  4
+         q2_0  ->  5
+         q2_1  ->  6
+         q3_0  ->  8
+         q3_1  ->  ?
+         q3_2  ->  ?
+        """
+        q1 = QuantumRegister(1, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        q3 = QuantumRegister(3, 'q3')
+        intlist_layout = [4, 5, 6, 8]
 
         with self.assertRaises(LayoutError):
-            _ = Layout.intlist_layout(intlist_layout, q1, q2)
+            _ = Layout.intlist_layout(intlist_layout, q1, q2, q3)
 
     def test_layout_from_intlist_duplicated(self):
         """If the intlist contains duplicated ints, fail.

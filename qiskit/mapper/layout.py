@@ -301,8 +301,8 @@ class Layout():
         if len(int_list) != len(set(int_list)):
             raise LayoutError('Duplicate values not permitted in integer layout.')
         n_qubits = sum(reg.size for reg in qregs)
-        # Check if list does not cover all qubits
-        if len(int_list) != n_qubits:
+        # Check if list is too short to cover all qubits
+        if len(int_list) < n_qubits:
             err_msg = 'Integer list length must equal number of qubits in circuit.'
             raise LayoutError(err_msg)
         out = Layout()
@@ -311,4 +311,7 @@ class Layout():
             for idx in range(qreg.size):
                 out[(qreg, idx)] = int_list[main_idx]
                 main_idx += 1
+        if main_idx != len(int_list):
+            for int_item in int_list[main_idx:]:
+                out[int_item] = None
         return out
