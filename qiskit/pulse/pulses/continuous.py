@@ -10,6 +10,7 @@
 """Module for builtin continuous pulse functions."""
 
 import functools
+from typing import Union, Tuple
 
 import numpy as np
 
@@ -95,7 +96,8 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
     return amp*np.sin(2*np.pi*freq*times+phase)
 
 
-def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float) -> np.ndarray:
+def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
+             ret_x=False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized gaussian pulse.
 
     Integrated area under curve is $A(amp, sigma) = amp \times np.sqrt(2\pi \sigma^2)$
@@ -105,9 +107,14 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float) -> np
         amp: Pulse amplitude at `center`.
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
+        ret_x: Return centered and standard deviation normalized pulse location.
+               $x=(times-center)/sigma.
     """
     x = (times-center)/sigma
-    return amp*np.exp(-x**2/2)
+    gauss = amp*np.exp(-x**2/2)
+    if ret_x:
+        return gauss, x
+    return gauss
 
 
 def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float) -> np.ndarray:
@@ -118,8 +125,10 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float)
         amp: Pulse amplitude at `center`.
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
+        ret_x: Return centered and standard deviation normalized pulse location.
+               $x=(times-center)/sigma.
     """
-    x = (times-center)/sigma
+    gauss, x = gaussian(times, amp=amp, center=center, sigma=sigma, ret_x=True)
     return -x/sigma*gaussian(times, amp=amp, center=center, sigma=sigma)
 
 
@@ -143,3 +152,16 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float
                 functools.partial(constant, amp=amp)]
     condlist = [times <= square_start, times >= square_stop]
     return np.piecewise(times, condlist, funclist)
+
+
+def drag(times: np.ndarray, amp: complex, center: float, sigma: float) -> np.ndarray:
+    r"""Continuous DRAG pulse for unharmonic oscillator.
+
+    Args:
+        times: Times to output pulse for.
+        amp: Pulse amplitude at `center`.
+        center: Center (mean) of pulse.
+        sigma: Width (standard deviation) of pulse.
+    """
+    x = (times-center)/sigma
+    return -x/sigma*gaussian(times, amp=amp, center=center, sigma=sigma)
