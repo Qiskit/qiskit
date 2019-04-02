@@ -33,7 +33,7 @@ _VALIDATORS = {}
 def _load_schema(file_path, name=None):
     """Loads the QObj schema for use in future validations.
 
-    Caches schema in _SCHEMAS module attribute.
+   Caches schema in _SCHEMAS module attribute.
 
    Args:
         file_path(str): Path to schema.
@@ -54,8 +54,7 @@ def _load_schema(file_path, name=None):
 
 def _get_validator(name, schema=None, check_schema=True,
                    validator_class=None, **validator_kwargs):
-    """
-    Generate validator for JSON schema.
+    """Generate validator for JSON schema.
 
     Args:
         name (str): Name for validator. Will be validator key in
@@ -100,7 +99,7 @@ def _get_validator(name, schema=None, check_schema=True,
 
 def _load_schemas_and_validators():
     """Load all default schemas into `_SCHEMAS`."""
-    schema_base_path = os.path.join(os.path.dirname(__file__), '..')
+    schema_base_path = os.path.join(os.path.dirname(__file__), '../..')
     for name, path in _DEFAULT_SCHEMA_PATHS.items():
         _load_schema(os.path.join(schema_base_path, path), name)
         _get_validator(name)

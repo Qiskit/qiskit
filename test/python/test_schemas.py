@@ -11,8 +11,8 @@ import json
 import logging
 import os
 
-from qiskit.qobj._schema_validation import (validate_json_against_schema,
-                                            _get_validator)
+from qiskit.validation.jsonschema.schema_validation import (
+    validate_json_against_schema, _get_validator)
 from qiskit.providers.models import (BackendConfiguration, BackendProperties,
                                      BackendStatus, JobStatus, PulseDefaults)
 from qiskit.result import Result
