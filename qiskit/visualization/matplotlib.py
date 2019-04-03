@@ -146,6 +146,47 @@ class MatplotlibDrawer:
     def ast(self):
         return self._ast
 
+    def _multiqubit_gate(self, xy, fc=None, wide=True, text=None,
+                         subtext=None):
+        n_qubits = len(xy)
+        xpos = min([x[0] for x in xy])
+        ypos = min([y[1] for y in xy])
+        if wide:
+            wid = WID * 2.8
+        else:
+            wid = WID
+        if fc:
+            _fc = fc
+        else:
+            _fc = self._style.gc
+
+        height = HIG * (n_qubits + 1)
+        box = patches.Rectangle(
+            xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
+            width=wid, height=height, fc=_fc, ec=self._style.lc,
+            linewidth=1.5, zorder=PORDER_GATE)
+        self.ax.add_patch(box)
+
+        if text:
+            disp_text = text
+            if subtext:
+                self.ax.text(xpos, ypos + 0.15 * height, disp_text, ha='center',
+                             va='center', fontsize=self._style.fs,
+                             color=self._style.gt, clip_on=True,
+                             zorder=PORDER_TEXT)
+                self.ax.text(xpos, ypos - 0.3 * height, subtext, ha='center',
+                             va='center', fontsize=self._style.sfs,
+                             color=self._style.sc, clip_on=True,
+                             zorder=PORDER_TEXT)
+            else:
+                self.ax.text(xpos, ypos + .5 * (n_qubits - 1), disp_text,
+                             ha='center',
+                             va='center',
+                             fontsize=self._style.fs,
+                             color=self._style.gt,
+                             clip_on=True,
+                             zorder=PORDER_TEXT)
+
     def _gate(self, xy, fc=None, wide=False, text=None, subtext=None):
         xpos, ypos = xy
 
@@ -156,17 +197,24 @@ class MatplotlibDrawer:
         if fc:
             _fc = fc
         elif text:
-            _fc = self._style.dispcol[text]
+            try:
+                _fc = self._style.dispcol[text]
+            except KeyError:
+                _fc = self._style.gc
         else:
             _fc = self._style.gc
 
+        print((xpos - 0.5 * wid, ypos - 0.5 * HIG))
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG), width=wid, height=HIG,
             fc=_fc, ec=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
         if text:
-            disp_text = "${}$".format(self._style.disptex[text])
+            try:
+                disp_text = "${}$".format(self._style.disptex[text])
+            except KeyError:
+                disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
                              va='center', fontsize=self._style.fs,
@@ -480,7 +528,7 @@ class MatplotlibDrawer:
             layer_width = 1
 
             for op in layer:
-                if op.name in _wide_gate:
+                if op.name in _wide_gate or op.name not in self._style.dispcol:
                     layer_width = 2
 
             this_anc = prev_anc + 1
@@ -592,6 +640,8 @@ class MatplotlibDrawer:
                     if op.name == 'cx':
                         self._ctrl_qubit(q_xy[0])
                         self._tgt_qubit(q_xy[1])
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
                     # cz for latexmode
                     elif op.name == 'cz':
                         if self._style.latexmode:
@@ -601,6 +651,8 @@ class MatplotlibDrawer:
                             disp = op.name.replace('c', '')
                             self._ctrl_qubit(q_xy[0])
                             self._gate(q_xy[1], wide=_iswide, text=disp)
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
                     # control gate
                     elif op.name in ['cy', 'ch', 'cu3', 'crz']:
                         disp = op.name.replace('c', '')
@@ -610,6 +662,8 @@ class MatplotlibDrawer:
                                        subtext='{}'.format(param))
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp)
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
                     # cu1 for latexmode
                     elif op.name == 'cu1':
                         disp = op.name.replace('c', '')
@@ -620,12 +674,17 @@ class MatplotlibDrawer:
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp,
                                        subtext='{}'.format(param))
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
                     # swap gate
                     elif op.name == 'swap':
                         self._swap(q_xy[0])
                         self._swap(q_xy[1])
-                    # add qubit-qubit wiring
-                    self._line(qreg_b, qreg_t)
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
+                    # Custom gate
+                    else:
+                        self._multiqubit_gate(q_xy, text=op.name)
                 #
                 # draw multi-qubit gates (n=3)
                 #
@@ -635,13 +694,22 @@ class MatplotlibDrawer:
                         self._ctrl_qubit(q_xy[0])
                         self._swap(q_xy[1])
                         self._swap(q_xy[2])
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
                     # ccx gate
                     elif op.name == 'ccx':
                         self._ctrl_qubit(q_xy[0])
                         self._ctrl_qubit(q_xy[1])
                         self._tgt_qubit(q_xy[2])
-                    # add qubit-qubit wiring
-                    self._line(qreg_b, qreg_t)
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
+                    # custom gate
+                    else:
+                        self._multiqubit_gate(q_xy, text=op.name)
+
+                # draw custom multi-qubit gate
+                elif len(q_xy) > 3:
+                    self._multiqubit_gate(q_xy, text=op.name)
                 else:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
