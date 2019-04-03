@@ -20,7 +20,7 @@ import re
 import numpy as np
 
 from qiskit.visualization import exceptions
-from qiskit.visualization import _qcstyle
+from qiskit.visualization import qcstyle as _qcstyle
 
 
 class QCircuitImage:

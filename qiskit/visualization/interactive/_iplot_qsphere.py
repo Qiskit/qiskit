@@ -17,7 +17,7 @@ from string import Template
 
 import numpy as np
 from scipy import linalg
-from qiskit.visualization._utils import _validate_input_state
+from qiskit.visualization.utils import _validate_input_state
 from qiskit.visualization.exceptions import VisualizationError
 
 
