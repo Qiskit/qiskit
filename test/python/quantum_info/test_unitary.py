@@ -129,8 +129,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         matrix = numpy.array([[1, 0], [0, 1]])
         qc.x(qr[0])
-        uni1q = Unitary(matrix, qr[0])
-        qc += uni1q
+        qc.append(Unitary(matrix), [qr[0]])
         # test of qasm output
         self.log.info(qc.qasm())
         # test of text drawer
@@ -155,8 +154,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         sigmay = numpy.array([[0, -1j], [1j, 0]])
         matrix = numpy.kron(sigmax, sigmay)
         qc.x(qr[0])
-        uni2q = Unitary(matrix, qr[0], qr[1])
-        qc += uni2q
+        uni2q = Unitary(matrix)
+        qc.append(uni2q, [qr[0], qr[1]])
         passman = PassManager()
         passman.append(CXCancellation())
         qc2 = transpile(qc, backend, pass_manager=passman)
@@ -184,8 +183,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         sigmay = numpy.array([[0, -1j], [1j, 0]])
         matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
         qc.x(qr[0])
-        uni3q = Unitary(matrix, qr[0], qr[1], qr[3])
-        qc += uni3q
+        uni3q = Unitary(matrix)
+        qc.append(uni3q, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
         # test of text drawer
         self.log.info(qc)
@@ -207,8 +206,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         sigmay = numpy.array([[0, -1j], [1j, 0]])
         matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
         qc.rx(numpy.pi/4, qr[0])
-        uni = Unitary(matrix, qr[0], qr[1], qr[3])
-        qc += uni
+        uni = Unitary(matrix)
+        qc.append(uni, [qr[0], qr[1], qr[3]])
         qc.cx(qr[3], qr[2])
         qobj = qiskit.compiler.assemble_circuits(qc)
         instr = qobj.experiments[0].instructions[1]
@@ -228,8 +227,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         sigmax = numpy.array([[0, 1], [1, 0]])
         sigmay = numpy.array([[0, -1j], [1j, 0]])
         matrix = numpy.kron(sigmax, sigmay)
-        uni = Unitary(matrix, qr[0], qr[1], label='xy')
-        qc += uni
+        uni = Unitary(matrix, label='xy')
+        qc.append(uni, [qr[0], qr[1]])
         qobj = qiskit.compiler.assemble_circuits(qc)
         instr = qobj.experiments[0].instructions[0]
         self.assertEqual(instr.name, 'unitary')

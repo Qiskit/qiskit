@@ -23,14 +23,13 @@ from qiskit.dagcircuit import DAGCircuit
 class Unitary(Gate):
     """Class for representing unitary operators"""
 
-    def __init__(self, representation, *qargs, label=None, validate=True,
+    def __init__(self, representation, label=None, validate=True,
                  rtol=1e-5, atol=1e-8):
         """
         Create unitary.
 
         Args:
             representation (numpy.ndarray or list(list) or Unitary): unitary representation.
-            qargs (list(tuple(QuantumCircuit, int))): qubits to apply operation to.
             label (str): identifier hint for backend
             validate (bool): whether to validate unitarity of matrix when supplied
                 either here or with Unitary.matrix.
@@ -48,7 +47,7 @@ class Unitary(Gate):
         # set representation (depends on previous attributes)
         if isinstance(representation, (numpy.ndarray, sympy.Matrix, list)):
             self._representation = representation
-            super().__init__('unitary', [sympy.Matrix(representation)], list(qargs))
+            super().__init__('unitary', self.__n_qubits, [sympy.Matrix(representation)])
         elif isinstance(representation, Unitary):
             for attrib, value in vars(representation).items():
                 setattr(self, attrib, value)
