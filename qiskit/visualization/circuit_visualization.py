@@ -299,8 +299,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                         reverse_bits=reverse_bits,
-                                                         justify=justify)
+                                                        reverse_bits=reverse_bits,
+                                                        justify=justify)
     text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
@@ -409,7 +409,7 @@ def _generate_latex_source(circuit, filename=None,
         str: Latex string appropriate for writing to file.
     """
     qregs, cregs, ops = utils._get_instructions(circuit,
-                                                 reverse_bits=reverse_bits)
+                                                reverse_bits=reverse_bits)
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits)
@@ -454,8 +454,8 @@ def _matplotlib_circuit_drawer(circuit,
     """
 
     qregs, cregs, ops = utils._get_layered_instructions(circuit,
-                                                         reverse_bits=reverse_bits,
-                                                         justify=justify)
+                                                        reverse_bits=reverse_bits,
+                                                        justify=justify)
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits)
