@@ -135,6 +135,41 @@ class TestCompiler(QiskitTestCase):
 
         self.assertIsInstance(circuits, QuantumCircuit)
 
+    def test_transpiler_layout_from_intlist(self):
+        """A list of ints gives layout to correctly map circuit.
+        virtual  physical
+         q1_0  -  4   ---[H]---
+         q2_0  -  5
+         q2_1  -  6   ---[H]---
+         q3_0  -  8
+         q3_1  -  9
+         q3_2  -  10  ---[H]---
+
+        """
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        qr3 = QuantumRegister(3, 'qr3')
+        qc = QuantumCircuit(qr1, qr2, qr3)
+        qc.h(qr1[0])
+        qc.h(qr2[1])
+        qc.h(qr3[2])
+        layout = [4, 5, 6, 8, 9, 10]
+
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
+                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
+                [9, 8], [9, 10], [11, 3], [11, 10],
+                [11, 12], [12, 2], [13, 1], [13, 12]]
+
+        new_circ = transpile(qc, backend=None,
+                             coupling_map=cmap,
+                             basis_gates=['u2'],
+                             initial_layout=layout)
+        mapped_qubits = []
+        for gate in new_circ.data:
+            mapped_qubits.append(gate.qargs[0][1])
+
+        self.assertEqual(mapped_qubits, [4, 6, 10])
+
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
