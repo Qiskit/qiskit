@@ -12,6 +12,6 @@ from .frame_change import FrameChange, FrameChangeInstruction
 from .meas_opts import Discriminator, Kernel
 from .persistent_value import PersistentValue, PersistentValueInstruction
 from .pulse_command import PulseCommand
-from .pulse_decorators import function
+from .pulse_decorators import functional_pulse
 from .sample_pulse import SamplePulse, DriveInstruction
 from .snapshot import Snapshot

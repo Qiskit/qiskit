@@ -49,8 +49,7 @@ class QasmQobjExperimentSchema(QobjExperimentSchema):
     """Schema for QasmQobjExperiment."""
 
     # Required properties.
-    instructions = Nested(QasmQobjInstructionSchema, required=True, many=True,
-                          validate=Length(min=1))
+    instructions = Nested(QasmQobjInstructionSchema, required=True, many=True)
 
     # Optional properties.
     config = Nested(QasmQobjExperimentConfigSchema)

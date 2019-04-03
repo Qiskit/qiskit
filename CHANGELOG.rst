@@ -55,7 +55,8 @@ Added
 
 Changed
 -------
-
+- FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
+  that returns a `SamplePulse` when called. (#2043)
 - Changed ``average_data`` to accept observable input in matrix form (#1858)
 - Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module

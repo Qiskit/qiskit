@@ -8,12 +8,12 @@
 # pylint: disable=invalid-name,unexpected-keyword-arg
 
 """Test cases for the pulse schedule."""
-import numpy as np
 import pprint
+import numpy as np
 
 from qiskit.pulse.channels import DeviceSpecification, Qubit
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, RegisterSlot, ControlChannel
-from qiskit.pulse.commands import function, FrameChange, Acquire, PersistentValue, Snapshot
+from qiskit.pulse.commands import functional_pulse, FrameChange, Acquire, PersistentValue, Snapshot
 from qiskit.pulse.schedule import Schedule
 from qiskit.test import QiskitTestCase
 
@@ -25,7 +25,7 @@ class TestSchedule(QiskitTestCase):
         """Test valid schedule creation without error.
         """
 
-        @function
+        @functional_pulse
         def gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)

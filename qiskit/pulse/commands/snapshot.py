@@ -27,9 +27,7 @@ class Snapshot(PulseCommand, Instruction):
                 The types of snapshots offered are defined in a separate specification
                 document for simulators.
         """
-
-        super().__init__(duration=0, name='snapshot')
-
+        super().__init__(duration=0)
         self.label = label
         self.type = snap_type
         self._channel = SnapshotChannel()
