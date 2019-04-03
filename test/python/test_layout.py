@@ -11,7 +11,7 @@ import copy
 import unittest
 
 from qiskit import QuantumRegister
-from qiskit.mapper import Layout
+from qiskit.mapper.layout import Layout
 from qiskit.mapper.exceptions import LayoutError
 from qiskit.test import QiskitTestCase
 
@@ -25,7 +25,7 @@ class LayoutTest(QiskitTestCase):
     def test_default_layout(self):
         """Static method generate_trivial_layout creates a Layout"""
         qr0 = QuantumRegister(3, 'q0')
-        qr1 = QuantumRegister(2, 'q1')
+        qr1 = QuantumRegister(2, 'qr1')
         layout = Layout.generate_trivial_layout(qr0, qr1)
 
         self.assertEqual(layout[(qr0, 0)], 0)
@@ -50,22 +50,22 @@ class LayoutTest(QiskitTestCase):
     def test_layout_from_list(self):
         """Constructor from a list"""
         layout = Layout([(QuantumRegister(2, 'q0'), 0),
-                         (QuantumRegister(2, 'q1'), 0),
+                         (QuantumRegister(2, 'qr1'), 0),
                          None,
-                         (QuantumRegister(2, 'q1'), 1),
+                         (QuantumRegister(2, 'qr1'), 1),
                          (QuantumRegister(2, 'q0'), 1)])
 
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 0)], 0)
-        self.assertEqual(layout[(QuantumRegister(2, 'q1'), 0)], 1)
+        self.assertEqual(layout[(QuantumRegister(2, 'qr1'), 0)], 1)
         with self.assertRaises(KeyError):
             _ = layout[None]
-        self.assertEqual(layout[(QuantumRegister(2, 'q1'), 1)], 3)
+        self.assertEqual(layout[(QuantumRegister(2, 'qr1'), 1)], 3)
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 1)], 4)
 
         self.assertEqual(layout[0], (QuantumRegister(2, 'q0'), 0))
-        self.assertEqual(layout[1], (QuantumRegister(2, 'q1'), 0))
+        self.assertEqual(layout[1], (QuantumRegister(2, 'qr1'), 0))
         self.assertEqual(layout[2], None)
-        self.assertEqual(layout[3], (QuantumRegister(2, 'q1'), 1))
+        self.assertEqual(layout[3], (QuantumRegister(2, 'qr1'), 1))
         self.assertEqual(layout[4], (QuantumRegister(2, 'q0'), 1))
 
     def test_layout_set(self):
@@ -145,11 +145,11 @@ class LayoutTest(QiskitTestCase):
         """add_register() method"""
         layout = Layout()
         layout.add_register(QuantumRegister(2, 'q0'))
-        layout.add_register(QuantumRegister(1, 'q1'))
+        layout.add_register(QuantumRegister(1, 'qr1'))
 
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 0)], 0)
         self.assertEqual(layout[(QuantumRegister(2, 'q0'), 1)], 1)
-        self.assertEqual(layout[(QuantumRegister(1, 'q1'), 0)], 2)
+        self.assertEqual(layout[(QuantumRegister(1, 'qr1'), 0)], 2)
 
     def test_physical_keyerror(self):
         """When asking for an unexistant physical qubit, KeyError"""
@@ -269,6 +269,113 @@ class LayoutTest(QiskitTestCase):
 
         with self.assertRaises(LayoutError):
             layout[0] = 1
+
+    def test_layout_repr(self):
+        """Layout repr reproduces layout"""
+        qr = QuantumRegister(5, 'qr')
+        layout = Layout({(qr, 0): 2,
+                         (qr, 1): 4,
+                         (qr, 2): 3,
+                         (qr, 3): 0,
+                         (qr, 4): 1,
+                         })
+
+        repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
+        self.assertDictEqual(layout._p2v, repr_layout._p2v)
+        self.assertDictEqual(layout._v2p, repr_layout._v2p)
+
+    def test_layout_repr_with_holes(self):
+        """A non-bijective Layout repr reproduces layout"""
+        qr = QuantumRegister(5, 'qr')
+        layout = Layout([(qr, 0), None, None, (qr, 1), (qr, 2), (qr, 3), (qr, 4), None])
+
+        repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
+        self.assertDictEqual(layout._p2v, repr_layout._p2v)
+        self.assertDictEqual(layout._v2p, repr_layout._v2p)
+
+    def test_layout_from_intlist(self):
+        """Create a layout from a list of integers.
+        virtual  physical
+         q1_0  ->  4
+         q2_0  ->  5
+         q2_1  ->  6
+         q3_0  ->  8
+         q3_1  ->  9
+         q3_2  ->  10
+        """
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        qr3 = QuantumRegister(3, 'qr3')
+        intlist_layout = [4, 5, 6, 8, 9, 10]
+        layout = Layout.generate_from_intlist(intlist_layout, qr1, qr2, qr3)
+
+        expected = Layout({4: (QuantumRegister(1, 'qr1'), 0),
+                           5: (QuantumRegister(2, 'qr2'), 0),
+                           6: (QuantumRegister(2, 'qr2'), 1),
+                           8: (QuantumRegister(3, 'qr3'), 0),
+                           9: (QuantumRegister(3, 'qr3'), 1),
+                           10: (QuantumRegister(3, 'qr3'), 2)
+                           })
+        self.assertDictEqual(layout._p2v, expected._p2v)
+        self.assertDictEqual(layout._v2p, expected._v2p)
+
+    def test_layout_from_intlist_short(self):
+        """If the intlist is longer that your quantum register, map them to None.
+        virtual  physical
+         q1_0  ->  4
+         q2_0  ->  5
+         q2_1  ->  6
+         None  ->  8
+         None  ->  9
+         None  ->  10
+        """
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+
+        intlist_layout = [4, 5, 6, 8, 9, 10]
+        layout = Layout.generate_from_intlist(intlist_layout, qr1, qr2)
+
+        expected = Layout({4: (QuantumRegister(1, 'qr1'), 0),
+                           5: (QuantumRegister(2, 'qr2'), 0),
+                           6: (QuantumRegister(2, 'qr2'), 1),
+                           8: None,
+                           9: None,
+                           10: None
+                           })
+        self.assertDictEqual(layout._p2v, expected._p2v)
+        self.assertDictEqual(layout._v2p, expected._v2p)
+
+    def test_layout_from_intlist_long(self):
+        """If the intlist is shorter that your quantum register, fail.
+        virtual  physical
+         q1_0  ->  4
+         q2_0  ->  5
+         q2_1  ->  6
+         q3_0  ->  8
+         q3_1  ->  ?
+         q3_2  ->  ?
+        """
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        qr3 = QuantumRegister(3, 'qr3')
+        intlist_layout = [4, 5, 6, 8]
+
+        with self.assertRaises(LayoutError):
+            _ = Layout.generate_from_intlist(intlist_layout, qr1, qr2, qr3)
+
+    def test_layout_from_intlist_duplicated(self):
+        """If the intlist contains duplicated ints, fail.
+        virtual  physical
+         q1_0  ->  4
+         q2_0  ->  6 -- This is
+         q2_1  ->  6 -- not allowed
+        """
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        intlist_layout = [4, 6, 6]
+
+        with self.assertRaises(LayoutError):
+            _ = Layout.generate_from_intlist(intlist_layout, qr1, qr2)
 
 
 if __name__ == '__main__':
