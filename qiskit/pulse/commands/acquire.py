@@ -92,8 +92,11 @@ class AcquireInstruction(Instruction):
                  reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None):
         if isinstance(qubits, Qubit):
             qubits = [qubits]
-        if isinstance(mem_slots, MemorySlot):
-            mem_slots = [mem_slots]
+        if mem_slots:
+            if isinstance(mem_slots, MemorySlot):
+                mem_slots = [mem_slots]
+            elif len(qubits) != len(mem_slots):
+                raise PulseError("#mem_slots must be equals to #qubits")
         if reg_slots:
             if isinstance(reg_slots, RegisterSlot):
                 reg_slots = [reg_slots]
