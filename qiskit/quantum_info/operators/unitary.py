@@ -261,14 +261,6 @@ class Unitary(Gate):
                     self._representation.T.conj(), n)
             return uni
 
-    def reapply(self, circ):
-        """reapply this gate to circ; TODO: remove when monkey patching removed"""
-        self._modifiers(circ._attach(self))
-
-    def _define_decompositions(self):
-        decomposition = DAGCircuit()
-        self._decompositions = [decomposition]
-
     @property
     def _label(self):
         """get unitary label
