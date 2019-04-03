@@ -7,6 +7,7 @@
 
 """Quantum Information  methods."""
 
+from .operators.operator import Operator
 from .operators.unitary import Unitary
 from .operators.pauli import Pauli, pauli_group
 from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
