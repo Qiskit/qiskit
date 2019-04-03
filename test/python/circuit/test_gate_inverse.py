@@ -15,6 +15,7 @@ import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.extensions.standard import TGate, SGate
 
 
 class TestCircuitQasm(QiskitTestCase):
@@ -29,9 +30,9 @@ class TestCircuitQasm(QiskitTestCase):
 
         circuit.s(qr)
         circuit.s(qr)
-        circuit.s(qr).inverse()
+        circuit.append(SGate().inverse(), qr[:])
         circuit.s(qr)
-        circuit.t(qr).inverse()
+        circuit.append(TGate().inverse(), qr[:])
         circuit.t(qr)
         circuit.measure(qr, cr)
         expected_qasm = """OPENQASM 2.0;
