@@ -7,7 +7,9 @@
 
 """Pass for decomposing 3q (or more) gates into 2q or 1q gates."""
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.exceptions import QiskitError
 
 
 class Unroll3qOrMore(TransformationPass):
@@ -23,12 +25,23 @@ class Unroll3qOrMore(TransformationPass):
             dag(DAGCircuit): input dag
         Returns:
             DAGCircuit: output dag with maximum node degrees of 2
+        Raises:
+            QiskitError: if a 3q+ gate is not decomposable
         """
-        for node_id, node_data in dag.threeQ_or_more_nodes():
-            decomposition_rules = node_data["op"].decompositions()
-
+        for node in dag.threeQ_or_more_nodes():
             # TODO: allow choosing other possible decompositions
-            decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll
+            rule = node.op.definition
+            if not rule:
+                raise QiskitError("Cannot unroll all 3q or more gates. "
+                                  "No rule to expand instruction %s." %
+                                  node.op.name)
 
-            dag.substitute_node_with_dag(node_id, decomposition_dag)
+            # hacky way to build a dag on the same register as the rule is defined
+            # TODO: need anonymous rules to address wires by index
+            decomposition = DAGCircuit()
+            decomposition.add_qreg(rule[0][1][0][0])
+            for inst in rule:
+                decomposition.apply_operation_back(*inst)
+            decomposition = self.run(decomposition)  # recursively unroll
+            dag.substitute_node_with_dag(node, decomposition)
         return dag

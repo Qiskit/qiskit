@@ -1,99 +1,89 @@
-"""This module contains decorators for expanding registers objects or
-list of qubits into a series of single qubit/cbit instructions to be handled by the """
+# -*- coding: utf-8 -*-
 
-from functools import wraps
+# Copyright 2018, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
+"""
+This module contains decorators for expanding register objects or
+list of qubits into a series of single qubit/cbit instructions to be handled by
+the wrapped operation.
+"""
+
+import functools
 from qiskit.exceptions import QiskitError
 from .instructionset import InstructionSet
+from .register import Register
 from .quantumregister import QuantumRegister
+from .classicalregister import ClassicalRegister
 
 
-def _1q_gate(func):
-    """Wrapper for one qubit gate"""
-    @wraps(func)
+def _is_bit(obj):
+    """Determine if obj is a bit"""
+    # If there is a bit type this could be replaced by isinstance.
+    if isinstance(obj, tuple) and len(obj) == 2:
+        if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
+            return True
+    return False
+
+
+def _op_expand(n_bits, func=None, broadcastable=None):
+    """Decorator for expanding an operation across a whole register or register subset.
+    Args:
+        n_bits (int): the number of register bit arguments the decorated function takes
+        func (function): used for decorators with keyword args
+        broadcastable (list(bool)): list of bool for which register args can be
+            broadcast from 1 bit to the max size of the rest of the args. Defaults
+            to all True if not specified.
+
+    Return:
+        type: partial function object
+    """
+    if func is None:
+        return functools.partial(_op_expand, n_bits, broadcastable=broadcastable)
+
+    @functools.wraps(func)
     def wrapper(self, *args):
-        """Wrapper for one qubit gate"""
-        params = args[0:-1] if len(args) > 1 else tuple()
-        q = args[-1]
-        if isinstance(q, QuantumRegister):
-            q = [(q, j) for j in range(len(q))]
-
-        if q and isinstance(q, list):
-            instructions = InstructionSet()
-            for qubit in q:
-                self._check_qubit(qubit)
-                instructions.add(func(self, *params, qubit))
-            return instructions
-        return func(self, *params, q)
-    return wrapper
-
-
-def _2q_gate(func):
-    """Expand register or slice in two qubit gate where the number of qubits in
-    each argument must match"""
-    @wraps(func)
-    def wrapper(self, *args):
-        """Wrapper for one qubit gate"""
-        params = args[0:-2] if len(args) > 2 else tuple()
-        qubit1 = args[-2]
-        qubit2 = args[-1]
-        if isinstance(qubit1, QuantumRegister):
-            qubit1 = [(qubit1, j) for j in range(len(qubit1))]
-        if isinstance(qubit2, QuantumRegister):
-            qubit2 = [(qubit2, j) for j in range(len(qubit2))]
-
-        if isinstance(qubit1, list) and isinstance(qubit2, list):
-            if len(qubit1) != len(qubit2):
-                raise QiskitError('lengths of qubit arguments do not match: '
-                                  '{0} != {1}'.format(len(qubit1), len(qubit2)))
-
-        if qubit1 and qubit2 and isinstance(qubit1, list) and isinstance(qubit2, list):
-            instructions = InstructionSet()
-            for iqubit1, iqubit2 in zip(qubit1, qubit2):
-                self._check_qubit(iqubit1)
-                self._check_qubit(iqubit2)
-                instructions.add(func(self, *params, iqubit1, iqubit2))
-            return instructions
-        return func(self, *params, qubit1, qubit2)
-    return wrapper
-
-
-def _control_target_gate(func):
-    """Wrapper for two qubit control-target type gate.
-
-    This wrapper allows the length of the target to be 1 or the same length as the control. """
-
-    @wraps(func)
-    def wrapper(self, *args):
-        """Wrapper for control-target gate"""
-        params = args[0:-2] if len(args) > 2 else tuple()
-        ctl = args[-2]
-        tgt = args[-1]
-        if isinstance(ctl, QuantumRegister):
-            ctl = [(ctl, i) for i in range(len(ctl))]
-        if isinstance(tgt, QuantumRegister):
-            tgt = [(tgt, i) for i in range(len(tgt))]
-        if isinstance(ctl, list) != isinstance(tgt, list):
-            # TODO: check for Qubit instance
-            if isinstance(ctl, tuple):
-                ctl = [ctl]
-            elif isinstance(tgt, tuple):
-                tgt = [tgt]
-            else:
-                raise QiskitError('control or target are not qubits')
-
-        if ctl and tgt and isinstance(ctl, list) and isinstance(tgt, list):
-            instructions = InstructionSet()
-            if len(ctl) == len(tgt):
-                for ictl, itgt in zip(ctl, tgt):
-                    instructions.add(func(self, *params, ictl, itgt))
-            elif len(ctl) == 1:
-                for itgt in tgt:
-                    instructions.add(func(self, *params, ctl[0], itgt))
-            elif len(tgt) == 1:
-                for ictl in ctl:
-                    instructions.add(func(self, *params, ictl, tgt[0]))
-            else:
-                raise QiskitError('indeterminate control or target qubits')
-            return instructions
-        return func(self, *params, ctl, tgt)
+        params = args[0:-n_bits] if len(args) > n_bits else tuple()
+        rargs = args[-n_bits:]
+        if broadcastable is None:
+            blist = [True] * len(rargs)
+        else:
+            blist = broadcastable
+        if not all([_is_bit(arg) for arg in rargs]):
+            rarg_size = [1] * n_bits
+            for iarg, arg in enumerate(rargs):
+                if isinstance(arg, Register):
+                    rarg_size[iarg] = len(arg)
+                elif isinstance(arg, list) and all([_is_bit(bit) for bit in arg]):
+                    rarg_size[iarg] = len(arg)
+                elif isinstance(arg, tuple) and _is_bit(arg):
+                    rarg_size[iarg] = 1
+                else:
+                    raise QiskitError('operation arguments must be qubits/cbits')
+            broadcast_size = max(rarg_size)
+            expanded_rargs = []
+            for arg, broadcast in zip(rargs, blist):
+                if isinstance(arg, Register):
+                    arg = [(arg, i) for i in range(len(arg))]
+                elif isinstance(arg, tuple):
+                    arg = [arg]
+                # now we should have a list of qubits
+                if isinstance(arg, list) and len(arg) == 1 and broadcast:
+                    arg = arg * broadcast_size
+                if len(arg) != broadcast_size:
+                    raise QiskitError('register size error')
+                expanded_rargs.append(arg)
+            rargs = expanded_rargs
+            if all([isinstance(arg, list) for arg in rargs]):
+                if all(rargs):
+                    instructions = InstructionSet()
+                    for irargs in zip(*rargs):
+                        instructions.add(func(self, *params, *irargs),
+                                         [i for i in irargs if isinstance(i[0], QuantumRegister)],
+                                         [i for i in irargs if isinstance(i[0], ClassicalRegister)])
+                    return instructions
+                else:
+                    raise QiskitError('empty control or target argument')
+        return func(self, *params, *rargs)
     return wrapper

@@ -9,7 +9,7 @@
 """Main Qiskit visualization methods."""
 
 import sys
-from qiskit._util import _has_connection
+from qiskit.util import _has_connection
 from qiskit.tools.visualization._counts_visualization import plot_histogram
 from qiskit.tools.visualization._state_visualization import (plot_state_hinton,
                                                              plot_bloch_vector,
@@ -19,6 +19,7 @@ from qiskit.tools.visualization._state_visualization import (plot_state_hinton,
                                                              plot_state_qsphere,
                                                              plot_state)
 
+from ._pulse_visualization import pulse_drawer
 from ._circuit_visualization import circuit_drawer, qx_color_scheme
 from ._dag_visualization import dag_drawer
 from ._gate_map import plot_gate_map

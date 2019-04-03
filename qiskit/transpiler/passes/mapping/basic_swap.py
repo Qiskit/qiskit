@@ -13,7 +13,7 @@ a cx is not in the coupling map possibilities, it inserts one or more swaps in f
 compatible.
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.mapper import Layout
@@ -38,7 +38,6 @@ class BasicSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.swap_gate = SwapGate
         self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
@@ -75,8 +74,8 @@ class BasicSwap(TransformationPass):
             subdag = layer['graph']
 
             for gate in subdag.twoQ_nodes():
-                physical_q0 = current_layout[gate['qargs'][0]]
-                physical_q1 = current_layout[gate['qargs'][1]]
+                physical_q0 = current_layout[gate.qargs[0]]
+                physical_q1 = current_layout[gate.qargs[1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     # Insert a new layer with the SWAP(s).
                     swap_layer = DAGCircuit()
@@ -91,13 +90,13 @@ class BasicSwap(TransformationPass):
 
                         # create qregs
                         for qreg in current_layout.get_registers():
-                            if qreg[0] not in swap_layer.qregs.values():
-                                swap_layer.add_qreg(qreg[0])
+                            if qreg not in swap_layer.qregs.values():
+                                swap_layer.add_qreg(qreg)
 
                         # create the swap operation
-                        swap_layer.add_basis_element('swap', 2, 0, 0)
-                        swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
-                                                        qargs=[qubit_1, qubit_2])
+                        swap_layer.apply_operation_back(SwapGate(),
+                                                        qargs=[qubit_1, qubit_2],
+                                                        cargs=[])
 
                     # layer insertion
                     edge_map = current_layout.combine_into_edge_map(self.initial_layout)

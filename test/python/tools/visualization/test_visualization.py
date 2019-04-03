@@ -8,13 +8,16 @@
 """Tests for visualization tools."""
 
 import os
-import random
+import logging
 import unittest
 from inspect import signature
+import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.tools.visualization import _utils, circuit_drawer
 from qiskit.test import QiskitTestCase
+
+logger = logging.getLogger(__name__)
 
 
 class TestLatexSourceGenerator(QiskitTestCase):
@@ -40,27 +43,31 @@ class TestLatexSourceGenerator(QiskitTestCase):
         two_q_ops = "cx,cy,cz,ch,crz,cu1,cu3,swap"
         three_q_ops = "ccx"
 
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        logger.debug("random_circuit RandomState seeded with seed=%s", seed)
+        rng = np.random.RandomState(seed)
         # apply arbitrary random operations at every depth
         for _ in range(depth):
             # choose either 1, 2, or 3 qubits for the operation
             remaining_qubits = list(range(width))
             while remaining_qubits:
                 max_possible_operands = min(len(remaining_qubits), max_operands)
-                num_operands = random.choice(range(max_possible_operands)) + 1
-                operands = random.sample(remaining_qubits, num_operands)
+                num_operands = rng.choice(range(max_possible_operands)) + 1
+                rng.shuffle(remaining_qubits)
+                operands = remaining_qubits[:num_operands]
                 remaining_qubits = [q for q in remaining_qubits if q not in operands]
                 if num_operands == 1:
-                    operation = random.choice(one_q_ops.split(','))
+                    operation = rng.choice(one_q_ops.split(','))
                 elif num_operands == 2:
-                    operation = random.choice(two_q_ops.split(','))
+                    operation = rng.choice(two_q_ops.split(','))
                 elif num_operands == 3:
-                    operation = random.choice(three_q_ops.split(','))
+                    operation = rng.choice(three_q_ops.split(','))
                 # every gate is defined as a method of the QuantumCircuit class
                 # the code below is so we can call a gate by its name
                 gate = getattr(QuantumCircuit, operation)
                 op_args = list(signature(gate).parameters.keys())
                 num_angles = len(op_args) - num_operands - 1  # -1 for the 'self' arg
-                angles = [random.uniform(0, 3.14) for x in range(num_angles)]
+                angles = [rng.uniform(0, 3.14) for x in range(num_angles)]
                 register_operands = [qr[i] for i in operands]
                 gate(qc, *angles, *register_operands)
 
@@ -173,53 +180,38 @@ class TestVisualizationUtils(QiskitTestCase):
         self.circuit.measure(self.qr1[1], self.cr1[1])
 
     def test_get_instructions(self):
-        """ _get_instructions without reversebits """
+        """ _get_instructions without reverse_bits """
         (qregs, cregs, ops) = _utils._get_instructions(self.circuit)
+
+        exp = [('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], []),
+               ('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
+               ('measure', [(QuantumRegister(2, 'qr1'), 0)], [(ClassicalRegister(2, 'cr1'), 0)]),
+               ('cx', [(QuantumRegister(2, 'qr1'), 1), (QuantumRegister(2, 'qr1'), 0)], []),
+               ('measure', [(QuantumRegister(2, 'qr1'), 1)], [(ClassicalRegister(2, 'cr1'), 1)]),
+               ('measure', [(QuantumRegister(2, 'qr2'), 0)], [(ClassicalRegister(2, 'cr2'), 0)]),
+               ('cx', [(QuantumRegister(2, 'qr2'), 1), (QuantumRegister(2, 'qr2'), 0)], []),
+               ('measure', [(QuantumRegister(2, 'qr2'), 1)], [(ClassicalRegister(2, 'cr2'), 1)])]
+
         self.assertEqual([(self.qr1, 0), (self.qr1, 1), (self.qr2, 0), (self.qr2, 1)], qregs)
         self.assertEqual([(self.cr1, 0), (self.cr1, 1), (self.cr2, 0), (self.cr2, 1)], cregs)
-        self.assertEqual([op['name'] for op in ops],
-                         ['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'])
-        self.assertEqual([op['qargs'] for op in ops], [[(self.qr2, 0), (self.qr2, 1)],
-                                                       [(self.qr2, 0)],
-                                                       [(self.qr2, 1), (self.qr2, 0)],
-                                                       [(self.qr2, 1)],
-                                                       [(self.qr1, 0), (self.qr1, 1)],
-                                                       [(self.qr1, 0)],
-                                                       [(self.qr1, 1), (self.qr1, 0)],
-                                                       [(self.qr1, 1)]])
-        self.assertEqual([op['cargs'] for op in ops], [[],
-                                                       [(self.cr2, 0)],
-                                                       [],
-                                                       [(self.cr2, 1)],
-                                                       [],
-                                                       [(self.cr1, 0)],
-                                                       [],
-                                                       [(self.cr1, 1)]])
+        self.assertEqual(exp, [(op.name, op.qargs, op.cargs) for op in ops])
 
-    def test_get_instructions_reversebits(self):
-        """ _get_instructions with reversebits=True """
-        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reversebits=True)
+    def test_get_instructions_reverse_bits(self):
+        """ _get_instructions with reverse_bits=True """
+        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reverse_bits=True)
+
+        exp = [('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], []),
+               ('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
+               ('measure', [(QuantumRegister(2, 'qr1'), 0)], [(ClassicalRegister(2, 'cr1'), 0)]),
+               ('cx', [(QuantumRegister(2, 'qr1'), 1), (QuantumRegister(2, 'qr1'), 0)], []),
+               ('measure', [(QuantumRegister(2, 'qr1'), 1)], [(ClassicalRegister(2, 'cr1'), 1)]),
+               ('measure', [(QuantumRegister(2, 'qr2'), 0)], [(ClassicalRegister(2, 'cr2'), 0)]),
+               ('cx', [(QuantumRegister(2, 'qr2'), 1), (QuantumRegister(2, 'qr2'), 0)], []),
+               ('measure', [(QuantumRegister(2, 'qr2'), 1)], [(ClassicalRegister(2, 'cr2'), 1)])]
 
         self.assertEqual([(self.qr2, 1), (self.qr2, 0), (self.qr1, 1), (self.qr1, 0)], qregs)
         self.assertEqual([(self.cr2, 1), (self.cr2, 0), (self.cr1, 1), (self.cr1, 0)], cregs)
-        self.assertEqual(['cx', 'measure', 'cx', 'measure', 'cx', 'measure', 'cx', 'measure'],
-                         [op['name'] for op in ops])
-        self.assertEqual([op['qargs'] for op in ops], [[(self.qr2, 0), (self.qr2, 1)],
-                                                       [(self.qr2, 0)],
-                                                       [(self.qr2, 1), (self.qr2, 0)],
-                                                       [(self.qr2, 1)],
-                                                       [(self.qr1, 0), (self.qr1, 1)],
-                                                       [(self.qr1, 0)],
-                                                       [(self.qr1, 1), (self.qr1, 0)],
-                                                       [(self.qr1, 1)]])
-        self.assertEqual([op['cargs'] for op in ops], [[],
-                                                       [(self.cr2, 0)],
-                                                       [],
-                                                       [(self.cr2, 1)],
-                                                       [],
-                                                       [(self.cr1, 0)],
-                                                       [],
-                                                       [(self.cr1, 1)]])
+        self.assertEqual(exp, [(op.name, op.qargs, op.cargs) for op in ops])
 
 
 if __name__ == '__main__':

@@ -45,9 +45,10 @@ from copy import deepcopy
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.mapper import Layout
+from qiskit.dagcircuit import DAGNode
 
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
@@ -83,7 +84,6 @@ class LookaheadSwap(TransformationPass):
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG
         """
-
         coupling_map = self._coupling_map
         ordered_virtual_gates = list(dag.serial_layers())
 
@@ -117,8 +117,8 @@ class LookaheadSwap(TransformationPass):
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = _copy_circuit_metadata(dag, coupling_map)
 
-        for gate in mapped_gates:
-            mapped_dag.apply_operation_back(**gate)
+        for node in mapped_gates:
+            mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
 
         return mapped_dag
 
@@ -205,8 +205,7 @@ def _map_free_gates(layout, gates, coupling_map):
         # Gates without a partition (barrier, snapshot, save, load, noise) may
         # still have associated qubits. Look for them in the qargs.
         if not gate['partition']:
-            qubits = [n for n in gate['graph'].multi_graph.nodes.values()
-                      if n['type'] == 'op'][0]['qargs']
+            qubits = [n for n in gate['graph'].nodes() if n.type == 'op'][0].qargs
 
             if not qubits:
                 continue
@@ -251,15 +250,15 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
 
 
 def _score_step(step):
-    """Count the mapped two-qubit gates, less the number of added SWAPs."""
 
+    """Count the mapped two-qubit gates, less the number of added SWAPs."""
     # Each added swap will add 3 ops to gates_mapped, so subtract 3.
     return len([g for g in step['gates_mapped']
-                if len(g.get('qargs', [])) == 2]) - 3 * step['swaps_added']
+                if len(g.qargs) == 2]) - 3 * step['swaps_added']
 
 
 def _copy_circuit_metadata(source_dag, coupling_map):
-    """Return a copy of source_dag with metadata but without a multi_graph.
+    """Return a copy of source_dag with metadata but empty.
     Generate only a single qreg in the output DAG, matching the size of the
     coupling_map."""
 
@@ -272,27 +271,22 @@ def _copy_circuit_metadata(source_dag, coupling_map):
     device_qreg = QuantumRegister(len(coupling_map.physical_qubits), 'q')
     target_dag.add_qreg(device_qreg)
 
-    for name, (num_qbits, num_cbits, num_params) in source_dag.basis.items():
-        target_dag.add_basis_element(name, num_qbits, num_cbits, num_params)
-
-    for name, gate_data in source_dag.gates.items():
-        target_dag.add_gate_data(name, gate_data)
-
     return target_dag
 
 
 def _transform_gate_for_layout(gate, layout):
     """Return op implementing a virtual gate on given layout."""
 
-    mapped_op = deepcopy([n for n in gate['graph'].multi_graph.nodes.values()
-                          if n['type'] == 'op'][0])
+    mapped_op_node = deepcopy([n for n in gate['graph'].nodes() if n.type == 'op'][0])
 
+    # Workaround until #1816, apply mapped to qargs to both DAGNode and op
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
-    mapped_op['qargs'] = [(device_qreg, layout[a]) for a in mapped_op['qargs']]
-    mapped_op.pop('type')
-    mapped_op.pop('name')
+    mapped_qargs = [(device_qreg, layout[a]) for a in mapped_op_node.qargs]
+    mapped_op_node.qargs = mapped_op_node.op.qargs = mapped_qargs
 
-    return mapped_op
+    mapped_op_node.pop('name')
+
+    return mapped_op_node
 
 
 def _swap_ops_from_edge(edge, layout):
@@ -300,6 +294,8 @@ def _swap_ops_from_edge(edge, layout):
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
     qreg_edge = [(device_qreg, i) for i in edge]
+
+    # TODO shouldn't be making other nodes not by the DAG!!
     return [
-        {'op': SwapGate(*qreg_edge), 'qargs': qreg_edge},
+        DAGNode({'op': SwapGate(), 'qargs': qreg_edge, 'cargs': [], 'type': 'op'})
     ]

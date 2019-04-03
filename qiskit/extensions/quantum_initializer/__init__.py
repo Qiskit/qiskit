@@ -6,4 +6,4 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Initialize qubit registers to desired arbitrary state."""
-from ._initializer import InitializeGate
+from .initializer import InitializeGate

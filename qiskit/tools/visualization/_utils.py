@@ -48,15 +48,143 @@ def _trim(image):
     return image
 
 
-def _get_instructions(circuit, reversebits=False):
+def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
     """
     Given a circuit, return a tuple (qregs, cregs, ops) where
     qregs and cregs are the quantum and classical registers
-    in order (based on reversebits) and ops is a list
+    in order (based on reverse_bits) and ops is a list
     of DAG nodes which type is "operation".
     Args:
         circuit (QuantumCircuit): From where the information is extracted.
-        reversebits (bool): If true the order of the bits in the registers is
+        reverse_bits (bool): If true the order of the bits in the registers is
+            reversed.
+        justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
+            the circuit should be justified.
+    Returns:
+        Tuple(list,list,list): To be consumed by the visualizer directly.
+    """
+
+    if justify:
+        justify.lower()
+    # default to left
+    justify = justify if justify in ('right', 'none') else 'left'
+
+    dag = circuit_to_dag(circuit)
+    ops = []
+    qregs = []
+    cregs = []
+
+    for qreg in dag.qregs.values():
+        qregs += [(qreg, bitno) for bitno in range(qreg.size)]
+
+    for creg in dag.cregs.values():
+        cregs += [(creg, bitno) for bitno in range(creg.size)]
+
+    if justify == 'none':
+        for node in dag.nodes_in_topological_order():
+            if node.type == 'op':
+                ops.append([node])
+
+    if justify == 'left':
+        for dag_layer in dag.layers():
+            layers = []
+            current_layer = []
+
+            dag_nodes = dag_layer['graph'].op_nodes()
+            dag_nodes.sort(key=lambda nd: nd._node_id)
+
+            for node in dag_nodes:
+                multibit_gate = len(node.qargs) + len(node.cargs) > 1
+
+                if multibit_gate:
+                    # need to see if it crosses over any other nodes
+                    gate_span = _get_gate_span(qregs, node)
+
+                    all_indices = []
+                    for check_node in dag_nodes:
+                        if check_node != node:
+                            all_indices += _get_gate_span(qregs, check_node)
+
+                    if any(i in gate_span for i in all_indices):
+                        # needs to be a new layer
+                        layers.append([node])
+                    else:
+                        # can be added
+                        current_layer.append(node)
+                else:
+                    current_layer.append(node)
+
+            if current_layer:
+                layers.append(current_layer)
+            ops += layers
+
+    if justify == 'right':
+        dag_layers = []
+
+        for dag_layer in dag.layers():
+            dag_layers.append(dag_layer)
+
+        # Have to work from the end of the circuit
+        dag_layers.reverse()
+
+        # Dict per layer, keys are qubits and values are the gate
+        layer_dicts = [{}]
+
+        for dag_layer in dag_layers:
+
+            dag_instructions = dag_layer['graph'].op_nodes()
+
+            # sort into the order they were input
+            dag_instructions.sort(key=lambda nd: nd._node_id)
+            for instruction_node in dag_instructions:
+
+                gate_span = _get_gate_span(qregs, instruction_node)
+
+                added = False
+                for i in range(len(layer_dicts)):
+                    # iterate from the end
+                    curr_dict = layer_dicts[-1 - i]
+
+                    if any(index in curr_dict for index in gate_span):
+                        added = True
+
+                        if i == 0:
+                            new_dict = {}
+
+                            for index in gate_span:
+                                new_dict[index] = instruction_node
+                            layer_dicts.append(new_dict)
+                        else:
+                            curr_dict = layer_dicts[-i]
+                            for index in gate_span:
+                                curr_dict[index] = instruction_node
+
+                        break
+
+                if not added:
+                    for index in gate_span:
+                        layer_dicts[0][index] = instruction_node
+
+        # need to convert from dict format to layers
+        layer_dicts.reverse()
+        ops = [list(layer.values()) for layer in layer_dicts]
+
+    if reverse_bits:
+        qregs.reverse()
+        cregs.reverse()
+
+    return qregs, cregs, ops
+
+
+def _get_instructions(circuit, reverse_bits=False):
+    """
+    Given a circuit, return a tuple (qregs, cregs, ops) where
+    qregs and cregs are the quantum and classical registers
+    in order (based on reverse_bits) and ops is a list
+    of DAG nodes which type is "operation".
+    Args:
+        circuit (QuantumCircuit): From where the information is extracted.
+        reverse_bits (bool): If true the order of the bits in the registers is
             reversed.
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
@@ -65,9 +193,9 @@ def _get_instructions(circuit, reversebits=False):
     ops = []
     qregs = []
     cregs = []
-    for node_no in dag.node_nums_in_topological_order():
-        node = dag.multi_graph.node[node_no]
-        if node['type'] == 'op':
+
+    for node in dag.nodes_in_topological_order():
+        if node.type == 'op':
             ops.append(node)
 
     for qreg in dag.qregs.values():
@@ -76,8 +204,27 @@ def _get_instructions(circuit, reversebits=False):
     for creg in dag.cregs.values():
         cregs += [(creg, bitno) for bitno in range(creg.size)]
 
-    if reversebits:
+    if reverse_bits:
         qregs.reverse()
         cregs.reverse()
 
     return qregs, cregs, ops
+
+
+def _get_gate_span(qregs, instruction):
+    """Get the list of qubits drawing this gate would cover"""
+
+    min_index = len(qregs)
+    max_index = 0
+    for qreg in instruction.qargs:
+        index = qregs.index(qreg)
+
+        if index < min_index:
+            min_index = index
+        if index > max_index:
+            max_index = index
+
+    if instruction.cargs:
+        return qregs[min_index:]
+
+    return qregs[min_index:max_index + 1]

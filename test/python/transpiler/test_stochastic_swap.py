@@ -19,7 +19,6 @@ from qiskit.test import QiskitTestCase
 class TestStochasticSwap(QiskitTestCase):
     """
     Tests the StochasticSwap pass.
-
     All of the tests use a fixed seed since the results
     may depend on it.
     """
@@ -113,7 +112,6 @@ class TestStochasticSwap(QiskitTestCase):
          q1:---.-------|--
                        |
          q2:-----------.--
-
          Coupling map: [1]--[0]--[2]
         """
         coupling = CouplingMap([[0, 1], [0, 2]])
@@ -135,11 +133,9 @@ class TestStochasticSwap(QiskitTestCase):
          q0:--(+)--
                |
          q1:---.---
-
          q2:--(+)--
                |
          q3:---.---
-
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -163,11 +159,9 @@ class TestStochasticSwap(QiskitTestCase):
         introduce additional swap gates. The new
         initial layout is found in pass_.initial_layout.
          q0:-------
-
          q1:--(+)--
                |
          q2:---.---
-
          Coupling map: [1]--[0]--[2]
         """
         coupling = CouplingMap([[0, 1], [0, 2]])
@@ -189,7 +183,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr1:---|--------
                 |
          qr2:--(+)-------
-
          Coupling map: [0]--[1]--[2]
         """
         coupling = CouplingMap([[1, 0], [1, 2]])
@@ -214,7 +207,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:---|----|--
                 |    |
          qr3:---.---(+)-
-
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -241,9 +233,7 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:-------|---
                     |
          qr3:--[H]--.---
-
          Coupling map: [0]--[1]--[2]--[3]
-
          qr0:------X---------
                    |
          qr1:------X-(+)-----
@@ -251,7 +241,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:------X--.------
                    |
          qr3:-[H]--X---------
-
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
@@ -283,7 +272,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:---|-------
                 |
          qr3:---.--[H]--
-
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -308,7 +296,6 @@ class TestStochasticSwap(QiskitTestCase):
          qr2:---|--------|--
                 |        |
          qr3:---.--[H]--(+)-
-
          Coupling map: [0]--[1]--[2]--[3]
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
@@ -327,7 +314,6 @@ class TestStochasticSwap(QiskitTestCase):
 
     def test_overoptimization_case(self):
         """Check mapper overoptimization.
-
         The mapper should not change the semantics of the input.
         An overoptimization introduced issue #81:
         https://github.com/Qiskit/qiskit-terra/issues/81
@@ -368,22 +354,22 @@ class TestStochasticSwap(QiskitTestCase):
         #  c_3: 0   ═══════════════════════════════════════════════════════╩═
         #
         expected = QuantumCircuit(qr, cr)
-        expected.x(qr[0])
-        expected.y(qr[1])
         expected.z(qr[2])
+        expected.y(qr[1])
+        expected.x(qr[0])
         expected.swap(qr[1], qr[2])
         expected.cx(qr[0], qr[2])
-        expected.measure(qr[0], cr[0])
         expected.swap(qr[2], qr[3])
-        expected.s(qr[3])
         expected.cx(qr[1], qr[2])
+        expected.s(qr[3])
         expected.t(qr[1])
         expected.h(qr[2])
-        expected.swap(qr[2], qr[3])
-        expected.cx(qr[2], qr[1])
-        expected.measure(qr[1], cr[2])
-        expected.measure(qr[2], cr[1])
-        expected.measure(qr[3], cr[3])
+        expected.measure(qr[0], cr[0])
+        expected.swap(qr[1], qr[2])
+        expected.cx(qr[3], qr[2])
+        expected.measure(qr[1], cr[3])
+        expected.measure(qr[3], cr[1])
+        expected.measure(qr[2], cr[2])
         expected_dag = circuit_to_dag(expected)
         #                      ┌───┐     ┌─┐
         # q_0: |0>─────────────┤ X ├──■──┤M├────────────────────────────────────────
@@ -415,7 +401,6 @@ class TestStochasticSwap(QiskitTestCase):
 
     def test_already_mapped(self):
         """Circuit not remapped if matches topology.
-
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
         coupling = CouplingMap(
@@ -529,20 +514,21 @@ class TestStochasticSwap(QiskitTestCase):
         # 0 - 1 - 3
         expected = QuantumCircuit(qr, ar, cr)
         expected.cx(qr[1], ar[0])
-        expected.h(ar[0])
-        expected.swap(qr[1], ar[1])
-        expected.cx(qr[0], qr[1])
+        expected.swap(qr[0], qr[1])
+        expected.cx(qr[1], ar[1])
         expected.h(ar[1])
-        expected.h(qr[1])
-        expected.cx(ar[0], qr[1])
-        expected.measure(qr[0], cr[0])
+        expected.h(ar[0])
+        expected.measure(qr[1], cr[0])
         expected.h(qr[0])
+        expected.swap(qr[1], ar[1])
+        expected.h(ar[1])
+        expected.cx(ar[0], qr[1])
         expected.measure(ar[0], cr[2])
         expected.swap(qr[1], ar[1])
-        expected.cx(qr[0], qr[1])
         expected.measure(ar[1], cr[3])
-        expected.measure(qr[1], cr[1])
-        expected.measure(qr[0], cr[0])
+        expected.cx(qr[1], qr[0])
+        expected.measure(qr[1], cr[0])
+        expected.measure(qr[0], cr[1])
         expected_dag = circuit_to_dag(expected)
 
         layout = Layout([(QuantumRegister(2, 'q'), 0),
@@ -609,7 +595,7 @@ class TestStochasticSwap(QiskitTestCase):
                            for (a, b) in coupling.get_edges()]
 
         for _2q_node in after.twoQ_nodes():
-            self.assertIn(set(_2q_node['qargs']), valid_couplings)
+            self.assertIn(set(_2q_node.qargs), valid_couplings)
 
     def test_len_coupling_vs_dag(self):
         """Test error if coupling map and dag are not the same size."""
