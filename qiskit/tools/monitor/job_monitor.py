@@ -27,7 +27,8 @@ def _text_checker(job, interval, _interval_set=False, quiet=False, output=sys.st
         interval (int): The interval at which to check.
         _interval_set (bool): Was interval time set by user?
         quiet (bool): If True, do not print status messages.
-        output (file): The file like object to write status messages to. By default this is sys.stdout.
+        output (file): The file like object to write status messages to.
+        By default this is sys.stdout.
 
     """
     status = job.status()
@@ -71,7 +72,8 @@ def job_monitor(job, interval=None, monitor_async=False, quiet=False, output=sys
         interval (int): Time interval between status queries.
         monitor_async (bool): Monitor asyncronously (in Jupyter only).
         quiet (bool): If True, do not print status messages.
-        output (file): The file like object to write status messages to. By default this is sys.stdout.
+        output (file): The file like object to write status messages to.
+        By default this is sys.stdout.
 
     Raises:
         QiskitError: When trying to run async outside of Jupyter
