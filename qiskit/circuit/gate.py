@@ -22,4 +22,3 @@ class Gate(Instruction):
         params = list of parameters
         """
         super().__init__(name, num_qubits, 0, params)
-
