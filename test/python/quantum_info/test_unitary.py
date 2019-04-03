@@ -60,14 +60,6 @@ class TestUnitary(QiskitTestCase):
         uni = Unitary([[0, 1j], [-1j, 0]])
         self.assertTrue(numpy.array_equal(uni.conjugate()._representation, ymat))
 
-    def test_conjugate_inplace(self):
-        """test inplace conjugate"""
-        ymat = numpy.array([[0, -1j], [1j, 0]])
-        uni = Unitary([[0, 1j], [-1j, 0]])
-        uni_conj = uni.conjugate(inplace=True)
-        self.assertTrue(numpy.array_equal(uni._representation, ymat))
-        self.assertTrue(uni._representation is uni_conj._representation)
-
     def test_adjoint(self):
         """test adjoint operation"""
         uni = Unitary([[0, 1j], [-1j, 0]])

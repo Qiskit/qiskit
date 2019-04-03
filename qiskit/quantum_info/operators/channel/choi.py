@@ -209,9 +209,6 @@ class Choi(QuantumChannel):
             raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, Choi):
             other = Choi(other)
-        if inplace:
-            self._data += other._data
-            return self
         input_dim, output_dim = self.dims
         return Choi(self._data + other.data, input_dim, output_dim)
 
@@ -234,9 +231,6 @@ class Choi(QuantumChannel):
             raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, Choi):
             other = Choi(other)
-        if inplace:
-            self._data -= other.data
-            return self
         input_dim, output_dim = self.dims
         return Choi(self._data - other.data, input_dim, output_dim)
 
@@ -254,9 +248,6 @@ class Choi(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        if inplace:
-            self._data *= other
-            return self
         input_dim, output_dim = self.dims
         return Choi(other * self._data, input_dim, output_dim)
 
