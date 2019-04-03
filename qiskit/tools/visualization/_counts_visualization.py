@@ -22,8 +22,28 @@ if HAS_MATPLOTLIB:
     from matplotlib.ticker import MaxNLocator
 
 
+def hamming_distance(str1, str2):
+    """Calculate the Hamming distance between two bit strings
+
+    Args:
+        str1 (str): First string.
+        str2 (str): Second string.
+    Returns:
+        int: Distance between strings.
+    Raises:
+        VisualizationError: Strings not same length
+    """
+    if len(str1) != len(str2):
+        raise VisualizationError('Strings not same length.')
+    return sum(s1 != s2 for s1, s2 in zip(str1, str2))
+
+
+VALID_SORTS = ['asc', 'desc', 'hamming']
+DIST_MEAS = {'hamming': hamming_distance}
+
 def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
-                   sort='asc', legend=None, bar_labels=True, title=None):
+                   sort='asc', target_string=None,
+                   legend=None, bar_labels=True, title=None):
     """Plot a histogram of data.
 
     Args:
@@ -33,7 +53,8 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         color (list or str): String or list of strings for histogram bar colors.
         number_to_keep (int): The number of terms to plot and rest
             is made into a single bar called 'rest'.
-        sort (string): Could be 'asc' or 'desc'
+        sort (string): Could be 'asc', 'desc', or 'hamming'.
+        target_string (str): Target string if 'sort' is a distance measure.
         legend(list): A list of strings to use for labels of the data.
             The number of entries must match the length of data (if data is a
             list or 1 if it's a dict)
@@ -50,6 +71,13 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    if sort not in VALID_SORTS:
+        raise VisualizationError("Value of sort option, %s, isn't a "
+                                 "valid choice. Must be 'asc', "
+                                 "'desc', or 'hamming'")
+    elif sort in DIST_MEAS.keys() and target_string is None:
+        err_msg = 'Must define target_state when using distance measure.'
+        raise VisualizationError(err_msg)
 
     if isinstance(data, dict):
         data = [data]
@@ -64,6 +92,14 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
     if number_to_keep is not None:
         labels.append('rest')
+
+    if sort in DIST_MEAS.keys():
+        dist = []
+        for item in labels:
+            dist.append(DIST_MEAS[sort](item, target_string))
+
+        labels = [list(x) for x in zip(*sorted(zip(dist, labels),
+                                               key=lambda pair: pair[0]))][1]
 
     labels_dict = OrderedDict()
 
@@ -130,10 +166,6 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
     ax.set_ylim([0., min([1.2, max([1.2 * val for val in all_pvalues])])])
     if sort == 'desc':
         ax.invert_xaxis()
-    elif sort != 'asc':
-        raise VisualizationError("Value of sort option, %s, isn't a "
-                                 "valid choice. Must be 'asc' or "
-                                 "'desc'")
 
     ax.yaxis.set_major_locator(MaxNLocator(5))
     for tick in ax.yaxis.get_major_ticks():
