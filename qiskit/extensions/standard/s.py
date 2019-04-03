@@ -58,7 +58,7 @@ class SdgGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U1Gate(-pi/2), q[0], [])
+            (U1Gate(-pi/2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
