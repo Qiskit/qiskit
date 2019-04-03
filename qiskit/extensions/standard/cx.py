@@ -15,44 +15,38 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.cxbase import CXBase
 
 
 class CnotGate(Gate):
     """controlled-NOT gate."""
 
-    def __init__(self, ctl, tgt, circ=None):
+    def __init__(self):
         """Create new CNOT gate."""
-        super().__init__("cx", [], [ctl, tgt], circ)
+        super().__init__("cx", 2, [])
 
-    def _define_decompositions(self):
+    def _define(self):
         """
         gate cx c,t { CX c,t; }
         """
-        decomposition = DAGCircuit()
+        definition = []
         q = QuantumRegister(2, "q")
-        decomposition.add_qreg(q)
         rule = [
-            CXBase(q[0], q[1])
+            (CXBase(), [q[0], q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cx(self.qargs[0], self.qargs[1]))
+        return CnotGate()  # self-inverse
 
 
 @_op_expand(2)
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""
-    return self._attach(CnotGate(ctl, tgt, self))
+    return self.append(CnotGate(), [ctl, tgt], [])
 
 
 QuantumCircuit.cx = cx

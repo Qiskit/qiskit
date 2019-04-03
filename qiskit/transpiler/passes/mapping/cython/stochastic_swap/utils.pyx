@@ -100,7 +100,7 @@ cdef class NLayout:
         """
         cdef size_t kk
         out = np.zeros(self.p2l_len, dtype=np.int32)
-        for kk in range(self.p2l_len):
+        for kk in range(<unsigned int>self.p2l_len):
             out[kk] = self.phys_to_logic[kk]
         return out
     
@@ -113,9 +113,9 @@ cdef class NLayout:
         """
         cdef NLayout out = NLayout(self.l2p_len, self.p2l_len)
         cdef size_t kk
-        for kk in range(self.l2p_len):
+        for kk in range(<unsigned int>self.l2p_len):
             out.logic_to_phys[kk] = self.logic_to_phys[kk]
-        for kk in range(self.p2l_len):
+        for kk in range(<unsigned int>self.p2l_len):
             out.phys_to_logic[kk] = self.phys_to_logic[kk]
         return out
             
@@ -150,7 +150,7 @@ cdef class NLayout:
         cdef unsigned int main_idx = 0
         cdef size_t idx
         for qreg in qregs.values():
-            for idx in range(qreg.size):
+            for idx in range(<unsigned int>qreg.size):
                 out[(qreg, idx)] = self.logic_to_phys[main_idx]
                 main_idx += 1
         return out
