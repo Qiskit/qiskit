@@ -204,7 +204,6 @@ class MatplotlibDrawer:
         else:
             _fc = self._style.gc
 
-        print((xpos - 0.5 * wid, ypos - 0.5 * HIG))
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG), width=wid, height=HIG,
             fc=_fc, ec=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
