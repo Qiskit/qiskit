@@ -77,7 +77,7 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
                                  "valid choice. Must be 'asc', "
                                  "'desc', or 'hamming'")
     elif sort in DIST_MEAS.keys() and target_string is None:
-        err_msg = 'Must define target_state when using distance measure.'
+        err_msg = 'Must define target_string when using distance measure.'
         raise VisualizationError(err_msg)
 
     if isinstance(data, dict):
