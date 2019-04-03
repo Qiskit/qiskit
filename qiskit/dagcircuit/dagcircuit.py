@@ -628,10 +628,8 @@ class DAGCircuit:
 
     def depth(self):
         """Return the circuit depth.
-
         Returns:
             int: the circuit depth
-
         Raises:
             DAGCircuitError: if not a directed acyclic graph
         """
