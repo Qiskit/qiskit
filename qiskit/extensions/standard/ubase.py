@@ -10,40 +10,31 @@
 """
 Element of SU(2).
 """
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.decorators import _1q_gate
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.circuit.decorators import _op_expand
 
 
 class UBase(Gate):  # pylint: disable=abstract-method
     """Element of SU(2)."""
 
-    def __init__(self, theta, phi, lam, qubit, circ=None):
-        super().__init__("U", [theta, phi, lam], [qubit], circ)
+    def __init__(self, theta, phi, lam):
+        super().__init__("U", 1, [theta, phi, lam])
 
     def inverse(self):
         """Invert this gate.
 
         U(theta,phi,lambda)^dagger = U(-theta,-lambda,-phi)
         """
-        self.params[0] = -self.params[0]
-        phi = self.params[1]
-        self.params[1] = -self.params[2]
-        self.params[2] = -phi
-        return self
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u_base(self.params[0], self.params[1], self.params[2],
-                                    self.qargs[0]))
+        return UBase(-self.params[0], -self.params[2], -self.params[1])
 
 
-@_1q_gate
+@_op_expand(1)
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
-    self._check_qubit(q)
-    return self._attach(UBase(theta, phi, lam, q, self))
+    return self.append(UBase(theta, phi, lam), [q], [])
 
 
 QuantumCircuit.u_base = u_base
+CompositeGate.u_base = u_base

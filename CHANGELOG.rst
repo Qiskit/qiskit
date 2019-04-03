@@ -16,30 +16,64 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-
 `UNRELEASED`_
 =============
+
 
 Added
 -----
 
-
+- Core StochasticSwap routine implemented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
-- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614). 
-- Added a RunConfig object for configurations for run configurations to be used 
-  in compile and circuits_to_qobj. (#1629)
+- New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
 - Added support for register slicing when applying operations to a register (#1643).
+- Added in new parameter ``justify`` to the text circuit drawer to say how the
+  circuit should be aligned. (#1725)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
+- Added parameter to the TextProgressBar to allow the output to be sent to a
+  different output stream
+- Added a ``__qiskit_version__`` parameter to the qiskit namespace. This will
+  contain a dictionary of versions for all installed qiskit elements. (#1885).
+- Added a ``RunConfig`` object for configurations related to running an
+  experiment (e.g. shots, memory) (#1856)
+- Added a ``TranspileConfig`` object for configurations related to transforming
+  circuits (e.g. basis_gates, coupling_map, initial_layout) (#1856)
+- Added a ``qiskit.compiler`` namespace for all functions that transpile, schedule
+  and assemble circuits and pulses (#1856)
+- Added a ``qiskit.compiler.assemble_circuits()`` function to generate qobj from some
+  circuits and a RunConfig (#1856)
+- Added an ``execute_circuits()`` function that takes a list of circuits along with a
+  TranspileConfig and RunConfig. The ``execute()`` function remains as a wrapper of this,
+  and later as a wrapper of ``execute_pulses()``.
+- ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
+  QobjHeader to add extra information to the qobj (and thus result).
+- Register indexing supports negative indices (#1875)
+- Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
+  operations on the given wire
+- Added new properties to an Instruction:
+  ``num_qubits``, ``num_clbits`` (#1816).
+- Added a ``QuantumCircuit.append`` public method for appending arbitrary instructions
+  to some qubits and clbits in the circuit (#1816).
+- Added an ``Instruction.definition`` property that defines a composite instruction
+  in terms of other, simpler instructions (#1816).
+- Added an ``Instruction.mirror()`` method that mirrors a composite instruction
+  (reverses its sub-instructions) (#1816).
+
 
 Changed
 -------
-
+- plot_histogram now allows sorting by Hamming distance from target_string (#2064).
+- FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
+  that returns a `SamplePulse` when called. (#2043)
+- Changed ``average_data`` to accept observable input in matrix form (#1858)
+- Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
   within each package (for example, ``qiskit.exceptions.QiskitError``) (#1600).
 - The ``QiskitTestCase`` and testing utilities are now included as part of
-  ``qiskit.test`` and thus available for third-party implementations (#1616)
+  ``qiskit.test`` and thus available for third-party implementations, with
+  convenience test cases for providers and backends. (#1616, #1844)
 - The snapshot instruction now takes ``label`` and ``snap_type`` instead of
   ``slot`` (#1615).
 - The test folders have been reorganized to match the python modules (#1625)
@@ -57,10 +91,51 @@ Changed
   final measurements when compiling for both simulators and devices (#1591).
 - Purity function in ``qiskit.tools.qi.qi`` calls new version in
   ``qiskit.quantum_information`` and issues deprecation warning (#1733)
+- Updated `dag.node_counter` to return the current number of nodes (#1763)
+- The argument ``basis_gates`` used in ``compile``, ``execute``, and ``transpile``
+  is not longer a comma-separated string but a list of strings. For example,
+  this basis ``['u1','u2','u3','cx']`` should be used instead of ``'u1,u2,u3,cx'``
+  (#1333)
+- Methods on the ``DAGCircuit`` which previously returned node_ids and/or dicts now
+  return ``DAGNodes``
+- The ``Qobj`` classes have been reimplemented using models and schemas, as the
+  rest of spec-defined entities. (#1909).
+- The rzz gate is now represented as a line when printed in text (#1957).
+- Text drawer has support for multi-q gates (#1939).
+- Separate ``Qobj`` into ``PulseQobj`` and ``QasmQobj`` (#1969).
+- It is possible to define a layout as a list of integers. This maps the ordered list
+  of virtual circuit qubits to physical qubits as defined by the list of integers (#1946).
+- Instructions no longer have context about where they are in a circuit. Instead,
+  the circuit keeps this context. So Instructions are now light-weight and only
+  have a name, num_qubits, num_clbits and params (#1816).
+- The old syntax for attaching a gate to the circuit then modifying it is no longer
+  supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``).
+  Instead, you must first modify the gate then attach it (#1816).
+- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a 
+  (instruction, qarg, carg) (#1816).
+
+
+Deprecated
+----------
+
+- The methods prefixed by `_get` in the DAGCircuit object are being renamed
+  without that prefix (see #1346)
+- Changed elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists
+  (#1666).
+- Unroller bases must now be explicit, and violation raises an informative
+  ``QiskitError`` (#1802).
+- The ``qiskit.tools.qcvv`` package is deprecated in favor of Qiskit Ignis (#1884).
+- The ``qiskit.compile()`` function is now deprecated in favor of explicitly
+  using the ``qiskit.compiler.transpile()`` function to transform a circuit followed
+  by ``qiskit.compiler.assemble_circuits()`` to make a qobj out of it.
+
 
 Fixed
 -----
 
+- Fixed #1892, whereby inheriting from QuantumRegister or ClassicalRegister would
+  cause a QiskitError in instruction.py (#1908).
+- Fixed #829 by removing dependence on scipy unitary_group (#1857).
 - Fixed a bug with measurement sampling optimization in BasicAer
   qasm_simulator (#1624).
 - Fixed a bug where barriers didn't plot over all qubits when using matplotlib (#1718).
@@ -68,6 +143,11 @@ Fixed
 - Fixed a bug in BasicMapper pass operating over multiple registers (#1611).
 - Fixed a bug in BarrierBeforeFinalMeasurements which incorrectly moved measurements
   used in conditional operations (#1705).
+- Fixed a bug that with transpile ignoring initial layout when
+  coupling map is provided (#1711).
+- Fixed a bug in the definition of the rzz gate (#1940).
+- Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+
 
 Removed
 -------
@@ -93,12 +173,16 @@ Removed
 - Removed deprecated ``transpile_dag()`` ``format`` kwarg (#1664)
 - Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
 - Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
-- Change elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists (#1666)
-- Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
+- Removed ``QISKitError`` in favor of ``QiskitError``. (#1684)
 - The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
   package (``pip install qiskit-ibmq-provider``). (#1700)
 - ``compiled_circuit_qasm`` has been removed from the Qobj header, since it
   was part of the pre-qobj specification (#1715).
+- Removed the wigner plotting functions ``plot_wigner_function``,
+  ``plot_wigner_curve``, ``plot_wigner_plaquette``, and ``plot_wigner_data``
+  (#1860).
+- Removed ``Instruction.reapply()`` method (#1816).
+
 
 `0.7.0`_ - 2018-12-19
 =====================

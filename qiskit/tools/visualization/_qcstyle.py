@@ -66,12 +66,10 @@ class QCStyle:
         self.bundle = False
         self.barrier = True
         self.index = False
-        self.compress = True
         self.figwidth = -1
         self.dpi = 150
         self.margin = [2.0, 0.0, 0.0, 0.3]
         self.cline = 'doublet'
-        self.reverse = False
 
     def set_style(self, dic):
         self.tc = dic.get('textcolor', self.tc)
@@ -96,9 +94,7 @@ class QCStyle:
         self.bundle = dic.get('cregbundle', self.bundle)
         self.barrier = dic.get('plotbarrier', self.barrier)
         self.index = dic.get('showindex', self.index)
-        self.compress = dic.get('compress', self.compress)
         self.figwidth = dic.get('figwidth', self.figwidth)
         self.dpi = dic.get('dpi', self.dpi)
         self.margin = dic.get('margin', self.margin)
         self.cline = dic.get('creglinestyle', self.cline)
-        self.reverse = dic.get('reversebits', self.reverse)

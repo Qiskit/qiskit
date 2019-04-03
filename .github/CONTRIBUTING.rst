@@ -140,45 +140,8 @@ A good example:
 Installing Qiskit Terra from source
 -----------------------------------
 
-This section include some tips that will help you install and push source code.
-
-.. note::
-
-    We recommend using `Python virtual environments <https://docs.python.org/3/tutorial/venv.html>`__
-    to cleanly separate Qiskit from other applications and improve your experience.
-
-
-Setup with an environment
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The simplest way to use environments is by using Anaconda
-
-.. code:: sh
-
-    conda create -y -n QiskitDevenv python=3
-    source activate QiskitDevenv
-
-For the python code, we need some libraries that can be installed in this way:
-
-.. code:: sh
-
-    cd qiskit-terra
-    pip install -r requirements.txt
-    pip install -r requirements-dev.txt
-
-To get the examples working try  
-
-.. code:: sh
-
-    $ pip install -e .
- 
-and then you can run them with 
-
-.. code:: sh
-
-    $ python examples/python/using_qiskit_terra_level_0.py
-
-We recommend that after setting up Terra you set up Aer to get more advanced simulators.  
+Please see the `Installing Qiskit Terra from Source <https://qiskit.org/documentation/install/terra.html>`_
+section of the Qiskit documentation.
 
 
 Test
@@ -259,6 +222,10 @@ It is possible to provide more than one option separated with commas.
 The order of precedence in the options is right to left. For example,
 ``QISKIT_TESTS=skip_online,rec`` will set the options as
 ``skip_online == False`` and ``rec == True``.
+
+Alternatively, the ``make test_ci`` target can be used instead of ``make test``
+in order to run in a setup that replicates the configuration we used in our
+CI systems more closely.
 
 Style guide
 ~~~~~~~~~~~

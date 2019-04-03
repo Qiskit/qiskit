@@ -125,16 +125,17 @@ class TestCircuitOperations(QiskitTestCase):
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
         """
-        quantum_reg = QuantumRegister(2)
+        quantum_reg = QuantumRegister(3)
         classical_reg_0 = ClassicalRegister(1)
-        classical_reg_1 = ClassicalRegister(1)
-        quantum_circuit = QuantumCircuit(quantum_reg, classical_reg_0, classical_reg_1)
+        classical_reg_1 = ClassicalRegister(2)
+        quantum_circuit = QuantumCircuit(quantum_reg, classical_reg_0,
+                                         classical_reg_1)
         quantum_circuit.h(quantum_reg)
 
         with self.assertRaises(QiskitError) as ctx:
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
-                         'qubit and cbit should have the same length if lists')
+                         'register size error')
 
     def test_copy_circuit(self):
         """ Test copy method makes a copy"""
@@ -146,3 +147,11 @@ class TestCircuitOperations(QiskitTestCase):
         qc.measure(qr[1], cr[1])
 
         self.assertEqual(qc, qc.copy())
+
+
+class TestCircuitBuilding(QiskitTestCase):
+    """QuantumCircuit tests."""
+
+    def test_append_dimension_mismatch(self):
+        """Test appending to incompatible wires.
+        """
