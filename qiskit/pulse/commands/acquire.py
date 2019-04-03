@@ -35,8 +35,7 @@ class Acquire(PulseCommand):
         Raises:
             PulseError: when invalid discriminator or kernel object is input.
         """
-
-        super().__init__(duration=duration, name='acquire')
+        super().__init__(duration=duration)
 
         if discriminator:
             if isinstance(discriminator, Discriminator):

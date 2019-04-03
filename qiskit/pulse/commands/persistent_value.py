@@ -26,10 +26,9 @@ class PersistentValue(PulseCommand):
             value (complex): Complex value to apply, bounded by an absolute value of 1.
                 The allowable precision is device specific.
         Raises:
-            CommandsError: when input value exceed 1.
+            PulseError: when input value exceed 1.
         """
-
-        super().__init__(duration=0, name='pv')
+        super().__init__(duration=0)
 
         if abs(value) > 1:
             raise PulseError("Absolute value of PV amplitude exceeds 1.")

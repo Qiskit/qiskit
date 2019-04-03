@@ -167,20 +167,27 @@ def assemble_schedules(schedules, dict_config, dict_header):
         # TODO: support conditional gate
         commands = []
         for pulse in schedule.flat_pulse_sequence():
-            current_command = PulseQobjInstruction(name=pulse.command.name,
-                                                   t0=pulse.start_time())
             if isinstance(pulse.command, SamplePulse):
-                current_command.ch = pulse.channel.name
+                current_command = PulseQobjInstruction(name=pulse.command.name,
+                                                       t0=pulse.start_time(),
+                                                       ch=pulse.channel.name)
             elif isinstance(pulse.command, FrameChange):
-                current_command.ch = pulse.channel.name
-                current_command.phase = pulse.command.phase
+                current_command = PulseQobjInstruction(name='fc',
+                                                       t0=pulse.start_time(),
+                                                       ch=pulse.channel.name,
+                                                       phase=pulse.command.phase)
             elif isinstance(pulse.command, PersistentValue):
-                current_command.ch = pulse.channel.name
-                current_command.val = pulse.command.value
+                current_command = PulseQobjInstruction(name='pv',
+                                                       t0=pulse.start_time(),
+                                                       ch=pulse.channel.name,
+                                                       val=pulse.command.value)
             elif isinstance(pulse.command, Acquire):
                 # TODO: now all qubit are measured at once regardless of channel definition
+                current_command = PulseQobjInstruction(name='acquire',
+                                                       t0=pulse.start_time(),
+                                                       duration=pulse.command.duration)
                 n_qubit = dict_config['memory_slots']
-                current_command.duration = pulse.command.duration
+
                 current_command.qubits = list(range(n_qubit))
                 current_command.memory_slot = list(range(n_qubit))
                 # apply discriminator
@@ -203,8 +210,10 @@ def assemble_schedules(schedules, dict_config, dict_header):
                     else:
                         current_command.kernels = []
             elif isinstance(pulse.command, Snapshot):
-                current_command.label = pulse.command.label
-                current_command.type = pulse.command.type
+                current_command = PulseQobjInstruction(name='snapshot',
+                                                       t0=pulse.start_time(),
+                                                       label=pulse.command.label,
+                                                       type=pulse.command.type)
             else:
                 raise QiskitError('Invalid command is given, %s' % pulse.command.name)
 
