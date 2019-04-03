@@ -49,7 +49,7 @@ class QuantumInstance:
                  basis_gates=None, coupling_map=None,
                  initial_layout=None, pass_manager=None, seed_mapper=None,
                  backend_options=None, noise_model=None, timeout=None, wait=5,
-                 circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True, skip_qobj_validation=True):
+                 circuit_caching=False, cache_file=None, skip_qobj_deepcopy=True, skip_qobj_validation=True):
         """Constructor.
 
         Args:
