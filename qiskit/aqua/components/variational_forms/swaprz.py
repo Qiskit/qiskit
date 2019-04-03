@@ -47,6 +47,10 @@ class SwapRZ(VariationalForm):
                 'entangler_map': {
                     'type': ['array', 'null'],
                     'default': None
+                },
+                'skip_unentangled_qubits': {
+                    'type': 'boolean',
+                    'default': False
                 }
             },
             'additionalProperties': False
@@ -62,7 +66,7 @@ class SwapRZ(VariationalForm):
     }
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,
-                 entanglement='full', initial_state=None):
+                 entanglement='full', initial_state=None, skip_unentangled_qubits=False):
         """Constructor.
 
         Args:
@@ -74,6 +78,7 @@ class SwapRZ(VariationalForm):
                                         applying the two-qubit gate.
             entanglement (str): 'full' or 'linear'
             initial_state (InitialState): an initial state object
+            skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
         """
         self.validate(locals())
         super().__init__()
@@ -83,9 +88,20 @@ class SwapRZ(VariationalForm):
             self._entangler_map = VariationalForm.get_entangler_map(entanglement, num_qubits)
         else:
             self._entangler_map = VariationalForm.validate_entangler_map(entangler_map, num_qubits)
+        # determine the entangled qubits
+        all_qubits = []
+        for src, targ in self._entangler_map:
+            all_qubits.extend([src, targ])
+
+        self._entangled_qubits = sorted(list(set(all_qubits)))
         self._initial_state = initial_state
-        self._num_parameters = num_qubits + depth * \
-            (num_qubits + len(self._entangler_map))
+        self._skip_unentangled_qubits = skip_unentangled_qubits
+
+        # for the first layer
+        self._num_parameters = len(self._entangled_qubits) if self._skip_unentangled_qubits \
+            else self._num_qubits
+        # for repeated block
+        self._num_parameters += (len(self._entangled_qubits) + len(self._entangler_map)) * depth
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
 
     def construct_circuit(self, parameters, q=None):
@@ -114,8 +130,10 @@ class SwapRZ(VariationalForm):
 
         param_idx = 0
         for qubit in range(self._num_qubits):
-            circuit.u1(parameters[param_idx], q[qubit])  # rz
-            param_idx += 1
+            if not self._skip_unentangled_qubits or qubit in self._entangled_qubits:
+                circuit.u1(parameters[param_idx], q[qubit])  # rz
+                param_idx += 1
+
         for block in range(self._depth):
             circuit.barrier(q)
             for src, targ in self._entangler_map:
@@ -136,7 +154,8 @@ class SwapRZ(VariationalForm):
                 circuit.u3(-np.pi / 2, -np.pi / 2, np.pi / 2, q[src])
                 circuit.u3(-np.pi / 2, -np.pi / 2, np.pi / 2, q[targ])
                 param_idx += 1
-            for qubit in range(self._num_qubits):
+            circuit.barrier(q)
+            for qubit in self._entangled_qubits:
                 circuit.u1(parameters[param_idx], q[qubit])  # rz
                 param_idx += 1
         circuit.barrier(q)
