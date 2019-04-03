@@ -25,9 +25,7 @@ class FrameChange(PulseCommand):
             phase (float): Frame change phase in radians.
                 The allowable precision is device specific.
         """
-
-        super().__init__(duration=0, name='fc')
-
+        super().__init__(duration=0)
         self.phase = phase
 
     def __eq__(self, other):

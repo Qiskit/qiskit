@@ -5,35 +5,32 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# TODO: pylint
-# pylint: disable=redefined-builtin, missing-return-doc, missing-return-type-doc
+# pylint: disable=missing-return-doc, missing-return-type-doc
 
 """
 Pulse decorators.
 """
 
+import functools
 import numpy as np
 
 from qiskit.pulse.exceptions import PulseError
 from .sample_pulse import SamplePulse
 
 
-def function(func):
+def functional_pulse(func):
     """A decorator for generating SamplePulse from python callable.
-
     Args:
         func (callable): A function describing pulse envelope.
     Raises:
-        CommandsError: when invalid function is specified.
+        PulseError: when invalid function is specified.
     """
-
+    @functools.wraps(func)
     def to_pulse(duration, *args, name=None, **kwargs):
-
+        """Return SamplePulse."""
         if isinstance(duration, int) and duration > 0:
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
-            if np.any(np.abs(samples) > 1):
-                raise PulseError('Absolute value of pulse amplitude exceeds 1.')
             return SamplePulse(samples=samples, name=name)
         raise PulseError('The first argument must be an integer value representing duration.')
 

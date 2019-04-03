@@ -141,7 +141,9 @@ class TestDeviceSpecification(QiskitTestCase):
         """
 
         class DummyBackend:
+            """Dummy backend"""
             def configuration(self):
+                # pylint: disable=missing-docstring
                 class DummyConfig:
                     @property
                     def n_qubits(self):
