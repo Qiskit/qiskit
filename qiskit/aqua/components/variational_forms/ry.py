@@ -55,7 +55,7 @@ class RY(VariationalForm):
                         {'enum': ['cz', 'cx']}
                     ]
                 },
-                'skip_untangled_qubits': {
+                'skip_unentangled_qubits': {
                     'type': 'boolean',
                     'default': False
                 }
@@ -74,7 +74,7 @@ class RY(VariationalForm):
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,
                  entanglement='full', initial_state=None,
-                 entanglement_gate='cz', skip_untangled_qubits=False):
+                 entanglement_gate='cz', skip_unentangled_qubits=False):
         """Constructor.
 
         Args:
@@ -87,7 +87,7 @@ class RY(VariationalForm):
             entanglement (str): 'full' or 'linear'
             initial_state (InitialState): an initial state object
             entanglement_gate (str): cz or cx
-            skip_untangled_qubits (bool): skip the qubits not in the entangler_map
+            skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
         """
         self.validate(locals())
         super().__init__()
@@ -101,16 +101,16 @@ class RY(VariationalForm):
         all_qubits = []
         for src, targ in self._entangler_map:
             all_qubits.extend([src, targ])
-        self._entanged_qubits = sorted(list(set(all_qubits)))
+        self._entangled_qubits = sorted(list(set(all_qubits)))
         self._initial_state = initial_state
         self._entanglement_gate = entanglement_gate
-        self._skip_untangled_qubits = skip_untangled_qubits
+        self._skip_unentangled_qubits = skip_unentangled_qubits
 
         # for the first layer
-        self._num_parameters = len(self._entanged_qubits) if self._skip_untangled_qubits \
+        self._num_parameters = len(self._entangled_qubits) if self._skip_unentangled_qubits \
             else self._num_qubits
         # for repeated block
-        self._num_parameters += len(self._entanged_qubits) * depth
+        self._num_parameters += len(self._entangled_qubits) * depth
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
 
     def construct_circuit(self, parameters, q=None):
@@ -139,7 +139,7 @@ class RY(VariationalForm):
 
         param_idx = 0
         for qubit in range(self._num_qubits):
-            if not self._skip_untangled_qubits or qubit in self._entanged_qubits:
+            if not self._skip_unentangled_qubits or qubit in self._entangled_qubits:
                 circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])  # ry
                 param_idx += 1
 
@@ -153,7 +153,7 @@ class RY(VariationalForm):
                 else:
                     circuit.cx(q[src], q[targ])
             circuit.barrier(q)
-            for qubit in self._entanged_qubits:
+            for qubit in self._entangled_qubits:
                 circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])  # ry
                 param_idx += 1
         circuit.barrier(q)
