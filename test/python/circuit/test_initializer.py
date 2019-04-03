@@ -8,7 +8,7 @@
 # pylint: disable=missing-docstring
 
 """
-InitializeGate (CompositeGate instance) test.
+InitializeGate test.
 """
 
 import math
