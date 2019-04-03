@@ -147,3 +147,11 @@ class TestCircuitOperations(QiskitTestCase):
         qc.measure(qr[1], cr[1])
 
         self.assertEqual(qc, qc.copy())
+
+
+class TestCircuitBuilding(QiskitTestCase):
+    """QuantumCircuit tests."""
+
+    def test_append_dimension_mismatch(self):
+        """Test appending to incompatible wires.
+        """

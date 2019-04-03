@@ -55,10 +55,10 @@ def matrix_equal(mat1,
         # and multiply all entries by the conjugate
         phases1 = np.angle(mat1[mat1 != 0].ravel(order='F'))
         if len(phases1) > 0:
-            mat1 *= np.exp(-1j * phases1[0])
+            mat1 = np.exp(-1j * phases1[0]) * mat1
         phases2 = np.angle(mat2[mat2 != 0].ravel(order='F'))
         if len(phases2) > 0:
-            mat2 *= np.exp(-1j * phases2[0])
+            mat2 = np.exp(-1j * phases2[0]) * mat2
     return np.allclose(mat1, mat2, rtol=rtol, atol=atol)
 
 
@@ -140,7 +140,7 @@ def is_identity_matrix(mat,
         # remove the phase by multiplying each entry by the complex
         # conjugate of the phase of the [0, 0] entry.
         theta = np.angle(mat[0, 0])
-        mat *= np.exp(-1j * theta)
+        mat = np.exp(-1j * theta) * mat
     # Check if square identity
     iden = np.eye(len(mat))
     return np.allclose(mat, iden, rtol=rtol, atol=atol)
