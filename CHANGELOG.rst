@@ -55,7 +55,8 @@ Added
 
 Changed
 -------
-
+- FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
+  that returns a `SamplePulse` when called. (#2043)
 - Changed ``average_data`` to accept observable input in matrix form (#1858)
 - Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
@@ -92,6 +93,9 @@ Changed
 - The rzz gate is now represented as a line when printed in text (#1957).
 - Text drawer has support for multi-q gates (#1939).
 - Separate ``Qobj`` into ``PulseQobj`` and ``QasmQobj`` (#1969).
+- It is possible to define a layout as a list of integers that would map the list of
+qubits in the declaration order to each of the physical qubits defined in the list of
+integers using ``Layout.generate_from_intlist``(#1946)
 
 Deprecated
 ----------
