@@ -11,7 +11,6 @@ import logging
 
 from qiskit.compiler import assemble_circuits, RunConfig
 from qiskit import transpiler
-from qiskit.mapper import Layout
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +62,6 @@ def compile(circuits, backend,
         run_config.seed = seed
     if memory:
         run_config.memory = memory
-
-    if initial_layout is not None and not isinstance(initial_layout, Layout):
-        initial_layout = Layout(initial_layout)
 
     new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
                                         initial_layout, seed_mapper, pass_manager)
