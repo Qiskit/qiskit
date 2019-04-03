@@ -15,7 +15,6 @@ import multiprocessing as mp
 
 from qiskit.qasm import _qasm
 from qiskit.exceptions import QiskitError
-from .instruction import Instruction
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 
@@ -57,7 +56,8 @@ class QuantumCircuit:
 
         self.name = name
 
-        # Data contains a list of instructions in the order they were applied.
+        # Data contains a list of instructions and their contexts,
+        # in the order they were applied.
         self.data = []
 
         # This is a map of registers bound to this circuit, by name.
@@ -69,7 +69,7 @@ class QuantumCircuit:
         return str(self.draw(output='text'))
 
     def __eq__(self, other):
-        # TODO: removed the DAG from this function
+        # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
         return circuit_to_dag(self) == circuit_to_dag(other)
 
@@ -107,6 +107,38 @@ class QuantumCircuit:
             has_reg = True
         return has_reg
 
+    def mirror(self):
+        """Mirror the circuit by reversing the instructions.
+
+        This is done by recursively mirroring all instructions.
+        It does not invert any gate.
+
+        Returns:
+            QuantumCircuit: the mirrored circuit
+        """
+        reverse_circ = self.copy(name=self.name+'_mirror')
+        reverse_circ.data = []
+        for inst, qargs, cargs in reversed(self.data):
+            reverse_circ.data.append((inst.mirror(), qargs, cargs))
+        return reverse_circ
+
+    def inverse(self):
+        """Invert this circuit.
+
+        This is done by recursively inverting all gates.
+
+        Returns:
+            QuantumCircuit: the inverted circuit
+
+        Raises:
+            QiskitError: if the circuit cannot be inverted.
+        """
+        inverse_circ = self.copy(name=self.name+'_dg')
+        inverse_circ.data = []
+        for inst, qargs, cargs in reversed(self.data):
+            inverse_circ.data.append((inst.inverse(), qargs, cargs))
+        return inverse_circ
+
     def combine(self, rhs):
         """
         Append rhs to self if self contains compatible registers.
@@ -118,12 +150,6 @@ class QuantumCircuit:
 
         Return self + rhs as a new object.
         """
-        if isinstance(rhs, Instruction):
-            qregs = {qubit[0] for qubit in rhs.qargs}
-            cregs = {cbit[0] for cbit in rhs.cargs}
-            qc = QuantumCircuit(*qregs, *cregs)
-            qc._attach(rhs)
-            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -138,8 +164,8 @@ class QuantumCircuit:
             if element not in self.cregs:
                 combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
-        for gate in itertools.chain(self.data, rhs.data):
-            gate.reapply(circuit)
+        for instruction_context in itertools.chain(self.data, rhs.data):
+            circuit.append(*instruction_context)
         return circuit
 
     def extend(self, rhs):
@@ -153,12 +179,6 @@ class QuantumCircuit:
 
         Modify and return self.
         """
-        if isinstance(rhs, Instruction):
-            qregs = {qubit[0] for qubit in rhs.qargs}
-            cregs = {cbit[0] for cbit in rhs.cargs}
-            qc = QuantumCircuit(*qregs, *cregs)
-            qc._attach(rhs)
-            rhs = qc
         # Check registers in LHS are compatible with RHS
         self._check_compatible_regs(rhs)
 
@@ -171,8 +191,8 @@ class QuantumCircuit:
                 self.cregs.append(element)
 
         # Add new gates
-        for gate in rhs.data:
-            gate.reapply(self)
+        for instruction_context in rhs.data:
+            self.append(*instruction_context)
         return self
 
     def __add__(self, rhs):
@@ -191,14 +211,45 @@ class QuantumCircuit:
         """Return indexed operation."""
         return self.data[item]
 
-    def _attach(self, instruction):
-        """Attach an instruction."""
+    def append(self, instruction, qargs=None, cargs=None):
+        """Append an instruction to the end of the circuit, modifying
+        the circuit in place.
+
+        Args:
+            instruction (Instruction): Instruction instance to append
+            qargs (list(tuple)): qubits to attach instruction to
+            cargs (list(tuple)): clbits to attach instruction to
+
+        Returns:
+            Instruction: a handle to the instruction that was just added
+
+        Raises:
+            QiskitError: if the gate is of a different shape than the wires
+                it is being attached to.
+        """
+        qargs = qargs or []
+        cargs = cargs or []
+
         # do some compatibility checks
-        self._check_dups(instruction.qargs)
-        self._check_qargs(instruction.qargs)
-        self._check_cargs(instruction.cargs)
-        self.data.append(instruction)
+        self._check_dups(qargs)
+        self._check_qargs(qargs)
+        self._check_cargs(cargs)
+        if instruction.num_qubits != len(qargs) or \
+                instruction.num_clbits != len(cargs):
+            raise QiskitError("instruction %s with %d qubits and %d clbits "
+                              "cannot be appended onto %d qubits and %d clbits." %
+                              (instruction.name,
+                               instruction.num_qubits, instruction.num_clbits,
+                               len(qargs), len(cargs)))
+
+        # add the instruction onto the given wires
+        instruction_context = instruction, qargs, cargs
+        self.data.append(instruction_context)
         return instruction
+
+    def _attach(self, instruction, qargs, cargs):
+        """DEPRECATED after 0.8"""
+        self.append(instruction, qargs, cargs)
 
     def add_register(self, *regs):
         """Add registers."""
@@ -212,6 +263,12 @@ class QuantumCircuit:
                 self.cregs.append(register)
             else:
                 raise QiskitError("expected a register")
+
+    def _check_dups(self, qubits):
+        """Raise exception if list of qubits contains duplicates."""
+        squbits = set(qubits)
+        if len(squbits) != len(qubits):
+            raise QiskitError("duplicate qubit arguments")
 
     def _check_qargs(self, qargs):
         """Raise exception if a qarg is not in this circuit or bad format."""
@@ -235,11 +292,29 @@ class QuantumCircuit:
         for clbit in cargs:
             clbit[0].check_range(clbit[1])
 
-    def _check_dups(self, qubits):
-        """Raise exception if list of qubits contains duplicates."""
-        squbits = set(qubits)
-        if len(squbits) != len(qubits):
-            raise QiskitError("duplicate qubit arguments")
+    def to_instruction(self):
+        """Create an Instruction out of this circuit.
+
+        Returns:
+            Instruction: a composite instruction encapsulating this circuit
+                (can be decomposed back)
+        """
+        from qiskit.converters.circuit_to_instruction import circuit_to_instruction
+        return circuit_to_instruction(self)
+
+    def decompose(self):
+        """Call a decomposition pass on this circuit,
+        to decompose one level (shallow decompose).
+
+        Returns:
+            QuantumCircuit: a circuit one level decomposed
+        """
+        from qiskit.transpiler.passes.decompose import Decompose
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
+        from qiskit.converters.dag_to_circuit import dag_to_circuit
+        pass_ = Decompose()
+        decomposed_dag = pass_.run(circuit_to_dag(self))
+        return dag_to_circuit(decomposed_dag)
 
     def _check_compatible_regs(self, rhs):
         """Raise exception if the circuits are defined on incompatible registers"""
@@ -252,15 +327,24 @@ class QuantumCircuit:
                         raise QiskitError("circuits are not compatible")
 
     def qasm(self):
-        """Return OPENQASM string."""
+        """Return OpenQASM string."""
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
         for register in self.qregs:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
-        for instruction in self.data:
-            string_temp += instruction.qasm() + "\n"
+        for instruction, qargs, cargs in self.data:
+            if instruction.name == 'measure':
+                qubit = qargs[0]
+                clbit = cargs[0]
+                string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
+                                                           qubit[0].name, qubit[1],
+                                                           clbit[0].name, clbit[1])
+            else:
+                string_temp += "%s %s;\n" % (instruction.qasm(),
+                                             ",".join(["%s[%d]" % (j[0].name, j[1])
+                                                       for j in qargs + cargs]))
         return string_temp
 
     def draw(self, scale=0.7, filename=None, style=None, output='text',

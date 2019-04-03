@@ -51,11 +51,10 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for creg in dag.cregs.values():
             barrier_layer.add_creg(creg)
 
-        final_qubits = set(final_op.qargs[0]
+        final_qubits = set(final_op.qargs[0] for final_op in final_ops)
 
-                           for final_op in final_ops)
-
-        new_barrier_node = barrier_layer.apply_operation_back(Barrier(qubits=final_qubits))
+        new_barrier_node = barrier_layer.apply_operation_back(
+            Barrier(len(final_qubits)), list(final_qubits), [])
 
         # Preserve order of final ops collected earlier from the original DAG.
         ordered_final_nodes = [node for node in dag.nodes_in_topological_order()
@@ -63,7 +62,9 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         # Move final ops to the new layer and append the new layer to the DAG.
         for final_node in ordered_final_nodes:
-            barrier_layer.apply_operation_back(final_node.op)
+            barrier_layer.apply_operation_back(final_node.op,
+                                               final_node.qargs,
+                                               final_node.cargs)
 
         for final_op in final_ops:
             dag._remove_op_node(final_op)
@@ -84,7 +85,6 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for candidate_barrier in existing_barriers:
             their_ancestors = barrier_layer.ancestors(candidate_barrier)
             their_descendants = barrier_layer.descendants(candidate_barrier)
-
             their_qubits = set(candidate_barrier.qargs)
 
             if (
@@ -92,8 +92,9 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
                     and our_ancestors.isdisjoint(their_descendants)
                     and our_descendants.isdisjoint(their_ancestors)
             ):
-                merge_barrier = Barrier(qubits=(our_qubits | their_qubits))
-                merge_barrier_node = barrier_layer.apply_operation_front(merge_barrier)
+                merge_barrier_qubits = (our_qubits | their_qubits)
+                merge_barrier_node = barrier_layer.apply_operation_front(
+                    Barrier(len(merge_barrier_qubits)), merge_barrier_qubits, [])
 
                 our_ancestors = our_ancestors | their_ancestors
                 our_descendants = our_descendants | their_descendants

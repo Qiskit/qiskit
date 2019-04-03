@@ -5,9 +5,10 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Pass for decompose a gate in a circuit."""
+"""Pass for one layer of decomposing the gates in a circuit."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.dagcircuit import DAGCircuit
 
 
 class Decompose(TransformationPass):
@@ -32,11 +33,19 @@ class Decompose(TransformationPass):
             DAGCircuit: output dag where gate was expanded.
         """
         # Walk through the DAG and expand each non-basis node
-
         for node in dag.op_nodes(self.gate):
-            decomposition_rules = node.op.decompositions()
-            # TODO: allow choosing other possible decompositions
-            decomposition_dag = decomposition_rules[0]
-
-            dag.substitute_node_with_dag(node, decomposition_dag)
+            # opaque or built-in gates are not decomposable
+            if not node.op.definition:
+                continue
+            # TODO: allow choosing among multiple decomposition rules
+            rule = node.op.definition
+            # hacky way to build a dag on the same register as the rule is defined
+            # TODO: need anonymous rules to address wires by index
+            decomposition = DAGCircuit()
+            decomposition.add_qreg(rule[0][1][0][0])
+            if rule[0][2]:
+                decomposition.add_creg(rule[0][2][0][0])
+            for inst in rule:
+                decomposition.apply_operation_back(*inst)
+            dag.substitute_node_with_dag(node, decomposition)
         return dag

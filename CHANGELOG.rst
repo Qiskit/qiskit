@@ -23,7 +23,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
-- Core StochasticSwap routine implimented in Cython (#1789).
+- Core StochasticSwap routine implemented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
 - New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
@@ -54,11 +54,20 @@ Added
   ``NumTensorFactor``, all grouped in the ``ResourceEstimation`` analysis pass.
 - Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
   operations on the given wire
->>>>>>> 10375015bce5e88fc95a6864ed1f20ba641943fa
+- Added new properties to an Instruction:
+  ``num_qubits``, ``num_clbits`` (#1816).
+- Added a ``QuantumCircuit.append`` public method for appending arbitrary instructions
+  to some qubits and clbits in the circuit (#1816).
+- Added an ``Instruction.definition`` property that defines a composite instruction
+  in terms of other, simpler instructions (#1816).
+- Added an ``Instruction.mirror()`` method that mirrors a composite instruction
+  (reverses its sub-instructions) (#1816).
 
 Changed
 -------
-
+- plot_histogram now allows sorting by Hamming distance from target_string (#2064).
+- FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
+  that returns a `SamplePulse` when called. (#2043)
 - Changed ``average_data`` to accept observable input in matrix form (#1858)
 - Change random_state to take in dim over number of qubits (#1857)
 - The ``Exception`` subclasses have been moved to an ``.exceptions`` module
@@ -95,6 +104,17 @@ Changed
 - The rzz gate is now represented as a line when printed in text (#1957).
 - Text drawer has support for multi-q gates (#1939).
 - Separate ``Qobj`` into ``PulseQobj`` and ``QasmQobj`` (#1969).
+- It is possible to define a layout as a list of integers. This maps the ordered list
+  of virtual circuit qubits to physical qubits as defined by the list of integers (#1946).
+- Instructions no longer have context about where they are in a circuit. Instead,
+  the circuit keeps this context. So Instructions are now light-weight and only
+  have a name, num_qubits, num_clbits and params (#1816).
+- The old syntax for attaching a gate to the circuit then modifying it is no longer
+  supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``).
+  Instead, you must first modify the gate then attach it (#1816).
+- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a 
+  (instruction, qarg, carg) (#1816).
+
 
 Deprecated
 ----------
@@ -109,6 +129,7 @@ Deprecated
 - The ``qiskit.compile()`` function is now deprecated in favor of explicitly
   using the ``qiskit.compiler.transpile()`` function to transform a circuit followed
   by ``qiskit.compiler.assemble_circuits()`` to make a qobj out of it.
+
 
 Fixed
 -----
@@ -153,7 +174,7 @@ Removed
 - Removed deprecated ``transpile_dag()`` ``format`` kwarg (#1664)
 - Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
 - Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
-- Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
+- Removed ``QISKitError`` in favor of ``QiskitError``. (#1684)
 - The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
   package (``pip install qiskit-ibmq-provider``). (#1700)
 - ``compiled_circuit_qasm`` has been removed from the Qobj header, since it
@@ -161,6 +182,8 @@ Removed
 - Removed the wigner plotting functions ``plot_wigner_function``,
   ``plot_wigner_curve``, ``plot_wigner_plaquette``, and ``plot_wigner_data``
   (#1860).
+- Removed ``Instruction.reapply()`` method (#1816).
+
 
 `0.7.0`_ - 2018-12-19
 =====================
