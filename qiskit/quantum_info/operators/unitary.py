@@ -17,7 +17,6 @@ import numpy
 import sympy
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.gate import Gate
-from qiskit.dagcircuit import DAGCircuit
 
 
 class Unitary(Gate):
