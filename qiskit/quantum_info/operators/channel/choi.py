@@ -146,22 +146,6 @@ class Choi(QuantumChannel):
             (input_dim * output_dim, input_dim * output_dim))
         return Choi(data, input_dim, output_dim)
 
-    def power(self, n):
-        """Return the compose of a QuantumChannel with itself n times.
-
-        Args:
-            n (int): the number of times to compose with self (n>0).
-
-        Returns:
-            Choi: the n-times composition channel as a Choi object.
-
-        Raises:
-            QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not a positive
-            integer.
-        """
-        return super().power(n)
-
     def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 

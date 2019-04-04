@@ -224,22 +224,6 @@ class Kraus(QuantumChannel):
             kab_r = [np.dot(a, b) for a in ka_r for b in kb_r]
         return Kraus((kab_l, kab_r), input_dim, output_dim)
 
-    def power(self, n):
-        """Return the compose of a QuantumChannel with itself n times.
-
-        Args:
-            n (int): the number of times to compose with self (n>0).
-
-        Returns:
-            Kraus: the n-times composition channel as a Kraus object.
-
-        Raises:
-            QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not a positive
-            integer.
-        """
-        return super().power(n)
-
     def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 

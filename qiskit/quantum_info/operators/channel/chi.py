@@ -135,22 +135,6 @@ class Chi(QuantumChannel):
         # representation we convert to the Choi representation
         return Chi(Choi(self).compose(other, front=front))
 
-    def power(self, n):
-        """Return the compose of a QuantumChannel with itself n times.
-
-        Args:
-            n (int): the number of times to compose with self (n>0).
-
-        Returns:
-            Chi: the n-times composition channel as a Chi object.
-
-        Raises:
-            QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not a positive
-            integer.
-        """
-        return super().power(n)
-
     def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
