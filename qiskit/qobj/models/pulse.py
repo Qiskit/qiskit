@@ -11,12 +11,11 @@ from marshmallow.validate import Range, Regexp, Length, OneOf
 
 from qiskit.qobj.utils import MeasReturnType
 from qiskit.validation import BaseSchema, bind_schema, BaseModel
-from qiskit.validation.fields import (Integer, String, Number, Complex, List, Nested, Boolean,
-                                      Dict, DictParameters, InstructionParameter)
-from qiskit.validation.validate import PatternProperties
+from qiskit.validation.fields import Integer, String, Number, Complex, List, Nested, DictParameters
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
+from .simulator import PulseSimulatorSpecSchema
 
 
 class QobjMeasurementOptionSchema(BaseSchema):
@@ -92,46 +91,7 @@ class PulseQobjConfigSchema(QobjConfigSchema):
     meas_lo_freq = List(Number(validate=Range(min=0)))
     memory_slot_size = Integer(validate=Range(min=1))
     rep_time = Integer(validate=Range(min=0))
-    hamiltonian = Dict(validate=PatternProperties({
-        Regexp('h_latex'): String(),
-        Regexp('h_str'): List(String(), validate=Length(min=1)),
-        Regexp('vars'): Dict(validate=PatternProperties({
-            Regexp('^([a-z0-9])+$'): InstructionParameter()
-        })),
-        Regexp('osc'): Dict(validate=PatternProperties({
-            Regexp('^([0-9])+$'): Integer(validate=Range(min=1))
-        })),
-        Regexp('qub'): Dict(validate=PatternProperties({
-            Regexp('^([0-9])+$'): Integer(validate=Range(min=2))
-        }))
-    }))
-    dt = Number()
-    noise = Dict(validate=PatternProperties({
-        Regexp('qubit'): Dict(validate=PatternProperties({
-            Regexp('^([0-9])+$'): Dict(validate=PatternProperties({
-                Regexp('^([A-Za-z])+$'): Number()
-            }))
-        })),
-        Regexp('oscillator'): Dict(validate=PatternProperties({
-            Regexp('n_th'): Dict(validate=PatternProperties({
-                Regexp('^([0-9])+$'): Number()
-            })),
-            Regexp('coupling'): Dict(validate=PatternProperties({
-                Regexp('^([0-9])+$'): Number()
-            }))
-        }))
-    }))
-    ode_options = Dict(validate=PatternProperties({
-        Regexp('atol'): Number(),
-        Regexp('rtol'): Number(),
-        Regexp('nsteps'): Integer(validate=Range(min=0)),
-        Regexp('max_steps'): Integer(validate=Range(min=0)),
-        Regexp('num_cpus'): Integer(validate=Range(min=0)),
-        Regexp('norm_tol'): Number(),
-        Regexp('norm_steps'): Integer(validate=Range(min=0)),
-        Regexp('rhs_reuse'): Boolean(),
-        Regexp('rhs_filename'): String(validate=Length(min=1))
-    }))
+    simulator_spec = Nested(PulseSimulatorSpecSchema)
 
 
 @bind_schema(QobjMeasurementOptionSchema)

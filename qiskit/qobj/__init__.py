@@ -10,6 +10,8 @@
 from qiskit.qobj.models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
                                      QobjExperiment, QobjConfig, QobjHeader)
 
+from qiskit.qobj.models.simulator import PulseSimulatorSpec, PulseOdeOption, PulseNoiseModel
+
 from qiskit.qobj.models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
                                       PulseQobjExperiment, PulseQobjConfig,
                                       QobjMeasurementOption, QobjPulseLibrary)

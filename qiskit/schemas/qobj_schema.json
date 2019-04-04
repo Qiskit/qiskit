@@ -985,13 +985,9 @@
                             "minimum": 1,
                             "type": "integer"
                         },
-                        "hamiltonian": {
+                        "simulator_spec": {
                             "properties": {
-                                "h_latex": {
-                                    "description": "Hamiltonian in latex format.",
-                                    "type": "string"
-                                },
-                                "h_str": {
+                                "hamiltonian": {
                                     "description": "Machine readable Hamiltonian.",
                                     "items": {
                                         "type": "string"
@@ -1008,43 +1004,28 @@
                                     },
                                     "additionalProperties": false
                                 },
-                                "osc": {
+                                "dim_osc": {
                                     "description": "Oscillator Fock states.",
-                                    "type": "object",
-                                    "patternProperties": {
-                                        "^([0-9])+$": {
-                                            "minimum": 1,
-                                            "type": "integer"
-                                        }
+                                    "items": {
+                                        "type": "integer"
                                     },
-                                    "additionalProperties": false
+                                    "type": "array"
                                 },
-                                "qub": {
+                                "dim_qub": {
                                     "description": "Qubit Fock states.",
-                                    "type": "object",
-                                    "patternProperties": {
-                                        "^([0-9])+$": {
-                                            "minimum": 2,
-                                            "type": "integer"
-                                        }
+                                    "items": {
+                                        "type": "integer"
                                     },
-                                    "additionalProperties": false
-                                }
-                            },
-                            "required": [
-                                "h_str",
-                                "vars",
-                                "osc",
-                                "qub"
-                            ]
-                        },
-                        "noise": {
-                            "properties": {
-                                "qubit": {
-                                    "description": "Qubit noise configuration.",
-                                    "type": "object",
-                                    "patternProperties": {
-                                        "^([0-9])+$": {
+                                    "type": "array"
+                                },
+                                "dt": {
+                                    "minimum": 0,
+                                    "type": "number"
+                                },
+                                "noise_model": {
+                                    "properties": {
+                                        "qubit": {
+                                            "description": "Noise models for qubit.",
                                             "type": "object",
                                             "patternProperties": {
                                                 "^([A-Za-z])+$": {
@@ -1052,90 +1033,73 @@
                                                 }
                                             },
                                             "additionalProperties": false
-                                        }
-                                    },
-                                    "additionalProperties": false
-                                },
-                                "oscillator": {
-                                    "properties": {
-                                        "n_th": {
-                                            "description": "Thermal noise amplitude.",
-                                            "type": "object",
-                                            "patternProperties": {
-                                                "^([0-9])+$": {
-                                                    "type": "number"
-                                                }
-                                            },
-                                            "additionalProperties": false
                                         },
-                                        "coupling": {
-                                            "description": "Coupling intensity to bath.",
-                                            "type": "object",
-                                            "patternProperties": {
-                                                "^([0-9])+$": {
-                                                    "type": "number"
-                                                }
+                                        "oscillator": {
+                                            "description": "Noise models for oscillator.",
+                                            "items": {
+                                                "items": [
+                                                    {
+                                                        "type": "number"
+                                                    },
+                                                    {
+                                                        "type": "number"
+                                                    }
+                                                ],
+                                                "type": "array",
+                                                "additionalItems": false
                                             },
-                                            "additionalProperties": false
+                                            "type": "array"
                                         }
                                     },
                                     "required": [
-                                        "n_th",
-                                        "coupling"
+                                        "qubit",
+                                        "oscillator"
                                     ]
+                                },
+                                "ode_options": {
+                                    "properties": {
+                                        "atol": {
+                                            "type": "number"
+                                        },
+                                        "rtol": {
+                                            "type": "number"
+                                        },
+                                        "nsteps": {
+                                            "minimum": 0,
+                                            "type": "integer"
+                                        },
+                                        "max_step": {
+                                            "minimum": 0,
+                                            "type": "integer"
+                                        },
+                                        "num_cpus": {
+                                            "minimum": 0,
+                                            "type": "integer"
+                                        },
+                                        "norm_tol": {
+                                            "type": "number"
+                                        },
+                                        "norm_steps": {
+                                            "minimum": 0,
+                                            "type": "integer"
+                                        },
+                                        "rhs_reuse": {
+                                            "type": "boolean"
+                                        },
+                                        "rhs_filename":{
+                                            "type": "string"
+                                        }
+                                    },
+                                    "additionalProperties": false
                                 }
                             },
                             "required": [
-                                "qubit",
-                                "oscillator"
+                                "hamiltonian",
+                                "vars",
+                                "dim_osc",
+                                "dim_qub",
+                                "dt"
                             ]
-                        },
-                        "dt": {
-                            "minimum": 0,
-                            "type": "number"
-                        },
-                        "ode_options": {
-                            "properties": {
-                                "atol": {
-                                    "type": "number"
-                                },
-                                "rtol": {
-                                    "type": "number"
-                                },
-                                "nsteps": {
-                                    "minimum": 0,
-                                    "type": "integer"
-                                },
-                                "max_step": {
-                                    "minimum": 0,
-                                    "type": "integer"
-                                },
-                                "num_cpus": {
-                                    "minimum": 0,
-                                    "type": "integer"
-                                },
-                                "norm_tol": {
-                                    "type": "number"
-                                },
-                                "norm_steps": {
-                                    "minimum": 0,
-                                    "type": "integer"
-                                },
-                                "rhs_reuse": {
-                                    "type": "boolean"
-                                },
-                                "rhs_filename":{
-                                    "anyOf": [
-                                        {
-                                            "type": "string"
-                                        },
-                                        {
-                                            "type": "null"
-                                        }
-                                    ]
-                                }
-                            },
-                            "additionalProperties": false
                         }
                     },
                     "required": [
