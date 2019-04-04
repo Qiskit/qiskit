@@ -15,7 +15,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
-from qiskit.extensions.standard.ubase import UBase
+from qiskit.extensions.standard.u3 import U3Gate
 
 
 class IdGate(Gate):
@@ -29,7 +29,7 @@ class IdGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (UBase(0, 0, 0), [q[0]], [])
+            (U3Gate(0, 0, 0), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
