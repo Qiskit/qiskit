@@ -13,11 +13,17 @@ from .instruction import Instruction
 
 
 class InstructionSet:
-    """Instruction collection."""
+    """Instruction collection, and their contexts."""
 
     def __init__(self):
-        """New collection of instructions."""
+        """New collection of instructions.
+
+        The context (qargs and cargs that each instruction is attached to),
+        is also stored separately for each instruction.
+        """
         self.instructions = []
+        self.qargs = []
+        self.cargs = []
 
     def __len__(self):
         """Return number of instructions in set"""
@@ -27,12 +33,14 @@ class InstructionSet:
         """Return instruction at index"""
         return self.instructions[i]
 
-    def add(self, gate):
-        """Add instruction to set."""
+    def add(self, gate, qargs, cargs):
+        """Add an instruction and its context (where it's attached)."""
         if not isinstance(gate, Instruction):
             raise QiskitError("attempt to add non-Instruction" +
                               " to InstructionSet")
         self.instructions.append(gate)
+        self.qargs.append(qargs)
+        self.cargs.append(cargs)
 
     def inverse(self):
         """Invert all instructions."""

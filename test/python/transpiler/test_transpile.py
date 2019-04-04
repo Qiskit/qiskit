@@ -55,9 +55,9 @@ class TestTranspile(QiskitTestCase):
         circuit.h(qr[0])
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[0])
         circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[0])
 
         coupling_map = [[1, 0]]
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
