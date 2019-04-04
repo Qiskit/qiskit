@@ -7,4 +7,4 @@
 
 """Module for Samplers."""
 
-from .sampler_decorators import *
+from .decorators import *
