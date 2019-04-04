@@ -21,16 +21,4 @@ class Gate(Instruction):
         num_qubits = number of qubits the gate acts on
         params = list of parameters
         """
-        self._matrix_rep = None
-
         super().__init__(name, num_qubits, 0, params)
-
-    @property
-    def matrix_rep(self):
-        """Return matrix representation if it exists else None"""
-        return self._matrix_rep
-
-    @matrix_rep.setter
-    def matrix_rep(self, matrix):
-        """Set matrix representation"""
-        self._matrix_rep = matrix
