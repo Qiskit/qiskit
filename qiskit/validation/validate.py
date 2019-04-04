@@ -90,7 +90,6 @@ class PatternProperties(Validator):
             if field:
                 errors.pop(key, None)
                 try:
-                    field.check_type(value=value_, attr=key, data=value)
                     field.deserialize(value_)
                 except ValidationError as ex:
                     errors[key] = ex.messages
