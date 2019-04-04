@@ -456,7 +456,7 @@ class MatplotlibDrawer:
                                  - n_fold * (self._cond['n_lines'] + 1)))
 
     def _draw_ops(self, verbose=False):
-        _wide_gate = 'u2 u3 cu2 cu3'.split()
+        _wide_gate = ['u2', 'u3', 'cu2', 'cu3']
         _barriers = {'coord': [], 'group': []}
 
         #

@@ -100,6 +100,9 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
             if op.name == "snapshot":
                 current_instruction.label = str(op.params[0])
                 current_instruction.type = str(op.params[1])
+            if op.name == 'unitary':
+                if op._label:
+                    current_instruction.label = op._label
             if op.control:
                 mask = 0
                 for clbit in clbit_labels:
