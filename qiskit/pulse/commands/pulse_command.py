@@ -65,6 +65,9 @@ class PulseCommand(metaclass=ABCMeta):
             return True
         return False
 
+    def __hash__(self):
+        return hash((type(self), self._duration, self._name))
+
     def __repr__(self):
         return '%s(name=%s, duration=%d)' % (self.__class__.__name__,
                                              self._name, self._duration)
