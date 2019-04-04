@@ -39,7 +39,7 @@ cdef double compute_cost(double[:, ::1] dist, unsigned int * logic_to_phys,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef compute_random_scaling(double[:, ::1] scale, double[:, ::1] cdist2,
-                            double * rand, int num_qubits):
+                            double * rand, unsigned int num_qubits):
     """ Computes the symmetric random scaling (perturbation) matrix, 
     and places the values in the 'scale' array.
 
@@ -111,7 +111,7 @@ def swap_trial(int num_qubits, NLayout int_layout, int[::1] int_qubit_subset,
     cdef cset[unsigned int] qubit_set
     cdef cset[unsigned int] input_qubit_set
     
-    for idx in range(int_qubit_subset.shape[0]):
+    for idx in range(<unsigned int>int_qubit_subset.shape[0]):
         input_qubit_set.insert(int_qubit_subset[idx])
     
     # Loop over depths from 1 up to a maximum depth

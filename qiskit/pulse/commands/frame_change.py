@@ -9,7 +9,7 @@
 Frame change pulse.
 """
 
-from qiskit.pulse.commands.pulse_command import PulseCommand
+from .pulse_command import PulseCommand
 
 
 class FrameChange(PulseCommand):
