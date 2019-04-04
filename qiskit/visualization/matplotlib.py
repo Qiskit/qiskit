@@ -557,7 +557,7 @@ class MatplotlibDrawer:
                 _iswide = op.name in _wide_gate
                 if op.name not in ['barrier', 'snapshot', 'load', 'save',
                                    'noise', 'cswap', 'swap'] and len(
-                                         op.name) >= 4:
+                                       op.name) >= 4:
                     _iswide = True
 
                 # get qreg index
@@ -735,7 +735,7 @@ class MatplotlibDrawer:
 
                 # draw custom multi-qubit gate
                 elif len(q_xy) > 3:
-                    self._custom_multiqubit_gate(q_xy, wide=_iswside,
+                    self._custom_multiqubit_gate(q_xy, wide=_iswide,
                                                  text=op.name)
                 else:
                     logger.critical('Invalid gate %s', op)
