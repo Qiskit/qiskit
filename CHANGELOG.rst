@@ -64,6 +64,8 @@ Added
 
 Changed
 -------
+
+- The most connected subset in DenseLayout is now reduced bandwidth (#2021).
 - plot_histogram now allows sorting by Hamming distance from target_string (#2064).
 - FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
   that returns a `SamplePulse` when called. (#2043)
