@@ -146,7 +146,7 @@ class MatplotlibDrawer:
     def ast(self):
         return self._ast
 
-    def _multiqubit_gate(self, xy, fc=None, wide=True, text=None,
+    def _custom_multiqubit_gate(self, xy, fc=None, wide=True, text=None,
                          subtext=None):
         n_qubits = len(xy)
         xpos = min([x[0] for x in xy])
@@ -196,11 +196,8 @@ class MatplotlibDrawer:
             wid = WID
         if fc:
             _fc = fc
-        elif text:
-            try:
+        elif text and text in self._style.dispcol:
                 _fc = self._style.dispcol[text]
-            except KeyError:
-                _fc = self._style.gc
         else:
             _fc = self._style.gc
 
@@ -210,9 +207,9 @@ class MatplotlibDrawer:
         self.ax.add_patch(box)
 
         if text:
-            try:
+            if text in self._style.dispcol:
                 disp_text = "${}$".format(self._style.disptex[text])
-            except KeyError:
+            else:
                 disp_text = text
             if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
@@ -683,7 +680,7 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t)
                     # Custom gate
                     else:
-                        self._multiqubit_gate(q_xy, text=op.name)
+                        self._custom_multiqubit_gate(q_xy, text=op.name)
                 #
                 # draw multi-qubit gates (n=3)
                 #
@@ -704,11 +701,11 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t)
                     # custom gate
                     else:
-                        self._multiqubit_gate(q_xy, text=op.name)
+                        self._custom_multiqubit_gate(q_xy, text=op.name)
 
                 # draw custom multi-qubit gate
                 elif len(q_xy) > 3:
-                    self._multiqubit_gate(q_xy, text=op.name)
+                    self._custom_multiqubit_gate(q_xy, text=op.name)
                 else:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
