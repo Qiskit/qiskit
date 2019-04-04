@@ -42,8 +42,8 @@ class TestEquivalence(ChannelTestCase):
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
                 sop2 = self.rand_matrix(dim * dim, dim * dim)
-            targ = rep(SuperOp(sop1 + sop2))
-            channel = rep(SuperOp(sop1)).add(rep(SuperOp(sop2)))
+            targ = SuperOp(sop1 + sop2)
+            channel = SuperOp(rep(SuperOp(sop1)).add(rep(SuperOp(sop2))))
             self.assertEqual(channel, targ)
 
     def _compare_subtract_to_superop(self, rep, dim, samples, unitary=False):
@@ -57,8 +57,8 @@ class TestEquivalence(ChannelTestCase):
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
                 sop2 = self.rand_matrix(dim * dim, dim * dim)
-            targ = rep(SuperOp(sop1 - sop2))
-            channel = rep(SuperOp(sop1)).subtract(rep(SuperOp(sop2)))
+            targ = SuperOp(sop1 - sop2)
+            channel = SuperOp(rep(SuperOp(sop1)).subtract(rep(SuperOp(sop2))))
             self.assertEqual(channel, targ)
 
     def _compare_multiply_to_superop(self, rep, dim, samples, unitary=False):
@@ -70,8 +70,8 @@ class TestEquivalence(ChannelTestCase):
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
             val = 2 * (np.random.rand() - 0.5)
-            targ = rep(SuperOp(val * sop1))
-            channel = rep(SuperOp(sop1)).multiply(val)
+            targ = SuperOp(val * sop1)
+            channel = SuperOp(rep(SuperOp(sop1)).multiply(val))
             self.assertEqual(channel, targ)
 
     def _compare_negate_to_superop(self, rep, dim, samples, unitary=False):
@@ -82,8 +82,8 @@ class TestEquivalence(ChannelTestCase):
                 sop1 = np.kron(np.conj(mat1), mat1)
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
-            targ = rep(SuperOp(-1 * sop1))
-            channel = -rep(SuperOp(sop1))
+            targ = SuperOp(-1 * sop1)
+            channel = SuperOp(-rep(SuperOp(sop1)))
             self.assertEqual(channel, targ)
 
     def _check_add_other_reps(self, chan):
