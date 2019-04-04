@@ -1026,13 +1026,17 @@
                                     "properties": {
                                         "qubit": {
                                             "description": "Noise models for qubit.",
-                                            "type": "object",
-                                            "patternProperties": {
-                                                "^([A-Za-z])+$": {
-                                                    "type": "number"
-                                                }
+                                            "items": {
+                                                "type": "object",
+                                                "patternProperties": {
+                                                    "^([A-Za-z])+$": {
+                                                        "type": "number"
+                                                    }
+                                                },
+                                                "additionalProperties": false
                                             },
-                                            "additionalProperties": false
+                                            "type": "array",
+                                            "additionalItems": false
                                         },
                                         "oscillator": {
                                             "description": "Noise models for oscillator.",
