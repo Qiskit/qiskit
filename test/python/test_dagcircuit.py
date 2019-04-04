@@ -265,7 +265,7 @@ class TestDagOperations(QiskitTestCase):
 
     def test_remove_op_node(self):
         """ Test remove_op_node method."""
-        self.dag.apply_operation_back(HGate(self.qubit0))
+        self.dag.apply_operation_back(HGate(), [self.qubit0])
 
         op_nodes = self.dag.gate_nodes()
         h_gate = op_nodes.pop()
