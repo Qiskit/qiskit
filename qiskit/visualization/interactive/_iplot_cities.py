@@ -12,7 +12,7 @@ from string import Template
 import sys
 import time
 import re
-from qiskit.tools.visualization._utils import _validate_input_state
+from qiskit.visualization.utils import _validate_input_state
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
