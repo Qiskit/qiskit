@@ -83,15 +83,15 @@ class PulseQobjConfigSchema(QobjConfigSchema):
 
     # Required properties.
     meas_level = Integer(required=True, validate=Range(min=0, max=2))
-    memory_slot_size = Integer(required=True)
-    pulse_library = Nested(QobjPulseLibrarySchema, many=True, required=True)
-    qubit_lo_freq = List(Number(), required=True)
-    meas_lo_freq = List(Number(), required=True)
-    rep_time = Integer(required=True)
-    meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
-                                                 MeasReturnType.SINGLE)))
+    meas_return = String(required=True, validate=OneOf(choices=(MeasReturnType.AVERAGE,
+                                                                MeasReturnType.SINGLE)))
+    pulse_library = Nested(QobjPulseLibrarySchema, required=True, many=True)
 
     # Optional properties.
+    qubit_lo_freq = List(Number(validate=Range(min=0)))
+    meas_lo_freq = List(Number(validate=Range(min=0)))
+    memory_slot_size = Integer(validate=Range(min=1))
+    rep_time = Integer(validate=Range(min=0))
     hamiltonian = Dict(validate=PatternProperties({
         Regexp('h_latex'): String(),
         Regexp('h_str'): List(String(), validate=Length(min=1)),
@@ -226,29 +226,15 @@ class PulseQobjConfig(QobjConfig):
 
     Attributes:
         meas_level (int): a value represents the level of measurement.
-        memory_slot_size (int): size of memory slot
         meas_return (str): a level of measurement information.
         pulse_library (list[qiskit.qobj.QobjPulseLibrary]): a pulse library.
-        qubit_lo_freq (list): the list of frequencies for qubit drive LO's in GHz.
-        meas_lo_freq (list): the list of frequencies for measurement drive LO's in GHz.
-        rep_time (int): the value of repetition time of experiment in us.
     """
-    def __init__(self, meas_level, memory_slot_size, meas_return,
-                 pulse_library, qubit_lo_freq, meas_lo_freq, rep_time,
-                 **kwargs):
+    def __init__(self, meas_level, meas_return, pulse_library, **kwargs):
         self.meas_level = meas_level
-        self.memory_slot_size = memory_slot_size
         self.meas_return = meas_return
         self.pulse_library = pulse_library
-        self.qubit_lo_freq = qubit_lo_freq
-        self.meas_lo_freq = meas_lo_freq
-        self.rep_time = rep_time
 
         super().__init__(meas_level=meas_level,
-                         memory_slot_size=memory_slot_size,
                          meas_return=meas_return,
                          pulse_library=pulse_library,
-                         qubit_lo_freq=qubit_lo_freq,
-                         meas_lo_freq=meas_lo_freq,
-                         rep_time=rep_time,
                          **kwargs)

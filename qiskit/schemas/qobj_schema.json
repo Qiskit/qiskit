@@ -1140,12 +1140,8 @@
                     },
                     "required": [
                         "meas_level",
-                        "pulse_library",
-                        "memory_slot_size",
                         "meas_return",
-                        "qubit_lo_freq",
-                        "meas_lo_freq",
-                        "rep_time"
+                        "pulse_library"
                     ]
                 },
                 "experiments": {
