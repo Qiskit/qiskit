@@ -125,7 +125,7 @@ class TestUseCases(SchedulerTestCase):
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set['fixed_point']['property'],
+            do_while=lambda property_set: not property_set['property_fixed_point'],
             condition=lambda property_set: property_set['property'])
         self.assertScheduler(self.dag, self.passmanager,
                              ['run analysis pass PassE_AP_NR_NP',
@@ -183,8 +183,8 @@ class TestUseCases(SchedulerTestCase):
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set['fixed_point']['property'],
-            condition=lambda property_set: not property_set['fixed_point']['property'])
+            do_while=lambda property_set: not property_set['property_fixed_point'],
+            condition=lambda property_set: not property_set['property_fixed_point'])
         self.assertScheduler(self.dag, self.passmanager,
                              ['run analysis pass PassG_calculates_dag_property',
                               'set property as 8 (from dag.property)',
@@ -380,7 +380,7 @@ class TestUseCases(SchedulerTestCase):
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set['fixed_point']['property'])
+            do_while=lambda property_set: not property_set['property_fixed_point'])
         self.assertScheduler(self.dag, self.passmanager,
                              ['run analysis pass PassG_calculates_dag_property',
                               'set property as 8 (from dag.property)',
@@ -431,7 +431,7 @@ class TestUseCases(SchedulerTestCase):
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set['fixed_point']['property'],
+            do_while=lambda property_set: not property_set['property_fixed_point'],
             max_iteration=2)
         self.assertSchedulerRaises(self.dag, self.passmanager,
                                    ['run analysis pass PassG_calculates_dag_property',
