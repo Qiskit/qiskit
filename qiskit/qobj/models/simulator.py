@@ -10,8 +10,8 @@
 from marshmallow.validate import Range, Length, Regexp
 
 from qiskit.validation import bind_schema, BaseSchema, BaseModel
-from qiskit.validation.fields import (Integer, String, Number, Complex, List, Nested, Boolean,
-                                      Dict, DictParameters, InstructionParameter)
+from qiskit.validation.fields import (Integer, String, Number, List, Nested, Boolean,
+                                      Dict, InstructionParameter)
 from qiskit.validation.validate import PatternProperties
 
 
@@ -51,7 +51,7 @@ class PulseOdeOptionSchema(BaseSchema):
 
 class PulseSimulatorSpecSchema(BaseSchema):
     """Schema for PulseSimulatorSpec."""
-    # pylint: disable=invalid-name
+    # pylint: disable=redefined-builtin,invalid-name
 
     # Required properties.
     hamiltonian = List(String(), validate=Length(min=1), required=True)
@@ -111,7 +111,7 @@ class PulseSimulatorSpec(BaseModel):
     """
     def __init__(self, hamiltonian, dim_osc, dim_qub,
                  vars, dt, **kwargs):
-        # pylint: disable=invalid-name
+        # pylint: disable=redefined-builtin,invalid-name
 
         self.hamiltonian = hamiltonian
         self.dim_osc = dim_osc
