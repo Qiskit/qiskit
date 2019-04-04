@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-""" An analysis pass for calculated the depth of a DAG circuit.
+""" An analysis pass for calculating the depth of a DAG circuit.
 """
 from qiskit.transpiler.basepasses import AnalysisPass
 
