@@ -11,7 +11,7 @@ from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class Size(AnalysisPass):
-    """ An analysis pass for calculated the size of a DAG circuit.
+    """ An analysis pass for calculating the size of a DAG circuit.
     """
 
     def run(self, dag):
