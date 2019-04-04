@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 
 class SPSA(Optimizer):
     """Simultaneous Perturbation Stochastic Approximation algorithm."""
+
+    _C0 = 2*np.pi*0.1
+
     CONFIGURATION = {
         'name': 'SPSA',
         'description': 'SPSA Optimizer',
@@ -50,7 +53,7 @@ class SPSA(Optimizer):
                 },
                 'c0': {
                     'type': 'number',
-                    'default': 0.62831853071796
+                    'default': _C0
                 },
                 'c1': {
                     'type': 'number',
@@ -84,7 +87,7 @@ class SPSA(Optimizer):
         'optimizer': ['local', 'noise']
     }
 
-    def __init__(self, max_trials=1000, save_steps=1, last_avg=1, c0=2*np.pi*0.1, c1=0.1, c2=0.602, c3=0.101, c4=0, skip_calibration=False):
+    def __init__(self, max_trials=1000, save_steps=1, last_avg=1, c0=_C0, c1=0.1, c2=0.602, c3=0.101, c4=0, skip_calibration=False):
         """
         Constructor.
 
@@ -174,7 +177,7 @@ class SPSA(Optimizer):
             theta_plus = theta + c_spsa * delta
             theta_minus = theta - c_spsa * delta
             # cost function for the two directions
-            if self._batch_mode:
+            if self._max_evals_grouped > 1:
                 cost_plus, cost_minus = obj_fun(np.concatenate((theta_plus, theta_minus)))
             else:
                 cost_plus = obj_fun(theta_plus)
@@ -230,7 +233,7 @@ class SPSA(Optimizer):
             delta = 2 * np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
             theta_plus = initial_theta + initial_c * delta
             theta_minus = initial_theta - initial_c * delta
-            if self._batch_mode:
+            if self._max_evals_grouped > 1:
                 obj_plus, obj_minus = obj_fun(np.concatenate((theta_plus, theta_minus)))
             else:
                 obj_plus = obj_fun(theta_plus)
