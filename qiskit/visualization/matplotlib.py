@@ -152,14 +152,17 @@ class MatplotlibDrawer:
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         if wide:
-            wid = WID * 2.8
+            if subtext:
+                boxes_length = round(max([len(text), len(subtext)]) / 10) or 1
+            else:
+                boxes_length = round(len(text) / 10) or 1
+            wid = WID * 2.8 * boxes_length
         else:
             wid = WID
         if fc:
             _fc = fc
         else:
             _fc = self._style.gc
-
         height = HIG * (n_qubits + 1)
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
@@ -191,7 +194,11 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         if wide:
-            wid = WID * 2.8
+            if subtext:
+                wid = WID * 2.8
+            else:
+                boxes_wide = round(len(text) / 10) or 1
+                wid = WID * 2.8 * boxes_wide
         else:
             wid = WID
         if fc:
@@ -524,14 +531,35 @@ class MatplotlibDrawer:
             layer_width = 1
 
             for op in layer:
-                if op.name in _wide_gate or op.name not in self._style.dispcol:
-                    layer_width = 2
+
+                if op.name in _wide_gate:
+                    if layer_width < 2:
+                        layer_width = 2
+                # if custom gate with a longer than standard name determine
+                # width
+                elif op.name not in ['barrier', 'snapshot', 'load', 'save',
+                                     'noise', 'cswap', 'swap'] and len(
+                                         op.name) >= 4:
+                    box_width = round(len(op.name) / 10)
+                    # If more than 4 characters min width is 2
+                    if box_width <= 1:
+                        box_width = 2
+                    if layer_width < box_width:
+                        if box_width > 2:
+                            layer_width = box_width * 2
+                        else:
+                            layer_width = 2
 
             this_anc = prev_anc + 1
 
             for op in layer:
 
                 _iswide = op.name in _wide_gate
+                if op.name not in ['barrier', 'snapshot', 'load', 'save',
+                                   'noise', 'cswap', 'swap'] and len(
+                                         op.name) >= 4:
+                    _iswide = True
+
                 # get qreg index
                 q_idxs = []
                 for qarg in op.qargs:
@@ -680,7 +708,8 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t)
                     # Custom gate
                     else:
-                        self._custom_multiqubit_gate(q_xy, text=op.name)
+                        self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                                                     text=op.name)
                 #
                 # draw multi-qubit gates (n=3)
                 #
@@ -701,11 +730,13 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t)
                     # custom gate
                     else:
-                        self._custom_multiqubit_gate(q_xy, text=op.name)
+                        self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                                                     text=op.name)
 
                 # draw custom multi-qubit gate
                 elif len(q_xy) > 3:
-                    self._custom_multiqubit_gate(q_xy, text=op.name)
+                    self._custom_multiqubit_gate(q_xy, wide=_iswside,
+                                                 text=op.name)
                 else:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
