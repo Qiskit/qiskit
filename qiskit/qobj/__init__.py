@@ -20,8 +20,6 @@ from qiskit.qobj.models.qasm import (QasmQobjInstruction, QasmQobjExperimentConf
                                      QasmQobjExperiment, QasmQobjConfig,
                                      QobjConditional)
 
-from ._validation import validate_qobj_against_schema
-
-from .exceptions import QobjValidationError
-
 from .qobj import Qobj, QasmQobj, PulseQobj
+
+from .utils import validate_qobj_against_schema

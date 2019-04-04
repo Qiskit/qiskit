@@ -17,6 +17,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble_circuits, RunConfig
 from qiskit.providers.basicaer import basicaerjob
+
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjInstruction, PulseQobjExperiment,
                          PulseQobjConfig, QobjMeasurementOption,
@@ -24,7 +25,8 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          QasmQobjExperiment, QasmQobjConfig,
                          PulseSimulatorSpec, PulseNoiseModel, PulseOdeOption)
 from qiskit.qobj import validate_qobj_against_schema
-from qiskit.qobj.exceptions import SchemaValidationError
+from qiskit.validation.jsonschema.exceptions import SchemaValidationError
+
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
 
