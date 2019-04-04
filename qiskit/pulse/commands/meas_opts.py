@@ -21,8 +21,16 @@ class MeasOpts:
         Parameters:
             name (str): Name of measurement option to be used.
         """
-        self.name = name
-        self.params = params
+        self._name = name
+        self._params = params
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def params(self):
+        return self._params
 
     def __eq__(self, other):
         """Two measurement options are the same if they are of the same type
@@ -35,21 +43,13 @@ class MeasOpts:
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.name == other.name and \
-                self.params == other.params:
+                self._name == other._name and \
+                self._params == other._params:
             return True
         return False
 
-    def to_dict(self):
-        """Convert measurement option object to dictionary.
-
-        Returns:
-            dict: A dictionary of measurement option.
-        """
-        return {'name': self.name, 'params': self.params}
-
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self.name)
+        return '%s(%s)' % (self.__class__.__name__, self._name)
 
 
 class Discriminator(MeasOpts):

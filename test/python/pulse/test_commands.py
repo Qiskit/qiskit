@@ -115,5 +115,17 @@ class TestSnapshot(QiskitTestCase):
         self.assertEqual(snap_command.duration, 0)
 
 
+class TestKernel(QiskitTestCase):
+    """Kernel tests."""
+
+    def test_can_construct_kernel_with_default_values(self):
+        """Test if Kernel can be constructed with default name and params.
+        """
+        kernel = Kernel()
+
+        self.assertEqual(kernel.name, None)
+        self.assertEqual(kernel.params, {})
+
+
 if __name__ == '__main__':
     unittest.main()
