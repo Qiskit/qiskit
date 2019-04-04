@@ -116,7 +116,10 @@ Changed
   Instead, you must first modify the gate then attach it (#1816).
 - ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a 
   (instruction, qarg, carg) (#1816).
-
+- The visualization subpackage has moved from ``qiskit.tools.visualization`` to
+  ``qiskit.visualization``. The public API (which was declared stable in
+  the 0.7 release) is still accessible off of ``qiskit.tools.visualization``.
+  (#1878)
 
 Deprecated
 ----------

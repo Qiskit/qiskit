@@ -10,7 +10,7 @@
 import PIL
 import numpy as np
 from qiskit.converters import circuit_to_dag
-from qiskit.tools.visualization.exceptions import VisualizationError
+from qiskit.visualization.exceptions import VisualizationError
 
 
 def _validate_input_state(quantum_state):

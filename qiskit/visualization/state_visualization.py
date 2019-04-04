@@ -16,7 +16,7 @@ from functools import reduce
 import numpy as np
 from scipy import linalg
 from qiskit.quantum_info import pauli_group, Pauli
-from ._matplotlib import HAS_MATPLOTLIB
+from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
     from matplotlib.ticker import MaxNLocator
@@ -26,9 +26,9 @@ if HAS_MATPLOTLIB:
     from matplotlib.colors import Normalize, LightSource
     from mpl_toolkits.mplot3d import proj3d
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-    from qiskit.tools.visualization.exceptions import VisualizationError
-    from qiskit.tools.visualization._bloch import Bloch
-    from qiskit.tools.visualization._utils import _validate_input_state
+    from qiskit.visualization.exceptions import VisualizationError
+    from qiskit.visualization.bloch import Bloch
+    from qiskit.visualization.utils import _validate_input_state
 
 if HAS_MATPLOTLIB:
     class Arrow3D(FancyArrowPatch):
