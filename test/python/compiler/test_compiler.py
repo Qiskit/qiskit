@@ -165,8 +165,8 @@ class TestCompiler(QiskitTestCase):
                              basis_gates=['u2'],
                              initial_layout=layout)
         mapped_qubits = []
-        for gate in new_circ.data:
-            mapped_qubits.append(gate.qargs[0][1])
+        for _, qargs, _ in new_circ.data:
+            mapped_qubits.append(qargs[0][1])
 
         self.assertEqual(mapped_qubits, [4, 6, 10])
 
