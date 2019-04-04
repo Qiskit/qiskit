@@ -131,7 +131,9 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
 
     Args:
         times: Times to output pulse for.
-        amp: Pulse amplitude at `center`.
+        amp: Pulse amplitude at `center`. If `zero_at` is set pulse amplitude at center
+            will be `amp-\Omega_g(zero_at)` unless `rescale_amp` is set in which case
+            all samples will be rescaled such that the center amplitude will be `amp`
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
         zero_at: Subtract baseline to gaussian pulses to make sure $\Omega_g(zero_at)=0$ is
@@ -178,8 +180,6 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float
                     fall_zero_at: Union[None, int] = None) -> np.ndarray:
     """Continuous gaussian square pulse.
 
-    Rise of pulse is gaussian followed by square pulse and finall guassian fall.
-
     Args:
         times: Times to output pulse for.
         amp: Pulse amplitude.
@@ -204,7 +204,7 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float
 
 def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: float,
          zero_at: Union[None, int] = None, rescale_amp: bool = False) -> np.ndarray:
-    r"""Continuous Y-only correction DRAG pulse for standard nonlinear oscilattor (SNO) [1].
+    r"""Continuous Y-only correction DRAG pulse for standard nonlinear oscillator (SNO) [1].
 
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.
         Analytic control methods for high-fidelity unitary operations
