@@ -6,3 +6,5 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Module for builtin pulses."""
+
+from .discrete import *
