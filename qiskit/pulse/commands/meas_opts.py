@@ -48,6 +48,9 @@ class MeasOpts:
         """
         return {'name': self.name, 'params': self.params}
 
+    def __repr__(self):
+        return '%s(%s)' % (self.__class__.__name__, self.name)
+
 
 class Discriminator(MeasOpts):
     """Discriminator."""
