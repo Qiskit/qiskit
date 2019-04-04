@@ -7,7 +7,8 @@
 
 # pylint: disable=missing-return-doc
 
-"""Sampler module for sampling of continuous pulses to discrete pulses.
+"""Sampler decorator module for sampling of continuous pulses to discrete pulses to be
+exposed to user.
 
 Some atypical boilerplate has been added to solve the problem of decorators not preserving
 their wrapped function signatures. Below we explain the problem that samplers solve and how
@@ -18,7 +19,7 @@ A sampler is a function that takes an continuous pulse function with signature:
     def f(times: np.ndarray, *args, **kwargs) -> np.ndarray:
         ...
     ```
-and returns a new function
+and returns a new function:
     def f(duration: int, *args, **kwargs) -> SamplePulse:
         ...
 
@@ -126,6 +127,7 @@ import pydoc
 
 import numpy as np
 
+from qiskit.pulse.samplers import sampler_strategies
 import qiskit.pulse.commands as commands
 
 
@@ -223,6 +225,18 @@ def sampler(sample_function: Callable) -> Callable:
     return generate_sampler
 
 
+def left_sample_fun(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
+    """Left sample a continuous function.
+    Args:
+        continuous_pulse: Continuous pulse function to sample.
+        duration: Duration to sample for.
+        *args: Continuous pulse function args.
+        *kwargs: Continuous pulse function kwargs.
+    """
+    times = np.arange(duration)
+    return continuous_pulse(times, *args, **kwargs)
+
+
 def left(continuous_pulse: Callable) -> Callable:
     r"""Left sampling strategy decorator.
 
@@ -234,18 +248,8 @@ def left(continuous_pulse: Callable) -> Callable:
     Args:
         continuous_pulse: To sample.
     """
-    def _left(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
-        """Sampling strategy for decorator.
-        Args:
-            continuous_pulse: Continuous pulse function to sample.
-            duration: Duration to sample for.
-            *args: Continuous pulse function args.
-            *kwargs: Continuous pulse function kwargs.
-        """
-        times = np.arange(duration)
-        return continuous_pulse(times, *args, **kwargs)
 
-    return sampler(_left)(continuous_pulse)
+    return sampler(sampler_strategies.left_sample)(continuous_pulse)
 
 
 def right(continuous_pulse: Callable) -> Callable:
@@ -259,18 +263,8 @@ def right(continuous_pulse: Callable) -> Callable:
     Args:
         continuous_pulse: To sample.
     """
-    def _right(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
-        """Sampling strategy for decorator.
-        Args:
-            continuous_pulse: Continuous pulse function to sample.
-            duration: Duration to sample for.
-            *args: Continuous pulse function args.
-            *kwargs: Continuous pulse function kwargs.
-        """
-        times = np.arange(1, duration+1)
-        return continuous_pulse(times, *args, **kwargs)
 
-    return sampler(_right)(continuous_pulse)
+    return sampler(sampler_strategies.right_sample)(continuous_pulse)
 
 
 def midpoint(continuous_pulse: Callable) -> Callable:
@@ -284,15 +278,4 @@ def midpoint(continuous_pulse: Callable) -> Callable:
     Args:
         continuous_pulse: To sample.
     """
-    def _midpoint(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
-        """Sampling strategy for decorator.
-        Args:
-            continuous_pulse: Continuous pulse function to sample.
-            duration: Duration to sample for.
-            *args: Continuous pulse function args.
-            *kwargs: Continuous pulse function kwargs.
-        """
-        times = np.arange(1/2, duration + 1/2)
-        return continuous_pulse(times, *args, **kwargs)
-
-    return sampler(_midpoint)(continuous_pulse)
+    return sampler(sampler_strategies.midpoint_sample)(continuous_pulse)
