@@ -10,7 +10,7 @@
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
-class NumTensorFactor(AnalysisPass):
+class NumTensorFactors(AnalysisPass):
     """ An analysis pass for calculating the number of tensor factors of a DAG circuit.
     """
 

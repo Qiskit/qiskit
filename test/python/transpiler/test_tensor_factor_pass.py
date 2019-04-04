@@ -5,25 +5,25 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""NumTensorFactor pass testing"""
+"""NumTensorFactors pass testing"""
 
 import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler.passes import NumTensorFactor
+from qiskit.transpiler.passes import NumTensorFactors
 from qiskit.test import QiskitTestCase
 
 
 class TestNumTensorsFactorPass(QiskitTestCase):
-    """ Tests for NumTensorFactor analysis methods. """
+    """ Tests for NumTensorFactors analysis methods. """
 
     def test_empty_dag(self):
         """ Empty DAG has 0 number of tensor factors. """
         circuit = QuantumCircuit()
         dag = circuit_to_dag(circuit)
 
-        pass_ = NumTensorFactor()
+        pass_ = NumTensorFactors()
         _ = pass_.run(dag)
 
         self.assertEqual(pass_.property_set['num_tensor_factors'], 0)
@@ -42,7 +42,7 @@ class TestNumTensorsFactorPass(QiskitTestCase):
         circuit.cx(qr[1], qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = NumTensorFactor()
+        pass_ = NumTensorFactors()
         _ = pass_.run(dag)
 
         self.assertEqual(pass_.property_set['num_tensor_factors'], 1)
@@ -55,7 +55,7 @@ class TestNumTensorsFactorPass(QiskitTestCase):
         circuit.h(qr[1])
         dag = circuit_to_dag(circuit)
 
-        pass_ = NumTensorFactor()
+        pass_ = NumTensorFactors()
         _ = pass_.run(dag)
 
         self.assertEqual(pass_.property_set['num_tensor_factors'], 2)

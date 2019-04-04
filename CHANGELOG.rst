@@ -51,7 +51,7 @@ Added
   QobjHeader to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
 - Added new resource estimation passes: ``Depth``, ``Width``, ``Size``, ``CountOps``, and
-  ``NumTensorFactor``, all grouped in the ``ResourceEstimation`` analysis pass.
+  ``NumTensorFactors``, all grouped in the ``ResourceEstimation`` analysis pass.
 - Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
   operations on the given wire
 - Added new properties to an Instruction:
