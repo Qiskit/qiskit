@@ -241,7 +241,8 @@ class TestBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_preserve_barriers_for_measurement_ordering(self):
-        """If the circuit has a barrier to enforce a measurement order, preserve it in the output.
+        """If the circuit has a barrier to enforce a measurement order,
+        preserve it in the output.
 
          q:---[m]--|-------     q:---|--[m]--|-------
            ----|---|--[m]--  ->   ---|---|---|--[m]--
@@ -269,7 +270,8 @@ class TestBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_measures_followed_by_barriers_should_be_final(self):
-        """If a measurement is followed only by a barrier, insert the barrier before it.
+        """If a measurement is followed only by a barrier,
+        insert the barrier before it.
 
          q:---[H]--|--[m]--|-------     q:---[H]--|--[m]-|-------
            ---[H]--|---|---|--[m]--  ->   ---[H]--|---|--|--[m]--

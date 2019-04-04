@@ -24,11 +24,11 @@ import tempfile
 
 from PIL import Image
 
-from qiskit.tools.visualization import exceptions
-from qiskit.tools.visualization import _latex
-from qiskit.tools.visualization import _text
-from qiskit.tools.visualization import _utils
-from qiskit.tools.visualization import _matplotlib
+from qiskit.visualization import exceptions
+from qiskit.visualization import latex as _latex
+from qiskit.visualization import text as _text
+from qiskit.visualization import utils
+from qiskit.visualization import matplotlib as _matplotlib
 
 logger = logging.getLogger(__name__)
 
@@ -298,9 +298,9 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
-    qregs, cregs, ops = _utils._get_layered_instructions(circuit,
-                                                         reverse_bits=reverse_bits,
-                                                         justify=justify)
+    qregs, cregs, ops = utils._get_layered_instructions(circuit,
+                                                        reverse_bits=reverse_bits,
+                                                        justify=justify)
     text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
@@ -377,7 +377,7 @@ def _latex_circuit_drawer(circuit,
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
                                 base + '.pdf', base])
                 image = Image.open(base + '.png')
-                image = _utils._trim(image)
+                image = utils._trim(image)
                 os.remove(base + '.png')
                 if filename:
                     image.save(filename, 'PNG')
@@ -408,8 +408,8 @@ def _generate_latex_source(circuit, filename=None,
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qregs, cregs, ops = _utils._get_instructions(circuit,
-                                                 reverse_bits=reverse_bits)
+    qregs, cregs, ops = utils._get_instructions(circuit,
+                                                reverse_bits=reverse_bits)
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits)
@@ -453,9 +453,9 @@ def _matplotlib_circuit_drawer(circuit,
         matplotlib.figure: a matplotlib figure object for the circuit diagram
     """
 
-    qregs, cregs, ops = _utils._get_layered_instructions(circuit,
-                                                         reverse_bits=reverse_bits,
-                                                         justify=justify)
+    qregs, cregs, ops = utils._get_layered_instructions(circuit,
+                                                        reverse_bits=reverse_bits,
+                                                        justify=justify)
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
                                        reverse_bits=reverse_bits)

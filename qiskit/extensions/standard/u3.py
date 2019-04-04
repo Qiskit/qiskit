@@ -15,50 +15,38 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.ubase import UBase
 
 
 class U3Gate(Gate):
     """Two-pulse single-qubit gate."""
 
-    def __init__(self, theta, phi, lam, qubit, circ=None):
+    def __init__(self, theta, phi, lam):
         """Create new two-pulse single qubit gate."""
-        super().__init__("u3", [theta, phi, lam], [qubit], circ)
+        super().__init__("u3", 1, [theta, phi, lam])
 
-    def _define_decompositions(self):
-        decomposition = DAGCircuit()
+    def _define(self):
+        definition = []
         q = QuantumRegister(1, "q")
-        decomposition.add_qreg(q)
         rule = [
-            UBase(self.params[0], self.params[1], self.params[2], q[0])
+            (UBase(self.params[0], self.params[1], self.params[2]), [q[0]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate.
 
         u3(theta, phi, lamb)^dagger = u3(-theta, -lam, -phi)
         """
-        self.params[0] = -self.params[0]
-        phi = self.params[1]
-        self.params[1] = -self.params[2]
-        self.params[2] = -phi
-        self._decompositions = None
-        return self
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u3(self.params[0], self.params[1], self.params[2],
-                                self.qargs[0]))
+        return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 
 @_op_expand(1)
 def u3(self, theta, phi, lam, q):
     """Apply u3 to q."""
-    return self._attach(U3Gate(theta, phi, lam, q, self))
+    return self.append(U3Gate(theta, phi, lam), [q], [])
 
 
 QuantumCircuit.u3 = u3
