@@ -176,6 +176,11 @@ class PassManager():
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
+    def dump_passes(self):
+        ret = []
+        for pass_ in self.working_list:
+                ret.append(pass_.dump_passes())
+        return ret
 
 class FlowController():
     """This class is a base class for multiple types of working list. When you iterate on it, it
@@ -190,6 +195,15 @@ class FlowController():
     def __iter__(self):
         for pass_ in self.passes:
             yield pass_
+
+    def dump_passes(self):
+        ret = {'options': self.options, 'passes':[], 'type':type(self)}
+        for pass_ in self.passes:
+            if isinstance(pass_, FlowController):
+                ret['passes'].append(pass_.dump_passes())
+            else:
+                ret['passes'].append(pass_)
+        return ret
 
     @classmethod
     def add_flow_controller(cls, name, controller):
