@@ -22,7 +22,7 @@ else ifeq ($(NPROCS), 3)
 else ifeq ($(NPROCS), 0)
 	CONCURRENCY := 0
 else
-	CONCURRENCY := $(shell echo "$(NPROCS) 2" | awk '{print $$1 / $$2}')
+	CONCURRENCY := $(shell echo "$(NPROCS) 2" | awk '{printf "%.0f", $$1 / $$2}')
 endif
 
 .PHONY: env lint test test_record test_mock test_ci
