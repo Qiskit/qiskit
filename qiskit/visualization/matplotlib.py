@@ -147,7 +147,7 @@ class MatplotlibDrawer:
         return self._ast
 
     def _custom_multiqubit_gate(self, xy, fc=None, wide=True, text=None,
-                         subtext=None):
+                                subtext=None):
         n_qubits = len(xy)
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
@@ -197,7 +197,7 @@ class MatplotlibDrawer:
         if fc:
             _fc = fc
         elif text and text in self._style.dispcol:
-                _fc = self._style.dispcol[text]
+            _fc = self._style.dispcol[text]
         else:
             _fc = self._style.gc
 
