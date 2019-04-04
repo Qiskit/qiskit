@@ -15,7 +15,7 @@ from .depth import Depth
 from .size import Size
 from .width import Width
 from .count_ops import CountOps
-from .num_tensor_factor import NumTensorFactor
+from .num_tensor_factors import NumTensorFactors
 from .dag_fixed_point import DAGFixedPoint
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
