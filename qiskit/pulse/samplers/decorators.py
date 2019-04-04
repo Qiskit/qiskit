@@ -127,7 +127,7 @@ import pydoc
 
 import numpy as np
 
-from qiskit.pulse.samplers import sampler_strategies
+from qiskit.pulse.samplers import strategies
 import qiskit.pulse.commands as commands
 
 
@@ -249,7 +249,7 @@ def left(continuous_pulse: Callable) -> Callable:
         continuous_pulse: To sample.
     """
 
-    return sampler(sampler_strategies.left_sample)(continuous_pulse)
+    return sampler(strategies.left_sample)(continuous_pulse)
 
 
 def right(continuous_pulse: Callable) -> Callable:
@@ -264,7 +264,7 @@ def right(continuous_pulse: Callable) -> Callable:
         continuous_pulse: To sample.
     """
 
-    return sampler(sampler_strategies.right_sample)(continuous_pulse)
+    return sampler(strategies.right_sample)(continuous_pulse)
 
 
 def midpoint(continuous_pulse: Callable) -> Callable:
@@ -278,4 +278,4 @@ def midpoint(continuous_pulse: Callable) -> Callable:
     Args:
         continuous_pulse: To sample.
     """
-    return sampler(sampler_strategies.midpoint_sample)(continuous_pulse)
+    return sampler(strategies.midpoint_sample)(continuous_pulse)
