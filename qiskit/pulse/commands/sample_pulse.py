@@ -32,7 +32,11 @@ class SamplePulse(PulseCommand):
 
         super().__init__(duration=len(samples), name=_name)
 
-        self.samples = samples
+        self._samples = samples
+
+    @property
+    def samples(self):
+        return self._samples
 
     def draw(self, **kwargs):
         """Plot the interpolated envelope of pulse.
@@ -50,7 +54,7 @@ class SamplePulse(PulseCommand):
         """
         from qiskit.tools.visualization import pulse_drawer
 
-        return pulse_drawer(self.samples, self.duration, **kwargs)
+        return pulse_drawer(self._samples, self.duration, **kwargs)
 
     def __eq__(self, other):
         """Two SamplePulses are the same if they are of the same type
@@ -62,11 +66,13 @@ class SamplePulse(PulseCommand):
         Returns:
             bool: are self and other equal.
         """
-        if type(self) is type(other) and \
-                self.name == other.name and \
-                (self.samples == other.samples).all():
+        if super().__eq__(other) and \
+                (self._samples == other._samples).all():
             return True
         return False
+
+    def __hash__(self):
+        return hash((super().__hash__(), self._samples.tostring()))
 
     def __repr__(self):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
