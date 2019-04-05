@@ -45,7 +45,7 @@ class ExperimentResultSchema(BaseSchema):
     # Optional fields.
     status = String()
     seed = Integer()
-    meas_level = Integer(required=True, validate=Range(min=0, max=2))
+    meas_level = Integer(validate=Range(min=0, max=2))
     meas_return = String(validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                  MeasReturnType.SINGLE)))
     header = Nested(ObjSchema)
