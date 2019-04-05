@@ -50,6 +50,8 @@ Added
 - ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
   QobjHeader to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
+- Added new resource estimation passes: ``Depth``, ``Width``, ``Size``, ``CountOps``, and
+  ``NumTensorFactors``, all grouped in the ``ResourceEstimation`` analysis pass.
 - Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
   operations on the given wire
 - Added new properties to an Instruction:
@@ -61,9 +63,10 @@ Added
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
 
-
 Changed
 -------
+
+- The most connected subset in DenseLayout is now reduced bandwidth (#2021).
 - plot_histogram now allows sorting by Hamming distance from target_string (#2064).
 - FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
   that returns a `SamplePulse` when called. (#2043)
@@ -113,7 +116,10 @@ Changed
   Instead, you must first modify the gate then attach it (#1816).
 - ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a 
   (instruction, qarg, carg) (#1816).
-
+- The visualization subpackage has moved from ``qiskit.tools.visualization`` to
+  ``qiskit.visualization``. The public API (which was declared stable in
+  the 0.7 release) is still accessible off of ``qiskit.tools.visualization``.
+  (#1878)
 
 Deprecated
 ----------

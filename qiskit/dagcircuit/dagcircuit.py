@@ -631,7 +631,8 @@ class DAGCircuit:
         if not nx.is_directed_acyclic_graph(self.multi_graph):
             raise DAGCircuitError("not a DAG")
 
-        return nx.dag_longest_path_length(self.multi_graph) - 1
+        depth = nx.dag_longest_path_length(self.multi_graph) - 1
+        return depth if depth != -1 else 0
 
     def width(self):
         """Return the total number of qubits used by the circuit."""
@@ -1122,6 +1123,10 @@ class DAGCircuit:
                           ' use a DAGNode instead',
                           DeprecationWarning, 2)
             node = self._id_to_node[node]
+
+        if node.type != 'op':
+            raise DAGCircuitError('The method remove_op_node only works on op node types. An "%s" '
+                                  'node type was wrongly provided.' % node.type)
 
         pred_map, succ_map = self._make_pred_succ_maps(node)
 
