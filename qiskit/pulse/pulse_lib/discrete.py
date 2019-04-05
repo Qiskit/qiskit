@@ -143,16 +143,13 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float) -> SamplePulse:
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude at `center`.
-        center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
-        ret_gaussian: Return gaussian with which derivative was taken with.
     """
     center = duration/2
     return samplers.left(continuous.gaussian_deriv)(duration, amp, center, sigma)
 
 
-def gaussian_square(duration: int, amp: complex, center: float,
-                    sigma: float, risefall: int) -> SamplePulse:
+def gaussian_square(duration: int, amp: complex, sigma: float, risefall: int) -> SamplePulse:
     """Generates gaussian square `SamplePulse`.
 
     Centered at `duration/2` and zeroed at `t=-1` and `t=duration+1` to prevent
@@ -163,8 +160,6 @@ def gaussian_square(duration: int, amp: complex, center: float,
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude.
-        center: Center of the square pulse component.
-        width: Width of the square pulse component.
         sigma: Width (standard deviation) of gaussian rise/fall portion of the pulse.
         risefall: Number of samples over which pulse rise and fall happen. Width of
             square portion of pulse will be `duration-2*risefall`.
@@ -176,7 +171,7 @@ def gaussian_square(duration: int, amp: complex, center: float,
                     rise_zero_at=-1, fall_zero_at=duration+1)
 
 
-def drag(duration: int, amp: complex, center: float, sigma: float, beta: float) -> SamplePulse:
+def drag(duration: int, amp: complex, sigma: float, beta: float) -> SamplePulse:
     r"""Generates Y-only correction DRAG `SamplePulse` for standard nonlinear oscillator (SNO) [1].
 
     Centered at `duration/2` and zeroed at `t=-1` to prevent large initial discontinuity.
@@ -191,16 +186,10 @@ def drag(duration: int, amp: complex, center: float, sigma: float, beta: float) 
     Args:
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude at `center`.
-        center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
         beta: Y correction amplitude. For the SNO this is $\beta=-\frac{\lambda_1^2}{4\Delta_2}$.
             Where $\lambds_1$ is the relative coupling strength between the first excited and second
             excited states and $\Delta_2$ is the detuning between the resepective excited states.
-        zero_at: Subtract baseline to gaussian pulses to make sure $\Omega_g(zero_at)=0$ is
-                 satisfied. Note this will also cause $\Omega_g(2*center-zero_at)=0$.
-                 This is used to avoid large discontinuities at the start of the gaussian pulse.
-        rescale_amp: If `zero_at=True` and `rescale_amp=True` the pulse will be rescaled so that
-                     $\Omega_g(center)-\Omega_g(zero_at)=amp$.
     """
     center = duration/2
     return samplers.left(continuous.drag)(duration, amp, center, sigma, beta,
