@@ -176,7 +176,12 @@ class PassManager():
             else:
                 self.valid_passes.intersection_update(set(pass_.preserves))
 
-    def dump_passes(self):
+    def passes(self):
+        """
+        Returns a list structure of the appended passes and its options.
+
+        Returns (list): The appended passes.
+        """
         ret = []
         for pass_ in self.working_list:
             ret.append(pass_.dump_passes())
@@ -199,6 +204,11 @@ class FlowController():
             yield pass_
 
     def dump_passes(self):
+        """
+        Fetches the passes added to this flow controller.
+
+        Returns (dict): {'options': self.options, 'passes': [passes], 'type': type(self)}
+        """
         ret = {'options': self.options, 'passes': [], 'type': type(self)}
         for pass_ in self._passes:
             if isinstance(pass_, FlowController):

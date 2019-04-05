@@ -513,7 +513,7 @@ class TestControlFlowPlugin(SchedulerTestCase):
 
 
 class TestDumpPasses(SchedulerTestCase):
-    """ Testing the dump_passes method. """
+    """ Testing the passes method. """
 
     def test_passes(self):
         """Dump passes in different FlowControllerLinear"""
@@ -531,7 +531,7 @@ class TestDumpPasses(SchedulerTestCase):
                                  'max_iteration': 1000},
                      'passes': [PassB_TP_RA_PA()],
                      'type': FlowControllerLinear}]
-        self.assertEqual(expected, passmanager.dump_passes())
+        self.assertEqual(expected, passmanager.passes())
 
     def test_passes_in_linear(self):
         """Dump passes in the same FlowControllerLinear"""
@@ -549,7 +549,7 @@ class TestDumpPasses(SchedulerTestCase):
                                 PassD_TP_NR_NP(argument1=[1, 2]),
                                 PassB_TP_RA_PA()],
                      'type': FlowControllerLinear}]
-        self.assertEqual(expected, passmanager.dump_passes())
+        self.assertEqual(expected, passmanager.passes())
 
     def test_control_flow_plugin(self):
         """ Dump passes in a custom flow controller. """
@@ -563,7 +563,7 @@ class TestDumpPasses(SchedulerTestCase):
                      'passes': [PassB_TP_RA_PA(),
                                 PassC_TP_RA_PA()],
                      'type': DoXTimesController}]
-        self.assertEqual(expected, passmanager.dump_passes())
+        self.assertEqual(expected, passmanager.passes())
 
     def test_conditional_and_loop(self):
         """ Dump passes with a conditional and a loop"""
@@ -588,7 +588,7 @@ class TestDumpPasses(SchedulerTestCase):
                                 PassA_TP_NR_NP(),
                                 PassF_reduce_dag_property()],
                      'type': ConditionalController}]
-        self.assertEqual(expected, passmanager.dump_passes())
+        self.assertEqual(expected, passmanager.passes())
 
 
 if __name__ == '__main__':
