@@ -12,7 +12,9 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-import qiskit.pulse.pulses.continuous as continuous
+import qiskit.pulse_lib.pulses as pulses
+import pulse_lib.discrete as discrete
+import pulse_lib.continuous as continuous
 
 
 class TestDiscretePulses(QiskitTestCase):

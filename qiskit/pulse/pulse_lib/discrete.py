@@ -10,7 +10,7 @@
 """Module for builtin discrete pulses."""
 
 from qiskit.pulse.commands import SamplePulse
-from qiskit.pulse.pulses import continuous
+from qiskit.pulse.pulse_lib import continuous
 from qiskit.pulse import samplers
 
 
