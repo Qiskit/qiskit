@@ -16,8 +16,8 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import transpile_dag
 from qiskit.transpiler import TranspilerAccessError, TranspilerError
-from qiskit.transpiler.passmanager import DoWhileController, ConditionalController, FlowController, \
-    FlowControllerLinear
+from qiskit.transpiler.passmanager import DoWhileController, ConditionalController, \
+    FlowController, FlowControllerLinear
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
