@@ -26,9 +26,9 @@ class MergeAdjacentBarriers(TransformationPass):
         barriers = [nd for nd in dag.nodes_in_topological_order() if nd.name == 'barrier']
 
         # get dict of barrier merges
-        node_to_barrier = MergeAdjacentBarriers._collect_potential_merges(dag, barriers)
+        node_to_barrier_qubits = MergeAdjacentBarriers._collect_potential_merges(dag, barriers)
 
-        if not node_to_barrier:
+        if not node_to_barrier_qubits:
             return dag
 
         # add the merged barriers to a new DAG
@@ -44,14 +44,17 @@ class MergeAdjacentBarriers(TransformationPass):
 
             if node.type == 'op':
                 if node.name == 'barrier':
-                    if node in node_to_barrier:
-                        new_dag.apply_operation_back(node_to_barrier[node])
+                    if node in node_to_barrier_qubits:
+                        qubits = node_to_barrier_qubits[node]
+                        # qubits are stored as a set, need to convert to a list
+                        new_dag.apply_operation_back(Barrier(len(qubits)), qargs=list(qubits))
                 else:
                     # copy the condition over too
                     if node.condition:
-                        new_dag.apply_operation_back(node.op, condition=node.condition)
+                        new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs,
+                                                     condition=node.condition)
                     else:
-                        new_dag.apply_operation_back(node.op)
+                        new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
         return new_dag
 
     @staticmethod
@@ -66,7 +69,7 @@ class MergeAdjacentBarriers(TransformationPass):
 
         # mapping from the node that will be the main barrier to the
         # barrier object that gets built up
-        node_to_barrier = {}
+        node_to_barrier_qubits = {}
 
         # Start from the first barrier
         current_barrier = barriers[0]
@@ -77,7 +80,7 @@ class MergeAdjacentBarriers(TransformationPass):
         current_ancestors = dag.ancestors(current_barrier)
         current_descendants = dag.descendants(current_barrier)
 
-        barrier_to_add = Barrier(qubits=current_qubits)
+        barrier_to_add = Barrier(len(current_qubits))
 
         for next_barrier in barriers[1:]:
 
@@ -101,25 +104,25 @@ class MergeAdjacentBarriers(TransformationPass):
                 current_qubits = current_qubits | next_qubits
 
                 # update the barrier that will be added back to include this barrier
-                barrier_to_add = Barrier(qubits=current_qubits)
+                barrier_to_add = Barrier(len(current_qubits))
 
             else:
                 # store the previously made barrier
                 if barrier_to_add:
-                    node_to_barrier[end_of_barrier] = barrier_to_add
+                    node_to_barrier_qubits[end_of_barrier] = current_qubits
 
                 # reset the properties
                 current_qubits = set(next_barrier.qargs)
                 current_ancestors = dag.ancestors(next_barrier)
                 current_descendants = dag.descendants(next_barrier)
 
-                barrier_to_add = Barrier(qubits=current_qubits)
+                barrier_to_add = Barrier(len(current_qubits))
                 current_barrier_nodes = []
 
             end_of_barrier = next_barrier
             current_barrier_nodes.append(end_of_barrier)
 
         if barrier_to_add:
-            node_to_barrier[end_of_barrier] = barrier_to_add
+            node_to_barrier_qubits[end_of_barrier] = current_qubits
 
-        return node_to_barrier
+        return node_to_barrier_qubits
