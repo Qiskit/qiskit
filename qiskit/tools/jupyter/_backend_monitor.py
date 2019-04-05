@@ -19,7 +19,7 @@ from matplotlib import cm                               # pylint: disable=import
 from matplotlib.patches import Circle                   # pylint: disable=import-error
 import ipywidgets as widgets                            # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
-from qiskit.tools.visualization._gate_map import plot_gate_map
+from qiskit.visualization.gate_map import plot_gate_map
 
 try:
     # pylint: disable=import-error,no-name-in-module

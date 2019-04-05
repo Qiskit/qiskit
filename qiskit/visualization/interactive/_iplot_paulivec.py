@@ -6,13 +6,15 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Hinton visualization
+Paulivec visualization
 """
 from string import Template
 import sys
 import time
 import re
-from qiskit.tools.visualization._utils import _validate_input_state
+import numpy as np
+from qiskit.quantum_info import pauli_group
+from qiskit.visualization.utils import _validate_input_state
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:
         from IPython.core.display import display, HTML
@@ -20,21 +22,36 @@ if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
         print("Error importing IPython.core.display")
 
 
-def iplot_state_hinton(rho, figsize=None):
-    """ Create a hinton representation.
+def process_data(rho):
+    """ Sort rho data """
+    result = dict()
 
-        Graphical representation of the input array using a 2D city style
-        graph (hinton).
+    num = int(np.log2(len(rho)))
+    labels = list(map(lambda x: x.to_label(), pauli_group(num)))
+    values = list(map(lambda x: np.real(np.trace(np.dot(x.to_matrix(), rho))),
+                      pauli_group(num)))
+
+    for position, label in enumerate(labels):
+        result[label] = values[position]
+    return result
+
+
+def iplot_state_paulivec(rho, figsize=None, slider=False, show_legend=False):
+    """ Create a paulivec representation.
+
+        Graphical representation of the input array.
 
         Args:
-            rho (array): Density matrix
+            rho (array): State vector or density matrix.
             figsize (tuple): Figure size in pixels.
+            slider (bool): activate slider
+            show_legend (bool): show legend of graph content
     """
 
     # HTML
     html_template = Template("""
     <p>
-        <div id="hinton_$divNumber"></div>
+        <div id="paulivec_$divNumber"></div>
     </p>
     """)
 
@@ -48,37 +65,30 @@ def iplot_state_hinton(rho, figsize=None):
         });
 
         require(["qVisualization"], function(qVisualizations) {
-            qVisualizations.plotState("hinton_$divNumber",
-                                      "hinton",
+            qVisualizations.plotState("paulivec_$divNumber",
+                                      "paulivec",
                                       $executions,
                                       $options);
         });
     </script>
     """)
     rho = _validate_input_state(rho)
+    # set default figure size if none given
     if figsize is None:
-        options = {}
-    else:
-        options = {'width': figsize[0], 'height': figsize[1]}
+        figsize = (7, 5)
+
+    options = {'width': figsize[0], 'height': figsize[1],
+               'slider': int(slider), 'show_legend': int(show_legend)}
 
     # Process data and execute
     div_number = str(time.time())
     div_number = re.sub('[.]', '', div_number)
 
-    # Process data and execute
-    real = []
-    imag = []
-    for xvalue in rho:
-        row_real = []
-        col_imag = []
-
-        for value_real in xvalue.real:
-            row_real.append(float(value_real))
-        real.append(row_real)
-
-        for value_imag in xvalue.imag:
-            col_imag.append(float(value_imag))
-        imag.append(col_imag)
+    data_to_plot = []
+    rho_data = process_data(rho)
+    data_to_plot.append(dict(
+        data=rho_data
+    ))
 
     html = html_template.substitute({
         'divNumber': div_number
@@ -86,7 +96,7 @@ def iplot_state_hinton(rho, figsize=None):
 
     javascript = javascript_template.substitute({
         'divNumber': div_number,
-        'executions': [{'data': real}, {'data': imag}],
+        'executions': data_to_plot,
         'options': options
     })
 

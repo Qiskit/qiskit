@@ -281,3 +281,37 @@ class Layout():
         for reg in regs:
             layout.add_register(reg)
         return layout
+
+    @staticmethod
+    def generate_from_intlist(int_list, *qregs):
+        """Converts a list of integers to a Layout
+        mapping virtual qubits (index of the list) to
+        physical qubits (the list values).
+
+        Args:
+            int_list (list): A list of integers.
+            *qregs (QuantumRegisters): The quantum registers to apply
+                the layout to.
+        Returns:
+            Layout: The corresponding Layout object.
+        Raises:
+            LayoutError: Invalid input layout.
+        """
+        # check for duplicate values in list
+        if len(int_list) != len(set(int_list)):
+            raise LayoutError('Duplicate values not permitted in integer layout.')
+        n_qubits = sum(reg.size for reg in qregs)
+        # Check if list is too short to cover all qubits
+        if len(int_list) < n_qubits:
+            err_msg = 'Integer list length must equal number of qubits in circuit.'
+            raise LayoutError(err_msg)
+        out = Layout()
+        main_idx = 0
+        for qreg in qregs:
+            for idx in range(qreg.size):
+                out[(qreg, idx)] = int_list[main_idx]
+                main_idx += 1
+        if main_idx != len(int_list):
+            for int_item in int_list[main_idx:]:
+                out[int_item] = None
+        return out

@@ -38,7 +38,6 @@ class BasicSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.swap_gate = SwapGate
         self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
@@ -95,8 +94,9 @@ class BasicSwap(TransformationPass):
                                 swap_layer.add_qreg(qreg)
 
                         # create the swap operation
-                        swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
-                                                        qargs=[qubit_1, qubit_2])
+                        swap_layer.apply_operation_back(SwapGate(),
+                                                        qargs=[qubit_1, qubit_2],
+                                                        cargs=[])
 
                     # layer insertion
                     edge_map = current_layout.combine_into_edge_map(self.initial_layout)
