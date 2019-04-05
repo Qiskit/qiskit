@@ -14,7 +14,7 @@ Visualization functions for measurement counts.
 from collections import Counter, OrderedDict
 import functools
 import numpy as np
-from ._matplotlib import HAS_MATPLOTLIB
+from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:

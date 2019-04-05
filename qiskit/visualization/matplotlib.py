@@ -26,8 +26,8 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit.tools.visualization import exceptions
-from qiskit.tools.visualization import _qcstyle
+from qiskit.visualization import exceptions
+from qiskit.visualization import qcstyle
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,7 @@ class MatplotlibDrawer:
             'ymax': 0,
         }
 
-        self._style = _qcstyle.QCStyle()
+        self._style = qcstyle.QCStyle()
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         if style:

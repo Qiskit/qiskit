@@ -14,7 +14,8 @@ from inspect import signature
 import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.tools.visualization import _utils, circuit_drawer
+from qiskit.visualization import utils
+from qiskit.visualization import circuit_drawer
 from qiskit.test import QiskitTestCase
 
 logger = logging.getLogger(__name__)
@@ -181,7 +182,7 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_instructions(self):
         """ _get_instructions without reverse_bits """
-        (qregs, cregs, ops) = _utils._get_instructions(self.circuit)
+        (qregs, cregs, ops) = utils._get_instructions(self.circuit)
 
         exp = [('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], []),
                ('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
@@ -198,7 +199,7 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_instructions_reverse_bits(self):
         """ _get_instructions with reverse_bits=True """
-        (qregs, cregs, ops) = _utils._get_instructions(self.circuit, reverse_bits=True)
+        (qregs, cregs, ops) = utils._get_instructions(self.circuit, reverse_bits=True)
 
         exp = [('cx', [(QuantumRegister(2, 'qr1'), 0), (QuantumRegister(2, 'qr1'), 1)], []),
                ('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
