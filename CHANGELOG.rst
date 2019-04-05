@@ -60,6 +60,8 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
+- Added an ``PassManager.passes()`` method that returns a list of the passes that
+  have been added to the pass manager, including options and flow controllers.
 
 
 Changed
