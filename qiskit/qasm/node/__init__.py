@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """QASM nodes."""
+
 from .barrier import Barrier
 from .binaryop import BinaryOp
 from .binaryoperator import BinaryOperator

@@ -7,9 +7,8 @@
 
 # pylint: disable=invalid-name
 
-"""
-Node for an OPENQASM indexed id.
-"""
+"""Node for an OPENQASM indexed id."""
+
 from .node import Node
 
 

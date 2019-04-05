@@ -7,9 +7,8 @@
 
 # pylint: disable=invalid-name
 
-"""
-Node for an OPENQASM qreg statement.
-"""
+"""Node for an OPENQASM qreg statement."""
+
 from .node import Node
 
 

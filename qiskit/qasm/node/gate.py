@@ -7,9 +7,8 @@
 
 # pylint: disable=invalid-name
 
-"""
-Node for an OPENQASM gate definition.
-"""
+"""Node for an OPENQASM gate definition."""
+
 from .node import Node
 
 

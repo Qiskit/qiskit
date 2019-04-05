@@ -7,9 +7,8 @@
 
 # pylint: disable=invalid-name
 
-"""
-Node for an OPENQASM creg statement.
-"""
+"""Node for an OPENQASM creg statement."""
+
 from .node import Node
 
 

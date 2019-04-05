@@ -7,9 +7,8 @@
 
 # pylint: disable=invalid-name
 
-"""
-Node for an OPENQASM external function.
-"""
+"""Node for an OPENQASM external function."""
+
 import sympy
 from .node import Node
 from .nodeexception import NodeException
