@@ -23,7 +23,7 @@ class FrameChange(PulseCommand):
                 The allowable precision is device specific.
         """
 
-        super(FrameChange, self).__init__(duration=0)
+        super(FrameChange, self).__init__(duration=0, name='fc')
 
         self.phase = phase
 

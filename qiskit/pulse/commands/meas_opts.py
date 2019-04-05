@@ -39,11 +39,3 @@ class MeasOpts:
                 self.params == other.params:
             return True
         return False
-
-    def to_dict(self):
-        """Convert measurement option object to dictionary.
-
-        Returns:
-            dict: A dictionary of measurement option.
-        """
-        return {'name': self.name, 'params': self.params}

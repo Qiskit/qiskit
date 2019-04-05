@@ -11,5 +11,5 @@
 
 from .run_config import RunConfig
 from .transpile_config import TranspileConfig
-from .assembler import assemble_circuits, assemble_schedules
+from .assembler import assemble_circuits
 from .transpiler import transpile

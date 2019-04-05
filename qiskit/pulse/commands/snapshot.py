@@ -25,7 +25,7 @@ class Snapshot(PulseCommand):
                 document for simulators.
         """
 
-        super(Snapshot, self).__init__(duration=0)
+        super(Snapshot, self).__init__(duration=0, name='snapshot')
 
         self.label = label
         self.type = snap_type

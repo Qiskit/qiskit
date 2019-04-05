@@ -17,9 +17,7 @@ from qiskit.pulse.exceptions import CommandsError
 class PulseCommand:
     """Super class of command group."""
 
-    pulseIndex = 0
-
-    def __init__(self, duration, name=None):
+    def __init__(self, duration, name):
         """Create new pulse commands.
 
         Args:
@@ -34,11 +32,7 @@ class PulseCommand:
         else:
             raise CommandsError('Pulse duration should be integer.')
 
-        if name:
-            self.name = name
-        else:
-            self.name = 'p%d' % PulseCommand.pulseIndex
-            PulseCommand.pulseIndex += 1
+        self.name = name
 
     def __eq__(self, other):
         """Two PulseCommands are the same if they are of the same type
@@ -55,7 +49,3 @@ class PulseCommand:
                 self.name == other.name:
             return True
         return False
-
-    def __repr__(self):
-        return '%s(name=%s, duration=%d)' % (self.__class__.__name__,
-                                             self.name, self.duration)

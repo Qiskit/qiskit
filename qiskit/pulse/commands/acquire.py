@@ -34,7 +34,7 @@ class Acquire(PulseCommand):
             CommandsError: when invalid discriminator or kernel object is input.
         """
 
-        super(Acquire, self).__init__(duration=duration)
+        super(Acquire, self).__init__(duration=duration, name='acquire')
 
         if discriminator:
             if isinstance(discriminator, Discriminator):
