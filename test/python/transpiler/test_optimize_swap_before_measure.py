@@ -115,7 +115,7 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(
             [OptimizeSwapBeforeMeasure(), CountOperations(), FixedPoint('amount_of_operations')],
-            do_while=lambda property_set: not property_set['fixed_point']['amount_of_operations'])
+            do_while=lambda property_set: not property_set['amount_of_operations_fixed_point'])
         after = transpile_dag(dag, pass_manager=pass_manager)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -144,7 +144,7 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         pass_manager = PassManager()
         pass_manager.append(
             [OptimizeSwapBeforeMeasure(), CountOperations(), FixedPoint('amount_of_operations')],
-            do_while=lambda property_set: not property_set['fixed_point']['amount_of_operations'])
+            do_while=lambda property_set: not property_set['amount_of_operations_fixed_point'])
         after = transpile_dag(dag, pass_manager=pass_manager)
 
         self.assertEqual(circuit_to_dag(expected), after)
