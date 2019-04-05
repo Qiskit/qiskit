@@ -21,7 +21,7 @@ class Id(Node):
     def __init__(self, id, line, file):
         """Create the id node."""
         # pylint: disable=redefined-builtin
-        Node.__init__(self, "id", None, None)
+        super().__init__("id", None, None)
         self.name = id
         self.line = line
         self.file = file

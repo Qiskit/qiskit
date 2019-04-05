@@ -18,7 +18,7 @@ class ExpressionList(Node):
 
     def __init__(self, children):
         """Create the expression list node."""
-        Node.__init__(self, 'expression_list', children, None)
+        super().__init__('expression_list', children, None)
 
     def size(self):
         """Return the number of expressions."""

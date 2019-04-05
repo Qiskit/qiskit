@@ -26,7 +26,7 @@ class UnaryOperator(Node):
     """
     def __init__(self, operation):
         """Create the operator node."""
-        Node.__init__(self, 'unary_operator', None, None)
+        super().__init__('unary_operator', None, None)
         self.value = operation
 
     def operation(self):

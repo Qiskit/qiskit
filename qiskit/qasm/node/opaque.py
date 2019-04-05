@@ -23,7 +23,7 @@ class Opaque(Node):
 
     def __init__(self, children):
         """Create the opaque gate node."""
-        Node.__init__(self, 'opaque', children, None)
+        super().__init__('opaque', children, None)
         self.id = children[0]
         # The next three fields are required by the symbtab
         self.name = self.id.name

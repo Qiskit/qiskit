@@ -17,7 +17,7 @@ class Format(Node):
 
     def __init__(self, value):
         """Create the version node."""
-        Node.__init__(self, "format", None, None)
+        super().__init__("format", None, None)
         parts = re.match(r'(\w+)\s+(\d+)\.(\d+)', value)
         self.language = parts.group(1)
         self.majorversion = parts.group(2)

@@ -29,7 +29,7 @@ class BinaryOperator(Node):
     """
     def __init__(self, operation):
         """Create the operator node."""
-        Node.__init__(self, 'operator', None, None)
+        super().__init__('operator', None, None)
         self.value = operation
 
     def operation(self):

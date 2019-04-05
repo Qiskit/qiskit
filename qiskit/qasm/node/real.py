@@ -21,7 +21,7 @@ class Real(Node):
     def __init__(self, id):
         """Create the real node."""
         # pylint: disable=redefined-builtin
-        Node.__init__(self, "real", None, None)
+        super().__init__("real", None, None)
         self.value = id
 
     def to_string(self, indent):

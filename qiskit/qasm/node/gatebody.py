@@ -19,7 +19,7 @@ class GateBody(Node):
 
     def __init__(self, children):
         """Create the gatebody node."""
-        Node.__init__(self, 'gate_body', children, None)
+        super().__init__('gate_body', children, None)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""

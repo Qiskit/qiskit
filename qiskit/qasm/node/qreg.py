@@ -20,7 +20,7 @@ class Qreg(Node):
 
     def __init__(self, children):
         """Create the qreg node."""
-        Node.__init__(self, 'qreg', children, None)
+        super().__init__('qreg', children, None)
         # This is the indexed id, the full "id[n]" object
         self.id = children[0]
         # Name of the qreg

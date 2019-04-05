@@ -22,7 +22,7 @@ class BinaryOp(Node):
 
     def __init__(self, children):
         """Create the binaryop node."""
-        Node.__init__(self, 'binop', children, None)
+        super().__init__('binop', children, None)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""

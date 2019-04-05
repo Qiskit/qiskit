@@ -23,7 +23,7 @@ class External(Node):
 
     def __init__(self, children):
         """Create the external node."""
-        Node.__init__(self, 'external', children, None)
+        super().__init__('external', children, None)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""

@@ -20,7 +20,7 @@ class Creg(Node):
 
     def __init__(self, children):
         """Create the creg node."""
-        Node.__init__(self, 'creg', children, None)
+        super().__init__('creg', children, None)
         # This is the indexed id, the full "id[n]" object
         self.id = children[0]
         # Name of the creg

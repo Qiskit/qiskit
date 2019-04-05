@@ -21,7 +21,7 @@ class If(Node):
 
     def __init__(self, children):
         """Create the if node."""
-        Node.__init__(self, 'if', children, None)
+        super().__init__('if', children, None)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""

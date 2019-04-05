@@ -19,7 +19,7 @@ class Measure(Node):
 
     def __init__(self, children):
         """Create the measure node."""
-        Node.__init__(self, 'measure', children, None)
+        super().__init__('measure', children, None)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""

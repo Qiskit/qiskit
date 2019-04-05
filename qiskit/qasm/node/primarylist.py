@@ -18,7 +18,7 @@ class PrimaryList(Node):
 
     def __init__(self, children):
         """Create the primarylist node."""
-        Node.__init__(self, 'primary_list', children, None)
+        super().__init__('primary_list', children, None)
 
     def size(self):
         """Return the size of the list."""

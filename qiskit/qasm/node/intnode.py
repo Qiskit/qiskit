@@ -21,7 +21,7 @@ class Int(Node):
     def __init__(self, id):
         """Create the integer node."""
         # pylint: disable=redefined-builtin
-        Node.__init__(self, "int", None, None)
+        super().__init__("int", None, None)
         self.value = id
 
     def to_string(self, indent):

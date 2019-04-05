@@ -18,7 +18,7 @@ class IdList(Node):
 
     def __init__(self, children):
         """Create the idlist node."""
-        Node.__init__(self, 'id_list', children, None)
+        super().__init__('id_list', children, None)
 
     def size(self):
         """Return the length of the list."""

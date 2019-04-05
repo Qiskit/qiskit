@@ -21,7 +21,7 @@ class IndexedId(Node):
 
     def __init__(self, children):
         """Create the indexed id node."""
-        Node.__init__(self, 'indexed_id', children, None)
+        super().__init__('indexed_id', children, None)
         self.id = children[0]
         self.name = self.id.name
         self.line = self.id.line

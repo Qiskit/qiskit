@@ -24,7 +24,7 @@ class Gate(Node):
 
     def __init__(self, children):
         """Create the gate node."""
-        Node.__init__(self, 'gate', children, None)
+        super().__init__('gate', children, None)
         self.id = children[0]
         # The next three fields are required by the symbtab
         self.name = self.id.name

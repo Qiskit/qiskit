@@ -28,7 +28,7 @@ class CustomUnitary(Node):
 
     def __init__(self, children):
         """Create the custom gate node."""
-        Node.__init__(self, 'custom_unitary', children, None)
+        super().__init__('custom_unitary', children, None)
         self.id = children[0]
         self.name = self.id.name
         if len(children) == 3:

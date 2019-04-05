@@ -18,7 +18,7 @@ class Barrier(Node):
 
     def __init__(self, children):
         """Create the barrier node."""
-        Node.__init__(self, 'barrier', children, None)
+        super().__init__('barrier', children, None)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
