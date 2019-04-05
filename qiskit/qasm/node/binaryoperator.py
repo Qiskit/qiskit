@@ -10,8 +10,8 @@ Node for an OPENQASM binary operator.
 """
 import operator
 
-from ._node import Node
-from ._nodeexception import NodeException
+from .node import Node
+from .nodeexception import NodeException
 
 
 VALID_OPERATORS = {

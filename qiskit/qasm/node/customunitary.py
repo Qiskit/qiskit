@@ -10,7 +10,7 @@
 """
 Node for an OPENQASM custom gate statement.
 """
-from ._node import Node
+from .node import Node
 
 
 class CustomUnitary(Node):

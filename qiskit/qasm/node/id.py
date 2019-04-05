@@ -8,8 +8,8 @@
 """
 Node for an OPENQASM id.
 """
-from ._node import Node
-from ._nodeexception import NodeException
+from .node import Node
+from .nodeexception import NodeException
 
 
 class Id(Node):

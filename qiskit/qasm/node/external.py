@@ -11,8 +11,8 @@
 Node for an OPENQASM external function.
 """
 import sympy
-from ._node import Node
-from ._nodeexception import NodeException
+from .node import Node
+from .nodeexception import NodeException
 
 
 class External(Node):

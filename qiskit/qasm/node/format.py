@@ -10,7 +10,7 @@ Node for an OPENQASM file identifier/version statement.
 """
 import re
 
-from ._node import Node
+from .node import Node
 
 
 class Format(Node):

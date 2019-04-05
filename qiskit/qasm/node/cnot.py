@@ -8,7 +8,7 @@
 """
 Node for an OPENQASM CNOT statement.
 """
-from ._node import Node
+from .node import Node
 
 
 class Cnot(Node):

@@ -10,7 +10,7 @@
 """
 Node for an OPENQASM indexed id.
 """
-from ._node import Node
+from .node import Node
 
 
 class IndexedId(Node):

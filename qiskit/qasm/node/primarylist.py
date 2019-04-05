@@ -8,7 +8,7 @@
 """
 Node for an OPENQASM primarylist.
 """
-from ._node import Node
+from .node import Node
 
 
 class PrimaryList(Node):

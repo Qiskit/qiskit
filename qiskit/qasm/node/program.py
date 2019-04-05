@@ -8,7 +8,7 @@
 """
 Node for an OPENQASM program.
 """
-from ._node import Node
+from .node import Node
 
 
 class Program(Node):

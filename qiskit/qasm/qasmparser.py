@@ -15,9 +15,9 @@ import tempfile
 import ply.yacc as yacc
 import sympy
 
-from . import _node as node
+from . import node
 from .exceptions import QasmError
-from ._qasmlexer import QasmLexer
+from .qasmlexer import QasmLexer
 
 
 class QasmParser:

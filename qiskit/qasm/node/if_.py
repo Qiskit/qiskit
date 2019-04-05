@@ -8,7 +8,7 @@
 """
 Node for an OPENQASM if statement.
 """
-from ._node import Node
+from .node import Node
 
 
 class If(Node):

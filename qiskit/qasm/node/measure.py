@@ -8,7 +8,7 @@
 """
 Node for an OPENQASM measure statement.
 """
-from ._node import Node
+from .node import Node
 
 
 class Measure(Node):

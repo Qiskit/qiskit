@@ -13,7 +13,7 @@ import itertools
 import sys
 import multiprocessing as mp
 
-from qiskit.qasm import _qasm
+from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
@@ -465,7 +465,7 @@ class QuantumCircuit:
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
         """
-        qasm = _qasm.Qasm(filename=path)
+        qasm = Qasm(filename=path)
         return _circuit_from_qasm(qasm)
 
     @staticmethod
@@ -477,7 +477,7 @@ class QuantumCircuit:
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
         """
-        qasm = _qasm.Qasm(data=qasm_str)
+        qasm = Qasm(data=qasm_str)
         return _circuit_from_qasm(qasm)
 
 

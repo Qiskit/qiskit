@@ -8,7 +8,7 @@
 """
 Node for an OPENQASM custom gate body.
 """
-from ._node import Node
+from .node import Node
 
 
 class GateBody(Node):

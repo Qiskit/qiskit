@@ -6,23 +6,23 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Node for an OPENQASM idlist.
+Node for an OPENQASM expression list.
 """
-from ._node import Node
+from .node import Node
 
 
-class IdList(Node):
-    """Node for an OPENQASM idlist.
+class ExpressionList(Node):
+    """Node for an OPENQASM expression list.
 
-    children is a list of id nodes.
+    children are expression nodes.
     """
 
     def __init__(self, children):
-        """Create the idlist node."""
-        Node.__init__(self, 'id_list', children, None)
+        """Create the expression list node."""
+        Node.__init__(self, 'expression_list', children, None)
 
     def size(self):
-        """Return the length of the list."""
+        """Return the number of expressions."""
         return len(self.children)
 
     def qasm(self, prec=15):

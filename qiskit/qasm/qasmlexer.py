@@ -17,7 +17,7 @@ import os
 import ply.lex as lex
 from sympy import Number
 
-from . import _node as node
+from . import node
 from .exceptions import QasmError
 
 CORE_LIBS_PATH = os.path.join(os.path.dirname(__file__), 'libs')

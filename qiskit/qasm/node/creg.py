@@ -10,7 +10,7 @@
 """
 Node for an OPENQASM creg statement.
 """
-from ._node import Node
+from .node import Node
 
 
 class Creg(Node):

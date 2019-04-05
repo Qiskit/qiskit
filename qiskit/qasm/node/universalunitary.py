@@ -8,7 +8,7 @@
 """
 Node for an OPENQASM U statement.
 """
-from ._node import Node
+from .node import Node
 
 
 class UniversalUnitary(Node):

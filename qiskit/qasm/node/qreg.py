@@ -10,7 +10,7 @@
 """
 Node for an OPENQASM qreg statement.
 """
-from ._node import Node
+from .node import Node
 
 
 class Qreg(Node):

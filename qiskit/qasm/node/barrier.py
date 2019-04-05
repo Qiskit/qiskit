@@ -6,21 +6,21 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Node for an OPENQASM reset statement.
+Node for an OPENQASM barrier statement.
 """
-from ._node import Node
+from .node import Node
 
 
-class Reset(Node):
-    """Node for an OPENQASM reset statement.
+class Barrier(Node):
+    """Node for an OPENQASM barrier statement.
 
-    children[0] is a primary node (id or indexedid)
+    children[0] is a primarylist node.
     """
 
     def __init__(self, children):
-        """Create the reset node."""
-        Node.__init__(self, 'reset', children, None)
+        """Create the barrier node."""
+        Node.__init__(self, 'barrier', children, None)
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        return "reset " + self.children[0].qasm(prec) + ";"
+        return "barrier " + self.children[0].qasm(prec) + ";"

@@ -9,7 +9,7 @@
 OPENQASM circuit object.
 """
 from .exceptions import QasmError
-from ._qasmparser import QasmParser
+from .qasmparser import QasmParser
 
 
 class Qasm:
