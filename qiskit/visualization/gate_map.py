@@ -8,7 +8,7 @@
 """A module for visualizing device coupling maps"""
 
 from qiskit.exceptions import QiskitError
-from ._matplotlib import HAS_MATPLOTLIB
+from .matplotlib import HAS_MATPLOTLIB
 if HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches

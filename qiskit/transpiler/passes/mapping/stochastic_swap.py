@@ -498,8 +498,8 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
 
     edgs = best_edges.edges()
     for idx in range(best_edges.size//2):
-        slice_circuit.apply_operation_back(SwapGate(initial_layout[edgs[2*idx]],
-                                                    initial_layout[edgs[2*idx+1]]))
+        slice_circuit.apply_operation_back(
+            SwapGate(), [initial_layout[edgs[2*idx]], initial_layout[edgs[2*idx+1]]], [])
     trial_circuit.extend_back(slice_circuit)
     best_circuit = trial_circuit
 

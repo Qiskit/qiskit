@@ -17,23 +17,19 @@ from qiskit.circuit.decorators import _op_expand
 class CXBase(Gate):  # pylint: disable=abstract-method
     """Fundamental controlled-NOT gate."""
 
-    def __init__(self, ctl, tgt, circ=None):
+    def __init__(self):
         """Create new CX instruction."""
-        super().__init__("CX", [], [ctl, tgt], circ)
+        super().__init__("CX", 2, [])
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cx_base(self.qargs[0], self.qargs[1]))
+        return CXBase()  # self-inverse
 
 
 @_op_expand(2)
 def cx_base(self, ctl, tgt):
     """Apply CX ctl, tgt."""
-    return self._attach(CXBase(ctl, tgt, self))
+    return self.append(CXBase(), [ctl, tgt], [])
 
 
 QuantumCircuit.cx_base = cx_base

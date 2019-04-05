@@ -170,8 +170,9 @@ def layer_permutation(layer_partition, layout, qubit_subset, coupling, trials,
                     trial_layout = opt_layout
                     rev_trial_layout = rev_opt_layout
                     circ.apply_operation_back(
-                        SwapGate((opt_edge[0][0], opt_edge[0][1]),
-                                 (opt_edge[1][0], opt_edge[1][1])))
+                        SwapGate(),
+                        [(opt_edge[0][0], opt_edge[0][1]), (opt_edge[1][0], opt_edge[1][1])],
+                        [])
                     logger.debug("layer_permutation: chose pair %s",
                                  pprint.pformat(opt_edge))
                 else:
