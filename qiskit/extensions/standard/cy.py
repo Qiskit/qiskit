@@ -15,7 +15,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit.decorators import _op_expand
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.cx import CnotGate
@@ -24,39 +23,34 @@ from qiskit.extensions.standard.cx import CnotGate
 class CyGate(Gate):
     """controlled-Y gate."""
 
-    def __init__(self, ctl, tgt, circ=None):
+    def __init__(self):
         """Create new CY gate."""
-        super().__init__("cy", [], [ctl, tgt], circ)
+        super().__init__("cy", 2, [])
 
-    def _define_decompositions(self):
+    def _define(self):
         """
         gate cy a,b { sdg b; cx a,b; s b; }
         """
-        decomposition = DAGCircuit()
+        definition = []
         q = QuantumRegister(2, "q")
-        decomposition.add_qreg(q)
         rule = [
-            SdgGate(q[1]),
-            CnotGate(q[0], q[1]),
-            SGate(q[1])
+            (SdgGate(), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (SGate(), [q[1]], [])
         ]
         for inst in rule:
-            decomposition.apply_operation_back(inst)
-        self._decompositions = [decomposition]
+            definition.append(inst)
+        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
-        return self  # self-inverse
-
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.cy(self.qargs[0], self.qargs[1]))
+        return CyGate()  # self-inverse
 
 
 @_op_expand(2)
 def cy(self, ctl, tgt):
     """Apply CY to circuit."""
-    return self._attach(CyGate(ctl, tgt, self))
+    return self.append(CyGate(), [ctl, tgt], [])
 
 
 QuantumCircuit.cy = cy

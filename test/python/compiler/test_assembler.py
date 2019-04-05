@@ -11,9 +11,10 @@ import unittest
 
 import numpy as np
 
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.compiler import RunConfig
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Instruction
 from qiskit.compiler import assemble_circuits
+from qiskit.compiler import RunConfig
 from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase
 
@@ -89,9 +90,25 @@ class TestAssembler(QiskitTestCase):
 
         qobj = assemble_circuits(circ)
         self.assertIsInstance(qobj, QasmQobj)
-        self.assertEqual(qobj.experiments[0].instructions[0].name, 'init')
+        self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
+
+    def test_assemble_opaque_inst(self):
+        """Test opaque instruction is assembled as-is"""
+        opaque_inst = Instruction(name='my_inst', num_qubits=4,
+                                  num_clbits=2, params=[0.5, 0.4])
+        q = QuantumRegister(6, name='q')
+        c = ClassicalRegister(4, name='c')
+        circ = QuantumCircuit(q, c, name='circ')
+        circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
+        qobj = assemble_circuits(circ)
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(len(qobj.experiments[0].instructions), 1)
+        self.assertEqual(qobj.experiments[0].instructions[0].name, 'my_inst')
+        self.assertEqual(qobj.experiments[0].instructions[0].qubits, [0, 2, 5, 3])
+        self.assertEqual(qobj.experiments[0].instructions[0].memory, [3, 0])
+        self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
 
 
 if __name__ == '__main__':

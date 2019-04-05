@@ -16,7 +16,7 @@ from IPython.core import magic_arguments                         # pylint: disab
 import matplotlib.pyplot as plt                                  # pylint: disable=import-error
 import ipywidgets as widgets                                     # pylint: disable=import-error
 from qiskit.tools.monitor.backend_overview import get_unique_backends
-from qiskit.tools.visualization._gate_map import plot_gate_map
+from qiskit.visualization.gate_map import plot_gate_map
 
 
 @magics_class
