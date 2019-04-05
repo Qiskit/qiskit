@@ -114,7 +114,7 @@ class TestContinuousPulses(QiskitTestCase):
         period = 5
         freq = 1/period
         samples = 101
-        times = np.linspace(0, 10, samples, retstep=True)
+        times = np.linspace(0, 10, samples)
         cos_arr = continuous.cos(times, amp=amp, freq=freq)
         # with new phase
         cos_arr_phased = continuous.cos(times, amp=amp,
@@ -138,7 +138,7 @@ class TestContinuousPulses(QiskitTestCase):
         period = 5
         freq = 1/period
         samples = 101
-        times = np.linspace(0, 10, samples, retstep=True)
+        times = np.linspace(0, 10, samples)
         sin_arr = continuous.sin(times, amp=amp, freq=freq)
         # with new phase
         sin_arr_phased = continuous.sin(times, amp=0.5,
@@ -232,7 +232,7 @@ class TestContinuousPulses(QiskitTestCase):
         center = 10
         sigma = 0.1
         beta = 0
-        times = np.linspace(0, 20, 2001, retstep=True)
+        times = np.linspace(0, 20, 2001)
         # test that we recover gaussian for beta=0
         gaussian_arr = continuous.gaussian(times, amp, center, sigma,
                                            zero_at=-1, rescale_amp=True)
