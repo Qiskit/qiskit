@@ -16,7 +16,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper.layout import Layout
-from qiskit.transpiler import PassManager
+from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.unroller import Unroller
 
 from .passes.cx_cancellation import CXCancellation
