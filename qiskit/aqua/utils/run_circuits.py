@@ -244,7 +244,12 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
         sub_circuits = circuits[i * max_circuits_per_job:(i + 1) * max_circuits_per_job]
         if circuit_cache is not None and circuit_cache.misses < circuit_cache.allowed_misses:
             try:
-                qobj = circuit_cache.load_qobj_from_cache(sub_circuits, i, run_config=run_config)
+                if circuit_cache.cache_transpiled_circuits:
+                    transpiled_sub_circuits = transpiler.transpile(sub_circuits, backend, **backend_config,
+                                                                   **compile_config)
+                    qobj = circuit_cache.load_qobj_from_cache(transpiled_sub_circuits, i, run_config=run_config)
+                else:
+                    qobj = circuit_cache.load_qobj_from_cache(sub_circuits, i, run_config=run_config)
                 if is_aer_provider(backend):
                     qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
             # cache miss, fail gracefully
@@ -260,7 +265,15 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
                 transpiled_circuits.extend(transpiled_sub_circuits)
                 if is_aer_provider(backend):
                     qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
-                circuit_cache.cache_circuit(qobj, sub_circuits, i)
+                try:
+                    circuit_cache.cache_circuit(qobj, sub_circuits, i)
+                except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
+                    try:
+                        circuit_cache.cache_transpiled_circuits = True
+                        circuit_cache.cache_circuit(qobj, transpiled_sub_circuits, i)
+                    except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
+                        logger.info('Circuit could not be cached for reason: ' + repr(e))
+                        logger.info('Transpilation may be too aggressive. Try skipping transpiler.')
 
         else:
             qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, backend_config, compile_config, run_config)
