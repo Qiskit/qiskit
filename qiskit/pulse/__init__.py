@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Module for Pulses."""
-from qiskit.pulse import *
+
 from qiskit.pulse.commands import (Acquire, FrameChange, PersistentValue,
                                    SamplePulse, Snapshot,
                                    Kernel, Discriminator, functional_pulse)
