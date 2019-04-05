@@ -16,11 +16,13 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper.layout import Layout
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.unroller import Unroller
 
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
+from .passes.dag_fixed_point import DAGFixedPoint
 from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .passes.mapping.check_cnot_direction import CheckCnotDirection
 from .passes.mapping.cx_direction import CXDirection
@@ -238,14 +240,16 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             dag = Decompose(SwapGate).run(dag)
             # Change cx directions
             dag = CXDirection(coupling).run(dag)
-            # Simplify cx gates
-            dag = CXCancellation().run(dag)
             # Unroll to the basis
             dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
-            # Simplify single qubit gates
-            dag = Optimize1qGates().run(dag)
-            logger.info("post-mapping properties: %s",
-                        dag.properties())
+
+            # Simplify single qubit gates and CXs
+            pm_4_optimization = PassManager()
+            pm_4_optimization.append([Optimize1qGates(), CXCancellation(), DAGFixedPoint()],
+                                     do_while=lambda property_set: not property_set[
+                                         'dag_fixed_point'])
+            dag = transpile_dag(dag, pass_manager=pm_4_optimization)
+
         dag.name = name
 
     return dag
