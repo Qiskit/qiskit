@@ -218,8 +218,8 @@ class TestTranspile(QiskitTestCase):
                               (QuantumRegister(3, 'q'), 1),
                               (QuantumRegister(3, 'q'), 2)]
 
-        with self.assertRaises(TranspilerError) as context_manager:
-            _ = transpile(qc, backend, initial_layout=bad_initial_layout)
+        self.assertRaises(TranspilerError, transpile,
+                          qc, backend, initial_layout=bad_initial_layout)
 
 
 class TestCompiler(QiskitTestCase):
