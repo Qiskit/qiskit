@@ -50,6 +50,12 @@ class TestDiscretePulses(QiskitTestCase):
         self.assertIsInstance(square_pulse, SamplePulse)
         np.testing.assert_array_equal(square_pulse.samples, square_ref)
 
+        # test single cycle
+        cycle_period = duration
+        square_cycle_ref = continuous.square(times, amp=amp, period=cycle_period)
+        square_cycle_pulse = pulse_lib.square(duration, amp=amp)
+        np.testing.assert_array_equal(square_cycle_pulse.samples, square_cycle_ref)
+
     def test_sawtooth(self):
         """Test discrete sampled sawtooth wave."""
         amp = 0.5
@@ -61,6 +67,12 @@ class TestDiscretePulses(QiskitTestCase):
         self.assertIsInstance(sawtooth_pulse, SamplePulse)
         np.testing.assert_array_equal(sawtooth_pulse.samples, sawtooth_ref)
 
+        # test single cycle
+        cycle_period = duration
+        sawtooth_cycle_ref = continuous.sawtooth(times, amp=amp, period=cycle_period)
+        sawtooth_cycle_pulse = pulse_lib.sawtooth(duration, amp=amp)
+        np.testing.assert_array_equal(sawtooth_cycle_pulse.samples, sawtooth_cycle_ref)
+
     def test_triangle(self):
         """Test discrete sampled triangle wave."""
         amp = 0.5
@@ -71,6 +83,12 @@ class TestDiscretePulses(QiskitTestCase):
         triangle_pulse = pulse_lib.triangle(duration, amp=amp, period=period)
         self.assertIsInstance(triangle_pulse, SamplePulse)
         np.testing.assert_array_equal(triangle_pulse.samples, triangle_ref)
+
+        # test single cycle
+        cycle_period = duration
+        triangle_cycle_ref = continuous.triangle(times, amp=amp, period=cycle_period)
+        triangle_cycle_pulse = pulse_lib.triangle(duration, amp=amp)
+        np.testing.assert_array_equal(triangle_cycle_pulse.samples, triangle_cycle_ref)
 
     def test_cos(self):
         """Test discrete sampled cosine wave."""
@@ -84,6 +102,12 @@ class TestDiscretePulses(QiskitTestCase):
         self.assertIsInstance(cos_pulse, SamplePulse)
         np.testing.assert_array_equal(cos_pulse.samples, cos_ref)
 
+        # test single cycle
+        cycle_freq = 1/duration
+        cos_cycle_ref = continuous.cos(times, amp=amp, freq=cycle_freq)
+        cos_cycle_pulse = pulse_lib.cos(duration, amp=amp)
+        np.testing.assert_array_equal(cos_cycle_pulse.samples, cos_cycle_ref)
+
     def test_sin(self):
         """Test discrete sampled sine wave."""
         amp = 0.5
@@ -95,6 +119,12 @@ class TestDiscretePulses(QiskitTestCase):
         sin_pulse = pulse_lib.sin(duration, amp=amp, freq=freq)
         self.assertIsInstance(sin_pulse, SamplePulse)
         np.testing.assert_array_equal(sin_pulse.samples, sin_ref)
+
+        # test single cycle
+        cycle_freq = 1/duration
+        sin_cycle_ref = continuous.sin(times, amp=amp, freq=cycle_freq)
+        sin_cycle_pulse = pulse_lib.sin(duration, amp=amp)
+        np.testing.assert_array_equal(sin_cycle_pulse.samples, sin_cycle_ref)
 
     def test_gaussian(self):
         """Test gaussian pulse."""
