@@ -85,60 +85,22 @@ class SuperOp(QuantumChannel):
             shape_out,
             order='F')
 
-    def conjugate(self, inplace=False):
-        """Return the conjugate of the  QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            SuperOp: the conjugate of the quantum channel as a SuperOp object.
-        """
-        if inplace:
-            np.conjugate(self._data, out=self._data)
-            return self
+    def conjugate(self):
+        """Return the conjugate of the QuantumChannel."""
         return SuperOp(np.conj(self._data), self._input_dim, self._output_dim)
 
-    def transpose(self, inplace=False):
-        """Return the transpose of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            SuperOp: the transpose of the quantum channel as a SuperOp object.
-        """
+    def transpose(self):
+        """Return the transpose of the QuantumChannel."""
         # Swaps input and output dimensions
         output_dim = self._input_dim
         input_dim = self._output_dim
-        if inplace:
-            self._data = np.transpose(self._data)
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
         return SuperOp(np.transpose(self._data), input_dim, output_dim)
 
-    def adjoint(self, inplace=False):
-        """Return the adjoint of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            SuperOp: the adjoint of the quantum channel as a SuperOp object.
-        """
-        return super().adjoint(inplace=inplace)
-
-    def compose(self, other, inplace=False, front=False):
+    def compose(self, other, front=False):
         """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -167,36 +129,18 @@ class SuperOp(QuantumChannel):
             # Composition A(B(input))
             input_dim = other._input_dim
             output_dim = self._output_dim
-            if inplace:
-                if self.dims == other.dims:
-                    np.dot(self._data, other.data, out=self._data)
-                else:
-                    self._data = np.dot(self._data, other.data)
-                self._input_dim = input_dim
-                self._output_dim = output_dim
-                return self
             return SuperOp(
                 np.dot(self._data, other.data), input_dim, output_dim)
         # Composition B(A(input))
         input_dim = self._input_dim
         output_dim = other._output_dim
-        if inplace:
-            if self.dims == other.dims:
-                np.dot(other.data, self._data, out=self._data)
-            else:
-                self._data = np.dot(other.data, self._data)
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
         return SuperOp(np.dot(other.data, self._data), input_dim, output_dim)
 
-    def power(self, n, inplace=False):
+    def power(self, n):
         """Return the compose of a QuantumChannel with itself n times.
 
         Args:
             n (int): the number of times to compose with self (n>0).
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
 
         Returns:
             SuperOp: the n-times composition channel as a SuperOp object.
@@ -212,21 +156,13 @@ class SuperOp(QuantumChannel):
             raise QiskitError("Can only power with input_dim = output_dim.")
         # Override base class power so we can implement more efficiently
         # using Numpy.matrix_power
-        if inplace:
-            if n == 1:
-                return self
-            self._data = np.linalg.matrix_power(self._data, n)
-            return self
-        # Return new object
         return SuperOp(np.linalg.matrix_power(self._data, n), *self.dims)
 
-    def tensor(self, other, inplace=False):
+    def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             SuperOp: the tensor product channel self ⊗ other as a SuperOp
@@ -235,15 +171,13 @@ class SuperOp(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=False)
+        return self._tensor_product(other, reverse=False)
 
-    def expand(self, other, inplace=False):
+    def expand(self, other):
         """Return the tensor product channel other ⊗ self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             SuperOp: the tensor product channel other ⊗ self as a SuperOp
@@ -252,15 +186,13 @@ class SuperOp(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=True)
+        return self._tensor_product(other, reverse=True)
 
-    def add(self, other, inplace=False):
+    def add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             SuperOp: the linear addition self + other as a SuperOp object.
@@ -275,20 +207,14 @@ class SuperOp(QuantumChannel):
             raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
-
-        if inplace:
-            self._data += other._data
-            return self
         input_dim, output_dim = self.dims
         return SuperOp(self._data + other.data, input_dim, output_dim)
 
-    def subtract(self, other, inplace=False):
+    def subtract(self, other):
         """Return the QuantumChannel self - other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             SuperOp: the linear subtraction self - other as SuperOp object.
@@ -303,19 +229,14 @@ class SuperOp(QuantumChannel):
             raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
-        if inplace:
-            self._data -= other.data
-            return self
         input_dim, output_dim = self.dims
         return SuperOp(self._data - other.data, input_dim, output_dim)
 
-    def multiply(self, other, inplace=False):
+    def multiply(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (complex): a complex number
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (complex): a complex number.
 
         Returns:
             SuperOp: the scalar multiplication other * self as a SuperOp object.
@@ -325,19 +246,14 @@ class SuperOp(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        if inplace:
-            self._data *= other
-            return self
         input_dim, output_dim = self.dims
         return SuperOp(other * self._data, input_dim, output_dim)
 
-    def _tensor_product(self, other, inplace=False, reverse=False):
+    def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [default: False]
+            other (QuantumChannel): a quantum channel subclass.
             reverse (bool): If False return self ⊗ other, if True return
                             if True return (other ⊗ self) [Default: False
         Returns:
@@ -368,10 +284,4 @@ class SuperOp(QuantumChannel):
             data = _bipartite_tensor(self._data, other.data,
                                      shape1=self._bipartite_shape,
                                      shape2=other._bipartite_shape)
-        if inplace:
-            self._data = data
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
-        # return new object
         return SuperOp(data, input_dim, output_dim)

@@ -121,23 +121,6 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan, targ)
         self.assertEqual(chan.dims, (2, 4))
 
-    def test_conjugate_inplace(self):
-        """Test inplace conjugate method."""
-        kraus_l, kraus_r = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
-        # Single Kraus list
-        targ = Kraus([np.conjugate(k) for k in kraus_l])
-        chan = Kraus(kraus_l)
-        chan.conjugate(inplace=True)
-        self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (2, 4))
-        # Double Kraus list
-        targ = Kraus(([np.conjugate(k) for k in kraus_l],
-                      [np.conjugate(k) for k in kraus_r]))
-        chan = Kraus((kraus_l, kraus_r))
-        chan.conjugate(inplace=True)
-        self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (2, 4))
-
     def test_transpose(self):
         """Test transpose method."""
         kraus_l, kraus_r = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
@@ -155,23 +138,6 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan, targ)
         self.assertEqual(chan.dims, (4, 2))
 
-    def test_transpose_inplace(self):
-        """Test inplace transpose method."""
-        kraus_l, kraus_r = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
-        # Single Kraus list
-        targ = Kraus([np.transpose(k) for k in kraus_l])
-        chan = Kraus(kraus_l)
-        chan.transpose(inplace=True)
-        self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (4, 2))
-        # Double Kraus list
-        targ = Kraus(([np.transpose(k) for k in kraus_l],
-                      [np.transpose(k) for k in kraus_r]))
-        chan = Kraus((kraus_l, kraus_r))
-        chan.transpose(inplace=True)
-        self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (4, 2))
-
     def test_adjoint(self):
         """Test adjoint method."""
         kraus_l, kraus_r = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
@@ -186,24 +152,6 @@ class TestKraus(ChannelTestCase):
                       [np.transpose(k).conj() for k in kraus_r]))
         chan1 = Kraus((kraus_l, kraus_r))
         chan = chan1.adjoint()
-        self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (4, 2))
-
-    def test_adjoint_inplace(self):
-        """Test inplace adjoint method."""
-        kraus_l = [self.rand_matrix(4, 2) for _ in range(4)]
-        kraus_r = [self.rand_matrix(4, 2) for _ in range(4)]
-        # Single Kraus list
-        targ = Kraus([np.transpose(k).conj() for k in kraus_l])
-        chan = Kraus(kraus_l)
-        chan.adjoint(inplace=True)
-        self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (4, 2))
-        # Double Kraus list
-        targ = Kraus(([np.transpose(k).conj() for k in kraus_l],
-                      [np.transpose(k).conj() for k in kraus_r]))
-        chan = Kraus((kraus_l, kraus_r))
-        chan.adjoint(inplace=True)
         self.assertEqual(chan, targ)
         self.assertEqual(chan.dims, (4, 2))
 
@@ -243,38 +191,6 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan.dims, (2, 2))
         self.assertAllClose(chan._evolve(rho), targ)
 
-    def test_compose_inplace(self):
-        """Test inplace compose method."""
-        # Random input test state
-        rho = self.rand_rho(2)
-
-        # UnitaryChannel evolution
-        chan1 = Kraus(self.matX)
-        chan2 = Kraus(self.matY)
-        chan1.compose(chan2, inplace=True)
-        targ = Kraus(self.matZ)._evolve(rho)
-        self.assertAllClose(chan1._evolve(rho), targ)
-
-        # 50% depolarizing channel
-        chan = Kraus(self.depol_kraus(0.5))
-        chan.compose(chan, inplace=True)
-        targ = Kraus(self.depol_kraus(0.75))._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
-
-        # Compose different dimensions
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(4, 2, 4)
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
-        targ = chan2._evolve(chan1._evolve(rho))
-        chan1.compose(chan2, inplace=True)
-        self.assertEqual(chan1.dims, (2, 2))
-        self.assertAllClose(chan1._evolve(rho), targ)
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
-        chan1 @= chan2
-        self.assertEqual(chan1.dims, (2, 2))
-        self.assertAllClose(chan1._evolve(rho), targ)
-
     def test_compose_front(self):
         """Test front compose method."""
         # Random input test state
@@ -302,33 +218,6 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan.dims, (2, 2))
         self.assertAllClose(chan._evolve(rho), targ)
 
-    def test_compose_front_inplace(self):
-        """Test inplace front compose method."""
-        # Random input test state
-        rho = self.rand_rho(2)
-
-        # UnitaryChannel evolution
-        chan1 = Kraus(self.matX)
-        chan2 = Kraus(self.matY)
-        chan1.compose(chan2, inplace=True, front=True)
-        targ = Kraus(self.matZ)._evolve(rho)
-        self.assertAllClose(chan1._evolve(rho), targ)
-
-        # 50% depolarizing channel
-        chan = Kraus(self.depol_kraus(0.5))
-        chan.compose(chan, inplace=True, front=True)
-        targ = Kraus(self.depol_kraus(0.75))._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
-
-        # Compose different dimensions
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(4, 2, 4)
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
-        targ = chan2._evolve(chan1._evolve(rho))
-        chan2.compose(chan1, inplace=True, front=True)
-        self.assertEqual(chan2.dims, (2, 2))
-        self.assertAllClose(chan2._evolve(rho), targ)
-
     def test_expand(self):
         """Test expand method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
@@ -351,34 +240,6 @@ class TestKraus(ChannelTestCase):
         # Completely depolarizing
         chan_dep = Kraus(self.depol_kraus(1))
         chan = chan_dep.expand(chan_dep)
-        rho_targ = np.diag([1, 1, 1, 1]) / 4
-        self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
-
-    def test_expand_inplace(self):
-        """Test inplace expand method."""
-        rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
-
-        # X \otimes I
-        chan1 = Kraus(self.matI)
-        chan2 = Kraus(self.matX)
-        chan1.expand(chan2, inplace=True)
-        rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
-
-        # I \otimes X
-        chan1 = Kraus(self.matI)
-        chan2 = Kraus(self.matX)
-        chan2.expand(chan1, inplace=True)
-        rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
-
-        # Completely depolarizing
-        chan = Kraus(self.depol_kraus(1))
-        chan.expand(chan, inplace=True)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
@@ -409,34 +270,6 @@ class TestKraus(ChannelTestCase):
         self.assertEqual(chan.dims, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
-    def test_tensor_inplace(self):
-        """Test inplace tensor method."""
-        rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
-
-        # X \otimes I
-        chan1 = Kraus(self.matI)
-        chan2 = Kraus(self.matX)
-        chan2.tensor(chan1, inplace=True)
-        rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
-
-        # I \otimes X
-        chan1 = Kraus(self.matI)
-        chan2 = Kraus(self.matX)
-        chan1.tensor(chan2, inplace=True)
-        rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
-
-        # Completely depolarizing
-        chan = Kraus(self.depol_kraus(1))
-        chan.tensor(chan, inplace=True)
-        rho_targ = np.diag([1, 1, 1, 1]) / 4
-        self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
-
     def test_power(self):
         """Test power method."""
         # 10% depolarizing channel
@@ -451,21 +284,6 @@ class TestKraus(ChannelTestCase):
         self.assertAllClose(chan3._evolve(rho), targ3a)
         targ3b = Kraus(self.depol_kraus(1 - p_id3))._evolve(rho)
         self.assertAllClose(chan3._evolve(rho), targ3b)
-
-    def test_power_inplace(self):
-        """Test inplace power method."""
-        # 10% depolarizing channel
-        rho = np.diag([1, 0])
-        p_id = 0.9
-        chan = Kraus(self.depol_kraus(1 - p_id))
-
-        # Compose 3 times
-        p_id3 = p_id ** 3
-        targ3a = chan._evolve(chan._evolve(chan._evolve(rho)))
-        targ3b = Kraus(self.depol_kraus(1 - p_id3))._evolve(rho)
-        chan.power(3, inplace=True)
-        self.assertAllClose(chan._evolve(rho), targ3a)
-        self.assertAllClose(chan._evolve(rho), targ3b)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
@@ -498,28 +316,6 @@ class TestKraus(ChannelTestCase):
         chan = chan.add(chan)
         self.assertAllClose(chan._evolve(rho), targ)
 
-    def test_add_inplace(self):
-        """Test inplace add method."""
-        # Random input test state
-        rho = self.rand_rho(2)
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
-
-        # Random Single-Kraus maps
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
-        targ = chan1._evolve(rho) + chan2._evolve(rho)
-        chan1.add(chan2, inplace=True)
-        self.assertAllClose(chan1._evolve(rho), targ)
-        chan1 = Kraus(kraus1)
-        chan1 += chan2
-        self.assertAllClose(chan1._evolve(rho), targ)
-
-        # Random Single-Kraus maps
-        chan = Kraus((kraus1, kraus2))
-        targ = 2 * chan._evolve(rho)
-        chan.add(chan, inplace=True)
-        self.assertAllClose(chan._evolve(rho), targ)
-
     def test_subtract(self):
         """Test subtract method."""
         # Random input test state
@@ -539,28 +335,6 @@ class TestKraus(ChannelTestCase):
         chan = Kraus((kraus1, kraus2))
         targ = 0 * chan._evolve(rho)
         chan = chan.subtract(chan)
-        self.assertAllClose(chan._evolve(rho), targ)
-
-    def test_subtract_inplace(self):
-        """Test inplace subtract method."""
-        # Random input test state
-        rho = self.rand_rho(2)
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
-
-        # Random Single-Kraus maps
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
-        targ = chan1._evolve(rho) - chan2._evolve(rho)
-        chan1.subtract(chan2, inplace=True)
-        self.assertAllClose(chan1._evolve(rho), targ)
-        chan1 = Kraus(kraus1)
-        chan1 -= chan2
-        self.assertAllClose(chan1._evolve(rho), targ)
-
-        # Random Single-Kraus maps
-        chan = Kraus((kraus1, kraus2))
-        targ = 0 * chan._evolve(rho)
-        chan.subtract(chan, inplace=True)
         self.assertAllClose(chan._evolve(rho), targ)
 
     def test_multiply(self):
@@ -589,31 +363,6 @@ class TestKraus(ChannelTestCase):
         self.assertAllClose(chan._evolve(rho), targ)
         chan = chan2 * val
         self.assertAllClose(chan._evolve(rho), targ)
-
-    def test_multiply_inplace(self):
-        """Test inplace multiply method."""
-        # Random initial state and Kraus ops
-        rho = self.rand_rho(2)
-        val = 0.5
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
-
-        # Single Kraus set
-        chan1 = Kraus(kraus1)
-        targ = val * chan1._evolve(rho)
-        chan1.multiply(val, inplace=True)
-        self.assertAllClose(chan1._evolve(rho), targ)
-        chan1 = Kraus(kraus1)
-        chan1 *= val
-        self.assertAllClose(chan1._evolve(rho), targ)
-
-        # Double Kraus set
-        chan2 = Kraus((kraus1, kraus2))
-        targ = val * chan2._evolve(rho)
-        chan2.multiply(val, inplace=True)
-        self.assertAllClose(chan2._evolve(rho), targ)
-        chan2 = Kraus((kraus1, kraus2))
-        chan2 *= val
-        self.assertAllClose(chan2._evolve(rho), targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
