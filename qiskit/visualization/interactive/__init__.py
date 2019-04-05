@@ -7,10 +7,10 @@
 
 """Qsikit visualization library."""
 
-from ._iplot_state import iplot_state
-from ._iplot_blochsphere import iplot_bloch_multivector
-from ._iplot_cities import iplot_state_city
-from ._iplot_qsphere import iplot_state_qsphere
-from ._iplot_hinton import iplot_state_hinton
-from ._iplot_histogram import iplot_histogram
-from ._iplot_paulivec import iplot_state_paulivec
+from .iplot_state import iplot_state
+from .iplot_blochsphere import iplot_bloch_multivector
+from .iplot_cities import iplot_state_city
+from .iplot_qsphere import iplot_state_qsphere
+from .iplot_hinton import iplot_state_hinton
+from .iplot_histogram import iplot_histogram
+from .iplot_paulivec import iplot_state_paulivec
