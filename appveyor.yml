@@ -26,8 +26,8 @@ deploy:
       TWINE_USERNAME: qiskit
       TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
       CIBW_TEST_COMMAND: python {project}\examples\python\teleport.py
-      on:
-        APPVEYOR_REPO_TAG: true
+#      on:
+#        APPVEYOR_REPO_TAG: true
 
 skip_branch_with_pr: true
 
