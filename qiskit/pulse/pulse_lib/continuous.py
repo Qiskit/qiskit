@@ -99,7 +99,7 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
 def _zero_gaussian_at(gaussian_samples, amp: float, center: float, sigma: float,
                       zero_at: float = -1, rescale_amp: bool = False,
                       ret_scale_factor: bool = False) -> np.ndarray:
-    """Zero and optionally rescale a gaussian pulse.
+    r"""Zero and optionally rescale a gaussian pulse.
     amp: Pulse amplitude at `center`.
     center: Center (mean) of pulse.
     sigma: Width (standard deviation) of pulse.
@@ -159,7 +159,7 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
 
 def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
                    ret_gaussian: bool = False) -> np.ndarray:
-    r"""Continuous unnormalized gaussian derivative pulse.
+    """Continuous unnormalized gaussian derivative pulse.
 
     Args:
         times: Times to output pulse for.
@@ -178,7 +178,7 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
 def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,
                     sigma: float, rise_zero_at: Union[None, int] = None,
                     fall_zero_at: Union[None, int] = None) -> np.ndarray:
-    """Continuous gaussian square pulse.
+    r"""Continuous gaussian square pulse.
 
     Args:
         times: Times to output pulse for.

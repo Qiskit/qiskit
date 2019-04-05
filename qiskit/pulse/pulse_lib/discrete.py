@@ -132,7 +132,7 @@ def gaussian(duration: int, amp: complex, sigma: float) -> SamplePulse:
     """
     center = duration/2
     return samplers.left(continuous.gaussian)(duration, amp, center, sigma,
-                                         zero_at=-1, rescale_amp=True)
+                                              zero_at=-1, rescale_amp=True)
 
 
 def gaussian_deriv(duration: int, amp: complex, sigma: float) -> SamplePulse:
@@ -166,9 +166,8 @@ def gaussian_square(duration: int, amp: complex, sigma: float, risefall: int) ->
     """
     center = duration/2
     width = duration-2*risefall
-    return samplers.left(continuous.gaussian_square)(
-                    duration, amp, center, width, sigma,
-                    rise_zero_at=-1, fall_zero_at=duration+1)
+    return samplers.left(continuous.gaussian_square)(duration, amp, center, width, sigma,
+                                                     rise_zero_at=-1, fall_zero_at=duration+1)
 
 
 def drag(duration: int, amp: complex, sigma: float, beta: float) -> SamplePulse:
