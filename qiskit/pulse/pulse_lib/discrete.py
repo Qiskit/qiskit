@@ -7,7 +7,10 @@
 
 # pylint: disable=missing-return-doc
 
-"""Module for builtin discrete pulses."""
+"""Module for builtin discrete pulses.
+
+Note the sampling strategy use for all discrete pulses is `left`.
+"""
 
 from qiskit.pulse.commands import SamplePulse
 from qiskit.pulse.pulse_lib import continuous
