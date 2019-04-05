@@ -91,6 +91,7 @@ class DenseLayout(AnalysisPass):
                                          return_predecessors=False)
 
             connection_count = 0
+            sub_graph = []
             for i in range(n_qubits):
                 node_idx = bfs[i]
                 for j in range(sp_cmap.indptr[node_idx],
@@ -99,9 +100,22 @@ class DenseLayout(AnalysisPass):
                     for counter in range(n_qubits):
                         if node == bfs[counter]:
                             connection_count += 1
+                            sub_graph.append([node_idx, node])
                             break
 
             if connection_count > best:
                 best = connection_count
                 best_map = bfs[0:n_qubits]
+                # Return a best mapping that has reduced bandwidth
+                mapping = {}
+                for edge in range(best_map.shape[0]):
+                    mapping[best_map[edge]] = edge
+                new_cmap = [[mapping[c[0]], mapping[c[1]]] for c in sub_graph]
+                rows = [edge[0] for edge in new_cmap]
+                cols = [edge[1] for edge in new_cmap]
+                data = [1]*len(rows)
+                sp_sub_graph = sp.coo_matrix((data, (rows, cols)),
+                                             shape=(n_qubits, n_qubits)).tocsr()
+                perm = cs.reverse_cuthill_mckee(sp_sub_graph)
+                best_map = best_map[perm]
         return best_map

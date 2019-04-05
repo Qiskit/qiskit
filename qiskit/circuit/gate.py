@@ -8,54 +8,17 @@
 """
 Unitary gate.
 """
-from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, params, qargs, circuit=None):
+    def __init__(self, name, num_qubits, params):
         """Create a new composite gate.
 
-        name = instruction name string
-        params = list of real parameters (will be converted to symbolic)
-        qargs = list of pairs (QuantumRegister, index)
-        circuit = QuantumCircuit or CompositeGate containing this gate
+        name = gate name string
+        num_qubits = number of qubits the gate acts on
+        params = list of parameters
         """
-        self._is_multi_qubit = False
-        self._qubit_coupling = [qarg[1] for qarg in qargs]
-        self._is_multi_qubit = (len(qargs) > 1)
-        self._decompositions = None
-        self._matrix_rep = None
-
-        super().__init__(name, params, qargs, [], circuit)
-
-    def inverse(self):
-        """Invert this gate."""
-        raise QiskitError("inverse not implemented")
-
-    def q_if(self, *qregs):
-        """Add controls to this gate."""
-        # pylint: disable=unused-argument
-        raise QiskitError("control not implemented")
-
-    def decompositions(self):
-        """ Returns a list of possible decompositions. """
-        if self._decompositions is None:
-            self._define_decompositions()
-        return self._decompositions
-
-    def _define_decompositions(self):
-        """ Populates self.decompositions with way to decompose this gate"""
-        raise NotImplementedError("No decomposition rules defined for %s" % self.name)
-
-    @property
-    def matrix_rep(self):
-        """Return matrix representation if it exists else None"""
-        return self._matrix_rep
-
-    @matrix_rep.setter
-    def matrix_rep(self, matrix):
-        """Set matrix representation"""
-        self._matrix_rep = matrix
+        super().__init__(name, num_qubits, 0, params)
