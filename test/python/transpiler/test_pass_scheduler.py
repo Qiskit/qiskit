@@ -512,9 +512,6 @@ class TestControlFlowPlugin(SchedulerTestCase):
         self.assertRaises(KeyError, FlowController.remove_flow_controller, "foo")
 
 
-from pprint import pprint
-
-
 class TestDumpPasses(SchedulerTestCase):
     """ Testing the dump_passes method. """
 
@@ -576,10 +573,22 @@ class TestDumpPasses(SchedulerTestCase):
             [PassK_check_fixed_point_property(),
              PassA_TP_NR_NP(),
              PassF_reduce_dag_property()],
-            do_while=lambda property_set: not property_set['fixed_point']['property'],
-            condition=lambda property_set: property_set['property'])
-        print()
-        pprint(passmanager.dump_passes())
+            do_while=lambda property_set: not property_set['property_fixed_point'],
+            condition=lambda property_set: property_set['property_fixed_point'])
+
+        expected = [{'options': {'ignore_preserves': False,
+                                 'ignore_requires': False,
+                                 'max_iteration': 1000},
+                     'passes': [PassE_AP_NR_NP(True)],
+                     'type': FlowControllerLinear},
+                    {'options': {'ignore_preserves': False,
+                                 'ignore_requires': False,
+                                 'max_iteration': 1000},
+                     'passes': [PassK_check_fixed_point_property(),
+                                PassA_TP_NR_NP(),
+                                PassF_reduce_dag_property()],
+                     'type': ConditionalController}]
+        self.assertEqual(expected, passmanager.dump_passes())
 
 
 if __name__ == '__main__':

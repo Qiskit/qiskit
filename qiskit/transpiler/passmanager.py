@@ -189,6 +189,7 @@ class FlowController():
     registered_controllers = OrderedDict()
 
     def __init__(self, passes, options, **partial_controller):
+        self._passes = passes
         self.passes = FlowController.controller_factory(passes, options, **partial_controller)
         self.options = options
 
@@ -198,7 +199,7 @@ class FlowController():
 
     def dump_passes(self):
         ret = {'options': self.options, 'passes':[], 'type':type(self)}
-        for pass_ in self.passes:
+        for pass_ in self._passes:
             if isinstance(pass_, FlowController):
                 ret['passes'].append(pass_.dump_passes())
             else:
@@ -262,7 +263,7 @@ class FlowControllerLinear(FlowController):
     """ The basic controller run the passes one after the other one. """
 
     def __init__(self, passes, options):  # pylint: disable=super-init-not-called
-        self.passes = passes
+        self.passes = self._passes = passes
         self.options = options
 
 
