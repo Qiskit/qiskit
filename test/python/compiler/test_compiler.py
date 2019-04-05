@@ -221,6 +221,7 @@ class TestTranspile(QiskitTestCase):
         with self.assertRaises(TranspilerError) as context_manager:
             _ = transpile(qc, backend, initial_layout=bad_initial_layout)
 
+
 class TestCompiler(QiskitTestCase):
     """Qiskit compile tests."""
 
