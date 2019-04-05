@@ -50,6 +50,8 @@ Added
 - ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
   QobjHeader to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
+- Added new resource estimation passes: ``Depth``, ``Width``, ``Size``, ``CountOps``, and
+  ``NumTensorFactors``, all grouped in the ``ResourceEstimation`` analysis pass.
 - Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
   operations on the given wire
 - Added new properties to an Instruction:
@@ -60,7 +62,6 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
-
 
 Changed
 -------
