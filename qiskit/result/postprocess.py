@@ -31,7 +31,7 @@ def _separate_bitstring(bitstring, creg_sizes):
     return ' '.join(substrings)
 
 
-def format_memory(memory, header):
+def format_counts_memory(shot_memory, header):
     """
     Format a single bitstring (memory) from a single shot experiment.
 
@@ -40,7 +40,7 @@ def format_memory(memory, header):
     - Spaces are inserted at register divisions.
 
     Args:
-        memory (str): result of a single experiment.
+        shot_memory (str): result of a single experiment.
         header (dict): the experiment header dictionary containing
             useful information for postprocessing.
 
@@ -49,14 +49,30 @@ def format_memory(memory, header):
     """
     creg_sizes = header.get('creg_sizes')
     memory_slots = header.get('memory_slots')
-    if memory.startswith('0x'):
-        memory = _hex_to_bin(memory)
+    if shot_memory.startswith('0x'):
+        shot_memory = _hex_to_bin(shot_memory)
     if memory_slots:
-        memory = _pad_zeros(memory, memory_slots)
+        shot_memory = _pad_zeros(shot_memory, memory_slots)
     if creg_sizes:
-        memory = _separate_bitstring(memory, creg_sizes)
-    return memory
+        shot_memory = _separate_bitstring(shot_memory, creg_sizes)
+    return shot_memory
 
+
+def format_meas_level_2_memory(memory, header):
+    """ Format an experiment result memory object for measurement level 2.
+
+    Args:
+        memory: Memory from experiment with `meas_level==2 and memory==True`.
+        header (dict): the experiment header dictionary containing
+            useful information for postprocessing.
+
+    Returns:
+        list[str]
+    """
+    memory_list = []
+    for shot_memory in memory:
+            memory_list.append(format_counts_memory(memory, header))
+    return memory_list
 
 def format_counts(counts, header):
     """Format a single experiment result coming from backend to present

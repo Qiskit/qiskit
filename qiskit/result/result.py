@@ -8,6 +8,7 @@
 """Model for schema-conformant Results."""
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 
 from qiskit.validation.base import BaseModel, bind_schema
@@ -45,7 +46,7 @@ class Result(BaseModel):
 
         super().__init__(**kwargs)
 
-    def data(self, circuit=None):
+    def data(self, experiment=None):
         """Get the raw data for an experiment.
 
         Note this data will be a single classical and quantum register and in a
@@ -53,16 +54,18 @@ class Result(BaseModel):
         the get_xxx method, and the data will be post-processed for the data type.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment. Several types are accepted for convenience::
                 * str: the name of the experiment.
-                * QuantumCircuit: the name of the instance will be used.
+                * QuantumCircuit: the name of the circuit instance will be used.
+                * Schedule: the name of the schedule instance will be used.
                 * int: the position of the experiment.
                 * None: if there is only one experiment, returns it.
 
         Returns:
             dict: A dictionary of results data for an experiment. The data
-            depends on the backend it ran on.
+            depends on the backend it ran on and the settings of `meas_level`,
+            `meas_return` and `memory`.
 
             QASM backends return a dictionary of dictionary with the key
             'counts' and  with the counts, with the second dictionary keys
@@ -92,32 +95,48 @@ class Result(BaseModel):
             QiskitError: if data for the experiment could not be retrieved.
         """
         try:
-            return self._get_experiment(circuit).data.to_dict()
+            return self._get_experiment(experiment).data.to_dict()
         except (KeyError, TypeError):
-            raise QiskitError('No data for circuit "{0}"'.format(circuit))
+            raise QiskitError('No data for experiment "{0}"'.format(experiment))
 
-    def get_memory(self, circuit=None):
+    def get_memory(self, experiment=None):
         """Get the sequence of memory states (readouts) for each shot
         The data from the experiment is a list of format
         ['00000', '01000', '10100', '10100', '11101', '11100', '00101', ..., '01010']
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data()``.
 
         Returns:
-            List[str]: the list of each outcome, formatted according to
-                registers in circuit.
+            List[str] or np.ndarray: Either the list of each outcome, formatted according to
+                registers in circuit or a complex numpy np.darray with shape:
+
+                | `meas_level` | `meas_return` | shape                                             |
+                |--------------|---------------|---------------------------------------------------|
+                | 0            | `single`      | np.ndarray[shots, memory_slots, memory_slot_size] |
+                | 0            | `avg`         | np.ndarray[memory_slots, memory_slot_size]        |
+                | 1            | `single`      | np.ndarray[shots, memory_slots]                   |
+                | 1            | `avg`         | np.ndarray[memory_slots]                          |
+                | 2            | `memory=True` | list                                              |
 
         Raises:
             QiskitError: if there is no memory data for the circuit.
         """
         try:
-            header = self._get_experiment(circuit).header.to_dict()
-            memory_list = []
-            for memory in self.data(circuit)['memory']:
-                memory_list.append(format_memory(memory, header))
-            return memory_list
+            experiment = self._get_experiment(experiment)
+            header = experiment.header.to_dict()
+            meas_level = experiment.meas_level
+            memory = self.data(experiment)['memory']
+
+            if meas_level == 2:
+                return format_level_2_memory(memory, header)
+            elif meas_level == 1:
+                return format_level_1_memory(memory, header)
+            else:
+                return format_level_0_memory(memory, header)
+
+
         except KeyError:
             raise QiskitError('No memory for circuit "{0}".'.format(circuit))
 
@@ -190,7 +209,7 @@ class Result(BaseModel):
         """Return a single experiment result from a given key.
 
         Args:
-            key (str or QuantumCircuit or int or None): the index of the
+            key (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``get_data()``.
 
         Returns:
@@ -208,7 +227,7 @@ class Result(BaseModel):
         if key is None:
             if len(self.results) != 1:
                 raise QiskitError(
-                    'You have to select a circuit when there is more than '
+                    'You have to select a circuit or schedule when there is more than '
                     'one available')
             else:
                 key = 0
@@ -217,8 +236,8 @@ class Result(BaseModel):
         if isinstance(key, int):
             return self.results[key]
 
-        # Key is a QuantumCircuit or str: retrieve result by name.
-        if isinstance(key, QuantumCircuit):
+        # Key is a QuantumCircuit/Schedule or str: retrieve result by name.
+        if isinstance(key, (QuantumCircuit, Schedule)):
             key = key.name
 
         try:
