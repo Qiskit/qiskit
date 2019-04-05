@@ -72,19 +72,22 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
         experimentconfig = QasmQobjExperimentConfig(n_qubits=n_qubits, memory_slots=memory_slots)
 
         instructions = []
-        for opt in circuit.data:
-            current_instruction = QasmQobjInstruction(name=opt.name)
-            if opt.qargs:
+        for op_context in circuit.data:
+            op = op_context[0]
+            qargs = op_context[1]
+            cargs = op_context[2]
+            current_instruction = QasmQobjInstruction(name=op.name)
+            if qargs:
                 qubit_indices = [qubit_labels.index([qubit[0].name, qubit[1]])
-                                 for qubit in opt.qargs]
+                                 for qubit in qargs]
                 current_instruction.qubits = qubit_indices
-            if opt.cargs:
+            if cargs:
                 clbit_indices = [clbit_labels.index([clbit[0].name, clbit[1]])
-                                 for clbit in opt.cargs]
+                                 for clbit in cargs]
                 current_instruction.memory = clbit_indices
 
-            if opt.params:
-                params = list(map(lambda x: x.evalf(), opt.params))
+            if op.params:
+                params = list(map(lambda x: x.evalf(), op.params))
                 params = [sympy.matrix2numpy(x, dtype=complex)
                           if isinstance(x, sympy.Matrix) else x for x in params]
                 if len(params) == 1 and isinstance(params[0], numpy.ndarray):
@@ -92,20 +95,23 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                     # change to matrix in Aer.
                     params = params[0]
                 current_instruction.params = params
-            # TODO (jay): I really dont like this for snapshot. I also think we should change
+            # TODO: I really dont like this for snapshot. I also think we should change
             # type to snap_type
-            if opt.name == "snapshot":
-                current_instruction.label = str(opt.params[0])
-                current_instruction.type = str(opt.params[1])
-            if opt.control:
+            if op.name == "snapshot":
+                current_instruction.label = str(op.params[0])
+                current_instruction.type = str(op.params[1])
+            if op.name == 'unitary':
+                if op._label:
+                    current_instruction.label = op._label
+            if op.control:
                 mask = 0
                 for clbit in clbit_labels:
-                    if clbit[0] == opt.control[0].name:
+                    if clbit[0] == op.control[0].name:
                         mask |= (1 << clbit_labels.index(clbit))
 
                 current_instruction.conditional = QobjConditional(mask="0x%X" % mask,
                                                                   type='equals',
-                                                                  val="0x%X" % opt.control[1])
+                                                                  val="0x%X" % op.control[1])
 
             instructions.append(current_instruction)
         experiments.append(QasmQobjExperiment(instructions=instructions, header=experimentheader,
