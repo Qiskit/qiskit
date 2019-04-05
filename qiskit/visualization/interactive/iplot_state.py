@@ -11,11 +11,11 @@ Qiskit visualization library.
 import warnings
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.utils import _validate_input_state
-from ._iplot_blochsphere import iplot_bloch_multivector
-from ._iplot_cities import iplot_state_city
-from ._iplot_hinton import iplot_state_hinton
-from ._iplot_paulivec import iplot_state_paulivec
-from ._iplot_qsphere import iplot_state_qsphere
+from .iplot_blochsphere import iplot_bloch_multivector
+from .iplot_cities import iplot_state_city
+from .iplot_hinton import iplot_state_hinton
+from .iplot_paulivec import iplot_state_paulivec
+from .iplot_qsphere import iplot_state_qsphere
 
 
 def iplot_state(quantum_state, method='city', figsize=None):
