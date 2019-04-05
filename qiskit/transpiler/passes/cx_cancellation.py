@@ -42,8 +42,8 @@ class CXCancellation(TransformationPass):
             for chunk in partition:
                 if len(chunk) % 2 == 0:
                     for n in chunk:
-                        dag._remove_op_node(n)
+                        dag.remove_op_node(n)
                 else:
                     for n in chunk[1:]:
-                        dag._remove_op_node(n)
+                        dag.remove_op_node(n)
         return dag

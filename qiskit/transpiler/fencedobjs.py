@@ -46,7 +46,7 @@ class FencedObject():
                                         (type(object.__getattribute__(self, '_wrapped')), name))
 
 class FencedDAGCircuit(FencedObject):
-    """ A dag circuit that cannot be modified (via _remove_op_node) """
+    """ A dag circuit that cannot be modified (via remove_op_node) """
     # FIXME: add more fenced methods of the dag after dagcircuit rewrite
     def __init__(self, dag_circuit_instance):
-        super().__init__(dag_circuit_instance, ['_remove_op_node'])
+        super().__init__(dag_circuit_instance, ['remove_op_node'])

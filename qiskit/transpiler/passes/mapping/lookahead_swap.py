@@ -84,7 +84,6 @@ class LookaheadSwap(TransformationPass):
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG
         """
-
         coupling_map = self._coupling_map
         ordered_virtual_gates = list(dag.serial_layers())
 
@@ -118,8 +117,8 @@ class LookaheadSwap(TransformationPass):
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = _copy_circuit_metadata(dag, coupling_map)
 
-        for gate in mapped_gates:
-            mapped_dag.apply_operation_back(op=gate.op)
+        for node in mapped_gates:
+            mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
 
         return mapped_dag
 
@@ -298,5 +297,5 @@ def _swap_ops_from_edge(edge, layout):
 
     # TODO shouldn't be making other nodes not by the DAG!!
     return [
-        DAGNode({'op': SwapGate(*qreg_edge), 'qargs': qreg_edge, 'type': 'op'})
+        DAGNode({'op': SwapGate(), 'qargs': qreg_edge, 'cargs': [], 'type': 'op'})
     ]

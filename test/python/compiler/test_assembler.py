@@ -7,13 +7,15 @@
 
 """Assembler Test."""
 
-import numpy as np
 import unittest
 
+import numpy as np
+
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Instruction
 from qiskit.compiler import assemble_circuits
 from qiskit.compiler import RunConfig
-from qiskit.qobj import Qobj
+from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase
 
 
@@ -23,16 +25,16 @@ class TestAssembler(QiskitTestCase):
     def test_assemble_single_circuit(self):
         """Test assembling a single circuit.
         """
-        q = QuantumRegister(2, name='q')
-        c = ClassicalRegister(2, name='c')
-        circ = QuantumCircuit(q, c, name='circ')
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.measure(q, c)
+        qr = QuantumRegister(2, name='q')
+        cr = ClassicalRegister(2, name='c')
+        circ = QuantumCircuit(qr, cr, name='circ')
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.measure(qr, cr)
 
         run_config = RunConfig(shots=2000, memory=True)
         qobj = assemble_circuits(circ, run_config=run_config)
-        self.assertIsInstance(qobj, Qobj)
+        self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 2000)
         self.assertEqual(qobj.config.memory, True)
         self.assertEqual(len(qobj.experiments), 1)
@@ -41,24 +43,24 @@ class TestAssembler(QiskitTestCase):
     def test_assemble_multiple_circuits(self):
         """Test assembling multiple circuits, all should have the same config.
         """
-        q0 = QuantumRegister(2, name='q0')
-        c0 = ClassicalRegister(2, name='c0')
-        circ0 = QuantumCircuit(q0, c0, name='circ0')
-        circ0.h(q0[0])
-        circ0.cx(q0[0], q0[1])
-        circ0.measure(q0, c0)
+        qr0 = QuantumRegister(2, name='q0')
+        qc0 = ClassicalRegister(2, name='c0')
+        circ0 = QuantumCircuit(qr0, qc0, name='circ0')
+        circ0.h(qr0[0])
+        circ0.cx(qr0[0], qr0[1])
+        circ0.measure(qr0, qc0)
 
-        q1 = QuantumRegister(3, name='q1')
-        c1 = ClassicalRegister(3, name='c1')
-        circ1 = QuantumCircuit(q1, c1, name='circ0')
-        circ1.h(q1[0])
-        circ1.cx(q1[0], q1[1])
-        circ1.cx(q1[0], q1[2])
-        circ1.measure(q1, c1)
+        qr1 = QuantumRegister(3, name='q1')
+        qc1 = ClassicalRegister(3, name='c1')
+        circ1 = QuantumCircuit(qr1, qc1, name='circ0')
+        circ1.h(qr1[0])
+        circ1.cx(qr1[0], qr1[1])
+        circ1.cx(qr1[0], qr1[2])
+        circ1.measure(qr1, qc1)
 
         run_config = RunConfig(shots=100, memory=False, seed=6)
         qobj = assemble_circuits([circ0, circ1], run_config=run_config)
-        self.assertIsInstance(qobj, Qobj)
+        self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.seed, 6)
         self.assertEqual(len(qobj.experiments), 2)
         self.assertEqual(qobj.experiments[1].config.n_qubits, 3)
@@ -68,15 +70,15 @@ class TestAssembler(QiskitTestCase):
     def test_assemble_no_run_config(self):
         """Test assembling with no run_config, relying on default.
         """
-        q = QuantumRegister(2, name='q')
-        c = ClassicalRegister(2, name='c')
-        circ = QuantumCircuit(q, c, name='circ')
-        circ.h(q[0])
-        circ.cx(q[0], q[1])
-        circ.measure(q, c)
+        qr = QuantumRegister(2, name='q')
+        qc = ClassicalRegister(2, name='c')
+        circ = QuantumCircuit(qr, qc, name='circ')
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.measure(qr, qc)
 
         qobj = assemble_circuits(circ)
-        self.assertIsInstance(qobj, Qobj)
+        self.assertIsInstance(qobj, QasmQobj)
         self.assertIsNone(getattr(qobj.config, 'shots', None))
 
     def test_assemble_initialize(self):
@@ -87,10 +89,26 @@ class TestAssembler(QiskitTestCase):
         circ.initialize([1/np.sqrt(2), 0, 0, 1/np.sqrt(2)], q[:])
 
         qobj = assemble_circuits(circ)
-        self.assertIsInstance(qobj, Qobj)
-        self.assertEqual(qobj.experiments[0].instructions[0].name, 'init')
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
                                        [0.7071067811865, 0, 0, 0.707106781186])
+
+    def test_assemble_opaque_inst(self):
+        """Test opaque instruction is assembled as-is"""
+        opaque_inst = Instruction(name='my_inst', num_qubits=4,
+                                  num_clbits=2, params=[0.5, 0.4])
+        q = QuantumRegister(6, name='q')
+        c = ClassicalRegister(4, name='c')
+        circ = QuantumCircuit(q, c, name='circ')
+        circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
+        qobj = assemble_circuits(circ)
+        self.assertIsInstance(qobj, QasmQobj)
+        self.assertEqual(len(qobj.experiments[0].instructions), 1)
+        self.assertEqual(qobj.experiments[0].instructions[0].name, 'my_inst')
+        self.assertEqual(qobj.experiments[0].instructions[0].qubits, [0, 2, 5, 3])
+        self.assertEqual(qobj.experiments[0].instructions[0].memory, [3, 0])
+        self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
 
 
 if __name__ == '__main__':

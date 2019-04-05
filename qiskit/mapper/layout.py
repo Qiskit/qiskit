@@ -30,6 +30,14 @@ class Layout():
         if isinstance(input_, list):
             self.from_list(input_)
 
+    def __repr__(self):
+        """Representation of a Layout"""
+        str_list = []
+        for key, val in self._p2v.items():
+            str_list.append("{k}: {v},".format(k=key, v=val))
+        str_list[-1] = str_list[-1][:-1]
+        return "Layout({\n" + "\n".join(str_list) + "\n})"
+
     def from_dict(self, input_dict):
         """
         Populates a Layout from a dictionary.
@@ -70,8 +78,10 @@ class Layout():
 
         for key, value in input_dict.items():
             virtual, physical = Layout.order_based_on_type(key, value)
-            self._v2p[virtual] = physical
             self._p2v[physical] = virtual
+            if virtual is None:
+                continue
+            self._v2p[virtual] = physical
 
     def from_list(self, input_list):
         """
@@ -164,7 +174,7 @@ class Layout():
         defined, `bit` will be mapped to a new physical bit (extending the length of the
         layout by one.)
         Args:
-            virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'),2).
+            virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'), 2).
             physical_bit (int): A physical bit. For example, 3.
         """
         if physical_bit is None:
@@ -271,3 +281,37 @@ class Layout():
         for reg in regs:
             layout.add_register(reg)
         return layout
+
+    @staticmethod
+    def generate_from_intlist(int_list, *qregs):
+        """Converts a list of integers to a Layout
+        mapping virtual qubits (index of the list) to
+        physical qubits (the list values).
+
+        Args:
+            int_list (list): A list of integers.
+            *qregs (QuantumRegisters): The quantum registers to apply
+                the layout to.
+        Returns:
+            Layout: The corresponding Layout object.
+        Raises:
+            LayoutError: Invalid input layout.
+        """
+        # check for duplicate values in list
+        if len(int_list) != len(set(int_list)):
+            raise LayoutError('Duplicate values not permitted in integer layout.')
+        n_qubits = sum(reg.size for reg in qregs)
+        # Check if list is too short to cover all qubits
+        if len(int_list) < n_qubits:
+            err_msg = 'Integer list length must equal number of qubits in circuit.'
+            raise LayoutError(err_msg)
+        out = Layout()
+        main_idx = 0
+        for qreg in qregs:
+            for idx in range(qreg.size):
+                out[(qreg, idx)] = int_list[main_idx]
+                main_idx += 1
+        if main_idx != len(int_list):
+            for int_item in int_list[main_idx:]:
+                out[int_item] = None
+        return out
