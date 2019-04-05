@@ -53,7 +53,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         final_qubits = set(final_op.qargs[0] for final_op in final_ops)
 
-        new_barrier_node = barrier_layer.apply_operation_back(
+        barrier_layer.apply_operation_back(
             Barrier(len(final_qubits)), list(final_qubits), [])
 
         # Preserve order of final ops collected earlier from the original DAG.
