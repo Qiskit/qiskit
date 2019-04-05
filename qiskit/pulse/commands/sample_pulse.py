@@ -11,7 +11,7 @@ Sample pulse.
 import numpy as np
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.interfaces import Instruction
+from qiskit.pulse.common.command_schedule import PrimitiveInstruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from qiskit.pulse.exceptions import PulseError
 from .pulse_command import PulseCommand
@@ -78,8 +78,11 @@ class SamplePulse(PulseCommand):
     def __call__(self, channel: OutputChannel) -> 'DriveInstruction':
         return DriveInstruction(self, channel)
 
+    def __rshift__(self, channel: OutputChannel) -> 'DriveInstruction':
+        return DriveInstruction(self, channel)
 
-class DriveInstruction(Instruction):
+
+class DriveInstruction(PrimitiveInstruction):
     """Pulse to drive a pulse shape to a `OutputChannel`. """
 
     def __init__(self, command: SamplePulse, channel: OutputChannel):

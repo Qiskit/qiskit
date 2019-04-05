@@ -10,12 +10,12 @@ Snapshot.
 """
 
 from qiskit.pulse.channels import SnapshotChannel
-from qiskit.pulse.common.interfaces import Instruction
+from qiskit.pulse.common.command_schedule import PrimitiveInstruction
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
 from .pulse_command import PulseCommand
 
 
-class Snapshot(PulseCommand, Instruction):
+class Snapshot(PulseCommand, PrimitiveInstruction):
     """Snapshot."""
 
     def __init__(self, label, snap_type):

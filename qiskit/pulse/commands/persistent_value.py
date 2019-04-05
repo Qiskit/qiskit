@@ -10,7 +10,7 @@ Persistent value.
 """
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.interfaces import Instruction
+from qiskit.pulse.common.command_schedule import PrimitiveInstruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from qiskit.pulse.exceptions import PulseError
 from .pulse_command import PulseCommand
@@ -56,8 +56,11 @@ class PersistentValue(PulseCommand):
     def __call__(self, channel: OutputChannel) -> 'PersistentValueInstruction':
         return PersistentValueInstruction(self, channel)
 
+    def __rshift__(self, channel: OutputChannel) -> 'PersistentValueInstruction':
+        return PersistentValueInstruction(self, channel)
 
-class PersistentValueInstruction(Instruction):
+
+class PersistentValueInstruction(PrimitiveInstruction):
     """Pulse to keep persistent value. """
 
     def __init__(self, command: PersistentValue, channel: OutputChannel):
