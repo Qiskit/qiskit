@@ -15,7 +15,7 @@ from qiskit.validation.fields import Integer, String, Number, Complex, List, Nes
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
-from .simulator import PulseSimulatorSpecSchema
+from .pulse_simulator import PulseSimulatorSpecSchema
 
 
 class QobjMeasurementOptionSchema(BaseSchema):
