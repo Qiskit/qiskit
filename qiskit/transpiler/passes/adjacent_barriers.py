@@ -6,6 +6,9 @@
 # the LICENSE.txt file in the root directory of this source tree.
 """
 A pass that merges any adjacent barriers into one
+
+Only barriers which can be merged without affecting the barrier structure of the
+DAG will be merged.
 """
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -18,9 +21,9 @@ class MergeAdjacentBarriers(TransformationPass):
 
     def run(self, dag):
 
-        # sorted to so that they are in the order they were added to the DAG
+        # sorted to so that they are in the order they appear in the DAG
         # so ancestors/descendants makes sense
-        barriers = sorted(dag.named_nodes('barrier'))
+        barriers = [nd for nd in dag.nodes_in_topological_order() if nd.name == 'barrier']
 
         # get dict of barrier merges
         node_to_barrier = MergeAdjacentBarriers._collect_potential_merges(dag, barriers)
@@ -78,6 +81,8 @@ class MergeAdjacentBarriers(TransformationPass):
 
         for next_barrier in barriers[1:]:
 
+            # Remove all barriers that have already been included in this new barrier from the set
+            # of ancestors/descendants as they will be removed from the new DAG when it is created
             next_ancestors = {nd for nd in dag.ancestors(next_barrier)
                               if nd not in current_barrier_nodes}
             next_descendants = {nd for nd in dag.descendants(next_barrier)
