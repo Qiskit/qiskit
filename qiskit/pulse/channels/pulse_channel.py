@@ -10,13 +10,10 @@ Channels.
 """
 from abc import ABCMeta, abstractmethod
 
-from qiskit.pulse import commands
-
 
 class Channel(metaclass=ABCMeta):
     """Pulse channel."""
 
-    supported = None
     prefix = None
 
     @abstractmethod
@@ -50,11 +47,13 @@ class Channel(metaclass=ABCMeta):
             return True
         return False
 
+    def __hash__(self):
+        return hash((type(self), self._index))
+
 
 class AcquireChannel(Channel):
     """Acquire channel."""
 
-    supported = commands.Acquire
     prefix = 'a'
 
     def __init__(self, index):
@@ -69,7 +68,6 @@ class AcquireChannel(Channel):
 class SnapshotChannel(Channel):
     """Snapshot channel."""
 
-    supported = commands.Snapshot
     prefix = 's'
 
     def __init__(self):
@@ -80,7 +78,6 @@ class SnapshotChannel(Channel):
 class MemorySlot(Channel):
     """Memory slot."""
 
-    supported = commands.Acquire
     prefix = 'm'
 
     def __init__(self, index):
@@ -95,7 +92,6 @@ class MemorySlot(Channel):
 class RegisterSlot(Channel):
     """Classical resister slot channel."""
 
-    supported = commands.Acquire
     prefix = 'c'
 
     def __init__(self, index):
