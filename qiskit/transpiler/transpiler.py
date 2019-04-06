@@ -10,7 +10,7 @@ import logging
 import warnings
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.mapper import CouplingMap, swap_mapper
+from qiskit.mapper import CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
@@ -26,6 +26,7 @@ from .passes.mapping.check_cnot_direction import CheckCnotDirection
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
 from .passes.mapping.trivial_layout import TrivialLayout
+from .passes.mapping.legacy_swap import LegacySwap
 
 from .exceptions import TranspilerError
 
@@ -225,15 +226,10 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
         # if a coupling map is given compile to the map
         if coupling_map:
-            logger.info("pre-mapping properties: %s",
-                        dag.properties())
-            # Insert swap gates
             coupling = CouplingMap(coupling_map)
-            logger.info("initial layout: %s", initial_layout)
 
-            dag, final_layout = swap_mapper(
-                dag, coupling, initial_layout, trials=20, seed=seed_mapper)
-            logger.info("final layout: %s", final_layout)
+            # Insert swap gates
+            dag = LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper).run(dag)
             # Expand swaps
             dag = Decompose(SwapGate).run(dag)
             # Change cx directions
@@ -244,6 +240,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
             # Simplify single qubit gates
             dag = Optimize1qGates().run(dag)
+
             logger.info("post-mapping properties: %s",
                         dag.properties())
         dag.name = name

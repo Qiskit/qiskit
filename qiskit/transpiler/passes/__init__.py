@@ -31,4 +31,5 @@ from .mapping.extend_layout import ExtendLayout
 from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
 from .mapping.stochastic_swap import StochasticSwap
+from .mapping.legacy_swap import LegacySwap
 from .mapping.enlarge_with_ancilla import EnlargeWithAncilla
