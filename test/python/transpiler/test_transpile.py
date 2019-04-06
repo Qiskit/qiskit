@@ -198,24 +198,24 @@ class TestTranspile(QiskitTestCase):
 
         q = QuantumRegister(6, name='qn')
         c = ClassicalRegister(2, name='cn')
-        zz = QuantumCircuit(q, c)
-        zz.h(q[0])
-        zz.h(q[5])
-        zz.cx(q[0], q[5])
-        zz.u1(2, q[5])
-        zz.cx(q[0], q[5])
-        zz.h(q[0])
-        zz.h(q[5])
-        zz.barrier(q)
-        zz.measure(q[0], c[0])
-        zz.measure(q[5], c[1])
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[5])
+        qc.cx(q[0], q[5])
+        qc.u1(2, q[5])
+        qc.cx(q[0], q[5])
+        qc.h(q[0])
+        qc.h(q[5])
+        qc.barrier(q)
+        qc.measure(q[0], c[0])
+        qc.measure(q[5], c[1])
 
         initial_layout = [q[3], q[4], None, None, q[5], q[2], q[1], None, None, q[0],
                           None, None, None, None, None, None, None, None, None, None]
 
-        new_zz = transpile(zz, coupling_map=coupling_map,
+        new_qc = transpile(qc, coupling_map=coupling_map,
                            basis_gates=basis_gates, initial_layout=initial_layout)
-        cx_qubits = [qargs for (gate, qargs, _) in new_zz.data
+        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data
                      if gate.name == "cx"]
         cx_qubits_physical = [[ctrl[1], tgt[1]] for [ctrl, tgt] in cx_qubits]
         self.assertEqual(sorted(cx_qubits_physical),
