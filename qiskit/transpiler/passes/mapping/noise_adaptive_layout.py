@@ -72,7 +72,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         self.swap_paths = {}
         self.swap_costs = {}
         self.prog_graph = nx.Graph()
-        self.qreg_to_id = {}
+        self.qarg_to_id = {}
         self.pending_program_edges = []
         self.prog2hw = {}
 
@@ -124,11 +124,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
                             best_reliab = reliab
                     self.swap_costs[i][j] = best_reliab
 
-    def _qreg_to_id(self, qubit):
+    def _qarg_to_id(self, qubit):
         """
-        Converts qreg with name and value to an integer id
+        Converts qarg with name and value to an integer id
         """
-        return self.qreg_to_id[qubit[0].name + str(qubit[1])]
+        return self.qarg_to_id[qubit[0].name + str(qubit[1])]
 
     def _create_program_graph(self, dag):
         """
@@ -139,11 +139,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         idx = 0
         for q in dag.qubits():
-            self.qreg_to_id[q[0].name + str(q[1])] = idx
+            self.qarg_to_id[q[0].name + str(q[1])] = idx
             idx += 1
         for gate in dag.twoQ_nodes():
-            qid1 = self._qreg_to_id(gate.qargs[0])
-            qid2 = self._qreg_to_id(gate.qargs[1])
+            qid1 = self._qarg_to_id(gate.qargs[0])
+            qid2 = self._qarg_to_id(gate.qargs[1])
             min_q = min(qid1, qid2)
             max_q = max(qid1, qid2)
             edge_weight = 1
@@ -233,14 +233,13 @@ class NoiseAdaptiveLayout(AnalysisPass):
             new_edges = [x for x in self.pending_program_edges
                          if not (x[0] in self.prog2hw and x[1] in self.prog2hw)]
             self.pending_program_edges = new_edges
-        for q in self.qreg_to_id:
-            qid = self.qreg_to_id[q]
+        for qid in self.qarg_to_id.values():
             if qid not in self.prog2hw:
                 self.prog2hw[qid] = self.available_hw_qubits[0]
                 self.available_hw_qubits.remove(self.prog2hw[qid])
         layout = Layout()
         for q in dag.qubits():
-            pid = self._qreg_to_id(q)
+            pid = self._qarg_to_id(q)
             hwid = self.prog2hw[pid]
             layout[(q[0], q[1])] = hwid
         self.property_set['layout'] = layout
