@@ -62,6 +62,8 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
+- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial 
+  qubit layout. (#2089)
 
 Changed
 -------
