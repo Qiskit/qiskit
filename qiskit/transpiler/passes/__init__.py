@@ -20,9 +20,9 @@ from .dag_fixed_point import DAGFixedPoint
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .unroll_3q_or_more import Unroll3qOrMore
-from .gate_cancellation import GateCancellation
 from .commutation_analysis import CommutationAnalysis
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
+from .gate_cancellation import GateCancellation
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
 from .mapping.check_cnot_direction import CheckCnotDirection

@@ -8,8 +8,7 @@
 """Gate cancellation pass testing"""
 
 import unittest
-from test.python._mockutils import FakeBackend
-from test.python.common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile, PropertySet
@@ -59,7 +58,7 @@ class TestGateCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append([CommutationAnalysis(), GateCancellation()])
-        result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
+        result = transpile(circuit, pass_manager=passmanager)
 
         expected = QuantumCircuit(qr)
         expected.u1(2.0, qr[0])
@@ -84,7 +83,7 @@ class TestGateCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append([CommutationAnalysis(), GateCancellation()])
-        result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
+        result = transpile(circuit, pass_manager=passmanager)
 
         expected = QuantumCircuit(qr)
         expected.h(qr[2])
@@ -116,7 +115,7 @@ class TestGateCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         passmanager.append([CommutationAnalysis(), GateCancellation()])
-        result = transpile(circuit, FakeBackend(), pass_manager=passmanager)
+        result = transpile(circuit, pass_manager=passmanager)
 
         expected = QuantumCircuit(qr)
         expected.u1(0.3, qr[2])

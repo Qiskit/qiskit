@@ -19,8 +19,8 @@ from sympy import Number as N
 from qiskit.mapper import MapperError
 from qiskit.extensions.standard.u1 import U1Gate
 
-from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.transpiler.passes import CommutationAnalysis
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.commutation_analysis import CommutationAnalysis
 
 
 class GateCancellation(TransformationPass):
