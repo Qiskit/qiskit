@@ -58,7 +58,7 @@ def format_counts_memory(shot_memory, header):
     return shot_memory
 
 
-def format_meas_level_2_memory(memory, header):
+def format_level_2_memory(memory, header):
     """ Format an experiment result memory object for measurement level 2.
 
     Args:

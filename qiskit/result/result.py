@@ -12,8 +12,7 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 
 from qiskit.validation.base import BaseModel, bind_schema
-from .postprocess import (format_counts, format_statevector,
-                          format_unitary, format_memory)
+import qiskit.result.postprocess as postprocess
 from .models import ResultSchema
 
 
@@ -130,21 +129,20 @@ class Result(BaseModel):
             memory = self.data(experiment)['memory']
 
             if meas_level == 2:
-                return format_level_2_memory(memory, header)
+                return postprocess.format_level_2_memory(memory, header)
             elif meas_level == 1:
-                return format_level_1_memory(memory, header)
+                return postprocess.format_level_1_memory(memory, header)
             else:
-                return format_level_0_memory(memory, header)
-
+                return postprocess.format_level_0_memory(memory, header)
 
         except KeyError:
-            raise QiskitError('No memory for circuit "{0}".'.format(circuit))
+            raise QiskitError('No memory for experiment "{0}".'.format(experiment))
 
-    def get_counts(self, circuit=None):
+    def get_counts(self, experiment=None):
         """Get the histogram data of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``get_data()``.
 
         Returns:
@@ -157,16 +155,16 @@ class Result(BaseModel):
             QiskitError: if there are no counts for the experiment.
         """
         try:
-            return format_counts(self.data(circuit)['counts'],
-                                 self._get_experiment(circuit).header.to_dict())
+            return postprocess.format_counts(self.data(experiment)['counts'],
+                                             self._get_experiment(experiment).header.to_dict())
         except KeyError:
-            raise QiskitError('No counts for circuit "{0}"'.format(circuit))
+            raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
-    def get_statevector(self, circuit=None, decimals=None):
+    def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the statevector.
                 If None, does not round.
@@ -178,16 +176,16 @@ class Result(BaseModel):
             QiskitError: if there is no statevector for the experiment.
         """
         try:
-            return format_statevector(self.data(circuit)['statevector'],
-                                      decimals=decimals)
+            return postprocess.format_statevector(self.data(experiment)['statevector'],
+                                                  decimals=decimals)
         except KeyError:
-            raise QiskitError('No statevector for circuit "{0}"'.format(circuit))
+            raise QiskitError('No statevector for experiment "{0}"'.format(experiment))
 
-    def get_unitary(self, circuit=None, decimals=None):
+    def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
 
         Args:
-            circuit (str or QuantumCircuit or int or None): the index of the
+            experiment (str or QuantumCircuit or Schedule or int or None): the index of the
                 experiment, as specified by ``data()``.
             decimals (int): the number of decimals in the unitary.
                 If None, does not round.
@@ -200,10 +198,10 @@ class Result(BaseModel):
             QiskitError: if there is no unitary for the experiment.
         """
         try:
-            return format_unitary(self.data(circuit)['unitary'],
-                                  decimals=decimals)
+            return postprocess.format_unitary(self.data(experiment)['unitary'],
+                                              decimals=decimals)
         except KeyError:
-            raise QiskitError('No unitary for circuit "{0}"'.format(circuit))
+            raise QiskitError('No unitary for experiment "{0}"'.format(experiment))
 
     def _get_experiment(self, key=None):
         """Return a single experiment result from a given key.
@@ -216,7 +214,7 @@ class Result(BaseModel):
             ExperimentResult: the results for an experiment.
 
         Raises:
-            QiskitError: if there is no data for the circuit, or an unhandled
+            QiskitError: if there is no data for the experiment, or an unhandled
                 error occurred while fetching the data.
         """
         if not self.success:
