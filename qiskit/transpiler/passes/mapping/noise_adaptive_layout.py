@@ -134,7 +134,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         Program graph has virtual qubits as nodes.
         Two nodes have an edge if the corresponding virtual qubits
-        participate in a CNOT gate. The edge is weighted by the
+        participate in a 2-qubit gate. The edge is weighted by the
         number of CNOTs between the pair.
         """
         idx = 0
