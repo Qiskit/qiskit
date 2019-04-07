@@ -201,7 +201,6 @@ class LegacySwap(TransformationPass):
             for i, layer in enumerate(layerlist):
                 dagcircuit_output.compose_back(layer["graph"], layout)
 
-        self.property_set['final_layout'] = initial_layout
         return dagcircuit_output
 
     def layer_permutation(self, layer_partition, layout, qubit_subset, coupling, trials,
