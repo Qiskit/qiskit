@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=invalid-name
+
 """
 A pass implementing the legacy swapper.
 
@@ -38,6 +40,8 @@ class LegacySwap(TransformationPass):
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
             initial_layout (Layout): initial layout of qubits in mapping
+            trials (int): the number of attempts the randomized algorithm makes.
+            seed (int): initial seed.
         """
         super().__init__()
         self.coupling_map = coupling_map
@@ -164,8 +168,7 @@ class LegacySwap(TransformationPass):
                                                       best_layout,
                                                       best_d,
                                                       best_circ,
-                                                      serial_layerlist,
-                                                      self.coupling_map),
+                                                      serial_layerlist),
                         identity_wire_map)
                     # Update initial layout
                     if first_layer:
@@ -183,8 +186,7 @@ class LegacySwap(TransformationPass):
                                                   best_layout,
                                                   best_d,
                                                   best_circ,
-                                                  layerlist,
-                                                  self.coupling_map),
+                                                  layerlist),
                     identity_wire_map)
                 # Update initial layout
                 if first_layer:
@@ -327,7 +329,7 @@ class LegacySwap(TransformationPass):
                 # We have either run out of qubits or failed to improve
                 # Compute the coupling graph distance_qubits
                 dist = sum([self.coupling_map.distance(trial_layout[g[0]][1],
-                                              trial_layout[g[1]][1]) for g in gates])
+                                                       trial_layout[g[1]][1]) for g in gates])
                 # If all gates can be applied now, we are finished
                 # Otherwise we need to consider a deeper swap circuit
                 if dist == len(gates):
@@ -339,7 +341,7 @@ class LegacySwap(TransformationPass):
 
             # Either we have succeeded at some depth d < dmax or failed
             dist = sum([self.coupling_map.distance(trial_layout[g[0]][1],
-                                          trial_layout[g[1]][1]) for g in gates])
+                                                   trial_layout[g[1]][1]) for g in gates])
             if dist == len(gates):
                 if d < best_d:
                     best_circ = trial_circ
@@ -352,7 +354,7 @@ class LegacySwap(TransformationPass):
         return True, best_circ, best_d, best_layout, False
 
     def swap_mapper_layer_update(self, i, first_layer, best_layout, best_d,
-                                 best_circ, layer_list, coupling_map):
+                                 best_circ, layer_list):
         """Update the QASM string for an iteration of swap_mapper.
 
         i = layer number
@@ -366,10 +368,10 @@ class LegacySwap(TransformationPass):
         """
         layout = best_layout
         dagcircuit_output = DAGCircuit()
-        QR = QuantumRegister(coupling_map.size(), 'q')
+        QR = QuantumRegister(self.coupling_map.size(), 'q')
         dagcircuit_output.add_qreg(QR)
         # Identity wire-map for composing the circuits
-        identity_wire_map = {(QR, j): (QR, j) for j in range(coupling_map.size())}
+        identity_wire_map = {(QR, j): (QR, j) for j in range(self.coupling_map.size())}
 
         # If this is the first layer with multi-qubit gates,
         # output all layers up to this point and ignore any
