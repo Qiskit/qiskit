@@ -124,39 +124,6 @@ class TestChi(ChannelTestCase):
         self.assertEqual(chan.dims, (2, 2))
         self.assertAllClose(chan._evolve(rho), targ)
 
-    def test_compose_inplace(self):
-        """Test inplace compose method."""
-        # Random input test state
-        rho = self.rand_rho(2)
-
-        # UnitaryChannel evolution
-        chan1 = Chi(self.chiX)
-        chan2 = Chi(self.chiY)
-        chan1.compose(chan2, inplace=True)
-        targ = Chi(self.chiZ)._evolve(rho)
-        self.assertAllClose(chan1._evolve(rho), targ)
-
-        # 50% depolarizing channel
-        chan1 = Chi(self.depol_chi(0.5))
-        chan1.compose(chan1, inplace=True)
-        targ = Chi(self.depol_chi(0.75))._evolve(rho)
-        self.assertAllClose(chan1._evolve(rho), targ)
-
-        # Compose random
-        chi1 = self.rand_matrix(4, 4, real=True)
-        chi2 = self.rand_matrix(4, 4, real=True)
-        chan1 = Chi(chi1, input_dim=2, output_dim=2)
-        chan2 = Chi(chi2, input_dim=2, output_dim=2)
-        targ = chan2._evolve(chan1._evolve(rho))
-        chan1.compose(chan2, inplace=True)
-        self.assertEqual(chan1.dims, (2, 2))
-        self.assertAllClose(chan1._evolve(rho), targ)
-        chan1 = Chi(chi1, input_dim=2, output_dim=2)
-        chan2 = Chi(chi2, input_dim=2, output_dim=2)
-        chan1 @= chan2
-        self.assertEqual(chan1.dims, (2, 2))
-        self.assertAllClose(chan1._evolve(rho), targ)
-
     def test_compose_front(self):
         """Test front compose method."""
         # Random input test state
@@ -178,28 +145,6 @@ class TestChi(ChannelTestCase):
         chan = chan2.compose(chan1, front=True)
         self.assertEqual(chan.dims, (2, 2))
         self.assertAllClose(chan._evolve(rho), targ)
-
-    def test_compose_front_inplace(self):
-        """Test inplace front compose method."""
-        # Random input test state
-        rho = self.rand_rho(2)
-
-        # UnitaryChannel evolution
-        chan1 = Chi(self.chiX)
-        chan2 = Chi(self.chiY)
-        chan2.compose(chan1, front=True, inplace=True)
-        targ = Chi(self.chiZ)._evolve(rho)
-        self.assertAllClose(chan2._evolve(rho), targ)
-
-        # Compose random
-        chi1 = self.rand_matrix(4, 4, real=True)
-        chi2 = self.rand_matrix(4, 4, real=True)
-        chan1 = Chi(chi1, input_dim=2, output_dim=2)
-        chan2 = Chi(chi2, input_dim=2, output_dim=2)
-        targ = chan2._evolve(chan1._evolve(rho))
-        chan2.compose(chan1, front=True, inplace=True)
-        self.assertEqual(chan2.dims, (2, 2))
-        self.assertAllClose(chan2._evolve(rho), targ)
 
     def test_expand(self):
         """Test expand method."""
@@ -223,29 +168,6 @@ class TestChi(ChannelTestCase):
         targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
         self.assertAllClose(chan._evolve(rho), targ)
-
-    def test_expand_inplace(self):
-        """Test inplace expand method."""
-        # Pauli channels
-        paulis = [self.chiI, self.chiX, self.chiY, self.chiZ]
-        targs = 4 * np.eye(16)  # diagonals of Pauli channel Chi mats
-        for i, chi1 in enumerate(paulis):
-            for j, chi2 in enumerate(paulis):
-                chan1 = Chi(chi1)
-                chan2 = Chi(chi2)
-                chan1.expand(chan2, inplace=True)
-                # Target for diagonal Pauli channel
-                targ = Chi(np.diag(targs[i + 4 * j]))
-                self.assertEqual(chan1.dims, (4, 4))
-                self.assertEqual(chan1, targ)
-
-        # Completely depolarizing
-        rho = np.diag([1, 0, 0, 0])
-        chan_dep = Chi(self.depol_chi(1))
-        chan_dep.tensor(chan_dep, inplace=True)
-        targ = np.diag([1, 1, 1, 1]) / 4
-        self.assertEqual(chan_dep.dims, (4, 4))
-        self.assertAllClose(chan_dep._evolve(rho), targ)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -278,40 +200,6 @@ class TestChi(ChannelTestCase):
         self.assertEqual(chan.dims, (4, 4))
         self.assertAllClose(chan._evolve(rho), targ)
 
-    def test_tensor_inplace(self):
-        """Test inplace tensor method."""
-        # Pauli channels
-        paulis = [self.chiI, self.chiX, self.chiY, self.chiZ]
-        targs = 4 * np.eye(16)  # diagonals of Pauli channel Chi mats
-        for i, chi1 in enumerate(paulis):
-            for j, chi2 in enumerate(paulis):
-                chan1 = Chi(chi1)
-                chan2 = Chi(chi2)
-                chan2.tensor(chan1, inplace=True)
-                # Target for diagonal Pauli channel
-                targ = Chi(np.diag(targs[i + 4 * j]))
-                self.assertEqual(chan2.dims, (4, 4))
-                self.assertEqual(chan2, targ)
-                # Test operator overload
-                chan1 = Chi(chi1)
-                chan2 = Chi(chi2)
-                chan2 ^= chan1
-                self.assertEqual(chan2.dims, (4, 4))
-                self.assertEqual(chan2, targ)
-
-        # Completely depolarizing
-        rho = np.diag([1, 0, 0, 0])
-        chan_dep = Chi(self.depol_chi(1))
-        chan_dep.tensor(chan_dep, inplace=True)
-        targ = np.diag([1, 1, 1, 1]) / 4
-        self.assertEqual(chan_dep.dims, (4, 4))
-        self.assertAllClose(chan_dep._evolve(rho), targ)
-        # Test operator overload
-        chan_dep = Chi(self.depol_chi(1))
-        chan_dep ^= chan_dep
-        self.assertEqual(chan_dep.dims, (4, 4))
-        self.assertAllClose(chan_dep._evolve(rho), targ)
-
     def test_power(self):
         """Test power method."""
         # 10% depolarizing channel
@@ -323,18 +211,6 @@ class TestChi(ChannelTestCase):
         chan3 = depol.power(3)
         targ3 = Chi(self.depol_chi(1 - p_id3))
         self.assertEqual(chan3, targ3)
-
-    def test_power_inplace(self):
-        """Test inplace power method."""
-        # 10% depolarizing channel
-        p_id = 0.9
-        depol = Chi(self.depol_chi(1 - p_id))
-
-        # Compose 3 times
-        p_id3 = p_id**3
-        depol.power(3, inplace=True)
-        targ3 = Chi(self.depol_chi(1 - p_id3))
-        self.assertEqual(depol, targ3)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
@@ -357,22 +233,6 @@ class TestChi(ChannelTestCase):
         self.assertEqual(chan1.add(chan2), targ)
         self.assertEqual(chan1 + chan2, targ)
 
-    def test_add_inplace(self):
-        """Test inplace add method."""
-        mat1 = 0.5 * self.chiI
-        mat2 = 0.5 * self.depol_chi(1)
-        targ = Chi(mat1 + mat2)
-
-        chan1 = Chi(mat1)
-        chan2 = Chi(mat2)
-        chan1.add(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-
-        chan1 = Chi(mat1)
-        chan2 = Chi(mat2)
-        chan1 += chan2
-        self.assertEqual(chan1, targ)
-
     def test_add_except(self):
         """Test add method raises exceptions."""
         chan1 = Chi(self.chiI)
@@ -391,22 +251,6 @@ class TestChi(ChannelTestCase):
         self.assertEqual(chan1.subtract(chan2), targ)
         self.assertEqual(chan1 - chan2, targ)
 
-    def test_subtract_inplace(self):
-        """Test inplace subtract method."""
-        mat1 = 0.5 * self.chiI
-        mat2 = 0.5 * self.depol_chi(1)
-        targ = Chi(mat1 - mat2)
-
-        chan1 = Chi(mat1)
-        chan2 = Chi(mat2)
-        chan1.subtract(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-
-        chan1 = Chi(mat1)
-        chan2 = Chi(mat2)
-        chan1 -= chan2
-        self.assertEqual(chan1, targ)
-
     def test_subtract_except(self):
         """Test subtract method raises exceptions."""
         chan1 = Chi(self.chiI)
@@ -422,18 +266,6 @@ class TestChi(ChannelTestCase):
         self.assertEqual(chan.multiply(val), targ)
         self.assertEqual(val * chan, targ)
         self.assertEqual(chan * val, targ)
-
-    def test_multiply_inplace(self):
-        """Test inplace multiply method."""
-        chan = Chi(self.chiI)
-        val = 0.5
-        targ = Chi(val * self.chiI)
-        chan.multiply(val, inplace=True)
-        self.assertEqual(chan, targ)
-
-        chan = Chi(self.chiI)
-        chan *= val
-        self.assertEqual(chan, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""

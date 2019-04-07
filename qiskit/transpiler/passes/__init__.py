@@ -32,3 +32,4 @@ from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
 from .mapping.stochastic_swap import StochasticSwap
 from .mapping.enlarge_with_ancilla import EnlargeWithAncilla
+from .mapping.noise_adaptive_layout import NoiseAdaptiveLayout

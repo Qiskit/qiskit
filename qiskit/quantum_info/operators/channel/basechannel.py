@@ -117,54 +117,28 @@ class QuantumChannel(ABC):
         pass
 
     @abstractmethod
-    def conjugate(self, inplace=False):
-        """Return the conjugate of the  QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            QuantumChannel: the conjugate of the quantum channel.
-        """
+    def conjugate(self):
+        """Return the conjugate of the QuantumChannel."""
         pass
 
     @abstractmethod
-    def transpose(self, inplace=False):
-        """Return the transpose of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            QuantumChannel: the transpose of the quantum channel.
-        """
+    def transpose(self):
+        """Return the transpose of the QuantumChannel."""
         pass
 
-    def adjoint(self, inplace=False):
-        """Return the adjoint of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            QuantumChannel: the adjoint of the quantum channel.
-        """
-        return self.conjugate(inplace=inplace).transpose(inplace=inplace)
+    def adjoint(self):
+        """Return the adjoint of the QuantumChannel."""
+        return self.conjugate().transpose()
 
     @abstractmethod
-    def compose(self, other, inplace=False, front=False):
+    def compose(self, other, front=False):
         """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
-                          [default: False]
+                          [default: False].
 
         Returns:
             QuantumChannel: the composition channel.
@@ -172,13 +146,11 @@ class QuantumChannel(ABC):
         pass
 
     @abstractmethod
-    def tensor(self, other, inplace=False):
+    def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             QuantumChannel: the tensor product channel self ⊗ other.
@@ -186,26 +158,22 @@ class QuantumChannel(ABC):
         pass
 
     @abstractmethod
-    def expand(self, other, inplace=False):
+    def expand(self, other):
         """Return the tensor product channel other ⊗ self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             QuantumChannel: the tensor product channel other ⊗ self.
         """
         pass
 
-    def power(self, n, inplace=False):
+    def power(self, n):
         """Return the compose of a QuantumChannel with itself n times.
 
         Args:
             n (int): the number of times to compose with self (n>0).
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
 
         Returns:
             QuantumChannel: the n-times composition channel.
@@ -219,29 +187,17 @@ class QuantumChannel(ABC):
             raise QiskitError("Can only power with positive integer powers.")
         if self._input_dim != self._output_dim:
             raise QiskitError("Can only power with input_dim = output_dim.")
-        # Update inplace
-        if inplace:
-            if n == 1:
-                return self
-            # cache current state to apply n-times
-            cache = self.copy()
-            for _ in range(1, n):
-                self.compose(cache, inplace=True)
-            return self
-        # Return new object
         ret = self.copy()
         for _ in range(1, n):
             ret = ret.compose(self)
         return ret
 
     @abstractmethod
-    def add(self, other, inplace=False):
+    def add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             QuantumChannel: the linear addition self + other.
@@ -253,13 +209,11 @@ class QuantumChannel(ABC):
         pass
 
     @abstractmethod
-    def subtract(self, other, inplace=False):
+    def subtract(self, other):
         """Return the QuantumChannel self - other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             QuantumChannel: the linear subtraction self - other.
@@ -271,13 +225,11 @@ class QuantumChannel(ABC):
         pass
 
     @abstractmethod
-    def multiply(self, other, inplace=False):
+    def multiply(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (complex): a complex number
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (complex): a complex number.
 
         Returns:
             QuantumChannel: the scalar multiplication other * self.
@@ -317,32 +269,17 @@ class QuantumChannel(ABC):
     def __matmul__(self, other):
         return self.compose(other)
 
-    def __imatmul__(self, other):
-        return self.compose(other, inplace=True)
-
     def __pow__(self, n):
         return self.power(n)
-
-    def __ipow__(self, n):
-        return self.power(n, inplace=True)
 
     def __xor__(self, other):
         return self.tensor(other)
 
-    def __ixor__(self, other):
-        return self.tensor(other, inplace=True)
-
     def __mul__(self, other):
         return self.multiply(other)
 
-    def __imul__(self, other):
-        return self.multiply(other, inplace=False)
-
     def __truediv__(self, other):
         return self.multiply(1 / other)
-
-    def __itruediv__(self, other):
-        return self.multiply(1 / other, inplace=False)
 
     def __rmul__(self, other):
         return self.__mul__(other)
@@ -350,14 +287,8 @@ class QuantumChannel(ABC):
     def __add__(self, other):
         return self.add(other)
 
-    def __iadd__(self, other):
-        return self.add(other, inplace=True)
-
     def __sub__(self, other):
         return self.subtract(other)
-
-    def __isub__(self, other):
-        return self.subtract(other, inplace=True)
 
     def __neg__(self):
         return self.multiply(-1)
