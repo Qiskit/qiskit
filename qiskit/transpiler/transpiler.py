@@ -33,8 +33,6 @@ from .passes.mapping.legacy_swap import LegacySwap
 from .passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
 from .passes.mapping.extend_layout import ExtendLayout
 
-from .exceptions import TranspilerError
-
 logger = logging.getLogger(__name__)
 
 
@@ -54,9 +52,6 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
-
-    Raises:
-        TranspilerError: if args are not complete for the transpiler to function
     """
     return_form_is_single = False
     if isinstance(circuits, QuantumCircuit):
@@ -108,9 +103,6 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
     Returns:
         QuantumCircuit: A transpiled circuit.
-
-    Raises:
-        TranspilerError: if args are not complete for transpiler to function.
     """
     if pass_manager and not pass_manager.working_list:
         return circuit

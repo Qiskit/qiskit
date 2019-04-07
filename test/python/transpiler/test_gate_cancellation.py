@@ -29,11 +29,17 @@ class TestGateCancellation(QiskitTestCase):
     def test_all_gates(self):
         """Test all gates on 1 and 2 qubits
 
-        qr0:----[H]--[H]--[x]--[x]--[y]--[y]--[t]--[t]--[s]--[s]--[u1]--[u2]--[u3]--.--.--.--.--.--
-                                                                                    |  |  |  |  |
-        qr1:------------------------------------------------------------------------X--X--Y--Y--.--
+        q0:-[H]-[H]--[x]-[x]--[y]-[y]--[t]-[t]--[s]-[s]--[rz]-[rz]--[u1]-[u1]--.--.--.--.--.--.
+                                                                               |  |  |  |  |  |
+        q1:--------------------------------------------------------------------X--X--Y--Y--.--.
+
+        =
+
+        qr0:---[U1]---
+
+        qr1:----------
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.h(qr[0])
@@ -57,22 +63,22 @@ class TestGateCancellation(QiskitTestCase):
         circuit.cz(qr[0], qr[1])
 
         passmanager = PassManager()
-        passmanager.append([CommutationAnalysis(), GateCancellation()])
-        result = transpile(circuit, pass_manager=passmanager)
+        passmanager.append(GateCancellation())
+        new_circuit = transpile(circuit, pass_manager=passmanager)
 
         expected = QuantumCircuit(qr)
         expected.u1(2.0, qr[0])
 
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, new_circuit)
 
     def test_commutative_circuit1(self):
         """A simple circuit where three CNOTs commute, the first and the last cancel.
 
-        qr0:----.---------------.--
+        qr0:----.---------------.--       qr0:------------
                 |               |
-        qr1:---(+)-----(+)-----(+)-
-                        |
-        qr2:---[H]------.----------
+        qr1:---(+)-----(+)-----(+)-   =   qr1:-------(+)--
+                        |                             |
+        qr2:---[H]------.----------       qr2:---[H]--.---
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
@@ -82,27 +88,26 @@ class TestGateCancellation(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         passmanager = PassManager()
-        passmanager.append([CommutationAnalysis(), GateCancellation()])
-        result = transpile(circuit, pass_manager=passmanager)
+        passmanager.append(GateCancellation())
+        new_circuit = transpile(circuit, pass_manager=passmanager)
 
         expected = QuantumCircuit(qr)
         expected.h(qr[2])
         expected.cx(qr[2], qr[1])
 
-        self.assertEqual(expected, result)
+        self.assertEqual(expected, new_circuit)
 
     def test_commutative_circuit2(self):
         """
         A simple circuit where three CNOTs commute, the first and the last cancel,
-        also two X gates cancel and two Z gates cancel
+        also two X gates cancel and two Rz gates combine.
 
-        qr0:----.-------------.------
-                |             |
-        qr1:---(+)---(+)--X--(+)--X--
-                      |
-        qr2:----Rz----.---Rz---------
+        qr0:----.---------------.--------     qr0:-------------
+                |               |
+        qr1:---(+)---(+)--[X]--(+)--[X]--  =  qr1:--------(+)--
+                      |                                    |
+        qr2:---[Rz]---.---[Rz]-----------     qr2:--[U1]---.---
         """
-
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
@@ -114,15 +119,17 @@ class TestGateCancellation(QiskitTestCase):
         circuit.x(qr[1])
 
         passmanager = PassManager()
-        passmanager.append([CommutationAnalysis(), GateCancellation()])
-        result = transpile(circuit, pass_manager=passmanager)
-
+        passmanager.append(GateCancellation())
+        new_circuit = transpile(circuit, pass_manager=passmanager)
+        print(new_circuit)
         expected = QuantumCircuit(qr)
         expected.u1(0.3, qr[2])
         expected.cx(qr[2], qr[1])
+        print(expected)
+        print(new_circuit.qasm())
+        print(expected.qasm())
 
-        self.assertEqual(circuit_to_dag(result).multi_graph.number_of_nodes(),
-                         circuit_to_dag(expected).multi_graph.number_of_nodes())
+        self.assertEqual(expected, new_circuit)
 
 
 if __name__ == '__main__':

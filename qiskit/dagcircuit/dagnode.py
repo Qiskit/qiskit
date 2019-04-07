@@ -5,10 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+"""Object to represent the information at a node in the DAGCircuit
 """
-   Object to represent the information at a node in the DAGCircuit
-"""
+
 from qiskit.exceptions import QiskitError
+
+_CUTOFF_PRECISION = 1E-5
 
 
 class DAGNode:
@@ -17,34 +19,33 @@ class DAGNode:
 
     It is used as the return value from *_nodes() functions and can
     be supplied to functions that take a node.
-
     """
 
     def __init__(self, data_dict, nid=-1):
-        """ Create a node """
+        """Create a node """
         self._node_id = nid
         self.data_dict = data_dict
 
     @property
     def type(self):
-        """ Returns a str which is the type of the node else None"""
+        """Returns a str which is the type of the node else None"""
         return self.data_dict.get('type')
 
     @property
     def op(self):
-        """ Returns the Instruction object corresponding to the op for the node else None"""
+        """Returns the Instruction object corresponding to the op for the node else None"""
         if 'type' not in self.data_dict or self.data_dict['type'] != 'op':
             raise QiskitError("The node %s is not an op node" % (str(self)))
         return self.data_dict.get('op')
 
     @property
     def name(self):
-        """ Returns a str which is the name of the node else None"""
+        """Returns a str which is the name of the node else None"""
         return self.data_dict.get('name')
 
     @name.setter
     def name(self, new_name):
-        """ Sets the name of the node to be the given value"""
+        """Sets the name of the node to be the given value"""
         self.data_dict['name'] = new_name
 
     @property
@@ -57,7 +58,7 @@ class DAGNode:
 
     @qargs.setter
     def qargs(self, new_qargs):
-        """ Sets the qargs to be the given list of qargs"""
+        """Sets the qargs to be the given list of qargs"""
         self.data_dict['qargs'] = new_qargs
 
     @property
@@ -70,8 +71,10 @@ class DAGNode:
 
     @property
     def condition(self):
-        """ Returns a tuple (ClassicalRegister, int) where the int is the
-        value of the condition else None"""
+        """
+        Returns a tuple (ClassicalRegister, int) where the int is the
+        value of the condition else None
+        """
         return self.data_dict.get('condition')
 
     @property
@@ -117,9 +120,12 @@ class DAGNode:
         Return:
             Bool: If node1 == node2
         """
-
         # For barriers, qarg order is not significant so compare as sets
         if 'barrier' == node1.name == node2.name:
             return set(node1.qargs) == set(node2.qargs)
-
+        print("comparing...", node1.data_dict == node2.data_dict)
+        print(node1.data_dict, node2.data_dict)
+        if node1.type == 'op' and node1.op.params:
+            print(node1.op.params[0], node2.op.params[0], node1.op.params[0]==node2.op.params[0], type(node1.op.params[0]), type(node2.op.params[0]))
+        # approx params comparison...
         return node1.data_dict == node2.data_dict
