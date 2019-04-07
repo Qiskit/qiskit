@@ -85,31 +85,12 @@ class Choi(QuantumChannel):
         return np.einsum('AB,AiBj->ij', state,
                          np.reshape(self._data, self._bipartite_shape))
 
-    def conjugate(self, inplace=False):
-        """Return the conjugate of the  QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Choi: the conjugate of the quantum channel as a Choi object.
-        """
-        if inplace:
-            np.conjugate(self._data, out=self._data)
-            return self
+    def conjugate(self):
+        """Return the conjugate of the QuantumChannel."""
         return Choi(np.conj(self._data), self._input_dim, self._output_dim)
 
-    def transpose(self, inplace=False):
-        """Return the transpose of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Choi: the transpose of the quantum channel as a Choi object.
-        """
+    def transpose(self):
+        """Return the transpose of the QuantumChannel."""
         # Make bipartite matrix
         d_in, d_out = self.dims
         data = np.reshape(self._data, (d_in, d_out, d_in, d_out))
@@ -117,32 +98,13 @@ class Choi(QuantumChannel):
         data = np.transpose(data, (1, 0, 3, 2))
         # Transpose channel has input and output dimensions swapped
         data = np.reshape(data, (d_in * d_out, d_in * d_out))
-        if inplace:
-            self._data = data
-            self._input_dim = d_out
-            self._output_dim = d_in
-            return self
         return Choi(data, d_out, d_in)
 
-    def adjoint(self, inplace=False):
-        """Return the adjoint of the QuantumChannel.
-
-        Args:
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
-
-        Returns:
-            Choi: the adjoint of the quantum channel as a Choi object.
-        """
-        return super().adjoint(inplace=inplace)
-
-    def compose(self, other, inplace=False, front=False):
+    def compose(self, other, front=False):
         """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -182,38 +144,13 @@ class Choi(QuantumChannel):
         data = np.reshape(
             np.einsum('iAjB,AkBl->ikjl', first, second),
             (input_dim * output_dim, input_dim * output_dim))
-        if inplace:
-            self._data = data
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
         return Choi(data, input_dim, output_dim)
 
-    def power(self, n, inplace=False):
-        """Return the compose of a QuantumChannel with itself n times.
-
-        Args:
-            n (int): the number of times to compose with self (n>0).
-            inplace (bool): If True modify the current object inplace
-                            [Default: False]
-
-        Returns:
-            Choi: the n-times composition channel as a Choi object.
-
-        Raises:
-            QiskitError: if the input and output dimensions of the
-            QuantumChannel are not equal, or the power is not a positive
-            integer.
-        """
-        return super().power(n, inplace=inplace)
-
-    def tensor(self, other, inplace=False):
+    def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Choi: the tensor product channel self ⊗ other as a Choi object.
@@ -221,15 +158,13 @@ class Choi(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=False)
+        return self._tensor_product(other, reverse=False)
 
-    def expand(self, other, inplace=False):
+    def expand(self, other):
         """Return the tensor product channel other ⊗ self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Choi: the tensor product channel other ⊗ self as a Choi object.
@@ -237,15 +172,13 @@ class Choi(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        return self._tensor_product(other, inplace=inplace, reverse=True)
+        return self._tensor_product(other, reverse=True)
 
-    def add(self, other, inplace=False):
+    def add(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Choi: the linear addition self + other as a Choi object.
@@ -260,19 +193,14 @@ class Choi(QuantumChannel):
             raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, Choi):
             other = Choi(other)
-        if inplace:
-            self._data += other._data
-            return self
         input_dim, output_dim = self.dims
         return Choi(self._data + other.data, input_dim, output_dim)
 
-    def subtract(self, other, inplace=False):
+    def subtract(self, other):
         """Return the QuantumChannel self - other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (QuantumChannel): a quantum channel subclass.
 
         Returns:
             Choi: the linear subtraction self - other as Choi object.
@@ -287,19 +215,14 @@ class Choi(QuantumChannel):
             raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, Choi):
             other = Choi(other)
-        if inplace:
-            self._data -= other.data
-            return self
         input_dim, output_dim = self.dims
         return Choi(self._data - other.data, input_dim, output_dim)
 
-    def multiply(self, other, inplace=False):
+    def multiply(self, other):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (complex): a complex number
-            inplace (bool): If True modify the current object inplace
-                           [Default: False]
+            other (complex): a complex number.
 
         Returns:
             Choi: the scalar multiplication other * self as a Choi object.
@@ -309,9 +232,6 @@ class Choi(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        if inplace:
-            self._data *= other
-            return self
         input_dim, output_dim = self.dims
         return Choi(other * self._data, input_dim, output_dim)
 
@@ -330,13 +250,11 @@ class Choi(QuantumChannel):
             axis2=3)
         return is_identity_matrix(mat, rtol=self.rtol, atol=self.atol)
 
-    def _tensor_product(self, other, inplace=False, reverse=False):
+    def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass
-            inplace (bool): If True modify the current object inplace
-                            [default: False]
+            other (QuantumChannel): a quantum channel subclass.
             reverse (bool): If False return self ⊗ other, if True return
                             if True return (other ⊗ self) [Default: False
         Returns:
@@ -371,10 +289,4 @@ class Choi(QuantumChannel):
                 other.data,
                 shape1=self._bipartite_shape,
                 shape2=other._bipartite_shape)
-        if inplace:
-            self._data = data
-            self._input_dim = input_dim
-            self._output_dim = output_dim
-            return self
-        # return new object
         return Choi(data, input_dim, output_dim)
