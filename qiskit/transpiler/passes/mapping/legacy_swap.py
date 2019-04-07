@@ -10,11 +10,10 @@
 """
 A pass implementing the legacy swapper.
 
-TODO more info?
+Based on Sergey Bravyi's algorithm.
 """
-
-import numpy as np
 import sys
+import numpy as np
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
@@ -56,11 +55,6 @@ class LegacySwap(TransformationPass):
 
         Args:
             dag (DAGCircuit): input DAG circuit
-            coupling_map (CouplingGraph): coupling graph to map onto
-            initial_layout (Layout): dict {(str, int): (str, int)}
-                from qubits of circuit_graph to qubits of coupling_map (optional)
-            trials (int): number of trials.
-            seed (int): initial seed.
 
         Returns:
             DAGCircuit: object containing a circuit equivalent to
@@ -251,7 +245,7 @@ class LegacySwap(TransformationPass):
         best_circ = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
         QR = QuantumRegister(self.coupling_map.size(), "q")
-        for trial in range(self.trials):
+        for _ in range(self.trials):
 
             trial_layout = layout.copy()
             rev_trial_layout = rev_layout.copy()
