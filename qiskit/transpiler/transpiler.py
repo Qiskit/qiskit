@@ -169,7 +169,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
             eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
 
-        initial_layout (Layout): A layout object
+        initial_layout (Layout or None): A layout object
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
@@ -196,6 +196,9 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
                       "instead of 'u1,u2,u3,cx'. The string format will be "
                       "removed after 0.9", DeprecationWarning, 2)
         basis_gates = basis_gates.split(',')
+
+    if initial_layout is None:
+        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
     if pass_manager:
         # run the passes specified by the pass manager
