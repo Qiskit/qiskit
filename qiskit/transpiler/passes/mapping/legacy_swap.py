@@ -222,8 +222,8 @@ class LegacySwap(TransformationPass):
         has no multi-qubit gates.
         """
         if self.seed is None:
-            seed = np.random.randint(0, np.iinfo(np.int32).max)
-        rng = np.random.RandomState(seed)
+            self.seed = np.random.randint(0, np.iinfo(np.int32).max)
+        rng = np.random.RandomState(self.seed)
         rev_layout = {b: a for a, b in layout.items()}
         gates = []
         for layer in layer_partition:
