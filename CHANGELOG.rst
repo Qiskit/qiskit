@@ -22,7 +22,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-
+- `meas_level` to result schema (#2085).
 - Core StochasticSwap routine implemented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
@@ -64,6 +64,8 @@ Added
   (reverses its sub-instructions) (#1816).
 - Added an ``PassManager.passes()`` method that returns a list of the passes that
   have been added to the pass manager, including options and flow controllers.
+- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial 
+  qubit layout. (#2089)
 
 Changed
 -------
@@ -116,7 +118,7 @@ Changed
 - The old syntax for attaching a gate to the circuit then modifying it is no longer
   supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``).
   Instead, you must first modify the gate then attach it (#1816).
-- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a 
+- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a
   (instruction, qarg, carg) (#1816).
 - The visualization subpackage has moved from ``qiskit.tools.visualization`` to
   ``qiskit.visualization``. The public API (which was declared stable in
@@ -155,6 +157,7 @@ Fixed
   coupling map is provided (#1711).
 - Fixed a bug in the definition of the rzz gate (#1940).
 - Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+- Fixed a mapping issue with layouts on non-adjacent qubits, by adding ancillas (#2023).
 
 
 Removed
