@@ -51,11 +51,11 @@ class LegacySwap(TransformationPass):
 
         self.requires.append(BarrierBeforeFinalMeasurements())
 
-    def run(self, circuit_graph):
+    def run(self, dag):
         """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
         Args:
-            circuit_graph (DAGCircuit): input DAG circuit
+            dag (DAGCircuit): input DAG circuit
             coupling_map (CouplingGraph): coupling graph to map onto
             initial_layout (Layout): dict {(str, int): (str, int)}
                 from qubits of circuit_graph to qubits of coupling_map (optional)
@@ -74,21 +74,21 @@ class LegacySwap(TransformationPass):
             MapperError: if there was any error during the mapping or with the
                 parameters.
         """
-        if circuit_graph.width() > self.coupling_map.size():
+        if dag.width() > self.coupling_map.size():
             raise MapperError("Not enough qubits in CouplingGraph")
 
         # Schedule the input circuit
-        layerlist = list(circuit_graph.layers())
+        layerlist = list(dag.layers())
 
         if self.initial_layout is not None:
             # update initial_layout from a user given dict{(regname,idx): (regname,idx)}
             # to an expected dict{(reg,idx): (reg,idx)}
 
             device_register = QuantumRegister(self.coupling_map.size(), 'q')
-            initial_layout = {(circuit_graph.qregs[k[0]], k[1]): (device_register, v[1])
+            initial_layout = {(dag.qregs[k[0]], k[1]): (device_register, v[1])
                               for k, v in self.initial_layout.items()}
             # Check the input layout
-            circ_qubits = circuit_graph.qubits()
+            circ_qubits = dag.qubits()
             coup_qubits = [(QuantumRegister(self.coupling_map.size(), 'q'), wire) for wire in
                            self.coupling_map.physical_qubits]
             qubit_subset = []
@@ -104,8 +104,8 @@ class LegacySwap(TransformationPass):
             # Supply a default layout
             qubit_subset = [(QuantumRegister(self.coupling_map.size(), 'q'), wire) for wire in
                             self.coupling_map.physical_qubits]
-            qubit_subset = qubit_subset[0:circuit_graph.width()]
-            initial_layout = {a: b for a, b in zip(circuit_graph.qubits(), qubit_subset)}
+            qubit_subset = qubit_subset[0:dag.width()]
+            initial_layout = {a: b for a, b in zip(dag.qubits(), qubit_subset)}
 
         # Find swap circuit to preceed to each layer of input circuit
         layout = initial_layout.copy()
@@ -113,9 +113,9 @@ class LegacySwap(TransformationPass):
         # Construct an empty DAGCircuit with one qreg "q"
         # and the same set of cregs as the input circuit
         dagcircuit_output = DAGCircuit()
-        dagcircuit_output.name = circuit_graph.name
+        dagcircuit_output.name = dag.name
         dagcircuit_output.add_qreg(QuantumRegister(self.coupling_map.size(), "q"))
-        for creg in circuit_graph.cregs.values():
+        for creg in dag.cregs.values():
             dagcircuit_output.add_creg(creg)
 
         # Make a trivial wire mapping between the subcircuits
@@ -125,7 +125,7 @@ class LegacySwap(TransformationPass):
         q = QuantumRegister(self.coupling_map.size(), 'q')
         for j in range(self.coupling_map.size()):
             identity_wire_map[(q, j)] = (q, j)
-        for creg in circuit_graph.cregs.values():
+        for creg in dag.cregs.values():
             for j in range(creg.size):
                 identity_wire_map[(creg, j)] = (creg, j)
 
