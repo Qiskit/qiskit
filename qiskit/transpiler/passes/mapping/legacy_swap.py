@@ -78,6 +78,9 @@ class LegacySwap(TransformationPass):
             # update initial_layout from a user given dict{(regname,idx): (regname,idx)}
             # to an expected dict{(reg,idx): (reg,idx)}
 
+            virtual_qubits = self.initial_layout.get_virtual_bits()
+            self.initial_layout = {(v[0].name, v[1]): ('q', self.initial_layout[v]) for v in virtual_qubits}
+
             device_register = QuantumRegister(self.coupling_map.size(), 'q')
             initial_layout = {(dag.qregs[k[0]], k[1]): (device_register, v[1])
                               for k, v in self.initial_layout.items()}
