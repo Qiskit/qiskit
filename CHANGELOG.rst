@@ -155,6 +155,7 @@ Fixed
   coupling map is provided (#1711).
 - Fixed a bug in the definition of the rzz gate (#1940).
 - Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+- Fixed a mapping issue with layouts on non-adjacent qubits, by adding ancillas (#2023).
 
 
 Removed
