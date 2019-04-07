@@ -24,6 +24,7 @@ from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper.compiling import two_qubit_kak
 from qiskit.mapper.mapping import MapperError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.mapper import Layout
 
 
 class TestCompiler(QiskitTestCase):
@@ -630,10 +631,10 @@ class TestCompiler(QiskitTestCase):
             self._get_resource_path('move_measurements.qasm', Path.QASMS))
 
         dag_circuit = circuit_to_dag(circ)
-        lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
-               ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
-               ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
-               ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
+        lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
+                      ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
+                      ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
+                      ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
         out_dag = transpile_dag(dag_circuit, initial_layout=lay, coupling_map=cmap)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
@@ -660,7 +661,9 @@ class TestCompiler(QiskitTestCase):
 
         circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
         dag_circuit = circuit_to_dag(circ)
-        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map)
+        layout = Layout.generate_trivial_layout(*circ.qregs)
+        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map,
+                      initial_layout=layout)
 
         self.assertTrue(mock_pass.called)
 
