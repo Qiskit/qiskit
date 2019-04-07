@@ -16,12 +16,12 @@ import sys
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout
 from qiskit.mapper.exceptions import MapperError
 from qiskit.circuit import QuantumRegister
 
 from qiskit.extensions.standard import SwapGate
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
+
 
 class LegacySwap(TransformationPass):
     """
@@ -31,8 +31,8 @@ class LegacySwap(TransformationPass):
     def __init__(self,
                  coupling_map,
                  initial_layout=None,
-                 trials = 20,
-                 seed = None):
+                 trials=20,
+                 seed=None):
         """
         Maps a DAGCircuit onto a `coupling_map` using swap gates.
         Args:
@@ -132,8 +132,7 @@ class LegacySwap(TransformationPass):
 
             # Attempt to find a permutation for this layer
             success_flag, best_circ, best_d, best_layout, trivial_flag \
-                = self.layer_permutation(layer["partition"], layout,
-                                    qubit_subset, self.coupling_map, self.trials, self.seed)
+                = self.layer_permutation(layer["partition"], layout, qubit_subset)
 
             # If this fails, try one gate at a time in this layer
             if not success_flag:
@@ -143,9 +142,7 @@ class LegacySwap(TransformationPass):
                 for j, serial_layer in enumerate(serial_layerlist):
 
                     success_flag, best_circ, best_d, best_layout, trivial_flag \
-                        = self.layer_permutation(serial_layer["partition"],
-                                            layout, qubit_subset, self.coupling_map,
-                                            self.trials, self.seed)
+                        = self.layer_permutation(serial_layer["partition"], layout, qubit_subset)
 
                     # Give up if we fail again
                     if not success_flag:
@@ -163,12 +160,12 @@ class LegacySwap(TransformationPass):
                     # Update the QASM
                     dagcircuit_output.compose_back(
                         self.swap_mapper_layer_update(j,
-                                                 first_layer,
-                                                 best_layout,
-                                                 best_d,
-                                                 best_circ,
-                                                 serial_layerlist,
-                                                 self.coupling_map),
+                                                      first_layer,
+                                                      best_layout,
+                                                      best_d,
+                                                      best_circ,
+                                                      serial_layerlist,
+                                                      self.coupling_map),
                         identity_wire_map)
                     # Update initial layout
                     if first_layer:
@@ -182,12 +179,12 @@ class LegacySwap(TransformationPass):
                 # Update the QASM
                 dagcircuit_output.compose_back(
                     self.swap_mapper_layer_update(i,
-                                             first_layer,
-                                             best_layout,
-                                             best_d,
-                                             best_circ,
-                                             layerlist,
-                                             self.coupling_map),
+                                                  first_layer,
+                                                  best_layout,
+                                                  best_d,
+                                                  best_circ,
+                                                  layerlist,
+                                                  self.coupling_map),
                     identity_wire_map)
                 # Update initial layout
                 if first_layer:
@@ -203,8 +200,7 @@ class LegacySwap(TransformationPass):
 
         return dagcircuit_output
 
-    def layer_permutation(self, layer_partition, layout, qubit_subset, coupling, trials,
-                          seed=None):
+    def layer_permutation(self, layer_partition, layout, qubit_subset):
         """Find a swap circuit that implements a permutation for this layer.
 
         The goal is to swap qubits such that qubits in the same two-qubit gates
@@ -229,7 +225,7 @@ class LegacySwap(TransformationPass):
         swap circuit has been applied. The trivial_flag is set if the layer
         has no multi-qubit gates.
         """
-        if seed is None:
+        if self.seed is None:
             seed = np.random.randint(0, np.iinfo(np.int32).max)
         rng = np.random.RandomState(seed)
         rev_layout = {b: a for a, b in layout.items()}
@@ -241,19 +237,19 @@ class LegacySwap(TransformationPass):
                 gates.append(tuple(layer))
 
         # Can we already apply the gates?
-        dist = sum([coupling.distance(layout[g[0]][1], layout[g[1]][1]) for g in gates])
+        dist = sum([self.coupling_map.distance(layout[g[0]][1], layout[g[1]][1]) for g in gates])
         if dist == len(gates):
             circ = DAGCircuit()
-            circ.add_qreg(QuantumRegister(coupling.size(), "q"))
+            circ.add_qreg(QuantumRegister(self.coupling_map.size(), "q"))
             return True, circ, 0, layout, bool(gates)
 
         # Begin loop over trials of randomized algorithm
-        n = coupling.size()
+        n = self.coupling_map.size()
         best_d = sys.maxsize  # initialize best depth
         best_circ = None  # initialize best swap circuit
         best_layout = None  # initialize best final layout
-        QR = QuantumRegister(coupling.size(), "q")
-        for trial in range(trials):
+        QR = QuantumRegister(self.coupling_map.size(), "q")
+        for trial in range(self.trials):
 
             trial_layout = layout.copy()
             rev_trial_layout = rev_layout.copy()
@@ -263,14 +259,14 @@ class LegacySwap(TransformationPass):
 
             # Compute Sergey's randomized distance
             xi = {}
-            for i in coupling.physical_qubits:
+            for i in self.coupling_map.physical_qubits:
                 xi[(QR, i)] = {}
-            for i in coupling.physical_qubits:
+            for i in self.coupling_map.physical_qubits:
                 i = (QR, i)
-                for j in coupling.physical_qubits:
+                for j in self.coupling_map.physical_qubits:
                     j = (QR, j)
                     scale = 1 + rng.normal(0, 1 / n)
-                    xi[i][j] = scale * coupling.distance(i[1], j[1]) ** 2
+                    xi[i][j] = scale * self.coupling_map.distance(i[1], j[1]) ** 2
                     xi[j][i] = xi[i][j]
 
             # Loop over depths d up to a max depth of 2n+1
@@ -293,7 +289,7 @@ class LegacySwap(TransformationPass):
                     # Try to decrease objective function
                     progress_made = False
                     # Loop over edges of coupling graph
-                    for e in coupling.get_edges():
+                    for e in self.coupling_map.get_edges():
                         e = [(QR, edge) for edge in e]
                         # Are the qubits available?
                         if e[0] in qubit_set and e[1] in qubit_set:
@@ -330,7 +326,7 @@ class LegacySwap(TransformationPass):
 
                 # We have either run out of qubits or failed to improve
                 # Compute the coupling graph distance_qubits
-                dist = sum([coupling.distance(trial_layout[g[0]][1],
+                dist = sum([self.coupling_map.distance(trial_layout[g[0]][1],
                                               trial_layout[g[1]][1]) for g in gates])
                 # If all gates can be applied now, we are finished
                 # Otherwise we need to consider a deeper swap circuit
@@ -342,7 +338,7 @@ class LegacySwap(TransformationPass):
                 d += 1
 
             # Either we have succeeded at some depth d < dmax or failed
-            dist = sum([coupling.distance(trial_layout[g[0]][1],
+            dist = sum([self.coupling_map.distance(trial_layout[g[0]][1],
                                           trial_layout[g[1]][1]) for g in gates])
             if dist == len(gates):
                 if d < best_d:
