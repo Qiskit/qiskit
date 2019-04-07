@@ -676,6 +676,27 @@ class TestCompiler(QiskitTestCase):
 
         self.assertTrue(mock_pass.called)
 
+    def test_optimize_to_nothing(self):
+        """ Optimze gates up to fixed point in the default pipeline
+        See https://github.com/Qiskit/qiskit-terra/issues/2035 """
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.x(qr[0])
+        circ.y(qr[0])
+        circ.z(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.cx(qr[0], qr[1])
+        dag_circuit = circuit_to_dag(circ)
+
+        after = transpile_dag(dag_circuit, coupling_map=[[0, 1], [1, 0]])
+
+        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+        self.assertEqual(after, circuit_to_dag(expected))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
