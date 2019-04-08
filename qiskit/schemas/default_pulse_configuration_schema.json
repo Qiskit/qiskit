@@ -140,13 +140,5 @@
             "type": "array"
         }
     },
-    "required": [
-        "qubit_freq_est",
-        "meas_freq_est",
-        "pulse_library",
-        "meas_kernel",
-        "discriminator",
-        "buffer"
-    ],
     "type": "object"
 }

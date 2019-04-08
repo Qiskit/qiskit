@@ -56,17 +56,17 @@ class PulseDefaultsSchema(BaseSchema):
     """Schema for PulseDefaults."""
 
     # Required properties.
-    qubit_freq_est = List(Number(), required=True,
+    qubit_freq_est = List(Number(), required=False,
                           validate=Length(min=1))
-    meas_freq_est = List(Number(), required=True,
+    meas_freq_est = List(Number(), required=False,
                          validate=Length(min=1))
-    buffer = Integer(required=True, validate=Range(min=0))
-    pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
-    meas_kernel = Nested(MeasurementKernelSchema, required=True)
-    discriminator = Nested(DiscriminatorSchema, required=True)
+    buffer = Integer(required=False, validate=Range(min=0), missing=0)
+    pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True, missing=lambda: [])
+    meas_kernel = Nested(MeasurementKernelSchema, required=False)
+    discriminator = Nested(DiscriminatorSchema, required=False)
 
     # Optional properties.
-    cmd_def = Nested(PulseCommandSchema, many=True)
+    cmd_def = Nested(PulseCommandSchema, many=True, required=True, missing=lambda: [])
 
 
 @bind_schema(PulseLibraryItemSchema)
