@@ -17,7 +17,7 @@ from .width import Width
 from .count_ops import CountOps
 from .num_tensor_factors import NumTensorFactors
 from .dag_fixed_point import DAGFixedPoint
-from .adjacent_barriers import MergeAdjacentBarriers
+from .merge_adjacent_barriers import MergeAdjacentBarriers
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .unroll_3q_or_more import Unroll3qOrMore

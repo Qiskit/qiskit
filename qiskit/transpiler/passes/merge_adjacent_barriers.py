@@ -9,6 +9,23 @@ A pass that merges any adjacent barriers into one
 
 Only barriers which can be merged without affecting the barrier structure of the
 DAG will be merged.
+
+Not all redundant barriers will necessarily be merged, only adjacent barriers are merged.
+
+For example, the circuit
+qr = QuantumRegister(3, 'q')
+circuit = QuantumCircuit(qr)
+circuit.barrier(qr[0])
+circuit.barrier(qr[1])
+circuit.barrier(qr)
+
+Will be transformed into a circuit corresponding to
+circuit.barrier(qr[0])
+circuit.barrier(qr)
+after one iteration of the pass. These two barriers were not merged by the first pass as they are
+not adjacent in the initial circuit.
+
+The pass then can be reapplied to merge the newly adjacent barriers.
 """
 
 from qiskit.transpiler.basepasses import TransformationPass
