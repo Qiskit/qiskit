@@ -23,7 +23,7 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjConfig, QobjMeasurementOption,
                          QobjPulseLibrary, QasmQobjInstruction,
                          QasmQobjExperiment, QasmQobjConfig,
-                         PulseSimulatorSpec, PulseNoiseModel, PulseOdeOption)
+                         PulseSimulatorSpec, PulseHamiltonian, PulseNoiseModel, PulseOdeOption)
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.validation.jsonschema.exceptions import SchemaValidationError
 
@@ -151,10 +151,12 @@ class TestPulseQobj(QiskitTestCase):
                                    meas_lo_freq=[6.9],
                                    rep_time=1000,
                                    simulator_spec=PulseSimulatorSpec(
-                                       hamiltonian=['2*pi*v0*O0', 'X0||D0'],
-                                       vars={'v0': 5.1},
-                                       dim_osc=[],
-                                       dim_qub=[2],
+                                       hamiltonian=PulseHamiltonian(
+                                           ham_string=['2*pi*v0*O0', 'X0||D0'],
+                                           vars={'v0': 5.1},
+                                           dim_osc=[],
+                                           dim_qub=[2],
+                                       ),
                                        dt=1.0,
                                        noise_model=PulseNoiseModel(
                                            qubit=[{'Sm': 0.006}],
@@ -200,10 +202,12 @@ class TestPulseQobj(QiskitTestCase):
                        'meas_lo_freq': [6.9],
                        'rep_time': 1000,
                        'simulator_spec': {
-                           'hamiltonian': ['2*pi*v0*O0', 'X0||D0'],
-                           'vars': {'v0': 5.1},
-                           'dim_osc': [],
-                           'dim_qub': [2],
+                           'hamiltonian': {
+                               'ham_string': ['2*pi*v0*O0', 'X0||D0'],
+                               'vars': {'v0': 5.1},
+                               'dim_osc': [],
+                               'dim_qub': [2]
+                           },
                            'dt': 1.0,
                            'noise_model': {
                                'qubit': [{'Sm': 0.006}],
@@ -256,10 +260,12 @@ class TestPulseQobj(QiskitTestCase):
                                 qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
                                 rep_time=1000,
                                 simulator_spec=PulseSimulatorSpec(
-                                    hamiltonian=['2*pi*v0*O0', 'X0||D0'],
-                                    vars={'v0': 5.1},
-                                    dim_osc=[],
-                                    dim_qub=[2],
+                                    hamiltonian=PulseHamiltonian(
+                                        ham_string=['2*pi*v0*O0', 'X0||D0'],
+                                        vars={'v0': 5.1},
+                                        dim_osc=[],
+                                        dim_qub=[2],
+                                    ),
                                     dt=1.0,
                                     noise_model=PulseNoiseModel(
                                         qubit=[{'Sm': 0.006}],
@@ -280,10 +286,12 @@ class TestPulseQobj(QiskitTestCase):
                  'meas_lo_freq': [6.9],
                  'rep_time': 1000,
                  'simulator_spec': {
-                     'hamiltonian': ['2*pi*v0*O0', 'X0||D0'],
-                     'vars': {'v0': 5.1},
-                     'dim_osc': [],
-                     'dim_qub': [2],
+                     'hamiltonian': {
+                         'ham_string': ['2*pi*v0*O0', 'X0||D0'],
+                         'vars': {'v0': 5.1},
+                         'dim_osc': [],
+                         'dim_qub': [2]
+                     },
                      'dt': 1.0,
                      'noise_model': {
                          'qubit': [{'Sm': 0.006}],
@@ -311,16 +319,21 @@ class TestPulseQobj(QiskitTestCase):
                 {'name': 'pulse0', 't0': 0, 'ch': 'd0'}
             ),
             PulseSimulatorSpec: (
-                PulseSimulatorSpec(hamiltonian=['2*pi*v0*O0', 'X0||D0'],
-                                   vars={'v0': 5.1},
-                                   dim_osc=[],
-                                   dim_qub=[2],
-                                   dt=1.0),
+                PulseSimulatorSpec(
+                    hamiltonian=PulseHamiltonian(
+                        ham_string=['2*pi*v0*O0', 'X0||D0'],
+                        vars={'v0': 5.1},
+                        dim_osc=[],
+                        dim_qub=[2],
+                    ),
+                    dt=1.0),
                 {
-                    'hamiltonian': ['2*pi*v0*O0', 'X0||D0'],
-                    'vars': {'v0': 5.1},
-                    'dim_osc': [],
-                    'dim_qub': [2],
+                    'hamiltonian': {
+                        'ham_string': ['2*pi*v0*O0', 'X0||D0'],
+                        'vars': {'v0': 5.1},
+                        'dim_osc': [],
+                        'dim_qub': [2]
+                    },
                     'dt': 1.0,
                 }
             )

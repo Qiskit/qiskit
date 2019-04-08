@@ -987,35 +987,45 @@
                         "simulator_spec": {
                             "properties": {
                                 "hamiltonian": {
-                                    "description": "Machine readable Hamiltonian.",
-                                    "items": {
-                                        "type": "string"
-                                    },
-                                    "type": "array"
-                                },
-                                "vars": {
-                                    "description": "Variables in Hamiltonian.",
-                                    "type": "object",
-                                    "patternProperties": {
-                                        "^([a-z0-9])+$": {
-                                            "type": "number"
+                                    "properties": {
+                                        "ham_string": {
+                                            "description": "Machine readable Hamiltonian.",
+                                            "items": {
+                                                "type": "string"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "vars": {
+                                            "description": "Variables in Hamiltonian.",
+                                            "type": "object",
+                                            "patternProperties": {
+                                                "^([a-z0-9])+$": {
+                                                    "type": "number"
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        },
+                                        "dim_osc": {
+                                            "description": "Oscillator Fock states.",
+                                            "items": {
+                                                "type": "integer"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "dim_qub": {
+                                            "description": "Qubit Fock states.",
+                                            "items": {
+                                                "type": "integer"
+                                            },
+                                            "type": "array"
                                         }
                                     },
-                                    "additionalProperties": false
-                                },
-                                "dim_osc": {
-                                    "description": "Oscillator Fock states.",
-                                    "items": {
-                                        "type": "integer"
-                                    },
-                                    "type": "array"
-                                },
-                                "dim_qub": {
-                                    "description": "Qubit Fock states.",
-                                    "items": {
-                                        "type": "integer"
-                                    },
-                                    "type": "array"
+                                    "required": [
+                                        "ham_string",
+                                        "vars",
+                                        "dim_osc",
+                                        "dim_qub"
+                                    ]
                                 },
                                 "dt": {
                                     "minimum": 0,
@@ -1098,9 +1108,6 @@
                             },
                             "required": [
                                 "hamiltonian",
-                                "vars",
-                                "dim_osc",
-                                "dim_qub",
                                 "dt"
                             ]
                         }

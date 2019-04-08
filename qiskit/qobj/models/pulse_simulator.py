@@ -15,6 +15,21 @@ from qiskit.validation.fields import (Integer, String, Number, List, Nested, Boo
 from qiskit.validation.validate import PatternProperties
 
 
+class PulseHamiltonianSchema(BaseSchema):
+    """Schema for PulseHamiltonian."""
+    # pylint: disable=redefined-builtin
+
+    # Required properties.
+    ham_string = List(String(), validate=Length(min=1), required=True)
+    dim_osc = List(Integer(validate=Range(min=1)), required=True)
+    dim_qub = List(Integer(validate=Range(min=2)), required=True)
+    vars = Dict(validate=PatternProperties({
+        Regexp('^([a-z0-9])+$'): InstructionParameter()
+    }), required=True)
+
+    # Optional properties.
+
+
 class PulseNoiseModelSchema(BaseSchema):
     """Schema for PulseNoiseModel."""
 
@@ -51,20 +66,36 @@ class PulseOdeOptionSchema(BaseSchema):
 
 class PulseSimulatorSpecSchema(BaseSchema):
     """Schema for PulseSimulatorSpec."""
-    # pylint: disable=redefined-builtin,invalid-name
+    # pylint: invalid-name
 
     # Required properties.
-    hamiltonian = List(String(), validate=Length(min=1), required=True)
-    dim_osc = List(Integer(validate=Range(min=1)), required=True)
-    dim_qub = List(Integer(validate=Range(min=2)), required=True)
-    vars = Dict(validate=PatternProperties({
-        Regexp('^([a-z0-9])+$'): InstructionParameter()
-    }), required=True)
+    hamiltonian = Nested(PulseHamiltonianSchema)
     dt = Number(required=True)
 
     # Optional properties.
     noise_model = Nested(PulseNoiseModelSchema)
     ode_options = Nested(PulseOdeOptionSchema)
+
+
+@bind_schema(PulseHamiltonianSchema)
+class PulseHamiltonian(BaseModel):
+    """Model for PulseHamiltonian.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``PulseHamiltonianSchema``.
+
+    Attributes:
+
+    """
+    def __init__(self, ham_string, dim_osc, dim_qub, vars, **kwargs):
+        # pylint: disable=redefined-builtin
+
+        self.ham_string = ham_string
+        self.dim_osc = dim_osc
+        self.dim_qub = dim_qub
+        self.vars = vars
+
+        super().__init__(**kwargs)
 
 
 @bind_schema(PulseNoiseModelSchema)
@@ -103,20 +134,13 @@ class PulseSimulatorSpec(BaseModel):
     full description of the model, please check ``PulseSimulatorSpecSchema``.
 
     Attributes:
-        hamiltonian (list[str]): system Hamiltonian in machine readable format
-        dim_osc (list[int]): size of Fock state of each oscillator subspace
-        dim_qub (list[int]): size of Fock state of each qubit subspace
-        vars (dict[str, float]): dictionary of variables in Hamiltonian
+        hamiltonian (PulseHamiltonian): system Hamiltonian configuration
         dt (float): time interval of input pulse sampling points
     """
-    def __init__(self, hamiltonian, dim_osc, dim_qub,
-                 vars, dt, **kwargs):
+    def __init__(self, hamiltonian, dt, **kwargs):
         # pylint: disable=redefined-builtin,invalid-name
 
         self.hamiltonian = hamiltonian
-        self.dim_osc = dim_osc
-        self.dim_qub = dim_qub
-        self.vars = vars
         self.dt = dt
 
         super().__init__(**kwargs)
