@@ -240,8 +240,8 @@ class FlowController():
                     return cls.registered_controllers[registered_controller](passes, options,
                                                                              **partial_controller)
             raise TranspilerError("The controllers for %s are not registered" % partial_controller)
-
-        return FlowControllerLinear(passes, options)
+        else:
+            return FlowControllerLinear(passes, options)
 
 
 class FlowControllerLinear(FlowController):
