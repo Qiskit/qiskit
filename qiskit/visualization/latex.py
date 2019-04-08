@@ -805,11 +805,8 @@ class QCircuitImage:
                         else:
                             start_pos = min([pos_1, pos_2])
                             stop_pos = max([pos_1, pos_2])
-                            print(stop_pos)
-                            print(start_pos)
                             if stop_pos - start_pos >= 2:
                                 delta = stop_pos - start_pos
-                                print(delta)
                                 self._latex[start_pos][columns] = (
                                     "\\multigate{%s}{%s}" % (delta, nm))
                                 for i_pos in range(start_pos + 1, stop_pos + 1):
