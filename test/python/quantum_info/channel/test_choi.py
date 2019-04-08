@@ -103,18 +103,6 @@ class TestChoi(ChannelTestCase):
         chan_conj = chan.conjugate()
         self.assertEqual(chan_conj, targ)
 
-    def test_conjugate_inplace(self):
-        """Test inplace conjugate method."""
-        # Test channel measures in Z basis and prepares in Y basis
-        # Zp -> Yp, Zm -> Ym
-        Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
-        chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
-        # Conjugate channel swaps Y-basis states
-        targ = Choi(np.kron(Zp, Ym) + np.kron(Zm, Yp))
-        chan = chan.conjugate(inplace=True)
-        self.assertEqual(chan, targ)
-
     def test_transpose(self):
         """Test transpose method."""
         # Test channel measures in Z basis and prepares in Y basis
@@ -127,18 +115,6 @@ class TestChoi(ChannelTestCase):
         chan_t = chan.transpose()
         self.assertEqual(chan_t, targ)
 
-    def test_transpose_inplace(self):
-        """Test inplace transpose method."""
-        # Test channel measures in Z basis and prepares in Y basis
-        # Zp -> Yp, Zm -> Ym
-        Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
-        chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
-        # Transpose channel swaps basis
-        targ = Choi(np.kron(Yp, Zp) + np.kron(Ym, Zm))
-        chan.transpose(inplace=True)
-        self.assertEqual(chan, targ)
-
     def test_adjoint(self):
         """Test adjoint method."""
         # Test channel measures in Z basis and prepares in Y basis
@@ -150,18 +126,6 @@ class TestChoi(ChannelTestCase):
         targ = Choi(np.kron(Ym, Zp) + np.kron(Yp, Zm))
         chan_adj = chan.adjoint()
         self.assertEqual(chan_adj, targ)
-
-    def test_adjoint_inplace(self):
-        """Test inplace adjoint method."""
-        # Test channel measures in Z basis and prepares in Y basis
-        # Zp -> Yp, Zm -> Ym
-        Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
-        chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
-        # Ajoint channel swaps Y-basis elements abd Z<->Y bases
-        targ = Choi(np.kron(Ym, Zp) + np.kron(Yp, Zm))
-        chan.adjoint(inplace=True)
-        self.assertEqual(chan, targ)
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
@@ -206,55 +170,6 @@ class TestChoi(ChannelTestCase):
         chan = chan2.compose(chan1)
         self.assertEqual(chan.dims, (4, 4))
 
-    def test_compose_inplace(self):
-        """Test inplace compose method."""
-        # UnitaryChannel evolution
-        chan1 = Choi(self.choiX)
-        chan2 = Choi(self.choiY)
-        chan1.compose(chan2, inplace=True)
-        targ = Choi(self.choiZ)
-        self.assertEqual(chan1, targ)
-
-        # 50% depolarizing channel
-        chan1 = Choi(self.depol_choi(0.5))
-        chan1.compose(chan1, inplace=True)
-        targ = Choi(self.depol_choi(0.75))
-        self.assertEqual(chan1, targ)
-
-        # Measure and rotation
-        Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]]) / 2
-        # X-gate second does nothing
-        targ = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        chan2 = Choi(self.choiX)
-        chan1.compose(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-        chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        chan2 = Choi(self.choiX)
-        chan1 @= chan2
-        self.assertEqual(chan1, targ)
-        # X-gate first swaps Z states
-        targ = Choi(np.kron(Zm, Xp) + np.kron(Zp, Xm))
-        chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        chan2 = Choi(self.choiX)
-        chan2.compose(chan1, inplace=True)
-        self.assertEqual(chan2, targ)
-        chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        chan2 = Choi(self.choiX)
-        chan2 @= chan1
-        self.assertEqual(chan2, targ)
-
-        # Compose different dimensions
-        chan1 = Choi(np.eye(8) / 4, input_dim=2, output_dim=4)
-        chan2 = Choi(np.eye(8) / 2, input_dim=4, output_dim=2)
-        chan1.compose(chan2, inplace=True)
-        self.assertEqual(chan1.dims, (2, 2))
-        chan1 = Choi(np.eye(8) / 4, input_dim=2, output_dim=4)
-        chan2 = Choi(np.eye(8) / 2, input_dim=4, output_dim=2)
-        chan2.compose(chan1, inplace=True)
-        self.assertEqual(chan2.dims, (4, 4))
-
     def test_compose_front(self):
         """Test front compose method."""
         # UnitaryChannel evolution
@@ -292,47 +207,6 @@ class TestChoi(ChannelTestCase):
         chan = chan2.compose(chan1, front=True)
         self.assertEqual(chan.dims, (2, 2))
 
-    def test_compose_front_inplace(self):
-        """Test inplace front compose method."""
-        # UnitaryChannel evolution
-        chan1 = Choi(self.choiX)
-        chan2 = Choi(self.choiY)
-        chan1.compose(chan2, front=True, inplace=True)
-        targ = Choi(self.choiZ)
-        self.assertEqual(chan1, targ)
-
-        # 50% depolarizing channel
-        chan1 = Choi(self.depol_choi(0.5))
-        chan1.compose(chan1, inplace=True, front=True)
-        targ = Choi(self.depol_choi(0.75))
-        self.assertEqual(chan1, targ)
-
-        # Measure and rotation
-        Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]]) / 2
-        # X-gate second does nothing
-        chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        chan2 = Choi(self.choiX)
-        chan2.compose(chan1, inplace=True, front=True)
-        targ = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        self.assertEqual(chan2, targ)
-        # X-gate first swaps Z states
-        chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
-        chan2 = Choi(self.choiX)
-        chan1.compose(chan2, inplace=True, front=True)
-        targ = Choi(np.kron(Zm, Xp) + np.kron(Zp, Xm))
-        self.assertEqual(chan1, targ)
-
-        # Compose different dimensions
-        chan1 = Choi(np.eye(8) / 4, input_dim=2, output_dim=4)
-        chan2 = Choi(np.eye(8) / 2, input_dim=4, output_dim=2)
-        chan1.compose(chan2, inplace=True, front=True)
-        self.assertEqual(chan1.dims, (4, 4))
-        chan1 = Choi(np.eye(8) / 4, input_dim=2, output_dim=4)
-        chan2 = Choi(np.eye(8) / 2, input_dim=4, output_dim=2)
-        chan2.compose(chan1, inplace=True, front=True)
-        self.assertEqual(chan2.dims, (2, 2))
-
     def test_expand(self):
         """Test expand method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
@@ -355,34 +229,6 @@ class TestChoi(ChannelTestCase):
         # Completely depolarizing
         chan_dep = Choi(self.depol_choi(1))
         chan = chan_dep.expand(chan_dep)
-        rho_targ = np.diag([1, 1, 1, 1]) / 4
-        self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
-
-    def test_expand_inplace(self):
-        """Test inplace expand method."""
-        rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
-
-        # X \otimes I
-        chan1 = Choi(self.choiI)
-        chan2 = Choi(self.choiX)
-        chan1.expand(chan2, inplace=True)
-        rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
-
-        # I \otimes X
-        chan1 = Choi(self.choiI)
-        chan2 = Choi(self.choiX)
-        chan2.expand(chan1, inplace=True)
-        rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
-
-        # Completely depolarizing
-        chan = Choi(self.depol_choi(1))
-        chan.expand(chan, inplace=True)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dims, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
@@ -422,48 +268,6 @@ class TestChoi(ChannelTestCase):
         self.assertEqual(chan.dims, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
-    def test_tensor_inplace(self):
-        """Test inplace tensor method."""
-        rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
-
-        # X \otimes I
-        rho_targ = np.kron(rho1, rho0)
-        chan1 = Choi(self.choiI)
-        chan2 = Choi(self.choiX)
-        chan2.tensor(chan1, inplace=True)
-        self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
-        chan1 = Choi(self.choiI)
-        chan2 = Choi(self.choiX)
-        chan2 ^= chan1
-        self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
-
-        # I \otimes X
-        rho_targ = np.kron(rho0, rho1)
-        chan1 = Choi(self.choiI)
-        chan2 = Choi(self.choiX)
-        chan1.tensor(chan2, inplace=True)
-        self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
-        chan1 = Choi(self.choiI)
-        chan2 = Choi(self.choiX)
-        chan1 ^= chan2
-        self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
-
-        # Completely depolarizing
-        rho_targ = np.diag([1, 1, 1, 1]) / 4
-        chan = Choi(self.depol_choi(1))
-        chan.tensor(chan, inplace=True)
-        self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
-        chan = Choi(self.depol_choi(1))
-        chan ^= chan
-        self.assertEqual(chan.dims, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
-
     def test_power(self):
         """Test power method."""
         # 10% depolarizing channel
@@ -475,18 +279,6 @@ class TestChoi(ChannelTestCase):
         chan3 = depol.power(3)
         targ3 = Choi(self.depol_choi(1 - p_id3))
         self.assertEqual(chan3, targ3)
-
-    def test_power_inplace(self):
-        """Test inplace power method."""
-        # 10% depolarizing channel
-        p_id = 0.9
-        depol = Choi(self.depol_choi(1 - p_id))
-
-        # Compose 3 times
-        p_id3 = p_id ** 3
-        depol.power(3, inplace=True)
-        targ3 = Choi(self.depol_choi(1 - p_id3))
-        self.assertEqual(depol, targ3)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
@@ -509,22 +301,6 @@ class TestChoi(ChannelTestCase):
         self.assertEqual(chan1.add(chan2), targ)
         self.assertEqual(chan1 + chan2, targ)
 
-    def test_add_inplace(self):
-        """Test inplace add method."""
-        mat1 = 0.5 * self.choiI
-        mat2 = 0.5 * self.depol_choi(1)
-        targ = Choi(mat1 + mat2)
-
-        chan1 = Choi(mat1)
-        chan2 = Choi(mat2)
-        chan1.add(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-
-        chan1 = Choi(mat1)
-        chan2 = Choi(mat2)
-        chan1 += chan2
-        self.assertEqual(chan1, targ)
-
     def test_add_except(self):
         """Test add method raises exceptions."""
         chan1 = Choi(self.choiI)
@@ -543,22 +319,6 @@ class TestChoi(ChannelTestCase):
         self.assertEqual(chan1.subtract(chan2), targ)
         self.assertEqual(chan1 - chan2, targ)
 
-    def test_subtract_inplace(self):
-        """Test inplace subtract method."""
-        mat1 = 0.5 * self.choiI
-        mat2 = 0.5 * self.depol_choi(1)
-        targ = Choi(mat1 - mat2)
-
-        chan1 = Choi(mat1)
-        chan2 = Choi(mat2)
-        chan1.subtract(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-
-        chan1 = Choi(mat1)
-        chan2 = Choi(mat2)
-        chan1 -= chan2
-        self.assertEqual(chan1, targ)
-
     def test_subtract_except(self):
         """Test subtract method raises exceptions."""
         chan1 = Choi(self.choiI)
@@ -574,18 +334,6 @@ class TestChoi(ChannelTestCase):
         self.assertEqual(chan.multiply(val), targ)
         self.assertEqual(val * chan, targ)
         self.assertEqual(chan * val, targ)
-
-    def test_multiply_inplace(self):
-        """Test inplace multiply method."""
-        chan = Choi(self.choiI)
-        val = 0.5
-        targ = Choi(val * self.choiI)
-        chan.multiply(val, inplace=True)
-        self.assertEqual(chan, targ)
-
-        chan = Choi(self.choiI)
-        chan *= val
-        self.assertEqual(chan, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
