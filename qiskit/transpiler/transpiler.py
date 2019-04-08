@@ -16,11 +16,13 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper.layout import Layout
+from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passes.unroller import Unroller
 
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
+from .passes.dag_fixed_point import DAGFixedPoint
 from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .passes.mapping.check_cnot_direction import CheckCnotDirection
 from .passes.mapping.cx_direction import CXDirection
@@ -171,7 +173,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
             eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
 
-        initial_layout (Layout): A layout object
+        initial_layout (Layout or None): A layout object
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
@@ -198,6 +200,9 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
                       "instead of 'u1,u2,u3,cx'. The string format will be "
                       "removed after 0.9", DeprecationWarning, 2)
         basis_gates = basis_gates.split(',')
+
+    if initial_layout is None:
+        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
     if pass_manager:
         # run the passes specified by the pass manager
@@ -242,14 +247,16 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             dag = Decompose(SwapGate).run(dag)
             # Change cx directions
             dag = CXDirection(coupling).run(dag)
-            # Simplify cx gates
-            dag = CXCancellation().run(dag)
             # Unroll to the basis
             dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
-            # Simplify single qubit gates
-            dag = Optimize1qGates().run(dag)
-            logger.info("post-mapping properties: %s",
-                        dag.properties())
+
+            # Simplify single qubit gates and CXs
+            pm_4_optimization = PassManager()
+            pm_4_optimization.append([Optimize1qGates(), CXCancellation(), DAGFixedPoint()],
+                                     do_while=lambda property_set: not property_set[
+                                         'dag_fixed_point'])
+            dag = transpile_dag(dag, pass_manager=pm_4_optimization)
+
         dag.name = name
 
     return dag
