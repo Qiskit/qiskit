@@ -27,7 +27,7 @@ REQUIREMENTS = [
 ]
 
 # Add Cython extensions here
-CYTHON_EXTS = ['utils', '_swap_trial']
+CYTHON_EXTS = ['utils', 'swap_trial']
 CYTHON_MODULE = 'qiskit.transpiler.passes.mapping.cython.stochastic_swap'
 CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/mapping/cython/stochastic_swap'
 
