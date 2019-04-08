@@ -10,6 +10,12 @@
 from .unroller import Unroller
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
+from .resource_estimation import ResourceEstimation
+from .depth import Depth
+from .size import Size
+from .width import Width
+from .count_ops import CountOps
+from .num_tensor_factors import NumTensorFactors
 from .dag_fixed_point import DAGFixedPoint
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
@@ -26,3 +32,4 @@ from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
 from .mapping.stochastic_swap import StochasticSwap
 from .mapping.enlarge_with_ancilla import EnlargeWithAncilla
+from .mapping.noise_adaptive_layout import NoiseAdaptiveLayout

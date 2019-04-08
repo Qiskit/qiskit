@@ -12,7 +12,7 @@ import unittest
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-from qiskit.tools.visualization._matplotlib import HAS_MATPLOTLIB
+from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit.test import (Path, QiskitTestCase, requires_qe_access, slow_test)
 
 
