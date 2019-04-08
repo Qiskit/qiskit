@@ -59,7 +59,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
-        desired_vector = [1/math.sqrt(2), 0, 0, 1/math.sqrt(2)]
+        desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1]])
@@ -73,7 +73,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_ghz_state(self):
         """Initialize a GHZ state on 3 qubits."""
-        desired_vector = [1/math.sqrt(2), 0, 0, 0, 0, 0, 0, 1/math.sqrt(2)]
+        desired_vector = [1 / math.sqrt(2), 0, 0, 0, 0, 0, 0, 1 / math.sqrt(2)]
         qr = QuantumRegister(3, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
@@ -87,7 +87,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_initialize_register(self):
         """Initialize one register out of two."""
-        desired_vector = [1/math.sqrt(2), 0, 0, 1/math.sqrt(2)]
+        desired_vector = [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)]
         qr = QuantumRegister(2, "qr")
         qr2 = QuantumRegister(2, "qr2")
         qc = QuantumCircuit(qr, qr2)
@@ -103,14 +103,14 @@ class TestInitialize(QiskitTestCase):
     def test_initialize_one_by_one(self):
         """Initializing qubits individually into product state same as initializing the pair."""
         qubit_0_state = [1, 0]
-        qubit_1_state = [1/math.sqrt(2), 1/math.sqrt(2)]
+        qubit_1_state = [1 / math.sqrt(2), 1 / math.sqrt(2)]
         qr = QuantumRegister(2, "qr")
         qc_a = QuantumCircuit(qr)
         qc_a.initialize(np.kron(qubit_1_state, qubit_0_state), qr)
 
         qc_b = QuantumCircuit(qr)
         qc_b.initialize(qubit_0_state, [qr[0]])
-        qc_b.initialize(qubit_1_state,[qr[1]])
+        qc_b.initialize(qubit_1_state, [qr[1]])
 
         job = execute([qc_a, qc_b], BasicAer.get_backend('statevector_simulator'))
         result = job.result()
@@ -123,7 +123,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_single_qubit(self):
         """Initialize a single qubit to a weighted superposition state."""
-        desired_vector = [1/math.sqrt(3), math.sqrt(2)/math.sqrt(3)]
+        desired_vector = [1 / math.sqrt(3), math.sqrt(2) / math.sqrt(3)]
         qr = QuantumRegister(1, "qr")
         qc = QuantumCircuit(qr)
         qc.initialize(desired_vector, [qr[0]])
@@ -189,7 +189,7 @@ class TestInitialize(QiskitTestCase):
 
     def test_malformed_amplitudes(self):
         """Initializing to a vector with 3 amplitudes fails."""
-        desired_vector = [1/math.sqrt(3), math.sqrt(2)/math.sqrt(3), 0]
+        desired_vector = [1 / math.sqrt(3), math.sqrt(2) / math.sqrt(3), 0]
         qr = QuantumRegister(2, "qr")
         qc = QuantumCircuit(qr)
         self.assertRaises(
