@@ -22,7 +22,10 @@ logger = logging.getLogger(__name__)
 class DeviceSpecification:
     """Implement a device specification, which is usually constructed from backend info."""
 
-    def __init__(self, qubits: List[Qubit], registers: List[RegisterSlot]):
+    def __init__(self,
+                 qubits: List[Qubit],
+                 registers: List[RegisterSlot],
+                 mem_slots: List[MemorySlot]):
         """
         Create device specification with specified `qubits`.
         Args:
@@ -30,7 +33,7 @@ class DeviceSpecification:
         """
         self._qubits = qubits
         self._reg_slots = registers
-        self._mem_slots = [MemorySlot(i) for i in range(len(qubits))]
+        self._mem_slots = mem_slots
 
     @classmethod
     def create_from(cls, backend):
@@ -67,6 +70,7 @@ class DeviceSpecification:
 
         qubits = []
         for i in range(n_qubits):
+            # TODO: get qubits <-> channels relationship from backend
             qubit = Qubit(i,
                           drive_channels=[drives[i]],
                           control_channels=None if n_uchannels == 0 else controls[i],
@@ -75,8 +79,10 @@ class DeviceSpecification:
             qubits.append(qubit)
 
         registers = [RegisterSlot(i) for i in range(n_registers)]
+        # TODO: get #mem_slots from backend
+        mem_slots = [MemorySlot(i) for i in range(len(qubits))]
 
-        return DeviceSpecification(qubits, registers)
+        return DeviceSpecification(qubits, registers, mem_slots)
 
     def __eq__(self, other):
         """Two device specs are the same if they have the same qubits.

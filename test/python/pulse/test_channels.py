@@ -129,7 +129,8 @@ class TestDeviceSpecification(QiskitTestCase):
             Qubit(1, drive_channels=[DriveChannel(1, 3.4)], acquire_channels=[AcquireChannel(1)])
         ]
         registers = [RegisterSlot(i) for i in range(2)]
-        spec = DeviceSpecification(qubits, registers)
+        mem_slots = [MemorySlot(i) for i in range(2)]
+        spec = DeviceSpecification(qubits, registers, mem_slots)
 
         self.assertEqual(spec.q[0].drive, DriveChannel(0, 1.2))
         self.assertEqual(spec.q[1].acquire, AcquireChannel(1))
