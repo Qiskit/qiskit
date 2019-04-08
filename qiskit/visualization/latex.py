@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
+# pylint: disable=consider-using-enumerate
 
 """latex circuit visualization backends."""
 
@@ -358,6 +359,20 @@ class QCircuitImage:
                                     is_occupied[j] = True
                                 break
 
+                elif len(qarglist) > 3:
+                    for i in range(0, len(qarglist)):
+                        pos = self.img_regs[(qarglist[i][0], qarglist[i][1])]
+                        if is_occupied[int(pos)] is False:
+                            is_occupied[int(pos)] = True
+                        else:
+                            columns += 1
+                            is_occupied = [False] * self.img_width
+                            for j in range(0, len(qarglist)):
+                                pos = self.img_regs[(qarglist[j][0],
+                                                     qarglist[j][1])]
+                                is_occupied[int(pos)] = True
+                            break
+
                 # update current column width
                 arg_str_len = 0
                 for arg in op.op.params:
@@ -580,6 +595,8 @@ class QCircuitImage:
                         elif nm == "rz":
                             self._latex[pos_1][columns] = "\\gate{R_z(%s)}" % (
                                 current_op.op.params[0])
+                        else:
+                            self._latex[pos_1][columns] = "\\gate{%s}" % nm
 
                         gap = pos_2 - pos_1
                         for i in range(self.cregs[if_reg]):
@@ -646,6 +663,8 @@ class QCircuitImage:
                             self._latex[pos_1][columns] = (
                                 "\\push{\\rule{.6em}{0em}\\ket{0}\\"
                                 "rule{.2em}{0em}} \\qw")
+                        else:
+                            self._latex[pos_1][columns] = "\\gate{%s}" % nm
 
                 elif len(qarglist) == 2:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -783,6 +802,19 @@ class QCircuitImage:
                                 current_op.op.params[0],
                                 current_op.op.params[1],
                                 current_op.op.params[2]))
+                        else:
+                            start_pos = min([pos_1, pos_2])
+                            stop_pos = max([pos_1, pos_2])
+                            if stop_pos - start_pos >= 2:
+                                delta = stop_pos - start_pos
+                                self._latex[start_pos][columns] = (
+                                    "\\multigate{%s}{%s}" % (delta, nm))
+                                for i_pos in range(start_pos + 1, stop_pos + 1):
+                                    self._latex[i_pos][columns] = "\\ghost{%s}" % nm
+                            else:
+                                self._latex[start_pos][columns] = (
+                                    "\\multigate{1}{%s}" % nm)
+                                self._latex[stop_pos][columns] = "\\ghost{%s}" % nm
 
                 elif len(qarglist) == 3:
                     pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
@@ -882,6 +914,35 @@ class QCircuitImage:
                             self._latex[pos_2][columns] = "\\qswap"
                             self._latex[pos_3][columns] = \
                                 "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
+                        else:
+                            start_pos = min([pos_1, pos_2, pos_3])
+                            stop_pos = max([pos_1, pos_2, pos_3])
+                            if stop_pos - start_pos >= 3:
+                                delta = stop_pos - start_pos
+                                self._latex[start_pos][columns] = (
+                                    "\\multigate{%s}{%s}" % (delta, nm))
+                                for i_pos in range(start_pos + 1, stop_pos + 1):
+                                    self._latex[i_pos][columns] = "\\ghost{%s}" % nm
+                            else:
+                                self._latex[pos_1][columns] = (
+                                    "\\multigate{2}{%s}" % nm)
+                                self._latex[pos_2][columns] = "\\ghost{%s}" % nm
+                                self._latex[pos_3][columns] = "\\ghost{%s}" % nm
+
+                elif len(qarglist) > 3:
+                    nbits = len(qarglist)
+                    pos_array = [self.img_regs[(qarglist[0][0],
+                                                qarglist[0][1])]]
+                    for i in range(1, nbits):
+                        pos_array.append(self.img_regs[(qarglist[i][0],
+                                                        qarglist[i][1])])
+                    pos_start = min(pos_array)
+                    pos_stop = max(pos_array)
+                    delta = pos_stop - pos_start
+                    self._latex[pos_start][columns] = (
+                        "\\multigate{%s}{%s}" % (nbits - 1, nm))
+                    for pos in range(pos_start + 1, pos_stop + 1):
+                        self._latex[pos][columns] = "\\ghost{%s}" % nm
 
             elif current_op.name == "measure":
                 if (len(current_op.cargs) != 1
