@@ -82,13 +82,13 @@ class PulseQobjConfigSchema(QobjConfigSchema):
 
     # Required properties.
     meas_level = Integer(required=True, validate=Range(min=0, max=2))
+    meas_lo_freq = List(Number(validate=Range(min=0)), required=True)
     meas_return = String(required=True, validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                                 MeasReturnType.SINGLE)))
     pulse_library = Nested(QobjPulseLibrarySchema, required=True, many=True)
+    qubit_lo_freq = List(Number(validate=Range(min=0)), required=True)
 
     # Optional properties.
-    qubit_lo_freq = List(Number(validate=Range(min=0)))
-    meas_lo_freq = List(Number(validate=Range(min=0)))
     memory_slot_size = Integer(validate=Range(min=1))
     rep_time = Integer(validate=Range(min=0))
     simulator_spec = Nested(PulseSimulatorSpecSchema)
@@ -186,15 +186,22 @@ class PulseQobjConfig(QobjConfig):
 
     Attributes:
         meas_level (int): a value represents the level of measurement.
+        meas_lo_freq (list[float]): local oscillator frequency of measurement pulse.
         meas_return (str): a level of measurement information.
         pulse_library (list[qiskit.qobj.QobjPulseLibrary]): a pulse library.
+        qubit_lo_freq (list[float]): local oscillator frequency of driving pulse.
     """
-    def __init__(self, meas_level, meas_return, pulse_library, **kwargs):
+    def __init__(self, meas_level, meas_lo_freq, meas_return,
+                 pulse_library, qubit_lo_freq, **kwargs):
         self.meas_level = meas_level
+        self.meas_lo_freq = meas_lo_freq
         self.meas_return = meas_return
         self.pulse_library = pulse_library
+        self.qubit_lo_freq = qubit_lo_freq
 
         super().__init__(meas_level=meas_level,
+                         meas_lo_freq=meas_lo_freq,
                          meas_return=meas_return,
                          pulse_library=pulse_library,
+                         qubit_lo_freq=qubit_lo_freq,
                          **kwargs)

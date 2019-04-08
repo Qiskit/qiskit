@@ -1114,8 +1114,10 @@
                     },
                     "required": [
                         "meas_level",
+                        "meas_lo_freq",
                         "meas_return",
-                        "pulse_library"
+                        "pulse_library",
+                        "qubit_lo_freq"
                     ]
                 },
                 "experiments": {
