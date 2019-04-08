@@ -57,13 +57,13 @@ class PulseDefaultsSchema(BaseSchema):
 
     # Required properties.
     qubit_freq_est = List(Number(), required=False,
-                          validate=Length(min=1))
+                          validate=Length(min=1), missing=None)
     meas_freq_est = List(Number(), required=False,
-                         validate=Length(min=1))
+                         validate=Length(min=1), missing=None)
     buffer = Integer(required=False, validate=Range(min=0), missing=0)
     pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True, missing=lambda: [])
-    meas_kernel = Nested(MeasurementKernelSchema, required=False)
-    discriminator = Nested(DiscriminatorSchema, required=False)
+    meas_kernel = Nested(MeasurementKernelSchema, required=False, missing=None)
+    discriminator = Nested(DiscriminatorSchema, required=False, missing=None)
 
     # Optional properties.
     cmd_def = Nested(PulseCommandSchema, many=True, required=True, missing=lambda: [])
@@ -140,13 +140,4 @@ class PulseDefaults(BaseModel):
         discriminator (Discriminator): Default discriminator.
     """
 
-    def __init__(self, qubit_freq_est, meas_freq_est, buffer, pulse_library,
-                 meas_kernel, discriminator, **kwargs):
-        self.qubit_freq_est = qubit_freq_est
-        self.meas_freq_est = meas_freq_est
-        self.buffer = buffer
-        self.pulse_library = pulse_library
-        self.meas_kernel = meas_kernel
-        self.discriminator = discriminator
-
-        super().__init__(**kwargs)
+    pass
