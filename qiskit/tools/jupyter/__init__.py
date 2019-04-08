@@ -14,8 +14,8 @@ from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
 
 if HAS_MATPLOTLIB:
-    from ._backend_overview import BackendOverview
-    from ._backend_monitor import BackendMonitor
+    from .backend_overview import BackendOverview
+    from .backend_monitor import BackendMonitor
 
 _IP = get_ipython()
 if _IP is not None:
