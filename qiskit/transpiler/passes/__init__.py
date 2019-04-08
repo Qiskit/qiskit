@@ -10,7 +10,6 @@
 from .unroller import Unroller
 from .cx_cancellation import CXCancellation
 from .fixed_point import FixedPoint
-from .count_operations import CountOperations
 from .resource_estimation import ResourceEstimation
 from .depth import Depth
 from .size import Size
