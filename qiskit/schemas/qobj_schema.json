@@ -988,7 +988,7 @@
                             "properties": {
                                 "hamiltonian": {
                                     "properties": {
-                                        "ham_string": {
+                                        "h_str": {
                                             "description": "Machine readable Hamiltonian.",
                                             "items": {
                                                 "type": "string"
@@ -1021,7 +1021,7 @@
                                         }
                                     },
                                     "required": [
-                                        "ham_string",
+                                        "h_str",
                                         "vars",
                                         "dim_osc",
                                         "dim_qub"

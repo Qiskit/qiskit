@@ -20,7 +20,7 @@ class PulseHamiltonianSchema(BaseSchema):
     # pylint: disable=redefined-builtin
 
     # Required properties.
-    ham_string = List(String(), validate=Length(min=1), required=True)
+    h_str = List(String(), validate=Length(min=1), required=True)
     dim_osc = List(Integer(validate=Range(min=1)), required=True)
     dim_qub = List(Integer(validate=Range(min=2)), required=True)
     vars = Dict(validate=PatternProperties({
@@ -85,12 +85,15 @@ class PulseHamiltonian(BaseModel):
     full description of the model, please check ``PulseHamiltonianSchema``.
 
     Attributes:
-
+        h_str (list[str]): machine readable Hamiltonian of the system.
+        dim_osc(list[int]): dimension of oscillator subspace.
+        dim_qub(list[int]): dimension of qubit subspace.
+        vars(dict): variables in Hamiltonian.
     """
-    def __init__(self, ham_string, dim_osc, dim_qub, vars, **kwargs):
+    def __init__(self, h_str, dim_osc, dim_qub, vars, **kwargs):
         # pylint: disable=redefined-builtin
 
-        self.ham_string = ham_string
+        self.h_str = h_str
         self.dim_osc = dim_osc
         self.dim_qub = dim_qub
         self.vars = vars

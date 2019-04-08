@@ -152,7 +152,7 @@ class TestPulseQobj(QiskitTestCase):
                                    rep_time=1000,
                                    simulator_spec=PulseSimulatorSpec(
                                        hamiltonian=PulseHamiltonian(
-                                           ham_string=['2*pi*v0*O0', 'X0||D0'],
+                                           h_str=['2*pi*v0*O0', 'X0||D0'],
                                            vars={'v0': 5.1},
                                            dim_osc=[],
                                            dim_qub=[2],
@@ -203,7 +203,7 @@ class TestPulseQobj(QiskitTestCase):
                        'rep_time': 1000,
                        'simulator_spec': {
                            'hamiltonian': {
-                               'ham_string': ['2*pi*v0*O0', 'X0||D0'],
+                               'h_str': ['2*pi*v0*O0', 'X0||D0'],
                                'vars': {'v0': 5.1},
                                'dim_osc': [],
                                'dim_qub': [2]
@@ -261,7 +261,7 @@ class TestPulseQobj(QiskitTestCase):
                                 rep_time=1000,
                                 simulator_spec=PulseSimulatorSpec(
                                     hamiltonian=PulseHamiltonian(
-                                        ham_string=['2*pi*v0*O0', 'X0||D0'],
+                                        h_str=['2*pi*v0*O0', 'X0||D0'],
                                         vars={'v0': 5.1},
                                         dim_osc=[],
                                         dim_qub=[2],
@@ -287,7 +287,7 @@ class TestPulseQobj(QiskitTestCase):
                  'rep_time': 1000,
                  'simulator_spec': {
                      'hamiltonian': {
-                         'ham_string': ['2*pi*v0*O0', 'X0||D0'],
+                         'h_str': ['2*pi*v0*O0', 'X0||D0'],
                          'vars': {'v0': 5.1},
                          'dim_osc': [],
                          'dim_qub': [2]
@@ -321,7 +321,7 @@ class TestPulseQobj(QiskitTestCase):
             PulseSimulatorSpec: (
                 PulseSimulatorSpec(
                     hamiltonian=PulseHamiltonian(
-                        ham_string=['2*pi*v0*O0', 'X0||D0'],
+                        h_str=['2*pi*v0*O0', 'X0||D0'],
                         vars={'v0': 5.1},
                         dim_osc=[],
                         dim_qub=[2],
@@ -329,7 +329,7 @@ class TestPulseQobj(QiskitTestCase):
                     dt=1.0),
                 {
                     'hamiltonian': {
-                        'ham_string': ['2*pi*v0*O0', 'X0||D0'],
+                        'h_str': ['2*pi*v0*O0', 'X0||D0'],
                         'vars': {'v0': 5.1},
                         'dim_osc': [],
                         'dim_qub': [2]
