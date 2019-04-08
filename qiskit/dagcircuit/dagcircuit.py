@@ -1055,7 +1055,7 @@ class DAGCircuit:
 
     def ordered_successors(self, node):
         """Returns list of the successors of a node as DAGNodes
-        in the order they were added to  the DAG."""
+        in the order they were added to the DAG."""
         if isinstance(node, int):
             warnings.warn('Calling ordered_successors() with a node id is deprecated,'
                           ' use a DAGNode instead',
