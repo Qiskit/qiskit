@@ -66,7 +66,7 @@ class PulseOdeOptionSchema(BaseSchema):
 
 class PulseSimulatorSpecSchema(BaseSchema):
     """Schema for PulseSimulatorSpec."""
-    # pylint: invalid-name
+    # pylint: disable=invalid-name
 
     # Required properties.
     hamiltonian = Nested(PulseHamiltonianSchema)
@@ -141,7 +141,7 @@ class PulseSimulatorSpec(BaseModel):
         dt (float): time interval of input pulse sampling points
     """
     def __init__(self, hamiltonian, dt, **kwargs):
-        # pylint: disable=redefined-builtin,invalid-name
+        # pylint: disable=invalid-name
 
         self.hamiltonian = hamiltonian
         self.dt = dt
