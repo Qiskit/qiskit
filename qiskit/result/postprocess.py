@@ -74,6 +74,7 @@ def format_level_2_memory(memory, header):
             memory_list.append(format_counts_memory(memory, header))
     return memory_list
 
+
 def format_counts(counts, header):
     """Format a single experiment result coming from backend to present
     to the Qiskit user.
@@ -88,7 +89,7 @@ def format_counts(counts, header):
     """
     counts_dict = {}
     for key, val in counts.items():
-        key = format_memory(key, header)
+        key = format_counts_memory(key, header)
         counts_dict[key] = val
     return counts_dict
 

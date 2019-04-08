@@ -123,17 +123,19 @@ class Result(BaseModel):
             QiskitError: if there is no memory data for the circuit.
         """
         try:
-            experiment = self._get_experiment(experiment)
-            header = experiment.header.to_dict()
-            meas_level = experiment.meas_level
-            memory = self.data(experiment)['memory']
+            exp_result = self._get_experiment(experiment)
+            header = exp_result.header.to_dict()
+            meas_level = exp_result.meas_level
+            memory = self.data(exp_result)['memory']
 
             if meas_level == 2:
                 return postprocess.format_level_2_memory(memory, header)
             elif meas_level == 1:
                 return postprocess.format_level_1_memory(memory, header)
-            else:
+            elif meas_level == 0:
                 return postprocess.format_level_0_memory(memory, header)
+            else:
+                raise QiskitError('Measurement level {0} is not supported'.format(meas_level))
 
         except KeyError:
             raise QiskitError('No memory for experiment "{0}".'.format(experiment))
