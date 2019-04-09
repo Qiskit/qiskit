@@ -10,12 +10,13 @@
 import tempfile
 import unittest
 
-from matplotlib import pyplot as plt
-from matplotlib.testing import compare
-
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit import visualization
+
+if visualization.HAS_MATPLOTLIB:
+    from matplotlib import pyplot as plt
+    from matplotlib.testing import compare
 
 
 class TestMatplotlibDrawer(QiskitTestCase):
