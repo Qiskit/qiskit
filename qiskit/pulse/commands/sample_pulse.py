@@ -40,6 +40,7 @@ class SamplePulse(PulseCommand):
 
     @property
     def samples(self):
+        """Return sample values."""
         return self._samples
 
     def draw(self, **kwargs):

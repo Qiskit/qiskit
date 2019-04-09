@@ -26,10 +26,12 @@ class MeasOpts:
 
     @property
     def name(self):
+        """Return parameter name."""
         return self._name
 
     @property
     def params(self):
+        """Return parameter dict."""
         return self._params
 
     def __eq__(self, other):
