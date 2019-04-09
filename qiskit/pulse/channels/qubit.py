@@ -49,6 +49,11 @@ class Qubit:
         return False
 
     @property
+    def index(self) -> int:
+        """Return the index of this qubit."""
+        return self._index
+
+    @property
     def drive(self) -> DriveChannel:
         """Return the primary drive channel of this qubit."""
         if self._drives:

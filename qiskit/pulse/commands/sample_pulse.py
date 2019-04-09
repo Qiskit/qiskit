@@ -11,9 +11,9 @@ Sample pulse.
 import numpy as np
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.command_schedule import PrimitiveInstruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
 from qiskit.pulse.exceptions import PulseError
+from .instruction import Instruction
 from .pulse_command import PulseCommand
 
 
@@ -78,30 +78,14 @@ class SamplePulse(PulseCommand):
     def __call__(self, channel: OutputChannel) -> 'DriveInstruction':
         return DriveInstruction(self, channel)
 
-    def __rshift__(self, channel: OutputChannel) -> 'DriveInstruction':
-        return DriveInstruction(self, channel)
 
+class DriveInstruction(Instruction):
+    """Instruction to drive a pulse to an `OutputChannel`. """
 
-class DriveInstruction(PrimitiveInstruction):
-    """Pulse to drive a pulse shape to a `OutputChannel`. """
-
-    def __init__(self, command: SamplePulse, channel: OutputChannel):
-        self._command = command
+    def __init__(self, command: SamplePulse, channel: OutputChannel, begin_time: int = 0):
+        slots = [Timeslot(Interval(begin_time, begin_time+command.duration), channel)]
+        super().__init__(command, begin_time, TimeslotOccupancy(slots))
         self._channel = channel
-        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, command.duration), channel)])
-
-    @property
-    def duration(self):
-        return self._command.duration
-
-    @property
-    def occupancy(self):
-        return self._occupancy
-
-    @property
-    def command(self) -> SamplePulse:
-        """SamplePulse command. """
-        return self._command
 
     @property
     def channel(self) -> OutputChannel:
@@ -109,4 +93,4 @@ class DriveInstruction(PrimitiveInstruction):
         return self._channel
 
     def __repr__(self):
-        return '%s >> %s' % (self._command, self._channel)
+        return '%4d: %s -> %s' % (self._begin_time, self._command, self._channel)
