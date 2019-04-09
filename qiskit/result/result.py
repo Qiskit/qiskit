@@ -137,9 +137,9 @@ class Result(BaseModel):
             if meas_level == 2:
                 return postprocess.format_level_2_memory(memory, header)
             elif meas_level == 1:
-                return postprocess.format_level_1_memory(memory, header)
+                return postprocess.format_level_1_memory(memory)
             elif meas_level == 0:
-                return postprocess.format_level_0_memory(memory, header)
+                return postprocess.format_level_0_memory(memory)
             else:
                 raise QiskitError('Measurement level {0} is not supported'.format(meas_level))
 

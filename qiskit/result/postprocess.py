@@ -83,19 +83,17 @@ def _list_to_complex_array(complex_list):
     return arr[..., 0] + 1j*arr[..., 1]
 
 
-def format_level_0_memory(memory, header=None):
+def format_level_0_memory(memory):
     """ Format an experiment result memory object for measurement level 0.
 
     Args:
-        memory: Memory from experiment with `meas_level==1`. `avg` or
+        memory (list): Memory from experiment with `meas_level==1`. `avg` or
             `single` will be inferred from shape of result memory.
-        header (dict): the experiment header dictionary containing
-            useful information for postprocessing. Currently unused.
 
     Returns:
         np.ndarray: Measurement level 0 complex numpy array
 
-    Raise:
+    Raises:
         QiskitError: If the returned numpy array does not have 2 (avg) or 3 (single)
             indicies.
     """
@@ -106,19 +104,17 @@ def format_level_0_memory(memory, header=None):
     return formatted_memory
 
 
-def format_level_1_memory(memory, header=None):
+def format_level_1_memory(memory):
     """ Format an experiment result memory object for measurement level 1.
 
     Args:
-        memory: Memory from experiment with `meas_level==1`. `avg` or
+        memory (list): Memory from experiment with `meas_level==1`. `avg` or
             `single` will be inferred from shape of result memory.
-        header (dict): the experiment header dictionary containing
-            useful information for postprocessing. Currently unused.
 
     Returns:
         np.ndarray: Measurement level 1 complex numpy array
 
-    Raise:
+    Raises:
         QiskitError: If the returned numpy array does not have 1 (avg) or 2 (single)
             indicies.
     """
@@ -133,7 +129,7 @@ def format_level_2_memory(memory, header=None):
     """ Format an experiment result memory object for measurement level 2.
 
     Args:
-        memory: Memory from experiment with `meas_level==2` and `memory==True`.
+        memory (list): Memory from experiment with `meas_level==2` and `memory==True`.
         header (dict): the experiment header dictionary containing
             useful information for postprocessing.
 
