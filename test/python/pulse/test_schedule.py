@@ -129,6 +129,12 @@ class TestSchedule(QiskitTestCase):
         # sched must keep 3 instructions (must not update to 4 instructions)
         self.assertEqual(3, len(sched.flat_instruction_sequence()))
 
+    def test_flat_instruction_sequence_returns_empty_list_for_empty_schedule(self):
+        """Test if flat_instruction_sequence returns empty list for empty schedule.
+        """
+        sched = Schedule()
+        self.assertEqual([], sched.flat_instruction_sequence())
+
 
 if __name__ == '__main__':
     unittest.main()
