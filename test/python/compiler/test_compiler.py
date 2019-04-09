@@ -649,7 +649,6 @@ class TestExecute(QiskitTestCase):
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-
 class TestTranspileDag(QiskitTestCase):
     """Qiskit transpile_dag tests."""
 
