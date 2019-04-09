@@ -8,6 +8,7 @@
 # pylint: disable=no-member,invalid-name,missing-docstring
 
 import tempfile
+import unittest
 
 from matplotlib import pyplot as plt
 from matplotlib.testing import compare
@@ -31,6 +32,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
         expected.set_size_inches(2.508333333333333, 0.2508333333333333)
         return expected
 
+    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
+                     'matplotlib not available.')
     def test_empty_circuit(self):
         qc = QuantumCircuit()
         res = visualization.circuit_drawer(qc, output='mpl')
