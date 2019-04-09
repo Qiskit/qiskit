@@ -189,30 +189,6 @@ class TestCompiler(QiskitTestCase):
 
         self.assertIsInstance(circuits, QuantumCircuit)
 
-    def test_mapping_already_satisfied(self):
-        """Test compiler doesn't change circuit already matching backend coupling
-        """
-        backend = FakeRueschlikon()
-        qr = QuantumRegister(16)
-        cr = ClassicalRegister(16)
-        qc = QuantumCircuit(qr, cr)
-        qc.h(qr[1])
-        qc.x(qr[2])
-        qc.x(qr[3])
-        qc.x(qr[4])
-        qc.cx(qr[1], qr[2])
-        qc.cx(qr[2], qr[3])
-        qc.cx(qr[3], qr[4])
-        qc.cx(qr[3], qr[14])
-        qc.measure(qr, cr)
-        qobj = compile(qc, backend)
-        compiled_ops = qobj.experiments[0].instructions
-        original_cx_qubits = [[1, 2], [2, 3], [3, 4], [3, 14]]
-        for operation in compiled_ops:
-            if operation.name == 'cx':
-                self.assertIn(operation.qubits, backend.configuration().coupling_map)
-                self.assertIn(operation.qubits, original_cx_qubits)
-
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
         """
@@ -572,33 +548,6 @@ class TestCompiler(QiskitTestCase):
         target = {key: shots * val for key, val in expected_probs.items()}
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
-
-    def test_already_mapped(self):
-        """Circuit not remapped if matches topology.
-
-        See: https://github.com/Qiskit/qiskit-terra/issues/342
-        """
-        backend = FakeRueschlikon()
-        qr = QuantumRegister(16, 'qr')
-        cr = ClassicalRegister(16, 'cr')
-        qc = QuantumCircuit(qr, cr)
-        qc.cx(qr[3], qr[14])
-        qc.cx(qr[5], qr[4])
-        qc.h(qr[9])
-        qc.cx(qr[9], qr[8])
-        qc.x(qr[11])
-        qc.cx(qr[3], qr[4])
-        qc.cx(qr[12], qr[11])
-        qc.cx(qr[13], qr[4])
-        for j in range(16):
-            qc.measure(qr[j], cr[j])
-        qobj = compile(qc, backend=backend)
-        cx_qubits = [x.qubits
-                     for x in qobj.experiments[0].instructions
-                     if x.name == "cx"]
-
-        self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4],
-                                             [9, 8], [12, 11], [13, 4]])
 
     def test_yzy_zyz_cases(self):
         """yzy_to_zyz works in previously failed cases.
