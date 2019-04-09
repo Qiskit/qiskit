@@ -43,7 +43,7 @@ class Acquire(PulseCommand):
             else:
                 raise PulseError('Invalid discriminator object is specified.')
         else:
-            self.discriminator = Discriminator()
+            self.discriminator = None
 
         if kernel:
             if isinstance(kernel, Kernel):
@@ -51,7 +51,7 @@ class Acquire(PulseCommand):
             else:
                 raise PulseError('Invalid kernel object is specified.')
         else:
-            self.kernel = Kernel()
+            self.kernel = None
 
     def __eq__(self, other):
         """Two Acquires are the same if they are of the same type
@@ -72,7 +72,7 @@ class Acquire(PulseCommand):
     def __repr__(self):
         return '%s(%s, duration=%d, kernel=%s, discriminator=%s)' % \
                (self.__class__.__name__, self.name, self.duration,
-                self.kernel.name, self.discriminator.name)
+                self.kernel, self.discriminator)
 
     def __call__(self,
                  qubits: Union[Qubit, List[Qubit]],
