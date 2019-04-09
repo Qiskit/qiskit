@@ -717,7 +717,6 @@ class MatplotlibDrawer:
 
     @staticmethod
     def format_numeric(val, tol=1e-5):
-        print('val : ', val)
         abs_val = abs(val)
         if math.isclose(abs_val, 0.0, abs_tol=1e-100):
             return '0'
