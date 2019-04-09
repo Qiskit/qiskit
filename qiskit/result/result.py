@@ -12,7 +12,7 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
 
 from qiskit.validation.base import BaseModel, bind_schema
-import qiskit.result.postprocess as postprocess
+from qiskit.result import postprocess
 from .models import ResultSchema
 
 
@@ -124,9 +124,15 @@ class Result(BaseModel):
         """
         try:
             exp_result = self._get_experiment(experiment)
-            header = exp_result.header.to_dict()
+
+            try:  # header is not available
+                header = exp_result.header.to_dict()
+            except (AttributeError, QiskitError):
+                header = None
+
             meas_level = exp_result.meas_level
-            memory = self.data(exp_result)['memory']
+
+            memory = self.data(experiment)['memory']
 
             if meas_level == 2:
                 return postprocess.format_level_2_memory(memory, header)
@@ -157,8 +163,14 @@ class Result(BaseModel):
             QiskitError: if there are no counts for the experiment.
         """
         try:
+            exp = self._get_experiment(experiment)
+            try:
+                header = exp.header.to_dict()
+            except (AttributeError, QiskitError):  # header is not available
+                header = None
+
             return postprocess.format_counts(self.data(experiment)['counts'],
-                                             self._get_experiment(experiment).header.to_dict())
+                                             header)
         except KeyError:
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
@@ -229,8 +241,8 @@ class Result(BaseModel):
                 raise QiskitError(
                     'You have to select a circuit or schedule when there is more than '
                     'one available')
-            else:
-                key = 0
+
+            key = 0
 
         # Key is an integer: return result by index.
         if isinstance(key, int):
