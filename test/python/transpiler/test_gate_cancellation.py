@@ -12,18 +12,17 @@ from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, transpile, PropertySet
-from qiskit.transpiler.passes import CommutationAnalysis, GateCancellation
-from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation
 
 
-class TestGateCancellation(QiskitTestCase):
+class TestCommutativeCancellation(QiskitTestCase):
 
-    """Test the GateCancellation pass."""
+    """Test the CommutativeCancellation pass."""
 
     def setUp(self):
 
         self.com_pass_ = CommutationAnalysis()
-        self.pass_ = GateCancellation()
+        self.pass_ = CommutativeCancellation()
         self.pset = self.pass_.property_set = PropertySet()
 
     def test_all_gates(self):
@@ -63,7 +62,7 @@ class TestGateCancellation(QiskitTestCase):
         circuit.cz(qr[0], qr[1])
 
         passmanager = PassManager()
-        passmanager.append(GateCancellation())
+        passmanager.append(CommutativeCancellation())
         new_circuit = transpile(circuit, pass_manager=passmanager)
 
         expected = QuantumCircuit(qr)
@@ -88,7 +87,7 @@ class TestGateCancellation(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         passmanager = PassManager()
-        passmanager.append(GateCancellation())
+        passmanager.append(CommutativeCancellation())
         new_circuit = transpile(circuit, pass_manager=passmanager)
 
         expected = QuantumCircuit(qr)
@@ -119,15 +118,11 @@ class TestGateCancellation(QiskitTestCase):
         circuit.x(qr[1])
 
         passmanager = PassManager()
-        passmanager.append(GateCancellation())
+        passmanager.append(CommutativeCancellation())
         new_circuit = transpile(circuit, pass_manager=passmanager)
-        print(new_circuit)
         expected = QuantumCircuit(qr)
         expected.u1(0.3, qr[2])
         expected.cx(qr[2], qr[1])
-        print(expected)
-        print(new_circuit.qasm())
-        print(expected.qasm())
 
         self.assertEqual(expected, new_circuit)
 

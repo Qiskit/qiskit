@@ -58,8 +58,9 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         circuits = [circuits]
         return_form_is_single = True
 
-    # Check for valid parameters for the experiments.
-    if not pass_manager:
+    # pass manager overrides explicit transpile options (basis_gates, coupling_map)
+    # explicit transpile options override options gotten from a backend
+    if not pass_manager and backend:
         basis_gates = basis_gates or getattr(backend.configuration(), 'basis_gates', None)
         # This needs to be removed once Aer 0.2 is out
         coupling_map = coupling_map or getattr(backend.configuration(), 'coupling_map', None)

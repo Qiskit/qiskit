@@ -22,7 +22,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard.u1 import U1Gate
 
 
-class GateCancellation(TransformationPass):
+class CommutativeCancellation(TransformationPass):
     """
     Transformation pass that cancels the redundant
     (self-adjoint) gates through commutation relations
@@ -33,7 +33,7 @@ class GateCancellation(TransformationPass):
         self.requires.append(CommutationAnalysis())
 
     def run(self, dag):
-        """Run the GateCancellation pass on a dag
+        """Run the CommutativeCancellation pass on a dag
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.
@@ -93,7 +93,7 @@ class GateCancellation(TransformationPass):
                 print("total_angle: ", total_angle)
                 new_op = U1Gate(total_angle)
                 new_qarg = (QuantumRegister(1, 'q'), 0)
-                new_dag = DAGCircuit()                
+                new_dag = DAGCircuit()
                 new_dag.add_qreg(new_qarg[0])
                 new_dag.apply_operation_back(new_op, [new_qarg])
                 dag.substitute_node_with_dag(run[0], new_dag)

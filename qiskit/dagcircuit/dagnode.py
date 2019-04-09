@@ -10,8 +10,6 @@
 
 from qiskit.exceptions import QiskitError
 
-_CUTOFF_PRECISION = 1E-5
-
 
 class DAGNode:
     """
@@ -123,9 +121,4 @@ class DAGNode:
         # For barriers, qarg order is not significant so compare as sets
         if 'barrier' == node1.name == node2.name:
             return set(node1.qargs) == set(node2.qargs)
-        print("comparing...", node1.data_dict == node2.data_dict)
-        print(node1.data_dict, node2.data_dict)
-        if node1.type == 'op' and node1.op.params:
-            print(node1.op.params[0], node2.op.params[0], node1.op.params[0]==node2.op.params[0], type(node1.op.params[0]), type(node2.op.params[0]))
-        # approx params comparison...
         return node1.data_dict == node2.data_dict
