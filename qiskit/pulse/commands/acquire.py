@@ -116,6 +116,11 @@ class AcquireInstruction(Instruction):
         self._reg_slots = reg_slots
 
     @property
+    def command(self) -> Acquire:
+        """Acquire command. """
+        return self._command
+
+    @property
     def qubits(self):
         """Qubits to be acquired. """
         return self._qubits

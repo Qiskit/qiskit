@@ -95,6 +95,11 @@ class DriveInstruction(Instruction):
         self._channel = channel
 
     @property
+    def command(self) -> SamplePulse:
+        """SamplePulse command. """
+        return self._command
+
+    @property
     def channel(self) -> OutputChannel:
         """OutputChannel command. """
         return self._channel
