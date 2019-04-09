@@ -11,14 +11,14 @@
 
 import math
 
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
 from qiskit.extensions.standard import CnotGate
 from qiskit.transpiler import PassManager, transpile_dag, transpile
 from qiskit.compiler import assemble_circuits
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
+from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.compiler import RunConfig
 
 
@@ -150,3 +150,73 @@ class TestTranspile(QiskitTestCase):
         for gate, qargs, _ in new_circuit.data:
             if isinstance(gate, CnotGate):
                 self.assertIn([x[1] for x in qargs], coupling_map)
+
+    def test_already_mapped_1(self):
+        """Circuit not remapped if matches topology.
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/342
+        """
+        backend = FakeRueschlikon()
+        coupling_map = backend.configuration().coupling_map
+        basis_gates = backend.configuration().basis_gates
+
+        qr = QuantumRegister(16, 'qr')
+        cr = ClassicalRegister(16, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        qc.cx(qr[3], qr[14])
+        qc.cx(qr[5], qr[4])
+        qc.h(qr[9])
+        qc.cx(qr[9], qr[8])
+        qc.x(qr[11])
+        qc.cx(qr[3], qr[4])
+        qc.cx(qr[12], qr[11])
+        qc.cx(qr[13], qr[4])
+        qc.measure(qr, cr)
+
+        new_qc = transpile(qc, coupling_map=coupling_map, basis_gates=basis_gates)
+        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data
+                     if gate.name == "cx"]
+        cx_qubits_physical = [[ctrl[1], tgt[1]] for [ctrl, tgt] in cx_qubits]
+        self.assertEqual(sorted(cx_qubits_physical),
+                         [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
+
+    def test_already_mapped_via_layout(self):
+        """Test that a manual layout that satisfies a coupling map does not get altered.
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/2036
+        """
+        basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
+        coupling_map = [[0, 1], [0, 5], [1, 0], [1, 2], [2, 1], [2, 3],
+                        [3, 2], [3, 4], [4, 3], [4, 9], [5, 0], [5, 6],
+                        [5, 10], [6, 5], [6, 7], [7, 6], [7, 8], [7, 12],
+                        [8, 7], [8, 9], [9, 4], [9, 8], [9, 14], [10, 5],
+                        [10, 11], [10, 15], [11, 10], [11, 12], [12, 7],
+                        [12, 11], [12, 13], [13, 12], [13, 14], [14, 9],
+                        [14, 13], [14, 19], [15, 10], [15, 16], [16, 15],
+                        [16, 17], [17, 16], [17, 18], [18, 17], [18, 19],
+                        [19, 14], [19, 18]]
+
+        q = QuantumRegister(6, name='qn')
+        c = ClassicalRegister(2, name='cn')
+        qc = QuantumCircuit(q, c)
+        qc.h(q[0])
+        qc.h(q[5])
+        qc.cx(q[0], q[5])
+        qc.u1(2, q[5])
+        qc.cx(q[0], q[5])
+        qc.h(q[0])
+        qc.h(q[5])
+        qc.barrier(q)
+        qc.measure(q[0], c[0])
+        qc.measure(q[5], c[1])
+
+        initial_layout = [q[3], q[4], None, None, q[5], q[2], q[1], None, None, q[0],
+                          None, None, None, None, None, None, None, None, None, None]
+
+        new_qc = transpile(qc, coupling_map=coupling_map,
+                           basis_gates=basis_gates, initial_layout=initial_layout)
+        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data
+                     if gate.name == "cx"]
+        cx_qubits_physical = [[ctrl[1], tgt[1]] for [ctrl, tgt] in cx_qubits]
+        self.assertEqual(sorted(cx_qubits_physical),
+                         [[9, 4], [9, 4]])
