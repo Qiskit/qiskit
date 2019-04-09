@@ -24,7 +24,7 @@ import numpy as np
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
-_CUTOFF_PRECISION = 1E-5
+_CUTOFF_PRECISION = 1E-10
 
 
 class CommutationAnalysis(AnalysisPass):

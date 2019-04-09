@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# Copyright 2019, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
-
-# pylint: disable=too-many-locals, too-many-nested-blocks, too-many-branches
 
 """
 Pass for cancelling self-inverse gates/rotations. The cancellation utilizes the
@@ -57,12 +55,12 @@ class CommutativeCancellation(TransformationPass):
                 if com_set[0].type in ['in', 'out']:
                     continue
                 for node in com_set:
-                    op_num = len(node.qargs)
-                    if op_num == 1 and node.name in q_gate_list:
+                    num_qargs = len(node.qargs)
+                    if num_qargs == 1 and node.name in q_gate_list:
                         cancellation_sets[(node.name, wire_name, com_set_idx)].append(node)
-                    if op_num == 1 and node.name in ['u1', 'rz']:
+                    if num_qargs == 1 and node.name in ['u1', 'rz']:
                         cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
-                    elif op_num == 2 and node.qargs[0] == wire:
+                    elif num_qargs == 2 and node.qargs[0] == wire:
                         second_op_name = "{0}[{1}]".format(str(node.qargs[1][0].name),
                                                            str(node.qargs[1][1]))
                         q2_key = (node.name, wire_name, second_op_name,
@@ -90,7 +88,6 @@ class CommutativeCancellation(TransformationPass):
                     total_angle = current_angle + total_angle
 
                 # Replace the data of the first node in the run
-                print("total_angle: ", total_angle)
                 new_op = U1Gate(total_angle)
                 new_qarg = (QuantumRegister(1, 'q'), 0)
                 new_dag = DAGCircuit()
