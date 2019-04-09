@@ -8,13 +8,13 @@
 # pylint: disable=invalid-name,unexpected-keyword-arg
 
 """Test cases for the pulse schedule."""
+# import pprint
 import unittest
 import numpy as np
-import pprint
 
 from qiskit.pulse.channels import DeviceSpecification, Qubit
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, RegisterSlot, ControlChannel
-from qiskit.pulse.commands import function, FrameChange, Acquire, PersistentValue, Snapshot
+from qiskit.pulse.commands import functional_pulse, FrameChange, Acquire, PersistentValue, Snapshot
 from qiskit.pulse.schedule import Schedule
 from qiskit.test import QiskitTestCase
 
@@ -35,7 +35,7 @@ class TestSchedule(QiskitTestCase):
         """
         device = self.two_qubit_device
 
-        @function
+        @functional_pulse
         def gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
@@ -46,23 +46,49 @@ class TestSchedule(QiskitTestCase):
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
         sched = Schedule()
-        sched = sched.appended(gp0(device.q[0].drive))
-        sched = sched.inserted(0, PersistentValue(value=0.2 + 0.4j)(device.q[0].control))
-        sched = sched.inserted(30, gp1(device.q[1].drive))
-        sched = sched.inserted(60, FrameChange(phase=-1.57)(device.q[0].drive))
-        sched = sched.inserted(60, gp0(device.q[0].control))
-        sched = sched.inserted(80, Snapshot("label", "snap_type"))
-        sched = sched.inserted(90, fc_pi_2(device.q[0].drive))
-        sched = sched.inserted(90, acquire(device.q[1], device.mem[1], device.c[1]))
+        sched = sched.append(gp0(device.q[0].drive))
+        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(device.q[0].control))
+        sched = sched.insert(30, gp1(device.q[1].drive))
+        sched = sched.insert(60, FrameChange(phase=-1.57)(device.q[0].drive))
+        sched = sched.insert(60, gp0(device.q[0].control))
+        sched = sched.insert(80, Snapshot("label", "snap_type"))
+        sched = sched.insert(90, fc_pi_2(device.q[0].drive))
+        sched = sched.insert(90, acquire(device.q[1], device.mem[1], device.c[1]))
         # print(sched)
-
         new_sched = Schedule()
-        new_sched = new_sched.appended(sched)
-        new_sched = new_sched.appended(sched)
+        new_sched = new_sched.append(sched)
+        new_sched = new_sched.append(sched)
         _ = new_sched.flat_instruction_sequence()
         # print(pprint.pformat(new_sched.flat_instruction_sequence()))
 
-        self.assertTrue(True)
+    def test_can_create_valid_schedule_with_syntax_sugar(self):
+        """Test valid schedule creation using syntax sugar without error.
+        """
+        device = self.two_qubit_device
+
+        @functional_pulse
+        def gaussian(duration, amp, t0, sig):
+            x = np.linspace(0, duration - 1, duration)
+            return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
+
+        gp0 = gaussian(duration=20, name='pulse0', amp=0.7, t0=9.5, sig=3)
+        gp1 = gaussian(duration=20, name='pulse1', amp=0.5, t0=9.5, sig=3)
+
+        fc_pi_2 = FrameChange(phase=1.57)
+        acquire = Acquire(10)
+        sched = Schedule()
+        sched += gp0(device.q[0].drive)
+        sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control) << 0
+        sched |= gp1(device.q[1].drive) << 30
+        sched |= FrameChange(phase=-1.57)(device.q[0].drive) << 60
+        sched |= gp0(device.q[0].control) << 60
+        sched |= Snapshot("label", "snap_type") << 80
+        sched |= fc_pi_2(device.q[0].drive) << 90
+        sched |= acquire(device.q[1], device.mem[1], device.c[1]) << 90
+        # print(sched)
+        new_sched = Schedule() + sched + sched
+        _ = new_sched.flat_instruction_sequence()
+        # print(pprint.pformat(new_sched.flat_instruction_sequence()))
 
     def test_absolute_begin_time_of_grandchild(self):
         """Test correct calculation of begin time of grandchild of a schedule.
@@ -71,12 +97,12 @@ class TestSchedule(QiskitTestCase):
 
         acquire = Acquire(10)
         children = Schedule()
-        children = children.inserted(20, acquire(device.q[1], device.mem[1]))  # grand child 1
-        children = children.appended(acquire(device.q[1], device.mem[1]))      # grand child 2
+        children = children.insert(20, acquire(device.q[1], device.mem[1]))  # grand child 1
+        children = children.append(acquire(device.q[1], device.mem[1]))      # grand child 2
 
         sched = Schedule()
-        sched = sched.appended(acquire(device.q[1], device.mem[1]))   # child
-        sched = sched.appended(children)
+        sched = sched.append(acquire(device.q[1], device.mem[1]))   # child
+        sched = sched.append(children)
 
         begin_times = sorted([i.begin_time for i in sched.flat_instruction_sequence()])
 
@@ -89,16 +115,16 @@ class TestSchedule(QiskitTestCase):
 
         acquire = Acquire(10)
         children = Schedule()\
-            .inserted(20, acquire(device.q[1], device.mem[1]))\
-            .appended(acquire(device.q[1], device.mem[1]))
+            .insert(20, acquire(device.q[1], device.mem[1]))\
+            .append(acquire(device.q[1], device.mem[1]))
         self.assertEqual(2, len(children.flat_instruction_sequence()))
 
         sched = Schedule()\
-            .appended(acquire(device.q[1], device.mem[1]))\
-            .appended(children)
+            .append(acquire(device.q[1], device.mem[1]))\
+            .append(children)
         self.assertEqual(3, len(sched.flat_instruction_sequence()))
 
-        children = children.inserted(100, acquire(device.q[1], device.mem[1]))
+        children = children.insert(100, acquire(device.q[1], device.mem[1]))
         self.assertEqual(3, len(children.flat_instruction_sequence()))
         # sched must keep 3 instructions (must not update to 4 instructions)
         self.assertEqual(3, len(sched.flat_instruction_sequence()))

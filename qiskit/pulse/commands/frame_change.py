@@ -10,8 +10,8 @@ Frame change pulse.
 """
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.command_schedule import PrimitiveInstruction
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from .instruction import Instruction
 from .pulse_command import PulseCommand
 
 
@@ -49,30 +49,14 @@ class FrameChange(PulseCommand):
     def __call__(self, channel: OutputChannel) -> 'FrameChangeInstruction':
         return FrameChangeInstruction(self, channel)
 
-    def __rshift__(self, channel: OutputChannel) -> 'FrameChangeInstruction':
-        return FrameChangeInstruction(self, channel)
 
+class FrameChangeInstruction(Instruction):
+    """Instruction to change frame of an `OutputChannel`. """
 
-class FrameChangeInstruction(PrimitiveInstruction):
-    """Pulse to acquire measurement result. """
-
-    def __init__(self, command: FrameChange, channel: OutputChannel):
-        self._command = command
+    def __init__(self, command: FrameChange, channel: OutputChannel, begin_time: int = 0):
+        slots = [Timeslot(Interval(begin_time, begin_time), channel)]
+        super().__init__(command, begin_time, TimeslotOccupancy(slots))
         self._channel = channel
-        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), channel)])
-
-    @property
-    def duration(self):
-        return 0
-
-    @property
-    def occupancy(self):
-        return self._occupancy
-
-    @property
-    def command(self) -> FrameChange:
-        """FrameChange command. """
-        return self._command
 
     @property
     def channel(self) -> OutputChannel:
@@ -80,4 +64,4 @@ class FrameChangeInstruction(PrimitiveInstruction):
         return self._channel
 
     def __repr__(self):
-        return '%s >> %s' % (self._command, self._channel)
+        return '%4d: %s -> %s' % (self._begin_time, self._command, self._channel)

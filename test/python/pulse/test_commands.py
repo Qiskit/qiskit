@@ -110,8 +110,8 @@ class TestSnapshot(QiskitTestCase):
         """
         snap_command = Snapshot(label='test_label', snap_type='state')
 
-        self.assertEqual(snap_command.label, "test_label")
-        self.assertEqual(snap_command.type, "state")
+        self.assertEqual(snap_command._label, "test_label")
+        self.assertEqual(snap_command._type, "state")
         self.assertEqual(snap_command.duration, 0)
 
 
