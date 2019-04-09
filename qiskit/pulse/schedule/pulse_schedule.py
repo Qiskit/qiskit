@@ -149,6 +149,8 @@ class Schedule(ScheduleComponent):
         """Return instruction sequence of this schedule.
         Each instruction has absolute begin time.
         """
+        if not self._children:  # empty schedule
+            return []
         return [_ for _ in Schedule._flatten_generator(self, self.begin_time)]
 
     @staticmethod
