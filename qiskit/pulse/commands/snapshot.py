@@ -10,15 +10,15 @@ Snapshot.
 """
 
 from qiskit.pulse.channels import SnapshotChannel
-from qiskit.pulse.common.command_schedule import PrimitiveInstruction
 from qiskit.pulse.common.timeslots import TimeslotOccupancy
+from .instruction import Instruction
 from .pulse_command import PulseCommand
 
 
-class Snapshot(PulseCommand, PrimitiveInstruction):
+class Snapshot(PulseCommand, Instruction):
     """Snapshot."""
 
-    def __init__(self, label, snap_type):
+    def __init__(self, label: str, snap_type: str, begin_time: int = 0):
         """Create new snapshot command.
 
         Args:
@@ -26,12 +26,28 @@ class Snapshot(PulseCommand, PrimitiveInstruction):
             snap_type (str): Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
                 The types of snapshots offered are defined in a separate specification
                 document for simulators.
+            begin_time (int, optional): Begin time of snapshot. Defaults to 0.
         """
-        super().__init__(duration=0)
-        self.label = label
-        self.type = snap_type
+        PulseCommand.__init__(self, duration=0)
+        Instruction.__init__(self, self, begin_time, TimeslotOccupancy([]))
+        self._label = label
+        self._type = snap_type
         self._channel = SnapshotChannel()
-        self._occupancy = TimeslotOccupancy([])
+
+    @property
+    def label(self) -> str:
+        """Label of snapshot to identify the snapshot."""
+        return self._label
+
+    @property
+    def type(self) -> str:
+        """Type of snapshot."""
+        return self._type
+
+    @property
+    def channel(self) -> SnapshotChannel:
+        """Snapshot channel. """
+        return self._channel
 
     def __eq__(self, other):
         """Two Snapshots are the same if they are of the same type
@@ -44,28 +60,11 @@ class Snapshot(PulseCommand, PrimitiveInstruction):
             bool: are self and other equal.
         """
         if type(self) is type(other) and \
-                self.label == other.label and \
-                self.type == other.type:
+                self._label == other._label and \
+                self._type == other._type:
             return True
         return False
 
-    @property
-    def duration(self):
-        return 0
-
-    @property
-    def occupancy(self):
-        return self._occupancy
-
-    @property
-    def command(self) -> 'Snapshot':
-        """Snapshot command. """
-        return self
-
-    @property
-    def channel(self) -> SnapshotChannel:
-        """Snapshot channel. """
-        return self._channel
-
     def __repr__(self):
-        return '%s(%s, %s) >> %s' % (self.__class__.__name__, self.label, self.type, self._channel)
+        return '%4d: %s(%s, %s) -> %s' % \
+               (self._begin_time, self.__class__.__name__, self._label, self._type, self._channel)

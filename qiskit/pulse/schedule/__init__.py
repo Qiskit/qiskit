@@ -7,4 +7,4 @@
 
 """Schedule classes for pulse."""
 
-from .pulse_schedule import SubSchedule, Schedule
+from .pulse_schedule import Schedule

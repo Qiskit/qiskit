@@ -10,7 +10,7 @@ Timeslot occupancy for each channels.
 """
 import logging
 from collections import defaultdict
-from typing import List, Optional, Set
+from typing import List, Optional, Tuple
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
@@ -107,7 +107,7 @@ class TimeslotOccupancy:
         Raises:
             PulseError: when overlapped time slots are specified
         """
-        self._timeslots = timeslots
+        self._timeslots = tuple(timeslots)
         self._table = defaultdict(list)
         for slot in timeslots:
             for interval in self._table[slot.channel]:
@@ -116,14 +116,9 @@ class TimeslotOccupancy:
             self._table[slot.channel].append(slot.interval)
 
     @property
-    def timeslots(self):
+    def timeslots(self) -> Tuple[Timeslot, ...]:
         """Time slots of this occupancy."""
         return self._timeslots
-
-    @property
-    def channelset(self) -> Set[Channel]:
-        """Time slots of used in this occupancy."""
-        return {key for key in self._table.keys()}
 
     def is_mergeable_with(self, occupancy: 'TimeslotOccupancy') -> bool:
         """Return if self is mergeable with a specified `occupancy` or not.

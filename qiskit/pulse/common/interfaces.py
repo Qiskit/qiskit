@@ -6,62 +6,55 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Instruction = Command with its operands (Channels).
+ScheduleComponent = Common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import Tuple
 
 from .timeslots import TimeslotOccupancy
 
 
-class Instruction(metaclass=ABCMeta):
-    """Common interface for `Command with its operands (Channels)`. """
+class ScheduleComponent(metaclass=ABCMeta):
+    """Common interface for components of schedule. """
 
     @property
     @abstractmethod
     def duration(self) -> int:
-        """Duration of this instruction. """
+        """Duration of this schedule component. """
         pass
 
     @property
     @abstractmethod
     def occupancy(self) -> TimeslotOccupancy:
-        """Occupied time slots by this instruction. """
+        """Occupied time slots by this schedule component. """
         pass
 
     @abstractmethod
-    def at(self, begin_time: int) -> 'TimedInstruction':
-        """Return timed instruction. """
-        pass
+    def shifted(self, shift: int) -> 'ScheduleComponent':
+        """Return a new shifted schedule component by `shift`.
 
+        Args:
+            shift: time to be shifted
 
-class ScheduleNode(metaclass=ABCMeta):
-    """Common interface for nodes of a schedule tree. """
-
-    @property
-    @abstractmethod
-    def children(self) -> List['TimedInstruction']:
-        """Child nodes of this schedule node. """
-        pass
-
-
-class TimedInstruction(ScheduleNode):
-    """Common interface for instruction with timing context. """
-
-    @property
-    @abstractmethod
-    def instruction(self) -> Instruction:
-        """Instruction. """
+        Returns:
+            ScheduleComponent: shifted schedule component
+        """
         pass
 
     @property
     @abstractmethod
     def begin_time(self) -> int:
-        """Relative begin time of this instruction. """
+        """Relative begin time of this schedule component. """
         pass
 
     @property
     @abstractmethod
     def end_time(self) -> int:
-        """Relative end time of this instruction. """
+        """Relative end time of this schedule component. """
+        pass
+
+    @property
+    @abstractmethod
+    def children(self) -> Tuple['ScheduleComponent', ...]:
+        """Child nodes of this schedule component. """
         pass
