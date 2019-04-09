@@ -10,16 +10,11 @@ Channels support signal output.
 """
 from abc import abstractmethod
 
-from qiskit.pulse import commands
 from .pulse_channel import Channel
 
 
 class OutputChannel(Channel):
     """Output Channel."""
-
-    supported = (commands.FrameChange,
-                 commands.PersistentValue,
-                 commands.SamplePulse)
 
     @abstractmethod
     def __init__(self, index: int = None, lo_frequency: float = None):
@@ -50,6 +45,9 @@ class OutputChannel(Channel):
                 self._lo_frequency == other._lo_frequency:
             return True
         return False
+
+    def __hash__(self):
+        return hash((super().__hash__(), self._lo_frequency))
 
 
 class DriveChannel(OutputChannel):
