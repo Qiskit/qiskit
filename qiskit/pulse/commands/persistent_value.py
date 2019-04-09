@@ -66,6 +66,11 @@ class PersistentValueInstruction(Instruction):
         self._channel = channel
 
     @property
+    def command(self) -> PersistentValue:
+        """PersistentValue command. """
+        return self._command
+
+    @property
     def channel(self) -> OutputChannel:
         """OutputChannel channel."""
         return self._channel

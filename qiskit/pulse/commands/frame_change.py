@@ -59,6 +59,11 @@ class FrameChangeInstruction(Instruction):
         self._channel = channel
 
     @property
+    def command(self) -> FrameChange:
+        """FrameChange command. """
+        return self._command
+
+    @property
     def channel(self) -> OutputChannel:
         """OutputChannel channel. """
         return self._channel
