@@ -16,6 +16,8 @@ from qiskit.pulse.exceptions import PulseError
 class PulseCommand(metaclass=ABCMeta):
     """Super abstract class of command group."""
 
+    pulseIndex = 0
+
     @abstractmethod
     def __init__(self, duration: int = None, name: str = None):
         """Create new pulse commands.
@@ -24,15 +26,18 @@ class PulseCommand(metaclass=ABCMeta):
             duration (int): Duration of pulse.
             name (str): Name of pulse command.
         Raises:
-            CommandsError: when duration is not number of points.
+            PulseError: when duration is not number of points.
         """
-
         if isinstance(duration, int):
             self._duration = duration
         else:
             raise PulseError('Pulse duration should be integer.')
 
-        self._name = name
+        if name:
+            self._name = name
+        else:
+            self._name = 'p%d' % PulseCommand.pulseIndex
+            PulseCommand.pulseIndex += 1
 
     @property
     def duration(self) -> int:
