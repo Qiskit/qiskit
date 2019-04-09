@@ -531,6 +531,7 @@ class QCircuitImage:
                         for i in range(pos_1, pos_2 + self.cregs[if_reg]):
                             if is_occupied[i] is False:
                                 is_occupied[i] = True
+
                             else:
                                 columns += 1
                                 is_occupied = [False] * self.img_width

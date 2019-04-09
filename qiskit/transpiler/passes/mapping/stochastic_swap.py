@@ -21,9 +21,10 @@ from qiskit.extensions.standard import SwapGate
 from qiskit.mapper import Layout
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 # pylint: disable=no-name-in-module, import-error
-from .cython.stochastic_swap.utils import nlayout_from_layout
+#from .cython.stochastic_swap.utils import nlayout_from_layout
 # pylint: disable=no-name-in-module, import-error
-from .cython.stochastic_swap._swap_trial import swap_trial
+#from .cython.stochastic_swap.swap_trial import swap_trial
+
 logger = getLogger(__name__)
 
 
