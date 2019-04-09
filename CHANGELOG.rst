@@ -22,7 +22,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-
+- `meas_level` to result schema (#2085).
 - Core StochasticSwap routine implemented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
@@ -52,6 +52,8 @@ Added
 - ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
   QobjHeader to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
+- Added new resource estimation passes: ``Depth``, ``Width``, ``Size``, ``CountOps``, and
+  ``NumTensorFactors``, all grouped in the ``ResourceEstimation`` analysis pass.
 - Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
   operations on the given wire
 - Added new properties to an Instruction:
@@ -62,10 +64,13 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
-
+- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial 
+  qubit layout. (#2089)
 
 Changed
 -------
+
+- The most connected subset in DenseLayout is now reduced bandwidth (#2021).
 - plot_histogram now allows sorting by Hamming distance from target_string (#2064).
 - FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
   that returns a `SamplePulse` when called. (#2043)
@@ -113,9 +118,12 @@ Changed
 - The old syntax for attaching a gate to the circuit then modifying it is no longer
   supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``).
   Instead, you must first modify the gate then attach it (#1816).
-- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a 
+- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a
   (instruction, qarg, carg) (#1816).
-
+- The visualization subpackage has moved from ``qiskit.tools.visualization`` to
+  ``qiskit.visualization``. The public API (which was declared stable in
+  the 0.7 release) is still accessible off of ``qiskit.tools.visualization``.
+  (#1878)
 
 Deprecated
 ----------
@@ -149,6 +157,9 @@ Fixed
   coupling map is provided (#1711).
 - Fixed a bug in the definition of the rzz gate (#1940).
 - Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+- Fixed a mapping issue with layouts on non-adjacent qubits, by adding ancillas (#2023).
+- Fixed a bug in which an `initial_layout` could be changed even if it made the circuit
+  compatible with the device `coupling_map` (#2036).
 
 
 Removed

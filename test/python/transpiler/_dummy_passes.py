@@ -173,7 +173,7 @@ class PassI_Bad_AP(DummyAP):
             cx_runs_ids.add(tuple(curr))
 
         logging.getLogger(logger).info('cx_runs: %s', cx_runs_ids)
-        dag._remove_op_node(cx_runs.pop()[0])
+        dag.remove_op_node(cx_runs.pop()[0])
         logging.getLogger(logger).info('done removing')
 
 
