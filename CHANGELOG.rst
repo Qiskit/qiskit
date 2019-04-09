@@ -62,6 +62,8 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
+- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial 
+  qubit layout. (#2089)
 
 Changed
 -------
@@ -153,6 +155,9 @@ Fixed
   coupling map is provided (#1711).
 - Fixed a bug in the definition of the rzz gate (#1940).
 - Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+- Fixed a mapping issue with layouts on non-adjacent qubits, by adding ancillas (#2023).
+- Fixed a bug in which an `initial_layout` could be changed even if it made the circuit
+  compatible with the device `coupling_map` (#2036).
 
 
 Removed

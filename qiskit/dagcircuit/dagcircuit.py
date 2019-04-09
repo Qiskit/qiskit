@@ -991,10 +991,10 @@ class DAGCircuit:
         return named_nodes
 
     def get_2q_nodes(self):
-        """Deprecated. Use twoQ_nodes()."""
-        warnings.warn('The method get_2q_nodes() is being replaced by twoQ_nodes()',
-                      'Returning a list of data_dicts is also deprecated, twoQ_nodes() '
-                      'returns a list of DAGNodes ',
+        """Deprecated. Use twoQ_gates()."""
+        warnings.warn('The method get_2q_nodes() is being replaced by twoQ_gates()',
+                      'Returning a list of data_dicts is also deprecated, twoQ_gates() '
+                      'returns a list of DAGNodes.',
                       DeprecationWarning, 2)
 
         two_q_nodes = []
@@ -1004,17 +1004,8 @@ class DAGCircuit:
 
         return two_q_nodes
 
-    def twoQ_nodes(self):
-        """Get list of 2-qubit nodes."""
-        two_q_nodes = []
-        for node in self.multi_graph.nodes():
-            if node.type == 'op' and len(node.qargs) == 2:
-                two_q_nodes.append(node)
-        return two_q_nodes
-
     def twoQ_gates(self):
-        """Get list of 2-qubit gates. Like twoQ_nodes, but ignoring
-        snapshot, barriers, and the like."""
+        """Get list of 2-qubit gates. Ignore snapshot, barriers, and the like."""
         two_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) == 2:
@@ -1022,11 +1013,11 @@ class DAGCircuit:
         return two_q_gates
 
     def get_3q_or_more_nodes(self):
-        """Deprecated. Use threeQ_or_more_nodes()."""
+        """Deprecated. Use threeQ_or_more_gates()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
-                      ' threeQ_or_more_nodes()',
+                      ' threeQ_or_more_gates()',
                       'Returning a list of (node_id, data) tuples is also deprecated, '
-                      'threeQ_or_more_nodes() returns a list of DAGNodes',
+                      'threeQ_or_more_gates() returns a list of DAGNodes.',
                       DeprecationWarning, 2)
 
         three_q_nodes = []
@@ -1035,13 +1026,13 @@ class DAGCircuit:
                 three_q_nodes.append((node._node_id, node.data_dict))
         return three_q_nodes
 
-    def threeQ_or_more_nodes(self):
-        """Get list of 3-or-more-qubit nodes: (id, data)."""
-        three_q_nodes = []
-        for node in self.multi_graph.nodes():
-            if node.type == 'op' and len(node.qargs) >= 3:
-                three_q_nodes.append(node)
-        return three_q_nodes
+    def threeQ_or_more_gates(self):
+        """Get list of 3-or-more-qubit gates: (id, data)."""
+        three_q_gates = []
+        for node in self.gate_nodes():
+            if len(node.qargs) >= 3:
+                three_q_gates.append(node)
+        return three_q_gates
 
     def successors(self, node):
         """Returns list of the successors of a node as DAGNodes."""
