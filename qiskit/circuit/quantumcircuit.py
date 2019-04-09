@@ -503,6 +503,20 @@ class QuantumCircuit:
         """convenience function to get the variables defined in the variable table"""
         return set(self._variable_table.keys())
 
+    def assign_variables(self, value_dict):
+        """Assign variables to values yielding a new circuit.
+
+        Args:
+            value_dict (dict): {variable: value, ...}
+
+        Returns:
+            QuantumCircuit: copy of self with assignment substitution.
+        """
+        new_circuit = self.copy()
+        for variable, value in value_dict.items():
+            new_circuit.variable_table[variable] = value
+        return new_circuit
+
 
 def _circuit_from_qasm(qasm):
     # pylint: disable=cyclic-import

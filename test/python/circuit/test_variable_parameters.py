@@ -7,15 +7,13 @@
 
 
 """Test circuits with variable parameters."""
-
+import numpy
 import sympy
-import qiskit
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate
 from qiskit.transpiler import transpile
 from qiskit.compiler import assemble_circuits
-from qiskit import QiskitError
 from qiskit.test import QiskitTestCase
 
 
@@ -46,15 +44,14 @@ class TestVariableParameters(QiskitTestCase):
         theta = sympy.Symbol('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
-        rx = RXGate(theta)
-        qc.append(rx, [qr[0]], [])
+        rxg = RXGate(theta)
+        qc.append(rxg, [qr[0]], [])
         vparams = qc.variable_table
         self.assertIs(theta, next(iter(vparams)))
-        self.assertIs(rx, next(iter(next(iter(vparams[theta])))))
+        self.assertIs(rxg, next(iter(next(iter(vparams[theta])))))
 
     def test_fix_variable(self):
         """Test setting a varaible to a constant value"""
-        from qiskit.extensions.standard.rx import RXGate
         theta = sympy.Symbol('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
@@ -69,7 +66,6 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_multiple_variables(self):
         """Test setting a varaible to a constant value"""
-        from qiskit.extensions.standard.rx import RXGate
         theta = sympy.Symbol('θ')
         x = sympy.Symbol('x')
         qr = QuantumRegister(1)
@@ -77,3 +73,39 @@ class TestVariableParameters(QiskitTestCase):
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
         self.assertEqual(qc.variables, {theta, x})
+
+    def test_circuit_generation(self):
+        """Test creating a series of circuits parametrically"""
+        theta = sympy.Symbol('θ')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(theta, qr)
+        backend = BasicAer.get_backend('qasm_simulator')
+        qc_aer = transpile(qc, backend)
+
+        # generate list of circuits
+        circs = []
+        theta_list = numpy.linspace(0, numpy.pi, 20)
+        for theta_i in theta_list:
+            circs.append(qc_aer.assign_variables({theta: theta_i}))
+        qobj = assemble_circuits(circs)
+        for index, theta_i in enumerate(theta_list):
+            self.assertEqual(qobj.experiments[index].instructions[0].params[0],
+                             theta_i)
+
+    def test_circuit_composition(self):
+        """Test preservation of variables when combining circuits."""
+        theta = sympy.Symbol('θ')
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        qc1 = QuantumCircuit(qr)
+        qc1.rx(theta, qr)
+
+        phi = sympy.Symbol('phi')
+        qc2 = QuantumCircuit(qr, cr)
+        qc2.ry(phi, qr)
+        qc2.h(qr)
+        qc2.measure(qr, cr)
+
+        qc3 = qc1 + qc2
+        self.assertEqual(qc3.variables, {theta, phi})

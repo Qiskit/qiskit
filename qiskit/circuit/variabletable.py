@@ -34,7 +34,9 @@ class VariableTable(MutableMapping):
             self._table[key] = value
         else:
             for (instr, param_index) in self._table[key]:
-                instr.params[param_index] = value
+                params = instr.params
+                params[param_index] = value
+                instr._set_params(params)
 
     def __delitem__(self, key):
         del self._table[key]
