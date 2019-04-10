@@ -9,6 +9,8 @@
 Pass for cancelling self-inverse gates/rotations. The cancellation utilizes the
 commutation relations in the circuit. Gates considered include H, X, Y, Z, CX, CY, CZ.
 """
+import numpy as np
+import sympy
 
 from collections import defaultdict
 
@@ -42,7 +44,8 @@ class CommutativeCancellation(TransformationPass):
         Raises:
             TranspilerError: when the 1 qubit rotation gates are not found
         """
-        q_gate_list = ['cx', 'cy', 'cz', 'h', 'x', 'y', 'z', 't', 's']
+
+        q_gate_list = ['cx', 'cy', 'cz', 'h', 'x', 'y', 'z']
 
         # Gate sets to be cancelled
         cancellation_sets = defaultdict(lambda: [])
@@ -58,7 +61,7 @@ class CommutativeCancellation(TransformationPass):
                     num_qargs = len(node.qargs)
                     if num_qargs == 1 and node.name in q_gate_list:
                         cancellation_sets[(node.name, wire_name, com_set_idx)].append(node)
-                    if num_qargs == 1 and node.name in ['u1', 'rz']:
+                    if num_qargs == 1 and node.name in ['u1', 'rz', 't', 's']:
                         cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
                     elif num_qargs == 2 and node.qargs[0] == wire:
                         second_op_name = "{0}[{1}]".format(str(node.qargs[1][0].name),
@@ -83,7 +86,14 @@ class CommutativeCancellation(TransformationPass):
                             or len(current_node.qargs) != 1
                             or current_node.qargs[0] != run_qarg):
                         raise TranspilerError("internal error")
-                    current_angle = float(current_node.op.params[0])
+
+                    if current_node.name in ['u1', 'rz']:
+                        current_angle = float(current_node.op.params[0])
+                    elif current_node.name == 't':
+                        current_angle = sympy.pi / 4
+                    elif current_node.name == 's':
+                        current_angle = sympy.pi / 2
+
                     # Compose gates
                     total_angle = current_angle + total_angle
 

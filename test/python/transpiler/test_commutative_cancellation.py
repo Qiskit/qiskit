@@ -8,6 +8,7 @@
 """Gate cancellation pass testing"""
 
 import unittest
+import sympy
 from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
@@ -28,13 +29,13 @@ class TestCommutativeCancellation(QiskitTestCase):
     def test_all_gates(self):
         """Test all gates on 1 and 2 qubits
 
-        q0:-[H]-[H]--[x]-[x]--[y]-[y]--[t]-[t]--[s]-[s]--[rz]-[rz]--[u1]-[u1]--.--.--.--.--.--.
-                                                                               |  |  |  |  |  |
-        q1:--------------------------------------------------------------------X--X--Y--Y--.--.
+        q0:-[H]-[H]--[x]-[x]--[y]-[y]--[rz]-[rz]--[u1]-[u1]---------.--.--.--.--.--.-
+                                                                    |  |  |  |  |  |
+        q1:---------------------------------------------------------X--X--Y--Y--.--.-
 
         =
 
-        qr0:---[U1]---
+        qr0:---[u1]---
 
         qr1:----------
         """
@@ -46,10 +47,6 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.x(qr[0])
         circuit.y(qr[0])
         circuit.y(qr[0])
-        circuit.t(qr[0])
-        circuit.t(qr[0])
-        circuit.s(qr[0])
-        circuit.s(qr[0])
         circuit.rz(0.5, qr[0])
         circuit.rz(0.5, qr[0])
         circuit.u1(0.5, qr[0])
@@ -105,14 +102,16 @@ class TestCommutativeCancellation(QiskitTestCase):
                 |               |
         qr1:---(+)---(+)--[X]--(+)--[X]--  =  qr1:--------(+)--
                       |                                    |
-        qr2:---[Rz]---.---[Rz]-----------     qr2:--[U1]---.---
+        qr2:---[Rz]---.---[Rz]-[T]--[S]--     qr2:--[U1]---.---
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
-        circuit.rz(0.1, qr[2])
+        circuit.rz(sympy.pi / 3, qr[2])
         circuit.cx(qr[2], qr[1])
-        circuit.rz(0.2, qr[2])
+        circuit.rz(sympy.pi / 3, qr[2])
+        circuit.t(qr[2])
+        circuit.s(qr[2])
         circuit.x(qr[1])
         circuit.cx(qr[0], qr[1])
         circuit.x(qr[1])
@@ -121,7 +120,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         new_circuit = transpile(circuit, pass_manager=passmanager)
         expected = QuantumCircuit(qr)
-        expected.u1(0.3, qr[2])
+        expected.u1(sympy.pi * 17 / 12, qr[2])
         expected.cx(qr[2], qr[1])
 
         self.assertEqual(expected, new_circuit)
