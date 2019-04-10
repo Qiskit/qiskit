@@ -9,10 +9,8 @@
 Pass for cancelling self-inverse gates/rotations. The cancellation utilizes the
 commutation relations in the circuit. Gates considered include H, X, Y, Z, CX, CY, CZ.
 """
-import numpy as np
-import sympy
-
 from collections import defaultdict
+import sympy
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
