@@ -239,6 +239,8 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
     # run the passes specified by the pass manager
     # TODO return the property set too. See #1086
+    name = dag.name
     dag = pass_manager.run_passes(dag)
+    dag.name = name
 
     return dag
