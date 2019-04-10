@@ -23,7 +23,7 @@ from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
 from .passes.fixed_point import FixedPoint
-from .passes.count_ops import CountOps
+from .passes.depth import Depth
 from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .passes.mapping.check_map import CheckMap
 from .passes.mapping.cx_direction import CXDirection
@@ -253,10 +253,10 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             pm_4_optimization = PassManager()
             pm_4_optimization.append([Optimize1qGates(),
                                       CXCancellation(),
-                                      CountOps(),
-                                      FixedPoint('count_ops')],
+                                      Depth(),
+                                      FixedPoint('depth')],
                                      do_while=lambda property_set: not property_set[
-                                         'count_ops_fixed_point'])
+                                         'depth_fixed_point'])
             dag = transpile_dag(dag, pass_manager=pm_4_optimization)
 
         dag.name = name
