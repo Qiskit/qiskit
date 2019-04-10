@@ -180,7 +180,7 @@ class QCircuitImage:
 
     def _initialize_latex_array(self, aliases=None):
         # pylint: disable=unused-argument
-        self.img_depth, self.sum_column_widths = self._get_image_depth(aliases)
+        self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_row_heights = self.img_width
         # choose the most compact row spacing, while not squashing them
         if self.has_box:
@@ -205,12 +205,8 @@ class QCircuitImage:
                                     str(self.ordered_regs[i][1]) + "}" + \
                                     ": \\ket{0}}"
 
-    def _get_image_depth(self, aliases=None):
+    def _get_image_depth(self):
         """Get depth information for the circuit.
-
-        Args:
-            aliases (dict): dict mapping the current qubits in the circuit to
-                new qubit names.
 
         Returns:
             int: number of columns in the circuit
@@ -255,7 +251,6 @@ class QCircuitImage:
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
         # could be a fraction so ceil
-        
         return columns, math.ceil(sum_column_widths) + 4
 
     def _get_beamer_page(self):
