@@ -60,14 +60,6 @@ class TestUnitary(QiskitTestCase):
         uni = Unitary([[0, 1j], [-1j, 0]])
         self.assertTrue(numpy.array_equal(uni.conjugate()._representation, ymat))
 
-    def test_conjugate_inplace(self):
-        """test inplace conjugate"""
-        ymat = numpy.array([[0, -1j], [1j, 0]])
-        uni = Unitary([[0, 1j], [-1j, 0]])
-        uni_conj = uni.conjugate(inplace=True)
-        self.assertTrue(numpy.array_equal(uni._representation, ymat))
-        self.assertTrue(uni._representation is uni_conj._representation)
-
     def test_adjoint(self):
         """test adjoint operation"""
         uni = Unitary([[0, 1j], [-1j, 0]])
@@ -164,7 +156,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         # test of text drawer
         self.log.info(qc2)
         dag = circuit_to_dag(qc)
-        nodes = dag.twoQ_nodes()
+        nodes = dag.twoQ_gates()
         self.assertTrue(len(nodes) == 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, Unitary)
@@ -189,7 +181,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         # test of text drawer
         self.log.info(qc)
         dag = circuit_to_dag(qc)
-        nodes = dag.threeQ_or_more_nodes()
+        nodes = dag.threeQ_or_more_gates()
         self.assertTrue(len(nodes) == 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, Unitary)

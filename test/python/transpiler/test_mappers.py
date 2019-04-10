@@ -71,7 +71,7 @@ import os
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.transpiler import PassManager, transpile
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, LegacySwap
 from qiskit.mapper import CouplingMap, Layout
 
 from qiskit.test import QiskitTestCase
@@ -283,6 +283,12 @@ class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using StochasticSwap."""
     pass_class = StochasticSwap
     additional_args = {'seed': 0}
+
+
+class TestsLegacySwap(SwapperCommonTestCases, QiskitTestCase):
+    """Test SwapperCommonTestCases using LegacySwap."""
+    pass_class = LegacySwap
+    additional_args = {'seed': 0, 'trials': 20}
 
 
 if __name__ == '__main__':
