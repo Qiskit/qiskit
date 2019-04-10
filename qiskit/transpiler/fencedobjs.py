@@ -45,6 +45,7 @@ class FencedObject():
             raise TranspilerAccessError("The fenced %s has the property %s protected" %
                                         (type(object.__getattribute__(self, '_wrapped')), name))
 
+
 class FencedDAGCircuit(FencedObject):
     """ A dag circuit that cannot be modified (via remove_op_node) """
     # FIXME: add more fenced methods of the dag after dagcircuit rewrite
