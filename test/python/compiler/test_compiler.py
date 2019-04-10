@@ -179,7 +179,7 @@ class TestCompiler(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.h(qr[0])
 
-        layout = {(qr, 0): 19} # 19 is not the coupling map
+        layout = {(qr, 0): 19}  # 19 is not the coupling map
 
         cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
                 [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
