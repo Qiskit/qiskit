@@ -184,12 +184,6 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
     # TODO: `basis_gates` will be removed after we have the unroller pass.
     # TODO: `coupling_map`, `initial_layout`, `seed_mapper` removed after mapper pass.
 
-    # TODO: move this to the mapper pass
-
-    num_qubits = sum([qreg.size for qreg in dag.qregs.values()])
-    if num_qubits == 1:
-        coupling_map = None
-
     if basis_gates is None:
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
     if isinstance(basis_gates, str):
