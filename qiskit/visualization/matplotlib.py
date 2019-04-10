@@ -148,9 +148,9 @@ class MatplotlibDrawer:
 
     def _custom_multiqubit_gate(self, xy, fc=None, wide=True, text=None,
                                 subtext=None):
-        n_qubits = len(xy)
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
+        ypos_max = max([y[1] for y in xy])
         if wide:
             if subtext:
                 boxes_length = round(max([len(text), len(subtext)]) / 10) or 1
@@ -163,7 +163,8 @@ class MatplotlibDrawer:
             _fc = fc
         else:
             _fc = self._style.gc
-        height = HIG * (n_qubits + 1)
+        qubit_span = abs(ypos) - abs(ypos_max) + 1
+        height = HIG * (qubit_span + 1)
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
             width=wid, height=height, fc=_fc, ec=self._style.lc,
@@ -182,7 +183,7 @@ class MatplotlibDrawer:
                              color=self._style.sc, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
-                self.ax.text(xpos, ypos + .5 * (n_qubits - 1), disp_text,
+                self.ax.text(xpos, ypos + .5 * (qubit_span - 1), disp_text,
                              ha='center',
                              va='center',
                              fontsize=self._style.fs,
