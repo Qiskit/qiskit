@@ -252,11 +252,17 @@ class QuantumCircuit:
 
         # track variable parameters in instruction
         for param_index, param in enumerate(instruction.params):
-            if isinstance(param, sympy.Symbol):
-                if param in self._variable_table:
-                    self._variable_table[param].append((instruction, param_index))
-                else:
-                    self._variable_table[param] = [(instruction, param_index)]
+            if isinstance(param, sympy.Expr):
+                current_symbols = set(self._variable_table.keys())
+                these_symbols = set(param.free_symbols)
+                new_symbols = these_symbols - current_symbols
+                common_symbols = these_symbols & current_symbols
+                if new_symbols:
+                    for symbol in new_symbols:
+                        self._variable_table[symbol] = [(instruction, param_index)]
+                if common_symbols:
+                    for symbol in common_symbols:
+                        self._variable_table[symbol].append((instruction, param_index))
 
         return instruction
 
@@ -513,8 +519,8 @@ class QuantumCircuit:
             QuantumCircuit: copy of self with assignment substitution.
         """
         new_circuit = self.copy()
-        for variable, value in value_dict.items():
-            new_circuit.variable_table[variable] = value
+        for variable in value_dict:
+            new_circuit.variable_table[variable] = value_dict
         return new_circuit
 
 

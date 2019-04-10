@@ -28,15 +28,19 @@ class VariableTable(MutableMapping):
 
         Args:
             key (Object): the variable to set
-            value (Number): numeric constant
+            value (Number or dict): numeric constant or dictionary of
+                (Symbol:value) pairs
         """
         if key not in self._table:
             self._table[key] = value
         else:
             for (instr, param_index) in self._table[key]:
                 params = instr.params
-                params[param_index] = value
-                instr._set_params(params)
+                if isinstance(value, dict):
+                    params[param_index] = params[param_index].evalf(subs=value)
+                else:
+                    params[param_index] = value
+                instr.params = params
 
     def __delitem__(self, key):
         del self._table[key]

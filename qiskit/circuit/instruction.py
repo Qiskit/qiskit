@@ -69,7 +69,6 @@ class Instruction:
         self._definition = None
         self.params = params
 
-
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
         same dimensions, and same params.
@@ -103,8 +102,8 @@ class Instruction:
         # if params already defined don't attempt to get them from definition
         if self._definition and not self._params:
             self._params = []
-            for sub_instr,_,_ in self._definition:
-                self._params.extend(sub_instr.params)
+            for sub_instr, _, _ in self._definition:
+                self._params.extend(sub_instr.params)  # recursive call
             return self._params
         else:
             return self._params
@@ -134,8 +133,10 @@ class Instruction:
             # example: sympy.Matrix([[1, 0], [0, 1]])
             elif isinstance(single_param, sympy.Matrix):
                 self.params.append(single_param)
-            elif isinstance(single_param, sympy.core.expr.Expr):
+            elif isinstance(single_param, sympy.Expr):
                 self.params.append(single_param)
+            elif isinstance(single_param, numpy.number):
+                self.params.append(sympy.Number(single_param.item()))
             else:
                 raise QiskitError("invalid param type {0} in instruction "
                                   "{1}".format(type(single_param), self.name))

@@ -128,5 +128,26 @@ class TestVariableParameters(QiskitTestCase):
         qc2.ry(phi, qr2[0])
         qc2.h(qr2)
         qc2.append(gate, qargs=[qr2[1]])
-
         self.assertEqual(qc2.variables, {theta, phi})
+
+    def test_parameter_expression(self):
+        """Test evaluation with parameter expressions"""
+        x = sympy.Symbol('x')
+        y = sympy.Symbol('y')
+        qr1 = QuantumRegister(1, name='qr1')
+        qc1 = QuantumCircuit(qr1)
+        qc1.rx(x, qr1)
+        qc1.rz(x + y, qr1)
+        qc1.ry(-x, qr1)
+        gate = qc1.to_instruction()
+        self.assertEqual(gate.params, [x, x+y, -x])
+
+        circs = []
+        x_list = numpy.arange(0, 5)
+        y_list = numpy.arange(10, 51, 10)
+        for ones, tens in zip(x_list, y_list):
+            circs.append(qc1.assign_variables({x: ones, y: tens}))
+        for index, (ones, tens) in enumerate(zip(x_list, y_list)):
+            self.assertEqual(circs[index].data[0][0].params[0], ones)
+            self.assertEqual(circs[index].data[1][0].params[0], ones + tens)
+            self.assertEqual(circs[index].data[2][0].params[0], -ones)
