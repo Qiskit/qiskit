@@ -56,10 +56,8 @@ class CXDirection(TransformationPass):
         new_dag = DAGCircuit()
 
         if self.layout is None:
-            if self.property_set["layout"]:
-                self.layout = self.property_set["layout"]
-            else:
-                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
+            # LegacySwap renames the register in the DAG and does not match the property set
+            self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
