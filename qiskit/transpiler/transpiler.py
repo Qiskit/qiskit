@@ -10,7 +10,7 @@ import logging
 import warnings
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.mapper import CouplingMap, swap_mapper
+from qiskit.mapper import CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
@@ -29,6 +29,7 @@ from .passes.mapping.check_map import CheckMap
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
 from .passes.mapping.trivial_layout import TrivialLayout
+from .passes.mapping.legacy_swap import LegacySwap
 from .passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
 from .passes.mapping.extend_layout import ExtendLayout
 
@@ -237,15 +238,9 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             initial_layout = pass_.property_set['layout']
             logger.info("initial layout (ancilla extended): %s", initial_layout)
 
-            # temporarily build old-style layout dict
-            # (TODO: remove after transition to StochasticSwap pass)
-            virtual_qubits = initial_layout.get_virtual_bits()
-            initial_layout = {(v[0].name, v[1]): ('q', initial_layout[v]) for v in virtual_qubits}
-
             # Swap mapper
-            dag, final_layout = swap_mapper(
-                dag, coupling, initial_layout, trials=20, seed=seed_mapper)
-            logger.info("final layout: %s", final_layout)
+            dag = LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper).run(dag)
+
             # Expand swaps
             dag = Decompose(SwapGate).run(dag)
             # Change cx directions
