@@ -22,15 +22,15 @@ logger = logging.getLogger(__name__)
 class Schedule(ScheduleComponent):
     """Schedule of instructions. The composite node of a schedule tree."""
 
-    def __init__(self, name: str = None, begin_time: int = 0):
+    def __init__(self, name: str = None, start_time: int = 0):
         """Create empty schedule.
 
         Args:
             name (str, optional): Name of this schedule. Defaults to None.
-            begin_time (int, optional): Begin time of this schedule. Defaults to 0.
+            start_time (int, optional): Begin time of this schedule. Defaults to 0.
         """
         self._name = name
-        self._begin_time = begin_time
+        self._start_time = start_time
         self._occupancy = TimeslotOccupancy(timeslots=[])
         self._children = ()
 
@@ -39,15 +39,15 @@ class Schedule(ScheduleComponent):
         """Name of this schedule."""
         return self._name
 
-    def insert(self, begin_time: int, schedule: ScheduleComponent):
-        """Return a new schedule with inserting a `schedule` at `begin_time`.
+    def insert(self, start_time: int, schedule: ScheduleComponent):
+        """Return a new schedule with inserting a `schedule` at `start_time`.
 
         Args:
-            begin_time (int): time to be inserted
+            start_time (int): time to be inserted
             schedule (ScheduleComponent): schedule to be inserted
 
         Returns:
-            ScheduleComponent: a new schedule inserted a `schedule` at `begin_time`
+            ScheduleComponent: a new schedule inserted a `schedule` at `start_time`
 
         Raises:
             PulseError: when an invalid schedule is specified or failed to insert
@@ -56,28 +56,28 @@ class Schedule(ScheduleComponent):
             raise PulseError("Invalid to be inserted: %s" % schedule.__class__.__name__)
         news = copy(self)
         try:
-            news._insert(begin_time, schedule)
+            news._insert(start_time, schedule)
         except PulseError as err:
             raise PulseError(err.message)
         return news
 
-    def _insert(self, begin_time: int, schedule: ScheduleComponent):
-        """Insert a new `schedule` at `begin_time`.
+    def _insert(self, start_time: int, schedule: ScheduleComponent):
+        """Insert a new `schedule` at `start_time`.
         Args:
-            begin_time (int): begin time of the schedule
+            start_time (int): start time of the schedule
             schedule (ScheduleComponent): schedule to be inserted
         Raises:
             PulseError: when an invalid schedule is specified or failed to insert
         """
         if schedule == self:
             raise PulseError("Cannot insert self to avoid infinite recursion")
-        shifted = schedule.occupancy.shifted(begin_time)
+        shifted = schedule.occupancy.shifted(start_time)
         if self._occupancy.is_mergeable_with(shifted):
             self._occupancy = self._occupancy.merged(shifted)
-            self._children += (schedule.shifted(begin_time),)
+            self._children += (schedule.shifted(start_time),)
         else:
-            logger.warning("Fail to insert %s at %s due to timing overlap", schedule, begin_time)
-            raise PulseError("Fail to insert %s at %s due to overlap" % (str(schedule), begin_time))
+            logger.warning("Fail to insert %s at %s due to timing overlap", schedule, start_time)
+            raise PulseError("Fail to insert %s at %s due to overlap" % (str(schedule), start_time))
 
     def append(self, schedule: ScheduleComponent):
         """Return a new schedule with appending a `schedule` at the timing
@@ -96,7 +96,7 @@ class Schedule(ScheduleComponent):
             raise PulseError("Invalid to be appended: %s" % schedule.__class__.__name__)
         news = copy(self)
         try:
-            news._insert(self.end_time, schedule)
+            news._insert(self.stop_time, schedule)
         except PulseError:
             logger.warning("Fail to append %s due to timing overlap", schedule)
             raise PulseError("Fail to append %s due to overlap" % str(schedule))
@@ -104,7 +104,7 @@ class Schedule(ScheduleComponent):
 
     @property
     def duration(self) -> int:
-        return self.end_time - self.begin_time
+        return self.stop_time - self.start_time
 
     @property
     def occupancy(self) -> TimeslotOccupancy:
@@ -112,18 +112,18 @@ class Schedule(ScheduleComponent):
 
     def shifted(self, shift: int) -> ScheduleComponent:
         news = copy(self)
-        news._begin_time += shift
+        news._start_time += shift
         news._occupancy = self._occupancy.shifted(shift)
         return news
 
     @property
-    def begin_time(self) -> int:
-        return self._begin_time
+    def start_time(self) -> int:
+        return self._start_time
 
     @property
-    def end_time(self) -> int:
+    def stop_time(self) -> int:
         return max([slot.interval.end for slot in self._occupancy.timeslots],
-                   default=self._begin_time)
+                   default=self._start_time)
 
     @property
     def children(self) -> Tuple[ScheduleComponent, ...]:
@@ -147,16 +147,16 @@ class Schedule(ScheduleComponent):
 
     def flat_instruction_sequence(self) -> List[ScheduleComponent]:
         """Return instruction sequence of this schedule.
-        Each instruction has absolute begin time.
+        Each instruction has absolute start time.
         """
         if not self._children:  # empty schedule
             return []
-        return [_ for _ in Schedule._flatten_generator(self, self.begin_time)]
+        return [_ for _ in Schedule._flatten_generator(self, self.start_time)]
 
     @staticmethod
     def _flatten_generator(node: ScheduleComponent, time: int):
         if node.children:
             for child in node.children:
-                yield from Schedule._flatten_generator(child, time + node.begin_time)
+                yield from Schedule._flatten_generator(child, time + node.start_time)
         else:
             yield node.shifted(time)

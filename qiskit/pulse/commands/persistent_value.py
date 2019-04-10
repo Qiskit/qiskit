@@ -60,9 +60,9 @@ class PersistentValue(PulseCommand):
 class PersistentValueInstruction(Instruction):
     """Instruction to keep persistent value. """
 
-    def __init__(self, command: PersistentValue, channel: OutputChannel, begin_time: int = 0):
-        slots = [Timeslot(Interval(begin_time, begin_time), channel)]
-        super().__init__(command, begin_time, TimeslotOccupancy(slots))
+    def __init__(self, command: PersistentValue, channel: OutputChannel, start_time: int = 0):
+        slots = [Timeslot(Interval(start_time, start_time), channel)]
+        super().__init__(command, start_time, TimeslotOccupancy(slots))
         self._channel = channel
 
     @property
@@ -76,4 +76,4 @@ class PersistentValueInstruction(Instruction):
         return self._channel
 
     def __repr__(self):
-        return '%4d: %s -> %s' % (self._begin_time, self._command, self._channel)
+        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)

@@ -18,7 +18,7 @@ from .pulse_command import PulseCommand
 class Snapshot(PulseCommand, Instruction):
     """Snapshot."""
 
-    def __init__(self, label: str, snap_type: str, begin_time: int = 0):
+    def __init__(self, label: str, snap_type: str, start_time: int = 0):
         """Create new snapshot command.
 
         Args:
@@ -26,10 +26,10 @@ class Snapshot(PulseCommand, Instruction):
             snap_type (str): Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
                 The types of snapshots offered are defined in a separate specification
                 document for simulators.
-            begin_time (int, optional): Begin time of snapshot. Defaults to 0.
+            start_time (int, optional): Begin time of snapshot. Defaults to 0.
         """
         PulseCommand.__init__(self, duration=0)
-        Instruction.__init__(self, self, begin_time, TimeslotOccupancy([]))
+        Instruction.__init__(self, self, start_time, TimeslotOccupancy([]))
         self._label = label
         self._type = snap_type
         self._channel = SnapshotChannel()
@@ -67,4 +67,4 @@ class Snapshot(PulseCommand, Instruction):
 
     def __repr__(self):
         return '%4d: %s(%s, %s) -> %s' % \
-               (self._begin_time, self.__class__.__name__, self._label, self._type, self._channel)
+               (self._start_time, self.__class__.__name__, self._label, self._type, self._channel)

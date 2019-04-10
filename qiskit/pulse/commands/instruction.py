@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
-    def __init__(self, command: PulseCommand, begin_time: int, occupancy: TimeslotOccupancy):
+    def __init__(self, command: PulseCommand, start_time: int, occupancy: TimeslotOccupancy):
         self._command = command
-        self._begin_time = begin_time
+        self._start_time = start_time
         self._occupancy = occupancy
 
     @property
@@ -39,19 +39,19 @@ class Instruction(ScheduleComponent):
 
     def shifted(self, shift: int) -> ScheduleComponent:
         news = copy(self)
-        news._begin_time += shift
+        news._start_time += shift
         news._occupancy = self._occupancy.shifted(shift)
         return news
 
     @property
-    def begin_time(self) -> int:
+    def start_time(self) -> int:
         """Relative begin time of this instruction. """
-        return self._begin_time
+        return self._start_time
 
     @property
-    def end_time(self) -> int:
+    def stop_time(self) -> int:
         """Relative end time of this instruction. """
-        return self.begin_time + self.duration
+        return self.start_time + self.duration
 
     @property
     def children(self) -> Tuple[ScheduleComponent, ...]:
@@ -59,7 +59,7 @@ class Instruction(ScheduleComponent):
         return ()
 
     def __repr__(self):
-        return "%4d: %s" % (self._begin_time, self._command)
+        return "%4d: %s" % (self._start_time, self._command)
 
     def __lshift__(self, shift: int) -> ScheduleComponent:
         return self.shifted(shift)

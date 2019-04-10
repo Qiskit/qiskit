@@ -43,14 +43,14 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def begin_time(self) -> int:
-        """Relative begin time of this schedule component. """
+    def start_time(self) -> int:
+        """Relative start time of this schedule component. """
         pass
 
     @property
     @abstractmethod
-    def end_time(self) -> int:
-        """Relative end time of this schedule component. """
+    def stop_time(self) -> int:
+        """Relative stop time of this schedule component. """
         pass
 
     @property

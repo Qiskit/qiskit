@@ -91,8 +91,8 @@ class TestSchedule(QiskitTestCase):
         _ = new_sched.flat_instruction_sequence()
         # print(pprint.pformat(new_sched.flat_instruction_sequence()))
 
-    def test_absolute_begin_time_of_grandchild(self):
-        """Test correct calculation of begin time of grandchild of a schedule.
+    def test_absolute_start_time_of_grandchild(self):
+        """Test correct calculation of start time of grandchild of a schedule.
         """
         device = self.two_qubit_device
 
@@ -105,9 +105,9 @@ class TestSchedule(QiskitTestCase):
         sched = sched.append(acquire(device.q[1], device.mem[1]))   # child
         sched = sched.append(children)
 
-        begin_times = sorted([i.begin_time for i in sched.flat_instruction_sequence()])
+        start_times = sorted([i.start_time for i in sched.flat_instruction_sequence()])
 
-        self.assertEqual([0, 30, 40], begin_times)
+        self.assertEqual([0, 30, 40], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
         """Test if a schedule keeps its children after attached to another schedule.

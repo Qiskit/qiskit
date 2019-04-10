@@ -89,7 +89,7 @@ class AcquireInstruction(Instruction):
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
                  reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
-                 begin_time: int = 0):
+                 start_time: int = 0):
         if isinstance(qubits, Qubit):
             qubits = [qubits]
         if mem_slots:
@@ -109,7 +109,7 @@ class AcquireInstruction(Instruction):
         slots = [Timeslot(Interval(0, command.duration), q.acquire) for q in qubits]
         slots.extend([Timeslot(Interval(0, command.duration), mem) for mem in mem_slots])
 
-        super().__init__(command, begin_time, TimeslotOccupancy(slots))
+        super().__init__(command, start_time, TimeslotOccupancy(slots))
 
         self._qubits = qubits
         self._mem_slots = mem_slots
@@ -136,4 +136,4 @@ class AcquireInstruction(Instruction):
         return self._reg_slots
 
     def __repr__(self):
-        return '%4d: %s -> q%s' % (self._begin_time, self._command, [q.index for q in self._qubits])
+        return '%4d: %s -> q%s' % (self._start_time, self._command, [q.index for q in self._qubits])
