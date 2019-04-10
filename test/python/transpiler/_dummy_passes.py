@@ -141,19 +141,6 @@ class PassG_calculates_dag_property(DummyAP):
                                        self.property_set['property'])
 
 
-class PassH_Bad_TP(DummyTP):
-    """ A dummy transformation pass tries to modify the property set.
-    NR: No Requires
-    NP: No Preserves
-    """
-
-    def run(self, dag):
-        super().run(dag)
-        self.property_set['property'] = "value"
-        logging.getLogger(logger).info('set property as %s', self.property_set['property'])
-        return dag
-
-
 class PassI_Bad_AP(DummyAP):
     """ A dummy analysis pass tries to modify the dag.
     NR: No Requires
