@@ -78,8 +78,8 @@ class ADAM(Optimizer):
                     'type': 'boolean',
                     'default': False
                 },
-                'snaptshot_file': {
-                    'type': 'string',
+                'snapshot_file': {
+                    'type': ['string', 'null'],
                     'default': None
                 }
             },
