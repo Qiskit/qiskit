@@ -51,6 +51,7 @@ class FencedPropertySet(FencedObject):
     def __init__(self, property_set_instance):
         super().__init__(property_set_instance, ['__setitem__'])
 
+
 class FencedDAGCircuit(FencedObject):
     """ A dag circuit that cannot be modified (via remove_op_node) """
     # FIXME: add more fenced methods of the dag after dagcircuit rewrite
