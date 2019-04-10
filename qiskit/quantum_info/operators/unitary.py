@@ -83,7 +83,8 @@ class Unitary(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary.
         """
-        self.definition = two_qubit_kak(self)
+        if self.__dimension == 4:
+            self.definition = two_qubit_kak(self)
 
     @property
     def dimension(self):
