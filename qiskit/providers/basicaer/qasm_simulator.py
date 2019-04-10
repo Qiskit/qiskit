@@ -495,7 +495,8 @@ class QasmSimulatorPy(BaseBackend):
             for operation in experiment.instructions:
                 conditional = getattr(operation, 'conditional', None)
                 if isinstance(conditional, int):
-                    if not self._classical_register[-conditional-1]:
+                    conditional_bit_set = (self._classical_register >> conditional) & 1
+                    if not conditional_bit_set:
                         continue
                 elif conditional is not None:
                     mask = int(operation.conditional.mask, 16)
