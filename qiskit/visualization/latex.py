@@ -191,7 +191,7 @@ class QCircuitImage:
             self.row_separation = 1.0
         self._latex = [
             ["\\cw" if self.wire_type[self.ordered_regs[j]]
-             else "\\qw" for i in range(self.img_depth + 1)]
+             else "\\qw" for _ in range(self.img_depth + 1)]
             for j in range(self.img_width)]
         self._latex.append([" "] * (self.img_depth + 1))
         for i in range(self.img_width):
@@ -219,252 +219,44 @@ class QCircuitImage:
         Raises:
             VisualizationError: if trying to draw unsupported gates
         """
-        columns = 2  # wires in the beginning and end
-        is_occupied = [False] * self.img_width
-        max_column_width = {}
 
-        boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
-                       'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
-                       'crz', 'cu3', 'id']
-        target_gates = ['cx', 'ccx']
+        max_column_widths = []
 
         for layer in self.ops:
+
+            # store the max width for the layer
+            current_max = 0
+
             for op in layer:
-                # useful information for determining row spacing
 
-                if op.name in boxed_gates:
-                    self.has_box = True
-                if op.name in target_gates:
-                    self.has_target = True
+                # update current op width
+                arg_str_len = 0
 
-                # useful information for determining column widths and final image
-                # scaling
-                if op.name not in ['measure', 'reset', 'barrier']:
-                    qarglist = op.qargs
-                    if aliases is not None:
-                        qarglist = map(lambda x: aliases[x], qarglist)
-                    if len(qarglist) == 1:
-                        pos_1 = self.img_regs[(qarglist[0][0],
-                                               qarglist[0][1])]
-                        if op.condition:
-                            mask = self._get_mask(op.condition[0])
-                            cl_reg = self.clbit_list[self._ffs(mask)]
-                            if_reg = cl_reg[0]
-                            pos_2 = self.img_regs[cl_reg]
-                            for i in range(pos_1, pos_2 + self.cregs[if_reg]):
-                                if is_occupied[i] is False:
-                                    is_occupied[i] = True
-                                else:
-                                    columns += 1
-                                    is_occupied = [False] * self.img_width
-                                    for j in range(pos_1, pos_2 + 1):
-                                        is_occupied[j] = True
-                                    break
-                        else:
-                            if is_occupied[pos_1] is False:
-                                is_occupied[pos_1] = True
-                            else:
-                                columns += 1
-                                is_occupied = [False] * self.img_width
-                                is_occupied[pos_1] = True
-                    elif len(qarglist) == 2:
-                        pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
-                        pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
+                # the wide gates
+                for arg in op.op.params:
+                    arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
+                                     _truncate_float, str(arg))
+                    arg_str_len += len(arg_str)
 
-                        if op.condition:
-                            mask = self._get_mask(op.condition[0])
-                            cl_reg = self.clbit_list[self._ffs(mask)]
-                            if_reg = cl_reg[0]
-                            pos_3 = self.img_regs[(if_reg, 0)]
-                            if pos_1 > pos_2:
-                                for i in range(pos_2, pos_3 + self.cregs[if_reg]):
-                                    if is_occupied[i] is False:
-                                        is_occupied[i] = True
-                                    else:
-                                        columns += 1
-                                        is_occupied = [False] * self.img_width
-                                        for j in range(pos_2, pos_3 + 1):
-                                            is_occupied[j] = True
-                                        break
-                            else:
-                                for i in range(pos_1, pos_3 + self.cregs[if_reg]):
-                                    if is_occupied[i] is False:
-                                        is_occupied[i] = True
-                                    else:
-                                        columns += 1
-                                        is_occupied = [False] * self.img_width
-                                        for j in range(pos_1, pos_3 + 1):
-                                            is_occupied[j] = True
-                                        break
-                            # symetric gates have angle labels
-                            if op.name == 'cu1':
-                                columns += 1
-                                is_occupied = [False] * self.img_width
-                                is_occupied[max(pos_1, pos_2)] = True
-                        else:
-                            temp = [pos_1, pos_2]
-                            temp.sort(key=int)
-                            top = temp[0]
-                            bottom = temp[1]
+                # the width of the column is the max of all the gates in the column
+                current_max = max(arg_str_len, current_max)
 
-                            for i in range(top, bottom + 1):
-                                if is_occupied[i] is False:
-                                    is_occupied[i] = True
-                                else:
-                                    columns += 1
-                                    is_occupied = [False] * self.img_width
-                                    for j in range(top, bottom + 1):
-                                        is_occupied[j] = True
-                                    break
-                            # symetric gates have angle labels
-                            if op.name == 'cu1':
-                                columns += 1
-                                is_occupied = [False] * self.img_width
-                                is_occupied[top] = True
+            max_column_widths.append(current_max)
 
-                    elif len(qarglist) == 3:
-                        pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
-                        pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
-                        pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
+        # wires in the beginning and end
+        columns = 2
+        # each layer is one column
+        columns += len(self.ops)
 
-                        if op.condition:
-                            mask = self._get_mask(op.condition[0])
-                            cl_reg = self.clbit_list[self._ffs(mask)]
-                            if_reg = cl_reg[0]
-                            pos_4 = self.img_regs[(if_reg, 0)]
-
-                            temp = [pos_1, pos_2, pos_3, pos_4]
-                            temp.sort(key=int)
-                            top = temp[0]
-                            bottom = temp[2]
-
-                            for i in range(top, pos_4 + 1):
-                                if is_occupied[i] is False:
-                                    is_occupied[i] = True
-                                else:
-                                    columns += 1
-                                    is_occupied = [False] * self.img_width
-                                    for j in range(top, pos_4 + 1):
-                                        is_occupied[j] = True
-                                    break
-                        else:
-                            temp = [pos_1, pos_2, pos_3]
-                            temp.sort(key=int)
-                            top = temp[0]
-                            bottom = temp[2]
-
-                            for i in range(top, bottom + 1):
-                                if is_occupied[i] is False:
-                                    is_occupied[i] = True
-                                else:
-                                    columns += 1
-                                    is_occupied = [False] * self.img_width
-                                    for j in range(top, bottom + 1):
-                                        is_occupied[j] = True
-                                    break
-
-                    elif len(qarglist) > 3:
-                        for i in range(0, len(qarglist)):
-                            pos = self.img_regs[(qarglist[i][0], qarglist[i][1])]
-                            if is_occupied[int(pos)] is False:
-                                is_occupied[int(pos)] = True
-                            else:
-                                columns += 1
-                                is_occupied = [False] * self.img_width
-                                for j in range(0, len(qarglist)):
-                                    pos = self.img_regs[(qarglist[j][0],
-                                                         qarglist[j][1])]
-                                    is_occupied[int(pos)] = True
-                                break
-                    # update current column width
-                    arg_str_len = 0
-                    for arg in op.op.params:
-                        arg_str = re.sub(r'[-+]?\d*\.\d{2,}|\d{2,}',
-                                         _truncate_float, str(arg))
-                        arg_str_len += len(arg_str)
-                    if columns not in max_column_width:
-                        max_column_width[columns] = 0
-                    max_column_width[columns] = max(arg_str_len,
-                                                    max_column_width[columns])
-                elif op.name == "measure":
-                    if len(op.cargs) != 1 or len(op.qargs) != 1:
-                        raise exceptions.VisualizationError("bad operation record")
-                    if op.condition:
-                        raise exceptions.VisualizationError(
-                            'conditional measures currently not supported.')
-                    qname, qindex = op.qargs[0]
-                    cname, cindex = op.cargs[0]
-                    if aliases:
-                        newq = aliases[(qname, qindex)]
-                        qname = newq[0]
-                        qindex = newq[1]
-                    pos_1 = self.img_regs[(qname, qindex)]
-                    pos_2 = self.img_regs[(cname, cindex)]
-                    temp = [pos_1, pos_2]
-                    temp.sort(key=int)
-                    [pos_1, pos_2] = temp
-                    for i in range(pos_1, pos_2 + 1):
-                        if is_occupied[i] is False:
-                            is_occupied[i] = True
-                        else:
-                            columns += 1
-                            is_occupied = [False] * self.img_width
-                            for j in range(pos_1, pos_2 + 1):
-                                is_occupied[j] = True
-                            break
-                    # update current column width
-                    if columns not in max_column_width:
-                        max_column_width[columns] = 0
-
-                elif op.name == "reset":
-                    if op.condition:
-                        raise exceptions.VisualizationError(
-                            'conditional reset currently not supported.')
-                    qname, qindex = op.qargs[0]
-                    if aliases:
-                        newq = aliases[(qname, qindex)]
-                        qname = newq[0]
-                        qindex = newq[1]
-                    pos_1 = self.img_regs[(qname, qindex)]
-                    if is_occupied[pos_1] is False:
-                        is_occupied[pos_1] = True
-                    else:
-                        columns += 1
-                        is_occupied = [False] * self.img_width
-                        is_occupied[pos_1] = True
-
-                elif op.name in ["barrier", 'snapshot', 'load', 'save',
-                                 'noise']:
-                    if self.plot_barriers:
-                        qarglist = op.qargs
-                        indexes = [self._get_qubit_index(x) for x in qarglist]
-                        start_bit = self.qubit_list[min(indexes)]
-                        if aliases is not None:
-                            qarglist = map(lambda x: aliases[x], qarglist)
-                        start = self.img_regs[start_bit]
-                        span = len(op.qargs) - 1
-
-                        for i in range(start, start + span + 1):
-                            if is_occupied[i] is False:
-                                is_occupied[i] = True
-                            else:
-                                columns += 1
-                                is_occupied = [False] * self.img_width
-                                for j in range(start, start + span + 1):
-                                    is_occupied[j] = True
-                                break
-
-                        # update current column width
-                        if columns not in max_column_width:
-                            max_column_width[columns] = 0
-                else:
-                    raise exceptions.VisualizationError("bad node data")
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
         # the qubit/cbit labels plus initial states is 2 more
         # the wires poking out at the ends is 2 more
-        sum_column_widths = sum(1 + v / 3 for v in max_column_width.values())
-        return columns + 1, math.ceil(sum_column_widths) + 4
+        sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
+
+        # could be a fraction so ceil
+        
+        return columns, math.ceil(sum_column_widths) + 4
 
     def _get_beamer_page(self):
         """Get height, width & scale attributes for the beamer page.
