@@ -180,13 +180,15 @@ def circuit_drawer(circuit,
         image = _latex_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style,
                                       plot_barriers=plot_barriers,
-                                      reverse_bits=reverse_bits)
+                                      reverse_bits=reverse_bits,
+                                      justify=justify)
     elif output == 'latex_source':
         return _generate_latex_source(circuit,
                                       filename=filename, scale=scale,
                                       style=style,
                                       plot_barriers=plot_barriers,
-                                      reverse_bits=reverse_bits)
+                                      reverse_bits=reverse_bits,
+                                      justify=justify)
     elif output == 'mpl':
         image = _matplotlib_circuit_drawer(circuit, scale=scale,
                                            filename=filename, style=style,
@@ -320,7 +322,8 @@ def _latex_circuit_drawer(circuit,
                           filename=None,
                           style=None,
                           plot_barriers=True,
-                          reverse_bits=False):
+                          reverse_bits=False,
+                          justify=None):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Requires version >=2.6.0 of the qcircuit LaTeX package.
@@ -334,6 +337,8 @@ def _latex_circuit_drawer(circuit,
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
+        justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
+                        the circuit should be justified.
 
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
@@ -349,7 +354,7 @@ def _latex_circuit_drawer(circuit,
         _generate_latex_source(circuit, filename=tmppath,
                                scale=scale, style=style,
                                plot_barriers=plot_barriers,
-                               reverse_bits=reverse_bits)
+                               reverse_bits=reverse_bits, justify=justify)
         image = None
         try:
 
@@ -392,7 +397,7 @@ def _latex_circuit_drawer(circuit,
 
 def _generate_latex_source(circuit, filename=None,
                            scale=0.7, style=None, reverse_bits=False,
-                           plot_barriers=True):
+                           plot_barriers=True, justify=None):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -404,12 +409,16 @@ def _generate_latex_source(circuit, filename=None,
             registers for the output visualization.
         plot_barriers (bool): Enable/disable drawing barriers in the output
             circuit. Defaults to True.
+        justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
+                        the circuit should be justified.
 
     Returns:
         str: Latex string appropriate for writing to file.
     """
-    qregs, cregs, ops = utils._get_instructions(circuit,
-                                                reverse_bits=reverse_bits)
+    qregs, cregs, ops = utils._get_layered_instructions(circuit,
+                                                        reverse_bits=reverse_bits,
+                                                        justify=justify)
+
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
                                  reverse_bits=reverse_bits)
@@ -417,6 +426,7 @@ def _generate_latex_source(circuit, filename=None,
     if filename:
         with open(filename, 'w') as latex_file:
             latex_file.write(latex)
+
     return latex
 
 
