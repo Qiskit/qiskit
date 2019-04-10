@@ -9,6 +9,7 @@
 """Test circuits with variable parameters."""
 import numpy
 import sympy
+
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate
@@ -109,3 +110,23 @@ class TestVariableParameters(QiskitTestCase):
 
         qc3 = qc1 + qc2
         self.assertEqual(qc3.variables, {theta, phi})
+
+    def test_composite_instruction(self):
+        """Test preservation of variables when combining circuits."""
+        theta = sympy.Symbol('θ')
+        qr1 = QuantumRegister(1, name='qr1')
+        qc1 = QuantumCircuit(qr1)
+        qc1.rx(theta, qr1)
+        qc1.rz(numpy.pi/2, qr1)
+        qc1.ry(-theta, qr1)
+        gate = qc1.to_instruction()
+        self.assertEqual(gate.params, [theta, numpy.pi/2, -theta])
+
+        phi = sympy.Symbol('phi')
+        qr2 = QuantumRegister(3, name='qr2')
+        qc2 = QuantumCircuit(qr2)
+        qc2.ry(phi, qr2[0])
+        qc2.h(qr2)
+        qc2.append(gate, qargs=[qr2[1]])
+
+        self.assertEqual(qc2.variables, {theta, phi})
