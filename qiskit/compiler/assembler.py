@@ -7,14 +7,15 @@
 
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
-import sympy
+
 import numpy
+import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.qobj import Qobj, QobjConfig, QobjExperiment, QobjInstruction, QobjHeader
-from qiskit.qobj import QobjExperimentConfig, QobjExperimentHeader, QobjConditional
 from qiskit.compiler.run_config import RunConfig
-from qiskit.qobj.utils import QobjType
+from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
+                         QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
+                         QasmQobjConfig)
 
 
 def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None):
@@ -27,14 +28,14 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
         qobj_id (int): identifier for the generated qobj
 
     Returns:
-        Qobj: the Qobj to be run on the backends
+        QasmQobj: the Qobj to be run on the backends
     """
     qobj_header = qobj_header or QobjHeader()
     run_config = run_config or RunConfig()
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
 
-    userconfig = QobjConfig(**run_config.to_dict())
+    userconfig = QasmQobjConfig(**run_config.to_dict())
     experiments = []
     max_n_qubits = 0
     max_memory_slots = 0
@@ -68,22 +69,39 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                                                 creg_sizes=creg_sizes,
                                                 name=circuit.name)
         # TODO: why do we need n_qubits and memory_slots in both the header and the config
-        experimentconfig = QobjExperimentConfig(n_qubits=n_qubits, memory_slots=memory_slots)
+        experimentconfig = QasmQobjExperimentConfig(n_qubits=n_qubits, memory_slots=memory_slots)
+
+        # Convert conditionals from QASM-style (creg ?= int) to qobj-style
+        # (register_bit ?= 1), by assuming device has unlimited register slots
+        # (supported only for simulators). Map all measures to a register matching
+        # their clbit_index, create a new register slot for every conditional gate
+        # and add a bfunc to map the creg=val mask onto the gating register bit.
+
+        is_conditional_experiment = any(op.control for (op, qargs, cargs) in circuit.data)
+        max_conditional_idx = 0
 
         instructions = []
-        for opt in circuit.data:
-            current_instruction = QobjInstruction(name=opt.name)
-            if opt.qargs:
+        for op_context in circuit.data:
+            op = op_context[0]
+            qargs = op_context[1]
+            cargs = op_context[2]
+            current_instruction = QasmQobjInstruction(name=op.name)
+            if qargs:
                 qubit_indices = [qubit_labels.index([qubit[0].name, qubit[1]])
-                                 for qubit in opt.qargs]
+                                 for qubit in qargs]
                 current_instruction.qubits = qubit_indices
-            if opt.cargs:
+            if cargs:
                 clbit_indices = [clbit_labels.index([clbit[0].name, clbit[1]])
-                                 for clbit in opt.cargs]
+                                 for clbit in cargs]
                 current_instruction.memory = clbit_indices
 
-            if opt.params:
-                params = list(map(lambda x: x.evalf(), opt.params))
+                # If the experiment has conditional instructions, assume every
+                # measurement result may be needed for a conditional gate.
+                if op.name == "measure" and is_conditional_experiment:
+                    current_instruction.register = clbit_indices
+
+            if op.params:
+                params = list(map(lambda x: x.evalf(), op.params))
                 params = [sympy.matrix2numpy(x, dtype=complex)
                           if isinstance(x, sympy.Matrix) else x for x in params]
                 if len(params) == 1 and isinstance(params[0], numpy.ndarray):
@@ -91,24 +109,41 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                     # change to matrix in Aer.
                     params = params[0]
                 current_instruction.params = params
-            # TODO (jay): I really dont like this for snapshot. I also think we should change
+            # TODO: I really dont like this for snapshot. I also think we should change
             # type to snap_type
-            if opt.name == "snapshot":
-                current_instruction.label = str(opt.params[0])
-                current_instruction.type = str(opt.params[1])
-            if opt.control:
+            if op.name == "snapshot":
+                current_instruction.label = str(op.params[0])
+                current_instruction.type = str(op.params[1])
+            if op.name == 'unitary':
+                if op._label:
+                    current_instruction.label = op._label
+            if op.control:
+                # To convert to a qobj-style conditional, insert a bfunc prior
+                # to the conditional instruction to map the creg ?= val condition
+                # onto a gating register bit.
                 mask = 0
-                for clbit in clbit_labels:
-                    if clbit[0] == opt.control[0].name:
-                        mask |= (1 << clbit_labels.index(clbit))
+                val = 0
 
-                current_instruction.conditional = QobjConditional(mask="0x%X" % mask,
-                                                                  type='equals',
-                                                                  val="0x%X" % opt.control[1])
+                for clbit in clbit_labels:
+                    if clbit[0] == op.control[0].name:
+                        mask |= (1 << clbit_labels.index(clbit))
+                        val |= (((op.control[1] >> clbit[1]) & 1) << clbit_labels.index(clbit))
+
+                conditional_reg_idx = memory_slots + max_conditional_idx
+                conversion_bfunc = QasmQobjInstruction(name='bfunc',
+                                                       mask="0x%X" % mask,
+                                                       relation='==',
+                                                       val="0x%X" % val,
+                                                       register=conditional_reg_idx)
+                instructions.append(conversion_bfunc)
+
+                current_instruction.conditional = conditional_reg_idx
+                max_conditional_idx += 1
 
             instructions.append(current_instruction)
-        experiments.append(QobjExperiment(instructions=instructions, header=experimentheader,
-                                          config=experimentconfig))
+
+        experiments.append(QasmQobjExperiment(instructions=instructions, header=experimentheader,
+                                              config=experimentconfig))
         if n_qubits > max_n_qubits:
             max_n_qubits = n_qubits
         if memory_slots > max_memory_slots:
@@ -117,6 +152,5 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
     userconfig.memory_slots = max_memory_slots
     userconfig.n_qubits = max_n_qubits
 
-    return Qobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
-                experiments=experiments, header=qobj_header,
-                type=QobjType.QASM.value)
+    return QasmQobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
+                    experiments=experiments, header=qobj_header)

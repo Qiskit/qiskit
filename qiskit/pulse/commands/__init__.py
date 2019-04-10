@@ -7,11 +7,11 @@
 
 """Command classes for pulse."""
 
+from .acquire import Acquire, AcquireInstruction
+from .frame_change import FrameChange, FrameChangeInstruction
+from .meas_opts import Discriminator, Kernel
+from .persistent_value import PersistentValue, PersistentValueInstruction
 from .pulse_command import PulseCommand
-from .sample_pulse import SamplePulse
-
-from .acquire import Acquire, Discriminator, Kernel
-from .frame_change import FrameChange
-from .persistent_value import PersistentValue
-from .functional_pulse import FunctionalPulse
+from .pulse_decorators import functional_pulse
+from .sample_pulse import SamplePulse, DriveInstruction
 from .snapshot import Snapshot

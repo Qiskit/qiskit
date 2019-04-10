@@ -8,42 +8,40 @@
 """
 Sample pulse.
 """
+import numpy as np
 
-from qiskit.pulse.commands.pulse_command import PulseCommand
+from qiskit.pulse.channels import OutputChannel
+from qiskit.pulse.common.interfaces import Instruction
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from qiskit.pulse.exceptions import PulseError
+from .pulse_command import PulseCommand
 
 
 class SamplePulse(PulseCommand):
     """Container for functional pulse."""
 
-    def __init__(self, duration, samples, name):
+    def __init__(self, samples, name=None):
         """Create new sample pulse command.
 
         Args:
-            duration (int): Duration of pulse.
             samples (ndarray): Complex array of pulse envelope.
             name (str): Unique name to identify the pulse.
+        Raises:
+            PulseError: when pulse envelope amplitude exceeds 1.
         """
-        if not name:
-            _name = str('pulse_object_%s' % id(self))
-        else:
-            _name = name
+        name = name or str('pulse_object_%s' % id(self))
 
-        super(SamplePulse, self).__init__(duration=duration, name=_name)
+        super().__init__(duration=len(samples), name=name)
+
+        if np.any(np.abs(samples) > 1):
+            raise PulseError('Absolute value of pulse envelope amplitude exceeds 1.')
 
         self._samples = samples
 
     @property
     def samples(self):
-        """Return sample.
-        """
+        """Return sample values."""
         return self._samples
-
-    @samples.setter
-    def samples(self, samples):
-        """Set sample.
-        """
-        self._samples = samples
-        self.duration = len(samples)
 
     def draw(self, **kwargs):
         """Plot the interpolated envelope of pulse.
@@ -61,7 +59,7 @@ class SamplePulse(PulseCommand):
         """
         from qiskit.tools.visualization import pulse_drawer
 
-        return pulse_drawer(self.samples, self.duration, **kwargs)
+        return pulse_drawer(self._samples, self.duration, **kwargs)
 
     def __eq__(self, other):
         """Two SamplePulses are the same if they are of the same type
@@ -73,8 +71,46 @@ class SamplePulse(PulseCommand):
         Returns:
             bool: are self and other equal.
         """
-        if type(self) is type(other) and \
-                self.name == other.name and \
-                (self.samples == other.samples).all():
+        if super().__eq__(other) and \
+                (self._samples == other._samples).all():
             return True
         return False
+
+    def __hash__(self):
+        return hash((super().__hash__(), self._samples.tostring()))
+
+    def __repr__(self):
+        return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
+
+    def __call__(self, channel: OutputChannel) -> 'DriveInstruction':
+        return DriveInstruction(self, channel)
+
+
+class DriveInstruction(Instruction):
+    """Pulse to drive a pulse shape to a `OutputChannel`. """
+
+    def __init__(self, command: SamplePulse, channel: OutputChannel):
+        self._command = command
+        self._channel = channel
+        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, command.duration), channel)])
+
+    @property
+    def duration(self):
+        return self._command.duration
+
+    @property
+    def occupancy(self):
+        return self._occupancy
+
+    @property
+    def command(self) -> SamplePulse:
+        """SamplePulse command. """
+        return self._command
+
+    @property
+    def channel(self) -> OutputChannel:
+        """OutputChannel command. """
+        return self._channel
+
+    def __repr__(self):
+        return '%s >> %s' % (self._command, self._channel)

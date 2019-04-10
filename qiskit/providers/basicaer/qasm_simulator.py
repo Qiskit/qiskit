@@ -38,9 +38,9 @@ from qiskit.result import Result
 from qiskit.providers import BaseBackend
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from .exceptions import BasicAerError
-from ._basicaertools import single_gate_matrix
-from ._basicaertools import cx_gate_matrix
-from ._basicaertools import einsum_vecmul_index
+from .basicaertools import single_gate_matrix
+from .basicaertools import cx_gate_matrix
+from .basicaertools import einsum_vecmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -495,7 +495,8 @@ class QasmSimulatorPy(BaseBackend):
             for operation in experiment.instructions:
                 conditional = getattr(operation, 'conditional', None)
                 if isinstance(conditional, int):
-                    if not self._classical_register[-conditional-1]:
+                    conditional_bit_set = (self._classical_register >> conditional) & 1
+                    if not conditional_bit_set:
                         continue
                 elif conditional is not None:
                     mask = int(operation.conditional.mask, 16)

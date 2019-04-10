@@ -93,14 +93,6 @@ class TestSuperOp(ChannelTestCase):
         targ = SuperOp(np.conjugate(mat))
         self.assertEqual(chan.conjugate(), targ)
 
-    def test_conjugate_inplace(self):
-        """Test inplace conjugate method."""
-        mat = self.rand_matrix(4, 4)
-        chan = SuperOp(mat)
-        chan.conjugate(inplace=True)
-        targ = SuperOp(np.conjugate(mat))
-        self.assertEqual(chan, targ)
-
     def test_transpose(self):
         """Test transpose method."""
         mat = self.rand_matrix(4, 4)
@@ -108,28 +100,12 @@ class TestSuperOp(ChannelTestCase):
         targ = SuperOp(np.transpose(mat))
         self.assertEqual(chan.transpose(), targ)
 
-    def test_transpose_inplace(self):
-        """Test inplace transpose method."""
-        mat = self.rand_matrix(4, 4)
-        chan = SuperOp(mat)
-        chan.transpose(inplace=True)
-        targ = SuperOp(np.transpose(mat))
-        self.assertEqual(chan, targ)
-
     def test_adjoint(self):
         """Test adjoint method."""
         mat = self.rand_matrix(4, 4)
         chan = SuperOp(mat)
         targ = SuperOp(np.transpose(np.conj(mat)))
         self.assertEqual(chan.adjoint(), targ)
-
-    def test_adjoint_inplace(self):
-        """Test inplace adjoint method."""
-        mat = self.rand_matrix(4, 4)
-        chan = SuperOp(mat)
-        chan.adjoint(inplace=True)
-        targ = SuperOp(np.transpose(np.conj(mat)))
-        self.assertEqual(chan, targ)
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
@@ -172,55 +148,6 @@ class TestSuperOp(ChannelTestCase):
         chan = chan2.compose(chan1)
         self.assertEqual(chan.dims, (4, 4))
 
-    def test_compose_inplace(self):
-        """Test inplace compose method."""
-        # UnitaryChannel evolution
-        chan1 = SuperOp(self.sopX)
-        chan2 = SuperOp(self.sopY)
-        targ = SuperOp(self.sopZ)
-        chan1.compose(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-
-        # 50% depolarizing channel
-        chan1 = SuperOp(self.depol_sop(0.5))
-        chan1.compose(chan1, inplace=True)
-        targ = SuperOp(self.depol_sop(0.75))
-        self.assertEqual(chan1, targ)
-
-        # Random superoperator
-        mat1 = self.rand_matrix(4, 4)
-        mat2 = self.rand_matrix(4, 4)
-
-        targ = SuperOp(np.dot(mat2, mat1))
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan1.compose(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan1 @= chan2
-        self.assertEqual(chan1, targ)
-
-        targ = SuperOp(np.dot(mat1, mat2))
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan2.compose(chan1, inplace=True)
-        self.assertEqual(chan2, targ)
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan2 @= chan1
-        self.assertEqual(chan2, targ)
-
-        # Compose different dimensions
-        chan1 = SuperOp(self.rand_matrix(16, 4), input_dim=2, output_dim=4)
-        chan2 = SuperOp(self.rand_matrix(4, 16), output_dim=2)
-        chan1.compose(chan2, inplace=True)
-        self.assertEqual(chan1.dims, (2, 2))
-        chan1 = SuperOp(self.rand_matrix(16, 4), input_dim=2, output_dim=4)
-        chan2 = SuperOp(self.rand_matrix(4, 16), output_dim=2)
-        chan2.compose(chan1, inplace=True)
-        self.assertEqual(chan2.dims, (4, 4))
-
     def test_compose_front(self):
         """Test front compose method."""
         # UnitaryChannel evolution
@@ -254,46 +181,6 @@ class TestSuperOp(ChannelTestCase):
         chan = chan2.compose(chan1, front=True)
         self.assertEqual(chan.dims, (2, 2))
 
-    def test_compose_front_inplace(self):
-        """Test inplace front compose method."""
-        # UnitaryChannel evolution
-        chan1 = SuperOp(self.sopX)
-        chan2 = SuperOp(self.sopY)
-        targ = SuperOp(self.sopZ)
-        chan1.compose(chan2, inplace=True, front=True)
-        self.assertEqual(chan1, targ)
-
-        # 50% depolarizing channel
-        chan1 = SuperOp(self.depol_sop(0.5))
-        chan1.compose(chan1, inplace=True, front=True)
-        targ = SuperOp(self.depol_sop(0.75))
-        self.assertEqual(chan1, targ)
-
-        # Random superoperator
-        mat1 = self.rand_matrix(4, 4)
-        mat2 = self.rand_matrix(4, 4)
-
-        targ = SuperOp(np.dot(mat2, mat1))
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan2.compose(chan1, inplace=True, front=True)
-        self.assertEqual(chan2, targ)
-        targ = SuperOp(np.dot(mat1, mat2))
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan1.compose(chan2, inplace=True, front=True)
-        self.assertEqual(chan1, targ)
-
-        # Compose different dimensions
-        chan1 = SuperOp(self.rand_matrix(16, 4), input_dim=2, output_dim=4)
-        chan2 = SuperOp(self.rand_matrix(4, 16), output_dim=2)
-        chan1.compose(chan2, inplace=True, front=True)
-        self.assertEqual(chan1.dims, (4, 4))
-        chan1 = SuperOp(self.rand_matrix(16, 4), input_dim=2, output_dim=4)
-        chan2 = SuperOp(self.rand_matrix(4, 16), output_dim=2)
-        chan2.compose(chan1, inplace=True, front=True)
-        self.assertEqual(chan2.dims, (2, 2))
-
     def test_expand(self):
         """Test expand method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
@@ -312,27 +199,6 @@ class TestSuperOp(ChannelTestCase):
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan.dims, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
-
-    def test_expand_inplace(self):
-        """Test inplace expand method."""
-        rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
-
-        # X \otimes I
-        chan1 = SuperOp(self.sopI)
-        chan2 = SuperOp(self.sopX)
-        chan1.expand(chan2, inplace=True)
-        rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
-
-        # I \otimes X
-        chan1 = SuperOp(self.sopI)
-        chan2 = SuperOp(self.sopX)
-        chan2.expand(chan1, inplace=True)
-        rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -358,37 +224,6 @@ class TestSuperOp(ChannelTestCase):
         self.assertEqual(chan.dims, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
-    def test_tensorinplace(self):
-        """Test inplace tensor method."""
-        rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
-
-        # X \otimes I
-        chan1 = SuperOp(self.sopI)
-        chan2 = SuperOp(self.sopX)
-        chan2.tensor(chan1, inplace=True)
-        rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
-        chan1 = SuperOp(self.sopI)
-        chan2 = SuperOp(self.sopX)
-        chan2 ^= chan1
-        self.assertEqual(chan2.dims, (4, 4))
-        self.assertAllClose(chan2._evolve(rho_init), rho_targ)
-
-        # I \otimes X
-        chan1 = SuperOp(self.sopI)
-        chan2 = SuperOp(self.sopX)
-        chan1.tensor(chan2, inplace=True)
-        rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
-        chan1 = SuperOp(self.sopI)
-        chan2 = SuperOp(self.sopX)
-        chan1 ^= chan2
-        self.assertEqual(chan1.dims, (4, 4))
-        self.assertAllClose(chan1._evolve(rho_init), rho_targ)
-
     def test_power(self):
         """Test power method."""
         # 10% depolarizing channel
@@ -400,18 +235,6 @@ class TestSuperOp(ChannelTestCase):
         chan3 = depol.power(3)
         targ3 = SuperOp(self.depol_sop(1 - p_id3))
         self.assertEqual(chan3, targ3)
-
-    def test_power_inplace(self):
-        """Test inplace power method."""
-        # 10% depolarizing channel
-        p_id = 0.9
-        depol = SuperOp(self.depol_sop(1 - p_id))
-
-        # Compose 3 times
-        p_id3 = p_id ** 3
-        depol.power(3, inplace=True)
-        targ3 = SuperOp(self.depol_sop(1 - p_id3))
-        self.assertEqual(depol, targ3)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
@@ -434,22 +257,6 @@ class TestSuperOp(ChannelTestCase):
         self.assertEqual(chan1.add(chan2), targ)
         self.assertEqual(chan1 + chan2, targ)
 
-    def test_add_inplace(self):
-        """Test inplace add method."""
-        mat1 = 0.5 * self.sopI
-        mat2 = 0.5 * self.depol_sop(1)
-        targ = SuperOp(mat1 + mat2)
-
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan1.add(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan1 += chan2
-        self.assertEqual(chan1, targ)
-
     def test_add_except(self):
         """Test add method raises exceptions."""
         chan1 = SuperOp(self.sopI)
@@ -468,22 +275,6 @@ class TestSuperOp(ChannelTestCase):
         self.assertEqual(chan1.subtract(chan2), targ)
         self.assertEqual(chan1 - chan2, targ)
 
-    def test_subtract_inplace(self):
-        """Test inplace subtract method."""
-        mat1 = 0.5 * self.sopI
-        mat2 = 0.5 * self.depol_sop(1)
-        targ = SuperOp(mat1 - mat2)
-
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan1.subtract(chan2, inplace=True)
-        self.assertEqual(chan1, targ)
-
-        chan1 = SuperOp(mat1)
-        chan2 = SuperOp(mat2)
-        chan1 -= chan2
-        self.assertEqual(chan1, targ)
-
     def test_subtract_except(self):
         """Test subtract method raises exceptions."""
         chan1 = SuperOp(self.sopI)
@@ -499,18 +290,6 @@ class TestSuperOp(ChannelTestCase):
         self.assertEqual(chan.multiply(val), targ)
         self.assertEqual(val * chan, targ)
         self.assertEqual(chan * val, targ)
-
-    def test_multiply_inplace(self):
-        """Test inplace multiply method."""
-        chan = SuperOp(self.sopI)
-        val = 0.5
-        targ = SuperOp(val * self.sopI)
-        chan.multiply(val, inplace=True)
-        self.assertEqual(chan, targ)
-
-        chan = SuperOp(self.sopI)
-        chan *= val
-        self.assertEqual(chan, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
