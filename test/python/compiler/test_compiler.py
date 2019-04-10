@@ -171,6 +171,27 @@ class TestCompiler(QiskitTestCase):
 
         self.assertEqual(mapped_qubits, [4, 6, 10])
 
+    def test_wrong_layout_in_single_qubit_circuits(self):
+        """ If the layout is wrong (even in single qubit circuits), raise.
+            See https://github.com/Qiskit/qiskit-terra/issues/2038
+        """
+        qr = QuantumRegister(1, 'qr')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+
+        layout = {(qr, 0): 19} # 19 is not the coupling map
+
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
+                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
+                [9, 8], [9, 10], [11, 3], [11, 10],
+                [11, 12], [12, 2], [13, 1], [13, 12]]
+
+        self.assertRaises(MapperError, transpile, qc,
+                          backend=None,
+                          coupling_map=cmap,
+                          basis_gates=['h'],
+                          initial_layout=layout)
+
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
