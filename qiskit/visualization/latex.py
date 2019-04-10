@@ -211,9 +211,6 @@ class QCircuitImage:
         Returns:
             int: number of columns in the circuit
             int: total size of columns in the circuit
-
-        Raises:
-            VisualizationError: if trying to draw unsupported gates
         """
 
         max_column_widths = []
