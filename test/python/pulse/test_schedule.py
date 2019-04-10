@@ -12,8 +12,8 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse.channels import DeviceSpecification, Qubit
-from qiskit.pulse.channels import DriveChannel, AcquireChannel, RegisterSlot, ControlChannel
+from qiskit.pulse.channels import DeviceSpecification, Qubit, RegisterSlot, MemorySlot
+from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel
 from qiskit.pulse.commands import functional_pulse, FrameChange, Acquire, PersistentValue, Snapshot
 from qiskit.pulse.schedule import Schedule
 from qiskit.test import QiskitTestCase
@@ -28,7 +28,8 @@ class TestSchedule(QiskitTestCase):
             Qubit(1, drive_channels=[DriveChannel(1, 3.4)], acquire_channels=[AcquireChannel(1)])
         ]
         registers = [RegisterSlot(i) for i in range(2)]
-        self.two_qubit_device = DeviceSpecification(qubits, registers)
+        mem_slots = [MemorySlot(i) for i in range(2)]
+        self.two_qubit_device = DeviceSpecification(qubits, registers, mem_slots)
 
     def test_can_create_valid_schedule(self):
         """Test valid schedule creation without error.

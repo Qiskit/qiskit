@@ -9,7 +9,6 @@
 
 from .acquire import Acquire
 from .frame_change import FrameChange
-from .instruction import ScheduleComponent
 from .meas_opts import Discriminator, Kernel
 from .persistent_value import PersistentValue
 from .pulse_command import PulseCommand
