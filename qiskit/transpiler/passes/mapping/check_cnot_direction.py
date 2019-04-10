@@ -12,21 +12,22 @@ direction with respect to thecoupling map.
 
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.mapper import Layout
-from qiskit.extensions.standard.cx import CXBase, CnotGate
+from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cxbase import CXBase
 
 
 class CheckCnotDirection(AnalysisPass):
     """
-    checks if the CNOTs (or any other 2Q) in the DAG follow the right
-    direction with respect to thecoupling map
+    Checks if the CNOTs in the DAG circuit follow the right
+    direction with respect to the coupling map.
     """
 
     def __init__(self, coupling_map, initial_layout=None):
         """
-        Checks if the 2Q gates in DAGCircuit are in the allowed direction with
+        Checks if the CNOTs in DAGCircuit are in the allowed direction with
         respect to `coupling_map`.
         Args:
-            coupling_map (CouplingMap): Directed graph represented a coupling map.
+            coupling_map (CouplingMap): Directed graph representing a coupling map.
             initial_layout (Layout): The initial layout of the DAG to analyze.
         """
         super().__init__()
@@ -39,7 +40,7 @@ class CheckCnotDirection(AnalysisPass):
         `is_direction_mapped` is set to True (or to False otherwise).
 
         Args:
-            dag (DAGCircuit): DAG to map.
+            dag (DAGCircuit): DAG to check.
         """
         if self.layout is None:
             if self.property_set["layout"]:
