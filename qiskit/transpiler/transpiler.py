@@ -204,56 +204,41 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
     if initial_layout is None:
         initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-    if pass_manager:
-        # run the passes specified by the pass manager
-        # TODO return the property set too. See #1086
-        dag = pass_manager.run_passes(dag)
-    else:
+    if pass_manager is None:
         # default set of passes
-        # TODO: move each step here to a pass, and use a default passmanager below
-        name = dag.name
 
-        dag = Unroller(basis_gates).run(dag)
-        dag = BarrierBeforeFinalMeasurements().run(dag)
+        pass_manager = PassManager()
+        pass_manager.append(Unroller(basis_gates))
+        pass_manager.append(BarrierBeforeFinalMeasurements())
 
         # if a coupling map is given compile to the map
         if coupling_map:
-            logger.info("pre-mapping properties: %s",
-                        dag.properties())
-
             coupling = CouplingMap(coupling_map)
 
             # Extend and enlarge the the dag/layout with ancillas using the full coupling map
-            logger.info("initial layout: %s", initial_layout)
-            pass_ = ExtendLayout(coupling)
-            pass_.property_set['layout'] = initial_layout
-            pass_.run(dag)
-            initial_layout = pass_.property_set['layout']
-            pass_ = EnlargeWithAncilla(initial_layout)
-            dag = pass_.run(dag)
-            initial_layout = pass_.property_set['layout']
-            logger.info("initial layout (ancilla extended): %s", initial_layout)
+            pass_manager.property_set['layout'] = initial_layout
+            pass_manager.append(ExtendLayout(coupling))
+            pass_manager.append(EnlargeWithAncilla(initial_layout))
 
             # Swap mapper
-            dag = LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper).run(dag)
+            pass_manager.append(LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper))
 
             # Expand swaps
-            dag = Decompose(SwapGate).run(dag)
-            # Change cx directions
-            dag = CXDirection(coupling).run(dag)
+            pass_manager.append(Decompose(SwapGate))
+
+            # Change CX directions
+            pass_manager.append(CXDirection(coupling))
+
             # Unroll to the basis
-            dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
+            pass_manager.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
 
             # Simplify single qubit gates and CXs
-            pm_4_optimization = PassManager()
-            pm_4_optimization.append([Optimize1qGates(),
-                                      CXCancellation(),
-                                      Depth(),
-                                      FixedPoint('depth')],
+            pass_manager.append([Optimize1qGates(), CXCancellation(), Depth(), FixedPoint('depth')],
                                      do_while=lambda property_set: not property_set[
                                          'depth_fixed_point'])
-            dag = transpile_dag(dag, pass_manager=pm_4_optimization)
 
-        dag.name = name
+    # run the passes specified by the pass manager
+    # TODO return the property set too. See #1086
+    dag = pass_manager.run_passes(dag)
 
     return dag
