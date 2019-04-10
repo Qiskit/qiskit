@@ -124,6 +124,8 @@ Changed
   ``qiskit.visualization``. The public API (which was declared stable in
   the 0.7 release) is still accessible off of ``qiskit.tools.visualization``.
   (#1878)
+- Transformation passes are now allowed to modify the property set during the
+  transpilation process.
 
 Deprecated
 ----------
