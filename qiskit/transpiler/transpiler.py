@@ -234,8 +234,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
             # Simplify single qubit gates and CXs
             pass_manager.append([Optimize1qGates(), CXCancellation(), Depth(), FixedPoint('depth')],
-                                     do_while=lambda property_set: not property_set[
-                                         'depth_fixed_point'])
+                                do_while=lambda property_set: not property_set['depth_fixed_point'])
 
     # run the passes specified by the pass manager
     # TODO return the property set too. See #1086

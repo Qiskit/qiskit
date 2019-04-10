@@ -257,6 +257,13 @@ class TestUseCases(SchedulerTestCase):
                               'run transformation pass PassF_reduce_dag_property',
                               'dag property = 3'])
 
+    def test_fenced_property_set(self):
+        """ Transformation passes are not allowed to modified the property set. """
+        self.passmanager.append(PassH_Bad_TP())
+        self.assertSchedulerRaises(self.dag, self.passmanager,
+                                   ['run transformation pass PassH_Bad_TP'],
+                                   TranspilerAccessError)
+
     def test_fenced_dag(self):
         """ Analysis passes are not allowed to modified the DAG. """
         qr = QuantumRegister(2)
