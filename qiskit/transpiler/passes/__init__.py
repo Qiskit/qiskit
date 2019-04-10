@@ -21,6 +21,7 @@ from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .unroll_3q_or_more import Unroll3qOrMore
 from .commutation_analysis import CommutationAnalysis
+from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
 from .mapping.check_cnot_direction import CheckCnotDirection
@@ -31,4 +32,6 @@ from .mapping.extend_layout import ExtendLayout
 from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
 from .mapping.stochastic_swap import StochasticSwap
+from .mapping.legacy_swap import LegacySwap
 from .mapping.enlarge_with_ancilla import EnlargeWithAncilla
+from .mapping.noise_adaptive_layout import NoiseAdaptiveLayout
