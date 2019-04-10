@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper.exceptions import MapperError
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit import QuantumRegister
 
 from qiskit.extensions.standard import SwapGate
@@ -65,11 +65,11 @@ class LegacySwap(TransformationPass):
             initial_layout.
 
         Raises:
-            MapperError: if there was any error during the mapping or with the
+            TranspilerError: if there was any error during the mapping or with the
                 parameters.
         """
         if dag.width() > self.coupling_map.size():
-            raise MapperError("Not enough qubits in CouplingGraph")
+            raise TranspilerError("Not enough qubits in CouplingGraph")
 
         # Schedule the input circuit
         layerlist = list(dag.layers())
@@ -93,10 +93,10 @@ class LegacySwap(TransformationPass):
             for k, v in initial_layout.items():
                 qubit_subset.append(v)
                 if k not in circ_qubits:
-                    raise MapperError("initial_layout qubit %s[%d] not in input "
+                    raise TranspilerError("initial_layout qubit %s[%d] not in input "
                                       "DAGCircuit" % (k[0].name, k[1]))
                 if v not in coup_qubits:
-                    raise MapperError("initial_layout qubit %s[%d] not in input "
+                    raise TranspilerError("initial_layout qubit %s[%d] not in input "
                                       "CouplingGraph" % (v[0].name, v[1]))
         else:
             # Supply a default layout
@@ -148,7 +148,7 @@ class LegacySwap(TransformationPass):
 
                     # Give up if we fail again
                     if not success_flag:
-                        raise MapperError("swap_mapper failed: " +
+                        raise TranspilerError("swap_mapper failed: " +
                                           "layer %d, sublayer %d" % (i, j))
 
                     # If this layer is only single-qubit gates,
@@ -232,7 +232,7 @@ class LegacySwap(TransformationPass):
         gates = []
         for layer in layer_partition:
             if len(layer) > 2:
-                raise MapperError("Layer contains >2 qubit gates")
+                raise TranspilerError("Layer contains >2 qubit gates")
             elif len(layer) == 2:
                 gates.append(tuple(layer))
 

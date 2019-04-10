@@ -40,3 +40,14 @@
            la.norm(-1j*V - U) > 1e-6:
             raise QiskitError("two_qubit_kak: Circuit implementation" +
                               "does not match input unitary.")
+
+    def test_kak_decomposition(self):
+        """Verify KAK decomposition for random Haar unitaries.
+        """
+        for _ in range(100):
+            unitary = random_unitary_matrix(4)
+            with self.subTest(unitary=unitary):
+                try:
+                    two_qubit_kak(unitary, verify_gate_sequence=True)
+                except TranspilerError as ex:
+                    self.fail(str(ex))

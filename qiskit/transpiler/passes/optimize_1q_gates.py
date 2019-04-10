@@ -13,7 +13,7 @@ a single gate.
 
 import numpy as np
 
-from qiskit.mapper import MapperError
+from qiskit.mapper import TranspilerError
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
@@ -46,7 +46,7 @@ class Optimize1qGates(TransformationPass):
                 if (current_node.condition is not None
                         or len(current_node.qargs) != 1
                         or left_name not in ["u1", "u2", "u3", "id"]):
-                    raise MapperError("internal error")
+                    raise TranspilerError("internal error")
                 if left_name == "u1":
                     left_parameters = (0, 0, current_node.op.params[0])
                 elif left_name == "u2":
@@ -226,7 +226,7 @@ class Optimize1qGates(TransformationPass):
         out_angles = (euler[1], euler[0], euler[2])
         abs_inner = abs(quaternion_zyz.data.dot(quaternion_yzy.data))
         if not np.allclose(abs_inner, 1, eps):
-            raise MapperError('YZY and ZYZ angles do not give same rotation matrix.')
+            raise TranspilerError('YZY and ZYZ angles do not give same rotation matrix.')
         out_angles = tuple(0 if np.abs(angle) < _CHOP_THRESHOLD else angle
                            for angle in out_angles)
         return out_angles
