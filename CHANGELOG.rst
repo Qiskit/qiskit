@@ -27,8 +27,7 @@ Added
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
 - New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
-- Added a RunConfig object for configurations for run configurations to be used
-  in compile and circuits_to_qobj. (#1629)
+- Added a RunConfig object for configurations for run configurations to be used in compile and circuits_to_qobj. (#1629)
 - Added support for register slicing when applying operations to a register (#1643).
 - Added in new parameter ``justify`` to the text, mpl and latex circuit drawers to say how the
   circuit should be aligned. (#1725, #1797, #1977)
@@ -64,7 +63,7 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
-- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial 
+- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 
 Changed

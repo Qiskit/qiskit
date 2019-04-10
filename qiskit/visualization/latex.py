@@ -225,7 +225,7 @@ class QCircuitImage:
 
         boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
                        'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
-                       'crz', 'cu3']
+                       'crz', 'cu3', 'id']
         target_gates = ['cx', 'ccx']
 
         for layer in self.ops:

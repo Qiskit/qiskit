@@ -520,7 +520,7 @@ class MatplotlibDrawer:
                 this_anc = q_anchors[q_idxs[0]].gate_anchor
 
                 if verbose:
-                    print(op.name)
+                    print(op)
 
                 if op.type == 'op' and hasattr(op.op, 'params'):
                     param = self.param_parse(op.op.params, self._style.pimode)
