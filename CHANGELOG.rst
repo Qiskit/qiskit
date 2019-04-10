@@ -64,6 +64,8 @@ Added
   (reverses its sub-instructions) (#1816).
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial 
   qubit layout. (#2089)
+- Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
+  are followed by a measurement instruction, moving the latter to the proper wire.
 
 Changed
 -------
