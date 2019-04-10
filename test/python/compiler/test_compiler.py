@@ -22,7 +22,7 @@ from qiskit.qobj import QasmQobj
 from qiskit.converters import circuit_to_dag
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper.compiling import two_qubit_kak
-from qiskit.mapper.mapping import MapperError
+from qiskit.mapper.exceptions import MapperError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.mapper import Layout
 

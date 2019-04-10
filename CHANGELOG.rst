@@ -28,8 +28,8 @@ Added
   selection pass (#1603).
 - New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
 - Added support for register slicing when applying operations to a register (#1643).
-- Added in new parameter ``justify`` to the text circuit drawer to say how the
-  circuit should be aligned. (#1725)
+- Added in new parameter ``justify`` to the text, mpl and latex circuit drawers to say how the
+  circuit should be aligned. (#1725, #1797, #1977)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
 - Added parameter to the TextProgressBar to allow the output to be sent to a
@@ -62,8 +62,10 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
-- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial 
+- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
+- Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
+  are followed by a measurement instruction, moving the latter to the proper wire.
 
 Changed
 -------
