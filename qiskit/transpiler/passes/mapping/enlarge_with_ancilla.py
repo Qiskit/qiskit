@@ -44,7 +44,7 @@ class EnlargeWithAncilla(TransformationPass):
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
 
-        self.layout = self.layout or self.property_set.get('layout')
+        self.layout = self.layout or self.property_set['layout']
 
         if self.layout is None:
             raise TranspilerError("EnlargeWithAncilla requires property_set[\"layout\"] to run")
