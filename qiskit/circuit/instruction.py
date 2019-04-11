@@ -222,37 +222,6 @@ class Instruction:
             cpy.name = name
         return cpy
 
-    def _set_params(self, params):
-        """
-        convert and set params
-        """
-        self.params = []
-        for single_param in params:
-            # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, sympy.Basic):
-                self.params.append(single_param)
-            # example: OpenQASM parsed instruction
-            elif isinstance(single_param, node.Node):
-                self.params.append(single_param.sym())
-            # example: u3(0.1, 0.2, 0.3)
-            elif isinstance(single_param, (int, float)):
-                self.params.append(sympy.Number(single_param))
-            # example: Initialize([complex(0,1), complex(0,0)])
-            elif isinstance(single_param, complex):
-                self.params.append(single_param.real + single_param.imag * sympy.I)
-            # example: snapshot('label')
-            elif isinstance(single_param, str):
-                self.params.append(sympy.Symbol(single_param))
-            # example: numpy.array([[1, 0], [0, 1]])
-            elif isinstance(single_param, numpy.ndarray):
-                self.params.append(single_param)
-            # example: sympy.Matrix([[1, 0], [0, 1]])
-            elif isinstance(single_param, sympy.Matrix):
-                self.params.append(single_param)
-            else:
-                raise QiskitError("invalid param type {0} in instruction "
-                                  "{1}".format(type(single_param), self.name))
-
     def _qasmif(self, string):
         """Print an if statement if needed."""
         if self.control is None:
