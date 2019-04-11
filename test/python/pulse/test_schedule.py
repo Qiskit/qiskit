@@ -79,13 +79,13 @@ class TestSchedule(QiskitTestCase):
         acquire = Acquire(10)
         sched = Schedule()
         sched += gp0(device.q[0].drive)
-        sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control) << 0
-        sched |= gp1(device.q[1].drive) << 30
-        sched |= FrameChange(phase=-1.57)(device.q[0].drive) << 60
-        sched |= gp0(device.q[0].control) << 60
-        sched |= Snapshot("label", "snap_type") << 80
-        sched |= fc_pi_2(device.q[0].drive) << 90
-        sched |= acquire(device.q[1], device.mem[1], device.c[1]) << 90
+        sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control).shifted(0)
+        sched |= gp1(device.q[1].drive).shifted(30)
+        sched |= FrameChange(phase=-1.57)(device.q[0].drive).shifted(60)
+        sched |= gp0(device.q[0].control).shifted(60)
+        sched |= Snapshot("label", "snap_type").shifted(80)
+        sched |= fc_pi_2(device.q[0].drive).shifted(90)
+        sched |= acquire(device.q[1], device.mem[1], device.c[1]).shifted(90)
         # print(sched)
         new_sched = Schedule() + sched + sched
         _ = new_sched.flat_instruction_sequence()

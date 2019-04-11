@@ -60,6 +60,3 @@ class Instruction(ScheduleComponent):
 
     def __repr__(self):
         return "%4d: %s" % (self._start_time, self._command)
-
-    def __lshift__(self, shift: int) -> ScheduleComponent:
-        return self.shifted(shift)

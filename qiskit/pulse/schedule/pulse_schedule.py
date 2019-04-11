@@ -135,9 +135,6 @@ class Schedule(ScheduleComponent):
     def __or__(self, schedule: ScheduleComponent):
         return self.insert(0, schedule)
 
-    def __lshift__(self, shift: int) -> ScheduleComponent:
-        return self.shifted(shift)
-
     def __str__(self):
         # TODO: Handle schedule of schedules
         for child in self._children:
