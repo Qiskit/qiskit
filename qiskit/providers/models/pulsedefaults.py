@@ -58,7 +58,7 @@ class PulseDefaultsSchema(BaseSchema):
     # Required properties.
     qubit_freq_est = List(Number(), required=True, validate=Length(min=1))
     meas_freq_est = List(Number(), required=True, validate=Length(min=1))
-    buffer = Integer(required=False, validate=Range(min=0))
+    buffer = Integer(required=True, validate=Range(min=0))
     pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
     cmd_def = Nested(PulseCommandSchema, many=True, required=True)
 

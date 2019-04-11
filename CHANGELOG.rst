@@ -23,6 +23,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+- Introduced the backend defaults model and endpoint for pulse backends (#2101).
 - `meas_level` to result schema (#2085).
 - Core StochasticSwap routine implemented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
@@ -71,7 +72,6 @@ Added
 Changed
 -------
 
-- Backend defaults values are no longer required (#2101).
 - The most connected subset in DenseLayout is now reduced bandwidth (#2021).
 - plot_histogram now allows sorting by Hamming distance from target_string (#2064).
 - FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
