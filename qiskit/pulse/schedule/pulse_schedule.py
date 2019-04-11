@@ -39,7 +39,7 @@ class Schedule(ScheduleComponent):
         """Name of this schedule."""
         return self._name
 
-    def insert(self, start_time: int, schedule: ScheduleComponent):
+    def insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with inserting a `schedule` at `start_time`.
 
         Args:
@@ -47,7 +47,7 @@ class Schedule(ScheduleComponent):
             schedule (ScheduleComponent): schedule to be inserted
 
         Returns:
-            ScheduleComponent: a new schedule inserted a `schedule` at `start_time`
+            Schedule: a new schedule inserted a `schedule` at `start_time`
 
         Raises:
             PulseError: when an invalid schedule is specified or failed to insert
@@ -79,7 +79,7 @@ class Schedule(ScheduleComponent):
             logger.warning("Fail to insert %s at %s due to timing overlap", schedule, start_time)
             raise PulseError("Fail to insert %s at %s due to overlap" % (str(schedule), start_time))
 
-    def append(self, schedule: ScheduleComponent):
+    def append(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with appending a `schedule` at the timing
         just after the last instruction finishes.
 
@@ -87,7 +87,7 @@ class Schedule(ScheduleComponent):
             schedule (ScheduleComponent): schedule to be appended
 
         Returns:
-            ScheduleComponent: a new schedule appended a `schedule`
+            Schedule: a new schedule appended a `schedule`
 
         Raises:
             PulseError: when an invalid schedule is specified or failed to append
