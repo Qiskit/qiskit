@@ -118,26 +118,6 @@ def simplify_U(theta, phi, lam):
     return gate
 
 
-def rz_array(theta):
-    """Return numpy array for Rz(theta).
-
-    Rz(theta) = diag(exp(-i*theta/2),exp(i*theta/2))
-    """
-    return np.array([[np.exp(-1j*theta/2.0), 0],
-                     [0, np.exp(1j*theta/2.0)]], dtype=complex)
-
-
-def ry_array(theta):
-    """Return numpy array for Ry(theta).
-
-    Ry(theta) = [[cos(theta/2), -sin(theta/2)],
-                 [sin(theta/2),  cos(theta/2)]]
-    """
-    return np.array([[math.cos(theta/2.0), -math.sin(theta/2.0)],
-                     [math.sin(theta/2.0), math.cos(theta/2.0)]],
-                    dtype=complex)
-
-
 def two_qubit_kak(unitary):
     """Decompose a two-qubit gate over SU(2)+CNOT using the KAK decomposition.
 
@@ -150,7 +130,7 @@ def two_qubit_kak(unitary):
     Raises:
         QiskitError: Error in KAK decomposition.
     """
-    unitary_matrix = unitary._representation
+    unitary_matrix = unitary.representation
     if unitary_matrix.shape != (4, 4):
         raise QiskitError("two_qubit_kak: Expected 4x4 matrix")
     phase = la.det(unitary_matrix)**(-1.0/4.0)
@@ -331,35 +311,35 @@ def two_qubit_kak(unitary):
     u1_param = euler_angles_1q(U1)
     u2_param = euler_angles_1q(U2)
 
-    v1_gate = simplify_U(v1_param[0], v1_param[1], v1_param[2])
-    v2_gate = simplify_U(v2_param[0], v2_param[1], v2_param[2])
-    u1_gate = simplify_U(u1_param[0], u1_param[1], u1_param[2])
-    u2_gate = simplify_U(u2_param[0], u2_param[1], u2_param[2])
+    v1_gate = U3Gate(v1_param[0], v1_param[1], v1_param[2])
+    v2_gate = U3Gate(v2_param[0], v2_param[1], v2_param[2])
+    u1_gate = U3Gate(u1_param[0], u1_param[1], u1_param[2])
+    u2_gate = U3Gate(u2_param[0], u2_param[1], u2_param[2])
 
     q = QuantumRegister(2)
     return_circuit = QuantumCircuit(q)
 
-    return_circuit.append(v1_gate, [q[0]])
+    return_circuit.append(v1_gate, [q[1]])
 
-    return_circuit.append(v2_gate, [q[1]])
-
-    return_circuit.append(CnotGate(), [q[1], q[0]])
-
-    gate = simplify_U(0.0, 0.0, -2.0*gamma + np.pi/2.0)
-    return_circuit.append(gate, [q[0]])
-
-    gate = simplify_U(-np.pi/2.0 + 2.0*alpha, 0.0, 0.0)
-    return_circuit.append(gate, [q[1]])
+    return_circuit.append(v2_gate, [q[0]])
 
     return_circuit.append(CnotGate(), [q[0], q[1]])
 
-    gate = simplify_U(-2.0*beta + np.pi/2.0, 0.0, 0.0)
+    gate = U3Gate(0.0, 0.0, -2.0*gamma + np.pi/2.0)
     return_circuit.append(gate, [q[1]])
+
+    gate = U3Gate(-np.pi/2.0 + 2.0*alpha, 0.0, 0.0)
+    return_circuit.append(gate, [q[0]])
 
     return_circuit.append(CnotGate(), [q[1], q[0]])
 
-    return_circuit.append(u1_gate, [q[0]])
+    gate = U3Gate(-2.0*beta + np.pi/2.0, 0.0, 0.0)
+    return_circuit.append(gate, [q[0]])
 
-    return_circuit.append(u2_gate, [q[1]])
+    return_circuit.append(CnotGate(), [q[0], q[1]])
+
+    return_circuit.append(u1_gate, [q[1]])
+
+    return_circuit.append(u2_gate, [q[0]])
 
     return return_circuit

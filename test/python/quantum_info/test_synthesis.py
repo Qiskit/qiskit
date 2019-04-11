@@ -1,53 +1,44 @@
-    def verify_unitary():
-        # Test gate sequence
-        V = np.identity(4, dtype=complex)
-        cx21 = np.array([[1, 0, 0, 0],
-                         [0, 0, 0, 1],
-                         [0, 0, 1, 0],
-                         [0, 1, 0, 0]], dtype=complex)
+# -*- coding: utf-8 -*-
 
-        cx12 = np.array([[1, 0, 0, 0],
-                         [0, 1, 0, 0],
-                         [0, 0, 0, 1],
-                         [0, 0, 1, 0]], dtype=complex)
+# Copyright 2019, IBM.
+#
+# This source code is licensed under the Apache License, Version 2.0 found in
+# the LICENSE.txt file in the root directory of this source tree.
 
-        for gate in return_circuit:
-            if gate["name"] == "cx":
-                if gate["args"] == [0, 1]:
-                    V = np.dot(cx12, V)
-                else:
-                    V = np.dot(cx21, V)
-            else:
-                if gate["args"] == [0]:
-                    V = np.dot(np.kron(rz_array(gate["params"][2]),
-                                       np.identity(2)), V)
-                    V = np.dot(np.kron(ry_array(gate["params"][0]),
-                                       np.identity(2)), V)
-                    V = np.dot(np.kron(rz_array(gate["params"][1]),
-                                       np.identity(2)), V)
-                else:
-                    V = np.dot(np.kron(np.identity(2),
-                                       rz_array(gate["params"][2])), V)
-                    V = np.dot(np.kron(np.identity(2),
-                                       ry_array(gate["params"][0])), V)
-                    V = np.dot(np.kron(np.identity(2),
-                                       rz_array(gate["params"][1])), V)
-        # Put V in SU(4) and test up to global phase
-        V = la.det(V)**(-1.0/4.0) * V
-        if la.norm(V - U) > 1e-6 and \
-           la.norm(1j*V - U) > 1e-6 and \
-           la.norm(-1*V - U) > 1e-6 and \
-           la.norm(-1j*V - U) > 1e-6:
-            raise QiskitError("two_qubit_kak: Circuit implementation" +
-                              "does not match input unitary.")
+"""Tests for quantum synthesis methods."""
 
-    def test_kak_decomposition(self):
-        """Verify KAK decomposition for random Haar unitaries.
+import unittest
+import math
+import scipy.linalg as la
+import numpy as np
+
+from qiskit import execute
+from qiskit.quantum_info.operators.measures import process_fidelity
+from qiskit.quantum_info.synthesis import two_qubit_kak
+from qiskit.quantum_info.operators import Unitary
+from qiskit.providers.basicaer import UnitarySimulatorPy
+from qiskit.exceptions import QiskitError
+from qiskit.test import QiskitTestCase
+
+
+class TestSynthesis(QiskitTestCase):
+    """Test synthesis methods."""
+
+    def test_two_qubit_kak(self):
+        """Verify KAK decomposition for random Haar 4x4 unitaries.
         """
         for _ in range(100):
-            unitary = random_unitary_matrix(4)
+            unitary = Unitary.random(4)
             with self.subTest(unitary=unitary):
-                try:
-                    two_qubit_kak(unitary, verify_gate_sequence=True)
-                except TranspilerError as ex:
-                    self.fail(str(ex))
+                decomp_circuit = two_qubit_kak(unitary)
+                result = execute(decomp_circuit, UnitarySimulatorPy()).result()
+                decomp_unitary = Unitary(result.get_unitary())
+                self.assertAlmostEqual(
+                        process_fidelity(unitary.representation, decomp_unitary.representation),
+                        1.0,
+                        places=7
+                )
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -13,7 +13,7 @@ a single gate.
 
 import numpy as np
 
-from qiskit.mapper import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
