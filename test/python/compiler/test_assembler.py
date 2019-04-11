@@ -178,6 +178,25 @@ class TestAssembler(QiskitTestCase):
         self.assertTrue(hasattr(h_op, 'conditional'))
         self.assertEqual(bfunc_op.register, h_op.conditional)
 
+
+class TestPulseAssembler(QiskitTestCase):
+    """Tests for assembling schedules to qobj."""
+
+    def setUp(self):
+        self.device = pulse.DeviceSpecification(
+            qubits=[
+                pulse.channels.Qubit(0,
+                                     drive_channels=[pulse.channels.DriveChannel(0, 1.2)],
+                                     acquire_channels=[pulse.channels.AcquireChannel(0)])
+            ],
+            registers=[
+                pulse.channels.RegisterSlot(0)
+            ],
+            mem_slots=[
+                pulse.channels.MemorySlot(0)
+            ]
+        )
+
     def test_assemble_single_schedule(self):
         """Test assembling a single schedule.
         """
@@ -188,17 +207,9 @@ class TestAssembler(QiskitTestCase):
 
         lp0 = linear(duration=3, name='pulse0')
 
-        qubits = [
-            pulse.channels.Qubit(0,
-                                 drive_channels=[pulse.channels.DriveChannel(0)],
-                                 acquire_channels=[pulse.channels.AcquireChannel(0)]),
-        ]
-        registers = [pulse.channels.RegisterSlot(i) for i in range(1)]
-        device = pulse.DeviceSpecification(qubits, registers)
-
         schedule = pulse.Schedule()\
-            .insert(0, lp0(device.q[0].drive))\
-            .insert(3, pulse.Acquire(10)(device.q[0], device.mem[0]))
+            .insert(0, lp0(self.device.q[0].drive))\
+            .insert(3, pulse.Acquire(10)(self.device.q[0], self.device.mem[0]))
 
         config = {
             'shots': 2000,

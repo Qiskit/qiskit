@@ -159,6 +159,14 @@ class TestDeviceSpecification(QiskitTestCase):
                         return 0
 
                     @property
+                    def qubit_lo_range(self):
+                        return [[1.0, 4.0], [1.0, 4.0]]
+
+                    @property
+                    def meas_lo_range(self):
+                        return [[1.0, 4.0], [1.0, 4.0]]
+
+                    @property
                     def defaults(self):
                         return {'qubit_freq_est': [1.2, 3.4],
                                 'meas_freq_est': [1.2, 3.4]}
