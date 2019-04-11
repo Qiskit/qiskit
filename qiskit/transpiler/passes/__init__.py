@@ -22,6 +22,7 @@ from .decompose import Decompose
 from .unroll_3q_or_more import Unroll3qOrMore
 from .commutation_analysis import CommutationAnalysis
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
+from .commutative_cancellation import CommutativeCancellation
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
 from .mapping.check_cnot_direction import CheckCnotDirection
