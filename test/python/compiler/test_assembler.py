@@ -11,10 +11,13 @@ import unittest
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+import qiskit.pulse as pulse
 from qiskit.circuit import Instruction
-from qiskit.compiler import assemble_circuits
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import RunConfig
+from qiskit.compiler import assemble_circuits
+from qiskit.compiler import assemble_schedules
+from qiskit.qobj import PulseQobj
 from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase
 
@@ -174,6 +177,46 @@ class TestAssembler(QiskitTestCase):
 
         self.assertTrue(hasattr(h_op, 'conditional'))
         self.assertEqual(bfunc_op.register, h_op.conditional)
+
+    def test_assemble_single_schedule(self):
+        """Test assembling a single schedule.
+        """
+        @pulse.functional_pulse
+        def linear(duration: int):
+            x = np.arange(0, duration)
+            return 0.2 * x + 0.1
+
+        lp0 = linear(duration=3, name='pulse0')
+
+        qubits = [
+            pulse.channels.Qubit(0,
+                                 drive_channels=[pulse.channels.DriveChannel(0)],
+                                 acquire_channels=[pulse.channels.AcquireChannel(0)]),
+        ]
+        registers = [pulse.channels.RegisterSlot(i) for i in range(1)]
+        device = pulse.DeviceSpecification(qubits, registers)
+
+        schedule = pulse.Schedule()\
+            .insert(0, lp0(device.q[0].drive))\
+            .insert(3, pulse.Acquire(10)(device.q[0], device.mem[0]))
+
+        config = {
+            'shots': 2000,
+            'qubit_lo_freq': [],
+            'meas_lo_freq': [],
+            'meas_level': 1,
+            'meas_return': 'avg',
+            'memory_slot_size': 100,
+            'rep_time': 1000
+        }
+        qobj = assemble_schedules(pulse.schedule.ConditionedSchedule(schedule),
+                                  dict_header={},
+                                  dict_config=config)
+        self.assertIsInstance(qobj, PulseQobj)
+        self.assertEqual(qobj.config.shots, 2000)
+        self.assertEqual(len(qobj.experiments), 1)
+        self.assertEqual(qobj.experiments[0].instructions[0].name, 'pulse0')
+        self.assertEqual(qobj.experiments[0].instructions[1].name, 'acquire')
 
 
 if __name__ == '__main__':

@@ -19,8 +19,9 @@ running quickly we have provider this wrapper module.
 import logging
 import warnings
 
-from qiskit.compiler import assemble_circuits, transpile
 from qiskit.compiler import RunConfig, TranspileConfig
+from qiskit.compiler import assemble_circuits, assemble_schedules, transpile
+from qiskit.pulse import Schedule, ConditionedSchedule, UserLoDict
 from qiskit.qobj import QobjHeader
 
 logger = logging.getLogger(__name__)
@@ -131,3 +132,73 @@ def execute_circuits(circuits, backend, qobj_header=None,
 
     # executing the circuits on the backend and returning the job
     return backend.run(qobj, **kwargs)
+
+
+def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
+    """Executes a list of circuits.
+
+    Args:
+        schedules (Schedule or list[Schedule]): schedules to execute
+        backend (BaseBackend): a backend to execute the schedules on
+        user_lo_dicts (UserLoDict or list[UserLoDict]): Dictionaries of user LO frequencies
+
+    Keyword Args:
+        shots (int): number of repetitions of each circuit, for sampling
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
+        meas_level (int): set the appropriate level of the measurement output.
+        memory_slots (int): number of classical memory slots used in this job.
+        memory_slot_size (int): size of each memory slot if the output is Level 0.
+        meas_return (str): indicates the level of measurement information to return.
+            "single" returns information from every shot of the experiment.
+            "avg" returns the average measurement output (averaged over the number of shots).
+            If the meas level is 2 then this is fixed to single.
+        rep_time (int): repetition time of the experiment in μs.
+            The delay between experiments will be rep_time.
+            Must be from the list provided by the device.
+
+    Returns:
+        BaseJob: returns job instance derived from BaseJob
+    """
+    if isinstance(schedules, Schedule):
+        schedules = [schedules]
+
+    if user_lo_dicts:
+        if isinstance(user_lo_dicts, UserLoDict):
+            user_lo_dicts = [user_lo_dicts]
+        if len(schedules) == 1:
+            experiments = [ConditionedSchedule(schedules[0], cond) for cond in user_lo_dicts]
+        elif len(user_lo_dicts) == 1:
+            experiments = [ConditionedSchedule(sched, user_lo_dicts[0]) for sched in schedules]
+        else:
+            # n schedules * m user_lo_dicts == n * m ConditionedSchedule
+            experiments = [ConditionedSchedule(sched, cond)
+                           for sched in schedules for cond in user_lo_dicts]
+    else:
+        # no user condition
+        experiments = [ConditionedSchedule(sched) for sched in schedules]
+
+    backend_config = backend.configuration()
+
+    # filling in the config with backend defaults and user defined
+    config = {
+        'meas_level': 1,
+        'memory_slots': backend_config.n_qubits,
+        'memory_slot_size': 100,
+        'meas_return': 'avg',
+        'pulse_library': backend_config.defaults.get('pulse_library', []),
+        'qubit_lo_freq': backend_config.defaults['qubit_freq_est'],
+        'meas_lo_freq': backend_config.defaults['meas_freq_est'],
+        'rep_time': backend_config.rep_times[-1]
+    }
+    config.update(kwargs)
+
+    # filling in the header with the backend name the qobj was run on
+    header = {
+        'backend_name': backend.name(),
+        'backend_version': backend_config.backend_version
+    }
+
+    qobj = assemble_schedules(schedules=experiments, dict_header=header, dict_config=config)
+
+    return backend.run(qobj)

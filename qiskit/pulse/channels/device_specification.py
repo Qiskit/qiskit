@@ -58,13 +58,13 @@ class DeviceSpecification:
 
         # frequency information
         qubit_lo_freqs = config.defaults['qubit_freq_est']
-        # qubit_lo_range = config.qubit_lo_range    # TODO: lo_ranges
+        qubit_lo_ranges = config.qubit_lo_range
         meas_lo_freqs = config.defaults['meas_freq_est']
-        # meas_lo_range = config.meas_lo_range      # TODO: lo_ranges
+        meas_lo_ranges = config.meas_lo_range
 
         # generate channels with assuming their numberings are aligned with qubits
-        drives = [DriveChannel(i, qubit_lo_freqs[i]) for i in range(n_qubits)]   # TODO: lo_ranges
-        measures = [MeasureChannel(i, meas_lo_freqs[i]) for i in range(n_qubits)]  # TODO: lo_ranges
+        drives = [DriveChannel(i, qubit_lo_freqs[i], qubit_lo_ranges[i]) for i in range(n_qubits)]
+        measures = [MeasureChannel(i, meas_lo_freqs[i], meas_lo_ranges[i]) for i in range(n_qubits)]
         acquires = [AcquireChannel(i) for i in range(n_qubits)]
         controls = [ControlChannel(i) for i in range(n_uchannels)]
 
