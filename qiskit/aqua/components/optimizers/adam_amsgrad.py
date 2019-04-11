@@ -18,6 +18,7 @@
 
 
 import logging
+import os
 
 import csv
 import numpy as np
@@ -78,13 +79,9 @@ class ADAM(Optimizer):
                     'type': 'boolean',
                     'default': False
                 },
-                'save': {
-                    'type': 'boolean',
-                    'default': False
-                },
-                'path': {
-                    'type': 'string',
-                    'default': ''
+                'snapshot_dir': {
+                    'type': ['string', 'null'],
+                    'default': None
                 }
             },
             'additionalProperties': False
@@ -94,12 +91,12 @@ class ADAM(Optimizer):
             'bounds': Optimizer.SupportLevel.ignored,
             'initial_point': Optimizer.SupportLevel.supported
         },
-        'options': ['maxiter', 'tol', 'lr', 'beta_1', 'beta_2', 'noise_factor', 'eps', 'amsgrad', 'save', 'path'],
+        'options': ['maxiter', 'tol', 'lr', 'beta_1', 'beta_2', 'noise_factor', 'eps', 'amsgrad', 'snapshot_dir'],
         'optimizer': ['local']
     }
 
     def __init__(self, maxiter=10000, tol=1e-6, lr=1e-3, beta_1=0.9, beta_2=0.99, noise_factor=1e-8,
-                 eps=1e-10, amsgrad=False, save=False, path=''):
+                 eps=1e-10, amsgrad=False, snapshot_dir=None):
         """
         Constructor.
 
@@ -111,8 +108,7 @@ class ADAM(Optimizer):
         noise_factor: float >= 0, Noise factor
         eps: float >=0, Epsilon to be used for finite differences if no analytic gradient method is given.
         amsgrad: Boolean, use AMSGRAD or not
-        save: Boolean, if True - save the optimizer's parameter after every step
-        path: str, path where to save optimizer's parameters if save==True
+        snapshot_dir: str or None, if not None save the optimizer's parameter after every step to the given directory
         """
         self.validate(locals())
         super().__init__()
@@ -120,8 +116,7 @@ class ADAM(Optimizer):
             if k in self._configuration['options']:
                 self._options[k] = v
         self._maxiter = maxiter
-        self._save = save
-        self._path = path
+        self._snapshot_dir = snapshot_dir
         self._tol = tol
         self._lr = lr
         self._beta_1 = beta_1
@@ -131,7 +126,6 @@ class ADAM(Optimizer):
         self._amsgrad = amsgrad
         self._t = 0 #time steps
 
-
     def minimize(self, objective_function, initial_point, gradient_function):
         derivative = gradient_function(initial_point)
         self._m = np.zeros(np.shape(derivative))
@@ -139,14 +133,14 @@ class ADAM(Optimizer):
         if self._amsgrad:
             self._v_eff = np.zeros(np.shape(derivative))
 
-        if self._save:
+        if self._snapshot_dir:
             if self._amsgrad:
-                with open(self._path + 'adam_params.csv', mode='w') as csv_file:
+                with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='w') as csv_file:
                     fieldnames = ['v', 'v_eff', 'm', 't']
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
             else:
-                with open(self._path + 'adam_params.csv', mode='w') as csv_file:
+                with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='w') as csv_file:
                     fieldnames = ['v', 'm', 't']
                     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                     writer.writeheader()
@@ -163,15 +157,15 @@ class ADAM(Optimizer):
                 self._v_eff = np.maximum(self._v_eff, self._v)
                 params_new = (params - lr_eff * self._m.flatten() / (np.sqrt(self._v_eff.flatten()) + self._noise_factor))
 
-            if self._save:
+            if self._snapshot_dir:
                 if self._amsgrad:
-                    with open(self._path + 'adam_params.csv', mode='a') as csv_file:
+                    with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='a') as csv_file:
                         fieldnames = ['v', 'v_eff', 'm', 't']
                         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                         writer.writerow({'v': self._v, 'v_eff': self._v_eff,
                                          'm': self._m, 't': self._t})
                 else:
-                    with open(self._path + 'adam_params.csv', mode='a') as csv_file:
+                    with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='a') as csv_file:
                         fieldnames = ['v', 'm', 't']
                         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
                         writer.writerow({'v': self._v, 'm': self._m, 't': self._t})
