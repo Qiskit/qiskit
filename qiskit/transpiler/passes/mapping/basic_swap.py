@@ -73,7 +73,7 @@ class BasicSwap(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for gate in subdag.twoQ_nodes():
+            for gate in subdag.twoQ_gates():
                 physical_q0 = current_layout[gate.qargs[0]]
                 physical_q1 = current_layout[gate.qargs[1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:

@@ -10,7 +10,7 @@ import logging
 import warnings
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.mapper import CouplingMap, swap_mapper
+from qiskit.mapper import CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
@@ -22,12 +22,14 @@ from qiskit.transpiler.passes.unroller import Unroller
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
-from .passes.dag_fixed_point import DAGFixedPoint
+from .passes.fixed_point import FixedPoint
+from .passes.depth import Depth
 from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
-from .passes.mapping.check_cnot_direction import CheckCnotDirection
+from .passes.mapping.check_map import CheckMap
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
 from .passes.mapping.trivial_layout import TrivialLayout
+from .passes.mapping.legacy_swap import LegacySwap
 from .passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
 from .passes.mapping.extend_layout import ExtendLayout
 
@@ -106,8 +108,8 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
         circuit (QuantumCircuit): A circuit to transpile.
         basis_gates (list[str]): list of basis gate names supported by the
             target. Default: ['u1','u2','u3','cx','id']
-        coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
+        coupling_map (CouplingMap): coupling map (perhaps custom) to target in mapping
+        initial_layout (Layout): initial layout of qubits in mapping
         seed_mapper (int): random seed for the swap_mapper
         pass_manager (PassManager): a pass_manager for the transpiler stage
 
@@ -123,17 +125,19 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     dag = circuit_to_dag(circuit)
     del circuit
 
-    # pick a trivial layout if the circuit already satisfies the coupling constraints
-    # else layout on the most densely connected physical qubit subset
+    # if the circuit and layout already satisfy the coupling_constraints, use that layout
+    # if there's no layout but the circuit is compatible, use a trivial layout
+    # otherwise layout on the most densely connected physical qubit subset
     # FIXME: this should be simplified once it is ported to a PassManager
-    if coupling_map and initial_layout is None:
+    if coupling_map:
         cm_object = CouplingMap(coupling_map)
-        check_cnot_direction = CheckCnotDirection(cm_object)
-        check_cnot_direction.run(dag)
-        if check_cnot_direction.property_set['is_direction_mapped']:
-            trivial_layout = TrivialLayout(cm_object)
-            trivial_layout.run(dag)
-            initial_layout = trivial_layout.property_set['layout']
+        check_map = CheckMap(cm_object, initial_layout)
+        check_map.run(dag)
+        if check_map.property_set['is_swap_mapped']:
+            if not initial_layout:
+                trivial_layout = TrivialLayout(cm_object)
+                trivial_layout.run(dag)
+                initial_layout = trivial_layout.property_set['layout']
         else:
             dense_layout = DenseLayout(cm_object)
             dense_layout.run(dag)
@@ -230,15 +234,9 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             initial_layout = pass_.property_set['layout']
             logger.info("initial layout (ancilla extended): %s", initial_layout)
 
-            # temporarily build old-style layout dict
-            # (TODO: remove after transition to StochasticSwap pass)
-            virtual_qubits = initial_layout.get_virtual_bits()
-            initial_layout = {(v[0].name, v[1]): ('q', initial_layout[v]) for v in virtual_qubits}
-
             # Swap mapper
-            dag, final_layout = swap_mapper(
-                dag, coupling, initial_layout, trials=20, seed=seed_mapper)
-            logger.info("final layout: %s", final_layout)
+            dag = LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper).run(dag)
+
             # Expand swaps
             dag = Decompose(SwapGate).run(dag)
             # Change cx directions
@@ -248,9 +246,12 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
             # Simplify single qubit gates and CXs
             pm_4_optimization = PassManager()
-            pm_4_optimization.append([Optimize1qGates(), CXCancellation(), DAGFixedPoint()],
+            pm_4_optimization.append([Optimize1qGates(),
+                                      CXCancellation(),
+                                      Depth(),
+                                      FixedPoint('depth')],
                                      do_while=lambda property_set: not property_set[
-                                         'dag_fixed_point'])
+                                         'depth_fixed_point'])
             dag = transpile_dag(dag, pass_manager=pm_4_optimization)
 
         dag.name = name

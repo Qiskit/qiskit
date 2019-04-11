@@ -56,17 +56,15 @@ class PulseDefaultsSchema(BaseSchema):
     """Schema for PulseDefaults."""
 
     # Required properties.
-    qubit_freq_est = List(Number(), required=True,
-                          validate=Length(min=1))
-    meas_freq_est = List(Number(), required=True,
-                         validate=Length(min=1))
-    buffer = Integer(required=True, validate=Range(min=0))
+    qubit_freq_est = List(Number(), required=True, validate=Length(min=1))
+    meas_freq_est = List(Number(), required=True, validate=Length(min=1))
+    buffer = Integer(required=False, validate=Range(min=0))
     pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
-    meas_kernel = Nested(MeasurementKernelSchema, required=True)
-    discriminator = Nested(DiscriminatorSchema, required=True)
+    cmd_def = Nested(PulseCommandSchema, many=True, required=True)
 
     # Optional properties.
-    cmd_def = Nested(PulseCommandSchema, many=True)
+    meas_kernel = Nested(MeasurementKernelSchema)
+    discriminator = Nested(DiscriminatorSchema)
 
 
 @bind_schema(PulseLibraryItemSchema)
@@ -136,17 +134,15 @@ class PulseDefaults(BaseModel):
             in GHz.
         buffer (int): Default buffer time (in units of dt) between pulses.
         pulse_library (list[PulseLibraryItem]): Backend pulse library.
-        meas_kernel (MeasurementKernel): Default measurement kernel.
-        discriminator (Discriminator): Default discriminator.
+        cmd_def (list[PulseCommand]): Backend command definition.
     """
 
-    def __init__(self, qubit_freq_est, meas_freq_est, buffer, pulse_library,
-                 meas_kernel, discriminator, **kwargs):
+    def __init__(self, qubit_freq_est, meas_freq_est, buffer,
+                 pulse_library, cmd_def, **kwargs):
         self.qubit_freq_est = qubit_freq_est
         self.meas_freq_est = meas_freq_est
         self.buffer = buffer
         self.pulse_library = pulse_library
-        self.meas_kernel = meas_kernel
-        self.discriminator = discriminator
+        self.cmd_def = cmd_def
 
         super().__init__(**kwargs)
