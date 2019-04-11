@@ -57,7 +57,7 @@ def _op_expand(n_bits, func=None, broadcastable=None):
                     rarg_size[iarg] = len(arg)
                 elif isinstance(arg, list) and all([_is_bit(bit) for bit in arg]):
                     rarg_size[iarg] = len(arg)
-                elif isinstance(arg, tuple) and _is_bit(arg):
+                elif _is_bit(arg):
                     rarg_size[iarg] = 1
                 else:
                     raise QiskitError('operation arguments must be qubits/cbits')
