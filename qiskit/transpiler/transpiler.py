@@ -17,8 +17,8 @@ from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper.layout import Layout
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.passes.unroller import Unroller
 
+from .passes.unroller import Unroller
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
@@ -32,8 +32,6 @@ from .passes.mapping.trivial_layout import TrivialLayout
 from .passes.mapping.legacy_swap import LegacySwap
 from .passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
 from .passes.mapping.extend_layout import ExtendLayout
-
-from .exceptions import TranspilerError
 
 logger = logging.getLogger(__name__)
 
@@ -54,27 +52,18 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
-
-    Raises:
-        TranspilerError: if args are not complete for the transpiler to function
     """
     return_form_is_single = False
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
         return_form_is_single = True
 
-    # Check for valid parameters for the experiments.
-    basis_gates = basis_gates or backend.configuration().basis_gates
-    if coupling_map:
-        coupling_map = coupling_map
-    elif backend:
+    # pass manager overrides explicit transpile options (basis_gates, coupling_map)
+    # explicit transpile options override options gotten from a backend
+    if not pass_manager and backend:
+        basis_gates = basis_gates or getattr(backend.configuration(), 'basis_gates', None)
         # This needs to be removed once Aer 0.2 is out
-        coupling_map = getattr(backend.configuration(), 'coupling_map', None)
-    else:
-        coupling_map = None
-
-    if not basis_gates:
-        raise TranspilerError('no basis_gates or backend to compile to')
+        coupling_map = coupling_map or getattr(backend.configuration(), 'coupling_map', None)
 
     # Convert integer list format to Layout
     if isinstance(initial_layout, list) and \
@@ -115,9 +104,6 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
     Returns:
         QuantumCircuit: A transpiled circuit.
-
-    Raises:
-        TranspilerError: if args are not complete for transpiler to function.
     """
     if pass_manager and not pass_manager.working_list:
         return circuit
