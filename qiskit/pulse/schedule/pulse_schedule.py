@@ -13,7 +13,7 @@ from copy import copy
 from typing import List, Tuple
 
 from qiskit.pulse.common.interfaces import ScheduleComponent
-from qiskit.pulse.common.timeslots import TimeslotOccupancy
+from qiskit.pulse.common.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class Schedule(ScheduleComponent):
         """
         self._name = name
         self._start_time = start_time
-        self._occupancy = TimeslotOccupancy(timeslots=[])
+        self._occupancy = TimeslotCollection(timeslots=[])
         self._children = ()
 
     @property
@@ -107,7 +107,7 @@ class Schedule(ScheduleComponent):
         return self.stop_time - self.start_time
 
     @property
-    def occupancy(self) -> TimeslotOccupancy:
+    def occupancy(self) -> TimeslotCollection:
         return self._occupancy
 
     def shifted(self, shift: int) -> ScheduleComponent:

@@ -11,7 +11,7 @@ Acquire.
 from typing import Union, List
 
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
@@ -109,7 +109,7 @@ class AcquireInstruction(Instruction):
         slots = [Timeslot(Interval(0, command.duration), q.acquire) for q in qubits]
         slots.extend([Timeslot(Interval(0, command.duration), mem) for mem in mem_slots])
 
-        super().__init__(command, start_time, TimeslotOccupancy(slots))
+        super().__init__(command, start_time, TimeslotCollection(slots))
 
         self._qubits = qubits
         self._mem_slots = mem_slots

@@ -10,7 +10,7 @@ Frame change pulse.
 """
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
 from .instruction import Instruction
 from .pulse_command import PulseCommand
 
@@ -55,7 +55,7 @@ class FrameChangeInstruction(Instruction):
 
     def __init__(self, command: FrameChange, channel: OutputChannel, start_time: int = 0):
         slots = [Timeslot(Interval(start_time, start_time), channel)]
-        super().__init__(command, start_time, TimeslotOccupancy(slots))
+        super().__init__(command, start_time, TimeslotCollection(slots))
         self._channel = channel
 
     @property

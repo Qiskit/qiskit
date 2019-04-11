@@ -13,7 +13,7 @@ from copy import copy
 from typing import Tuple
 
 from qiskit.pulse.common.interfaces import ScheduleComponent
-from qiskit.pulse.common.timeslots import TimeslotOccupancy
+from qiskit.pulse.common.timeslots import TimeslotCollection
 from .pulse_command import PulseCommand
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
-    def __init__(self, command: PulseCommand, start_time: int, occupancy: TimeslotOccupancy):
+    def __init__(self, command: PulseCommand, start_time: int, occupancy: TimeslotCollection):
         self._command = command
         self._start_time = start_time
         self._occupancy = occupancy
@@ -33,7 +33,7 @@ class Instruction(ScheduleComponent):
         return self._command.duration
 
     @property
-    def occupancy(self) -> TimeslotOccupancy:
+    def occupancy(self) -> TimeslotCollection:
         """Occupied time slots by this instruction. """
         return self._occupancy
 

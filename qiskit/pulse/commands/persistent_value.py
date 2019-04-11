@@ -10,7 +10,7 @@ Persistent value.
 """
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .pulse_command import PulseCommand
@@ -62,7 +62,7 @@ class PersistentValueInstruction(Instruction):
 
     def __init__(self, command: PersistentValue, channel: OutputChannel, start_time: int = 0):
         slots = [Timeslot(Interval(start_time, start_time), channel)]
-        super().__init__(command, start_time, TimeslotOccupancy(slots))
+        super().__init__(command, start_time, TimeslotCollection(slots))
         self._channel = channel
 
     @property

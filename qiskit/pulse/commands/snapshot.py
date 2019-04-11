@@ -10,7 +10,7 @@ Snapshot.
 """
 
 from qiskit.pulse.channels import SnapshotChannel
-from qiskit.pulse.common.timeslots import TimeslotOccupancy
+from qiskit.pulse.common.timeslots import TimeslotCollection
 from .instruction import Instruction
 from .pulse_command import PulseCommand
 
@@ -29,7 +29,7 @@ class Snapshot(PulseCommand, Instruction):
             start_time (int, optional): Begin time of snapshot. Defaults to 0.
         """
         PulseCommand.__init__(self, duration=0)
-        Instruction.__init__(self, self, start_time, TimeslotOccupancy([]))
+        Instruction.__init__(self, self, start_time, TimeslotCollection([]))
         self._label = label
         self._type = snap_type
         self._channel = SnapshotChannel()

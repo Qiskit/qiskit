@@ -11,7 +11,7 @@ ScheduleComponent = Common interface for components of schedule (Instruction and
 from abc import ABCMeta, abstractmethod
 from typing import Tuple
 
-from .timeslots import TimeslotOccupancy
+from .timeslots import TimeslotCollection
 
 
 class ScheduleComponent(metaclass=ABCMeta):
@@ -25,7 +25,7 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def occupancy(self) -> TimeslotOccupancy:
+    def occupancy(self) -> TimeslotCollection:
         """Occupied time slots by this schedule component. """
         pass
 
