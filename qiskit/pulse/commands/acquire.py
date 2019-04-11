@@ -11,9 +11,9 @@ Acquire.
 from typing import Union, List
 
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot
-from qiskit.pulse.common.interfaces import Instruction
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
+from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
 from .pulse_command import PulseCommand
 
@@ -88,7 +88,8 @@ class AcquireInstruction(Instruction):
                  command: Acquire,
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None):
+                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
+                 start_time: int = 0):
         if isinstance(qubits, Qubit):
             qubits = [qubits]
         if mem_slots:
@@ -103,31 +104,25 @@ class AcquireInstruction(Instruction):
                 raise PulseError("#reg_slots must be equals to #qubits")
         else:
             reg_slots = []
-        self._command = command
-        self._qubits = qubits
-        self._mem_slots = mem_slots
-        self._reg_slots = reg_slots
+
         # TODO: more precise time-slots
         slots = [Timeslot(Interval(0, command.duration), q.acquire) for q in qubits]
         slots.extend([Timeslot(Interval(0, command.duration), mem) for mem in mem_slots])
-        self._occupancy = TimeslotOccupancy(slots)
+
+        super().__init__(command, start_time, TimeslotCollection(slots))
+
+        self._qubits = qubits
+        self._mem_slots = mem_slots
+        self._reg_slots = reg_slots
 
     @property
-    def duration(self):
-        return self._command.duration
-
-    @property
-    def occupancy(self):
-        return self._occupancy
-
-    @property
-    def command(self):
+    def command(self) -> Acquire:
         """Acquire command. """
         return self._command
 
     @property
     def qubits(self):
-        """Acquire channels. """
+        """Qubits to be acquired. """
         return self._qubits
 
     @property
@@ -141,4 +136,4 @@ class AcquireInstruction(Instruction):
         return self._reg_slots
 
     def __repr__(self):
-        return '%s >> q%s' % (self._command, [q.index for q in self._qubits])
+        return '%4d: %s -> q%s' % (self._start_time, self._command, [q.index for q in self._qubits])
