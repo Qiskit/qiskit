@@ -45,7 +45,7 @@ This is not correct for the sampler as the output sampled functions accept only 
 For the standard sampler we get around this by not using `functools.wraps` and
 explicitly defining our samplers such as `left`, `right` and `midpoint` and
 calling `sampler` internally on the function that implements the sampling schemes such as
-`_left`, `_right` and `_midpoint` respectively. See `left` for an example of this.
+`left_sample`, `right_sample` and `midpoint_sample` respectively. See `left` for an example of this.
 
 In this way our standard samplers will expose the proper help signature, but a user can
 still create their own sampler with
@@ -187,13 +187,13 @@ def sampler(sample_function: Callable) -> Callable:
 
     They operate on a function with the signature:
         `def f(times: np.ndarray, *args, **kwargs) -> np.ndarray`
-    Where `times` is a numpy array of floats with length `n_times` and the output array
-    is a complex numpy array with length `n_times`. The output of the decorator is an
+    Where `times` is a numpy array of floats with length n_times and the output array
+    is a complex numpy array with length n_times. The output of the decorator is an
     instance of `FunctionalPulse` with signature:
         `def g(duration: int, *args, **kwargs) -> SamplePulse`
 
     Note if your continuous pulse function outputs a `complex` scalar rather than a
-    `np.array`, you should first vectorize it before applying a sampler.
+    `np.ndarray`, you should first vectorize it before applying a sampler.
 
     This class implements the sampler boilerplate for the sampler.
 
@@ -223,18 +223,6 @@ def sampler(sample_function: Callable) -> Callable:
         return commands.functional_pulse(call_sampler)
 
     return generate_sampler
-
-
-def left_sample_fun(continuous_pulse: Callable, duration: int, *args, **kwargs) -> np.ndarray:
-    """Left sample a continuous function.
-    Args:
-        continuous_pulse: Continuous pulse function to sample.
-        duration: Duration to sample for.
-        *args: Continuous pulse function args.
-        *kwargs: Continuous pulse function kwargs.
-    """
-    times = np.arange(duration)
-    return continuous_pulse(times, *args, **kwargs)
 
 
 def left(continuous_pulse: Callable) -> Callable:
