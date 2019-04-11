@@ -63,9 +63,9 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """
-
     if justify:
-        justify.lower()
+        justify = justify.lower()
+
     # default to left
     justify = justify if justify in ('right', 'none') else 'left'
 
@@ -169,41 +169,6 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
         layer_dicts.reverse()
         ops = [set(layer.values()) for layer in layer_dicts]
 
-
-    if reverse_bits:
-        qregs.reverse()
-        cregs.reverse()
-
-    return qregs, cregs, ops
-
-
-def _get_instructions(circuit, reverse_bits=False):
-    """
-    Given a circuit, return a tuple (qregs, cregs, ops) where
-    qregs and cregs are the quantum and classical registers
-    in order (based on reverse_bits) and ops is a list
-    of DAG nodes which type is "operation".
-    Args:
-        circuit (QuantumCircuit): From where the information is extracted.
-        reverse_bits (bool): If true the order of the bits in the registers is
-            reversed.
-    Returns:
-        Tuple(list,list,list): To be consumed by the visualizer directly.
-    """
-    dag = circuit_to_dag(circuit)
-    ops = []
-    qregs = []
-    cregs = []
-
-    for node in dag.nodes_in_topological_order():
-        if node.type == 'op':
-            ops.append(node)
-
-    for qreg in dag.qregs.values():
-        qregs += [(qreg, bitno) for bitno in range(qreg.size)]
-
-    for creg in dag.cregs.values():
-        cregs += [(creg, bitno) for bitno in range(creg.size)]
 
     if reverse_bits:
         qregs.reverse()
