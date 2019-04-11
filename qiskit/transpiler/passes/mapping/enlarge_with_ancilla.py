@@ -43,18 +43,15 @@ class EnlargeWithAncilla(TransformationPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        if self.property_set["layout"] is not None:
-            layout = self.property_set["layout"]
 
-        if self.layout is not None:
-            layout = self.layout
+        self.layout = self.layout or self.property_set.get('layout')
 
-        if layout is None:
+        if self.layout is None:
             raise TranspilerError("EnlargeWithAncilla requires property_set[\"layout\"] to run")
 
         # Idle physical qubits are those physical qubits that no virtual qubit corresponds to.
         # Add extra virtual qubits to make the DAG and CouplingMap the same size.
-        num_idle_physical_qubits = len(layout.idle_physical_bits())
+        num_idle_physical_qubits = len(self.layout.idle_physical_bits())
         if num_idle_physical_qubits:
             if self.ancilla_name in dag.qregs:
                 save_prefix = QuantumRegister.prefix
@@ -66,7 +63,7 @@ class EnlargeWithAncilla(TransformationPass):
                 qreg = QuantumRegister(num_idle_physical_qubits, name=self.ancilla_name)
                 dag.add_qreg(qreg)
 
-        for index, idle_physical_bit in enumerate(layout.idle_physical_bits()):
-            layout[idle_physical_bit] = (qreg, index)
+        for index, idle_physical_bit in enumerate(self.layout.idle_physical_bits()):
+            self.layout[idle_physical_bit] = (qreg, index)
 
         return dag
