@@ -68,6 +68,8 @@ Added
   qubit layout. (#2089)
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
   are followed by a measurement instruction, moving the latter to the proper wire.
+- Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
+  rotations about the Z axis, leveraging previously-found gate commutation relations.
 
 Changed
 -------
