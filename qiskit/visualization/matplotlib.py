@@ -153,9 +153,9 @@ class MatplotlibDrawer:
         ypos_max = max([y[1] for y in xy])
         if wide:
             if subtext:
-                boxes_length = round(max([len(text), len(subtext)]) / 10) or 1
+                boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
             else:
-                boxes_length = round(len(text) / 10) or 1
+                boxes_length = round(len(text) / 8) or 1
             wid = WID * 2.8 * boxes_length
         else:
             wid = WID
@@ -170,6 +170,11 @@ class MatplotlibDrawer:
             width=wid, height=height, fc=_fc, ec=self._style.lc,
             linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
+        # Annotate inputs
+        for bit, y in enumerate([x[1] for x in xy]):
+            self.ax.text(xpos - 0.45 * wid, y, str(bit), ha='left', va='center',
+                         fontsize=self._style.fs, color=self._style.gt,
+                         clip_on=True, zorder=PORDER_TEXT)
 
         if text:
             disp_text = text
@@ -541,7 +546,7 @@ class MatplotlibDrawer:
                 elif op.name not in ['barrier', 'snapshot', 'load', 'save',
                                      'noise', 'cswap', 'swap'] and len(
                                          op.name) >= 4:
-                    box_width = round(len(op.name) / 10)
+                    box_width = round(len(op.name) / 8)
                     # If more than 4 characters min width is 2
                     if box_width <= 1:
                         box_width = 2
