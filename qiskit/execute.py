@@ -141,8 +141,9 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
         schedules (Schedule or list[Schedule]): schedules to execute
         backend (BaseBackend): a backend to execute the schedules on
         user_lo_dicts (UserLoDict or list[UserLoDict]): Dictionaries of user LO frequencies
+        kwargs: extra arguments to configure backend
 
-    Keyword Args:
+    Kwargs:
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators

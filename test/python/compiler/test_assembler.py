@@ -200,6 +200,8 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_single_schedule(self):
         """Test assembling a single schedule.
         """
+        # pylint: disable=unexpected-keyword-arg
+
         @pulse.functional_pulse
         def linear(duration: int):
             x = np.arange(0, duration)

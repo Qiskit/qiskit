@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=unused-import
+
 """Assemble function for converting a list of circuits into a qobj"""
 import copy
 import uuid

@@ -25,12 +25,15 @@ class ConditionedSchedule:
 
     @property
     def schedule(self):
+        """Schedule."""
         return self._schedule
 
     @property
     def user_lo_dict(self):
+        """Dictionary of local oscillator."""
         return self._user_lo_dict
 
     @property
     def name(self):
+        """Name of experiment."""
         return self._name

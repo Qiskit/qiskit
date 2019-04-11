@@ -22,12 +22,12 @@ def bind_instruction(type_instruction):
     and this decorator binds converter function to valid instruction type.
 
     Args:
-        type_instruction: valid pulse instruction class to the converter.
+        type_instruction (Instruction): valid pulse instruction class to the converter.
     """
+    # pylint: disable=missing-return-doc, missing-return-type-doc
+
     def _apply_converter(converter):
         """Return decorated converter function."""
-        # pylint: disable=missing-return-doc
-
         @functools.wraps(converter)
         def _call_valid_converter(self, instruction):
             """Return dictionary for qobj if the given instruction matches to the
@@ -81,6 +81,7 @@ class PulseQobjConverter:
 
         Args:
              qobj_model (QobjInstruction): marshmallow model to serialize to object.
+             exp_config (dict): experimental configuration.
         """
         self._qobj_model = qobj_model
         self._exp_config = exp_config
@@ -91,9 +92,11 @@ class PulseQobjConverter:
             if name.startswith('_convert_'):
                 dict_qobj = method(instruction)
                 if dict_qobj:
-                    return dict_qobj
+                    break
         else:
-            PulseError('Proper qobj for %s is not found.' % instruction.command)
+            raise PulseError('Proper qobj for %s is not found.' % instruction.command)
+
+        return dict_qobj
 
     @bind_instruction(commands.AcquireInstruction)
     def _convert_acquire(self, instruction):
