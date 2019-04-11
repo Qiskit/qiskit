@@ -10,7 +10,7 @@ Timeslot occupancy for each channels.
 """
 import logging
 from collections import defaultdict
-from typing import List, Optional, Set
+from typing import List, Optional, Tuple
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
@@ -96,40 +96,35 @@ class Timeslot:
         return self._channel
 
 
-class TimeslotOccupancy:
-    """Timeslot occupancy for each channels."""
+class TimeslotCollection:
+    """Collection of `Timeslot`s."""
 
     def __init__(self, timeslots: List[Timeslot]):
-        """Create a new time-slot occupancy.
+        """Create a new time-slot collection.
 
         Args:
             timeslots: list of time slots
         Raises:
             PulseError: when overlapped time slots are specified
         """
-        self._timeslots = timeslots
+        self._timeslots = tuple(timeslots)
         self._table = defaultdict(list)
         for slot in timeslots:
             for interval in self._table[slot.channel]:
                 if slot.interval.has_overlap(interval):
-                    raise PulseError("Cannot create TimeslotOccupancy from overlapped timeslots")
+                    raise PulseError("Cannot create TimeslotCollection from overlapped timeslots")
             self._table[slot.channel].append(slot.interval)
 
     @property
-    def timeslots(self):
+    def timeslots(self) -> Tuple[Timeslot, ...]:
         """Time slots of this occupancy."""
         return self._timeslots
 
-    @property
-    def channelset(self) -> Set[Channel]:
-        """Time slots of used in this occupancy."""
-        return {key for key in self._table.keys()}
-
-    def is_mergeable_with(self, occupancy: 'TimeslotOccupancy') -> bool:
+    def is_mergeable_with(self, occupancy: 'TimeslotCollection') -> bool:
         """Return if self is mergeable with a specified `occupancy` or not.
 
         Args:
-            occupancy: TimeslotOccupancy to be checked
+            occupancy: TimeslotCollection to be checked
 
         Returns:
             True if self is mergeable with `occupancy`, otherwise False.
@@ -140,27 +135,27 @@ class TimeslotOccupancy:
                     return False
         return True
 
-    def merged(self, occupancy: 'TimeslotOccupancy') -> Optional['TimeslotOccupancy']:
-        """Return a new TimeslotOccupancy merged with a specified `occupancy`
+    def merged(self, occupancy: 'TimeslotCollection') -> Optional['TimeslotCollection']:
+        """Return a new TimeslotCollection merged with a specified `occupancy`
 
         Args:
-            occupancy: TimeslotOccupancy to be merged
+            occupancy: TimeslotCollection to be merged
 
         Returns:
-            A new TimeslotOccupancy object merged with a specified `occupancy`.
+            A new TimeslotCollection object merged with a specified `occupancy`.
         """
         slots = [Timeslot(slot.interval, slot.channel) for slot in self.timeslots]
         slots.extend([Timeslot(slot.interval, slot.channel) for slot in occupancy.timeslots])
-        return TimeslotOccupancy(slots)
+        return TimeslotCollection(slots)
 
-    def shifted(self, time: int) -> 'TimeslotOccupancy':
-        """Return a new TimeslotOccupancy shifted by `time`.
+    def shifted(self, time: int) -> 'TimeslotCollection':
+        """Return a new TimeslotCollection shifted by `time`.
 
         Args:
             time: time to be shifted
 
         Returns:
-            A new TimeslotOccupancy object shifted by `time`.
+            A new TimeslotCollection object shifted by `time`.
         """
         slots = [Timeslot(slot.interval.shifted(time), slot.channel) for slot in self.timeslots]
-        return TimeslotOccupancy(slots)
+        return TimeslotCollection(slots)
