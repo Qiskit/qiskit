@@ -17,6 +17,7 @@ from qiskit.visualization import text
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import figure
 
+
 class TestCircuitDrawer(QiskitTestCase):
 
     def test_default_output(self):
@@ -26,7 +27,8 @@ class TestCircuitDrawer(QiskitTestCase):
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, text.TextDrawing)
 
-    @unittest.skipUnless(visualization.HAS_MATPLOTLIB)
+    @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
+                         'Skipped because matplotib is not available')
     def test_user_config_default_output(self):
         with unittest.mock.patch('qiskit.user_config.get_config',
                                  return_value={'circuit_drawer': 'mpl'}):
@@ -41,7 +43,8 @@ class TestCircuitDrawer(QiskitTestCase):
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, text.TextDrawing)
 
-    @unittest.skipUnless(visualization.HAS_MATPLOTLIB)
+    @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
+                         'Skipped because matplotib is not available')
     def test_kwarg_priority_over_user_config_default_output(self):
         with unittest.mock.patch('qiskit.user_config.get_config',
                                  return_value={'circuit_drawer': 'latex'}):
