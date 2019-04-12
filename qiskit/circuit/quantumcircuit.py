@@ -346,7 +346,7 @@ class QuantumCircuit:
                                                        for j in qargs + cargs]))
         return string_temp
 
-    def draw(self, scale=0.7, filename=None, style=None, output='text',
+    def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None):
         """Draw the quantum circuit

@@ -24,6 +24,7 @@ import tempfile
 
 from PIL import Image
 
+from qiskit import user_config
 from qiskit.visualization import exceptions
 from qiskit.visualization import latex as _latex
 from qiskit.visualization import text as _text
@@ -37,7 +38,7 @@ def circuit_drawer(circuit,
                    scale=0.7,
                    filename=None,
                    style=None,
-                   output='text',
+                   output=None,
                    interactive=False,
                    line_length=None,
                    plot_barriers=True,
@@ -169,6 +170,13 @@ def circuit_drawer(circuit,
             `linestyle` kwarg value. Defaults to `doublet`(`mpl` only)
     """
     image = None
+    config = user_config.get_config()
+    # Get default from config file else use text
+    default_output = 'text'
+    if config:
+        default_output = config.get('circuit_drawer')
+    if output is None:
+        output = default_output
 
     if output == 'text':
         return _text_circuit_drawer(circuit, filename=filename,
