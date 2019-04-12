@@ -70,6 +70,9 @@ Added
   are followed by a measurement instruction, moving the latter to the proper wire.
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
   rotations about the Z axis, leveraging previously-found gate commutation relations.
+- Add an option for using a user config file to enable changing default
+  settings for various functions in qiskit. Right now it only supports setting
+  the default circuit drawing backend. (#2122)
 
 Changed
 -------

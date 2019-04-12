@@ -17,7 +17,6 @@ from qiskit.visualization import text
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import figure
 
-
 class TestCircuitDrawer(QiskitTestCase):
 
     def test_default_output(self):
@@ -27,6 +26,7 @@ class TestCircuitDrawer(QiskitTestCase):
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, text.TextDrawing)
 
+    @unittest.skipUnless(visualization.HAS_MATPLOTLIB)
     def test_user_config_default_output(self):
         with unittest.mock.patch('qiskit.user_config.get_config',
                                  return_value={'circuit_drawer': 'mpl'}):
@@ -34,6 +34,14 @@ class TestCircuitDrawer(QiskitTestCase):
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, figure.Figure)
 
+    def test_default_output_with_user_config_not_set(self):
+        with unittest.mock.patch('qiskit.user_config.get_config',
+                                 return_value={'other_option': True}):
+            circuit = QuantumCircuit()
+            out = visualization.circuit_drawer(circuit)
+            self.assertIsInstance(out, text.TextDrawing)
+
+    @unittest.skipUnless(visualization.HAS_MATPLOTLIB)
     def test_kwarg_priority_over_user_config_default_output(self):
         with unittest.mock.patch('qiskit.user_config.get_config',
                                  return_value={'circuit_drawer': 'latex'}):

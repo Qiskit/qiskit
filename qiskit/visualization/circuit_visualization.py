@@ -58,11 +58,11 @@ def circuit_drawer(circuit,
             output types. If a str is passed in that is the path to a json
             file which contains that will be open, parsed, and then used just
             as the input dict.
-        output (TextDrawing): Select the output method to use for drawing the circuit.
-            Valid choices are `text`, `latex`, `latex_source`, `mpl`. Note if
-            one is not specified it will use latex and if that fails fallback
-            to mpl. However this behavior is deprecated and in a future release
-            the default will change.
+        output (str): Select the output method to use for drawing the circuit.
+            Valid choices are `text`, `latex`, `latex_source`, `mpl`. By
+            default the 'text' drawer is used unless a user config file has
+            an alternative backend set as the default. If the output is passed
+            in that backend will always be used.
         interactive (bool): when set true show the circuit in a new window
             (for `mpl` this depends on the matplotlib backend being used
             supporting this). Note when used with either the `text` or the
@@ -174,7 +174,7 @@ def circuit_drawer(circuit,
     # Get default from config file else use text
     default_output = 'text'
     if config:
-        default_output = config.get('circuit_drawer')
+        default_output = config.get('circuit_drawer', 'text')
     if output is None:
         output = default_output
 

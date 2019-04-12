@@ -367,7 +367,9 @@ class QuantumCircuit:
                 on the contents.
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are `text`, `latex`, `latex_source`,
-                `mpl`.
+                `mpl`. By default the 'text' drawer is used unless a user
+                config file has an alternative backend set as the default. If
+                the output is passed in that backend will always be used.
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the

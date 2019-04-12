@@ -25,6 +25,12 @@ class UserConfig:
     circuit_drawer = mpl
     """
     def __init__(self, filename=None):
+        """Create a UserConfig
+
+        Args:
+            filename (str): The path to the user config file. If one isn't
+                specified ~/.qiskit/settings.conf is used.
+        """
         if filename is None:
             self.filename = DEFAULT_FILENAME
         else:
@@ -33,6 +39,7 @@ class UserConfig:
         self.config_parser = configparser.SafeConfigParser()
 
     def read_config_file(self):
+        """Read config file and parse the contents into the settings attr."""
         if not os.path.isfile(self.filename):
             return
         self.config_parser.read(self.filename)
@@ -49,7 +56,15 @@ class UserConfig:
 
 
 def get_config():
-    """Read the config file from the default location or env var."""
+    """Read the config file from the default location or env var
+
+    It will read a config file at either the default location
+    ~/.qiskit/settings.conf or if set the value of the QISKIT_SETTINGS env var.
+
+    It will return the parsed settings dict from the parsed config file.
+    Returns:
+        dict: The settings dict from the parsed config file.
+    """
     filename = os.getenv('QISKIT_SETTINGS', DEFAULT_FILENAME)
     if not os.path.isfile(filename):
         return {}
