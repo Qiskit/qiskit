@@ -58,12 +58,13 @@ class TestUnitary(QiskitTestCase):
         """test conjugate"""
         ymat = numpy.array([[0, -1j], [1j, 0]])
         uni = Unitary([[0, 1j], [-1j, 0]])
-        self.assertTrue(numpy.array_equal(uni.conjugate()._representation, ymat))
+        self.assertTrue(numpy.array_equal(uni.conjugate().representation, ymat))
 
     def test_adjoint(self):
         """test adjoint operation"""
         uni = Unitary([[0, 1j], [-1j, 0]])
-        self.assertTrue(numpy.array_equal(uni.adjoint()._representation, uni._representation))
+        self.assertTrue(numpy.array_equal(uni.adjoint().representation,
+                                          uni.representation))
 
     def test_tensor(self):
         """test tensor product of unitaries"""
@@ -73,7 +74,7 @@ class TestUnitary(QiskitTestCase):
         ux = Unitary(sx)
         uy = Unitary(sy)
         result = ux.tensor(uy.tensor(uy))
-        xmat = result._representation
+        xmat = result.representation
         self.assertTrue(numpy.array_equal(xmat, ymat))
 
     def test_expand(self):
@@ -84,7 +85,7 @@ class TestUnitary(QiskitTestCase):
         ux = Unitary(sx)
         uy = Unitary(sy)
         result = ux.expand(uy.expand(uy))
-        xmat = result._representation
+        xmat = result.representation
         self.assertTrue(numpy.array_equal(xmat, ymat))
 
     def test_compose(self):
@@ -95,20 +96,20 @@ class TestUnitary(QiskitTestCase):
         ux = Unitary(sx)
         uy = Unitary(sy)
         result = ux.compose(uy)
-        xmat = result._representation
+        xmat = result.representation
         self.assertTrue(numpy.array_equal(xmat, ymat))
 
     def test_power(self):
         """test unitary power"""
         uy = Unitary(numpy.array([[0, -1j], [1j, 0]]))
-        self.assertTrue(numpy.array_equal(uy.power(0)._representation,
+        self.assertTrue(numpy.array_equal(uy.power(0).representation,
                                           numpy.identity(2)))
-        self.assertTrue(numpy.array_equal(uy.power(1)._representation,
-                                          uy._representation))
-        self.assertTrue(numpy.array_equal(uy.power(2)._representation,
+        self.assertTrue(numpy.array_equal(uy.power(1).representation,
+                                          uy.representation))
+        self.assertTrue(numpy.array_equal(uy.power(2).representation,
                                           numpy.identity(2)))
-        self.assertTrue(numpy.array_equal(uy.power(-1)._representation,
-                                          numpy.linalg.matrix_power(uy._representation, -1)))
+        self.assertTrue(numpy.array_equal(uy.power(-1).representation,
+                                          numpy.linalg.matrix_power(uy.representation, -1)))
 
 
 class TestUnitaryCircuit(QiskitTestCase):
@@ -133,7 +134,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertIsInstance(dnode.op, Unitary)
         for qubit in dnode.qargs:
             self.assertTrue(qubit[1] in [0, 1])
-        self.assertTrue(numpy.allclose(dnode.op._representation,
+        self.assertTrue(numpy.allclose(dnode.op.representation,
                                        matrix))
 
     def test_2q_unitary(self):
@@ -162,7 +163,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertIsInstance(dnode.op, Unitary)
         for qubit in dnode.qargs:
             self.assertTrue(qubit[1] in [0, 1])
-        self.assertTrue(numpy.allclose(dnode.op._representation,
+        self.assertTrue(numpy.allclose(dnode.op.representation,
                                        matrix))
         qc3 = dag_to_circuit(dag)
         self.assertEqual(qc2, qc3)
@@ -187,7 +188,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertIsInstance(dnode.op, Unitary)
         for qubit in dnode.qargs:
             self.assertTrue(qubit[1] in [0, 1, 3])
-        self.assertTrue(numpy.allclose(dnode.op._representation,
+        self.assertTrue(numpy.allclose(dnode.op.representation,
                                        matrix))
 
     def test_qobj_with_unitary_matrix(self):
