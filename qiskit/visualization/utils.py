@@ -167,7 +167,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
 
         # need to convert from dict format to layers
         layer_dicts.reverse()
-        ops = [set(layer.values()) for layer in layer_dicts]
+        ops = [list(layer.values()) for layer in layer_dicts]
 
     if reverse_bits:
         qregs.reverse()
