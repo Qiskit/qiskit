@@ -13,7 +13,7 @@ import sys
 import time
 import re
 import numpy as np
-from qiskit.quantum_info import pauli_group
+from qiskit.quantum_info.operators import pauli_group
 from qiskit.visualization.utils import _validate_input_state
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     try:

@@ -7,4 +7,4 @@
 
 """Quantum States."""
 
-from .states import basis_state, random_state, projector, purity
+from .states import basis_state, projector, purity

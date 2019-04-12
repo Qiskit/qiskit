@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=invalid-name
+
 """
 Expand 2-qubit Unitary operators into an equivalent
 decomposition over SU(2)+CNOT, using the KAK method.
@@ -41,6 +43,9 @@ def euler_angles_1q(unitary_matrix):
 
     Returns:
         tuple: (theta, phi, lambda) Euler angles of SU(2)
+
+    Raises:
+        QiskitError: if unitary_matrix not 2x2, or failure
     """
     if unitary_matrix.shape != (2, 2):
         raise QiskitError("euler_angles_1q: expected 2x2 matrix")

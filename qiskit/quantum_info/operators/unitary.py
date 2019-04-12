@@ -11,14 +11,13 @@ Tools for working with Unitary Operators.
 
 A simple unitary class and some tools.
 """
-import math
 import copy
 import numpy
 import sympy
-from qiskit.exceptions import QiskitError
+
 from qiskit.circuit.gate import Gate
-from qiskit.quantum_info.states.states import random_state
 from qiskit.quantum_info.synthesis.two_qubit_kak import two_qubit_kak
+from qiskit.exceptions import QiskitError
 
 
 class Unitary(Gate):
@@ -262,37 +261,3 @@ class Unitary(Gate):
             self.__label = name
         else:
             raise TypeError('label expects a string or None')
-
-    @staticmethod
-    def random(dim, seed=None):
-        """
-        Return a random dim x dim Unitary from the Haar measure.
-
-        Args:
-            dim (int): the dim of the state space.
-            seed (int): Optional. To set a random seed.
-
-        Returns:
-            Unitary: (dim, dim) unitary operator.
-
-        Raises:
-            QiskitError: if dim is not a positive power of 2.
-        """
-        if dim == 0 or not math.log2(dim).is_integer():
-            raise QiskitError("Desired statevector length not a positive power of 2.")
-        matrix = numpy.zeros([dim, dim], dtype=complex)
-        for j in range(dim):
-            if j == 0:
-                a = random_state(dim, seed)
-            else:
-                a = random_state(dim)
-            matrix[:, j] = numpy.copy(a)
-            # Grahm-Schmidt Orthogonalize
-            i = j-1
-            while i >= 0:
-                dc = numpy.vdot(matrix[:, i], a)
-                matrix[:, j] = matrix[:, j]-dc*matrix[:, i]
-                i = i - 1
-            # normalize
-            matrix[:, j] = matrix[:, j] * (1.0 / numpy.sqrt(numpy.vdot(matrix[:, j], matrix[:, j])))
-        return Unitary(matrix)

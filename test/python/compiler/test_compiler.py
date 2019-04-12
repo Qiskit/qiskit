@@ -20,7 +20,6 @@ from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
 from qiskit.converters import circuit_to_dag
-from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.mapper import Layout
 

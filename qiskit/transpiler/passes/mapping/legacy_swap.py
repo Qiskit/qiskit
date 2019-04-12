@@ -94,10 +94,10 @@ class LegacySwap(TransformationPass):
                 qubit_subset.append(v)
                 if k not in circ_qubits:
                     raise TranspilerError("initial_layout qubit %s[%d] not in input "
-                                      "DAGCircuit" % (k[0].name, k[1]))
+                                          "DAGCircuit" % (k[0].name, k[1]))
                 if v not in coup_qubits:
                     raise TranspilerError("initial_layout qubit %s[%d] not in input "
-                                      "CouplingGraph" % (v[0].name, v[1]))
+                                          "CouplingGraph" % (v[0].name, v[1]))
         else:
             # Supply a default layout
             qubit_subset = [(QuantumRegister(self.coupling_map.size(), 'q'), wire) for wire in
@@ -149,7 +149,7 @@ class LegacySwap(TransformationPass):
                     # Give up if we fail again
                     if not success_flag:
                         raise TranspilerError("swap_mapper failed: " +
-                                          "layer %d, sublayer %d" % (i, j))
+                                              "layer %d, sublayer %d" % (i, j))
 
                     # If this layer is only single-qubit gates,
                     # and we have yet to see multi-qubit gates,
