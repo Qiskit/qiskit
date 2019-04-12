@@ -22,6 +22,7 @@ import warnings
 from qiskit.compiler import RunConfig, TranspileConfig
 from qiskit.compiler import assemble_circuits, assemble_schedules, transpile
 from qiskit.pulse import Schedule, ConditionedSchedule, UserLoDict
+from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjHeader
 
 logger = logging.getLogger(__name__)
@@ -160,6 +161,9 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
+
+    Raises:
+        PulseError: when #schedules : #user_lo_dicts is not either of 1:n, n:1 or n:n.
     """
     if isinstance(schedules, Schedule):
         schedules = [schedules]
@@ -171,10 +175,12 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
             experiments = [ConditionedSchedule(schedules[0], cond) for cond in user_lo_dicts]
         elif len(user_lo_dicts) == 1:
             experiments = [ConditionedSchedule(sched, user_lo_dicts[0]) for sched in schedules]
-        else:
-            # n schedules * m user_lo_dicts == n * m ConditionedSchedule
+        elif len(schedules) == len(user_lo_dicts):
             experiments = [ConditionedSchedule(sched, cond)
-                           for sched in schedules for cond in user_lo_dicts]
+                           for sched, cond in zip(schedules, user_lo_dicts)]
+        else:
+            raise PulseError("#schedules=%d : #user_lo_dicts=%d must be 1:n, n:1 or n:n." %
+                             (len(schedules), len(user_lo_dicts)))
     else:
         # no user condition
         experiments = [ConditionedSchedule(sched) for sched in schedules]
