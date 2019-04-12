@@ -66,6 +66,8 @@ Added
   qubit layout. (#2089)
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
   are followed by a measurement instruction, moving the latter to the proper wire.
+- Gates and instructions in a circuit accept integers as parameters to refer to
+  wires instead of named bits.
 
 Changed
 -------
