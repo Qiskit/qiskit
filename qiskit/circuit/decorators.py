@@ -50,7 +50,7 @@ def _op_expand(n_bits, func=None, broadcastable=None):
             blist = [True] * len(rargs)
         else:
             blist = broadcastable
-        if not all([_is_bit(arg) for arg in rargs]):
+        if not all([(_is_bit(arg) or isinstance(arg, int)) for arg in rargs]):
             rarg_size = [1] * n_bits
             for iarg, arg in enumerate(rargs):
                 if isinstance(arg, Register):
