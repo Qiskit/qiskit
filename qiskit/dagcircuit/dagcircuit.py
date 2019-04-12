@@ -1044,25 +1044,6 @@ class DAGCircuit:
 
         return self.multi_graph.successors(node)
 
-    def ordered_successors(self, node):
-        """Returns list of the successors of a node as DAGNodes
-        in the order they were added to the DAG."""
-        if isinstance(node, int):
-            warnings.warn('Calling ordered_successors() with a node id is deprecated,'
-                          ' use a DAGNode instead',
-                          DeprecationWarning, 2)
-            node = self._id_to_node[node]
-
-        outp = []
-        successors = list(self.multi_graph.successors(node))
-
-        # iterate over the nodes in the order they appear in the graph
-        for nd in self.nodes_in_topological_order():
-            # if they are a successor, add to the ordered list of successors
-            if nd in successors:
-                outp.append(nd)
-        return outp
-
     def predecessors(self, node):
         """Returns list of the predecessors of a node as DAGNodes."""
         if isinstance(node, int):
@@ -1387,11 +1368,9 @@ class DAGCircuit:
             if current_node.type == 'op' or not only_ops:
                 yield current_node
 
-            for node in self.ordered_successors(current_node):
-
-                # check if this node includes the given wire
-                if (node.type in ['in', 'out'] and wire == node.wire) or \
-                   (node.type == 'op' and wire in node.qargs + node.cargs):
+            # find the adjacent node that takes the wire being looked at as input
+            for node, edges in self.multi_graph.adj[current_node].items():
+                if any(wire == edge['wire'] for edge in edges.values()):
                     current_node = node
                     more_nodes = True
                     break

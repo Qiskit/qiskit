@@ -75,6 +75,7 @@ class CommutationAnalysis(AnalysisPass):
                 temp_len = len(current_comm_set)
                 self.property_set['commutation_set'][(current_gate, wire_name)] = temp_len - 1
 
+
 def _gate_master_def(name, params=None):
     # pylint: disable=too-many-return-statements
 
