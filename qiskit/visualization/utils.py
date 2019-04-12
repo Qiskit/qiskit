@@ -169,7 +169,6 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
         layer_dicts.reverse()
         ops = [set(layer.values()) for layer in layer_dicts]
 
-
     if reverse_bits:
         qregs.reverse()
         cregs.reverse()

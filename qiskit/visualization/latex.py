@@ -26,8 +26,10 @@ from qiskit.visualization import qcstyle as _qcstyle
 
 class QCircuitImage:
     """This class contains methods to create \\LaTeX circuit images.
+
     The class targets the \\LaTeX package Q-circuit
     (https://arxiv.org/pdf/quant-ph/0406003).
+
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
@@ -116,8 +118,10 @@ class QCircuitImage:
 
     def latex(self, aliases=None):
         """Return LaTeX string representation of circuit.
+
         This method uses the LaTeX Qconfig package to create a graphical
         representation of the circuit.
+
         Returns:
             string: for writing to a LaTeX file.
         """
@@ -203,6 +207,7 @@ class QCircuitImage:
 
     def _get_image_depth(self):
         """Get depth information for the circuit.
+
         Returns:
             int: number of columns in the circuit
             int: total size of columns in the circuit
@@ -247,6 +252,7 @@ class QCircuitImage:
 
     def _get_beamer_page(self):
         """Get height, width & scale attributes for the beamer page.
+
         Returns:
             tuple: (height, width, scale) desirable page attributes
         """
@@ -287,6 +293,7 @@ class QCircuitImage:
 
     def _build_latex_array(self, aliases=None):
         """Returns an array of strings containing \\LaTeX for this circuit.
+
         If aliases is not None, aliases contains a dict mapping
         the current qubits in the circuit to new qubit names.
         We will deduce the register names and sizes from aliases.
@@ -540,12 +547,12 @@ class QCircuitImage:
                                 if stop_pos - start_pos >= 2:
                                     delta = stop_pos - start_pos
                                     self._latex[start_pos][columns] = (
-                                            "\\multigate{%s}{%s}" % (delta, nm))
+                                        "\\multigate{%s}{%s}" % (delta, nm))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
                                         self._latex[i_pos][columns] = "\\ghost{%s}" % nm
                                 else:
                                     self._latex[start_pos][columns] = (
-                                            "\\multigate{1}{%s}" % nm)
+                                        "\\multigate{1}{%s}" % nm)
                                     self._latex[stop_pos][columns] = "\\ghost{%s}" % nm
 
                     elif len(qarglist) == 3:
@@ -629,12 +636,12 @@ class QCircuitImage:
                                 if stop_pos - start_pos >= 3:
                                     delta = stop_pos - start_pos
                                     self._latex[start_pos][columns] = (
-                                            "\\multigate{%s}{%s}" % (delta, nm))
+                                        "\\multigate{%s}{%s}" % (delta, nm))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
                                         self._latex[i_pos][columns] = "\\ghost{%s}" % nm
                                 else:
                                     self._latex[pos_1][columns] = (
-                                            "\\multigate{2}{%s}" % nm)
+                                        "\\multigate{2}{%s}" % nm)
                                     self._latex[pos_2][columns] = "\\ghost{%s}" % nm
                                     self._latex[pos_3][columns] = "\\ghost{%s}" % nm
 
@@ -649,7 +656,7 @@ class QCircuitImage:
                         pos_stop = max(pos_array)
                         delta = pos_stop - pos_start
                         self._latex[pos_start][columns] = (
-                                "\\multigate{%s}{%s}" % (nbits - 1, nm))
+                            "\\multigate{%s}{%s}" % (nbits - 1, nm))
                         for pos in range(pos_start + 1, pos_stop + 1):
                             self._latex[pos][columns] = "\\ghost{%s}" % nm
 
@@ -728,6 +735,7 @@ class QCircuitImage:
 
     def _ffs(self, mask):
         """Find index of first set bit.
+
         Args:
             mask (int): integer to search
         Returns:
@@ -739,13 +747,17 @@ class QCircuitImage:
 
 def _get_register_specs(bit_labels):
     """Get the number and size of unique registers from bit_labels list.
+
     Args:
         bit_labels (list): this list is of the form::
+
             [['reg1', 0], ['reg1', 1], ['reg2', 0]]
+
             which indicates a register named "reg1" of size 2
             and a register named "reg2" of size 1. This is the
             format of classic and quantum bit labels in qobj
             header.
+
     Yields:
         tuple: iterator of register_name:size pairs.
     """
@@ -756,6 +768,7 @@ def _get_register_specs(bit_labels):
 
 def _truncate_float(matchobj, format_str='0.2g'):
     """Truncate long floats
+
     Args:
         matchobj (re.Match): contains original float
         format_str (str): format specifier
