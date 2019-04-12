@@ -8,7 +8,7 @@
 
 """Test Qiskit's QuantumCircuit class for wires."""
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, QiskitError
 from qiskit.test import QiskitTestCase
 
 
@@ -48,3 +48,20 @@ class TestCircuitWires(QiskitTestCase):
         expected.measure(qreg1[0], creg0[1])
 
         self.assertEqual(circ, expected)
+
+    def test_circuit_qwire_out_of_range(self):
+        """Fail if quantum wire is out of range.
+        """
+        qreg = QuantumRegister(2)
+
+        circ = QuantumCircuit(qreg)
+        self.assertRaises(QiskitError, circ.h, 99)  # circ.h(99)
+
+    def test_circuit_cwire_out_of_range(self):
+        """Fail if classical wire is out of range.
+        """
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+
+        circ = QuantumCircuit(qreg, creg)
+        self.assertRaises(QiskitError, circ.measure, 1, 99)  # circ.measure(1, 99)
