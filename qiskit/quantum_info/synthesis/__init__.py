@@ -7,4 +7,4 @@
 
 """State and Unitary synthesis methods."""
 
-from .two_qubit_kak import two_qubit_kak
+from .two_qubit_kak import two_qubit_kak, euler_angles_1q

@@ -12,7 +12,7 @@ import unittest
 from qiskit import execute
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.quantum_info.synthesis import two_qubit_kak
-from qiskit.quantum_info.operators import Unitary
+from qiskit.quantum_info.operators import Unitary, Pauli
 from qiskit.quantum_info.random import random_unitary
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.test import QiskitTestCase
@@ -33,6 +33,16 @@ class TestSynthesis(QiskitTestCase):
                 self.assertAlmostEqual(
                     process_fidelity(unitary.representation, decomp_unitary.representation),
                     1.0, places=7)
+
+    def test_two_qubit_kak_from_paulis(self):
+        """Verify KAK decomposition can handle Pauli objects.
+        """
+        pauli_x = Pauli(label='IX')
+        pauli_z = Pauli(label='IZ')
+        decomp_circuit = two_qubit_kak(pauli_x.kron(pauli_z))
+        result = execute(decomp_circuit, UnitarySimulatorPy()).result()
+        decomp_unitary = Unitary(result.get_unitary())
+        print(decomp_unitary)
 
 
 if __name__ == '__main__':

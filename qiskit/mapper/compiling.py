@@ -22,7 +22,7 @@ def euler_angles_1q(unitary_matrix):
     """
     warnings.warn("euler_angles_1q function is now accessible under "
                   "qiskit.quantum_info.synthesis", DeprecationWarning)
-    return synthesis.two_qubit_kak.euler_angles_1q(unitary_matrix)
+    return synthesis.euler_angles_1q(unitary_matrix)
 
 
 def two_qubit_kak(unitary_matrix, verify_gate_sequence=False):

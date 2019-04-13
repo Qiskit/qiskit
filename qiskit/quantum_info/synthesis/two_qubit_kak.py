@@ -5,7 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,invalid-sequence-index
+# pylint: disable=unsupported-assignment-operation
 
 """
 Expand 2-qubit Unitary operators into an equivalent
@@ -135,6 +136,13 @@ def two_qubit_kak(unitary):
     Raises:
         QiskitError: Error in KAK decomposition.
     """
+
+    if not isinstance(unitary, (Unitary, Operator)):
+        unitary = Operator(unitary)
+        if not unitary.is_unitary():
+            raise TranspilerError("two_qubit_kak: input is not unitary")
+        unitary_matrix = unitary.data
+
     unitary_matrix = unitary.representation
     if unitary_matrix.shape != (4, 4):
         raise QiskitError("two_qubit_kak: Expected 4x4 matrix")
