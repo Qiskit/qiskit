@@ -8,6 +8,7 @@
 """
 Schedule.
 """
+import itertools
 import logging
 from typing import List, Tuple
 
@@ -36,7 +37,8 @@ class Schedule(ScheduleComponent):
         self._start_time = 0
 
         try:
-            self._occupancy = TimeslotCollection([sched.occupancy for sched in schedules])
+            self._occupancy = TimeslotCollection(*itertools.chain(
+                                *[sched.occupancy for sched in schedules]))
         except PulseError as ts_err:
             raise PulseError('Child schedules {} overlap.'.format(
                     [sched.name for sched in schedules])) from ts_err

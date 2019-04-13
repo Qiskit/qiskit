@@ -89,7 +89,7 @@ class DriveInstruction(Instruction):
 
     def __init__(self, command: SamplePulse, channel: OutputChannel, start_time: int = 0):
         slots = [Timeslot(Interval(start_time, start_time + command.duration), channel)]
-        super().__init__(command, start_time, TimeslotCollection(slots))
+        super().__init__(command, start_time, TimeslotCollection(*slots))
         self._channel = channel
 
     @property

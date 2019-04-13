@@ -99,7 +99,7 @@ class Timeslot:
 class TimeslotCollection:
     """Collection of `Timeslot`s."""
 
-    def __init__(self, timeslots: List[Timeslot]):
+    def __init__(self, *timeslots: List[Timeslot]):
         """Create a new time-slot collection.
 
         Args:
@@ -116,7 +116,7 @@ class TimeslotCollection:
             self._table[slot.channel].append(slot.interval)
 
     @property
-    def timeslots(self) -> Tuple[Timeslot, ...]:
+    def timeslots(self) -> Tuple[Timeslot]:
         """Time slots of this occupancy."""
         return self._timeslots
 
@@ -146,7 +146,7 @@ class TimeslotCollection:
         """
         slots = [Timeslot(slot.interval, slot.channel) for slot in self.timeslots]
         slots.extend([Timeslot(slot.interval, slot.channel) for slot in occupancy.timeslots])
-        return TimeslotCollection(slots)
+        return TimeslotCollection(*slots)
 
     def shifted(self, time: int) -> 'TimeslotCollection':
         """Return a new TimeslotCollection shifted by `time`.
@@ -158,4 +158,4 @@ class TimeslotCollection:
             A new TimeslotCollection object shifted by `time`.
         """
         slots = [Timeslot(slot.interval.shifted(time), slot.channel) for slot in self.timeslots]
-        return TimeslotCollection(slots)
+        return TimeslotCollection(*slots)

@@ -109,7 +109,7 @@ class AcquireInstruction(Instruction):
         slots = [Timeslot(Interval(0, command.duration), q.acquire) for q in qubits]
         slots.extend([Timeslot(Interval(0, command.duration), mem) for mem in mem_slots])
 
-        super().__init__(command, start_time, TimeslotCollection(slots))
+        super().__init__(command, start_time, TimeslotCollection(*slots))
 
         self._qubits = qubits
         self._mem_slots = mem_slots
