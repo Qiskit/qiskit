@@ -454,19 +454,19 @@ class QuantumCircuit:
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
         for op in self.data:
-            if op.name not in ['barrier', 'snapshot']:
+            if op[0].name not in ['barrier', 'snapshot']:
                 levels = []
                 reg_ints = []
-                for ind, reg in enumerate(op.qargs+op.cargs):
+                for ind, reg in enumerate(op[1]+op[2]):
                     # Add to the stacks of the qubits and
                     # cbits used in the gate.
                     reg_ints.append(reg_map[reg[0].name]+reg[1])
                     levels.append(op_stack[reg_ints[ind]] + 1)
-                if op.control:
+                if op[0].control:
                     # Controls operate over all bits in the
                     # classical register they use.
-                    cint = reg_map[op.control[0].name]
-                    for off in range(op.control[0].size):
+                    cint = reg_map[op[0].control[0].name]
+                    for off in range(op[0].control[0].size):
                         if cint+off not in reg_ints:
                             reg_ints.append(cint+off)
                             levels.append(op_stack[cint+off]+1)
@@ -493,10 +493,10 @@ class QuantumCircuit:
         """
         count_ops = {}
         for op in self.data:
-            if op.name in count_ops.keys():
-                count_ops[op.name] += 1
+            if op[0].name in count_ops.keys():
+                count_ops[op[0].name] += 1
             else:
-                count_ops[op.name] = 1
+                count_ops[op[0].name] = 1
         return count_ops
 
     def num_connected_components(self, unitary_only=False):
@@ -529,19 +529,19 @@ class QuantumCircuit:
         # which of the sub_graphs the gate joins together.
         for op in self.data:
             if unitary_only:
-                args = op.qargs
+                args = op[1]
                 num_qargs = len(args)
             else:
-                args = op.qargs+op.cargs
-                num_qargs = len(args) + (1 if op.control else 0)
+                args = op[1]+op[2]
+                num_qargs = len(args) + (1 if op[0].control else 0)
 
-            if num_qargs >= 2 and op.name not in ['barrier', 'snapshot']:
+            if num_qargs >= 2 and op[0].name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if op.control and not unitary_only:
-                    creg = op.control[0]
+                if op[0].control and not unitary_only:
+                    creg = op[0].control[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
                         temp_int = creg_int+coff
