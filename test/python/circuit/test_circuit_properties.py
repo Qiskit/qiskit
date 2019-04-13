@@ -5,12 +5,10 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=unused-import, invalid-name
+# pylint: disable=invalid-name
 
 """Test Qiskit's inverse gate operation."""
 
-import os
-import tempfile
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
