@@ -23,7 +23,7 @@ from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 # pylint: disable=no-name-in-module, import-error
 from .cython.stochastic_swap.utils import nlayout_from_layout
 # pylint: disable=no-name-in-module, import-error
-from .cython.stochastic_swap._swap_trial import swap_trial
+from .cython.stochastic_swap.swap_trial import swap_trial
 logger = getLogger(__name__)
 
 
@@ -110,7 +110,10 @@ class StochasticSwap(TransformationPass):
         self.input_layout = self.initial_layout.copy()
 
         self.qregs = dag.qregs
+        if self.seed is None:
+            self.seed = np.random.randint(0, np.iinfo(np.int32).max)
         self.rng = np.random.RandomState(self.seed)
+        logger.debug("StochasticSwap RandomState seeded with seed=%s", self.seed)
 
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
         # self.property_set["layout"] = self.initial_layout
@@ -495,8 +498,8 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
 
     edgs = best_edges.edges()
     for idx in range(best_edges.size//2):
-        slice_circuit.apply_operation_back(SwapGate(initial_layout[edgs[2*idx]],
-                                                    initial_layout[edgs[2*idx+1]]))
+        slice_circuit.apply_operation_back(
+            SwapGate(), [initial_layout[edgs[2*idx]], initial_layout[edgs[2*idx+1]]], [])
     trial_circuit.extend_back(slice_circuit)
     best_circuit = trial_circuit
 

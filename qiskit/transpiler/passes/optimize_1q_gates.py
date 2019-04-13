@@ -17,7 +17,7 @@ from qiskit.mapper import MapperError
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u2 import U2Gate
 from qiskit.extensions.standard.u3 import U3Gate
-from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.unroller import Unroller
@@ -165,26 +165,25 @@ class Optimize1qGates(TransformationPass):
             # qubit. The name is irrelevant, because substitute_node_with_dag will take care of
             # putting it in the right place.
             run_qarg = (QuantumRegister(1, 'q'), 0)
-            new_op = Instruction("", [], [], [])
+            new_op = Gate(name="", num_qubits=1, params=[])
             if right_name == "u1":
-                new_op = U1Gate(right_parameters[2], run_qarg)
+                new_op = U1Gate(right_parameters[2])
             if right_name == "u2":
-                new_op = U2Gate(right_parameters[1], right_parameters[2], run_qarg)
+                new_op = U2Gate(right_parameters[1], right_parameters[2])
             if right_name == "u3":
-                new_op = U3Gate(right_parameters[0], right_parameters[1], right_parameters[2],
-                                run_qarg)
+                new_op = U3Gate(*right_parameters)
 
             if right_name != 'nop':
                 new_dag = DAGCircuit()
                 new_dag.add_qreg(run_qarg[0])
-                new_dag.apply_operation_back(new_op)
+                new_dag.apply_operation_back(new_op, [run_qarg], [])
                 dag.substitute_node_with_dag(run[0], new_dag)
 
             # Delete the other nodes in the run
             for current_node in run[1:]:
-                dag._remove_op_node(current_node)
+                dag.remove_op_node(current_node)
             if right_name == "nop":
-                dag._remove_op_node(run[0])
+                dag.remove_op_node(run[0])
 
         return dag
 
