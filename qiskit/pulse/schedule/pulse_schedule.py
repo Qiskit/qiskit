@@ -113,10 +113,20 @@ class Schedule(ScheduleComponent):
         return self._children
 
     def __add__(self, schedule: ScheduleComponent) -> Schedule:
+        """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`."""
         return self.compose(schedule)
 
     def __or__(self, schedule: ScheduleComponent) -> Schedule:
+        """Return a new schedule which is the union of the parent `Schedule` and `schedule`."""
         return self.union(schedule)
+
+    def __lshift__(self, time: int) -> Schedule:
+        """Return a new schedule which is the parent `Schedule` shifted forward by `time`."""
+        return self.shifted(time)
+
+    def __rshift__(self, time: int) -> Schedule:
+        """Return a new schedule which is the parent `Schedule` shifted backwards by `time`."""
+        return self.shifted(-time)
 
     def __str__(self):
         # TODO: Handle schedule of schedules
