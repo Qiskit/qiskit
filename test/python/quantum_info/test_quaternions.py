@@ -11,7 +11,8 @@ import math
 import numpy as np
 import scipy.linalg as la
 
-from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
+from qiskit.quantum_info.operators.quaternion import quaternion_from_euler, Quaternion
+
 from qiskit.test import QiskitTestCase
 
 
@@ -19,6 +20,9 @@ class TestQuaternions(QiskitTestCase):
     """Tests qiskit.quantum_info.operators.quaternion"""
 
     def setUp(self):
+        self.rndArray = np.array([0.5, 0.8, 0.9, -0.3])
+        self.norm = la.norm(self.rndArray)
+        self.quatUnnormalized = Quaternion(self.rndArray)
         axes = ['x', 'y', 'z']
         rnd = np.array([-0.92545003, -2.19985357, 6.01761209])
         idx = np.array([0, 2, 1])
@@ -28,6 +32,14 @@ class TestQuaternions(QiskitTestCase):
         axes_str = ''.join(axes[i] for i in idx)
         quat = quaternion_from_euler(rnd, axes_str)
         self.mat2 = quat.to_matrix()
+
+    def test_norm(self):
+        """Quaternions should give correct norm."""
+        self.assertEqual(self.norm, self.quatUnnormalized.norm())
+
+    def test_normalize(self):
+        """Quaternions should be normalizable"""
+        self.assertAlmostEqual(self.quatUnnormalized.normalize().norm(), 1, places=5)
 
     def test_random_euler(self):
         """Quaternion from Euler rotations."""
@@ -52,6 +64,21 @@ class TestQuaternions(QiskitTestCase):
             euler = quat1.to_zyz()
             quat2 = quaternion_from_euler(euler, 'zyz')
             self.assertTrue(np.allclose(abs(quat1.data.dot(quat2.data)), 1))
+
+    def test_mul(self):
+        """Quarternions should multiply correctly."""
+        # multiplication of quarternions is equivalent to the
+        # multiplication of corresponding rotation matrices.
+        other_quat = Quaternion(np.array([0.4, 0.2, -0.7, 0.8]))
+        other_mat = other_quat.to_matrix()
+        product_quat = self.quatUnnormalized * other_quat
+        product_mat = (self.quatUnnormalized.to_matrix()).dot(other_mat)
+        self.assertTrue(np.allclose(product_quat.to_matrix(), product_mat))
+
+    def test_rotation(self):
+        """Multiplication by -1 should give the same rotation."""
+        neg_quat = Quaternion(self.quatUnnormalized.data * -1)
+        self.assertTrue(np.allclose(neg_quat.to_matrix(), self.quatUnnormalized.to_matrix()))
 
 
 def rotation_matrix(angle, axis):
