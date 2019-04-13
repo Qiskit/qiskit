@@ -6,7 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-ScheduleComponent = Common interface for components of schedule (Instruction and Schedule).
+ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
 from typing import Tuple

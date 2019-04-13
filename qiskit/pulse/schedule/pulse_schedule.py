@@ -9,9 +9,10 @@
 Schedule.
 """
 import logging
-from copy import copy
 from typing import List, Tuple
 
+from qiskit.pulse import ops
+from qiskit.pulse import Schedule
 from qiskit.pulse.common.interfaces import ScheduleComponent
 from qiskit.pulse.common.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
@@ -22,66 +23,62 @@ logger = logging.getLogger(__name__)
 class Schedule(ScheduleComponent):
     """Schedule of instructions. The composite node of a schedule tree."""
 
-    def __init__(self, name: str = None, start_time: int = 0):
+    def __init__(self, *schedules, name: str = None):
         """Create empty schedule.
 
         Args:
             name (str, optional): Name of this schedule. Defaults to None.
             start_time (int, optional): Begin time of this schedule. Defaults to 0.
+
+        Raises PulseError
         """
         self._name = name
-        self._start_time = start_time
-        self._occupancy = TimeslotCollection(timeslots=[])
-        self._children = ()
+        self._start_time = 0
+
+        try:
+            self._occupancy = TimeslotCollection([sched.occupancy for sched in schedules])
+        except PulseError as ts_err:
+            raise PulseError('Child schedules {} overlap.'.format(
+                    [sched.name for sched in schedules])) from ts_err
+        self._children = tuple(*schedules)
 
     @property
     def name(self) -> str:
         """Name of this schedule."""
         return self._name
 
-    def insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with inserting a `schedule` at `start_time`.
+    def union(self, *schedules: List[ScheduleComponent]) -> Schedule:
+        """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
+
+        Args:
+            schedules: Schedules to be take the union with the parent `Schedule`.
+
+        Returns:
+            Schedule: a new schedule with `schedule` inserted at `start_time`
+
+        Raises:
+            PulseError: when an invalid schedule is specified or failed to insert
+        """
+        return ops.union(self, *schedules)
+
+    def insert(self, start_time: int, schedule: ScheduleComponent) -> Schedule:
+        """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`.
 
         Args:
             start_time (int): time to be inserted
             schedule (ScheduleComponent): schedule to be inserted
 
         Returns:
-            Schedule: a new schedule inserted a `schedule` at `start_time`
+            Schedule: a new schedule with `schedule` inserted at `start_time`
 
         Raises:
             PulseError: when an invalid schedule is specified or failed to insert
         """
-        if not isinstance(schedule, ScheduleComponent):
-            raise PulseError("Invalid to be inserted: %s" % schedule.__class__.__name__)
-        news = copy(self)
-        try:
-            news._insert(start_time, schedule)
-        except PulseError as err:
-            raise PulseError(err.message)
-        return news
-
-    def _insert(self, start_time: int, schedule: ScheduleComponent):
-        """Insert a new `schedule` at `start_time`.
-        Args:
-            start_time (int): start time of the schedule
-            schedule (ScheduleComponent): schedule to be inserted
-        Raises:
-            PulseError: when an invalid schedule is specified or failed to insert
-        """
-        if schedule == self:
-            raise PulseError("Cannot insert self to avoid infinite recursion")
-        shifted = schedule.occupancy.shifted(start_time)
-        if self._occupancy.is_mergeable_with(shifted):
-            self._occupancy = self._occupancy.merged(shifted)
-            self._children += (schedule.shifted(start_time),)
-        else:
-            logger.warning("Fail to insert %s at %s due to timing overlap", schedule, start_time)
-            raise PulseError("Fail to insert %s at %s due to overlap" % (str(schedule), start_time))
+        return ops.insert(self, start_time, schedule)
 
     def append(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with appending a `schedule` at the timing
-        just after the last instruction finishes.
+        """Return a new schedule with `schedule` inserted at the maximum time over
+        all channels shared between `self` and `schedule`.
 
         Args:
             schedule (ScheduleComponent): schedule to be appended
@@ -92,15 +89,7 @@ class Schedule(ScheduleComponent):
         Raises:
             PulseError: when an invalid schedule is specified or failed to append
         """
-        if not isinstance(schedule, ScheduleComponent):
-            raise PulseError("Invalid to be appended: %s" % schedule.__class__.__name__)
-        news = copy(self)
-        try:
-            news._insert(self.stop_time, schedule)
-        except PulseError:
-            logger.warning("Fail to append %s due to timing overlap", schedule)
-            raise PulseError("Fail to append %s due to overlap" % str(schedule))
-        return news
+        return ops.append(self, schedule)
 
     @property
     def duration(self) -> int:
@@ -109,12 +98,6 @@ class Schedule(ScheduleComponent):
     @property
     def occupancy(self) -> TimeslotCollection:
         return self._occupancy
-
-    def shifted(self, shift: int) -> ScheduleComponent:
-        news = copy(self)
-        news._start_time += shift
-        news._occupancy = self._occupancy.shifted(shift)
-        return news
 
     @property
     def start_time(self) -> int:
@@ -129,18 +112,18 @@ class Schedule(ScheduleComponent):
     def children(self) -> Tuple[ScheduleComponent, ...]:
         return self._children
 
-    def __add__(self, schedule: ScheduleComponent):
-        return self.append(schedule)
+    def __add__(self, schedule: ScheduleComponent) -> Schedule:
+        return self.compose(schedule)
 
-    def __or__(self, schedule: ScheduleComponent):
-        return self.insert(0, schedule)
+    def __or__(self, schedule: ScheduleComponent) -> Schedule:
+        return self.union(schedule)
 
     def __str__(self):
         # TODO: Handle schedule of schedules
-        for child in self._children:
-            if child.children:
-                raise NotImplementedError("This version doesn't support schedule of schedules.")
-        return '\n'.join([str(child) for child in self._children])
+
+        child_strs = [str(child) for child in self.children]
+        return 'Schedule(name={name},children={children})'.format(name=self.name,
+                                                                  children=child_strs)
 
     def flat_instruction_sequence(self) -> List[ScheduleComponent]:
         """Return instruction sequence of this schedule.
