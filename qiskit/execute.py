@@ -193,7 +193,7 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
         'memory_slots': backend_config.n_qubits,
         'memory_slot_size': 100,
         'meas_return': 'avg',
-        'pulse_library': backend_config.defaults.get('pulse_library', []),
+        'pulse_library': [],
         'qubit_lo_freq': backend_config.defaults['qubit_freq_est'],
         'meas_lo_freq': backend_config.defaults['meas_freq_est'],
         'rep_time': backend_config.rep_times[-1]
