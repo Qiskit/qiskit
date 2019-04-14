@@ -128,21 +128,14 @@ def two_qubit_kak(unitary):
     """Decompose a two-qubit gate over SU(2)+CNOT using the KAK decomposition.
 
     Args:
-        unitary (Unitary): a 4x4 Unitary operator to decompose.
+        unitary (Unitary): a 4x4 unitary operator to decompose.
 
     Returns:
         QuantumCircuit: a circuit implementing the unitary over SU(2)+CNOT
 
     Raises:
-        QiskitError: Error in KAK decomposition.
+        QiskitError: input not a unitary, or error in KAK decomposition.
     """
-
-    if not isinstance(unitary, (Unitary, Operator)):
-        unitary = Operator(unitary)
-        if not unitary.is_unitary():
-            raise TranspilerError("two_qubit_kak: input is not unitary")
-        unitary_matrix = unitary.data
-
     unitary_matrix = unitary.representation
     if unitary_matrix.shape != (4, 4):
         raise QiskitError("two_qubit_kak: Expected 4x4 matrix")

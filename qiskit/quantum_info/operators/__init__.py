@@ -7,6 +7,7 @@
 
 """Quantum Operators."""
 
+from .operator import Operator
 from .unitary import Unitary
 from .pauli import Pauli, pauli_group
 from .channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
