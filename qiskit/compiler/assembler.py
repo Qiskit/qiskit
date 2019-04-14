@@ -236,13 +236,17 @@ def assemble_schedules(schedules, dict_config, dict_header, converter=PulseQobjC
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)
 
-        experiments.append(PulseQobjExperiment(instructions=commands,
-                                               header=experimentheader,
-                                               config=experimentconfig))
+        experiments.append(
+            PulseQobjExperiment(instructions=commands,
+                                header=experimentheader,
+                                config=experimentconfig)
+        )
 
     # generate qobj pulse library
-    for p in user_pulselib:
-        dict_config['pulse_library'].append(QobjPulseLibrary(name=p.name, samples=p.samples))
+    for pulse in user_pulselib:
+        dict_config['pulse_library'].append(
+            QobjPulseLibrary(name=pulse.name, samples=pulse.samples)
+        )
 
     qobj_config = PulseQobjConfig(**dict_config)
     qobj_header = QobjHeader(**dict_header)
