@@ -133,6 +133,61 @@ class FakeQasmSimulator(FakeBackend):
         super().__init__(configuration)
 
 
+class FakeOpenPulse2Q(FakeBackend):
+    """A fake 2 qubit backend for pulse test."""
+
+    def __init__(self):
+        configuration = BackendConfiguration(
+            backend_name='fake_openpulse_2q',
+            backend_version='0.0.0',
+            n_qubits=2,
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            simulator=False,
+            local=True,
+            conditional=True,
+            open_pulse=True,
+            memory=False,
+            max_shots=65536,
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=[[1, 0]],
+            n_registers=2,
+            n_uchannels=2,
+            u_channel_lo=[
+                [{"q": 0, "scale": [1, 0]}],
+                [{"q": 0, "scale": [-1, 0]}, {"q": 1, "scale": [1, 0]}]
+            ],
+            meas_level=[1, 2],
+            qubit_lo_range=[[4.5, 5.5], [4.5, 5.5]],
+            meas_lo_range=[[6.0, 7.0], [6.0, 7.0]],
+            dt=1.3333,
+            dtm=10.5,
+            rep_times=[100, 250, 500, 1000],
+            meas_map=[[0], [1, 2]],
+            channel_bandwidth=[
+                [-0.2, 0.4], [-0.3, 0.3], [-0.3, 0.3],
+                [-0.02, 0.02], [-0.02, 0.02], [-0.02, 0.02]
+            ],
+            meas_kernels=['kernel1'],
+            discriminators=['max_1Q_fidelity'],
+            acquisition_latency=[[100, 100], [100, 100]],
+            conditional_latency=[
+                [100, 1000], [1000, 100], [100, 1000],
+                [1000, 100], [100, 1000], [1000, 100]
+            ],
+            defaults={
+                'qubit_freq_est': [4.9, 5.0],
+                'meas_freq_est': [6.5, 6.6],
+                'buffer': 10,
+                'pulse_library': [],
+                'cmd_def': {},
+                'meas_kernel': [{'name': 'kernel1', 'params': []}],
+                'discriminator': [{'name': 'max_1Q_fidelity', 'params': [0, 0]}]
+            }
+        )
+
+        super().__init__(configuration)
+
+
 class FakeTenerife(FakeBackend):
     """A fake 5 qubit backend."""
 
