@@ -165,7 +165,7 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 
 
 def _replaced_with_user_los(user_lo_dict, default_los):
-    """Return user LO frequencies replaced from `default_los`.
+    """Return user LO frequencies replaced with `default_los`.
     Args:
         user_lo_dict(UserLoDict): dictionary of user's LO frequencies
         default_los(list(float)): default LO frequencies to be replaced
