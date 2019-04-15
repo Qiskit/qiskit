@@ -10,9 +10,9 @@ Persistent value.
 """
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.interfaces import Instruction
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotOccupancy
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
+from .instruction import Instruction
 from .pulse_command import PulseCommand
 
 
@@ -58,24 +58,16 @@ class PersistentValue(PulseCommand):
 
 
 class PersistentValueInstruction(Instruction):
-    """Pulse to keep persistent value. """
+    """Instruction to keep persistent value. """
 
-    def __init__(self, command: PersistentValue, channel: OutputChannel):
-        self._command = command
+    def __init__(self, command: PersistentValue, channel: OutputChannel, start_time: int = 0):
+        slots = [Timeslot(Interval(start_time, start_time), channel)]
+        super().__init__(command, start_time, TimeslotCollection(slots))
         self._channel = channel
-        self._occupancy = TimeslotOccupancy([Timeslot(Interval(0, 0), channel)])
-
-    @property
-    def duration(self):
-        return 0
-
-    @property
-    def occupancy(self):
-        return self._occupancy
 
     @property
     def command(self) -> PersistentValue:
-        """PersistentValue command."""
+        """PersistentValue command. """
         return self._command
 
     @property
@@ -84,4 +76,4 @@ class PersistentValueInstruction(Instruction):
         return self._channel
 
     def __repr__(self):
-        return '%s >> %s' % (self._command, self._channel)
+        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)
