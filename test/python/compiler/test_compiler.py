@@ -616,15 +616,6 @@ class TestCompiler(QiskitTestCase):
 
         self.assertTrue(mock_pass.called)
 
-    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
-    def test_final_measurement_barrier_for_simulators(self, mock_pass):
-        """Verify BarrierBeforeFinalMeasurements pass is in default pipeline for simulators."""
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
-        dag_circuit = circuit_to_dag(circ)
-        transpile_dag(dag_circuit)
-
-        self.assertTrue(mock_pass.called)
-
     def test_optimize_to_nothing(self):
         """ Optimze gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035 """
