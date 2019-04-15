@@ -106,10 +106,20 @@ class TestQuaternions(QiskitTestCase):
         some_quat = quaternion_from_axis_rotation(rand_rot_angle, "z")
         self.assertTrue(np.allclose(some_quat.to_zyz(), np.array([rand_rot_angle, 0, 0])))
 
-    def test_two_euler_angles(self):
+    def test_two_euler_angle_0123456789(self):
         """Quaternion should return a correct sequence of zyz representation
-           in the case of rotations when there are only two non-zero Euler angle."""
+           in the case of rotations when there are only two non-zero Euler angle.
+           angle = 0.123456789 """
         rand_rot_angle = 0.123456789
+        some_quat = (quaternion_from_axis_rotation(rand_rot_angle, "z")
+                     * quaternion_from_axis_rotation(np.pi, "y"))
+        self.assertTrue(np.allclose(some_quat.to_zyz(), np.array([rand_rot_angle, np.pi, 0])))
+
+    def test_two_euler_angle_0987654321(self):
+        """Quaternion should return a correct sequence of zyz representation
+           in the case of rotations when there are only two non-zero Euler angle.
+           angle = 0.987654321 """
+        rand_rot_angle = 0.987654321
         some_quat = (quaternion_from_axis_rotation(rand_rot_angle, "z")
                      * quaternion_from_axis_rotation(np.pi, "y"))
         self.assertTrue(np.allclose(some_quat.to_zyz(), np.array([rand_rot_angle, np.pi, 0])))
