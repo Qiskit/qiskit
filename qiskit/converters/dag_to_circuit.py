@@ -56,7 +56,7 @@ def dag_to_circuit(dag):
                 """Create a fresh instruction from an input instruction."""
                 if issubclass(inst.__class__,
                               Instruction) and inst.__class__ not in [
-                                      Instruction, Gate]:
+                                  Instruction, Gate]:
                     if inst.name == 'barrier':
                         new_inst = inst.__class__(inst.num_qubits)
                     elif inst.name == 'initialize':
