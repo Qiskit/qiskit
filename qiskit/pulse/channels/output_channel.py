@@ -55,24 +55,24 @@ class OutputChannel(Channel):
     @abstractmethod
     def __init__(self,
                  index: int,
-                 lo_frequency: float = None,
+                 lo_freq: float = None,
                  lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         super().__init__(index)
-        self._lo_frequency = lo_frequency
+        self._lo_freq = lo_freq
 
         if (not isinstance(lo_freq_range, tuple)) or len(lo_freq_range) != 2:
             raise PulseError("Invalid form of lo_freq_range is specified.")
         self._lo_freq_range = LoRange(*lo_freq_range)
 
-        if self._lo_frequency:
-            if not self._lo_freq_range.includes(self._lo_frequency):
-                raise PulseError("lo_frequency %f must be within lo_freq_range %s" %
-                                 (self._lo_frequency, self._lo_freq_range))
+        if self._lo_freq:
+            if not self._lo_freq_range.includes(self._lo_freq):
+                raise PulseError("lo_freq %f must be within lo_freq_range %s" %
+                                 (self._lo_freq, self._lo_freq_range))
 
     @property
-    def lo_frequency(self) -> float:
-        """Get the default frequency of local oscillator of this channel."""
-        return self._lo_frequency
+    def lo_freq(self) -> float:
+        """Get the default lo frequency."""
+        return self._lo_freq
 
     @property
     def lo_freq_range(self) -> LoRange:
@@ -81,7 +81,7 @@ class OutputChannel(Channel):
 
     def __eq__(self, other):
         """Two output channels are the same if they are of the same type, and
-        have the same index and lo_frequency.
+        have the same index and lo_freq.
 
         Args:
             other (OutputChannel): other OutputChannel
@@ -91,12 +91,12 @@ class OutputChannel(Channel):
         """
         if type(self) is type(other) and \
                 self._index == other._index and \
-                self._lo_frequency == other._lo_frequency:
+                self._lo_freq == other._lo_freq:
             return True
         return False
 
     def __hash__(self):
-        return hash((super().__hash__(), self._lo_frequency))
+        return hash((super().__hash__(), self._lo_freq))
 
 
 class DriveChannel(OutputChannel):
@@ -105,16 +105,16 @@ class DriveChannel(OutputChannel):
     prefix = 'd'
 
     def __init__(self, index: int,
-                 lo_frequency: float = None,
+                 lo_freq: float = None,
                  lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new drive (d) channel.
 
         Args:
             index (int): index of the channel
-            lo_frequency (float): default frequency of LO (local oscillator)
+            lo_freq (float): default frequency of LO (local oscillator)
             lo_freq_range (tuple): feasible range of LO frequency
         """
-        super().__init__(index, lo_frequency, lo_freq_range)
+        super().__init__(index, lo_freq, lo_freq_range)
 
 
 class ControlChannel(OutputChannel):
@@ -123,16 +123,16 @@ class ControlChannel(OutputChannel):
     prefix = 'u'
 
     def __init__(self, index: int,
-                 lo_frequency: float = None,
+                 lo_freq: float = None,
                  lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new control (u) channel.
 
         Args:
             index (int): index of the channel
-            lo_frequency (float): default frequency of LO (local oscillator)
+            lo_freq (float): default frequency of LO (local oscillator)
             lo_freq_range (tuple): feasible range of LO frequency
         """
-        super().__init__(index, lo_frequency, lo_freq_range)
+        super().__init__(index, lo_freq, lo_freq_range)
 
 
 class MeasureChannel(OutputChannel):
@@ -141,13 +141,13 @@ class MeasureChannel(OutputChannel):
     prefix = 'm'
 
     def __init__(self, index: int,
-                 lo_frequency: float = None,
+                 lo_freq: float = None,
                  lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new measurement (m) channel.
 
         Args:
             index (int): index of the channel
-            lo_frequency (float): default frequency of LO (local oscillator)
+            lo_freq (float): default frequency of LO (local oscillator)
             lo_freq_range (tuple): feasible range of LO frequency
         """
-        super().__init__(index, lo_frequency, lo_freq_range)
+        super().__init__(index, lo_freq, lo_freq_range)
