@@ -24,7 +24,6 @@ from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
 from .passes.fixed_point import FixedPoint
 from .passes.depth import Depth
-from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .passes.mapping.check_map import CheckMap
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
