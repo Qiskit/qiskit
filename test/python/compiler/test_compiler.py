@@ -192,6 +192,27 @@ class TestCompiler(QiskitTestCase):
                           basis_gates=['h'],
                           initial_layout=layout)
 
+    def test_transpile_single_qubit(self):
+        """ A single-qubit circuit transpilation
+        """
+        qr = QuantumRegister(1, 'qr')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        layout = {(qr, 0): 12}
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
+                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
+                [9, 8], [9, 10], [11, 3], [11, 10],
+                [11, 12], [12, 2], [13, 1], [13, 12]]
+
+        result = transpile(qc, backend=None, coupling_map=cmap, basis_gates=['u2'],
+                           initial_layout=layout)
+
+        qr = QuantumRegister(14, 'q')
+        expected = QuantumCircuit(qr)
+        expected.u2(0, 3.1416, qr[12])
+
+        self.assertEqual(result, expected)
+
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
