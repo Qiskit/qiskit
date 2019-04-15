@@ -10,7 +10,7 @@ The CX direction rearrenges the direction of the cx nodes to make the circuit
 compatible with the coupling_map.
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.dagcircuit import DAGCircuit
@@ -64,10 +64,9 @@ class CXDirection(TransformationPass):
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for cnot_id in subdag.named_nodes('cx', 'CX'):
-                cnot_node = subdag.multi_graph.nodes[cnot_id]
-                control = cnot_node['op'].qargs[0]
-                target = cnot_node['op'].qargs[1]
+            for cnot_node in subdag.named_nodes('cx', 'CX'):
+                control = cnot_node.qargs[0]
+                target = cnot_node.qargs[1]
 
                 physical_q0 = self.layout[control]
                 physical_q1 = self.layout[target]
@@ -85,13 +84,13 @@ class CXDirection(TransformationPass):
                         subdag.add_qreg(target[0])
 
                     # Add H gates around
-                    subdag.apply_operation_back(HGate(target))
-                    subdag.apply_operation_back(HGate(control))
-                    subdag.apply_operation_front(HGate(target))
-                    subdag.apply_operation_front(HGate(control))
+                    subdag.apply_operation_back(HGate(), [target], [])
+                    subdag.apply_operation_back(HGate(), [control], [])
+                    subdag.apply_operation_front(HGate(), [target], [])
+                    subdag.apply_operation_front(HGate(), [control], [])
 
                     # Flips the CX
-                    cnot_node['op'].qargs[0], cnot_node['op'].qargs[1] = target, control
+                    cnot_node.qargs[0], cnot_node.qargs[1] = target, control
 
             new_dag.extend_back(subdag)
 

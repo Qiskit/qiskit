@@ -7,8 +7,7 @@
 
 """Utils for mapping."""
 
-from ._compiling import two_qubit_kak, euler_angles_1q
-from ._coupling import CouplingMap
-from ._layout import Layout
+from .compiling import two_qubit_kak, euler_angles_1q
+from .coupling import CouplingMap
+from .layout import Layout
 from .exceptions import CouplingError, MapperError
-from ._mapping import swap_mapper

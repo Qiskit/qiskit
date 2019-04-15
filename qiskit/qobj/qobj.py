@@ -1,241 +1,140 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# Copyright 2019, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Models for Qobj and its related components."""
+"""Model for Qobj."""
 
-from types import SimpleNamespace
+from marshmallow.validate import Equal, OneOf
 
-import numpy
-import sympy
+from qiskit.qobj.models.base import QobjExperimentSchema, QobjConfigSchema, QobjHeaderSchema
+from qiskit.qobj.models.pulse import PulseQobjExperimentSchema, PulseQobjConfigSchema
+from qiskit.qobj.models.qasm import QasmQobjExperimentSchema, QasmQobjConfigSchema
+from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
+from qiskit.validation.fields import Nested, String
+from .utils import QobjType
 
-from .exceptions import QobjValidationError
-from ._utils import QobjType
+QOBJ_VERSION = '1.1.0'
 
-# Current version of the Qobj schema.
-QOBJ_VERSION = '1.0.0'
-# Qobj schema versions:
-# * 1.0.0: Qiskit 0.6
-# * 0.0.1: Qiskit 0.5.x format (pre-schemas).
+"""Current version of the Qobj schema.
 
-
-class QobjItem(SimpleNamespace):
-    """Generic Qobj structure.
-
-    Single item of a Qobj structure, acting as a superclass of the rest of the
-    more specific elements.
-    """
-    REQUIRED_ARGS = ()
-
-    def as_dict(self):
-        """
-        Return a dictionary representation of the QobjItem, recursively
-        converting its public attributes.
-        Returns:
-            dict: a dictionary.
-        """
-        return {key: self._expand_item(value) for key, value
-                in self.__dict__.items() if not key.startswith('_')}
-
-    @classmethod
-    def _expand_item(cls, obj):
-        # pylint: disable=too-many-return-statements
-        """
-        Return a valid representation of `obj` depending on its type.
-        """
-        if isinstance(obj, (list, tuple)):
-            return [cls._expand_item(item) for item in obj]
-        if isinstance(obj, dict):
-            return {key: cls._expand_item(value) for key, value in obj.items()}
-        if isinstance(obj, numpy.integer):
-            return int(obj)
-        if isinstance(obj, numpy.float):
-            return float(obj)
-        if isinstance(obj, sympy.Symbol):
-            return str(obj)
-        if isinstance(obj, sympy.Basic):
-            if obj.is_imaginary:
-                return [float(sympy.re(obj)), float(sympy.im(obj))]
-            else:
-                return float(obj.evalf())
-        if isinstance(obj, numpy.ndarray):
-            return cls._expand_item(obj.tolist())
-        if isinstance(obj, sympy.Matrix):
-            return cls._expand_item(sympy.matrix2numpy(obj, dtype=complex))
-        if isinstance(obj, complex):
-            return [obj.real, obj.imag]
-        if hasattr(obj, 'as_dict'):
-            return obj.as_dict()
-        return obj
-
-    @classmethod
-    def from_dict(cls, obj):
-        """
-        Return a QobjItem from a dictionary recursively, checking for the
-        required attributes.
-
-        Returns:
-            QobjItem: a new QobjItem.
-
-        Raises:
-            QobjValidationError: if the dictionary does not contain the
-                required attributes for that class.
-        """
-        if not all(key in obj.keys() for key in cls.REQUIRED_ARGS):
-            raise QobjValidationError(
-                'The dict does not contain all required keys: missing "%s"' %
-                [key for key in cls.REQUIRED_ARGS if key not in obj.keys()])
-
-        return cls(**{key: cls._qobjectify_item(value)
-                      for key, value in obj.items()})
-
-    @classmethod
-    def _qobjectify_item(cls, obj):
-        """
-        Return a valid value for a QobjItem from a object.
-        """
-        if isinstance(obj, dict):
-            # TODO: should use the subclasses for finer control over the
-            # required arguments.
-            return QobjItem.from_dict(obj)
-        elif isinstance(obj, list):
-            return [cls._qobjectify_item(item) for item in obj]
-        return obj
-
-    def __reduce__(self):
-        """
-        Customize the reduction in order to allow serialization, as the Qobjs
-        are automatically serialized due to the use of futures.
-        """
-        init_args = tuple(getattr(self, key) for key in self.REQUIRED_ARGS)
-        extra_args = {key: value for key, value in self.__dict__.items()
-                      if key not in self.REQUIRED_ARGS}
-        return self.__class__, init_args, extra_args
+Qobj schema versions:
+* 1.1.0: Qiskit Terra 0.8
+* 1.0.0: Qiskit Terra 0.6
+* 0.0.1: Qiskit Terra 0.5.x format (pre-schemas).
+"""
 
 
-class Qobj(QobjItem):
-    """Representation of a Qobj.
+class QobjSchema(BaseSchema):
+    """Schema for Qobj."""
+    # Required properties.
+    qobj_id = String(required=True)
+    schema_version = String(required=True, missing=QOBJ_VERSION)
+
+    # Required properties depend on Qobj type.
+    config = Nested(QobjConfigSchema, required=True)
+    experiments = Nested(QobjExperimentSchema, required=True, many=True)
+    header = Nested(QobjHeaderSchema, required=True)
+    type = String(required=True, validate=OneOf(choices=(QobjType.QASM, QobjType.PULSE)))
+
+
+class QasmQobjSchema(QobjSchema):
+    """Schema for QasmQobj."""
+
+    # Required properties.
+    config = Nested(QasmQobjConfigSchema, required=True)
+    experiments = Nested(QasmQobjExperimentSchema, required=True, many=True)
+
+    type = String(required=True, validate=Equal(QobjType.QASM),
+                  missing=QobjType.QASM)
+
+
+class PulseQobjSchema(QobjSchema):
+    """Schema for PulseQobj."""
+
+    # Required properties.
+    config = Nested(PulseQobjConfigSchema, required=True)
+    experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
+
+    type = String(required=True, validate=Equal(QobjType.PULSE),
+                  missing=QobjType.PULSE)
+
+
+@bind_schema(QobjSchema)
+class Qobj(BaseModel):
+    """Model for Qobj.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``QobjSchema``.
 
     Attributes:
         qobj_id (str): Qobj identifier.
         config (QobjConfig): config settings for the Qobj.
         experiments (list[QobjExperiment]): list of experiments.
         header (QobjHeader): headers.
-        type (str): experiment type (QASM/PULSE).
-        schema_version (str): Qobj version.
+        type (str): Qobj type.
     """
-
-    REQUIRED_ARGS = ['qobj_id', 'config', 'experiments', 'header']
-
-    def __init__(self, qobj_id, config, experiments, header, **kwargs):
-        # pylint: disable=redefined-builtin,invalid-name
+    def __init__(self, qobj_id, config, experiments, header, type, **kwargs):
+        # pylint: disable=redefined-builtin
         self.qobj_id = qobj_id
         self.config = config
         self.experiments = experiments
         self.header = header
-
-        self.type = QobjType.QASM.value
+        self.type = type
         self.schema_version = QOBJ_VERSION
 
         super().__init__(**kwargs)
 
 
-class QobjHeader(QobjItem):
-    """Header for a Qobj.
+@bind_schema(QasmQobjSchema)
+class QasmQobj(Qobj):
+    """Model for QasmQobj inherit from Qobj.
 
-    Attributes defined in the schema but not required:
-        backend_name (str): name of the backend
-        backend_version (str): the backend version this set of experiments was generated for.
-        qubit_labels (list): map physical qubits to qregs (for QASM).
-        clbit_labels (list): map classical clbits to memory_slots (for QASM).
-    """
-    pass
-
-
-class QobjConfig(QobjItem):
-    """Configuration for a Qobj.
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``QasmQobjSchema``.
 
     Attributes:
-        None should be required
-    Attributes defined in the schema but not required:
-        max_credits (int): number of credits.
-        seed (int): random seed.
-        memory_slots (int): number of measurements slots in the classical
-            memory on the backend.
-        shots (int): number of shots.
+        qobj_id (str): Qobj identifier.
+        config (QASMQobjConfig): config settings for the Qobj.
+        experiments (list[QASMQobjExperiment]): list of experiments.
+        header (QobjHeader): headers.
     """
-    pass
+    def __init__(self, qobj_id, config, experiments, header, **kwargs):
+
+        # to avoid specifying 'type' here within from_dict()
+        kwargs.pop('type', None)
+
+        super().__init__(qobj_id=qobj_id,
+                         config=config,
+                         experiments=experiments,
+                         header=header,
+                         type=QobjType.QASM.value,
+                         **kwargs)
 
 
-class QobjExperiment(QobjItem):
-    """Quantum experiment represented inside a Qobj.
+@bind_schema(PulseQobjSchema)
+class PulseQobj(Qobj):
+    """Model for PulseQobj inherit from Qobj.
 
-        instructions (list[QobjInstruction)): list of instructions.
-
-    Attributes defined in the schema but not required:
-        header (QobjExperimentHeader): header.
-        config (QobjItem): config settings for the Experiment.
-    """
-    REQUIRED_ARGS = ['instructions']
-
-    def __init__(self, instructions, **kwargs):
-        self.instructions = instructions
-
-        super().__init__(**kwargs)
-
-
-class QobjExperimentHeader(QobjItem):
-    """Header for a Qobj Experiment .
-
-    Attributes defined in the schema but not required:
-        name (str): experiment name.
-    """
-    pass
-
-
-class QobjExperimentConfig(QobjItem):
-    """Config for a Qobj Experiment.
-
-    """
-    pass
-
-
-class QobjInstruction(QobjItem):
-    """Quantum Instruction.
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``PulseQobjSchema``.
 
     Attributes:
-        name(str): name of the operation.
-    Optional Attributes:
-        qubits(list): list of qubits to apply to the operation.
-        params(list): list of params for the operation.
-        memory(list): list of memory to apply to the operation.
-        conditional(QobjConditional): conditional Qobj
+        qobj_id (str): Qobj identifier.
+        config (PulseQobjConfig): config settings for the Qobj.
+        experiments (list[PulseQobjExperiment]): list of experiments.
+        header (QobjHeader): headers.
     """
-    REQUIRED_ARGS = ['name']
+    def __init__(self, qobj_id, config, experiments, header, **kwargs):
 
-    def __init__(self, name, **kwargs):
-        self.name = name
+        # to avoid specifying 'type' here within from_dict()
+        kwargs.pop('type', None)
 
-        super().__init__(**kwargs)
-
-
-class QobjConditional(QobjItem):
-    """Quantum Conditional.
-
-    Attributes:
-        mask (hex): mask of the conditional
-        type (string): type of the conditional
-        val (hex): value of the conditional
-    """
-    # pylint: disable=redefined-builtin
-    REQUIRED_ARGS = ['mask', 'type', 'val']
-
-    def __init__(self, mask, type, val):
-        self.mask = mask
-        self.type = type
-        self.val = val
-
-        super().__init__()
+        super().__init__(qobj_id=qobj_id,
+                         config=config,
+                         experiments=experiments,
+                         header=header,
+                         type=QobjType.PULSE.value,
+                         **kwargs)

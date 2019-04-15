@@ -9,6 +9,7 @@
 Simulator command to snapshot internal simulator representation.
 """
 from qiskit import QuantumCircuit
+from qiskit.circuit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
@@ -17,17 +18,13 @@ from qiskit.extensions.exceptions import ExtensionError
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
 
-    def __init__(self, label, snap_type, qubits, circ=None):
+    def __init__(self, num_qubits, num_clbits, label, snap_type):
         """Create new snapshot instruction."""
-        super().__init__("snapshot", [label, snap_type], list(qubits), [], circ)
+        super().__init__("snapshot", num_qubits, num_clbits, [label, snap_type])
 
     def inverse(self):
         """Special case. Return self."""
-        return self
-
-    def reapply(self, circ):
-        """Reapply this instruction to corresponding qubits in circ."""
-        self._modifiers(circ.snapshot(self.params[0], self.params[1]))
+        return Snapshot(self.num_qubits, self.num_clbits, self.params[0], self.params[1])
 
 
 def snapshot(self, label, snap_type='statevector'):
@@ -56,14 +53,12 @@ def snapshot(self, label, snap_type='statevector'):
     for tuple_element in tuples:
         if isinstance(tuple_element, QuantumRegister):
             for j in range(tuple_element.size):
-                self._check_qubit((tuple_element, j))
                 qubits.append((tuple_element, j))
         else:
-            self._check_qubit(tuple_element)
             qubits.append(tuple_element)
-    self._check_dups(qubits)
-    return self._attach(Snapshot(label, snap_type, qubits, self))
+    return self.append(Snapshot(len(qubits), 0, label, snap_type), qubits, [])
 
 
-# Add to QuantumCircuit class
+# Add to QuantumCircuit and CompositeGate classes
 QuantumCircuit.snapshot = snapshot
+CompositeGate.snapshot = snapshot

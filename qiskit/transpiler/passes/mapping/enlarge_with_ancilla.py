@@ -10,7 +10,7 @@
 This pass extends the DAG with idle physical qubits in the layout
 """
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit import QuantumRegister
 
@@ -57,8 +57,13 @@ class EnlargeWithAncilla(TransformationPass):
             if self.ancilla_name in dag.qregs:
                 save_prefix = QuantumRegister.prefix
                 QuantumRegister.prefix = self.ancilla_name
-                dag.add_qreg(QuantumRegister(num_idle_physical_qubits))
+                qreg = QuantumRegister(num_idle_physical_qubits)
+                dag.add_qreg(qreg)
                 QuantumRegister.prefix = save_prefix
             else:
-                dag.add_qreg(QuantumRegister(num_idle_physical_qubits, name=self.ancilla_name))
+                qreg = QuantumRegister(num_idle_physical_qubits, name=self.ancilla_name)
+                dag.add_qreg(qreg)
+        for index, idle_physical_bit in enumerate(self.layout.idle_physical_bits()):
+            self.layout[idle_physical_bit] = (qreg, index)
+        self.property_set['layout'] = self.layout
         return dag

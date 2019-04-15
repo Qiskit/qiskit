@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper function for converting a dag to a circuit"""
+import copy
 import collections
 
 from qiskit.circuit import QuantumCircuit
@@ -34,33 +35,24 @@ def dag_to_circuit(dag):
     name = dag.name or None
     circuit = QuantumCircuit(*qregs.values(), *cregs.values(), name=name)
 
-    graph = dag.multi_graph
-    for node in dag.node_nums_in_topological_order():
-        n = graph.nodes[node]
-        if n['type'] == 'op':
-            if n['op'].name == 'U':
-                name = 'u_base'
-            elif n['op'].name == 'CX':
-                name = 'cx_base'
-            elif n['op'].name == 'id':
-                name = 'iden'
-            else:
-                name = n['op'].name
-
-            instr_method = getattr(circuit, name)
+    for node in dag.nodes_in_topological_order():
+        if node.type == 'op':
             qubits = []
-            for qubit in n['qargs']:
+            for qubit in node.qargs:
                 qubits.append(qregs[qubit[0].name][qubit[1]])
 
             clbits = []
-            for clbit in n['cargs']:
+            for clbit in node.cargs:
                 clbits.append(cregs[clbit[0].name][clbit[1]])
-            params = n['op'].params
 
-            if name in ['snapshot', 'save', 'noise', 'load']:
-                result = instr_method(params[0])
+            # Get arguments for classical control (if any)
+            if node.condition is None:
+                control = None
             else:
-                result = instr_method(*params, *qubits, *clbits)
-            if 'condition' in n and n['condition']:
-                result.c_if(*n['condition'])
+                control = (node.condition[0], node.condition[1])
+
+            inst = copy.deepcopy(node.op)
+            inst.control = control
+            circuit.append(inst, qubits, clbits)
+
     return circuit
