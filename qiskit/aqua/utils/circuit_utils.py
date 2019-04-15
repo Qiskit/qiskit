@@ -34,6 +34,14 @@ def is_qubit(qb):
     return isinstance(qb, tuple) and isinstance(qb[0], QuantumRegister) and isinstance(qb[1], int)
 
 
+def is_qubit_list(qbs):
+    # check if the input is a list of qubits
+    for qb in qbs:
+        if not is_qubit(qb):
+            return False
+    return True
+
+
 def summarize_circuits(circuits):
     """Summarize circuits based on QuantumCircuit, and four metrics are summarized.
 
