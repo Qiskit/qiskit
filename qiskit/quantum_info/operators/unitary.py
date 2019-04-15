@@ -31,12 +31,11 @@ class Unitary(Gate):
         Create unitary.
 
         Args:
-            representation (numpy.ndarray or list(list) or Unitary): unitary representation.
+            representation (numpy.ndarray or list(list) or Unitary): unitary representation
             label (str): identifier hint for backend
-            validate (bool): whether to validate unitarity of matrix when supplied
-                either here or with Unitary.matrix.
-            rtol (float): relative tolerance (see numpy.allclose).
-            atol (float): absolute tolerance (see numpy.allclose).
+            validate (bool): whether to validate unitarity of matrix
+            rtol (float): relative tolerance (see numpy.allclose)
+            atol (float): absolute tolerance (see numpy.allclose)
         """
         self.__validate = validate
         self.__rtol = rtol
@@ -72,6 +71,12 @@ class Unitary(Gate):
                 return False
         return True
 
+    def __str__(self):
+        return str(self.representation)
+
+    def __repr__(self):
+        return '{}\n{}'.format(super().__repr__(), self.__representation.__repr__())
+
     @property
     def dimension(self):
         """dimension of matrix
@@ -96,8 +101,8 @@ class Unitary(Gate):
         dim = self.dimension + other.dimension
         output = Unitary(
             numpy.empty((dim, dim), dtype='complex'), validate=False)
-        output._representation = numpy.kron(self._representation,
-                                            other._representation)
+        output._representation = numpy.kron(self.representation,
+                                            other.representation)
         return output
 
     def expand(self, other):
@@ -115,8 +120,8 @@ class Unitary(Gate):
         dim = self.dimension + other.dimension
         output = Unitary(
             numpy.empty((dim, dim), dtype='complex'), validate=False)
-        output._representation = numpy.kron(other._representation,
-                                            self._representation)
+        output._representation = numpy.kron(other.representation,
+                                            self.representation)
         return output
 
     def compose(self, other, front=False):
@@ -136,20 +141,20 @@ class Unitary(Gate):
         output = copy.deepcopy(self)
         if front:
             numpy.matmul(
-                other._representation,
-                output._representation,
-                out=output._representation)
+                other.representation,
+                output.representation,
+                out=output.representation)
         else:
             numpy.matmul(
-                output._representation,
-                other._representation,
-                out=output._representation)
+                output.representation,
+                other.representation,
+                out=output.representation)
         return output
 
     def conjugate(self):
         """Return the conjugate of the Unitary."""
         output = copy.deepcopy(self)
-        numpy.conj(output._representation, out=output._representation)
+        numpy.conj(output.representation, out=output.representation)
         return output
 
     def adjoint(self):
@@ -159,11 +164,11 @@ class Unitary(Gate):
     def transpose(self):
         """Return the transpose of the unitary."""
         output = copy.deepcopy(self)
-        output._representation = self._representation.transpose()
+        output._representation = self.representation.transpose()
         return output
 
     @property
-    def _representation(self):
+    def representation(self):
         """
         Get representation. Currently this is just a unitary matrix.
 
@@ -178,7 +183,7 @@ class Unitary(Gate):
         else:
             raise QiskitError("representation not defined")
 
-    @_representation.setter
+    @representation.setter
     def _representation(self, representation):
         """set matrix representation
 
@@ -219,10 +224,10 @@ class Unitary(Gate):
         uni = Unitary(numpy.empty((dim, dim), dtype='complex'), validate=False)
         if n >= 0:
             uni._representation = numpy.linalg.matrix_power(
-                self._representation, n)
+                self.representation, n)
         else:
             uni._representation = numpy.linalg.matrix_power(
-                self._representation.T.conj(), n)
+                self.representation.T.conj(), n)
         return uni
 
     @property

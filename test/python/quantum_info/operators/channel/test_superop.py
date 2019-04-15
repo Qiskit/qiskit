@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name,missing-docstring
-
 """Tests for SuperOp quantum channel representation class."""
 
 import unittest
@@ -14,7 +13,7 @@ import numpy as np
 
 from qiskit import QiskitError
 from qiskit.quantum_info.operators.channel import SuperOp
-from .base import ChannelTestCase
+from .channel_test_case import ChannelTestCase
 
 
 class TestSuperOp(ChannelTestCase):
@@ -24,19 +23,20 @@ class TestSuperOp(ChannelTestCase):
         """Test initialization"""
         chan = SuperOp(self.sopI)
         self.assertAllClose(chan.data, self.sopI)
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
 
         mat = np.zeros((4, 16))
         chan = SuperOp(mat)
         self.assertAllClose(chan.data, mat)
-        self.assertEqual(chan.dims, (4, 2))
+        self.assertEqual(chan.dim, (4, 2))
 
         chan = SuperOp(mat.T)
         self.assertAllClose(chan.data, mat.T)
-        self.assertEqual(chan.dims, (2, 4))
+        self.assertEqual(chan.dim, (2, 4))
 
         # Wrong input or output dims should raise exception
-        self.assertRaises(QiskitError, SuperOp, mat, input_dim=4, output_dim=4)
+        self.assertRaises(
+            QiskitError, SuperOp, mat, input_dims=[4], output_dims=[4])
 
     def test_equal(self):
         """Test __eq__ method"""
@@ -80,11 +80,67 @@ class TestSuperOp(ChannelTestCase):
         self.assertAllClose(chan._evolve(input_rho), target_rho)
         self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
+    def test_evolve_subsystem(self):
+        """Test subsytem _evolve method."""
+
+        # Single-qubit random superoperators
+        op_a = SuperOp(self.rand_matrix(4, 4))
+        op_b = SuperOp(self.rand_matrix(4, 4))
+        op_c = SuperOp(self.rand_matrix(4, 4))
+        id1 = SuperOp(np.eye(4))
+        id2 = SuperOp(np.eye(16))
+        rho = self.rand_rho(8)
+
+        # Test evolving single-qubit of 3-qubit system
+        op = op_a
+
+        # Evolve on qubit 0
+        full_op = id2.tensor(op_a)
+        rho_targ = full_op._evolve(rho)
+        self.assertAllClose(op._evolve(rho, qubits=[0]), rho_targ)
+
+        # Evolve on qubit 1
+        full_op = id1.tensor(op_a).tensor(id1)
+        rho_targ = full_op._evolve(rho)
+        self.assertAllClose(op._evolve(rho, qubits=[1]), rho_targ)
+
+        # Evolve on qubit 2
+        full_op = op_a.tensor(id2)
+        rho_targ = full_op._evolve(rho)
+        self.assertAllClose(op._evolve(rho, qubits=[2]), rho_targ)
+
+        # Test 2-qubit evolution
+        op = op_b.tensor(op_a)
+
+        # Evolve on qubits [0, 2]
+        full_op = op_b.tensor(id1).tensor(op_a)
+        rho_targ = full_op._evolve(rho)
+        self.assertAllClose(op._evolve(rho, qubits=[0, 2]), rho_targ)
+
+        # Evolve on qubits [2, 0]
+        full_op = op_a.tensor(id1).tensor(op_b)
+        rho_targ = full_op._evolve(rho)
+        self.assertAllClose(op._evolve(rho, qubits=[2, 0]), rho_targ)
+
+        # Test 3-qubit evolution
+        op = op_c.tensor(op_b).tensor(op_a)
+
+        # Evolve on qubits [0, 1, 2]
+        full_op = op
+        rho_targ = full_op._evolve(rho)
+        self.assertAllClose(op._evolve(rho, qubits=[0, 1, 2]), rho_targ)
+
+        # Evolve on qubits [2, 1, 0]
+        full_op = op_a.tensor(op_b).tensor(op_c)
+        rho_targ = full_op._evolve(rho)
+        self.assertAllClose(op._evolve(rho, qubits=[2, 1, 0]), rho_targ)
+
     def test_is_cptp(self):
         """Test is_cptp method."""
         self.assertTrue(SuperOp(self.depol_sop(0.25)).is_cptp())
         # Non-CPTP should return false
-        self.assertFalse(SuperOp(1.25 * self.sopI - 0.25 * self.depol_sop(1)).is_cptp())
+        self.assertFalse(
+            SuperOp(1.25 * self.sopI - 0.25 * self.depol_sop(1)).is_cptp())
 
     def test_conjugate(self):
         """Test conjugate method."""
@@ -109,8 +165,8 @@ class TestSuperOp(ChannelTestCase):
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
-        self.assertRaises(QiskitError, SuperOp(np.eye(4)).compose, SuperOp(np.eye(16)))
-        self.assertRaises(QiskitError, SuperOp(np.eye(4)).compose, np.eye(4))
+        self.assertRaises(QiskitError,
+                          SuperOp(np.eye(4)).compose, SuperOp(np.eye(16)))
         self.assertRaises(QiskitError, SuperOp(np.eye(4)).compose, 2)
 
     def test_compose(self):
@@ -141,12 +197,12 @@ class TestSuperOp(ChannelTestCase):
         self.assertEqual(chan2 @ chan1, targ)
 
         # Compose different dimensions
-        chan1 = SuperOp(self.rand_matrix(16, 4), input_dim=2, output_dim=4)
-        chan2 = SuperOp(self.rand_matrix(4, 16), output_dim=2)
+        chan1 = SuperOp(self.rand_matrix(16, 4))
+        chan2 = SuperOp(self.rand_matrix(4, 16), )
         chan = chan1.compose(chan2)
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
         chan = chan2.compose(chan1)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
 
     def test_compose_front(self):
         """Test front compose method."""
@@ -174,12 +230,111 @@ class TestSuperOp(ChannelTestCase):
         self.assertEqual(chan1.compose(chan2, front=True), targ)
 
         # Compose different dimensions
-        chan1 = SuperOp(self.rand_matrix(16, 4), input_dim=2, output_dim=4)
-        chan2 = SuperOp(self.rand_matrix(4, 16), output_dim=2)
+        chan1 = SuperOp(self.rand_matrix(16, 4))
+        chan2 = SuperOp(self.rand_matrix(4, 16))
         chan = chan1.compose(chan2, front=True)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         chan = chan2.compose(chan1, front=True)
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
+
+    def test_compose_subsystem(self):
+        """Test subsystem compose method."""
+        # 3-qubit superoperator
+        mat = self.rand_matrix(64, 64)
+        mat_a = self.rand_matrix(4, 4)
+        mat_b = self.rand_matrix(4, 4)
+        mat_c = self.rand_matrix(4, 4)
+        iden = SuperOp(np.eye(4))
+
+        op = SuperOp(mat)
+        op1 = SuperOp(mat_a)
+        op2 = SuperOp(mat_b).tensor(SuperOp(mat_a))
+        op3 = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
+        # op3 qubits=[0, 1, 2]
+        full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
+        targ = np.dot(full_op.data, mat)
+        self.assertEqual(op.compose(op3, qubits=[0, 1, 2]), SuperOp(targ))
+        # op3 qubits=[2, 1, 0]
+        full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
+        targ = np.dot(full_op.data, mat)
+        self.assertEqual(op.compose(op3, qubits=[2, 1, 0]), SuperOp(targ))
+
+        # op2 qubits=[0, 1]
+        full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
+        targ = np.dot(full_op.data, mat)
+        self.assertEqual(op.compose(op2, qubits=[0, 1]), SuperOp(targ))
+        # op2 qubits=[2, 0]
+        full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
+        targ = np.dot(full_op.data, mat)
+        self.assertEqual(op.compose(op2, qubits=[2, 0]), SuperOp(targ))
+
+        # op1 qubits=[0]
+        full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
+        targ = np.dot(full_op.data, mat)
+        self.assertEqual(op.compose(op1, qubits=[0]), SuperOp(targ))
+
+        # op1 qubits=[1]
+        full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
+        targ = np.dot(full_op.data, mat)
+        self.assertEqual(op.compose(op1, qubits=[1]), SuperOp(targ))
+
+        # op1 qubits=[2]
+        full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
+        targ = np.dot(full_op.data, mat)
+        self.assertEqual(op.compose(op1, qubits=[2]), SuperOp(targ))
+
+    def test_compose_front_subsystem(self):
+        """Test subsystem front compose method."""
+        # 3-qubit operator
+        mat = self.rand_matrix(64, 64)
+        mat_a = self.rand_matrix(4, 4)
+        mat_b = self.rand_matrix(4, 4)
+        mat_c = self.rand_matrix(4, 4)
+        iden = SuperOp(np.eye(4))
+        op = SuperOp(mat)
+        op1 = SuperOp(mat_a)
+        op2 = SuperOp(mat_b).tensor(SuperOp(mat_a))
+        op3 = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
+
+        # op3 qubits=[0, 1, 2]
+        full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
+        targ = np.dot(mat, full_op.data)
+        self.assertEqual(
+            op.compose(op3, qubits=[0, 1, 2], front=True), SuperOp(targ))
+        # op3 qubits=[2, 1, 0]
+        full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
+        targ = np.dot(mat, full_op.data)
+        self.assertEqual(
+            op.compose(op3, qubits=[2, 1, 0], front=True), SuperOp(targ))
+
+        # op2 qubits=[0, 1]
+        full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
+        targ = np.dot(mat, full_op.data)
+        self.assertEqual(
+            op.compose(op2, qubits=[0, 1], front=True), SuperOp(targ))
+        # op2 qubits=[2, 0]
+        full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
+        targ = np.dot(mat, full_op.data)
+        self.assertEqual(
+            op.compose(op2, qubits=[2, 0], front=True), SuperOp(targ))
+
+        # op1 qubits=[0]
+        full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
+        targ = np.dot(mat, full_op.data)
+        self.assertEqual(
+            op.compose(op1, qubits=[0], front=True), SuperOp(targ))
+
+        # op1 qubits=[1]
+        full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
+        targ = np.dot(mat, full_op.data)
+        self.assertEqual(
+            op.compose(op1, qubits=[1], front=True), SuperOp(targ))
+
+        # op1 qubits=[2]
+        full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
+        targ = np.dot(mat, full_op.data)
+        self.assertEqual(
+            op.compose(op1, qubits=[2], front=True), SuperOp(targ))
 
     def test_expand(self):
         """Test expand method."""
@@ -191,13 +346,13 @@ class TestSuperOp(ChannelTestCase):
         # X \otimes I
         chan = chan1.expand(chan2)
         rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
         rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_tensor(self):
@@ -210,18 +365,18 @@ class TestSuperOp(ChannelTestCase):
         # X \otimes I
         chan = chan2.tensor(chan1)
         rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = chan2 ^ chan1
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
         # I \otimes X
         chan = chan1.tensor(chan2)
         rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = chan1 ^ chan2
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_power(self):
@@ -231,7 +386,7 @@ class TestSuperOp(ChannelTestCase):
         depol = SuperOp(self.depol_sop(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan3 = depol.power(3)
         targ3 = SuperOp(self.depol_sop(1 - p_id3))
         self.assertEqual(chan3, targ3)
@@ -239,10 +394,6 @@ class TestSuperOp(ChannelTestCase):
     def test_power_except(self):
         """Test power method raises exceptions."""
         chan = SuperOp(self.depol_sop(1))
-        # Negative power raises error
-        self.assertRaises(QiskitError, chan.power, -1)
-        # 0 power raises error
-        self.assertRaises(QiskitError, chan.power, 0)
         # Non-integer power raises error
         self.assertRaises(QiskitError, chan.power, 0.5)
 

@@ -10,25 +10,18 @@
 
 import numpy as np
 
-from qiskit.test import QiskitTestCase
+from ..test_operator import OperatorTestCase
 
 
-class ChannelTestCase(QiskitTestCase):
+class ChannelTestCase(OperatorTestCase):
     """Tests for Channel representations."""
-
-    # Pauli-matrix unitaries
-    matI = np.eye(2)
-    matX = np.array([[0, 1], [1, 0]])
-    matY = np.array([[0, -1j], [1j, 0]])
-    matZ = np.diag([1, -1])
-    matH = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
 
     # Pauli-matrix superoperators
     sopI = np.eye(4)
-    sopX = np.kron(matX.conj(), matX)
-    sopY = np.kron(matY.conj(), matY)
-    sopZ = np.kron(matZ.conj(), matZ)
-    sopH = np.kron(matH.conj(), matH)
+    sopX = np.kron(OperatorTestCase.UX.conj(), OperatorTestCase.UX)
+    sopY = np.kron(OperatorTestCase.UY.conj(), OperatorTestCase.UY)
+    sopZ = np.kron(OperatorTestCase.UZ.conj(), OperatorTestCase.UZ)
+    sopH = np.kron(OperatorTestCase.UH.conj(), OperatorTestCase.UH)
 
     # Choi-matrices for Pauli-matrix unitaries
     choiI = np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0], [1, 0, 0, 1]])
@@ -58,10 +51,10 @@ class ChannelTestCase(QiskitTestCase):
     def depol_kraus(self, p):
         """Depolarizing channel Kraus operators"""
         return [
-            np.sqrt(1 - p * 3 / 4) * self.matI,
-            np.sqrt(p / 4) * self.matX,
-            np.sqrt(p / 4) * self.matY,
-            np.sqrt(p / 4) * self.matZ
+            np.sqrt(1 - p * 3 / 4) * self.UI,
+            np.sqrt(p / 4) * self.UX,
+            np.sqrt(p / 4) * self.UY,
+            np.sqrt(p / 4) * self.UZ
         ]
 
     def depol_sop(self, p):
@@ -87,34 +80,6 @@ class ChannelTestCase(QiskitTestCase):
         basis = np.eye(4).reshape((4, 4, 1))
         return np.sum([np.kron(k, b) for k, b in zip(kraus, basis)], axis=0)
 
-    def rand_rho(self, n):
-        """Return random density matrix"""
-        psi = np.random.rand(n) + 1j * np.random.rand(n)
-        rho = np.outer(psi, psi.conj())
-        rho /= np.trace(rho)
-        return rho
-
-    def rand_matrix(self, d1, d2, real=False):
-        """Return a random rectangular matrix."""
-        if real:
-            return np.random.rand(d1, d2)
-        return np.random.rand(d1, d2) + 1j * np.random.rand(d1, d2)
-
     def rand_kraus(self, input_dim, output_dim, n):
         """Return a random (non-CPTP) Kraus operator map"""
         return [self.rand_matrix(output_dim, input_dim) for _ in range(n)]
-
-    def assertAllClose(self,
-                       obj1,
-                       obj2,
-                       rtol=1e-5,
-                       atol=1e-6,
-                       equal_nan=False,
-                       msg=None):
-        """Assert two objects are equal using Numpy.allclose."""
-        comparison = np.allclose(
-            obj1, obj2, rtol=rtol, atol=atol, equal_nan=equal_nan)
-        if msg is None:
-            msg = ''
-        msg += '({} != {})'.format(obj1, obj2)
-        self.assertTrue(comparison, msg=msg)

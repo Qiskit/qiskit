@@ -17,14 +17,13 @@ from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper.layout import Layout
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.transpiler.passes.unroller import Unroller
 
+from .passes.unroller import Unroller
 from .passes.cx_cancellation import CXCancellation
 from .passes.decompose import Decompose
 from .passes.optimize_1q_gates import Optimize1qGates
 from .passes.fixed_point import FixedPoint
 from .passes.depth import Depth
-from .passes.mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .passes.mapping.check_map import CheckMap
 from .passes.mapping.cx_direction import CXDirection
 from .passes.mapping.dense_layout import DenseLayout
@@ -32,8 +31,6 @@ from .passes.mapping.trivial_layout import TrivialLayout
 from .passes.mapping.legacy_swap import LegacySwap
 from .passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
 from .passes.mapping.extend_layout import ExtendLayout
-
-from .exceptions import TranspilerError
 
 logger = logging.getLogger(__name__)
 
@@ -54,27 +51,18 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
-
-    Raises:
-        TranspilerError: if args are not complete for the transpiler to function
     """
     return_form_is_single = False
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
         return_form_is_single = True
 
-    # Check for valid parameters for the experiments.
-    basis_gates = basis_gates or backend.configuration().basis_gates
-    if coupling_map:
-        coupling_map = coupling_map
-    elif backend:
+    # pass manager overrides explicit transpile options (basis_gates, coupling_map)
+    # explicit transpile options override options gotten from a backend
+    if not pass_manager and backend:
+        basis_gates = basis_gates or getattr(backend.configuration(), 'basis_gates', None)
         # This needs to be removed once Aer 0.2 is out
-        coupling_map = getattr(backend.configuration(), 'coupling_map', None)
-    else:
-        coupling_map = None
-
-    if not basis_gates:
-        raise TranspilerError('no basis_gates or backend to compile to')
+        coupling_map = coupling_map or getattr(backend.configuration(), 'coupling_map', None)
 
     # Convert integer list format to Layout
     if isinstance(initial_layout, list) and \
@@ -115,9 +103,6 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
     Returns:
         QuantumCircuit: A transpiled circuit.
-
-    Raises:
-        TranspilerError: if args are not complete for transpiler to function.
     """
     if pass_manager and not pass_manager.working_list:
         return circuit
@@ -198,56 +183,41 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
     if initial_layout is None:
         initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-    if pass_manager:
-        # run the passes specified by the pass manager
-        # TODO return the property set too. See #1086
-        dag = pass_manager.run_passes(dag)
-    else:
+    if pass_manager is None:
         # default set of passes
-        # TODO: move each step here to a pass, and use a default passmanager below
-        name = dag.name
 
-        dag = Unroller(basis_gates).run(dag)
-        dag = BarrierBeforeFinalMeasurements().run(dag)
+        pass_manager = PassManager()
+        pass_manager.append(Unroller(basis_gates))
 
         # if a coupling map is given compile to the map
         if coupling_map:
-            logger.info("pre-mapping properties: %s",
-                        dag.properties())
-
             coupling = CouplingMap(coupling_map)
 
             # Extend and enlarge the the dag/layout with ancillas using the full coupling map
-            logger.info("initial layout: %s", initial_layout)
-            pass_ = ExtendLayout(coupling)
-            pass_.property_set['layout'] = initial_layout
-            pass_.run(dag)
-            initial_layout = pass_.property_set['layout']
-            pass_ = EnlargeWithAncilla(initial_layout)
-            dag = pass_.run(dag)
-            initial_layout = pass_.property_set['layout']
-            logger.info("initial layout (ancilla extended): %s", initial_layout)
+            pass_manager.property_set['layout'] = initial_layout
+            pass_manager.append(ExtendLayout(coupling))
+            pass_manager.append(EnlargeWithAncilla(initial_layout))
 
             # Swap mapper
-            dag = LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper).run(dag)
+            pass_manager.append(LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper))
 
             # Expand swaps
-            dag = Decompose(SwapGate).run(dag)
-            # Change cx directions
-            dag = CXDirection(coupling).run(dag)
+            pass_manager.append(Decompose(SwapGate))
+
+            # Change CX directions
+            pass_manager.append(CXDirection(coupling))
+
             # Unroll to the basis
-            dag = Unroller(['u1', 'u2', 'u3', 'id', 'cx']).run(dag)
+            pass_manager.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
 
             # Simplify single qubit gates and CXs
-            pm_4_optimization = PassManager()
-            pm_4_optimization.append([Optimize1qGates(),
-                                      CXCancellation(),
-                                      Depth(),
-                                      FixedPoint('depth')],
-                                     do_while=lambda property_set: not property_set[
-                                         'depth_fixed_point'])
-            dag = transpile_dag(dag, pass_manager=pm_4_optimization)
+            pass_manager.append([Optimize1qGates(), CXCancellation(), Depth(), FixedPoint('depth')],
+                                do_while=lambda property_set: not property_set['depth_fixed_point'])
 
-        dag.name = name
+    # run the passes specified by the pass manager
+    # TODO return the property set too. See #1086
+    name = dag.name
+    dag = pass_manager.run_passes(dag)
+    dag.name = name
 
     return dag

@@ -35,6 +35,8 @@ from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
 
+_CUTOFF_PRECISION = 1E-10
+
 
 class Instruction:
     """Generic quantum instruction."""
@@ -107,7 +109,9 @@ class Instruction:
                 self.num_clbits == other.num_clbits and \
                 self.definition == other.definition and \
                 (self.params == other.params or
-                 [float(p) for p in self.params] == [float(p) for p in other.params]):
+                 numpy.allclose([float(p) for p in self.params],
+                                [float(p) for p in other.params],
+                                atol=_CUTOFF_PRECISION)):
             res = True
         return res
 
