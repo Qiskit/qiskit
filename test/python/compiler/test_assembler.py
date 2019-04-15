@@ -110,6 +110,71 @@ class TestAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].memory, [3, 0])
         self.assertEqual(qobj.experiments[0].instructions[0].params, [0.5, 0.4])
 
+    def test_measure_to_registers_when_conditionals(self):
+        """Verify assemble_circuits maps all measure ops on to a register slot
+        for a circuit containing conditionals."""
+        qr = QuantumRegister(2)
+        cr1 = ClassicalRegister(1)
+        cr2 = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr1, cr2)
+
+        qc.measure(qr[0], cr1)  # Measure not required for a later conditional
+        qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
+        qc.h(qr[1]).c_if(cr2, 3)
+
+        qobj = assemble_circuits(qc)
+
+        first_measure, second_measure = [op for op in qobj.experiments[0].instructions
+                                         if op.name == 'measure']
+
+        self.assertTrue(hasattr(first_measure, 'register'))
+        self.assertEqual(first_measure.register, first_measure.memory)
+        self.assertTrue(hasattr(second_measure, 'register'))
+        self.assertEqual(second_measure.register, second_measure.memory)
+
+    def test_convert_to_bfunc_plus_conditional(self):
+        """Verify assemble_circuits converts conditionals from QASM to Qobj."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+
+        qc.h(qr[0]).c_if(cr, 1)
+
+        qobj = assemble_circuits(qc)
+
+        bfunc_op, h_op = qobj.experiments[0].instructions
+
+        self.assertEqual(bfunc_op.name, 'bfunc')
+        self.assertEqual(bfunc_op.mask, '0x1')
+        self.assertEqual(bfunc_op.val, '0x1')
+        self.assertEqual(bfunc_op.relation, '==')
+
+        self.assertTrue(hasattr(h_op, 'conditional'))
+        self.assertEqual(bfunc_op.register, h_op.conditional)
+
+    def test_resize_value_to_register(self):
+        """Verify assemble_circuits converts the value provided on the classical
+        creg to its mapped location on the device register."""
+        qr = QuantumRegister(1)
+        cr1 = ClassicalRegister(2)
+        cr2 = ClassicalRegister(2)
+        cr3 = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr1, cr2, cr3)
+
+        qc.h(qr[0]).c_if(cr2, 2)
+
+        qobj = assemble_circuits(qc)
+
+        bfunc_op, h_op = qobj.experiments[0].instructions
+
+        self.assertEqual(bfunc_op.name, 'bfunc')
+        self.assertEqual(bfunc_op.mask, '0xC')
+        self.assertEqual(bfunc_op.val, '0x8')
+        self.assertEqual(bfunc_op.relation, '==')
+
+        self.assertTrue(hasattr(h_op, 'conditional'))
+        self.assertEqual(bfunc_op.register, h_op.conditional)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
