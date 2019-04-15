@@ -195,7 +195,6 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
         pass_manager = PassManager()
         pass_manager.append(Unroller(basis_gates))
-        pass_manager.append(BarrierBeforeFinalMeasurements())
 
         # if a coupling map is given compile to the map
         if coupling_map:
