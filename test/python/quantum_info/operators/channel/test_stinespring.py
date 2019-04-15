@@ -6,71 +6,66 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name,missing-docstring
-
-"""Tests for Kraus quantum channel representation class."""
+"""Tests for Stinespring quantum channel representation class."""
 
 import unittest
 import numpy as np
 
 from qiskit import QiskitError
-from qiskit.quantum_info.operators.channel import Kraus
-from .base import ChannelTestCase
+from qiskit.quantum_info.operators.channel import Stinespring
+from .channel_test_case import ChannelTestCase
 
 
-class TestKraus(ChannelTestCase):
-    """Tests for Kraus channel representation."""
+class TestStinespring(ChannelTestCase):
+    """Tests for Stinespring channel representation."""
 
     def test_init(self):
         """Test initialization"""
         # Initialize from unitary
-        chan = Kraus(self.matI)
-        self.assertAllClose(chan.data, [self.matI])
-        self.assertEqual(chan.dims, (2, 2))
+        chan = Stinespring(self.UI)
+        self.assertAllClose(chan.data, self.UI)
+        self.assertEqual(chan.dim, (2, 2))
 
-        # Initialize from Kraus
-        chan = Kraus(self.depol_kraus(0.5))
-        self.assertAllClose(chan.data, self.depol_kraus(0.5))
-        self.assertEqual(chan.dims, (2, 2))
+        # Initialize from Stinespring
+        chan = Stinespring(self.depol_stine(0.5))
+        self.assertAllClose(chan.data, self.depol_stine(0.5))
+        self.assertEqual(chan.dim, (2, 2))
 
         # Initialize from Non-CPTP
-        kraus_l, kraus_r = [self.matI, self.matX], [self.matY, self.matZ]
-        chan = Kraus((kraus_l, kraus_r))
-        self.assertAllClose(chan.data, (kraus_l, kraus_r))
-        self.assertEqual(chan.dims, (2, 2))
+        stine_l, stine_r = self.rand_matrix(4, 2), self.rand_matrix(4, 2)
+        chan = Stinespring((stine_l, stine_r))
+        self.assertAllClose(chan.data, (stine_l, stine_r))
+        self.assertEqual(chan.dim, (2, 2))
 
         # Initialize with redundant second op
-        chan = Kraus((kraus_l, kraus_l))
-        self.assertAllClose(chan.data, kraus_l)
-        self.assertEqual(chan.dims, (2, 2))
-
-        # Initialize from rectangular
-        kraus = [np.zeros((4, 2))]
-        chan = Kraus(kraus)
-        self.assertAllClose(chan.data, kraus)
-        self.assertEqual(chan.dims, (2, 4))
+        chan = Stinespring((stine_l, stine_l))
+        self.assertAllClose(chan.data, stine_l)
+        self.assertEqual(chan.dim, (2, 2))
 
         # Wrong input or output dims should raise exception
-        self.assertRaises(QiskitError, Kraus, kraus, input_dim=4, output_dim=4)
+        self.assertRaises(
+            QiskitError, Stinespring, stine_l, input_dims=4, output_dims=4)
 
     def test_equal(self):
         """Test __eq__ method"""
-        kraus = [self.rand_matrix(2, 2) for _ in range(2)]
-        self.assertEqual(Kraus(kraus), Kraus(kraus))
+        stine = tuple(self.rand_matrix(4, 2) for _ in range(2))
+        self.assertEqual(Stinespring(stine), Stinespring(stine))
 
     def test_copy(self):
         """Test copy method"""
         mat = np.eye(4)
-        orig = Kraus(mat)
+        orig = Stinespring(mat)
         cpy = orig.copy()
-        cpy._data[0][0][0, 0] = 0.0
+        cpy._data[0][0, 0] = 0.0
         self.assertFalse(cpy == orig)
 
     def test_evolve(self):
         """Test evolve method."""
         input_psi = [0, 1]
         input_rho = [[0, 0], [0, 1]]
+
         # Identity channel
-        chan = Kraus(self.matI)
+        chan = Stinespring(self.UI)
         target_psi = np.array([0, 1])
         self.assertAllClose(chan._evolve(input_psi), target_psi)
         self.assertAllClose(chan._evolve(np.array(input_psi)), target_psi)
@@ -80,7 +75,7 @@ class TestKraus(ChannelTestCase):
 
         # Hadamard channel
         mat = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
-        chan = Kraus(mat)
+        chan = Stinespring(mat)
         target_psi = np.array([1, -1]) / np.sqrt(2)
         self.assertAllClose(chan._evolve(input_psi), target_psi)
         self.assertAllClose(chan._evolve(np.array(input_psi)), target_psi)
@@ -89,7 +84,7 @@ class TestKraus(ChannelTestCase):
         self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
         # Completely depolarizing channel
-        chan = Kraus(self.depol_kraus(1))
+        chan = Stinespring(self.depol_stine(1))
         target_rho = np.eye(2) / 2
         self.assertAllClose(chan._evolve(input_psi), target_rho)
         self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
@@ -98,68 +93,67 @@ class TestKraus(ChannelTestCase):
 
     def test_is_cptp(self):
         """Test is_cptp method."""
-        self.assertTrue(Kraus(self.depol_kraus(0.5)).is_cptp())
-        self.assertTrue(Kraus(self.matX).is_cptp())
-        # Non-CPTP should return false
-        self.assertFalse(Kraus(([self.matI], [self.matX])).is_cptp())
-        self.assertFalse(Kraus(([self.matI, self.matX])).is_cptp())
+        self.assertTrue(Stinespring(self.depol_stine(0.5)).is_cptp())
+        self.assertTrue(Stinespring(self.UX).is_cptp())
+        # Non-CP
+        stine_l, stine_r = self.rand_matrix(4, 2), self.rand_matrix(4, 2)
+        self.assertFalse(Stinespring((stine_l, stine_r)).is_cptp())
+        self.assertFalse(Stinespring(self.UI + self.UX).is_cptp())
 
     def test_conjugate(self):
         """Test conjugate method."""
-        kraus_l, kraus_r = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
-        # Single Kraus list
-        targ = Kraus([np.conjugate(k) for k in kraus_l])
-        chan1 = Kraus(kraus_l)
+        stine_l, stine_r = self.rand_matrix(16, 2), self.rand_matrix(16, 2)
+        # Single Stinespring list
+        targ = Stinespring(stine_l.conj(), output_dims=4)
+        chan1 = Stinespring(stine_l, output_dims=4)
         chan = chan1.conjugate()
         self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (2, 4))
-        # Double Kraus list
-        targ = Kraus(([np.conjugate(k) for k in kraus_l],
-                      [np.conjugate(k) for k in kraus_r]))
-        chan1 = Kraus((kraus_l, kraus_r))
+        self.assertEqual(chan.dim, (2, 4))
+        # Double Stinespring list
+        targ = Stinespring((stine_l.conj(), stine_r.conj()), output_dims=4)
+        chan1 = Stinespring((stine_l, stine_r), output_dims=4)
         chan = chan1.conjugate()
         self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (2, 4))
+        self.assertEqual(chan.dim, (2, 4))
 
     def test_transpose(self):
         """Test transpose method."""
-        kraus_l, kraus_r = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
-        # Single Kraus list
-        targ = Kraus([np.transpose(k) for k in kraus_l])
-        chan1 = Kraus(kraus_l)
+        stine_l, stine_r = self.rand_matrix(4, 2), self.rand_matrix(4, 2)
+        # Single square Stinespring list
+        targ = Stinespring(stine_l.T, 4, 2)
+        chan1 = Stinespring(stine_l, 2, 4)
         chan = chan1.transpose()
         self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (4, 2))
-        # Double Kraus list
-        targ = Kraus(([np.transpose(k) for k in kraus_l],
-                      [np.transpose(k) for k in kraus_r]))
-        chan1 = Kraus((kraus_l, kraus_r))
+        self.assertEqual(chan.dim, (4, 2))
+        # Double square Stinespring list
+        targ = Stinespring((stine_l.T, stine_r.T), 4, 2)
+        chan1 = Stinespring((stine_l, stine_r), 2, 4)
         chan = chan1.transpose()
         self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (4, 2))
+        self.assertEqual(chan.dim, (4, 2))
 
     def test_adjoint(self):
         """Test adjoint method."""
-        kraus_l, kraus_r = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
-        # Single Kraus list
-        targ = Kraus([np.transpose(k).conj() for k in kraus_l])
-        chan1 = Kraus(kraus_l)
+        stine_l, stine_r = self.rand_matrix(4, 2), self.rand_matrix(4, 2)
+        # Single square Stinespring list
+        targ = Stinespring(stine_l.T.conj(), 4, 2)
+        chan1 = Stinespring(stine_l, 2, 4)
         chan = chan1.adjoint()
         self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (4, 2))
-        # Double Kraus list
-        targ = Kraus(([np.transpose(k).conj() for k in kraus_l],
-                      [np.transpose(k).conj() for k in kraus_r]))
-        chan1 = Kraus((kraus_l, kraus_r))
+        self.assertEqual(chan.dim, (4, 2))
+        # Double square Stinespring list
+        targ = Stinespring((stine_l.T.conj(), stine_r.T.conj()), 4, 2)
+        chan1 = Stinespring((stine_l, stine_r), 2, 4)
         chan = chan1.adjoint()
         self.assertEqual(chan, targ)
-        self.assertEqual(chan.dims, (4, 2))
+        self.assertEqual(chan.dim, (4, 2))
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
-        self.assertRaises(QiskitError, Kraus(np.eye(2)).compose, Kraus(np.eye(4)))
-        self.assertRaises(QiskitError, Kraus(np.eye(2)).compose, np.eye(2))
-        self.assertRaises(QiskitError, Kraus(np.eye(2)).compose, 2)
+        self.assertRaises(QiskitError,
+                          Stinespring(np.eye(2)).compose, Stinespring(
+                              np.eye(4)))
+        self.assertRaises(QiskitError, Stinespring(np.eye(2)).compose, 2)
 
     def test_compose(self):
         """Test compose method."""
@@ -167,28 +161,28 @@ class TestKraus(ChannelTestCase):
         rho = self.rand_rho(2)
 
         # UnitaryChannel evolution
-        chan1 = Kraus(self.matX)
-        chan2 = Kraus(self.matY)
+        chan1 = Stinespring(self.UX)
+        chan2 = Stinespring(self.UY)
         chan = chan1.compose(chan2)
-        targ = Kraus(self.matZ)._evolve(rho)
+        targ = Stinespring(self.UZ)._evolve(rho)
         self.assertAllClose(chan._evolve(rho), targ)
 
         # 50% depolarizing channel
-        chan1 = Kraus(self.depol_kraus(0.5))
+        chan1 = Stinespring(self.depol_stine(0.5))
         chan = chan1.compose(chan1)
-        targ = Kraus(self.depol_kraus(0.75))._evolve(rho)
+        targ = Stinespring(self.depol_stine(0.75))._evolve(rho)
         self.assertAllClose(chan._evolve(rho), targ)
 
         # Compose different dimensions
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(4, 2, 4)
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
+        stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
+        chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
+        chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
         targ = chan2._evolve(chan1._evolve(rho))
         chan = chan1.compose(chan2)
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
         self.assertAllClose(chan._evolve(rho), targ)
         chan = chan1 @ chan2
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
         self.assertAllClose(chan._evolve(rho), targ)
 
     def test_compose_front(self):
@@ -197,77 +191,77 @@ class TestKraus(ChannelTestCase):
         rho = self.rand_rho(2)
 
         # UnitaryChannel evolution
-        chan1 = Kraus(self.matX)
-        chan2 = Kraus(self.matY)
+        chan1 = Stinespring(self.UX)
+        chan2 = Stinespring(self.UY)
         chan = chan1.compose(chan2, front=True)
-        targ = Kraus(self.matZ)._evolve(rho)
+        targ = Stinespring(self.UZ)._evolve(rho)
         self.assertAllClose(chan._evolve(rho), targ)
 
         # 50% depolarizing channel
-        chan1 = Kraus(self.depol_kraus(0.5))
+        chan1 = Stinespring(self.depol_stine(0.5))
         chan = chan1.compose(chan1, front=True)
-        targ = Kraus(self.depol_kraus(0.75))._evolve(rho)
+        targ = Stinespring(self.depol_stine(0.75))._evolve(rho)
         self.assertAllClose(chan._evolve(rho), targ)
 
         # Compose different dimensions
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(4, 2, 4)
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
+        stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
+        chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
+        chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
         targ = chan2._evolve(chan1._evolve(rho))
         chan = chan2.compose(chan1, front=True)
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
         self.assertAllClose(chan._evolve(rho), targ)
 
     def test_expand(self):
         """Test expand method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
         rho_init = np.kron(rho0, rho0)
-        chan1 = Kraus(self.matI)
-        chan2 = Kraus(self.matX)
+        chan1 = Stinespring(self.UI)
+        chan2 = Stinespring(self.UX)
 
         # X \otimes I
         chan = chan1.expand(chan2)
         rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
         rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
-        chan_dep = Kraus(self.depol_kraus(1))
+        chan_dep = Stinespring(self.depol_stine(1))
         chan = chan_dep.expand(chan_dep)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_tensor(self):
         """Test tensor method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
         rho_init = np.kron(rho0, rho0)
-        chan1 = Kraus(self.matI)
-        chan2 = Kraus(self.matX)
+        chan1 = Stinespring(self.UI)
+        chan2 = Stinespring(self.UX)
 
         # X \otimes I
         chan = chan2.tensor(chan1)
         rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan = chan1.tensor(chan2)
         rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
-        chan_dep = Kraus(self.depol_kraus(1))
+        chan_dep = Stinespring(self.depol_stine(1))
         chan = chan_dep.tensor(chan_dep)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_power(self):
@@ -275,23 +269,19 @@ class TestKraus(ChannelTestCase):
         # 10% depolarizing channel
         rho = np.diag([1, 0])
         p_id = 0.9
-        chan = Kraus(self.depol_kraus(1 - p_id))
+        chan = Stinespring(self.depol_stine(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan3 = chan.power(3)
         targ3a = chan._evolve(chan._evolve(chan._evolve(rho)))
         self.assertAllClose(chan3._evolve(rho), targ3a)
-        targ3b = Kraus(self.depol_kraus(1 - p_id3))._evolve(rho)
+        targ3b = Stinespring(self.depol_stine(1 - p_id3))._evolve(rho)
         self.assertAllClose(chan3._evolve(rho), targ3b)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
-        chan = Kraus(self.depol_kraus(0.9))
-        # Negative power raises error
-        self.assertRaises(QiskitError, chan.power, -1)
-        # 0 power raises error
-        self.assertRaises(QiskitError, chan.power, 0)
+        chan = Stinespring(self.depol_stine(0.9))
         # Non-integer power raises error
         self.assertRaises(QiskitError, chan.power, 0.5)
 
@@ -299,19 +289,19 @@ class TestKraus(ChannelTestCase):
         """Test add method."""
         # Random input test state
         rho = self.rand_rho(2)
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
+        stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(16, 2)
 
-        # Random Single-Kraus maps
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
+        # Random Single-Stinespring maps
+        chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
+        chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
         targ = chan1._evolve(rho) + chan2._evolve(rho)
         chan = chan1.add(chan2)
         self.assertAllClose(chan._evolve(rho), targ)
         chan = chan1 + chan2
         self.assertAllClose(chan._evolve(rho), targ)
 
-        # Random Single-Kraus maps
-        chan = Kraus((kraus1, kraus2))
+        # Random Single-Stinespring maps
+        chan = Stinespring((stine1, stine2))
         targ = 2 * chan._evolve(rho)
         chan = chan.add(chan)
         self.assertAllClose(chan._evolve(rho), targ)
@@ -320,32 +310,32 @@ class TestKraus(ChannelTestCase):
         """Test subtract method."""
         # Random input test state
         rho = self.rand_rho(2)
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
+        stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(16, 2)
 
-        # Random Single-Kraus maps
-        chan1 = Kraus(kraus1)
-        chan2 = Kraus(kraus2)
+        # Random Single-Stinespring maps
+        chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
+        chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
         targ = chan1._evolve(rho) - chan2._evolve(rho)
         chan = chan1.subtract(chan2)
         self.assertAllClose(chan._evolve(rho), targ)
         chan = chan1 - chan2
         self.assertAllClose(chan._evolve(rho), targ)
 
-        # Random Single-Kraus maps
-        chan = Kraus((kraus1, kraus2))
+        # Random Single-Stinespring maps
+        chan = Stinespring((stine1, stine2))
         targ = 0 * chan._evolve(rho)
         chan = chan.subtract(chan)
         self.assertAllClose(chan._evolve(rho), targ)
 
     def test_multiply(self):
         """Test multiply method."""
-        # Random initial state and Kraus ops
+        # Random initial state and Stinespring ops
         rho = self.rand_rho(2)
         val = 0.5
-        kraus1, kraus2 = self.rand_kraus(2, 4, 4), self.rand_kraus(2, 4, 4)
+        stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(16, 2)
 
-        # Single Kraus set
-        chan1 = Kraus(kraus1)
+        # Single Stinespring set
+        chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         targ = val * chan1._evolve(rho)
         chan = chan1.multiply(val)
         self.assertAllClose(chan._evolve(rho), targ)
@@ -354,8 +344,8 @@ class TestKraus(ChannelTestCase):
         chan = chan1 * val
         self.assertAllClose(chan._evolve(rho), targ)
 
-        # Double Kraus set
-        chan2 = Kraus((kraus1, kraus2))
+        # Double Stinespring set
+        chan2 = Stinespring((stine1, stine2), input_dims=2, output_dims=4)
         targ = val * chan2._evolve(rho)
         chan = chan2.multiply(val)
         self.assertAllClose(chan._evolve(rho), targ)
@@ -366,7 +356,7 @@ class TestKraus(ChannelTestCase):
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
-        chan = Kraus(self.depol_kraus(1))
+        chan = Stinespring(self.depol_stine(1))
         self.assertRaises(QiskitError, chan.multiply, 's')
         self.assertRaises(QiskitError, chan.multiply, chan)
 
@@ -374,7 +364,7 @@ class TestKraus(ChannelTestCase):
         """Test negate method"""
         rho = np.diag([1, 0])
         targ = np.diag([-0.5, -0.5])
-        chan = -Kraus(self.depol_kraus(1))
+        chan = -Stinespring(self.depol_stine(1))
         self.assertAllClose(chan._evolve(rho), targ)
 
 

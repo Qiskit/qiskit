@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name,missing-docstring
-
 """Tests for Choi quantum channel representation class."""
 
 import unittest
@@ -14,7 +13,7 @@ import numpy as np
 
 from qiskit import QiskitError
 from qiskit.quantum_info.operators.channel import Choi
-from .base import ChannelTestCase
+from .channel_test_case import ChannelTestCase
 
 
 class TestChoi(ChannelTestCase):
@@ -25,24 +24,25 @@ class TestChoi(ChannelTestCase):
         mat4 = np.eye(4) / 2.0
         chan = Choi(mat4)
         self.assertAllClose(chan.data, mat4)
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
 
         mat8 = np.eye(8) / 2.0
-        chan = Choi(mat8, input_dim=4)
+        chan = Choi(mat8, input_dims=4)
         self.assertAllClose(chan.data, mat8)
-        self.assertEqual(chan.dims, (4, 2))
+        self.assertEqual(chan.dim, (4, 2))
 
-        chan = Choi(mat8, input_dim=2)
+        chan = Choi(mat8, input_dims=2)
         self.assertAllClose(chan.data, mat8)
-        self.assertEqual(chan.dims, (2, 4))
+        self.assertEqual(chan.dim, (2, 4))
 
         mat16 = np.eye(16) / 4
         chan = Choi(mat16)
         self.assertAllClose(chan.data, mat16)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
 
         # Wrong input or output dims should raise exception
-        self.assertRaises(QiskitError, Choi, mat8, input_dim=4, output_dim=4)
+        self.assertRaises(
+            QiskitError, Choi, mat8, input_dims=[4], output_dims=[4])
 
     def test_equal(self):
         """Test __eq__ method"""
@@ -89,14 +89,16 @@ class TestChoi(ChannelTestCase):
         """Test is_cptp method."""
         self.assertTrue(Choi(self.depol_choi(0.25)).is_cptp())
         # Non-CPTP should return false
-        self.assertFalse(Choi(1.25 * self.choiI - 0.25 * self.depol_choi(1)).is_cptp())
+        self.assertFalse(
+            Choi(1.25 * self.choiI - 0.25 * self.depol_choi(1)).is_cptp())
 
     def test_conjugate(self):
         """Test conjugate method."""
         # Test channel measures in Z basis and prepares in Y basis
         # Zp -> Yp, Zm -> Ym
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
+        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j],
+                                                              [-1j, 1]]) / 2
         chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
         # Conjugate channel swaps Y-basis states
         targ = Choi(np.kron(Zp, Ym) + np.kron(Zm, Yp))
@@ -108,7 +110,8 @@ class TestChoi(ChannelTestCase):
         # Test channel measures in Z basis and prepares in Y basis
         # Zp -> Yp, Zm -> Ym
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
+        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j],
+                                                              [-1j, 1]]) / 2
         chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
         # Transpose channel swaps basis
         targ = Choi(np.kron(Yp, Zp) + np.kron(Ym, Zm))
@@ -120,7 +123,8 @@ class TestChoi(ChannelTestCase):
         # Test channel measures in Z basis and prepares in Y basis
         # Zp -> Yp, Zm -> Ym
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j], [-1j, 1]]) / 2
+        Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j],
+                                                              [-1j, 1]]) / 2
         chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
         # Ajoint channel swaps Y-basis elements abd Z<->Y bases
         targ = Choi(np.kron(Ym, Zp) + np.kron(Yp, Zm))
@@ -129,8 +133,8 @@ class TestChoi(ChannelTestCase):
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
-        self.assertRaises(QiskitError, Choi(np.eye(4)).compose, Choi(np.eye(8)))
-        self.assertRaises(QiskitError, Choi(np.eye(4)).compose, np.eye(4))
+        self.assertRaises(QiskitError,
+                          Choi(np.eye(4)).compose, Choi(np.eye(8)))
         self.assertRaises(QiskitError, Choi(np.eye(4)).compose, 2)
 
     def test_compose(self):
@@ -150,7 +154,8 @@ class TestChoi(ChannelTestCase):
 
         # Measure and rotation
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]]) / 2
+        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]
+                                                           ]) / 2
         chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
         chan2 = Choi(self.choiX)
         # X-gate second does nothing
@@ -163,12 +168,12 @@ class TestChoi(ChannelTestCase):
         self.assertEqual(chan2 @ chan1, targ)
 
         # Compose different dimensions
-        chan1 = Choi(np.eye(8) / 4, input_dim=2, output_dim=4)
-        chan2 = Choi(np.eye(8) / 2, input_dim=4, output_dim=2)
+        chan1 = Choi(np.eye(8) / 4, input_dims=2, output_dims=4)
+        chan2 = Choi(np.eye(8) / 2, input_dims=4, output_dims=2)
         chan = chan1.compose(chan2)
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
         chan = chan2.compose(chan1)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
 
     def test_compose_front(self):
         """Test front compose method."""
@@ -187,7 +192,8 @@ class TestChoi(ChannelTestCase):
 
         # Measure and rotation
         Zp, Zm = np.diag([1, 0]), np.diag([0, 1])
-        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]]) / 2
+        Xp, Xm = np.array([[1, 1], [1, 1]]) / 2, np.array([[1, -1], [-1, 1]
+                                                           ]) / 2
         chan1 = Choi(np.kron(Zp, Xp) + np.kron(Zm, Xm))
         chan2 = Choi(self.choiX)
         # X-gate second does nothing
@@ -200,12 +206,12 @@ class TestChoi(ChannelTestCase):
         self.assertEqual(chan, targ)
 
         # Compose different dimensions
-        chan1 = Choi(np.eye(8) / 4, input_dim=2, output_dim=4)
-        chan2 = Choi(np.eye(8) / 2, input_dim=4, output_dim=2)
+        chan1 = Choi(np.eye(8) / 4, input_dims=2, output_dims=4)
+        chan2 = Choi(np.eye(8) / 2, input_dims=4, output_dims=2)
         chan = chan1.compose(chan2, front=True)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         chan = chan2.compose(chan1, front=True)
-        self.assertEqual(chan.dims, (2, 2))
+        self.assertEqual(chan.dim, (2, 2))
 
     def test_expand(self):
         """Test expand method."""
@@ -217,20 +223,20 @@ class TestChoi(ChannelTestCase):
         # X \otimes I
         chan = chan1.expand(chan2)
         rho_targ = np.kron(rho1, rho0)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
         rho_targ = np.kron(rho0, rho1)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         chan_dep = Choi(self.depol_choi(1))
         chan = chan_dep.expand(chan_dep)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_tensor(self):
@@ -243,29 +249,29 @@ class TestChoi(ChannelTestCase):
         # X \otimes I
         rho_targ = np.kron(rho1, rho0)
         chan = chan2.tensor(chan1)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = chan2 ^ chan1
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # I \otimes X
         rho_targ = np.kron(rho0, rho1)
         chan = chan1.tensor(chan2)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = chan1 ^ chan2
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
         # Completely depolarizing
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         chan_dep = Choi(self.depol_choi(1))
         chan = chan_dep.tensor(chan_dep)
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
         chan = chan_dep ^ chan_dep
-        self.assertEqual(chan.dims, (4, 4))
+        self.assertEqual(chan.dim, (4, 4))
         self.assertAllClose(chan._evolve(rho_init), rho_targ)
 
     def test_power(self):
@@ -275,7 +281,7 @@ class TestChoi(ChannelTestCase):
         depol = Choi(self.depol_choi(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan3 = depol.power(3)
         targ3 = Choi(self.depol_choi(1 - p_id3))
         self.assertEqual(chan3, targ3)
@@ -283,10 +289,6 @@ class TestChoi(ChannelTestCase):
     def test_power_except(self):
         """Test power method raises exceptions."""
         chan = Choi(self.depol_choi(1))
-        # Negative power raises error
-        self.assertRaises(QiskitError, chan.power, -1)
-        # 0 power raises error
-        self.assertRaises(QiskitError, chan.power, 0)
         # Non-integer power raises error
         self.assertRaises(QiskitError, chan.power, 0.5)
 
