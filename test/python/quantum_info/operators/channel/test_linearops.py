@@ -12,14 +12,14 @@ import unittest
 
 import numpy as np
 
-from qiskit.quantum_info.operators.channel.unitarychannel import UnitaryChannel
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel.stinespring import Stinespring
 from qiskit.quantum_info.operators.channel.ptm import PTM
 from qiskit.quantum_info.operators.channel.chi import Chi
-from .base import ChannelTestCase
+from .channel_test_case import ChannelTestCase
 
 
 class TestEquivalence(ChannelTestCase):
@@ -89,18 +89,14 @@ class TestEquivalence(ChannelTestCase):
     def _check_add_other_reps(self, chan):
         """Check addition works for other representations"""
         current_rep = chan.__class__
-        other_reps = [
-            UnitaryChannel, Choi, SuperOp, Kraus, Stinespring, Chi, PTM
-        ]
+        other_reps = [Operator, Choi, SuperOp, Kraus, Stinespring, Chi, PTM]
         for rep in other_reps:
             self.assertEqual(current_rep, chan.add(rep(chan)).__class__)
 
     def _check_subtract_other_reps(self, chan):
         """Check subtraction works for other representations"""
         current_rep = chan.__class__
-        other_reps = [
-            UnitaryChannel, Choi, SuperOp, Kraus, Stinespring, Chi, PTM
-        ]
+        other_reps = [Operator, Choi, SuperOp, Kraus, Stinespring, Chi, PTM]
         for rep in other_reps:
             self.assertEqual(current_rep, chan.subtract(rep(chan)).__class__)
 
@@ -176,12 +172,12 @@ class TestEquivalence(ChannelTestCase):
 
     def test_kraus_add_other_rep(self):
         """Test addition of Kraus matrices is correct."""
-        chan = Kraus(self.matI)
+        chan = Kraus(self.UI)
         self._check_add_other_reps(chan)
 
     def test_stinespring_add_other_rep(self):
         """Test addition of Stinespring matrices is correct."""
-        chan = Stinespring(self.matI)
+        chan = Stinespring(self.UI)
         self._check_add_other_reps(chan)
 
     def test_chi_add_other_rep(self):
@@ -206,12 +202,12 @@ class TestEquivalence(ChannelTestCase):
 
     def test_kraus_subtract_other_rep(self):
         """Test subtraction of Kraus matrices is correct."""
-        chan = Kraus(self.matI)
+        chan = Kraus(self.UI)
         self._check_subtract_other_reps(chan)
 
     def test_stinespring_subtract_other_rep(self):
         """Test subtraction of Stinespring matrices is correct."""
-        chan = Stinespring(self.matI)
+        chan = Stinespring(self.UI)
         self._check_subtract_other_reps(chan)
 
     def test_chi_subtract_other_rep(self):
