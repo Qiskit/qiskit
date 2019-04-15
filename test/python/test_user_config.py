@@ -7,7 +7,7 @@
 
 # pylint: disable=missing-docstring
 
-import builtins
+import builtins # noqa pylint: disable=unused-import
 import sys
 import tempfile
 import unittest
@@ -43,7 +43,7 @@ class TestUserConfig(QiskitTestCase):
                               config.read_config_file)
 
     @unittest.mock.patch('os.path.isfile', return_value=True)
-    def test_circuit_drawer_valid(self, path_mock):
+    def test_circuit_drawer_valid(self, _):
         test_config = """
         [default]
         circuit_drawer = latex

@@ -36,7 +36,7 @@ class UserConfig:
         else:
             self.filename = filename
         self.settings = {}
-        self.config_parser = configparser.SafeConfigParser()
+        self.config_parser = configparser.ConfigParser()
 
     def read_config_file(self):
         """Read config file and parse the contents into the settings attr."""
