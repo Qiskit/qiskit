@@ -15,7 +15,7 @@ import numpy
 import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.pulse import ConditionedSchedule, UserLoDict
+from qiskit.pulse import ConditionedSchedule
 from qiskit.pulse.commands import DriveInstruction
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
@@ -168,7 +168,7 @@ def _replaced_with_user_los(user_lo_dict, default_los):
     """Return user LO frequencies replaced with `default_los`.
     Args:
         user_lo_dict(UserLoDict): dictionary of user's LO frequencies
-        default_los(list(float)): default LO frequencies to be replaced
+        default_los(List[float]): default LO frequencies to be replaced
     Returns:
         List: user LO frequencies
     """
@@ -180,10 +180,10 @@ def _replaced_with_user_los(user_lo_dict, default_los):
 
 
 def assemble_schedules(schedules, dict_config, dict_header, converter=PulseQobjConverter):
-    """Assembles a list of schedules into a qobj which can be run on the backend.
+    """Assembles a list of schedules into a qobj which can be run on a backend.
 
     Args:
-        schedules (list[ConditionedSchedule] or ConditionedSchedule): schedules to assemble
+        schedules (List[ConditionedSchedule] or ConditionedSchedule): schedules to assemble
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
         converter (PulseQobjConverter): converter to convert pulse instructions to qobj instructions
@@ -225,7 +225,7 @@ def assemble_schedules(schedules, dict_config, dict_header, converter=PulseQobjC
         experimentconfig = PulseQobjExperimentConfig(**lo_freqs)
 
         # generate experimental header
-        experimentheader = QobjExperimentHeader(name=conditioned.name or 'Experiment-%d' % exp_idx)
+        experimentheader = QobjExperimentHeader(name=conditioned.name or 'experiment_%d' % exp_idx)
 
         commands = []
         for instruction in conditioned.schedule.flat_instruction_sequence():

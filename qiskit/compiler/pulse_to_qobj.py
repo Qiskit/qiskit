@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Helper class to assemble pulse instruction to PulseQobjInstruction."""
+"""Helper class used to assemble a pulse instruction into PulseQobjInstruction."""
 
 import functools
 import inspect
@@ -30,8 +30,10 @@ def bind_instruction(type_instruction):
         """Return decorated converter function."""
         @functools.wraps(converter)
         def _call_valid_converter(self, instruction):
-            """Return dictionary for qobj if the given instruction matches to the
-            bound instruction type to the function, otherwise just return None."""
+            """Return a dictionary for to be used to construct a qobj
+            if the given instruction matches the
+            bound instruction type supplied to the function,
+            otherwise return None."""
             if isinstance(instruction, type_instruction):
                 return converter(self, instruction)
             else:
@@ -94,13 +96,13 @@ class PulseQobjConverter:
                 if dict_qobj:
                     break
         else:
-            raise PulseError('Proper qobj for %s is not found.' % instruction.command)
+            raise PulseError('Qobj conversion method for %s is not found.' % instruction.command)
 
         return dict_qobj
 
     @bind_instruction(commands.AcquireInstruction)
     def _convert_acquire(self, instruction):
-        """Return Acquire dict for Qobj.
+        """Return converted `AcquireInstruction`.
 
         Args:
             instruction (AcquireInstruction): acquire instruction.
@@ -152,7 +154,7 @@ class PulseQobjConverter:
 
     @bind_instruction(commands.FrameChangeInstruction)
     def _convert_frame_change(self, instruction):
-        """Return FrameChange dict for Qobj.
+        """Return converted `FrameChangeInstruction`.
 
         Args:
             instruction (FrameChangeInstruction): frame change instruction.
@@ -169,7 +171,7 @@ class PulseQobjConverter:
 
     @bind_instruction(commands.PersistentValueInstruction)
     def _convert_persistent_value(self, instruction):
-        """Return PersistentValue dict for Qobj.
+        """Return converted `PersistentValueInstruction`.
 
         Args:
             instruction (PersistentValueInstruction): persistent value instruction.
@@ -186,7 +188,7 @@ class PulseQobjConverter:
 
     @bind_instruction(commands.DriveInstruction)
     def _convert_drive(self, instruction):
-        """Return Drive dict for Qobj.
+        """Return converted `DriveInstruction`.
 
         Args:
             instruction (DriveInstruction): drive instruction.
@@ -202,7 +204,7 @@ class PulseQobjConverter:
 
     @bind_instruction(commands.Snapshot)
     def _convert_snapshot(self, instruction):
-        """Return SnapShot dict for Qobj.
+        """Return converted `Snapshot`.
 
         Args:
             instruction (Snapshot): snapshot instruction.

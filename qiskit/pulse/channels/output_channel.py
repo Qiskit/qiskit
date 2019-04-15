@@ -23,7 +23,7 @@ class LoRange:
         self._ub = upper_bound
 
     def includes(self, lo_freq: float) -> bool:
-        """Return if this range includes `lo_freq` or not.
+        """Whether `lo_freq` is within the `LoRange`.
 
         Args:
             lo_freq: LO frequency to be checked
@@ -37,12 +37,12 @@ class LoRange:
 
     @property
     def lower_bound(self) -> float:
-        """Lower bound of this LO range"""
+        """Lower bound of the LO range"""
         return self._lb
 
     @property
     def upper_bound(self) -> float:
-        """Upper bound of this LO range"""
+        """Upper bound of the LO range"""
         return self._ub
 
     def __repr__(self):
@@ -71,12 +71,12 @@ class OutputChannel(Channel):
 
     @property
     def lo_frequency(self) -> float:
-        """Get the default frequency of local oscillator of this channel."""
+        """Get the default lo frequency."""
         return self._lo_frequency
 
     @property
     def lo_freq_range(self) -> LoRange:
-        """Get the feasible range of LO frequency."""
+        """Get the acceptable LO range."""
         return self._lo_freq_range
 
     def __eq__(self, other):
