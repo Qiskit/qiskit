@@ -7,9 +7,10 @@
 
 # pylint: disable=missing-docstring
 
+import builtins
+import sys
 import tempfile
 import unittest
-import builtins
 
 from qiskit import exceptions
 from qiskit.test import QiskitTestCase
@@ -26,14 +27,17 @@ class TestUserConfig(QiskitTestCase):
         self.assertEqual({}, config.settings)
 
     @unittest.mock.patch('os.path.isfile', return_value=True)
-    def test_invalid_circuit_drawer(self, path_mock):
+    def test_invalid_circuit_drawer(self, _):
         test_config = """
         [default]
         circuit_drawer = MSPaint
         """
         m = unittest.mock.mock_open(read_data=test_config)
-        mock_name = '%s.open' % __name__
-        with unittest.mock.patch.object(builtins, 'open', m):
+        if sys.version_info[1] < 7:
+            mock_name = '%s.open' % __name__
+        else:
+            mock_name = 'builtins.open'
+        with unittest.mock.patch(mock_name, m):
             config = user_config.UserConfig('fake_path')
             self.assertRaises(exceptions.QiskitUserConfigError,
                               config.read_config_file)
@@ -45,8 +49,11 @@ class TestUserConfig(QiskitTestCase):
         circuit_drawer = latex
         """
         m = unittest.mock.mock_open(read_data=test_config)
-        mock_name = '%s.open' % __name__
-        with unittest.mock.patch.object(builtins, 'open', m):
+        if sys.version_info[1] < 7:
+            mock_name = '%s.open' % __name__
+        else:
+            mock_name = 'builtins.open'
+        with unittest.mock.patch(mock_name, m):
             file_path = tempfile.NamedTemporaryFile(mode='w')
             self.addCleanup(file_path.close)
             file_path.write(test_config)
