@@ -23,7 +23,6 @@ class TestQuaternions(QiskitTestCase):
 
     def setUp(self):
         self.rnd_array = np.array([0.5, 0.8, 0.9, -0.3])
-        self.norm = la.norm(self.rnd_array)
         self.quat_unnormalized = Quaternion(self.rnd_array)
         axes = ['x', 'y', 'z']
         rnd = np.array([-0.92545003, -2.19985357, 6.01761209])
@@ -45,7 +44,8 @@ class TestQuaternions(QiskitTestCase):
 
     def test_norm(self):
         """Quaternions should give correct norm."""
-        self.assertEqual(self.norm, self.quat_unnormalized.norm())
+        norm = la.norm(self.rnd_array)
+        self.assertEqual(norm, self.quat_unnormalized.norm())
 
     def test_normalize(self):
         """Quaternions should be normalizable"""
