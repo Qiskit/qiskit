@@ -36,7 +36,7 @@ class TestUserConfig(QiskitTestCase):
         with unittest.mock.patch.object(builtins, 'open', m):
             config = user_config.UserConfig('fake_path')
             self.assertRaises(exceptions.QiskitUserConfigError,
-            config.read_config_file)
+                              config.read_config_file)
 
     @unittest.mock.patch('os.path.isfile', return_value=True)
     def test_circuit_drawer_valid(self, path_mock):
