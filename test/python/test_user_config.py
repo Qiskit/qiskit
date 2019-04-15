@@ -7,7 +7,7 @@
 
 # pylint: disable=missing-docstring
 
-import builtins # noqa pylint: disable=unused-import
+import builtins  # noqa pylint: disable=unused-import
 import sys
 import tempfile
 import unittest
@@ -54,10 +54,6 @@ class TestUserConfig(QiskitTestCase):
         else:
             mock_name = 'builtins.open'
         with unittest.mock.patch(mock_name, m):
-            file_path = tempfile.NamedTemporaryFile(mode='w')
-            self.addCleanup(file_path.close)
-            file_path.write(test_config)
-            file_path.flush()
             config = user_config.UserConfig(file_path.name)
             config.read_config_file()
             self.assertEqual({'circuit_drawer': 'latex'}, config.settings)
