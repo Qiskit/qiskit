@@ -15,8 +15,8 @@ from qiskit.test import QiskitTestCase
 class TestCircuitWires(QiskitTestCase):
     """Test QuantumCircuit with wires."""
 
-    def test_circuit_multi_qregs(self):
-        """Test circuit multi qregs and wires with Hs.
+    def test_circuit_multi_qregs_h(self):
+        """Test circuit multi qregs and wires (H gate).
         """
         qreg0 = QuantumRegister(2)
         qreg1 = QuantumRegister(2)
@@ -31,8 +31,8 @@ class TestCircuitWires(QiskitTestCase):
 
         self.assertEqual(circ, expected)
 
-    def test_circuit_multi_qreg_cregs(self):
-        """Test circuit multi qregs/cregs and wires.
+    def test_circuit_multi_qreg_cregs_measure(self):
+        """Test circuit multi qregs/cregs and wires (measure).
         """
         qreg0 = QuantumRegister(2)
         creg0 = ClassicalRegister(2)
@@ -46,6 +46,22 @@ class TestCircuitWires(QiskitTestCase):
         expected = QuantumCircuit(qreg0, qreg1, creg0, creg1)
         expected.measure(qreg0[0], creg1[0])
         expected.measure(qreg1[0], creg0[1])
+
+        self.assertEqual(circ, expected)
+
+    def test_circuit_barrier(self):
+        """Test barrier on wires.
+        """
+        qreg01 = QuantumRegister(2)
+        qreg23 = QuantumRegister(2)
+
+        circ = QuantumCircuit(qreg01, qreg23)
+        circ.barrier(0)
+        circ.barrier(2)
+
+        expected = QuantumCircuit(qreg01, qreg23)
+        expected.barrier(qreg01[0])
+        expected.barrier(qreg23[0])
 
         self.assertEqual(circ, expected)
 
