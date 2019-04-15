@@ -10,8 +10,6 @@
 Transformations between QuantumChannel represenations.
 """
 
-import logging
-
 import numpy as np
 import scipy.linalg as la
 
@@ -19,15 +17,13 @@ from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT
 
-logger = logging.getLogger(__name__)
-
 
 def _to_choi(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the Choi representation."""
     if rep == 'Choi':
         return data
-    if rep == 'UnitaryChannel':
-        return _from_unitary('Choi', data, input_dim, output_dim)
+    if rep == 'Operator':
+        return _from_operator('Choi', data, input_dim, output_dim)
     if rep == 'SuperOp':
         return _superop_to_choi(data, input_dim, output_dim)
     if rep == 'Kraus':
@@ -46,8 +42,8 @@ def _to_superop(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the SuperOp representation."""
     if rep == 'SuperOp':
         return data
-    if rep == 'UnitaryChannel':
-        return _from_unitary('SuperOp', data, input_dim, output_dim)
+    if rep == 'Operator':
+        return _from_operator('SuperOp', data, input_dim, output_dim)
     if rep == 'Choi':
         return _choi_to_superop(data, input_dim, output_dim)
     if rep == 'Kraus':
@@ -68,8 +64,8 @@ def _to_kraus(rep, data, input_dim, output_dim):
         return data
     if rep == 'Stinespring':
         return _stinespring_to_kraus(data, input_dim, output_dim)
-    if rep == 'UnitaryChannel':
-        return _from_unitary('Kraus', data, input_dim, output_dim)
+    if rep == 'Operator':
+        return _from_operator('Kraus', data, input_dim, output_dim)
     # Convert via Choi and Kraus
     if rep != 'Choi':
         data = _to_choi(rep, data, input_dim, output_dim)
@@ -82,8 +78,8 @@ def _to_chi(rep, data, input_dim, output_dim):
         return data
     # Check valid n-qubit input
     _check_nqubit_dim(input_dim, output_dim)
-    if rep == 'UnitaryChannel':
-        return _from_unitary('Chi', data, input_dim, output_dim)
+    if rep == 'Operator':
+        return _from_operator('Chi', data, input_dim, output_dim)
     # Convert via Choi representation
     if rep != 'Choi':
         data = _to_choi(rep, data, input_dim, output_dim)
@@ -96,8 +92,8 @@ def _to_ptm(rep, data, input_dim, output_dim):
         return data
     # Check valid n-qubit input
     _check_nqubit_dim(input_dim, output_dim)
-    if rep == 'UnitaryChannel':
-        return _from_unitary('PTM', data, input_dim, output_dim)
+    if rep == 'Operator':
+        return _from_operator('PTM', data, input_dim, output_dim)
     # Convert via Superoperator representation
     if rep != 'SuperOp':
         data = _to_superop(rep, data, input_dim, output_dim)
@@ -108,29 +104,29 @@ def _to_stinespring(rep, data, input_dim, output_dim):
     """Transform a QuantumChannel to the Stinespring representation."""
     if rep == 'Stinespring':
         return data
-    if rep == 'UnitaryChannel':
-        return _from_unitary('Stinespring', data, input_dim, output_dim)
+    if rep == 'Operator':
+        return _from_operator('Stinespring', data, input_dim, output_dim)
     # Convert via Superoperator representation
     if rep != 'Kraus':
         data = _to_kraus(rep, data, input_dim, output_dim)
     return _kraus_to_stinespring(data, input_dim, output_dim)
 
 
-def _to_unitary(rep, data, input_dim, output_dim):
-    """Transform a QuantumChannel to the UnitaryChannel representation."""
-    if rep == 'UnitaryChannel':
+def _to_operator(rep, data, input_dim, output_dim):
+    """Transform a QuantumChannel to the Operator representation."""
+    if rep == 'Operator':
         return data
     if rep == 'Stinespring':
-        return _stinespring_to_unitary(data, input_dim, output_dim)
+        return _stinespring_to_operator(data, input_dim, output_dim)
     # Convert via Kraus representation
     if rep != 'Kraus':
         data = _to_kraus(rep, data, input_dim, output_dim)
-    return _kraus_to_unitary(data, input_dim, output_dim)
+    return _kraus_to_operator(data, input_dim, output_dim)
 
 
-def _from_unitary(rep, data, input_dim, output_dim):
-    """Transform UnitaryChannel representation to other representation."""
-    if rep == 'UnitaryChannel':
+def _from_operator(rep, data, input_dim, output_dim):
+    """Transform Operator representation to other representation."""
+    if rep == 'Operator':
         return data
     if rep == 'SuperOp':
         return np.kron(np.conj(data), data)
@@ -143,33 +139,29 @@ def _from_unitary(rep, data, input_dim, output_dim):
         return (data, None)
     if rep == 'Chi':
         _check_nqubit_dim(input_dim, output_dim)
-        data = _from_unitary('Choi', data, input_dim, output_dim)
+        data = _from_operator('Choi', data, input_dim, output_dim)
         return _choi_to_chi(data, input_dim, output_dim)
     if rep == 'PTM':
         _check_nqubit_dim(input_dim, output_dim)
-        data = _from_unitary('SuperOp', data, input_dim, output_dim)
+        data = _from_operator('SuperOp', data, input_dim, output_dim)
         return _superop_to_ptm(data, input_dim, output_dim)
     raise QiskitError('Invalid QuantumChannel {}'.format(rep))
 
 
-def _kraus_to_unitary(data, input_dim, output_dim):
-    """Transform Kraus representation to UnitaryChannel representation."""
-    if input_dim != output_dim or data[1] is not None or len(data[0]) > 1:
-        logger.error(
-            'Channel cannot be converted to UnitaryChannel representation')
+def _kraus_to_operator(data, input_dim, output_dim):
+    """Transform Kraus representation to Operator representation."""
+    if data[1] is not None or len(data[0]) > 1:
         raise QiskitError(
-            'Channel cannot be converted to UnitaryChannel representation')
+            'Channel cannot be converted to Operator representation')
     return data[0][0]
 
 
-def _stinespring_to_unitary(data, input_dim, output_dim):
-    """Transform Stinespring representation to UnitaryChannel representation."""
+def _stinespring_to_operator(data, input_dim, output_dim):
+    """Transform Stinespring representation to Operator representation."""
     trace_dim = data[0].shape[0] // output_dim
-    if input_dim != output_dim or data[1] is not None or trace_dim != 1:
-        logger.error(
-            'Channel cannot be converted to UnitaryChannel representation')
+    if data[1] is not None or trace_dim != 1:
         raise QiskitError(
-            'Channel cannot be converted to UnitaryChannel representation')
+            'Channel cannot be converted to Operator representation')
     return data[0]
 
 
