@@ -17,6 +17,7 @@ from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import \
     _text_circuit_drawer
 from qiskit.test import QiskitTestCase
+from qiskit.circuit import Gate
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -848,6 +849,98 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.x(qr1[0])
         circuit.measure(qr1[1], cr1[1])
         self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
+
+
+class TestTextDrawerMultiQGates(QiskitTestCase):
+    """ Gates impling multiple qubits."""
+
+    def test_2Qgate(self):
+        """ 2Q no params. """
+        expected = '\n'.join(["        ┌───────┐",
+                              "q_1: |0>┤1      ├",
+                              "        │  twoQ │",
+                              "q_0: |0>┤0      ├",
+                              "        └───────┘"])
+
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+
+        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[])
+        circuit.append(my_gate2, [qr[0], qr[1]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
+
+    def test_2Qgate_cross_wires(self):
+        """ 2Q no params, with cross wires """
+        expected = '\n'.join(["        ┌───────┐",
+                              "q_1: |0>┤0      ├",
+                              "        │  twoQ │",
+                              "q_0: |0>┤1      ├",
+                              "        └───────┘"])
+
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+
+        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[])
+        circuit.append(my_gate2, [qr[1], qr[0]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
+
+    def test_3Qgate_cross_wires(self):
+        """ 3Q no params, with cross wires """
+        expected = '\n'.join(["        ┌─────────┐",
+                              "q_2: |0>┤1        ├",
+                              "        │         │",
+                              "q_1: |0>┤0 threeQ ├",
+                              "        │         │",
+                              "q_0: |0>┤2        ├",
+                              "        └─────────┘"])
+
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+
+        my_gate3 = Gate(name='threeQ', num_qubits=3, params=[])
+        circuit.append(my_gate3, [qr[1], qr[2], qr[0]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
+
+    def test_2Qgate_nottogether(self):
+        """ 2Q that are not together """
+        expected = '\n'.join(["        ┌──────┐",
+                              "q_2: |0>┤1     ├",
+                              "        │      │",
+                              "q_1: |0>┤ twoQ ├",
+                              "        │      │",
+                              "q_0: |0>┤0     ├",
+                              "        └──────┘"])
+
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+
+        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[])
+        circuit.append(my_gate2, [qr[0], qr[2]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
+
+    def test_2Qgate_nottogether_across_4(self):
+        """ 2Q that are 2 bits apart"""
+        expected = '\n'.join(["        ┌──────┐",
+                              "q_3: |0>┤1     ├",
+                              "        │      │",
+                              "q_2: |0>┤      ├",
+                              "        │ twoQ │",
+                              "q_1: |0>┤      ├",
+                              "        │      │",
+                              "q_0: |0>┤0     ├",
+                              "        └──────┘"])
+
+        qr = QuantumRegister(4, 'q')
+        circuit = QuantumCircuit(qr)
+
+        my_gate2 = Gate(name='twoQ', num_qubits=2, params=[])
+        circuit.append(my_gate2, [qr[0], qr[3]])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
 
 
 if __name__ == '__main__':
