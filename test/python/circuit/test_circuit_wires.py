@@ -65,6 +65,21 @@ class TestCircuitWires(QiskitTestCase):
 
         self.assertEqual(circ, expected)
 
+    def test_circuit_initialize(self):
+        """Test initialize on wires.
+        """
+        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        qreg01 = QuantumRegister(2)
+        qreg23 = QuantumRegister(2)
+
+        circ = QuantumCircuit(qreg01, qreg23)
+        circ.initialize(desired_vector, [0, 2])
+
+        expected = QuantumCircuit(qreg01, qreg23)
+        circ.initialize(desired_vector, [qreg01[0], qreg23[0]])
+
+        self.assertEqual(circ, expected)
+
     def test_circuit_qwire_out_of_range(self):
         """Fail if quantum wire is out of range.
         """
