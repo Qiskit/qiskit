@@ -104,6 +104,9 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
     Returns:
         QuantumCircuit: A transpiled circuit.
+
+    Raises:
+        TranspilerError: If the Layout does not matches the circuit
     """
     if initial_layout is not None and set(circuit.qregs) != initial_layout.get_registers():
         raise TranspilerError('The provided initial layout does not match the registers in '
