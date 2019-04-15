@@ -924,7 +924,15 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
     def test_2Qgate_nottogether_across_4(self):
         """ 2Q that are 2 bits apart"""
-        expected = '\n'.join([])
+        expected = '\n'.join(["        ┌──────┐",
+                              "q_3: |0>┤1     ├",
+                              "        │      │",
+                              "q_2: |0>┤      ├",
+                              "        │ twoQ │",
+                              "q_1: |0>┤      ├",
+                              "        │      │",
+                              "q_0: |0>┤0     ├",
+                              "        └──────┘"])
 
         qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
