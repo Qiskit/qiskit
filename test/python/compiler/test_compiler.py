@@ -395,7 +395,6 @@ class TestCompiler(QiskitTestCase):
         qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, QasmQobj)
 
-
     def test_kak_decomposition(self):
         """Verify KAK decomposition for random Haar unitaries.
         """
