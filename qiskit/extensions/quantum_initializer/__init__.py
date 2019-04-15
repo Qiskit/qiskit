@@ -6,4 +6,11 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Initialize qubit registers to desired arbitrary state."""
+
 from .initializer import InitializeGate
+from .squ import SingleQubitUnitary
+from .ucz import UCZ
+from .ucy import UCY
+from .diag import DiagGate
+from .ucg import UCG
+from .isometry import Isometry
