@@ -23,6 +23,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+- Introduced the backend defaults model and endpoint for pulse backends (#2101).
 - `meas_level` to result schema (#2085).
 - Core StochasticSwap routine implemented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
@@ -63,10 +64,14 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
+- Added an ``PassManager.passes()`` method that returns a list of the passes that
+  have been added to the pass manager, including options and flow controllers.
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
   are followed by a measurement instruction, moving the latter to the proper wire.
+- Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
+  rotations about the Z axis, leveraging previously-found gate commutation relations.
 
 Changed
 -------
