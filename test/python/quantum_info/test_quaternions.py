@@ -88,14 +88,12 @@ class TestQuaternions(QiskitTestCase):
     def test_mul_by_array(self):
         """Quaternions cannot be multiplied with an array."""
         other_array = np.random.rand(4)
-        with self.assertRaises(Exception):
-            self.quat_unnormalized * other_array
+        self.assertRaises(Exception, self.quat_unnormalized.__mul__, other_array)
 
     def test_mul_by_scalar(self):
         """Quaternions cannot be multiplied with a scalar."""
         other_scalar = np.random.random()
-        with self.assertRaises(Exception):
-            self.quat_unnormalized * other_scalar
+        self.assertRaises(Exception, self.quat_unnormalized.__mul__, other_scalar)
 
     def test_rotation(self):
         """Multiplication by -1 should give the same rotation."""
@@ -121,8 +119,7 @@ class TestQuaternions(QiskitTestCase):
         """Cannot generate quaternion from rotations around invalid axis."""
         rand_axis = np.random.choice(list(string.ascii_letters[0:23]), 1)[0]
         rand_angle = np.random.random()
-        with self.assertRaises(Exception):
-            quaternion_from_axis_rotation(rand_angle, rand_axis)
+        self.assertRaises(ValueError, quaternion_from_axis_rotation, rand_angle, rand_axis)
 
 
 def rotation_matrix(angle, axis):
