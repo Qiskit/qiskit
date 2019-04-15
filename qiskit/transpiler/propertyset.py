@@ -20,3 +20,9 @@ class PropertySet:
 
     def __setitem__(self, key, value):
         self._properties[key] = value
+
+    def __repr__(self):
+        return self._properties.__repr__()
+
+    def __str__(self):
+        return self._properties.__str__()
