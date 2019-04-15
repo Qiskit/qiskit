@@ -31,9 +31,11 @@ from copy import deepcopy
 import sympy
 import numpy
 
-from qiskit.qasm._node import _node
+from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
+
+_CUTOFF_PRECISION = 1E-10
 
 
 class Instruction:
@@ -64,7 +66,7 @@ class Instruction:
             if isinstance(single_param, sympy.Basic):
                 self.params.append(single_param)
             # example: OpenQASM parsed instruction
-            elif isinstance(single_param, _node.Node):
+            elif isinstance(single_param, node.Node):
                 self.params.append(single_param.sym())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
@@ -107,7 +109,9 @@ class Instruction:
                 self.num_clbits == other.num_clbits and \
                 self.definition == other.definition and \
                 (self.params == other.params or
-                 [float(p) for p in self.params] == [float(p) for p in other.params]):
+                 numpy.allclose([float(p) for p in self.params],
+                                [float(p) for p in other.params],
+                                atol=_CUTOFF_PRECISION)):
             res = True
         return res
 

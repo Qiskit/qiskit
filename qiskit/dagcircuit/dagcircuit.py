@@ -157,7 +157,7 @@ class DAGCircuit:
     def remove_all_ops_named(self, opname):
         """Remove all operation nodes with the given name."""
         for n in self.named_nodes(opname):
-            self._remove_op_node(n)
+            self.remove_op_node(n)
 
     def add_qreg(self, qreg):
         """Add all wires in a quantum register."""
@@ -631,7 +631,8 @@ class DAGCircuit:
         if not nx.is_directed_acyclic_graph(self.multi_graph):
             raise DAGCircuitError("not a DAG")
 
-        return nx.dag_longest_path_length(self.multi_graph) - 1
+        depth = nx.dag_longest_path_length(self.multi_graph) - 1
+        return depth if depth != -1 else 0
 
     def width(self):
         """Return the total number of qubits used by the circuit."""
@@ -791,7 +792,7 @@ class DAGCircuit:
                     sorted_node.op.control = condition
                     to_replay.append(sorted_node)
             for input_node in input_dag.op_nodes():
-                input_dag._remove_op_node(input_node)
+                input_dag.remove_op_node(input_node)
             for replay_node in to_replay:
                 input_dag.apply_operation_back(replay_node.op, replay_node.qargs,
                                                replay_node.cargs, condition=condition)
@@ -990,10 +991,10 @@ class DAGCircuit:
         return named_nodes
 
     def get_2q_nodes(self):
-        """Deprecated. Use twoQ_nodes()."""
-        warnings.warn('The method get_2q_nodes() is being replaced by twoQ_nodes()',
-                      'Returning a list of data_dicts is also deprecated, twoQ_nodes() '
-                      'returns a list of DAGNodes ',
+        """Deprecated. Use twoQ_gates()."""
+        warnings.warn('The method get_2q_nodes() is being replaced by twoQ_gates()',
+                      'Returning a list of data_dicts is also deprecated, twoQ_gates() '
+                      'returns a list of DAGNodes.',
                       DeprecationWarning, 2)
 
         two_q_nodes = []
@@ -1003,17 +1004,8 @@ class DAGCircuit:
 
         return two_q_nodes
 
-    def twoQ_nodes(self):
-        """Get list of 2-qubit nodes."""
-        two_q_nodes = []
-        for node in self.multi_graph.nodes():
-            if node.type == 'op' and len(node.qargs) == 2:
-                two_q_nodes.append(node)
-        return two_q_nodes
-
     def twoQ_gates(self):
-        """Get list of 2-qubit gates. Like twoQ_nodes, but ignoring
-        snapshot, barriers, and the like."""
+        """Get list of 2-qubit gates. Ignore snapshot, barriers, and the like."""
         two_q_gates = []
         for node in self.gate_nodes():
             if len(node.qargs) == 2:
@@ -1021,11 +1013,11 @@ class DAGCircuit:
         return two_q_gates
 
     def get_3q_or_more_nodes(self):
-        """Deprecated. Use threeQ_or_more_nodes()."""
+        """Deprecated. Use threeQ_or_more_gates()."""
         warnings.warn('The method get_3q_or_more_nodes() is being replaced by'
-                      ' threeQ_or_more_nodes()',
+                      ' threeQ_or_more_gates()',
                       'Returning a list of (node_id, data) tuples is also deprecated, '
-                      'threeQ_or_more_nodes() returns a list of DAGNodes',
+                      'threeQ_or_more_gates() returns a list of DAGNodes.',
                       DeprecationWarning, 2)
 
         three_q_nodes = []
@@ -1034,13 +1026,13 @@ class DAGCircuit:
                 three_q_nodes.append((node._node_id, node.data_dict))
         return three_q_nodes
 
-    def threeQ_or_more_nodes(self):
-        """Get list of 3-or-more-qubit nodes: (id, data)."""
-        three_q_nodes = []
-        for node in self.multi_graph.nodes():
-            if node.type == 'op' and len(node.qargs) >= 3:
-                three_q_nodes.append(node)
-        return three_q_nodes
+    def threeQ_or_more_gates(self):
+        """Get list of 3-or-more-qubit gates: (id, data)."""
+        three_q_gates = []
+        for node in self.gate_nodes():
+            if len(node.qargs) >= 3:
+                three_q_gates.append(node)
+        return three_q_gates
 
     def successors(self, node):
         """Returns list of the successors of a node as DAGNodes."""
@@ -1112,16 +1104,20 @@ class DAGCircuit:
                 successors.append(successor)
         return successors
 
-    def _remove_op_node(self, node):
+    def remove_op_node(self, node):
         """Remove an operation node n.
 
         Add edges from predecessors to successors.
         """
         if isinstance(node, int):
-            warnings.warn('Calling _remove_op_node() with a node id is deprecated,'
+            warnings.warn('Calling remove_op_node() with a node id is deprecated,'
                           ' use a DAGNode instead',
                           DeprecationWarning, 2)
             node = self._id_to_node[node]
+
+        if node.type != 'op':
+            raise DAGCircuitError('The method remove_op_node only works on op node types. An "%s" '
+                                  'node type was wrongly provided.' % node.type)
 
         pred_map, succ_map = self._make_pred_succ_maps(node)
 
@@ -1145,7 +1141,7 @@ class DAGCircuit:
         # multi_graph.remove_nodes_from; same for related functions ...
         for anc_node in anc:
             if anc_node.type == "op":
-                self._remove_op_node(anc_node)
+                self.remove_op_node(anc_node)
 
     def remove_descendants_of(self, node):
         """Remove all of the descendant operation nodes of node."""
@@ -1158,7 +1154,7 @@ class DAGCircuit:
         desc = nx.descendants(self.multi_graph, node)
         for desc_node in desc:
             if desc_node.type == "op":
-                self._remove_op_node(desc_node)
+                self.remove_op_node(desc_node)
 
     def remove_nonancestors_of(self, node):
         """Remove all of the non-ancestors operation nodes of node."""
@@ -1172,7 +1168,7 @@ class DAGCircuit:
         comp = list(set(self.multi_graph.nodes()) - set(anc))
         for n in comp:
             if n.type == "op":
-                self._remove_op_node(n)
+                self.remove_op_node(n)
 
     def remove_nondescendants_of(self, node):
         """Remove all of the non-descendants operation nodes of node."""
@@ -1186,7 +1182,7 @@ class DAGCircuit:
         comp = list(set(self.multi_graph.nodes()) - set(dec))
         for n in comp:
             if n.type == "op":
-                self._remove_op_node(n)
+                self.remove_op_node(n)
 
     def layers(self):
         """Yield a shallow view on a layer of this DAGCircuit for all d layers of this circuit.

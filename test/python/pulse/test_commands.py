@@ -20,8 +20,8 @@ from qiskit.test import QiskitTestCase
 class TestAcquire(QiskitTestCase):
     """Acquisition tests."""
 
-    def test_default(self):
-        """Test default discriminator and kernel.
+    def test_can_construct_valid_acquire_command(self):
+        """Test if valid acquire command can be constructed.
         """
         kernel_opts = {
             'start_window': 0,
@@ -43,6 +43,15 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq_command.discriminator.params, discriminator_opts)
         self.assertEqual(acq_command.kernel.name, 'boxcar')
         self.assertEqual(acq_command.kernel.params, kernel_opts)
+
+    def test_can_construct_acquire_command_with_default_values(self):
+        """Test if an acquire command can be constructed with default discriminator and kernel.
+        """
+        acq_command = Acquire(duration=10)
+
+        self.assertEqual(acq_command.duration, 10)
+        self.assertEqual(acq_command.discriminator, None)
+        self.assertEqual(acq_command.kernel, None)
 
 
 class TestFrameChange(QiskitTestCase):
@@ -69,16 +78,16 @@ class TestFunctionalPulse(QiskitTestCase):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        pulse_command = gaussian(name='gaussian', duration=10, amp=1, t0=5, sig=1)
+        pulse_command = gaussian(duration=10, name='test_pulse', amp=1, t0=5, sig=1)
         _y = 1 * np.exp(-(np.linspace(0, 9, 10) - 5)**2 / 1**2)
 
         self.assertListEqual(list(pulse_command.samples), list(_y))
 
+        # check name
+        self.assertEqual(pulse_command.name, 'test_pulse')
+
         # check duration
         self.assertEqual(pulse_command.duration, 10)
-
-        # check name
-        self.assertEqual(pulse_command.name, 'gaussian')
 
 
 class TestPersistentValue(QiskitTestCase):
@@ -101,9 +110,21 @@ class TestSnapshot(QiskitTestCase):
         """
         snap_command = Snapshot(label='test_label', snap_type='state')
 
-        self.assertEqual(snap_command.label, "test_label")
-        self.assertEqual(snap_command.type, "state")
+        self.assertEqual(snap_command._label, "test_label")
+        self.assertEqual(snap_command._type, "state")
         self.assertEqual(snap_command.duration, 0)
+
+
+class TestKernel(QiskitTestCase):
+    """Kernel tests."""
+
+    def test_can_construct_kernel_with_default_values(self):
+        """Test if Kernel can be constructed with default name and params.
+        """
+        kernel = Kernel()
+
+        self.assertEqual(kernel.name, None)
+        self.assertEqual(kernel.params, {})
 
 
 if __name__ == '__main__':
