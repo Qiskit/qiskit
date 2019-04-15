@@ -37,5 +37,6 @@ class TestPropertySet(QiskitTestCase):
         self.pset['property'] = 'value'
         self.assertEqual(repr(self.pset), repr(self.pset._properties))
 
+
 if __name__ == '__main__':
     unittest.main()
