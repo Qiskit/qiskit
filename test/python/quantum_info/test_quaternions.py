@@ -8,7 +8,6 @@
 """Tests quaternion conversion"""
 
 import math
-import string
 import numpy as np
 import scipy.linalg as la
 
@@ -87,12 +86,12 @@ class TestQuaternions(QiskitTestCase):
 
     def test_mul_by_array(self):
         """Quaternions cannot be multiplied with an array."""
-        other_array = np.random.rand(4)
+        other_array = np.array([0.1, 0.2, 0.3, 0.4])
         self.assertRaises(Exception, self.quat_unnormalized.__mul__, other_array)
 
     def test_mul_by_scalar(self):
         """Quaternions cannot be multiplied with a scalar."""
-        other_scalar = np.random.random()
+        other_scalar = 0.123456789
         self.assertRaises(Exception, self.quat_unnormalized.__mul__, other_scalar)
 
     def test_rotation(self):
@@ -103,22 +102,22 @@ class TestQuaternions(QiskitTestCase):
     def test_one_euler_angle(self):
         """Quaternion should return a correct sequence of zyz representation
            in the case of rotations when there is only one non-zero Euler angle."""
-        rand_rot_angle = np.random.random()
+        rand_rot_angle = 0.123456789
         some_quat = quaternion_from_axis_rotation(rand_rot_angle, "z")
         self.assertTrue(np.allclose(some_quat.to_zyz(), np.array([rand_rot_angle, 0, 0])))
 
     def test_two_euler_angles(self):
         """Quaternion should return a correct sequence of zyz representation
            in the case of rotations when there are only two non-zero Euler angle."""
-        rand_rot_angle = np.random.random()
+        rand_rot_angle = 0.123456789
         some_quat = (quaternion_from_axis_rotation(rand_rot_angle, "z")
                      * quaternion_from_axis_rotation(np.pi, "y"))
         self.assertTrue(np.allclose(some_quat.to_zyz(), np.array([rand_rot_angle, np.pi, 0])))
 
     def test_quaternion_from_rotation_invalid_axis(self):
         """Cannot generate quaternion from rotations around invalid axis."""
-        rand_axis = np.random.choice(list(string.ascii_letters[0:23]), 1)[0]
-        rand_angle = np.random.random()
+        rand_axis = 'a'
+        rand_angle = 0.123456789
         self.assertRaises(ValueError, quaternion_from_axis_rotation, rand_angle, rand_axis)
 
 
