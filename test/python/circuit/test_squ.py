@@ -20,7 +20,7 @@ from scipy.stats import unitary_group
 from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit import execute as q_execute
+from qiskit import execute
 from qiskit.test import QiskitTestCase
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 
@@ -36,17 +36,19 @@ class TestSingleQubitUnitary(QiskitTestCase):
     def test_squ(self):
         for u, up_to_diagonal in itertools.product(squs, up_to_diagonal_list):
             with self.subTest(u=u,up_to_diagonal=up_to_diagonal):
-                q = QuantumRegister(1)
                 # test the squ for all possible basis states.
                 for i in range(2):
-                    qc = _prepare_basis_state(q, i)
-                    sqg = SingleQubitUnitary(u, q[0], up_to_diagonal=up_to_diagonal)
-                    qc._attach(sqg)
-                    # ToDo: improve efficiency here by allowing to execute circuit on several states in parallel (this would
-                    # ToDo: in particular allow to get out the isometry the circuit is implementing by applying it to the first
-                    # ToDo: few basis vectors
-                    vec_out = np.asarray(q_execute(qc, BasicAer.get_backend(
-                        'statevector_simulator')).result().get_statevector(qc, decimals=16))
+                    qr = QuantumRegister(1, "qr")
+                    qc = _prepare_basis_state(qr, i)
+                    sqg = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
+                    qc.squ(u, qr, up_to_diagonal=up_to_diagonal)
+                    # ToDo: improve efficiency here by allowing to execute circuit on several states in parallel
+                    #  (this would in particular allow to get out the isometry the circuit is implementing by applying
+                    #  it to the first few basis vectors
+                    print(qc)
+                    job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+                    result = job.result()
+                    vec_out = result.get_statevector()
                     if up_to_diagonal:
                         vec_out = np.array(sqg.diag) * vec_out
                     vec_desired = _apply_squ_to_basis_state(u, i)
@@ -65,7 +67,7 @@ def _prepare_basis_state(q, i):
     num_qubits=len(q)
     qc = QuantumCircuit(q)
     # ToDo: Remove this work around after the state vector simulator is fixed (it can't simulate the empty
-    # ToDo: circuit at the moment)
+    #  circuit at the moment)
     qc.iden(q[0])
     binary_rep = _get_binary_rep_as_list(i, num_qubits)
     for j in range(len(binary_rep)):
