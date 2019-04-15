@@ -48,3 +48,36 @@ def log2(num):
                 ret += 1
     else:
         return np.log2(num)
+
+
+def is_power(num, return_decomposition=False):
+    """
+    Check if num is a perfect power in O(n^3) time, n=ceil(logN)
+    """
+    b = 2
+    while (2 ** b) <= num:
+        a = 1
+        c = num
+        while (c - a) >= 2:
+            m = int((a + c) / 2)
+
+            if (m ** b) < (num + 1):
+                p = int((m ** b))
+            else:
+                p = int(num + 1)
+
+            if int(p) == int(num):
+                if return_decomposition:
+                    return True, int(m), int(b)
+                else:
+                    return True
+
+            if p < num:
+                a = int(m)
+            else:
+                c = int(m)
+        b = b + 1
+    if return_decomposition:
+        return False, num, 1
+    else:
+        return False
