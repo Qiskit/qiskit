@@ -24,7 +24,7 @@ import time
 
 from qiskit.result import Result
 from qiskit.providers import BaseBackend, BaseJob
-from qiskit.providers.models import BackendProperties, BackendConfiguration
+from qiskit.providers.models import BackendProperties, BackendConfiguration, PulseDefaults
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
@@ -173,19 +173,21 @@ class FakeOpenPulse2Q(FakeBackend):
             conditional_latency=[
                 [100, 1000], [1000, 100], [100, 1000],
                 [1000, 100], [100, 1000], [1000, 100]
-            ],
-            defaults={
-                'qubit_freq_est': [4.9, 5.0],
-                'meas_freq_est': [6.5, 6.6],
-                'buffer': 10,
-                'pulse_library': [],
-                'cmd_def': {},
-                'meas_kernel': [{'name': 'kernel1', 'params': []}],
-                'discriminator': [{'name': 'max_1Q_fidelity', 'params': [0, 0]}]
-            }
+            ]
+        )
+
+        self._defaults = PulseDefaults(
+            qubit_freq_est=[4.9, 5.0],
+            meas_freq_est=[6.5, 6.6],
+            buffer=10,
+            pulse_library=[],
+            cmd_def=[]
         )
 
         super().__init__(configuration)
+
+    def defaults(self):
+        return self._defaults
 
 
 class FakeTenerife(FakeBackend):

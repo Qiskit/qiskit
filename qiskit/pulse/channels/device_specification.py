@@ -12,6 +12,7 @@ import logging
 from typing import List
 
 from qiskit.pulse.exceptions import PulseError
+from qiskit.validation.exceptions import ModelValidationError
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
 from .pulse_channel import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
@@ -46,21 +47,33 @@ class DeviceSpecification:
         Raises:
             PulseError: when an invalid backend is specified
         """
-        config = backend.configuration()
+        backend_config = backend.configuration()
+
+        # TODO : Remove usage of config.defaults when backend.defaults() is updated.
+        try:
+            backend_default = backend.defaults()
+        except ModelValidationError:
+            from collections import namedtuple
+            BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est'))
+
+            backend_default = BackendDefault(
+                qubit_freq_est=backend_config.defaults['qubit_freq_est'],
+                meas_freq_est=backend_config.defaults['meas_freq_est']
+            )
 
         # system size
-        n_qubits = config.n_qubits
-        n_registers = config.n_registers
-        n_uchannels = config.n_uchannels
+        n_qubits = backend_config.n_qubits
+        n_registers = backend_config.n_registers
+        n_uchannels = backend_config.n_uchannels
 
         if n_uchannels > 0 and n_uchannels != n_qubits:
             raise PulseError("This version assumes no U-channels or #U-cannels==#qubits.")
 
         # frequency information
-        qubit_lo_freqs = config.defaults['qubit_freq_est']
-        qubit_lo_ranges = config.qubit_lo_range
-        meas_lo_freqs = config.defaults['meas_freq_est']
-        meas_lo_ranges = config.meas_lo_range
+        qubit_lo_freqs = backend_default.qubit_freq_est
+        qubit_lo_ranges = backend_config.qubit_lo_range
+        meas_lo_freqs = backend_default.meas_freq_est
+        meas_lo_ranges = backend_config.meas_lo_range
 
         # generate channels with assuming their numberings are aligned with qubits
         drives = [
