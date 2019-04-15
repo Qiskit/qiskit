@@ -69,8 +69,8 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         # the qubits are in the zero state)
         initialize_gate = disentangling_circuit.to_instruction().inverse()
 
-        q = QuantumRegister(self.num_qubits)
-        initialize_circuit = QuantumCircuit(q)
+        q = QuantumRegister(self.num_qubits, 'q')
+        initialize_circuit = QuantumCircuit(q, name='init_def')
         # TODO: make initialize an Instruction, and insert reset
         # TODO: avoid explicit reset if compiler determines a |0> state
         initialize_circuit.append(initialize_gate, q[:])
@@ -86,7 +86,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             QuantumCircuit: circuit to take self.params vector to |00..0>
         """
         q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q)
+        circuit = QuantumCircuit(q, name='disentangler')
 
         # kick start the peeling loop, and disentangle one-by-one from LSB to MSB
         remaining_param = self.params
@@ -192,8 +192,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         local_num_qubits = int(math.log2(list_len)) + 1
 
         q = QuantumRegister(local_num_qubits)
-        circuit = QuantumCircuit(q)
-        circuit.name = "multiplex" + local_num_qubits.__str__()
+        circuit = QuantumCircuit(q, name="multiplex"+local_num_qubits.__str__())
 
         lsb = q[0]
         msb = q[local_num_qubits - 1]
