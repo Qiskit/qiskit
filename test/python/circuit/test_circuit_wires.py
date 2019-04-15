@@ -68,15 +68,28 @@ class TestCircuitWires(QiskitTestCase):
     def test_circuit_initialize(self):
         """Test initialize on wires.
         """
-        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        init_vector = [0.5, 0.5, 0.5, 0.5]
         qreg01 = QuantumRegister(2)
         qreg23 = QuantumRegister(2)
 
-        circ = QuantumCircuit(qreg01, qreg23)
-        circ.initialize(desired_vector, [0, 2])
+        circuit = QuantumCircuit(qreg01, qreg23, name='circuit')
+        circuit.initialize(init_vector, [0, 2])
 
-        expected = QuantumCircuit(qreg01, qreg23)
-        circ.initialize(desired_vector, [qreg01[0], qreg23[0]])
+        expected = QuantumCircuit(qreg01, qreg23, name='circuit')
+        expected.initialize(init_vector, [qreg01[0], qreg23[0]])
+
+        self.assertEqual(circuit, expected)
+
+    def test_circuit_conditional(self):
+        """Test conditional on wires.
+        """
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(4)
+        circ = QuantumCircuit(qreg, creg)
+        circ.h(0).c_if(creg, 3)
+
+        expected = QuantumCircuit(qreg, creg)
+        expected.h(qreg[0]).c_if(creg, 3)
 
         self.assertEqual(circ, expected)
 
