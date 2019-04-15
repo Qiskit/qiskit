@@ -16,7 +16,8 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import PassManager
 from qiskit.transpiler import transpile_dag
 from qiskit.transpiler import TranspilerAccessError, TranspilerError
-from qiskit.transpiler.passmanager import DoWhileController, ConditionalController, FlowController
+from qiskit.transpiler.passmanager import DoWhileController, ConditionalController, \
+    FlowController, FlowControllerLinear
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
@@ -509,6 +510,85 @@ class TestControlFlowPlugin(SchedulerTestCase):
     def test_remove_nonexistent_plugin(self):
         """ Tries to remove a plugin that does not exist. """
         self.assertRaises(KeyError, FlowController.remove_flow_controller, "foo")
+
+
+class TestDumpPasses(SchedulerTestCase):
+    """ Testing the passes method. """
+
+    def test_passes(self):
+        """Dump passes in different FlowControllerLinear"""
+        passmanager = PassManager()
+        passmanager.append(PassC_TP_RA_PA())
+        passmanager.append(PassB_TP_RA_PA())
+
+        expected = [{'options': {'ignore_preserves': False,
+                                 'ignore_requires': False,
+                                 'max_iteration': 1000},
+                     'passes': [PassC_TP_RA_PA()],
+                     'type': FlowControllerLinear},
+                    {'options': {'ignore_preserves': False,
+                                 'ignore_requires': False,
+                                 'max_iteration': 1000},
+                     'passes': [PassB_TP_RA_PA()],
+                     'type': FlowControllerLinear}]
+        self.assertEqual(expected, passmanager.passes())
+
+    def test_passes_in_linear(self):
+        """Dump passes in the same FlowControllerLinear"""
+        passmanager = PassManager(passes=[
+            PassC_TP_RA_PA(),
+            PassB_TP_RA_PA(),
+            PassD_TP_NR_NP(argument1=[1, 2]),
+            PassB_TP_RA_PA()])
+
+        expected = [{'options': {'ignore_preserves': False,
+                                 'ignore_requires': False,
+                                 'max_iteration': 1000},
+                     'passes': [PassC_TP_RA_PA(),
+                                PassB_TP_RA_PA(),
+                                PassD_TP_NR_NP(argument1=[1, 2]),
+                                PassB_TP_RA_PA()],
+                     'type': FlowControllerLinear}]
+        self.assertEqual(expected, passmanager.passes())
+
+    def test_control_flow_plugin(self):
+        """ Dump passes in a custom flow controller. """
+        passmanager = PassManager()
+        FlowController.add_flow_controller('do_x_times', DoXTimesController)
+        passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
+
+        expected = [{'options': {'ignore_preserves': False,
+                                 'ignore_requires': False,
+                                 'max_iteration': 1000},
+                     'passes': [PassB_TP_RA_PA(),
+                                PassC_TP_RA_PA()],
+                     'type': DoXTimesController}]
+        self.assertEqual(expected, passmanager.passes())
+
+    def test_conditional_and_loop(self):
+        """ Dump passes with a conditional and a loop"""
+        passmanager = PassManager()
+        passmanager.append(PassE_AP_NR_NP(True))
+        passmanager.append(
+            [PassK_check_fixed_point_property(),
+             PassA_TP_NR_NP(),
+             PassF_reduce_dag_property()],
+            do_while=lambda property_set: not property_set['property_fixed_point'],
+            condition=lambda property_set: property_set['property_fixed_point'])
+
+        expected = [{'options': {'ignore_preserves': False,
+                                 'ignore_requires': False,
+                                 'max_iteration': 1000},
+                     'passes': [PassE_AP_NR_NP(True)],
+                     'type': FlowControllerLinear},
+                    {'options': {'ignore_preserves': False,
+                                 'ignore_requires': False,
+                                 'max_iteration': 1000},
+                     'passes': [PassK_check_fixed_point_property(),
+                                PassA_TP_NR_NP(),
+                                PassF_reduce_dag_property()],
+                     'type': ConditionalController}]
+        self.assertEqual(expected, passmanager.passes())
 
 
 if __name__ == '__main__':
