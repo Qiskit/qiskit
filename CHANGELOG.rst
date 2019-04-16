@@ -66,6 +66,10 @@ Added
   (reverses its sub-instructions) (#1816).
 - Added an ``PassManager.passes()`` method that returns a list of the passes that
   have been added to the pass manager, including options and flow controllers.
+- Added a ``PassManager.run()`` that transforms a ``QuantumCircuit`` according to its
+  pass schedule and returns a ``QuantumCircuit``.
+- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc.
+- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits.
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
