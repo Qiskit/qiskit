@@ -12,27 +12,27 @@ import unittest
 
 import numpy as np
 
-from qiskit.quantum_info.operators.channel.unitarychannel import UnitaryChannel
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel.stinespring import Stinespring
 from qiskit.quantum_info.operators.channel.ptm import PTM
 from qiskit.quantum_info.operators.channel.chi import Chi
-from .base import ChannelTestCase
+from .channel_test_case import ChannelTestCase
 
 
 class TestEquivalence(ChannelTestCase):
     """Tests for channel equivalence.
 
     Tests that performing conjugate, transpose, adjoint
-    in the UnitaryChannel representation is equivalent to performing the same
+    in the Operator representation is equivalent to performing the same
     operations in other representations.
     """
 
     unitaries = [
-        ChannelTestCase.matI, ChannelTestCase.matX, ChannelTestCase.matY,
-        ChannelTestCase.matZ, ChannelTestCase.matH
+        ChannelTestCase.UI, ChannelTestCase.UX, ChannelTestCase.UY,
+        ChannelTestCase.UZ, ChannelTestCase.UH
     ]
 
     chois = [
@@ -55,25 +55,23 @@ class TestEquivalence(ChannelTestCase):
         ChannelTestCase.ptmZ, ChannelTestCase.ptmH
     ]
 
-    def _compare_transpose_to_unitary(self, chans, mats):
+    def _compare_transpose_to_operator(self, chans, mats):
         """Test transpose is equivalent"""
-        unitaries = [UnitaryChannel(np.transpose(i)) for i in mats]
+        unitaries = [Operator(np.transpose(i)) for i in mats]
         channels = [i.transpose() for i in chans]
         for chan, uni in zip(channels, unitaries):
             self.assertEqual(chan, chan.__class__(uni))
 
-    def _compare_conjugate_to_unitary(self, chans, mats):
+    def _compare_conjugate_to_operator(self, chans, mats):
         """Test conjugate is equivalent"""
-        unitaries = [UnitaryChannel(np.conjugate(i)) for i in mats]
+        unitaries = [Operator(np.conjugate(i)) for i in mats]
         channels = [i.conjugate() for i in chans]
         for chan, uni in zip(channels, unitaries):
             self.assertEqual(chan, chan.__class__(uni))
 
-    def _compare_adjoint_to_unitary(self, chans, mats):
+    def _compare_adjoint_to_operator(self, chans, mats):
         """Test adjoint is equivalent"""
-        unitaries = [
-            UnitaryChannel(np.conjugate(np.transpose(i))) for i in mats
-        ]
+        unitaries = [Operator(np.conjugate(np.transpose(i))) for i in mats]
         channels = [i.adjoint() for i in chans]
         for chan, uni in zip(channels, unitaries):
             self.assertEqual(chan, chan.__class__(uni))
@@ -82,217 +80,217 @@ class TestEquivalence(ChannelTestCase):
         """Test conjugate of Choi matrices is correct."""
         mats = self.unitaries
         chans = [Choi(mat) for mat in self.chois]
-        self._compare_conjugate_to_unitary(chans, mats)
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_superop_conjugate(self):
         """Test conjugate of SuperOp matrices is correct."""
         mats = self.unitaries
         chans = [SuperOp(mat) for mat in self.sops]
-        self._compare_conjugate_to_unitary(chans, mats)
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_kraus_conjugate(self):
         """Test conjugate of Kraus matrices is correct."""
         mats = self.unitaries
         chans = [Kraus(mat) for mat in mats]
-        self._compare_conjugate_to_unitary(chans, mats)
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_stinespring_conjugate(self):
         """Test conjugate of Stinespring matrices is correct."""
         mats = self.unitaries
         chans = [Stinespring(mat) for mat in mats]
-        self._compare_conjugate_to_unitary(chans, mats)
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_chi_conjugate(self):
         """Test conjugate of Chi matrices is correct."""
         mats = self.unitaries
         chans = [Chi(mat) for mat in self.chis]
-        self._compare_conjugate_to_unitary(chans, mats)
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_ptm_conjugate(self):
         """Test conjugate of PTM matrices is correct."""
         mats = self.unitaries
         chans = [PTM(mat) for mat in self.ptms]
-        self._compare_conjugate_to_unitary(chans, mats)
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_choi_conjugate_random(self):
         """Test conjugate of Choi matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Choi(UnitaryChannel(mat)) for mat in mats]
-        self._compare_conjugate_to_unitary(chans, mats)
+        chans = [Choi(Operator(mat)) for mat in mats]
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_superop_conjugate_random(self):
         """Test conjugate of SuperOp matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [SuperOp(UnitaryChannel(mat)) for mat in mats]
-        self._compare_conjugate_to_unitary(chans, mats)
+        chans = [SuperOp(Operator(mat)) for mat in mats]
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_kraus_conjugate_random(self):
         """Test conjugate of Kraus matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Kraus(UnitaryChannel(mat)) for mat in mats]
-        self._compare_conjugate_to_unitary(chans, mats)
+        chans = [Kraus(Operator(mat)) for mat in mats]
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_stinespring_conjugate_random(self):
         """Test conjugate of Stinespring matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Stinespring(UnitaryChannel(mat)) for mat in mats]
-        self._compare_conjugate_to_unitary(chans, mats)
+        chans = [Stinespring(Operator(mat)) for mat in mats]
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_chi_conjugate_random(self):
         """Test conjugate of Chi matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Chi(UnitaryChannel(mat)) for mat in mats]
-        self._compare_conjugate_to_unitary(chans, mats)
+        chans = [Chi(Operator(mat)) for mat in mats]
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_ptm_conjugate_random(self):
         """Test conjugate of PTM matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [PTM(UnitaryChannel(mat)) for mat in mats]
-        self._compare_conjugate_to_unitary(chans, mats)
+        chans = [PTM(Operator(mat)) for mat in mats]
+        self._compare_conjugate_to_operator(chans, mats)
 
     def test_choi_transpose(self):
         """Test transpose of Choi matrices is correct."""
         mats = self.unitaries
         chans = [Choi(mat) for mat in self.chois]
-        self._compare_transpose_to_unitary(chans, mats)
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_superop_transpose(self):
         """Test transpose of SuperOp matrices is correct."""
         mats = self.unitaries
         chans = [SuperOp(mat) for mat in self.sops]
-        self._compare_transpose_to_unitary(chans, mats)
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_kraus_transpose(self):
         """Test transpose of Kraus matrices is correct."""
         mats = self.unitaries
         chans = [Kraus(mat) for mat in mats]
-        self._compare_transpose_to_unitary(chans, mats)
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_stinespring_transpose(self):
         """Test transpose of Stinespring matrices is correct."""
         mats = self.unitaries
         chans = [Stinespring(mat) for mat in mats]
-        self._compare_transpose_to_unitary(chans, mats)
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_chi_transpose(self):
         """Test transpose of Chi matrices is correct."""
         mats = self.unitaries
         chans = [Chi(mat) for mat in self.chis]
-        self._compare_transpose_to_unitary(chans, mats)
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_ptm_transpose(self):
         """Test transpose of PTM matrices is correct."""
         mats = self.unitaries
         chans = [PTM(mat) for mat in self.ptms]
-        self._compare_transpose_to_unitary(chans, mats)
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_choi_transpose_random(self):
         """Test transpose of Choi matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Choi(UnitaryChannel(mat)) for mat in mats]
-        self._compare_transpose_to_unitary(chans, mats)
+        chans = [Choi(Operator(mat)) for mat in mats]
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_superop_transpose_random(self):
         """Test transpose of SuperOp matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [SuperOp(UnitaryChannel(mat)) for mat in mats]
-        self._compare_transpose_to_unitary(chans, mats)
+        chans = [SuperOp(Operator(mat)) for mat in mats]
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_kraus_transpose_random(self):
         """Test transpose of Kraus matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Kraus(UnitaryChannel(mat)) for mat in mats]
-        self._compare_transpose_to_unitary(chans, mats)
+        chans = [Kraus(Operator(mat)) for mat in mats]
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_stinespring_transpose_random(self):
         """Test transpose of Stinespring matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Stinespring(UnitaryChannel(mat)) for mat in mats]
-        self._compare_transpose_to_unitary(chans, mats)
+        chans = [Stinespring(Operator(mat)) for mat in mats]
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_chi_transpose_random(self):
         """Test transpose of Chi matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Chi(UnitaryChannel(mat)) for mat in mats]
-        self._compare_transpose_to_unitary(chans, mats)
+        chans = [Chi(Operator(mat)) for mat in mats]
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_ptm_transpose_random(self):
         """Test transpose of PTM matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [PTM(UnitaryChannel(mat)) for mat in mats]
-        self._compare_transpose_to_unitary(chans, mats)
+        chans = [PTM(Operator(mat)) for mat in mats]
+        self._compare_transpose_to_operator(chans, mats)
 
     def test_choi_adjoint(self):
         """Test adjoint of Choi matrices is correct."""
         mats = self.unitaries
         chans = [Choi(mat) for mat in self.chois]
-        self._compare_adjoint_to_unitary(chans, mats)
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_superop_adjoint(self):
         """Test adjoint of SuperOp matrices is correct."""
         mats = self.unitaries
         chans = [SuperOp(mat) for mat in self.sops]
-        self._compare_adjoint_to_unitary(chans, mats)
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_kraus_adjoint(self):
         """Test adjoint of Kraus matrices is correct."""
         mats = self.unitaries
         chans = [Kraus(mat) for mat in mats]
-        self._compare_adjoint_to_unitary(chans, mats)
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_stinespring_adjoint(self):
         """Test adjoint of Stinespring matrices is correct."""
         mats = self.unitaries
         chans = [Stinespring(mat) for mat in mats]
-        self._compare_adjoint_to_unitary(chans, mats)
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_chi_adjoint(self):
         """Test adjoint of Chi matrices is correct."""
         mats = self.unitaries
         chans = [Chi(mat) for mat in self.chis]
-        self._compare_adjoint_to_unitary(chans, mats)
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_ptm_adjoint(self):
         """Test adjoint of PTM matrices is correct."""
         mats = self.unitaries
         chans = [PTM(mat) for mat in self.ptms]
-        self._compare_adjoint_to_unitary(chans, mats)
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_choi_adjoint_random(self):
         """Test adjoint of Choi matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Choi(UnitaryChannel(mat)) for mat in mats]
-        self._compare_adjoint_to_unitary(chans, mats)
+        chans = [Choi(Operator(mat)) for mat in mats]
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_superop_adjoint_random(self):
         """Test adjoint of SuperOp matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [SuperOp(UnitaryChannel(mat)) for mat in mats]
-        self._compare_adjoint_to_unitary(chans, mats)
+        chans = [SuperOp(Operator(mat)) for mat in mats]
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_kraus_adjoint_random(self):
         """Test adjoint of Kraus matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Kraus(UnitaryChannel(mat)) for mat in mats]
-        self._compare_adjoint_to_unitary(chans, mats)
+        chans = [Kraus(Operator(mat)) for mat in mats]
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_stinespring_adjoint_random(self):
         """Test adjoint of Stinespring matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Stinespring(UnitaryChannel(mat)) for mat in mats]
-        self._compare_adjoint_to_unitary(chans, mats)
+        chans = [Stinespring(Operator(mat)) for mat in mats]
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_chi_adjoint_random(self):
         """Test adjoint of Chi matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [Chi(UnitaryChannel(mat)) for mat in mats]
-        self._compare_adjoint_to_unitary(chans, mats)
+        chans = [Chi(Operator(mat)) for mat in mats]
+        self._compare_adjoint_to_operator(chans, mats)
 
     def test_ptm_adjoint_random(self):
         """Test adjoint of PTM matrices is correct."""
         mats = [self.rand_matrix(4, 4) for _ in range(4)]
-        chans = [PTM(UnitaryChannel(mat)) for mat in mats]
-        self._compare_adjoint_to_unitary(chans, mats)
+        chans = [PTM(Operator(mat)) for mat in mats]
+        self._compare_adjoint_to_operator(chans, mats)
 
 
 if __name__ == '__main__':

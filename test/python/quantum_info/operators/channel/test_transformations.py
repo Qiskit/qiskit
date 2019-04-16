@@ -14,22 +14,22 @@ import numpy as np
 
 from qiskit import QiskitError
 from qiskit.quantum_info.operators.predicates import matrix_equal
-from qiskit.quantum_info.operators.channel.unitarychannel import UnitaryChannel
+from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel.stinespring import Stinespring
 from qiskit.quantum_info.operators.channel.ptm import PTM
 from qiskit.quantum_info.operators.channel.chi import Chi
-from .base import ChannelTestCase
+from .channel_test_case import ChannelTestCase
 
 
 class TestTransformations(ChannelTestCase):
-    """Tests for UnitaryChannel channel representation."""
+    """Tests for Operator channel representation."""
 
     unitary_mat = [
-        ChannelTestCase.matI, ChannelTestCase.matX, ChannelTestCase.matY,
-        ChannelTestCase.matZ, ChannelTestCase.matH
+        ChannelTestCase.UI, ChannelTestCase.UX, ChannelTestCase.UY,
+        ChannelTestCase.UZ, ChannelTestCase.UH
     ]
     unitary_choi = [
         ChannelTestCase.choiI, ChannelTestCase.choiX, ChannelTestCase.choiY,
@@ -48,68 +48,68 @@ class TestTransformations(ChannelTestCase):
         ChannelTestCase.ptmZ, ChannelTestCase.ptmH
     ]
 
-    def test_unitary_to_unitary(self):
-        """Test UnitaryChannel to UnitaryChannel transformation."""
+    def test_operator_to_operator(self):
+        """Test Operator to Operator transformation."""
         # Test unitary channels
         for mat in self.unitary_mat:
-            chan1 = UnitaryChannel(mat)
-            chan2 = UnitaryChannel(chan1)
+            chan1 = Operator(mat)
+            chan2 = Operator(chan1)
             self.assertEqual(chan1, chan2)
 
-    def test_unitary_to_choi(self):
-        """Test UnitaryChannel to Choi transformation."""
+    def test_operator_to_choi(self):
+        """Test Operator to Choi transformation."""
         # Test unitary channels
         for mat, choi in zip(self.unitary_mat, self.unitary_choi):
             chan1 = Choi(choi)
-            chan2 = Choi(UnitaryChannel(mat))
+            chan2 = Choi(Operator(mat))
             self.assertEqual(chan1, chan2)
 
-    def test_unitary_to_superop(self):
-        """Test UnitaryChannel to SuperOp transformation."""
+    def test_operator_to_superop(self):
+        """Test Operator to SuperOp transformation."""
         # Test unitary channels
         for mat, sop in zip(self.unitary_mat, self.unitary_sop):
             chan1 = SuperOp(sop)
-            chan2 = SuperOp(UnitaryChannel(mat))
+            chan2 = SuperOp(Operator(mat))
             self.assertEqual(chan1, chan2)
 
-    def test_unitary_to_kraus(self):
-        """Test UnitaryChannel to Kraus transformation."""
+    def test_operator_to_kraus(self):
+        """Test Operator to Kraus transformation."""
         # Test unitary channels
         for mat in self.unitary_mat:
             chan1 = Kraus(mat)
-            chan2 = Kraus(UnitaryChannel(mat))
+            chan2 = Kraus(Operator(mat))
             self.assertEqual(chan1, chan2)
 
-    def test_unitary_to_stinespring(self):
-        """Test UnitaryChannel to Stinespring transformation."""
+    def test_operator_to_stinespring(self):
+        """Test Operator to Stinespring transformation."""
         # Test unitary channels
         for mat in self.unitary_mat:
             chan1 = Stinespring(mat)
-            chan2 = Stinespring(UnitaryChannel(chan1))
+            chan2 = Stinespring(Operator(chan1))
             self.assertEqual(chan1, chan2)
 
-    def test_unitary_to_chi(self):
-        """Test UnitaryChannel to Chi transformation."""
+    def test_operator_to_chi(self):
+        """Test Operator to Chi transformation."""
         # Test unitary channels
         for mat, chi in zip(self.unitary_mat, self.unitary_chi):
             chan1 = Chi(chi)
-            chan2 = Chi(UnitaryChannel(mat))
+            chan2 = Chi(Operator(mat))
             self.assertEqual(chan1, chan2)
 
-    def test_unitary_to_ptm(self):
-        """Test UnitaryChannel to PTM transformation."""
+    def test_operator_to_ptm(self):
+        """Test Operator to PTM transformation."""
         # Test unitary channels
         for mat, ptm in zip(self.unitary_mat, self.unitary_ptm):
             chan1 = PTM(ptm)
-            chan2 = PTM(UnitaryChannel(mat))
+            chan2 = PTM(Operator(mat))
             self.assertEqual(chan1, chan2)
 
-    def test_choi_to_unitary(self):
-        """Test Choi to UnitaryChannel transformation."""
+    def test_choi_to_operator(self):
+        """Test Choi to Operator transformation."""
         # Test unitary channels
         for mat, choi in zip(self.unitary_mat, self.unitary_choi):
-            chan1 = UnitaryChannel(mat)
-            chan2 = UnitaryChannel(Choi(choi))
+            chan1 = Operator(mat)
+            chan2 = Operator(Choi(choi))
             self.assertTrue(
                 matrix_equal(chan2.data, chan1.data, ignore_phase=True))
 
@@ -195,15 +195,14 @@ class TestTransformations(ChannelTestCase):
             chan2 = PTM(Choi(self.depol_choi(p)))
             self.assertEqual(chan1, chan2)
 
-    def test_superop_to_unitary(self):
-        """Test SuperOp to UnitaryChannel transformation."""
+    def test_superop_to_operator(self):
+        """Test SuperOp to Operator transformation."""
         for mat, sop in zip(self.unitary_mat, self.unitary_sop):
-            chan1 = UnitaryChannel(mat)
-            chan2 = UnitaryChannel(SuperOp(sop))
+            chan1 = Operator(mat)
+            chan2 = Operator(SuperOp(sop))
             self.assertTrue(
                 matrix_equal(chan2.data, chan1.data, ignore_phase=True))
-        self.assertRaises(QiskitError, UnitaryChannel,
-                          SuperOp(self.depol_sop(0.5)))
+        self.assertRaises(QiskitError, Operator, SuperOp(self.depol_sop(0.5)))
 
     def test_superop_to_choi(self):
         """Test SuperOp to Choi transformation."""
@@ -287,15 +286,14 @@ class TestTransformations(ChannelTestCase):
             chan2 = PTM(SuperOp(self.depol_sop(p)))
             self.assertEqual(chan1, chan2)
 
-    def test_kraus_to_unitary(self):
-        """Test Kraus to UnitaryChannel transformation."""
+    def test_kraus_to_operator(self):
+        """Test Kraus to Operator transformation."""
         for mat in self.unitary_mat:
-            chan1 = UnitaryChannel(mat)
-            chan2 = UnitaryChannel(Kraus(mat))
+            chan1 = Operator(mat)
+            chan2 = Operator(Kraus(mat))
             self.assertTrue(
                 matrix_equal(chan2.data, chan1.data, ignore_phase=True))
-        self.assertRaises(QiskitError, UnitaryChannel,
-                          Kraus(self.depol_kraus(0.5)))
+        self.assertRaises(QiskitError, Operator, Kraus(self.depol_kraus(0.5)))
 
     def test_kraus_to_choi(self):
         """Test Kraus to Choi transformation."""
@@ -377,14 +375,14 @@ class TestTransformations(ChannelTestCase):
             chan2 = PTM(Kraus(self.depol_kraus(p)))
             self.assertEqual(chan1, chan2)
 
-    def test_stinespring_to_unitary(self):
-        """Test Stinespring to UnitaryChannel transformation."""
+    def test_stinespring_to_operator(self):
+        """Test Stinespring to Operator transformation."""
         for mat in self.unitary_mat:
-            chan1 = UnitaryChannel(mat)
-            chan2 = UnitaryChannel(Stinespring(mat))
+            chan1 = Operator(mat)
+            chan2 = Operator(Stinespring(mat))
             self.assertTrue(
                 matrix_equal(chan2.data, chan1.data, ignore_phase=True))
-        self.assertRaises(QiskitError, UnitaryChannel,
+        self.assertRaises(QiskitError, Operator,
                           Stinespring(self.depol_stine(0.5)))
 
     def test_stinespring_to_choi(self):
@@ -465,15 +463,14 @@ class TestTransformations(ChannelTestCase):
             chan2 = PTM(Stinespring(self.depol_stine(p)))
             self.assertEqual(chan1, chan2)
 
-    def test_chi_to_unitary(self):
-        """Test Chi to UnitaryChannel transformation."""
+    def test_chi_to_operator(self):
+        """Test Chi to Operator transformation."""
         for mat, chi in zip(self.unitary_mat, self.unitary_chi):
-            chan1 = UnitaryChannel(mat)
-            chan2 = UnitaryChannel(Chi(chi))
+            chan1 = Operator(mat)
+            chan2 = Operator(Chi(chi))
             self.assertTrue(
                 matrix_equal(chan2.data, chan1.data, ignore_phase=True))
-        self.assertRaises(QiskitError, UnitaryChannel, Chi(
-            self.depol_chi(0.5)))
+        self.assertRaises(QiskitError, Operator, Chi(self.depol_chi(0.5)))
 
     def test_chi_to_choi(self):
         """Test Chi to Choi transformation."""
@@ -557,15 +554,14 @@ class TestTransformations(ChannelTestCase):
             chan2 = PTM(Chi(self.depol_chi(p)))
             self.assertEqual(chan1, chan2)
 
-    def test_ptm_to_unitary(self):
-        """Test PTM to UnitaryChannel transformation."""
+    def test_ptm_to_operator(self):
+        """Test PTM to Operator transformation."""
         for mat, ptm in zip(self.unitary_mat, self.unitary_ptm):
-            chan1 = UnitaryChannel(mat)
-            chan2 = UnitaryChannel(PTM(ptm))
+            chan1 = Operator(mat)
+            chan2 = Operator(PTM(ptm))
             self.assertTrue(
                 matrix_equal(chan2.data, chan1.data, ignore_phase=True))
-        self.assertRaises(QiskitError, UnitaryChannel, PTM(
-            self.depol_ptm(0.5)))
+        self.assertRaises(QiskitError, Operator, PTM(self.depol_ptm(0.5)))
 
     def test_ptm_to_choi(self):
         """Test PTM to Choi transformation."""
