@@ -106,8 +106,9 @@ class AcquireInstruction(Instruction):
             reg_slots = []
 
         # TODO: more precise time-slots
-        slots = [Timeslot(Interval(0, command.duration), q.acquire) for q in qubits]
-        slots.extend([Timeslot(Interval(0, command.duration), mem) for mem in mem_slots])
+        stop_time = start_time+command.duration
+        slots = [Timeslot(Interval(start_time, stop_time), q.acquire) for q in qubits]
+        slots.extend([Timeslot(Interval(start_time, stop_time), mem) for mem in mem_slots])
 
         super().__init__(command, start_time, TimeslotCollection(slots))
 
