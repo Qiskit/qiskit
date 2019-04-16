@@ -98,3 +98,63 @@ class QCStyle:
         self.dpi = dic.get('dpi', self.dpi)
         self.margin = dic.get('margin', self.margin)
         self.cline = dic.get('creglinestyle', self.cline)
+
+
+class OPStyleSched:
+    def __init__(self, fig_w=None, fig_unit_h_waveform=None, fig_unit_h_table=None,
+                 use_table=None, table_columns=None, table_font_size=None, label_font_size=None,
+                 d_ch_color=None, u_ch_color=None, m_ch_color=None, table_color=None,
+                 bg_color=None, num_points=None, dpi=None):
+        """Set style sheet for OpenPulse schedule drawer.
+
+        Args:
+            fig_w (float): width of figure.
+            fig_unit_h_waveform (float): height of single waveform plot.
+            fig_unit_h_table (float): height of table row.
+            use_table (bool): use table.
+            table_columns (int): number of table columns.
+            table_font_size (float): font size of table.
+            label_font_size (float): font size of labels.
+            d_ch_color (list[str]): colors for real and imaginary part of waveform at d channels.
+            u_ch_color (list[str]): colors for real and imaginary part of waveform at u channels.
+            m_ch_color (list[str]): colors for real and imaginary part of waveform at m channels.
+            table_color(list[str]): colors for table columns.
+            bg_color(str): color for figure background.
+            num_points (int): number of points for interpolation.
+            dpi (int): dpi to save image.
+        """
+        self.fig_w = fig_w or 10
+        self.fig_unit_h_waveform = fig_unit_h_waveform or 2.5
+        self.fig_unit_h_table = fig_unit_h_table or 0.4
+        self.use_table = use_table or True
+        self.table_columns = table_columns or 2
+        self.table_font_size = table_font_size or 10
+        self.label_font_size = label_font_size or 18
+        self.d_ch_color = d_ch_color or ['#648fff', '#002999']
+        self.u_ch_color = u_ch_color or ['#ffb000', '#994A00']
+        self.m_ch_color = m_ch_color or ['#dc267f', '#760019']
+        self.table_color = table_color or ['#e0e0e0', '#f6f6f6', '#f6f6f6']
+        self.bg_color = bg_color or '#f2f3f4'
+        self.num_points = num_points or 1000
+        self.dpi = dpi or 150
+
+
+class OPStylePulse:
+    def __init__(self, fig_w=None, fig_h=None, wave_color=None,
+                 bg_color=None, num_points=None, dpi=None):
+        """Set style sheet for OpenPulse sample pulse drawer.
+
+        Args:
+            fig_w (float): width of figure.
+            fig_h (float): hight of figure.
+            wave_color (list[str]): colors for real and imaginary part of waveform.
+            bg_color(str): color for figure background.
+            num_points (int): number of points for interpolation.
+            dpi (int): dpi to save image.
+        """
+        self.fig_w = fig_w or 6
+        self.fig_h = fig_h or 5
+        self.wave_color = wave_color or ['#ff0000', '#0000ff']
+        self.bg_color = bg_color or '#f2f3f4'
+        self.num_points = num_points or 1000
+        self.dpi = dpi or 150
