@@ -20,9 +20,6 @@ from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
 from qiskit.converters import circuit_to_dag
-from qiskit.tools.qi.qi import random_unitary_matrix
-from qiskit.mapper.compiling import two_qubit_kak
-from qiskit.mapper.exceptions import MapperError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.mapper import Layout
 
@@ -650,17 +647,6 @@ class TestCompiler(QiskitTestCase):
             is_last_measure = all([after_measure.type == 'out'
                                    for after_measure in out_dag.quantum_successors(meas_node)])
             self.assertTrue(is_last_measure)
-
-    def test_kak_decomposition(self):
-        """Verify KAK decomposition for random Haar unitaries.
-        """
-        for _ in range(100):
-            unitary = random_unitary_matrix(4)
-            with self.subTest(unitary=unitary):
-                try:
-                    two_qubit_kak(unitary, verify_gate_sequence=True)
-                except MapperError as ex:
-                    self.fail(str(ex))
 
     barrier_pass = BarrierBeforeFinalMeasurements()
 
