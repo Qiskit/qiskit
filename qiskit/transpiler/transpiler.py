@@ -17,6 +17,7 @@ from qiskit.converters import dag_to_circuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.mapper.layout import Layout
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.exceptions import TranspilerError
 
 from .passes.unroller import Unroller
 from .passes.cx_cancellation import CXCancellation
@@ -103,7 +104,14 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
     Returns:
         QuantumCircuit: A transpiled circuit.
+
+    Raises:
+        TranspilerError: If the Layout does not matches the circuit
     """
+    if initial_layout is not None and set(circuit.qregs) != initial_layout.get_registers():
+        raise TranspilerError('The provided initial layout does not match the registers in '
+                              'the circuit "%s"' % circuit.name)
+
     if pass_manager and not pass_manager.working_list:
         return circuit
 
