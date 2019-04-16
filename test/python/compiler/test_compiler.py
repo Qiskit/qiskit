@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, transpile, transpile_dag
+from qiskit.transpiler import PassManager, transpile, transpile_dag, TranspilerError
 from qiskit import compile, execute
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
@@ -205,6 +205,25 @@ class TestCompiler(QiskitTestCase):
 
         circuits = transpile(circuits, backend)
         self.assertIsInstance(circuits[0], QuantumCircuit)
+
+    def test_wrong_initial_layout(self):
+        """Test transpile with a bad initial layout.
+        """
+        backend = BasicAer.get_backend('qasm_simulator')
+
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        bad_initial_layout = [(QuantumRegister(3, 'q'), 0),
+                              (QuantumRegister(3, 'q'), 1),
+                              (QuantumRegister(3, 'q'), 2)]
+
+        self.assertRaises(TranspilerError, transpile,
+                          qc, backend, initial_layout=bad_initial_layout)
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.
