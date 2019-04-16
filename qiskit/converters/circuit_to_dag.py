@@ -7,7 +7,7 @@
 
 """Helper function for converting a circuit to a dag"""
 
-from qiskit import circuit
+from qiskit import circuit as circ
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
@@ -37,8 +37,8 @@ def circuit_to_dag(circuit):
         def duplicate_instruction(inst):
             """Create a fresh instruction from an input instruction."""
             if issubclass(inst.__class__,
-                          circuit.Instruction) and inst.__class__ not in [
-                              circuit.Instruction, circuit.Gate]:
+                          circ.Instruction) and inst.__class__ not in [
+                              circ.Instruction, circ.Gate]:
                 if inst.name == 'barrier':
                     new_inst = inst.__class__(inst.num_qubits)
                 elif inst.name == 'initialize':
@@ -53,10 +53,10 @@ def circuit_to_dag(circuit):
                     params = getattr(inst, 'params', [])
                     new_inst = inst.__class__(*params)
             else:
-                new_inst = circuit.Instruction(name=inst.name,
-                                               num_qubits=inst.num_qubits,
-                                               num_clbits=inst.num_clbits,
-                                               params=inst.params)
+                new_inst = circ.Instruction(name=inst.name,
+                                            num_qubits=inst.num_qubits,
+                                            num_clbits=inst.num_clbits,
+                                            params=inst.params)
                 new_inst.definition = inst.definition
             return new_inst
 
