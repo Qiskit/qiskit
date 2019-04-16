@@ -5,9 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=cell-var-from-loop 
+
 """
 Replace each block of consecutive gates by a single Unitary node.
 The blocks are collected by a previous pass, such as Collect2qBlocks.
+
+TODO: this currently uses the BasicAer unitary simulator which has a limited
+gate set, so only blocks consisting of u1, u2, u3, cx are supported.
 """
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
@@ -15,11 +20,10 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Unitary
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.compiler.assembler import assemble_circuits
+from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.basepasses import TransformationPass
 
-            # Test:  1. the unitary has to be on right wires (right order)
-            #        2. 3 qubit blocks must work
-            #        3. gates across multiple registers must work
+
 class ConsolidateBlocks(TransformationPass):
     """
     Pass to consolidate sequences of uninterrupted gates acting on
@@ -29,6 +33,9 @@ class ConsolidateBlocks(TransformationPass):
     Important note: this pass assumes that the 'blocks_list' property that
     it reads is given such that blocks are in topological order.
     """
+    def __init__(self):
+        super().__init__()
+        self.requires.append(Unroller(["u1", "u2", "u3", "cx", "id"]))
 
     def run(self, dag):
         """iterate over each block and replace it with an equivalent Unitary
@@ -76,7 +83,8 @@ class ConsolidateBlocks(TransformationPass):
                 qobj = assemble_circuits(subcirc)
                 unitary_matrix = sim.run(qobj).result().get_unitary()
                 unitary = Unitary(unitary_matrix)
-                new_dag.apply_operation_back(unitary, block_qargs)
+                new_dag.apply_operation_back(
+                    unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
                 del blocks[0]
             else:
                 # the node could belong to some future block, but in that case
@@ -85,24 +93,24 @@ class ConsolidateBlocks(TransformationPass):
                 for block in blocks[1:]:
                     if node in block:
                         break
-                # 
+                # freestanding nodes can just be added
                 else:
                     nodes_seen.add(node)
                     new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-            
+
         return new_dag
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):
         """
         Map each qubit in block_qargs to its wire position among the block's wires.
-        
+
         Args:
-            block_qargs (list[tuple]): list of qubits that a block acts on
-            global_index_map (dict{tuple: int}): mapping from each qubit in the
+            block_qargs (list): list of qubits that a block acts on
+            global_index_map (dict): mapping from each qubit in the
                 circuit to its wire position within that circuit
 
         Returns:
-            dict{tuple: int}: mapping from qarg to position in block
+            dict: mapping from qarg to position in block
         """
         block_indices = [global_index_map[q] for q in block_qargs]
         ordered_block_indices = sorted(block_indices)
