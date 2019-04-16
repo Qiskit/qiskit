@@ -23,7 +23,7 @@ from qiskit.quantum_info.operators.channel.transformations import _to_choi
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
 
 
-class QuantumChannel(BaseOperator, ABC):
+class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
 
     def is_cptp(self):
@@ -79,3 +79,16 @@ class QuantumChannel(BaseOperator, ABC):
         if density_matrix and ndim == 1:
             state = np.outer(state, np.transpose(np.conj(state)))
         return state
+
+    @classmethod
+    def _init_transformer(cls, data):
+        """Convert input into a QuantumChannel subclass object or Operator object"""
+        if issubclass(data.__class__, QuantumChannel):
+            return data
+        # Use to_channel method to convert to channel
+        if hasattr(data, 'to_channel'):
+            # Use to_channel method to convert to channel
+            return data.to_channel()
+        # If no to_channel method try converting to a matrix Operator
+        # which can be transformed into a channel
+        return Operator(data)
