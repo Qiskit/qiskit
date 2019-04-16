@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, transpile, transpile_dag
+from qiskit.transpiler import PassManager, transpile, transpile_dag, TranspilerError
 from qiskit import compile, execute
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
@@ -205,6 +205,25 @@ class TestCompiler(QiskitTestCase):
 
         circuits = transpile(circuits, backend)
         self.assertIsInstance(circuits[0], QuantumCircuit)
+
+    def test_wrong_initial_layout(self):
+        """Test transpile with a bad initial layout.
+        """
+        backend = BasicAer.get_backend('qasm_simulator')
+
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        bad_initial_layout = [(QuantumRegister(3, 'q'), 0),
+                              (QuantumRegister(3, 'q'), 1),
+                              (QuantumRegister(3, 'q'), 2)]
+
+        self.assertRaises(TranspilerError, transpile,
+                          qc, backend, initial_layout=bad_initial_layout)
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.
@@ -613,15 +632,6 @@ class TestCompiler(QiskitTestCase):
         layout = Layout.generate_trivial_layout(*circ.qregs)
         transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map,
                       initial_layout=layout)
-
-        self.assertTrue(mock_pass.called)
-
-    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
-    def test_final_measurement_barrier_for_simulators(self, mock_pass):
-        """Verify BarrierBeforeFinalMeasurements pass is in default pipeline for simulators."""
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
-        dag_circuit = circuit_to_dag(circ)
-        transpile_dag(dag_circuit)
 
         self.assertTrue(mock_pass.called)
 
