@@ -40,6 +40,7 @@ class TestAssembler(QiskitTestCase):
                           'n_qubits': 2}, run_config_out)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
+        self.assertEqual({}, headers)
 
     def test_disssemble_multiple_circuits(self):
         """Test assembling multiple circuits, all should have the same config.
@@ -67,6 +68,7 @@ class TestAssembler(QiskitTestCase):
         self.assertEqual(len(circuits), 2)
         for circuit in circuits:
             self.assertIn(circuit, [circ0, circ1])
+        self.assertEqual({}, headers)
 
     def test_assemble_no_run_config(self):
         """Test assembling with no run_config, relying on default.
@@ -83,6 +85,7 @@ class TestAssembler(QiskitTestCase):
         self.assertEqual({'memory_slots': 2, 'n_qubits': 2}, run_config_out)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
+        self.assertEqual({}, headers)
 
     def test_assemble_initialize(self):
         """Test assembling a circuit with an initialize.
@@ -96,6 +99,7 @@ class TestAssembler(QiskitTestCase):
         self.assertEqual({}, run_config_out)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
+        self.assertEqual({}, header)
 
 
 if __name__ == '__main__':
