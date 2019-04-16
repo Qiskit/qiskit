@@ -42,7 +42,7 @@ class SingleQubitUnitary(Gate):
             raise QiskitError("The 2*2 matrix is not unitary.")
         self.mode = mode
         self.up_to_diagonal = up_to_diagonal
-        # Create new composite gate.
+        # Create new gate
         super().__init__("unitary", 1, [u])
 
     def get_diag(self):
@@ -67,7 +67,7 @@ class SingleQubitUnitary(Gate):
         circuit = QuantumCircuit(q)
         # First, we find the rotation angles (where we can ignore the global phase)
         (a, b, c, _) = self._zyz_dec()
-        # Add the gates to the composite gate
+        # Add the gates to o the circuit
         is_identity = True
         if abs(a) > _EPS:
             circuit.rz(a,q[0])
@@ -130,8 +130,12 @@ def is_isometry(m):
 
 def squ(self, params, qubit, mode="ZYZ", up_to_diagonal=False):
     if isinstance(qubit, QuantumRegister):
-        qubit = qubit[:]
-    return self.append(SingleQubitUnitary(params, mode, up_to_diagonal), qubit, [])
+        qubit = qubit[0]
+    print(qubit)
+    # Check if there is one target qubit provided
+    if not (type(qubit) == tuple and type(qubit[0]) == QuantumRegister):
+        raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
+    return self.append(SingleQubitUnitary(params, mode, up_to_diagonal), [qubit], [])
 
 
 QuantumCircuit.squ = squ
