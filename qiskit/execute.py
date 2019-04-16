@@ -218,6 +218,7 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
         'backend_version': backend_config.backend_version
     }
 
-    qobj = assemble_schedules(schedules=experiments, dict_header=header, dict_config=config)
+    qobj = assemble_schedules(schedules=experiments, user_lo_dicts=user_lo_dicts,
+                              dict_header=header, dict_config=config)
 
     return backend.run(qobj)
