@@ -14,8 +14,10 @@ A simple unitary class and some tools.
 import copy
 import numpy
 import sympy
-from qiskit.exceptions import QiskitError
+
 from qiskit.circuit.gate import Gate
+from qiskit.quantum_info.synthesis.two_qubit_kak import two_qubit_kak
+from qiskit.exceptions import QiskitError
 
 
 class Unitary(Gate):
@@ -76,6 +78,12 @@ class Unitary(Gate):
 
     def __repr__(self):
         return '{}\n{}'.format(super().__repr__(), self.__representation.__repr__())
+
+    def _define(self):
+        """Calculate a subcircuit that implements this unitary.
+        """
+        if self.__dimension == 4:
+            self.definition = two_qubit_kak(self)
 
     @property
     def dimension(self):
