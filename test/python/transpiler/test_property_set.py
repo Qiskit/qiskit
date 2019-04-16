@@ -32,11 +32,6 @@ class TestPropertySet(QiskitTestCase):
         self.pset['property'] = 'value'
         self.assertEqual(str(self.pset), "{'property': 'value'}")
 
-    def test_repr(self):
-        """ Test __repr__ method. """
-        self.pset['property'] = 'value'
-        self.assertEqual(repr(self.pset), repr(self.pset._properties))
-
 
 if __name__ == '__main__':
     unittest.main()
