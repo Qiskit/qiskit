@@ -72,10 +72,14 @@ def dag_to_circuit(dag):
                         params = getattr(inst, 'params', [])
                         new_inst = inst.__class__(*params)
                 else:
-                    new_inst = Instruction(name=inst.name,
-                                           num_qubits=inst.num_qubits,
-                                           num_clbits=inst.num_clbits,
-                                           params=inst.params)
+                    if isinstance(inst, Gate):
+                        new_inst = Gate(inst.name, inst.num_qubits,
+                                        inst.params)
+                    else:
+                        new_inst = Instruction(name=inst.name,
+                                               num_qubits=inst.num_qubits,
+                                               num_clbits=inst.num_clbits,
+                                               params=inst.params)
                     new_inst.definition = inst.definition
                 return new_inst
 
