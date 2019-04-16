@@ -42,6 +42,25 @@ class TestTranspileDag(QiskitTestCase):
 
         self.assertTrue(mock_pass.called)
 
+    def test_wrong_initial_layout(self):
+        """Test transpile with a bad initial layout.
+        """
+        backend = BasicAer.get_backend('qasm_simulator')
+
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        bad_initial_layout = [(QuantumRegister(3, 'q'), 0),
+                              (QuantumRegister(3, 'q'), 1),
+                              (QuantumRegister(3, 'q'), 2)]
+
+        self.assertRaises(TranspilerError, transpile,
+                          qc, backend, initial_layout=bad_initial_layout)
+
     def test_optimize_to_nothing(self):
         """ Optimze gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035 """
