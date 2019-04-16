@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=cell-var-from-loop 
+# pylint: disable=cell-var-from-loop
 
 """
 Replace each block of consecutive gates by a single Unitary node.
@@ -20,8 +20,8 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Unitary
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.compiler.assembler import assemble_circuits
-from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.basepasses import TransformationPass
+from . import Unroller
 
 
 class ConsolidateBlocks(TransformationPass):
