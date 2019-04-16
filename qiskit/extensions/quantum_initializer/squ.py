@@ -20,8 +20,6 @@ import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.standard.ry import RYGate
-from qiskit.extensions.standard.rz import RZGate
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -45,37 +43,47 @@ class SingleQubitUnitary(Gate):
         self.mode = mode
         self.up_to_diagonal = up_to_diagonal
         # Create new composite gate.
-        super().__init__("initialize", 1, [u])
-        self.diag = [1., 1.]
+        super().__init__("unitary", 1, [u])
+
+    def get_diag(self):
+        _, diag = self._dec_single_qubit_unitary()
+        return diag
 
     def _define(self):
-        squ_circuit = self._dec_single_qubit_unitary()
+        squ_circuit,_ = self._dec_single_qubit_unitary()
         gate = squ_circuit.to_instruction()
         q = QuantumRegister(self.num_qubits)
-        initialize_circuit = QuantumCircuit(q)
-        initialize_circuit.append(gate, q[:])
-        self.definition = initialize_circuit.data
+        squ_circuit = QuantumCircuit(q)
+        squ_circuit.append(gate, q[:])
+        self.definition = squ_circuit.data
 
     def _dec_single_qubit_unitary(self):
         """
         Call to create a circuit with gates that implement the single qubit unitary u.
         Returns: QuantumCircuit: circuit for implementing u (up to a diagonal if up_to_diagonal=True)
         """
+        diag = [1., 1.]
         q = QuantumRegister(self.num_qubits)
         circuit = QuantumCircuit(q)
         # First, we find the rotation angles (where we can ignore the global phase)
         (a, b, c, _) = self._zyz_dec()
         # Add the gates to the composite gate
+        is_identity = True
         if abs(a) > _EPS:
-            circuit.append(RZGate(a), q[0])
+            circuit.rz(a,q[0])
+            is_identity = False
         if abs(b) > _EPS:
-            circuit.append(RYGate(b), q[0])
+            circuit.ry(b,q[0])
+            is_identity = False
         if abs(c) > _EPS:
             if self.up_to_diagonal:
-                self.diag = [np.exp(-1j * c / 2.), np.exp(1j * c / 2.)]
+                diag = [np.exp(-1j * c / 2.), np.exp(1j * c / 2.)]
             else:
-                circuit.append(RZGate(c), q[0])
-        return circuit
+                circuit.rz(c,q[0])
+                is_identity = False
+        if is_identity:
+            circuit.iden(q[0])
+        return circuit, diag
 
     def _zyz_dec(self):
         """

@@ -40,17 +40,16 @@ class TestSingleQubitUnitary(QiskitTestCase):
                 for i in range(2):
                     qr = QuantumRegister(1, "qr")
                     qc = _prepare_basis_state(qr, i)
-                    sqg = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
-                    qc.squ(u, qr, up_to_diagonal=up_to_diagonal)
+                    squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
+                    qc.append(squ, qr)
                     # ToDo: improve efficiency here by allowing to execute circuit on several states in parallel
                     #  (this would in particular allow to get out the isometry the circuit is implementing by applying
                     #  it to the first few basis vectors
-                    print(qc)
                     job = execute(qc, BasicAer.get_backend('statevector_simulator'))
                     result = job.result()
                     vec_out = result.get_statevector()
                     if up_to_diagonal:
-                        vec_out = np.array(sqg.diag) * vec_out
+                        vec_out = np.array(squ.get_diag()) * vec_out
                     vec_desired = _apply_squ_to_basis_state(u, i)
                     # It is fine if the gate is implemented up to a global phase (however, the phases between the different
                     # outputs for different bases states must be correct!
@@ -62,6 +61,7 @@ class TestSingleQubitUnitary(QiskitTestCase):
                     # should implement)
                     dist = np.linalg.norm(np.array(vec_desired - vec_out))
                     self.assertGreater(_EPS, dist)
+
 
 def _prepare_basis_state(q, i):
     num_qubits=len(q)
