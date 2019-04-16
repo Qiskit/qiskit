@@ -166,26 +166,6 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
     Raises:
         PulseError: when #schedules : #user_lo_dicts is not either of 1:n, n:1 or n:n.
     """
-    if isinstance(schedules, Schedule):
-        schedules = [schedules]
-
-    if user_lo_dicts:
-        if isinstance(user_lo_dicts, UserLoDict):
-            user_lo_dicts = [user_lo_dicts]
-        if len(schedules) == 1:
-            experiments = [ConditionedSchedule(schedules[0], cond) for cond in user_lo_dicts]
-        elif len(user_lo_dicts) == 1:
-            experiments = [ConditionedSchedule(sched, user_lo_dicts[0]) for sched in schedules]
-        elif len(schedules) == len(user_lo_dicts):
-            experiments = [ConditionedSchedule(sched, cond)
-                           for sched, cond in zip(schedules, user_lo_dicts)]
-        else:
-            raise PulseError("#schedules=%d : #user_lo_dicts=%d must be 1:n, n:1 or n:n." %
-                             (len(schedules), len(user_lo_dicts)))
-    else:
-        # no user condition
-        experiments = [ConditionedSchedule(sched) for sched in schedules]
-
     backend_config = backend.configuration()
 
     # TODO : Remove usage of config.defaults when backend.defaults() is updated.
@@ -218,7 +198,9 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
         'backend_version': backend_config.backend_version
     }
 
-    qobj = assemble_schedules(schedules=experiments, user_lo_dicts=user_lo_dicts,
-                              dict_header=header, dict_config=config)
+    qobj = assemble_schedules(schedules=schedules,
+                              user_lo_dicts=user_lo_dicts,
+                              dict_header=header,
+                              dict_config=config)
 
     return backend.run(qobj)
