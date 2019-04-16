@@ -118,6 +118,7 @@ class TestQobjToCircuits(QiskitTestCase):
         self.assertEqual(dag_list, [self.dag, circuit_to_dag(circuit_b)])
 
     def test_qobj_to_circuits_with_initialize(self):
+        """Check qobj_to_circuit's result with initialize."""
         q = QuantumRegister(2, name='q')
         circ = QuantumCircuit(q, name='circ')
         circ.initialize([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], q[:])
