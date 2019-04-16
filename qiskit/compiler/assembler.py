@@ -15,7 +15,7 @@ import numpy
 import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.pulse import ConditionedSchedule, UserLoDict
+from qiskit.pulse import Schedule, UserLoDict
 from qiskit.pulse.commands import DriveInstruction
 from qiskit.pulse.channels import OutputChannel, DriveChannel, MeasureChannel
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
@@ -189,7 +189,7 @@ def assemble_schedules(schedules, user_lo_dicts,
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:
-        schedules (list[ConditionedSchedule] or ConditionedSchedule): schedules to assemble
+        schedules (list[Schedule] or Schedule): schedules to assemble
         user_lo_dicts(list[UserLoDict]): LO dictionary to assemble
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
@@ -207,7 +207,7 @@ def assemble_schedules(schedules, user_lo_dicts,
     user_pulselib = set()
 
     # assemble schedules
-    if isinstance(schedules, ConditionedSchedule):
+    if isinstance(schedules, Schedule):
         schedules = [schedules]
 
     qobj_schedules = []
@@ -257,7 +257,7 @@ def assemble_schedules(schedules, user_lo_dicts,
     else:
         QiskitError('No default LO frequency information is provided.')
 
-    # create experiment
+    # create qob experiment field
     experiments = []
 
     if len(experiment_configs) == 1:
@@ -273,7 +273,7 @@ def assemble_schedules(schedules, user_lo_dicts,
             for config in experiment_configs:
                 experiments.append(PulseQobjExperiment(
                     instructions=qobj_schedules[0]['instructions'],
-                    experimentheader=schedules[0]['header'],
+                    experimentheader=qobj_schedules[0]['header'],
                     experimentconfig=PulseQobjExperimentConfig(**config)
                 ))
         elif len(qobj_schedules) == len(experiment_configs):
@@ -287,7 +287,7 @@ def assemble_schedules(schedules, user_lo_dicts,
         else:
             raise QiskitError('Invalid LO setting is specified. ' +
                               'This should be provided for each schedule, or ' +
-                              'single setup for all schedules (unique), or' +
+                              'single setup for all schedules (unique), or ' +
                               'multiple setups for a single schedule (frequency sweep).')
     else:
         # unique frequency setup
