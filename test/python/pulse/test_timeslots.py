@@ -65,7 +65,7 @@ class TestTimeslotCollection(QiskitTestCase):
         """
         slots = [Timeslot(Interval(1, 3), AcquireChannel(0)),
                  Timeslot(Interval(3, 5), AcquireChannel(0))]
-        _ = TimeslotCollection(slots)
+        TimeslotCollection(slots)
 
     def test_empty_collection(self):
         """Test empty collection creation and its operations.
