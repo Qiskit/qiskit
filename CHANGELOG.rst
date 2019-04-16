@@ -22,18 +22,21 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
+
 - Builtin library of continuous pulses and builtin library of discrete pulses which are obtained
   by sampling continuous pulses with default sampling strategy.
 - Sampler decorator and standard sampler library for conversion of continuous pulses
   to discrete `SamplePulse`s (#2042).
 - Core StochasticSwap routine implimented in Cython (#1789).
+- Introduced the backend defaults model and endpoint for pulse backends (#2101).
+- `meas_level` to result schema (#2085).
 - Core StochasticSwap routine implemented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
 - New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
 - Added support for register slicing when applying operations to a register (#1643).
-- Added in new parameter ``justify`` to the text circuit drawer to say how the
-  circuit should be aligned. (#1725)
+- Added in new parameter ``justify`` to the text, mpl and latex circuit drawers to say how the
+  circuit should be aligned. (#1725, #1797, #1977)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
 - Added parameter to the TextProgressBar to allow the output to be sent to a
@@ -66,10 +69,19 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
+- Added an ``PassManager.passes()`` method that returns a list of the passes that
+  have been added to the pass manager, including options and flow controllers.
+- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
+  qubit layout. (#2089)
+- Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
+  are followed by a measurement instruction, moving the latter to the proper wire.
+- Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
+  rotations about the Z axis, leveraging previously-found gate commutation relations.
 
 Changed
 -------
 
+- QuantumCircuit properties more self-consistent and no longer need DAG (#1993).
 - The most connected subset in DenseLayout is now reduced bandwidth (#2021).
 - plot_histogram now allows sorting by Hamming distance from target_string (#2064).
 - FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
@@ -118,7 +130,7 @@ Changed
 - The old syntax for attaching a gate to the circuit then modifying it is no longer
   supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``).
   Instead, you must first modify the gate then attach it (#1816).
-- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a 
+- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a
   (instruction, qarg, carg) (#1816).
 - The visualization subpackage has moved from ``qiskit.tools.visualization`` to
   ``qiskit.visualization``. The public API (which was declared stable in
@@ -157,6 +169,9 @@ Fixed
   coupling map is provided (#1711).
 - Fixed a bug in the definition of the rzz gate (#1940).
 - Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+- Fixed a mapping issue with layouts on non-adjacent qubits, by adding ancillas (#2023).
+- Fixed a bug in which an `initial_layout` could be changed even if it made the circuit
+  compatible with the device `coupling_map` (#2036).
 
 
 Removed

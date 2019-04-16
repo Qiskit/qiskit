@@ -9,6 +9,9 @@
 Frame change pulse.
 """
 
+from qiskit.pulse.channels import OutputChannel
+from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
+from .instruction import Instruction
 from .pulse_command import PulseCommand
 
 
@@ -22,9 +25,7 @@ class FrameChange(PulseCommand):
             phase (float): Frame change phase in radians.
                 The allowable precision is device specific.
         """
-
-        super(FrameChange, self).__init__(duration=0, name='fc')
-
+        super().__init__(duration=0)
         self.phase = phase
 
     def __eq__(self, other):
@@ -41,3 +42,31 @@ class FrameChange(PulseCommand):
                 self.phase == other.phase:
             return True
         return False
+
+    def __repr__(self):
+        return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)
+
+    def __call__(self, channel: OutputChannel) -> 'FrameChangeInstruction':
+        return FrameChangeInstruction(self, channel)
+
+
+class FrameChangeInstruction(Instruction):
+    """Instruction to change frame of an `OutputChannel`. """
+
+    def __init__(self, command: FrameChange, channel: OutputChannel, start_time: int = 0):
+        slots = [Timeslot(Interval(start_time, start_time), channel)]
+        super().__init__(command, start_time, TimeslotCollection(slots))
+        self._channel = channel
+
+    @property
+    def command(self) -> FrameChange:
+        """FrameChange command. """
+        return self._command
+
+    @property
+    def channel(self) -> OutputChannel:
+        """OutputChannel channel. """
+        return self._channel
+
+    def __repr__(self):
+        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)

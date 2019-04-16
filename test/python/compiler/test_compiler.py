@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, transpile, transpile_dag
+from qiskit.transpiler import PassManager, transpile, transpile_dag, TranspilerError
 from qiskit import compile, execute
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
@@ -22,8 +22,9 @@ from qiskit.qobj import QasmQobj
 from qiskit.converters import circuit_to_dag
 from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit.mapper.compiling import two_qubit_kak
-from qiskit.mapper.mapping import MapperError
+from qiskit.mapper.exceptions import MapperError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.mapper import Layout
 
 
 class TestCompiler(QiskitTestCase):
@@ -188,30 +189,6 @@ class TestCompiler(QiskitTestCase):
 
         self.assertIsInstance(circuits, QuantumCircuit)
 
-    def test_mapping_already_satisfied(self):
-        """Test compiler doesn't change circuit already matching backend coupling
-        """
-        backend = FakeRueschlikon()
-        qr = QuantumRegister(16)
-        cr = ClassicalRegister(16)
-        qc = QuantumCircuit(qr, cr)
-        qc.h(qr[1])
-        qc.x(qr[2])
-        qc.x(qr[3])
-        qc.x(qr[4])
-        qc.cx(qr[1], qr[2])
-        qc.cx(qr[2], qr[3])
-        qc.cx(qr[3], qr[4])
-        qc.cx(qr[3], qr[14])
-        qc.measure(qr, cr)
-        qobj = compile(qc, backend)
-        compiled_ops = qobj.experiments[0].instructions
-        original_cx_qubits = [[1, 2], [2, 3], [3, 4], [3, 14]]
-        for operation in compiled_ops:
-            if operation.name == 'cx':
-                self.assertIn(operation.qubits, backend.configuration().coupling_map)
-                self.assertIn(operation.qubits, original_cx_qubits)
-
     def test_compile_circuits_diff_registers(self):
         """Compile list of circuits with different qreg names.
         """
@@ -228,6 +205,25 @@ class TestCompiler(QiskitTestCase):
 
         circuits = transpile(circuits, backend)
         self.assertIsInstance(circuits[0], QuantumCircuit)
+
+    def test_wrong_initial_layout(self):
+        """Test transpile with a bad initial layout.
+        """
+        backend = BasicAer.get_backend('qasm_simulator')
+
+        qubit_reg = QuantumRegister(2, name='q')
+        clbit_reg = ClassicalRegister(2, name='c')
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        bad_initial_layout = [(QuantumRegister(3, 'q'), 0),
+                              (QuantumRegister(3, 'q'), 1),
+                              (QuantumRegister(3, 'q'), 2)]
+
+        self.assertRaises(TranspilerError, transpile,
+                          qc, backend, initial_layout=bad_initial_layout)
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.
@@ -572,33 +568,6 @@ class TestCompiler(QiskitTestCase):
         threshold = 0.04 * shots
         self.assertDictAlmostEqual(counts, target, threshold)
 
-    def test_already_mapped(self):
-        """Circuit not remapped if matches topology.
-
-        See: https://github.com/Qiskit/qiskit-terra/issues/342
-        """
-        backend = FakeRueschlikon()
-        qr = QuantumRegister(16, 'qr')
-        cr = ClassicalRegister(16, 'cr')
-        qc = QuantumCircuit(qr, cr)
-        qc.cx(qr[3], qr[14])
-        qc.cx(qr[5], qr[4])
-        qc.h(qr[9])
-        qc.cx(qr[9], qr[8])
-        qc.x(qr[11])
-        qc.cx(qr[3], qr[4])
-        qc.cx(qr[12], qr[11])
-        qc.cx(qr[13], qr[4])
-        for j in range(16):
-            qc.measure(qr[j], cr[j])
-        qobj = compile(qc, backend=backend)
-        cx_qubits = [x.qubits
-                     for x in qobj.experiments[0].instructions
-                     if x.name == "cx"]
-
-        self.assertEqual(sorted(cx_qubits), [[3, 4], [3, 14], [5, 4],
-                                             [9, 8], [12, 11], [13, 4]])
-
     def test_yzy_zyz_cases(self):
         """yzy_to_zyz works in previously failed cases.
 
@@ -630,10 +599,10 @@ class TestCompiler(QiskitTestCase):
             self._get_resource_path('move_measurements.qasm', Path.QASMS))
 
         dag_circuit = circuit_to_dag(circ)
-        lay = {('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
-               ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
-               ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
-               ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)}
+        lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
+                      ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
+                      ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
+                      ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
         out_dag = transpile_dag(dag_circuit, initial_layout=lay, coupling_map=cmap)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
@@ -660,18 +629,32 @@ class TestCompiler(QiskitTestCase):
 
         circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
         dag_circuit = circuit_to_dag(circ)
-        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map)
+        layout = Layout.generate_trivial_layout(*circ.qregs)
+        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map,
+                      initial_layout=layout)
 
         self.assertTrue(mock_pass.called)
 
-    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
-    def test_final_measurement_barrier_for_simulators(self, mock_pass):
-        """Verify BarrierBeforeFinalMeasurements pass is in default pipeline for simulators."""
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+    def test_optimize_to_nothing(self):
+        """ Optimze gates up to fixed point in the default pipeline
+        See https://github.com/Qiskit/qiskit-terra/issues/2035 """
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.x(qr[0])
+        circ.y(qr[0])
+        circ.z(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.cx(qr[0], qr[1])
         dag_circuit = circuit_to_dag(circ)
-        transpile_dag(dag_circuit)
 
-        self.assertTrue(mock_pass.called)
+        after = transpile_dag(dag_circuit, coupling_map=[[0, 1], [1, 0]])
+
+        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+        self.assertEqual(after, circuit_to_dag(expected))
 
 
 if __name__ == '__main__':
