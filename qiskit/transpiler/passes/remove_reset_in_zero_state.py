@@ -12,7 +12,6 @@ Transpiler pass to remove reset gate when the qubit is in zero state
 
 from qiskit.circuit import Reset
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
 
 
 class RemoveResetInZeroState(TransformationPass):
