@@ -15,7 +15,7 @@ import warnings
 from functools import reduce
 import numpy as np
 from scipy import linalg
-from qiskit.quantum_info import pauli_group, Pauli
+from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
