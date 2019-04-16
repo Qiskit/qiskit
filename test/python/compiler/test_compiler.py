@@ -192,27 +192,6 @@ class TestCompiler(QiskitTestCase):
                           basis_gates=['h'],
                           initial_layout=layout)
 
-    def test_transpile_single_qubit(self):
-        """ A single-qubit circuit transpilation
-        """
-        qr = QuantumRegister(1, 'qr')
-        qc = QuantumCircuit(qr)
-        qc.h(qr[0])
-        layout = {(qr, 0): 12}
-        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
-                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
-                [9, 8], [9, 10], [11, 3], [11, 10],
-                [11, 12], [12, 2], [13, 1], [13, 12]]
-
-        result = transpile(qc, backend=None, coupling_map=cmap, basis_gates=['u2'],
-                           initial_layout=layout)
-
-        qr = QuantumRegister(14, 'q')
-        expected = QuantumCircuit(qr)
-        expected.u2(0, 3.1416, qr[12])
-
-        self.assertEqual(result, expected)
-
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
         """
@@ -404,6 +383,26 @@ class TestCompiler(QiskitTestCase):
         qlist = [qc for k in range(10)]
         qobj = compile(qlist, backend=backend)
         self.assertEqual(len(qobj.experiments), 10)
+
+    def test_compile_single_qubit(self):
+        """ Compile a single-qubit circuit in a non-trivial layout
+        """
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        layout = {(qr, 0): 12}
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
+                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
+                [9, 8], [9, 10], [11, 3], [11, 10],
+                [11, 12], [12, 2], [13, 1], [13, 12]]
+
+        qobj = compile(circuit, backend=None, coupling_map=cmap, basis_gates=['u2'],
+                           initial_layout=layout)
+
+        compiled_instruction = qobj.experiments[0].instructions[0]
+        self.assertEqual(compiled_instruction.name, 'u2')
+        self.assertEqual(compiled_instruction.qubits, [12])
+        self.assertEqual(str(compiled_instruction.params), str([0, 3.14159265358979]))
 
     def test_compile_pass_manager(self):
         """Test compile with and without an empty pass manager."""
