@@ -34,6 +34,8 @@ class UCRot(Gate):
 
     Input:
     angle_list = list of (real) rotation angles [a_0,...,a_{2^k-1}]. Must have at least one entry.
+
+    rot_axis = rotation axis for the single qubit rotations (currently, "Z" and "Y" are supported)
     """
 
     def __init__(self, angle_list, rot_axis):
