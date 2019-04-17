@@ -164,11 +164,11 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 
 
 def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
-                       qobj_header=None, qobj_id=None, user_lo_configs=None,
+                       qobj_header=None, qobj_id=None, schedule_los=None,
                        shots=1024, max_credits=10, seed=None,
                        meas_level=2, meas_return='avg', memory_slots=None,
                        memory_slot_size=100, rep_time=None,
-                       inst_converter=PulseQobjConverter,
+                       instruction_converter=PulseQobjConverter,
                        **run_config):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
@@ -178,7 +178,7 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
         default_meas_lo_freq (list): List of default meas lo frequencies
         qobj_header (QobjHeader): header to pass to the results
         qobj_id (int): identifier for the generated qobj
-        user_lo_configs(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
+        schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
@@ -193,7 +193,7 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
         rep_time (int): repetition time of the experiment in μs.
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
-        inst_converter (PulseQobjConverter): converter for pulse instruction
+        instruction_converter (PulseQobjConverter): converter for pulse instruction
         run_config: Additional keyword arguments to be inserted in the Qobj configuration.
 
     Returns:
@@ -206,18 +206,18 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
         schedules = [schedules]
 
     # add default empty lo config
-    if user_lo_configs is None:
-        user_lo_configs = []
+    if schedule_los is None:
+        schedule_los = []
 
-    if isinstance(user_lo_configs, (LoConfig, dict)):
-        user_lo_configs = [user_lo_configs]
+    if isinstance(schedule_los, (LoConfig, dict)):
+        schedule_los = [schedule_los]
 
     if qobj_id is None:
         qobj_id = str(uuid.uuid4())
 
     # Convert to LoConfig if lo configuration supplied as dictionary
-    user_lo_configs = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
-                       for lo_config in user_lo_configs]
+    schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
+                    for lo_config in schedule_los]
 
     user_pulselib = set()
 
@@ -234,9 +234,9 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
     run_config['memory_slot_size'] = memory_slot_size
     run_config['rep_time'] = rep_time
 
-    _inst_converter = inst_converter(PulseQobjInstruction, **run_config)
-    _lo_converter = LoConfigConverter(PulseQobjExperimentConfig, default_qubit_lo,
-                                      default_meas_lo, **run_config)
+    instruction_converter = instruction_converter(PulseQobjInstruction, **run_config)
+    lo_converter = LoConfigConverter(PulseQobjExperimentConfig, default_qubit_lo,
+                                     default_meas_lo, **run_config)
 
     # assemble schedules
     qobj_schedules = []
@@ -245,7 +245,7 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
         qobj_instructions = []
         for instruction in schedule.flat_instruction_sequence():
             # TODO: support conditional gate
-            qobj_instructions.append(_inst_converter(instruction))
+            qobj_instructions.append(instruction_converter(instruction))
             if isinstance(instruction, DriveInstruction):
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)
@@ -265,33 +265,33 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
 
     # create qob experiment field
     experiments = []
-    if len(user_lo_configs) == 1:
-        lo_dict = user_lo_configs.pop()
+    if len(schedule_los) == 1:
+        lo_dict = schedule_los.pop()
         # update global config
-        q_los = _lo_converter.get_qubit_los(lo_dict)
+        q_los = lo_converter.get_qubit_los(lo_dict)
         if q_los:
             run_config['qubit_lo_freq'] = q_los
-        m_los = _lo_converter.get_meas_los(lo_dict)
+        m_los = lo_converter.get_meas_los(lo_dict)
         if m_los:
             run_config['meas_lo_freq'] = m_los
 
-    if user_lo_configs:
+    if schedule_los:
         # multiple frequency setups
         if len(qobj_schedules) == 1:
             # frequency sweep
-            for lo_dict in user_lo_configs:
+            for lo_dict in schedule_los:
                 experiments.append(PulseQobjExperiment(
                     instructions=qobj_schedules[0]['instructions'],
                     experimentheader=qobj_schedules[0]['header'],
-                    experimentconfig=_lo_converter(lo_dict)
+                    experimentconfig=lo_converter(lo_dict)
                 ))
-        elif len(qobj_schedules) == len(user_lo_configs):
+        elif len(qobj_schedules) == len(schedule_los):
             # n:n setup
-            for lo_dict, schedule in zip(user_lo_configs, qobj_schedules):
+            for lo_dict, schedule in zip(schedule_los, qobj_schedules):
                 experiments.append(PulseQobjExperiment(
                     instructions=schedule['instructions'],
                     experimentheader=schedule['header'],
-                    experimentconfig=_lo_converter(lo_dict)
+                    experimentconfig=lo_converter(lo_dict)
                 ))
         else:
             raise QiskitError('Invalid LO setting is specified. ' +

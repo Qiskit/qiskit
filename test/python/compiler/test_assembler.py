@@ -219,7 +219,7 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble_schedules(self.schedule,
                                   self.default_qubit_lo_freq,
                                   self.default_meas_lo_freq,
-                                  user_lo_configs=[],
+                                  schedule_los=[],
                                   dict_header=self.header,
                                   **self.config)
         test_dict = qobj.to_dict()
@@ -246,7 +246,7 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble_schedules(self.schedule,
                                   self.default_qubit_lo_freq,
                                   self.default_meas_lo_freq,
-                                  user_lo_configs=self.user_lo_config,
+                                  schedule_los=self.user_lo_config,
                                   dict_header=self.header,
                                   **self.config)
         test_dict = qobj.to_dict()
@@ -260,7 +260,7 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble_schedules(self.schedule,
                                   self.default_qubit_lo_freq,
                                   self.default_meas_lo_freq,
-                                  user_lo_configs=self.user_lo_config_dict,
+                                  schedule_los=self.user_lo_config_dict,
                                   dict_header=self.header,
                                   **self.config)
         test_dict = qobj.to_dict()
@@ -274,7 +274,7 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble_schedules(self.schedule,
                                   self.default_qubit_lo_freq,
                                   self.default_meas_lo_freq,
-                                  user_lo_configs=[self.user_lo_config, self.user_lo_config],
+                                  schedule_los=[self.user_lo_config, self.user_lo_config],
                                   dict_header=self.header,
                                   **self.config)
         test_dict = qobj.to_dict()
@@ -290,7 +290,7 @@ class TestPulseAssembler(QiskitTestCase):
         qobj = assemble_schedules([self.schedule, self.schedule],
                                   self.default_qubit_lo_freq,
                                   self.default_meas_lo_freq,
-                                  user_lo_configs=[self.user_lo_config, self.user_lo_config],
+                                  schedule_los=[self.user_lo_config, self.user_lo_config],
                                   dict_header=self.header,
                                   **self.config)
         test_dict = qobj.to_dict()
@@ -307,7 +307,7 @@ class TestPulseAssembler(QiskitTestCase):
             assemble_schedules([self.schedule, self.schedule, self.schedule],
                                self.default_qubit_lo_freq,
                                self.default_meas_lo_freq,
-                               user_lo_configs=[self.user_lo_config, self.user_lo_config],
+                               schedule_los=[self.user_lo_config, self.user_lo_config],
                                dict_header=self.header,
                                **self.config)
 

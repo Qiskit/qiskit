@@ -134,7 +134,7 @@ def execute_circuits(circuits, backend, qobj_header=None,
     return backend.run(qobj, **kwargs)
 
 
-def execute_schedules(schedules, backend, user_lo_configs=None, qobj_header=None,
+def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
                       shots=1024, max_credits=10, seed=None, meas_level=2,
                       meas_return='avg', memory_slots=None, memory_slot_size=100,
                       rep_time=None, run_config=None, **kwargs):
@@ -143,9 +143,9 @@ def execute_schedules(schedules, backend, user_lo_configs=None, qobj_header=None
     Args:
         schedules (Schedule or List[Schedule]): schedules to execute
         backend (BaseBackend): a backend to execute the schedules on
-                user_lo_configs(list[Union[Dict[OutputChannel, float], LoConfig]] or
+                schedule_los(list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
-        user_lo_configs(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
+        schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
@@ -162,13 +162,13 @@ def execute_schedules(schedules, backend, user_lo_configs=None, qobj_header=None
             Must be from the list provided by the device.
         run_config (dict): Additional run time configuration arguments to be inserted
                     in the qobj configuration.
-        kwargs: extra arguments to configure backend:
+        kwargs: extra arguments to configure backend
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
 
     Raises:
-        PulseError: when #schedules : #user_lo_configs is not either of `None`, 1:n, n:1 or n:n.
+        PulseError: when #schedules -> #schedule_los map is not one of `None`, 1:n, n:1 or n:n.
     """
     backend_config = backend.configuration()
 
@@ -201,7 +201,7 @@ def execute_schedules(schedules, backend, user_lo_configs=None, qobj_header=None
     qobj = assemble_schedules(schedules,
                               backend_default.qubit_freq_est,
                               backend_default.meas_freq_est,
-                              user_lo_configs=user_lo_configs,
+                              schedule_los=schedule_los,
                               qobj_header=qobj_header,
                               shots=shots, max_credits=max_credits, seed=seed,
                               meas_level=meas_level, meas_return=meas_return,
