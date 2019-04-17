@@ -48,6 +48,22 @@ class LoRange:
     def __repr__(self):
         return "%s(%f, %f)" % (self.__class__.__name__, self._lb, self._ub)
 
+    def __eq__(self, other):
+        """Two LO ranges are the same if they are of the same type, and
+        have the same frequency range
+
+        Args:
+            other (LoRange): other LoRange
+
+        Returns:
+            bool: are self and other equal.
+        """
+        if type(self) is type(other) and \
+                self._ub == other._ub and \
+                self._lb == other._lb:
+            return True
+        return False
+
 
 class OutputChannel(Channel):
     """Output Channel."""
@@ -91,6 +107,7 @@ class OutputChannel(Channel):
         """
         if type(self) is type(other) and \
                 self._index == other._index and \
+                self.lo_freq_range == other.lo_freq_range and \
                 self._lo_freq == other._lo_freq:
             return True
         return False
