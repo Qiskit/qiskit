@@ -21,11 +21,9 @@ import warnings
 import numpy as np
 import scipy.linalg as la
 
-
-from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import pauli_group
 from qiskit.quantum_info import purity as new_purity
-from qiskit.quantum_info import random_state
+from qiskit.quantum_info import random
 
 
 ###############################################################
@@ -337,112 +335,23 @@ def outer(vector1, vector2=None):
 ###############################################################
 
 def random_unitary_matrix(dim, seed=None):
+    """Deprecated in 0.8+
     """
-    Return a random unitary ndarray over num qubits.
-
-    Args:
-        dim (int): the dim of the state space.
-        seed (int): Optional. To set a random seed.
-    Returns:
-        ndarray: U (2**num, 2**num) unitary ndarray.
-    """
-    unitary = np.zeros([dim, dim], dtype=complex)
-    for j in range(dim):
-        if j == 0:
-            a = random_state(dim, seed)
-        else:
-            a = random_state(dim)
-        unitary[:, j] = np.copy(a)
-        # Grahm-Schmidt Orthogonalize
-        i = j-1
-        while i >= 0:
-            dc = np.vdot(unitary[:, i], a)
-            unitary[:, j] = unitary[:, j]-dc*unitary[:, i]
-            i = i - 1
-        # normalize
-        unitary[:, j] = unitary[:, j] * (1.0 / np.sqrt(np.vdot(unitary[:, j], unitary[:, j])))
-    return unitary
+    warnings.warn('The random_unitary_matrix() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the function in qiskit.quantum_info.random',
+                  DeprecationWarning)
+    return random.random_unitary(dim, seed).representation
 
 
 def random_density_matrix(length, rank=None, method='Hilbert-Schmidt', seed=None):
+    """Deprecated in 0.8+
     """
-    Generate a random density matrix rho.
-
-    Args:
-        length (int): the length of the density matrix.
-        rank (int or None): the rank of the density matrix. The default
-            value is full-rank.
-        method (string): the method to use.
-            'Hilbert-Schmidt': sample rho from the Hilbert-Schmidt metric.
-            'Bures': sample rho from the Bures metric.
-        seed (int): Optional. To set a random seed.
-    Returns:
-        ndarray: rho (length, length) a density matrix.
-    Raises:
-        QiskitError: if the method is not valid.
-    """
-    if method == 'Hilbert-Schmidt':
-        return __random_density_hs(length, rank, seed)
-    elif method == 'Bures':
-        return __random_density_bures(length, rank, seed)
-    else:
-        raise QiskitError('Error: unrecognized method {}'.format(method))
-
-
-def __ginibre_matrix(nrow, ncol=None, seed=None):
-    """
-    Return a normally distributed complex random matrix.
-
-    Args:
-        nrow (int): number of rows in output matrix.
-        ncol (int): number of columns in output matrix.
-        seed (int): Optional. To set a random seed.
-    Returns:
-        ndarray: A complex rectangular matrix where each real and imaginary
-            entry is sampled from the normal distribution.
-    """
-    if ncol is None:
-        ncol = nrow
-    if seed is not None:
-        np.random.seed(seed)
-    G = np.random.normal(size=(nrow, ncol)) + \
-        np.random.normal(size=(nrow, ncol)) * 1j
-    return G
-
-
-def __random_density_hs(N, rank=None, seed=None):
-    """
-    Generate a random density matrix from the Hilbert-Schmidt metric.
-
-    Args:
-        N (int): the length of the density matrix.
-        rank (int or None): the rank of the density matrix. The default
-            value is full-rank.
-        seed (int): Optional. To set a random seed.
-    Returns:
-        ndarray: rho (N,N  a density matrix.
-    """
-    G = __ginibre_matrix(N, rank, seed)
-    G = G.dot(G.conj().T)
-    return G / np.trace(G)
-
-
-def __random_density_bures(N, rank=None, seed=None):
-    """
-    Generate a random density matrix from the Bures metric.
-
-    Args:
-        N (int): the length of the density matrix.
-        rank (int or None): the rank of the density matrix. The default
-            value is full-rank.
-        seed (int): Optional. To set a random seed.
-    Returns:
-        ndarray: rho (N,N) a density matrix.
-    """
-    P = np.eye(N) + random_unitary_matrix(N)
-    G = P.dot(__ginibre_matrix(N, rank, seed))
-    G = G.dot(G.conj().T)
-    return G / np.trace(G)
+    warnings.warn('The random_density_matrix() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the function in qiskit.quantum_info.random',
+                  DeprecationWarning)
+    return random.random_density_matrix(length, rank, method, seed)
 
 
 ###############################################################

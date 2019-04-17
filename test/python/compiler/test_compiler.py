@@ -18,9 +18,6 @@ from qiskit import compile, execute
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
-from qiskit.tools.qi.qi import random_unitary_matrix
-from qiskit.mapper.compiling import two_qubit_kak
-from qiskit.mapper.exceptions import MapperError
 
 
 class TestCompiler(QiskitTestCase):
@@ -394,18 +391,6 @@ class TestCompiler(QiskitTestCase):
         circ2.h(qr[0])
         qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, QasmQobj)
-
-    def test_kak_decomposition(self):
-        """Verify KAK decomposition for random Haar unitaries.
-        """
-        for _ in range(100):
-            unitary = random_unitary_matrix(4)
-            with self.subTest(unitary=unitary):
-                try:
-                    two_qubit_kak(unitary, verify_gate_sequence=True)
-                except MapperError as ex:
-                    self.fail(str(ex))
-
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
