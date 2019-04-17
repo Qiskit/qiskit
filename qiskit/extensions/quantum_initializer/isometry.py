@@ -32,7 +32,7 @@ class Isometry(Gate):
     The decomposition is based on https://arxiv.org/abs/1501.06911.
 
     Input:
-    params =     an isometry from m to n qubits, i.e., a (complex) np.ndarray of dimension 2^n*2^m with orthonormal 
+    isometry =     an isometry from m to n qubits, i.e., a (complex) np.ndarray of dimension 2^n*2^m with orthonormal
                 columns (given in the computational basis specified by the order of the ancillas and the input qubits,
                 where the ancillas are considered to be more significant than the input qubits.)
 
@@ -74,10 +74,12 @@ class Isometry(Gate):
         num_gates = len(iso_circuit.data)
         # invert the circuit to create the circuit implementing the isometry
         if not num_gates == 0:
+            # ToDo: Allow to inverse empty circuits.
             gate = iso_circuit.to_instruction().inverse()
         q = QuantumRegister(self.num_qubits)
         iso_circuit = QuantumCircuit(q)
         if num_gates == 0:
+            # ToDo: improve handling of empty circuit, such that the following line is not required.
             iso_circuit.iden(q[0])
         else:
             iso_circuit.append(gate, q[:])
@@ -100,7 +102,7 @@ class Isometry(Gate):
         # isometry that is left to decompose, where the columns up to index column_index correspond to the first
         # few columns of the identity matrix up to diag, and hence we only have to save a list containing them.
         for column_index in range(2 ** m):
-            (diag, remaining_isometry) = self._decompose_column(circuit, q, diag, remaining_isometry, column_index)
+            self._decompose_column(circuit, q, diag, remaining_isometry, column_index)
             # extract phase of the state that was sent to the basis state ket(column_index)
             diag.append(remaining_isometry[column_index, 0])
             # remove first column (which is now stored in diag)
@@ -115,8 +117,7 @@ class Isometry(Gate):
         """
         n = int(np.log2(self.params[0].shape[0]))
         for s in range(n):
-            (diag, remaining_isometry) = self._disentangle(circuit, q, diag, remaining_isometry, column_index, s)
-        return diag, remaining_isometry
+            self._disentangle(circuit, q, diag, remaining_isometry, column_index, s)
 
     def _disentangle(self, circuit, q, diag, remaining_isometry, column_index, s):
         """
@@ -165,7 +166,6 @@ class Isometry(Gate):
             # # correct for the implementation "up to diagonal"
             # diag_inv = np.conj(diag).tolist()
             # _apply_diagonal_gate(v, control_labels + [target_label], diag_inv)
-        return diag, remaining_isometry
 
     # This method finds the single-qubit gates for a UCG to disentangle a qubit:
     # we consider the n-qubit state v[:,0] starting with k zeros (in the computational basis).

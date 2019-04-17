@@ -31,6 +31,8 @@ class MCGupDiag(Gate):
     Input:
     gate =  a single-qubit unitary U  a given as a 2*2 numpy array.
 
+    num_controls = number of control qubits
+
     num_ancillas_zero = number of additional ancillas that start in the state ket(0) (the n-m ancillas required
                         for providing the ouput of the isometry are not accounted for here).
 
