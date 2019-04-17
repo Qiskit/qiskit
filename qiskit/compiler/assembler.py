@@ -190,7 +190,7 @@ def assemble_schedules(schedules, user_lo_dicts,
 
     Args:
         schedules (list[Schedule] or Schedule): schedules to assemble
-        user_lo_dicts(list[UserLoDict]): LO dictionary to assemble
+        user_lo_dicts(list[UserLoDict] or UserLoDict): LO dictionary to assemble
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
         converter (PulseQobjConverter): converter to convert pulse instruction to qobj instruction
