@@ -77,6 +77,10 @@ Added
   are followed by a measurement instruction, moving the latter to the proper wire.
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
   rotations about the Z axis, leveraging previously-found gate commutation relations.
+- Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
+  of gates (blocks) acting on 2 qubits.
+- Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
+  into equivalent Unitary operators in the circuit.
 
 Changed
 -------
