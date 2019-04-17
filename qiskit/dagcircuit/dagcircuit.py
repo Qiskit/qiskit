@@ -1368,10 +1368,9 @@ class DAGCircuit:
             if current_node.type == 'op' or not only_ops:
                 yield current_node
 
-            for node in self.successors(current_node):
-                # check if this node includes the given wire
-                if (node.type in ['in', 'out'] and wire == node.wire) or \
-                   (node.type == 'op' and wire in node.qargs + node.cargs):
+            # find the adjacent node that takes the wire being looked at as input
+            for node, edges in self.multi_graph.adj[current_node].items():
+                if any(wire == edge['wire'] for edge in edges.values()):
                     current_node = node
                     more_nodes = True
                     break
