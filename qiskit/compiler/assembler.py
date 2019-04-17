@@ -22,7 +22,7 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjConfig,
                          PulseQobjInstruction, PulseQobjExperimentConfig, PulseQobjExperiment,
                          PulseQobjConfig, QobjPulseLibrary)
-from qiskit.qobj.converters.pulse_instruction import PulseQobjConverter
+from qiskit.qobj.converters import PulseQobjConverter, LoDictConverter
 from .run_config import RunConfig
 
 
@@ -166,7 +166,8 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 
 def assemble_schedules(schedules, user_lo_dicts,
                        dict_config, dict_header,
-                       converter=PulseQobjConverter):
+                       inst_converter=PulseQobjConverter,
+                       lo_converter=LoDictConverter):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:
@@ -174,7 +175,8 @@ def assemble_schedules(schedules, user_lo_dicts,
         user_lo_dicts(list[UserLoDict] or UserLoDict): LO dictionary to assemble
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
-        converter (PulseQobjConverter): converter to convert pulse instruction to qobj instruction
+        inst_converter (PulseQobjConverter): converter for pulse instruction
+        lo_converter (LoDictConverter): converter for LO frequency
 
     Returns:
         PulseQobj: the Qobj to be run on the backends
@@ -183,21 +185,25 @@ def assemble_schedules(schedules, user_lo_dicts,
         QiskitError: when invalid schedules or configs are provided
     """
 
-    qobj_converter = converter(PulseQobjInstruction, **dict_config)
+    _inst_converter = inst_converter(PulseQobjInstruction, **dict_config)
+    _lo_converter = lo_converter(PulseQobjExperimentConfig, **dict_config)
+
+    if isinstance(schedules, Schedule):
+        schedules = [schedules]
+
+    if isinstance(user_lo_dicts, UserLoDict):
+        user_lo_dicts = [user_lo_dicts]
 
     user_pulselib = set()
 
     # assemble schedules
-    if isinstance(schedules, Schedule):
-        schedules = [schedules]
-
     qobj_schedules = []
     for idx, schedule in enumerate(schedules):
         # instructions
         qobj_instructions = []
         for instruction in schedule.flat_instruction_sequence():
             # TODO: support conditional gate
-            qobj_instructions.append(qobj_converter(instruction))
+            qobj_instructions.append(_inst_converter(instruction))
             if isinstance(instruction, DriveInstruction):
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)
@@ -216,65 +222,35 @@ def assemble_schedules(schedules, user_lo_dicts,
         QobjPulseLibrary(name=pulse.name, samples=pulse.samples) for pulse in user_pulselib
     ]
 
-    # assemble user configs
-    if isinstance(user_lo_dicts, UserLoDict):
-        user_lo_dicts = [user_lo_dicts]
-
-    experiment_configs = []
-
-    try:
-        default_q_los = dict_config['qubit_lo_freq']
-    except KeyError:
-        raise QiskitError('Qubit default LO frequencies are not exist.')
-
-    try:
-        default_m_los = dict_config['meas_lo_freq']
-    except KeyError:
-        raise QiskitError('Meas default LO frequencies are not exist.')
-
-    if user_lo_dicts:
-        for user_lo_dict in user_lo_dicts:
-            lo_configs = {}
-            # qubit LO frequency
-            q_los = default_q_los.copy()
-            for channel, lo_freq in user_lo_dict.qubit_lo_dict():
-                q_los[channel.index] = lo_freq
-            if q_los != default_q_los:
-                lo_configs['qubit_lo_freq'] = q_los
-            # measurement LO frequency
-            m_los = default_m_los.copy()
-            for channel, lo_freq in user_lo_dict.meas_lo_dict():
-                m_los[channel.index] = lo_freq
-            if m_los != default_m_los:
-                lo_configs['meas_lo_freq'] = m_los
-            experiment_configs.append(lo_configs)
-
     # create qob experiment field
     experiments = []
-
-    if len(experiment_configs) == 1:
-        config = experiment_configs.pop()
+    if len(user_lo_dicts) == 1:
+        lo_dict = user_lo_dicts.pop()
         # update global config
-        dict_config['qubit_lo_freq'] = config.get('qubit_lo_freq', default_q_los)
-        dict_config['meas_lo_freq'] = config.get('meas_lo_freq', default_m_los)
+        q_los = _lo_converter.get_qubit_los(lo_dict)
+        if q_los:
+            dict_config['qubit_lo_freq'] = q_los
+        m_los = _lo_converter.get_meas_los(lo_dict)
+        if m_los:
+            dict_config['meas_lo_freq'] = m_los
 
-    if experiment_configs:
+    if user_lo_dicts:
         # multiple frequency setups
         if len(qobj_schedules) == 1:
             # frequency sweep
-            for config in experiment_configs:
+            for lo_dict in user_lo_dicts:
                 experiments.append(PulseQobjExperiment(
                     instructions=qobj_schedules[0]['instructions'],
                     experimentheader=qobj_schedules[0]['header'],
-                    experimentconfig=PulseQobjExperimentConfig(**config)
+                    experimentconfig=_lo_converter(lo_dict)
                 ))
-        elif len(qobj_schedules) == len(experiment_configs):
+        elif len(qobj_schedules) == len(user_lo_dicts):
             # n:n setup
-            for config, schedule in zip(experiment_configs, qobj_schedules):
+            for lo_dict, schedule in zip(user_lo_dicts, qobj_schedules):
                 experiments.append(PulseQobjExperiment(
                     instructions=schedule['instructions'],
                     experimentheader=schedule['header'],
-                    experimentconfig=PulseQobjExperimentConfig(**config)
+                    experimentconfig=_lo_converter(lo_dict)
                 ))
         else:
             raise QiskitError('Invalid LO setting is specified. ' +

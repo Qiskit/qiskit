@@ -12,14 +12,15 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.qobj import PulseQobjInstruction
-from qiskit.qobj.converters.pulse_instruction import PulseQobjConverter
+from qiskit.qobj import PulseQobjInstruction, PulseQobjExperimentConfig
+from qiskit.qobj.converters import PulseQobjConverter, LoDictConverter
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire
 from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
-                                   RegisterSlot, MemorySlot)
+                                   MeasureChannel, RegisterSlot, MemorySlot)
+from qiskit.pulse import UserLoDict
 
 
-class TestPulseConverter(QiskitTestCase):
+class TestInstructionConverter(QiskitTestCase):
     """Pulse converter tests."""
 
     def setUp(self):
@@ -37,10 +38,9 @@ class TestPulseConverter(QiskitTestCase):
             ]
         )
 
-        self.converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
-
     def test_drive_instruction(self):
         """Test converted qobj from DriveInstruction."""
+        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
         command = SamplePulse(np.arange(0, 0.01), name='linear')
         instruction = command(self.device.q[0].drive)
 
@@ -50,10 +50,11 @@ class TestPulseConverter(QiskitTestCase):
             t0=0
         )
 
-        self.assertEqual(self.converter(instruction), valid_qobj)
+        self.assertEqual(converter(instruction), valid_qobj)
 
     def test_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
+        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
         command = FrameChange(phase=0.1)
         instruction = command(self.device.q[0].drive)
 
@@ -64,10 +65,11 @@ class TestPulseConverter(QiskitTestCase):
             phase=0.1
         )
 
-        self.assertEqual(self.converter(instruction), valid_qobj)
+        self.assertEqual(converter(instruction), valid_qobj)
 
     def test_persistent_value(self):
         """Test converted qobj from PersistentValueInstruction."""
+        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
         command = PersistentValue(value=0.1j)
         instruction = command(self.device.q[0].drive)
 
@@ -78,10 +80,11 @@ class TestPulseConverter(QiskitTestCase):
             val=0.1j
         )
 
-        self.assertEqual(self.converter(instruction), valid_qobj)
+        self.assertEqual(converter(instruction), valid_qobj)
 
     def test_acquire(self):
         """Test converted qobj from AcquireInstruction."""
+        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
         command = Acquire(duration=10)
         instruction = command(self.device.q, self.device.mem, self.device.c)
 
@@ -94,10 +97,11 @@ class TestPulseConverter(QiskitTestCase):
             register_slot=[0]
         )
 
-        self.assertEqual(self.converter(instruction), valid_qobj)
+        self.assertEqual(converter(instruction), valid_qobj)
 
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
+        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
         instruction = Snapshot(label='label', snap_type='type')
 
         valid_qobj = PulseQobjInstruction(
@@ -107,4 +111,48 @@ class TestPulseConverter(QiskitTestCase):
             type='type'
         )
 
-        self.assertEqual(self.converter(instruction), valid_qobj)
+        self.assertEqual(converter(instruction), valid_qobj)
+
+
+class TestLoConverter(QiskitTestCase):
+    """LO converter tests."""
+
+    def setUp(self):
+        self.device = DeviceSpecification(
+            qubits=[
+                Qubit(0,
+                      drive_channels=[DriveChannel(0, 1.2)],
+                      measure_channels=[MeasureChannel(0, 3.4)],
+                      acquire_channels=[AcquireChannel(0)])
+            ],
+            registers=[
+                RegisterSlot(0)
+            ],
+            mem_slots=[
+                MemorySlot(0)
+            ]
+        )
+
+    def test_qubit_los(self):
+        """Test qubit channel configuration."""
+        user_lo_dict = UserLoDict({self.device.q[0].drive: 1.3})
+        converter = LoDictConverter(PulseQobjExperimentConfig,
+                                    qubit_lo_freq=[1.2], meas_lo_freq=[3.4])
+
+        valid_qobj = PulseQobjExperimentConfig(
+            qubit_lo_freq=[1.3]
+        )
+
+        self.assertEqual(converter(user_lo_dict), valid_qobj)
+
+    def test_meas_los(self):
+        """Test measurement channel configuration."""
+        user_lo_dict = UserLoDict({self.device.q[0].measure: 3.5})
+        converter = LoDictConverter(PulseQobjExperimentConfig,
+                                    qubit_lo_freq=[1.2], meas_lo_freq=[3.4])
+
+        valid_qobj = PulseQobjExperimentConfig(
+            meas_lo_freq=[3.5]
+        )
+
+        self.assertEqual(converter(user_lo_dict), valid_qobj)

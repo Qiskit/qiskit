@@ -8,3 +8,6 @@
 """
 Helper modules to convert qiskit frontend object to proper qobj model.
 """
+
+from .pulse_instruction import PulseQobjConverter
+from .lo_frequency import LoDictConverter
