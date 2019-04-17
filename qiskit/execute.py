@@ -21,9 +21,8 @@ import warnings
 
 from qiskit.compiler import RunConfig, TranspileConfig
 from qiskit.compiler import assemble_circuits, assemble_schedules, transpile
-from qiskit.pulse import Schedule, ConditionedSchedule, UserLoDict
-from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjHeader
+from qiskit.validation.exceptions import ModelValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -165,27 +164,19 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
     Raises:
         PulseError: when #schedules : #user_lo_dicts is not either of `None`, 1:n, n:1 or n:n.
     """
-    if isinstance(schedules, Schedule):
-        schedules = [schedules]
-
-    if user_lo_dicts:
-        if isinstance(user_lo_dicts, UserLoDict):
-            user_lo_dicts = [user_lo_dicts]
-        if len(schedules) == 1:
-            experiments = [ConditionedSchedule(schedules[0], cond) for cond in user_lo_dicts]
-        elif len(user_lo_dicts) == 1:
-            experiments = [ConditionedSchedule(sched, user_lo_dicts[0]) for sched in schedules]
-        elif len(schedules) == len(user_lo_dicts):
-            experiments = [ConditionedSchedule(sched, cond)
-                           for sched, cond in zip(schedules, user_lo_dicts)]
-        else:
-            raise PulseError("#schedules=%d : #user_lo_dicts=%d must be 1:n, n:1 or n:n." %
-                             (len(schedules), len(user_lo_dicts)))
-    else:
-        # no user condition
-        experiments = [ConditionedSchedule(sched) for sched in schedules]
-
     backend_config = backend.configuration()
+
+    # TODO : Remove usage of config.defaults when backend.defaults() is updated.
+    try:
+        backend_default = backend.defaults()
+    except ModelValidationError:
+        from collections import namedtuple
+        BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est'))
+
+        backend_default = BackendDefault(
+            qubit_freq_est=backend_config.defaults['qubit_freq_est'],
+            meas_freq_est=backend_config.defaults['meas_freq_est']
+        )
 
     # filling in the config with backend defaults and user defined
     config = {
@@ -193,8 +184,8 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
         'memory_slots': backend_config.n_qubits,
         'memory_slot_size': 100,
         'meas_return': 'avg',
-        'qubit_lo_freq': backend_config.defaults['qubit_freq_est'],
-        'meas_lo_freq': backend_config.defaults['meas_freq_est'],
+        'qubit_lo_freq': backend_default.qubit_freq_est,
+        'meas_lo_freq': backend_default.meas_freq_est,
         'rep_time': backend_config.rep_times[-1]
     }
     config.update(kwargs)
@@ -205,6 +196,9 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
         'backend_version': backend_config.backend_version
     }
 
-    qobj = assemble_schedules(schedules=experiments, dict_header=header, dict_config=config)
+    qobj = assemble_schedules(schedules=schedules,
+                              user_lo_dicts=user_lo_dicts,
+                              dict_header=header,
+                              dict_config=config)
 
     return backend.run(qobj)

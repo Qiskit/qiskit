@@ -14,6 +14,7 @@ from qiskit.pulse.channels import DeviceSpecification, Qubit
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
+from qiskit.test.mock import FakeOpenPulse2Q
 
 
 class TestAcquireChannel(QiskitTestCase):
@@ -140,42 +141,14 @@ class TestDeviceSpecification(QiskitTestCase):
     def test_creation_from_backend_with_zero_u_channels(self):
         """Test creation of device specification from backend with u_channels == 0.
         """
+        backend = FakeOpenPulse2Q()
 
-        class DummyBackend:
-            """Dummy backend"""
-            def configuration(self):
-                # pylint: disable=missing-docstring
-                class DummyConfig:
-                    @property
-                    def n_qubits(self):
-                        return 2
+        # overwrite n_uchannel
+        backend._configuration.n_uchannels = 0
 
-                    @property
-                    def n_registers(self):
-                        return 2
+        device = DeviceSpecification.create_from(backend)
 
-                    @property
-                    def n_uchannels(self):
-                        return 0
-
-                    @property
-                    def qubit_lo_range(self):
-                        return [[1.0, 4.0], [1.0, 4.0]]
-
-                    @property
-                    def meas_lo_range(self):
-                        return [[1.0, 4.0], [1.0, 4.0]]
-
-                    @property
-                    def defaults(self):
-                        return {'qubit_freq_est': [1.2, 3.4],
-                                'meas_freq_est': [1.2, 3.4]}
-
-                return DummyConfig()
-
-        device = DeviceSpecification.create_from(DummyBackend())
-
-        self.assertEqual(device.q[0].drive, DriveChannel(0, 1.2))
+        self.assertEqual(device.q[0].drive, DriveChannel(0, 4.9))
         with self.assertRaises(PulseError):
             _ = device.q[0].control
 
