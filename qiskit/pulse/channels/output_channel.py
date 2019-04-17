@@ -58,9 +58,9 @@ class LoRange:
         Returns:
             bool: are self and other equal.
         """
-        if type(self) is type(other) and \
-                self._ub == other._ub and \
-                self._lb == other._lb:
+        if (type(self) is type(other) and
+                self._ub == other._ub and
+                self._lb == other._lb):
             return True
         return False
 
@@ -105,10 +105,10 @@ class OutputChannel(Channel):
         Returns:
             bool: are self and other equal.
         """
-        if type(self) is type(other) and \
-                self._index == other._index and \
-                self.lo_freq_range == other.lo_freq_range and \
-                self._lo_freq == other._lo_freq:
+        if (type(self) is type(other) and
+                self._index == other._index and
+                self.lo_freq_range == other.lo_freq_range and
+                self._lo_freq == other._lo_freq):
             return True
         return False
 
