@@ -416,7 +416,7 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
             # skip validation but run as is.
             from qiskit.providers.ibmq.ibmqjob import IBMQJob
             job = IBMQJob(backend, None, backend._api, qobj=qobj)
-            job.submit()
+            job._future = job._executor.submit(job._submit_callback)
         else:
             logger.info("Can not skip qobj validation for the third-party provider.")
             job = backend.run(qobj, **backend_options, **noise_config)
