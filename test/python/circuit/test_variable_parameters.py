@@ -177,3 +177,29 @@ class TestVariableParameters(QiskitTestCase):
             self.assertEqual(circs[index].data[0][0].params[0], ones)
             self.assertEqual(circs[index].data[0][0].params[1], ones + tens)
             self.assertEqual(circs[index].data[0][0].params[2], -ones)
+
+    def test_unassigned_variables(self):
+        """Test to check for presence of unassigned variables."""
+        x = sympy.Symbol('x')
+        y = sympy.Symbol('y')
+        qr = QuantumRegister(1, name='qr')
+        qc = QuantumCircuit(qr)
+
+        self.assertEqual(len(qc.unassigned_variables), 0)
+
+        qc.h(qr[0])
+        self.assertEqual(len(qc.unassigned_variables), 0)
+
+        qc.rx(x, qr[0])
+        self.assertEqual(len(qc.unassigned_variables), 1)
+        self.assertIs(x, next(iter(qc.unassigned_variables)))
+
+        qc.variable_table[x] = 0
+        self.assertEqual(len(qc.unassigned_variables), 0)
+
+        qc.rx(y, qr[0])
+        self.assertEqual(len(qc.unassigned_variables), 1)
+        self.assertIs(y, next(iter(qc.unassigned_variables)))
+
+        qc.variable_table[y] = 0.1
+        self.assertEqual(len(qc.unassigned_variables), 0)
