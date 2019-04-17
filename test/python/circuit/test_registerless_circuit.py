@@ -6,14 +6,38 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 
-"""Test Qiskit's QuantumCircuit class for wires."""
+"""Test registerless QuantumCircuit and Gates on wires"""
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, QiskitError
 from qiskit.test import QiskitTestCase
 
 
-class TestCircuitWires(QiskitTestCase):
-    """Test QuantumCircuit with wires."""
+class TestRegisterlessCircuit(QiskitTestCase):
+    """Test registerless QuantumCircuit."""
+
+    def test_circuit_constructor_qwires(self):
+        """Create a QuantumCircuit directly with quantum wires
+        """
+        circuit = QuantumCircuit(2)
+
+        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+
+        self.assertEqual(circuit, expected)
+
+    def test_circuit_constructor_wires_wrong(self):
+        """Create a registerless QuantumCircuit wrongly
+        """
+        self.assertRaises(QiskitError, QuantumCircuit, 1, 2, 3)  # QuantumCircuit(1, 2, 3)
+
+    def test_circuit_constructor_wires_wrong_mix(self):
+        """Create an almost-registerless QuantumCircuit
+        """
+        # QuantumCircuit(1, ClassicalRegister(2))
+        self.assertRaises(QiskitError, QuantumCircuit, 1, ClassicalRegister(2))
+
+
+class TestGatesOnWires(QiskitTestCase):
+    """Test gates on wires."""
 
     def test_circuit_multi_qregs_h(self):
         """Test circuit multi qregs and wires (H gate).
@@ -109,23 +133,3 @@ class TestCircuitWires(QiskitTestCase):
 
         circ = QuantumCircuit(qreg, creg)
         self.assertRaises(QiskitError, circ.measure, 1, 99)  # circ.measure(1, 99)
-
-    def test_circuit_constructor_qwires(self):
-        """Create a QuantumCircuit directly with quantum wires
-        """
-        circuit = QuantumCircuit(2)
-
-        expected = QuantumCircuit(QuantumRegister(2, 'q'))
-
-        self.assertEqual(circuit, expected)
-
-    def test_circuit_constructor_wires_wrong(self):
-        """Create a registerless QuantumCircuit wrongly
-        """
-        self.assertRaises(QiskitError, QuantumCircuit, 1, 2, 3)  # QuantumCircuit(1, 2, 3)
-
-    def test_circuit_constructor_wires_wrong_mix(self):
-        """Create an almost-registerless QuantumCircuit
-        """
-        # QuantumCircuit(1, ClassicalRegister(2))
-        self.assertRaises(QiskitError, QuantumCircuit, 1, ClassicalRegister(2))
