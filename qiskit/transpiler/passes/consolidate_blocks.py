@@ -20,8 +20,8 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Unitary
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.compiler.assembler import assemble_circuits
+from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.transpiler.basepasses import TransformationPass
-from . import Unroller
 
 
 class ConsolidateBlocks(TransformationPass):
