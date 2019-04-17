@@ -47,7 +47,7 @@ class TestUCG(QiskitTestCase):
                     # ToDo: improve efficiency here by allowing to execute circuit on several states in parallel (this would
                     # ToDo: in particular allow to get out the isometry the circuit is implementing by applying it to the first
                     # ToDo: few basis vectors)
-                    v         job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+                    job = execute(qc, BasicAer.get_backend('statevector_simulator'))
                     result = job.result()
                     vec_out = result.get_statevector()
                     vec_desired = _apply_isometry_to_basis_state(iso, i)

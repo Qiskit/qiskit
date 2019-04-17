@@ -97,12 +97,12 @@ def _extract_rz(phi1, phi2):
 """
 Input:
 
-    diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least two entries.
+diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least two entries.
     
-     q   =  list of k qubits the diagonal is acting on (the order of the qubits specifies the computational basis in
-            which the diagonal gate is provided: the first element in diag acts on the state where all the qubits
-            in q are in the state 0, the second entry acts on the state where all the qubits q[1],...,q[k-1] are in the
-            state zero and q[0] is in the state 1, and so on.
+q   =  list of k qubits the diagonal is acting on (the order of the qubits specifies the computational basis in
+        which the diagonal gate is provided: the first element in diag acts on the state where all the qubits
+        in q are in the state 0, the second entry acts on the state where all the qubits q[1],...,q[k-1] are in the
+        state zero and q[0] is in the state 1, and so on.
 """
 
 

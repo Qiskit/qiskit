@@ -14,18 +14,19 @@ import math
 
 import numpy as np
 
-from qiskit.circuit import CompositeGate
+from qiskit import QuantumRegister
+from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.diag import DiagGate
 from qiskit.extensions.quantum_initializer.ucg import UCG
 from qiskit.extensions.quantum_initializer._mcg_up_to_diagonal import MCGupDiag
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Isometry(CompositeGate):
-    """Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to decompose 
+class Isometry(Gate):
+    """
+    Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to decompose
     unitaries (m=n) and to do state preparation (m=0).
     
     The decomposition is based on https://arxiv.org/abs/1501.06911.
@@ -34,21 +35,11 @@ class Isometry(CompositeGate):
     params =     an isometry from m to n qubits, i.e., a (complex) np.ndarray of dimension 2^n*2^m with orthonormal 
                 columns (given in the computational basis specified by the order of the ancillas and the input qubits,
                 where the ancillas are considered to be more significant than the input qubits.)
-                
-    q_input =    list of m qubits where the input to the isometry is feeded in (empty list for state preparation)
-                The qubits are listed with increasing significance.
-            
-    q_ancillas_for_output = list of n-m ancilla qubits that are used for the output of the isometry 
-                    (and which are assumed to start in the zero state). 
-                    The qubits are listed with increasing significance.
-            
-    q_ancillas_zero = list of ancilla qubits (which are assumed to start in the zero state).
-                    The qubits are listed with increasing significance. 
-    
-    q_ancillas_dirty = list of ancilla qubits (which can start in an arbitrary state).
-                    The qubits are listed with increasing significance.
-                
-    circ =      QuantumCircuit or CompositeGate containing this gate
+
+    num_ancillas_zero = number of additional ancillas that start in the state ket(0) (the n-m ancillas required
+                        for providing the ouput of the isometry are not accounted for here).
+
+    num_ancillas_dirty = number of additional ancillas that start in an arbitaray state
     """
 
     """
@@ -59,22 +50,9 @@ class Isometry(CompositeGate):
     finally, we convert the labels back to the qubit numbering used in Qiskit (using: _get_qubits_by_label)
     """
 
-    def __init__(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=[], q_ancillas_dirty=[], circ=None):
-        self.q_input = q_input
-        self.q_ancillas_for_output = q_ancillas_for_output
-        self.q_ancillas_zero = q_ancillas_zero
-        self.q_ancillas_dirty = q_ancillas_dirty
-
-        # Check if q_input and q_ancillas_for_output have type "list"
-        if not type(q_input) == list:
-            raise QiskitError("The input qubits must be provided as a list.")
-        if not type(q_ancillas_for_output) == list:
-            raise QiskitError("The ancilla qubits must be provided as a list.")
-        if not type(q_ancillas_zero) == list:
-            raise QiskitError("The ancilla qubits starting in the zero state must be provided as a list.")
-        if not type(q_ancillas_dirty) == list:
-            raise QiskitError("The dirty ancilla qubits must be provided as a list.")
-
+    def __init__(self, isometry, num_ancillas_zero, num_ancillas_dirty):
+        self. num_ancillas_zero = num_ancillas_zero
+        self. num_ancillas_dirty = num_ancillas_dirty
         # Check if the isometry has the right dimension and if the columns are orthonormal
         n = np.log2(isometry.shape[0])
         m = np.log2(isometry.shape[1])
@@ -86,62 +64,61 @@ class Isometry(CompositeGate):
             raise QiskitError("The input matrix has more columns than rows and hence it can't be an isometry.")
         if not is_isometry(isometry, _EPS):
             raise QiskitError("The input matrix has non orthonormal columns and hence it is not an isometry.")
+        # Create new gate.
+        num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
+        super().__init__("iso", num_qubits, [isometry])
 
-        # Check if the number of input qubits corresponds to the provided isometry
-        if len(q_input) != m:
-            raise QiskitError(
-                "The number of input qubits is not equal to log2(k), where k is the number of columns of the provided isometry.")
-        # Check if there are enough ancilla qubits
-        if len(q_input) + len(q_ancillas_for_output) < n:
-            raise QiskitError("There are not enough ancilla qubits availabe to implement the isometry.")
-
-        # Create new initialize composite gate.
-        num_qubits = len(q_input) + len(q_ancillas_for_output) + len(q_ancillas_zero) + len(q_ancillas_dirty)
-        self.num_qubits = int(num_qubits)
-        qubits = q_input + q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty
-        super().__init__("init", [isometry], qubits, circ)
-        # Check if a qubit is provided as an input AND as an ancilla qubit
-        self._check_dups(qubits, message="There is qubit that is listed twice in the input.")
+    def _define(self):
         # call to generate the circuit that takes the isometry to the first 2^m columns of the 2^n identity matrix
-        self._gates_to_uncompute()
+        iso_circuit = self._gates_to_uncompute()
+        num_gates = len(iso_circuit.data)
         # invert the circuit to create the circuit implementing the isometry
-        self.inverse()
-        # do not set the inverse flag, as this is the actual initialize gate
-        # we just used inverse() as a method to obtain it
-        self.inverse_flag = False
+        if not num_gates == 0:
+            gate = iso_circuit.to_instruction().inverse()
+        q = QuantumRegister(self.num_qubits)
+        iso_circuit = QuantumCircuit(q)
+        if num_gates == 0:
+            iso_circuit.iden(q[0])
+        else:
+            iso_circuit.append(gate, q[:])
+        self.definition = iso_circuit.data
 
     def _gates_to_uncompute(self):
         """
-        Call to populate the self.data list with gates that takes the
-        desired isometry to the first 2^m columns of the 2^n*2^n identity matrix (see https://arxiv.org/abs/1501.06911)
+        Call to create a circuit with gates that take the desired isometry
+        to the first 2^m columns of the 2^n*2^n identity matrix (see https://arxiv.org/abs/1501.06911)
         """
+        q = QuantumRegister(self.num_qubits)
+        circuit = QuantumCircuit(q)
+        (q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty) = self._define_qubit_role(q)
         # Copy the isometry (this is computationally expensive for large isometries but guarantees to keep a copy
         # of the input isometry)
         remaining_isometry = self.params[0].astype(complex)  # note that "astype" does copy the isometry
         diag = []
         m = int(np.log2((self.params[0]).shape[1]))
-        # Decompose the column with index column_index and attache the gate to the CompositeGate object. Return the
+        # Decompose the column with index column_index and attache the gate to the circuit object. Return the
         # isometry that is left to decompose, where the columns up to index column_index correspond to the first
         # few columns of the identity matrix up to diag, and hence we only have to save a list containing them.
         for column_index in range(2 ** m):
-            (diag, remaining_isometry) = self._decompose_column(diag, remaining_isometry, column_index)
+            (diag, remaining_isometry) = self._decompose_column(circuit, q, diag, remaining_isometry, column_index)
             # extract phase of the state that was sent to the basis state ket(column_index)
             diag.append(remaining_isometry[column_index, 0])
             # remove first column (which is now stored in diag)
             remaining_isometry = remaining_isometry[:, 1:]
         if len(diag) > 1 and not diag_is_identity_up_to_global_phase(diag):
-            self._attach(DiagGate(np.conj(diag).tolist(), self.q_input))
+            circuit.diag(np.conj(diag).tolist(), q_input)
+        return circuit
 
-    def _decompose_column(self, diag, remaining_isometry, column_index):
+    def _decompose_column(self, circuit, q, diag, remaining_isometry, column_index):
         """
         Decomposes the column with index column_index.
         """
         n = int(np.log2(self.params[0].shape[0]))
         for s in range(n):
-            (diag, remaining_isometry) = self._disentangle(diag, remaining_isometry, column_index, s)
+            (diag, remaining_isometry) = self._disentangle(circuit, q, diag, remaining_isometry, column_index, s)
         return diag, remaining_isometry
 
-    def _disentangle(self, diag, remaining_isometry, column_index, s):
+    def _disentangle(self, circuit, q, diag, remaining_isometry, column_index, s):
         """
         Disentangle the s-th significant qubit (starting with s = 0) into the zero or the one state
         (dependent on column_index)
@@ -163,7 +140,7 @@ class Isometry(CompositeGate):
             # Find the MCG, decompose it and apply it to the remaining isometry
             gate = reverse_qubit_state([v[index1, k_prime], v[index2, k_prime]], 0)
             control_labels = [i for i, x in enumerate(get_binary_rep_as_list(k, n)) if x == 1 and i != target_label]
-            diagonal_mcg = self._attach_mcg_up_to_diagonal(gate, control_labels, target_label)
+            diagonal_mcg = self._append_mcg_up_to_diagonal(circuit, q, gate, control_labels, target_label)
             # apply the MCG to the remaining isometry
             _apply_multi_controlled_gate(v, control_labels, target_label, gate)
             # correct for the implementation "up to diagonal"
@@ -177,7 +154,7 @@ class Isometry(CompositeGate):
         single_qubit_gates = self._find_squs_for_disentangling(v, k, s)
         if not _ucg_is_identity_up_to_global_phase(single_qubit_gates):
             control_labels = list(range(target_label))
-            diagonal_ucg = self._attach_ucg_up_to_diagonal(single_qubit_gates, control_labels, target_label)
+            diagonal_ucg = self._append_ucg_up_to_diagonal(circuit, q, single_qubit_gates, control_labels, target_label)
             # merge the diagonal into the UCG for efficient application of both together
             diagonal_ucg_inverse = np.conj(diagonal_ucg).tolist()
             single_qubit_gates = _merge_UCG_and_diag(single_qubit_gates, diagonal_ucg_inverse)
@@ -205,33 +182,45 @@ class Isometry(CompositeGate):
                                     k_s(k, s)) for l in range(i_start, 2 ** (n - s - 1))]
         return id_list + squs
 
-    # attach a UCG up to diagonal
-    def _attach_ucg_up_to_diagonal(self, single_qubit_gates, control_labels, target_label):
+    # Append a UCG up to diagonal to the circuit circ.
+    def _append_ucg_up_to_diagonal(self, circ, q, single_qubit_gates, control_labels, target_label):
+        (q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty) = self._define_qubit_role(q)
         n = int(np.log2(self.params[0].shape[0]))
-        qubits = self.q_input + self.q_ancillas_for_output
+        qubits = q_input + q_ancillas_for_output
         # Note that we have to reverse the control labels, since controls are provided by increasing qubit number to
         # a UCG by convention
-        ucg = UCG(single_qubit_gates, _reverse_qubit_oder(_get_qubits_by_label(control_labels, qubits, n)),
-                  _get_qubits_by_label([target_label], qubits, n)[0], up_to_diagonal=True)
-        self._attach(ucg)
-        return ucg.diag
+        control_qubits = _reverse_qubit_oder(_get_qubits_by_label(control_labels, qubits, n))
+        target_qubit = _get_qubits_by_label([target_label], qubits, n)[0]
+        ucg = UCG(single_qubit_gates, up_to_diagonal=True)
+        circ.append(ucg, [target_qubit] + control_qubits)
+        return ucg.get_diagonal()
 
-    # Attach a MCG up to diagonal. The diagonal should only act on the control and target qubits
+    # Append a MCG up to diagonal to the circuit circ. The diagonal should only act on the control and target qubits
     # and not on the ancillas. In principle, it would be allowed to act on the dirty ancillas on which we perform
     # the isometry (i.e., on the qubits listed in "qubits" below). But for simplicity, the current code version ignores
     # this future optimization possibility.
-    def _attach_mcg_up_to_diagonal(self, gate, control_labels, target_label):
+    def _append_mcg_up_to_diagonal(self, circ, q, gate, control_labels, target_label):
+        (q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty) = self._define_qubit_role(q)
         n = int(np.log2(self.params[0].shape[0]))
-        qubits = self.q_input + self.q_ancillas_for_output
+        qubits = q_input + q_ancillas_for_output
         control_qubits = _reverse_qubit_oder(_get_qubits_by_label(control_labels, qubits, n))
         target_qubit = _get_qubits_by_label([target_label], qubits, n)[0]
         # The qubits on which we neither act nor control on with the MCG, can be used as dirty ancillas
         ancilla_dirty_labels = [i for i in range(n) if i not in control_labels+[target_label]]
-        ancillas_dirty = _reverse_qubit_oder(_get_qubits_by_label(ancilla_dirty_labels, qubits, n)) + self.q_ancillas_dirty
-        mcg_up_to_diag = MCGupDiag(gate, control_qubits, target_qubit, self.q_ancillas_zero, ancillas_dirty)
-        self._attach(mcg_up_to_diag)
-        return mcg_up_to_diag.diag
+        ancillas_dirty = _reverse_qubit_oder(_get_qubits_by_label(ancilla_dirty_labels, qubits, n)) + q_ancillas_dirty
+        mcg_up_to_diag = MCGupDiag(gate, len(control_qubits), len(q_ancillas_zero), len(ancillas_dirty))
+        circ.append(mcg_up_to_diag, [target_qubit] + control_qubits + q_ancillas_zero + ancillas_dirty)
+        return mcg_up_to_diag.get_diagonal()
 
+    def _define_qubit_role(self, q):
+        n = int(np.log2((self.params[0]).shape[0]))
+        m = int(np.log2((self.params[0]).shape[1]))
+        # Define the role of the qubits
+        q_input = q[:m]
+        q_ancillas_for_output = q[m:n]
+        q_ancillas_zero = q[n:n+self.num_ancillas_zero]
+        q_ancillas_dirty = q[n+self.num_ancillas_zero:]
+        return q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty
 
 # Find special unitary matrix that maps [c0,c1] to [r,0] or [0,r] if basis_state=0 or basis_state=1 respectively
 def reverse_qubit_state(state, basis_state):
@@ -474,9 +463,54 @@ def diag_is_identity_up_to_global_phase(diag):
     return True
 
 
+"""
+    q_input =    list of m qubits where the input to the isometry is feeded in (empty list for state preparation)
+                 The qubits are listed with increasing significance.
+            
+    q_ancillas_for_output = list of n-m ancilla qubits that are used for the output of the isometry 
+                    (and which are assumed to start in the zero state). 
+                    The qubits are listed with increasing significance.
+            
+    q_ancillas_zero = list of ancilla qubits (which are assumed to start in the zero state).
+                    The qubits are listed with increasing significance. 
+    
+    q_ancillas_dirty = list of ancilla qubits (which can start in an arbitrary state).
+                    The qubits are listed with increasing significance.
+
+"""
+
+
 def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=[], q_ancillas_dirty=[]):
-    return self._attach(Isometry(isometry, q_input, q_ancillas_for_output, q_ancillas_zero, q_ancillas_dirty, self))
+    if isinstance(q_input, QuantumRegister):
+        q_input = q_input[:]
+    if isinstance(q_ancillas_for_output, QuantumRegister):
+        q_ancillas_for_output = q_ancillas_for_output[:]
+    if isinstance(q_ancillas_zero, QuantumRegister):
+        q_ancillas_zero = q_ancillas_zero[:]
+    if isinstance(q_ancillas_dirty, QuantumRegister):
+            q_ancillas_dirty = q_ancillas_dirty[:]
+
+    # Check if q_input and q_ancillas_for_output have type "list"
+    if not type(q_input) == list:
+        raise QiskitError("The input qubits must be provided as a list.")
+    if not type(q_ancillas_for_output) == list:
+        raise QiskitError("The ancilla qubits must be provided as a list.")
+    if not type(q_ancillas_zero) == list:
+        raise QiskitError("The ancilla qubits starting in the zero state must be provided as a list.")
+    if not type(q_ancillas_dirty) == list:
+        raise QiskitError("The dirty ancilla qubits must be provided as a list.")
+    n = np.log2(isometry.shape[0])
+    m = np.log2(isometry.shape[1])
+    # Check if the number of input qubits corresponds to the provided isometry
+    if len(q_input) != m:
+        raise QiskitError("The number of input qubits is not equal to log2(k), where k is the number of columns of "
+                          "the provided isometry.")
+    # Check if there are enough ancilla qubits
+    if len(q_input) + len(q_ancillas_for_output) != n:
+            raise QiskitError("The number of ancillas for the output of the isometry from m to n qubits is not equal "
+                              "to n-m.")
+    return self.append(Isometry(isometry, len(q_ancillas_zero), len(q_ancillas_dirty)),
+                       q_input +q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty)
 
 
 QuantumCircuit.iso = iso
-CompositeGate.iso = iso

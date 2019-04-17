@@ -29,7 +29,7 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 _id = np.eye(2,2)
 _not = np.matrix([[0,1],[1,0]])
 
-squs_list = [[_not],[_id,_id],[_id,1j*_id],[_id,_not,_id,_not],[unitary_group.rvs(2) for i in range(2**2)],
+squs_list = [[_not],[_id],[_id,_id],[_id,1j*_id],[_id,_not,_id,_not],[unitary_group.rvs(2) for i in range(2**2)],
          [unitary_group.rvs(2) for i in range(2**3)],[unitary_group.rvs(2) for i in range(2**4)]]
 
 up_to_diagonal_list = [True, False]

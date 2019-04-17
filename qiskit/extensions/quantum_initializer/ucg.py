@@ -229,16 +229,16 @@ def _is_isometry(m, eps):
 
 
 """
-    Input:
-    gate_list =     list of two qubit unitaries [U_0,...,U_{2^k-1}], where each single-qubit unitary U_i is a given as 
-                    a 2*2 numpy array.
+Input:
+gate_list =     list of two qubit unitaries [U_0,...,U_{2^k-1}], where each single-qubit unitary U_i is a given as 
+                a 2*2 numpy array.
                     
-    q_controls =    list of k control qubits. The qubits are ordered according to their significance 
-                    in the computational basis. For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)), 
-                    the unitary U_0 is performed  if q[1] and q[2] are in the state zero,
-                    U_1 is performed if q[2] is in the state zero and q[1] is in the state one, and so on.
+q_controls =    list of k control qubits. The qubits are ordered according to their significance 
+                in the computational basis. For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)), 
+                the unitary U_0 is performed  if q[1] and q[2] are in the state zero,
+                U_1 is performed if q[2] is in the state zero and q[1] is in the state one, and so on.
                     
-    q_target =      target qubit, where we act on with the single-qubit gates.
+q_target =      target qubit, where we act on with the single-qubit gates.
 """
 
 
@@ -264,9 +264,6 @@ def ucg(self, gate_list, q_controls, q_target, up_to_diagonal=False):
     # Check if number of control qubits does correspond to the number of single-qubit rotations
     if num_contr != len(q_controls):
         raise QiskitError("Number of controlled gates does not correspond to the number of control-qubits.")
-
-    qubits = [q_target] + q_controls
-
     return self.append(UCG(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
