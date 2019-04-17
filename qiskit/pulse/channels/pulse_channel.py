@@ -47,9 +47,6 @@ class Channel(metaclass=ABCMeta):
             return True
         return False
 
-    def __hash__(self):
-        return hash((type(self), self._index))
-
 
 class AcquireChannel(Channel):
     """Acquire channel."""

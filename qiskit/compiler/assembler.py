@@ -163,7 +163,7 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                     experiments=experiments, header=qobj_header)
 
 
-def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
+def assemble_schedules(schedules, default_qubit_los, default_meas_los,
                        qobj_header=None, qobj_id=None, schedule_los=None,
                        shots=1024, max_credits=10, seed=None,
                        meas_level=2, meas_return='avg', memory_slots=None,
@@ -174,8 +174,8 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
 
     Args:
         schedules (list[Schedule] or Schedule): schedules to assemble
-        default_qubit_lo_freq (list): List of default qubit lo frequencies
-        default_meas_lo_freq (list): List of default meas lo frequencies
+        default_qubit_los (list): List of default qubit lo frequencies
+        default_meas_los (list): List of default meas lo frequencies
         qobj_header (QobjHeader): header to pass to the results
         qobj_id (int): identifier for the generated qobj
         schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
@@ -224,8 +224,8 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
     qobj_header = qobj_header or QobjHeader()
     # create run configuration and populate
     run_config = {}
-    run_config['qubit_lo_freq'] = default_qubit_lo
-    run_config['meas_lo_freq'] = default_meas_lo
+    run_config['qubit_lo_freq'] = default_qubit_los
+    run_config['meas_lo_freq'] = default_meas_los
     run_config['shots'] = shots
     run_config['max_credits'] = max_credits
     run_config['meas_level'] = meas_level
@@ -233,10 +233,12 @@ def assemble_schedules(schedules, default_qubit_lo, default_meas_lo,
     run_config['memory_slot'] = memory_slots
     run_config['memory_slot_size'] = memory_slot_size
     run_config['rep_time'] = rep_time
+    if seed:
+        run_config['seed'] = seed
 
     instruction_converter = instruction_converter(PulseQobjInstruction, **run_config)
-    lo_converter = LoConfigConverter(PulseQobjExperimentConfig, default_qubit_lo,
-                                     default_meas_lo, **run_config)
+    lo_converter = LoConfigConverter(PulseQobjExperimentConfig, default_qubit_los,
+                                     default_meas_los, **run_config)
 
     # assemble schedules
     qobj_schedules = []

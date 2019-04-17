@@ -147,6 +147,7 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
         schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
+        qobj_header (QobjHeader): user input to go into the header
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
@@ -208,4 +209,4 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
                               memory_slots=memory_slots, memory_slot_size=memory_slot_size,
                               rep_time=rep_time, **run_config)
 
-    return backend.run(qobj)
+    return backend.run(qobj, **kwargs)

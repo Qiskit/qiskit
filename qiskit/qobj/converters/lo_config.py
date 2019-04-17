@@ -17,18 +17,18 @@ class LoConfigConverter:
     `get_qubit_los` and `get_meas_los` to align with your backend.
     """
 
-    def __init__(self, qobj_model, default_qubit_lo_freq, default_meas_lo_freq, **run_config):
+    def __init__(self, qobj_model, default_qubit_los, default_meas_los, **run_config):
         """Create new converter.
 
         Args:
             qobj_model (PulseQobjExperimentConfig): qobj model for experiment config.
-            default_qubit_lo_freq (list): List of default qubit lo frequencies.
-            default_meas_lo_freq (list): List of default meas lo frequencies.
+            default_qubit_los (list): List of default qubit lo frequencies.
+            default_meas_los (list): List of default meas lo frequencies.
             run_config (dict): experimental configuration.
         """
         self.qobj_model = qobj_model
-        self.default_qubit_lo_freq = default_qubit_lo_freq
-        self.default_meas_lo_freq = default_meas_lo_freq
+        self.default_qubit_los = default_qubit_los
+        self.default_meas_los = default_meas_los
         self.run_config = run_config
 
     def __call__(self, user_lo_config):
@@ -65,14 +65,14 @@ class LoConfigConverter:
             PulseError: when LO frequencies are missing.
         """
         try:
-            _q_los = self.default_qubit_lo_freq.copy()
+            _q_los = self.default_qubit_los.copy()
         except KeyError:
             raise PulseError('Qubit default frequencies not exist.')
 
         for channel, lo_freq in user_lo_config.qubit_lo_dict().items():
             _q_los[channel.index] = lo_freq
 
-        if _q_los == self.default_qubit_lo_freq:
+        if _q_los == self.default_qubit_los:
             return None
         return _q_los
 
@@ -90,13 +90,13 @@ class LoConfigConverter:
             PulseError: when LO frequencies are missing.
         """
         try:
-            _m_los = self.default_meas_lo_freq.copy()
+            _m_los = self.default_meas_los.copy()
         except KeyError:
             raise PulseError('Default measurement frequencies not exist.')
 
         for channel, lo_freq in user_lo_config.meas_lo_dict().items():
             _m_los[channel.index] = lo_freq
 
-        if _m_los == self.default_meas_lo_freq:
+        if _m_los == self.default_meas_los:
             return None
         return _m_los
