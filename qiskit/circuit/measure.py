@@ -21,7 +21,7 @@ class Measure(Instruction):
         super().__init__("measure", 1, 1, [])
 
 
-@_op_expand(2, broadcastable=[True, False])
+@_op_expand(1, n_cbits=1, broadcastable=[True, False])
 def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
 

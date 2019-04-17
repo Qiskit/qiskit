@@ -26,11 +26,11 @@ def _is_bit(obj):
             return True
     return False
 
-
-def _op_expand(n_bits, func=None, broadcastable=None):
+def _op_expand(n_qbits, func=None, n_cbits=0, broadcastable=None):
     """Decorator for expanding an operation across a whole register or register subset.
     Args:
-        n_bits (int): the number of register bit arguments the decorated function takes
+        n_qbits (int): the number of register qubit arguments the decorated function takes
+        n_cbits (int): the number of register clbit arguments the decorated function takes
         func (function): used for decorators with keyword args
         broadcastable (list(bool)): list of bool for which register args can be
             broadcast from 1 bit to the max size of the rest of the args. Defaults
@@ -40,10 +40,11 @@ def _op_expand(n_bits, func=None, broadcastable=None):
         type: partial function object
     """
     if func is None:
-        return functools.partial(_op_expand, n_bits, broadcastable=broadcastable)
+        return functools.partial(_op_expand, n_qbits, n_cbits=n_cbits, broadcastable=broadcastable)
 
     @functools.wraps(func)
     def wrapper(self, *args):
+        n_bits = n_qbits + n_cbits
         params = args[0:-n_bits] if len(args) > n_bits else tuple()
         rargs = args[-n_bits:]
         if broadcastable is None:
