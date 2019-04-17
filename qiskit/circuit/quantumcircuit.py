@@ -33,7 +33,16 @@ class QuantumCircuit:
         A circuit is a list of instructions bound to some registers.
 
         Args:
-            *regs (Registers): registers to include in the circuit.
+            *regs ([Register] or [Int]):
+              - If [Register], the QuantumRegister and/or ClassicalRegister
+                to include in the circuit.
+                E.g.: QuantumCircuit(QuantumRegister(4))
+                      QuantumCircuit(QuantumRegister(4), ClassicalRegister(3))
+                      QuantumCircuit(QuantumRegister(4, 'qr0'), QuantumRegister(2, 'qr1'))
+              - If [Int], the amount of qubits and/or classical bits to include
+              in the circuit. It can be (Int, ) or (Int, Int).
+                E.g.: QuantumCircuit(4) # A QuantumCircuit with 4 qubits
+                      QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits
             name (str or None): the name of the quantum circuit. If
                 None, an automatically generated string will be assigned.
 
