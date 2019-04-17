@@ -8,7 +8,6 @@
 # pylint: disable=unused-import
 
 """Assemble function for converting a list of circuits into a qobj"""
-import copy
 import uuid
 
 import numpy
@@ -17,14 +16,13 @@ import sympy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, UserLoDict
-from qiskit.pulse.channels import OutputChannel, DriveChannel, MeasureChannel
 from qiskit.pulse.commands import DriveInstruction
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig,
                          PulseQobjInstruction, PulseQobjExperimentConfig, PulseQobjExperiment,
                          PulseQobjConfig, QobjPulseLibrary)
-from .pulse_to_qobj import PulseQobjConverter
+from qiskit.compiler.pulse_instruction_converter import PulseQobjConverter
 from .run_config import RunConfig
 
 
@@ -166,23 +164,6 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                     experiments=experiments, header=qobj_header)
 
 
-def _replaced_with_user_los(user_lo_dict, default_los, channel_type):
-    """Return user LO frequencies replaced from `default_los`.
-    Args:
-        user_lo_dict(UserLoDict): dictionary of user's LO frequencies
-        default_los(list(float)): default LO frequencies to be replaced
-        channel_type(OutputChannel): channel type
-    Returns:
-        List: user LO frequencies
-    """
-    res = copy.copy(default_los)
-    for channel, user_lo in user_lo_dict.items():
-        if isinstance(channel, channel_type):
-            res[channel.index] = user_lo
-
-    return res
-
-
 def assemble_schedules(schedules, user_lo_dicts,
                        dict_config, dict_header,
                        converter=PulseQobjConverter):
@@ -199,7 +180,7 @@ def assemble_schedules(schedules, user_lo_dicts,
         PulseQobj: the Qobj to be run on the backends
 
     Raises:
-        QiskitError: when invalid command is provided
+        QiskitError: when invalid schedules or configs are provided
     """
 
     qobj_converter = converter(PulseQobjInstruction, **dict_config)
@@ -239,23 +220,34 @@ def assemble_schedules(schedules, user_lo_dicts,
     if isinstance(user_lo_dicts, UserLoDict):
         user_lo_dicts = [user_lo_dicts]
 
-    default_qlos = dict_config.get('qubit_lo_freq', None)
-    default_mlos = dict_config.get('meas_lo_freq', None)
-
     experiment_configs = []
-    if default_qlos and default_mlos:
-        if user_lo_dicts:
-            for user_lo_dict in user_lo_dicts:
-                lo_configs = {}
-                qlos = _replaced_with_user_los(user_lo_dict, default_qlos, DriveChannel)
-                if qlos != default_qlos:
-                    lo_configs['qubit_lo_freq'] = qlos
-                mlos = _replaced_with_user_los(user_lo_dict, default_mlos, MeasureChannel)
-                if mlos != default_mlos:
-                    lo_configs['meas_lo_freq'] = mlos
-                experiment_configs.append(lo_configs)
-    else:
-        QiskitError('No default LO frequency information is provided.')
+
+    try:
+        default_q_los = dict_config['qubit_lo_freq']
+    except KeyError:
+        raise QiskitError('Qubit default LO frequencies are not exist.')
+
+    try:
+        default_m_los = dict_config['meas_lo_freq']
+    except KeyError:
+        raise QiskitError('Meas default LO frequencies are not exist.')
+
+    if user_lo_dicts:
+        for user_lo_dict in user_lo_dicts:
+            lo_configs = {}
+            # qubit LO frequency
+            q_los = default_q_los.copy()
+            for channel, lo_freq in user_lo_dict.qubit_lo_dict():
+                q_los[channel.index] = lo_freq
+            if q_los != default_q_los:
+                lo_configs['qubit_lo_freq'] = q_los
+            # measurement LO frequency
+            m_los = default_m_los.copy()
+            for channel, lo_freq in user_lo_dict.meas_lo_dict():
+                m_los[channel.index] = lo_freq
+            if m_los != default_m_los:
+                lo_configs['meas_lo_freq'] = m_los
+            experiment_configs.append(lo_configs)
 
     # create qob experiment field
     experiments = []
@@ -263,8 +255,8 @@ def assemble_schedules(schedules, user_lo_dicts,
     if len(experiment_configs) == 1:
         config = experiment_configs.pop()
         # update global config
-        dict_config['qubit_lo_freq'] = config.get('qubit_lo_freq', default_qlos)
-        dict_config['meas_lo_freq'] = config.get('meas_lo_freq', default_mlos)
+        dict_config['qubit_lo_freq'] = config.get('qubit_lo_freq', default_q_los)
+        dict_config['meas_lo_freq'] = config.get('meas_lo_freq', default_m_los)
 
     if experiment_configs:
         # multiple frequency setups

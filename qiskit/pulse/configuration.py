@@ -23,17 +23,20 @@ class UserLoDict:
 
         if user_lo_dic:
             for channel, lo_freq in user_lo_dic.items():
-                if not channel.lo_freq_range.includes(lo_freq):
-                    raise PulseError("Specified LO freq %f is out of range %s" %
-                                     (lo_freq, channel.lo_freq_range))
                 if isinstance(channel, DriveChannel):
                     # add qubit_lo_freq
+                    if not channel.lo_freq_range.includes(lo_freq):
+                        raise PulseError("Specified LO freq %f is out of range %s" %
+                                         (lo_freq, channel.lo_freq_range))
                     self._q_lo_freq[channel] = lo_freq
                 elif isinstance(channel, MeasureChannel):
                     # add meas_lo_freq
+                    if not channel.lo_freq_range.includes(lo_freq):
+                        raise PulseError("Specified LO freq %f is out of range %s" %
+                                         (lo_freq, channel.lo_freq_range))
                     self._m_lo_freq[channel] = lo_freq
                 else:
-                    raise PulseError("Specified channel %f cannot be configured. %s" %
+                    raise PulseError("Specified channel %s cannot be configured." %
                                      channel.name)
 
     # TODO: what should we publish? (with keeping this object immutable)
