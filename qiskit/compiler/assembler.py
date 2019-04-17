@@ -166,8 +166,7 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 
 def assemble_schedules(schedules, user_lo_configs,
                        dict_config, dict_header,
-                       inst_converter=PulseQobjConverter,
-                       lo_converter=LoDictConverter):
+                       inst_converter=PulseQobjConverter):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:
@@ -176,7 +175,6 @@ def assemble_schedules(schedules, user_lo_configs,
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
         inst_converter (PulseQobjConverter): converter for pulse instruction
-        lo_converter (LoDictConverter): converter for LO frequency
 
     Returns:
         PulseQobj: the Qobj to be run on the backends
@@ -186,7 +184,7 @@ def assemble_schedules(schedules, user_lo_configs,
     """
 
     _inst_converter = inst_converter(PulseQobjInstruction, **dict_config)
-    _lo_converter = lo_converter(PulseQobjExperimentConfig, **dict_config)
+    _lo_converter = LoDictConverter(PulseQobjExperimentConfig, **dict_config)
 
     if isinstance(schedules, Schedule):
         schedules = [schedules]
