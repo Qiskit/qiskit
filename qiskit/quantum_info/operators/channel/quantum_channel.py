@@ -10,8 +10,6 @@
 Abstract base class for Quantum Channels.
 """
 
-from abc import ABC
-
 import numpy as np
 
 from qiskit.qiskiterror import QiskitError
