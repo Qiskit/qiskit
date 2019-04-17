@@ -43,9 +43,9 @@ class Collect2qBlocks(AnalysisPass):
 
         good_names = ["cx", "u1", "u2", "u3", "id"]
         block_list = []
-        nodes = list(dag.nodes_in_topological_order())
+        nodes = list(dag.topological_nodes())
         nodes_seen = dict(zip(nodes, [False] * len(nodes)))
-        for nd in dag.nodes_in_topological_order():
+        for nd in dag.topological_op_nodes():
             group = []
             # Explore predecessors and successors of cx gates
             if nd.name == "cx" and nd.condition is None and not nodes_seen[nd]:

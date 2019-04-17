@@ -37,7 +37,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks()
-        pass_.property_set['block_list'] = [dag.op_nodes()]
+        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
         sim = UnitarySimulatorPy()
@@ -86,13 +86,13 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks()
-        topo_ops = [i for i in dag.nodes_in_topological_order() if i.type == 'op']
+        topo_ops = list(dag.topological_op_nodes())
         block_1 = [topo_ops[1], topo_ops[2]]
         block_2 = [topo_ops[0], topo_ops[3]]
         pass_.property_set['block_list'] = [block_1, block_2]
         new_dag = pass_.run(dag)
 
-        new_topo_ops = [i for i in new_dag.nodes_in_topological_order() if i.type == 'op']
+        new_topo_ops = [i for i in new_dag.topological_op_nodes() if i.type == 'op']
         self.assertEqual(len(new_topo_ops), 2)
         self.assertEqual(new_topo_ops[0].qargs, [qr[1], qr[2]])
         self.assertEqual(new_topo_ops[1].qargs, [qr[0], qr[1]])
@@ -108,7 +108,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks()
-        pass_.property_set['block_list'] = [dag.op_nodes()]
+        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
         sim = UnitarySimulatorPy()
@@ -129,7 +129,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks()
-        pass_.property_set['block_list'] = [dag.op_nodes()]
+        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
         sim = UnitarySimulatorPy()

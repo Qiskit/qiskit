@@ -39,7 +39,7 @@ class TestCollect2qBlocks(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        topo_ops = [i for i in dag.nodes_in_topological_order() if i.type == 'op']
+        topo_ops = [i for i in dag.topological_op_nodes()]
         block_1 = [topo_ops[1], topo_ops[2]]
         block_2 = [topo_ops[0], topo_ops[3]]
 

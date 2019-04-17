@@ -60,7 +60,7 @@ class ConsolidateBlocks(TransformationPass):
         blocks = self.property_set['block_list']
         nodes_seen = set()
 
-        for node in dag.nodes_in_topological_order():
+        for node in dag.topological_op_nodes():
             # skip already-visited nodes or input/output nodes
             if node in nodes_seen or node.type == 'in' or node.type == 'out':
                 continue
