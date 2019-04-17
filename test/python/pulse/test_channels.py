@@ -150,7 +150,7 @@ class TestDeviceSpecification(QiskitTestCase):
 
         self.assertEqual(device.q[0].drive, DriveChannel(0, 4.9, (4.5, 5.5)))
         with self.assertRaises(PulseError):
-            device.q[0].control
+            device.q[0].control()
 
 
 if __name__ == '__main__':
