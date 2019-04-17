@@ -276,6 +276,19 @@ class TestInitialize(QiskitTestCase):
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
 
+    def test_equivalence(self):
+        """Test two similar initialize instructions evaluate to equal."""
+        desired_vector = [0.5, 0.5, 0.5, 0.5]
+        qr = QuantumRegister(2, "qr")
+
+        qc1 = QuantumCircuit(qr, name='circuit')
+        qc1.initialize(desired_vector, [qr[0], qr[1]])
+
+        qc2 = QuantumCircuit(qr, name='circuit')
+        qc2.initialize(desired_vector, [qr[0], qr[1]])
+
+        self.assertEqual(qc1, qc2)
+
 
 if __name__ == '__main__':
     unittest.main()

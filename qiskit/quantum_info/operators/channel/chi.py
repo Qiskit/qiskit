@@ -26,9 +26,11 @@ from numbers import Number
 import numpy as np
 
 from qiskit.qiskiterror import QiskitError
-from .basechannel import QuantumChannel
-from .choi import Choi
-from .transformations import _to_chi
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.channel.choi import Choi
+from qiskit.quantum_info.operators.channel.superop import SuperOp
+from qiskit.quantum_info.operators.channel.transformations import _to_chi
 
 
 class Chi(QuantumChannel):
@@ -37,60 +39,55 @@ class Chi(QuantumChannel):
     The Chi-matrix is the Pauli-basis representation of the Chi-Matrix.
     """
 
-    def __init__(self, data, input_dim=None, output_dim=None):
-        # Check if input is a quantum channel object
-        # If so we disregard the dimension kwargs
-        if issubclass(data.__class__, QuantumChannel):
-            input_dim, output_dim = data.dims
-            if input_dim != output_dim:
-                raise QiskitError(
-                    "Cannot convert to Chi-matrix: input_dim " +
-                    "({}) != output_dim ({})".format(input_dim, output_dim))
+    def __init__(self, data, input_dims=None, output_dims=None):
+        """Initialize a Chi quantum channel operator."""
+        if issubclass(data.__class__, BaseOperator):
+            # If not a channel we use `to_operator` method to get
+            # the unitary-representation matrix for input
+            if not issubclass(data.__class__, QuantumChannel):
+                data = data.to_operator()
+            input_dim, output_dim = data.dim
             chi_mat = _to_chi(data.rep, data._data, input_dim, output_dim)
-        else:
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
+        elif isinstance(data, (list, np.ndarray)):
             chi_mat = np.array(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = chi_mat.shape
             if dim_l != dim_r:
                 raise QiskitError('Invalid Choi-matrix input.')
-            if output_dim is None and input_dim is None:
+            if input_dims:
+                input_dim = np.product(input_dims)
+            if output_dims:
+                output_dim = np.product(input_dims)
+            if output_dims is None and input_dims is None:
                 output_dim = int(np.sqrt(dim_l))
                 input_dim = dim_l // output_dim
-            elif input_dim is None:
+            elif input_dims is None:
                 input_dim = dim_l // output_dim
-            elif output_dim is None:
+            elif output_dims is None:
                 output_dim = dim_l // input_dim
             # Check dimensions
             if input_dim * output_dim != dim_l:
-                raise QiskitError(
-                    "Invalid input and output dimension for Chi-matrix input.")
-            nqubits = int(np.log2(input_dim))
-            if 2**nqubits != input_dim:
-                raise QiskitError("Input is not an n-qubit Chi matrix.")
-        super().__init__('Chi', chi_mat, input_dim, output_dim)
+                raise QiskitError("Invalid shape for Chi-matrix input.")
+        else:
+            raise QiskitError("Invalid input data format for Chi")
+
+        nqubits = int(np.log2(input_dim))
+        if 2**nqubits != input_dim:
+            raise QiskitError("Input is not an n-qubit Chi matrix.")
+        # Check and format input and output dimensions
+        input_dims = self._automatic_dims(input_dims, input_dim)
+        output_dims = self._automatic_dims(output_dims, output_dim)
+        super().__init__('Chi', chi_mat, input_dims, output_dims)
 
     @property
     def _bipartite_shape(self):
         """Return the shape for bipartite matrix"""
         return (self._input_dim, self._output_dim, self._input_dim,
                 self._output_dim)
-
-    def is_cptp(self):
-        """Return True if completely-positive trace-preserving."""
-        # We convert to the Choi representation to check if CPTP
-        tmp = Choi(self)
-        return tmp.is_cptp()
-
-    def _evolve(self, state):
-        """Evolve a quantum state by the QuantumChannel.
-
-        Args:
-            state (QuantumState): The input statevector or density matrix.
-
-        Returns:
-            DensityMatrix: the output quantum state as a density matrix.
-        """
-        return Choi(self)._evolve(state)
 
     def conjugate(self):
         """Return the conjugate of the QuantumChannel."""
@@ -106,11 +103,12 @@ class Chi(QuantumChannel):
         # conjugate channel
         return Chi(Choi(self).transpose())
 
-    def compose(self, other, front=False):
+    def compose(self, other, qubits=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass.
+            other (QuantumChannel): a quantum channel.
+            qubits (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -122,8 +120,13 @@ class Chi(QuantumChannel):
             QiskitError: if other is not a QuantumChannel subclass, or
             has incompatible dimensions.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
+        if qubits is not None:
+            # TODO
+            raise QiskitError("NOT IMPLEMENTED: subsystem composition.")
+
+        # Convert other to Choi since we convert via Choi
+        if not isinstance(other, Choi):
+            other = Choi(other)
         # Check dimensions match up
         if front and self._input_dim != other._output_dim:
             raise QiskitError(
@@ -135,11 +138,28 @@ class Chi(QuantumChannel):
         # representation we convert to the Choi representation
         return Chi(Choi(self).compose(other, front=front))
 
+    def power(self, n):
+        """The matrix power of the channel.
+
+        Args:
+            n (int): compute the matrix power of the superoperator matrix.
+
+        Returns:
+            Chi: the matrix power of the SuperOp converted to a Chi channel.
+
+        Raises:
+            QiskitError: if the input and output dimensions of the
+            QuantumChannel are not equal, or the power is not an integer.
+        """
+        if n > 0:
+            return super().power(n)
+        return Chi(SuperOp(self).power(n))
+
     def tensor(self, other):
         """Return the tensor product channel self ⊗ other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass.
+            other (QuantumChannel): a quantum channel.
 
         Returns:
             Chi: the tensor product channel self ⊗ other as a Chi object.
@@ -153,7 +173,7 @@ class Chi(QuantumChannel):
         """Return the tensor product channel other ⊗ self.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass.
+            other (QuantumChannel): a quantum channel.
 
         Returns:
             Chi: the tensor product channel other ⊗ self as a Chi object.
@@ -167,7 +187,7 @@ class Chi(QuantumChannel):
         """Return the QuantumChannel self + other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass.
+            other (QuantumChannel): a quantum channel.
 
         Returns:
             Chi: the linear addition self + other as a Chi object.
@@ -176,20 +196,18 @@ class Chi(QuantumChannel):
             QiskitError: if other is not a QuantumChannel subclass, or
             has incompatible dimensions.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
-        if self.dims != other.dims:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, Chi):
             other = Chi(other)
-        input_dim, output_dim = self.dims
-        return Chi(self._data + other.data, input_dim, output_dim)
+        if self.dim != other.dim:
+            raise QiskitError("other QuantumChannel dimensions are not equal")
+        return Chi(self._data + other.data, self._input_dims,
+                   self._output_dims)
 
     def subtract(self, other):
         """Return the QuantumChannel self - other.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass.
+            other (QuantumChannel): a quantum channel.
 
         Returns:
             Chi: the linear subtraction self - other as Chi object.
@@ -198,14 +216,12 @@ class Chi(QuantumChannel):
             QiskitError: if other is not a QuantumChannel subclass, or
             has incompatible dimensions.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
-        if self.dims != other.dims:
-            raise QiskitError("other QuantumChannel dimensions are not equal")
         if not isinstance(other, Chi):
             other = Chi(other)
-        input_dim, output_dim = self.dims
-        return Chi(self._data - other.data, input_dim, output_dim)
+        if self.dim != other.dim:
+            raise QiskitError("other QuantumChannel dimensions are not equal")
+        return Chi(self._data - other.data, self._input_dims,
+                   self._output_dims)
 
     def multiply(self, other):
         """Return the QuantumChannel self + other.
@@ -221,14 +237,26 @@ class Chi(QuantumChannel):
         """
         if not isinstance(other, Number):
             raise QiskitError("other is not a number")
-        input_dim, output_dim = self.dims
-        return Chi(other * self._data, input_dim, output_dim)
+        return Chi(other * self._data, self._input_dims, self._output_dims)
+
+    def _evolve(self, state, qubits=None):
+        """Evolve a quantum state by the QuantumChannel.
+
+        Args:
+            state (QuantumState): The input statevector or density matrix.
+            qubits (list): a list of QuantumState subsystem positions to apply
+                           the operator on.
+
+        Returns:
+            DensityMatrix: the output quantum state as a density matrix.
+        """
+        return Choi(self)._evolve(state, qubits)
 
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
 
         Args:
-            other (QuantumChannel): a quantum channel subclass.
+            other (QuantumChannel): a quantum channel.
             reverse (bool): If False return self ⊗ other, if True return
                             if True return (other ⊗ self) [Default: False
         Returns:
@@ -237,17 +265,14 @@ class Chi(QuantumChannel):
         Raises:
             QiskitError: if other is not a QuantumChannel subclass.
         """
-        if not issubclass(other.__class__, QuantumChannel):
-            raise QiskitError('other is not a QuantumChannel subclass')
         if not isinstance(other, Chi):
             other = Chi(other)
-        # Combined channel dimensions
-        a_in, a_out = self.dims
-        b_in, b_out = other.dims
-        input_dim = a_in * b_in
-        output_dim = a_out * b_out
         if reverse:
+            input_dims = self.input_dims() + other.input_dims()
+            output_dims = self.output_dims() + other.output_dims()
             data = np.kron(other.data, self._data)
         else:
+            input_dims = other.input_dims() + self.input_dims()
+            output_dims = other.output_dims() + self.output_dims()
             data = np.kron(self._data, other.data)
-        return Chi(data, input_dim, output_dim)
+        return Chi(data, input_dims, output_dims)

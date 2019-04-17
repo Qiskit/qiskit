@@ -64,6 +64,12 @@ Added
   in terms of other, simpler instructions (#1816).
 - Added an ``Instruction.mirror()`` method that mirrors a composite instruction
   (reverses its sub-instructions) (#1816).
+- Added an ``PassManager.passes()`` method that returns a list of the passes that
+  have been added to the pass manager, including options and flow controllers.
+- Added a ``PassManager.run()`` that transforms a ``QuantumCircuit`` according to its
+  pass schedule and returns a ``QuantumCircuit``.
+- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc.
+- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits.
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
@@ -74,6 +80,8 @@ Added
 Changed
 -------
 
+- Backend defaults values are no longer required (#2101).
+- QuantumCircuit properties more self-consistent and no longer need DAG (#1993).
 - The most connected subset in DenseLayout is now reduced bandwidth (#2021).
 - plot_histogram now allows sorting by Hamming distance from target_string (#2064).
 - FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`

@@ -11,6 +11,8 @@
 
 import unittest
 
+import numpy as np
+
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
 from qiskit.compiler import assemble_circuits
@@ -114,6 +116,16 @@ class TestQobjToCircuits(QiskitTestCase):
 
         dag_list = [circuit_to_dag(x) for x in qobj_to_circuits(qobj)]
         self.assertEqual(dag_list, [self.dag, circuit_to_dag(circuit_b)])
+
+    def test_qobj_to_circuits_with_initialize(self):
+        """Check qobj_to_circuit's result with initialize."""
+        q = QuantumRegister(2, name='q')
+        circ = QuantumCircuit(q, name='circ')
+        circ.initialize([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], q[:])
+        dag = circuit_to_dag(circ)
+        qobj = assemble_circuits(circ)
+        out_circuit = qobj_to_circuits(qobj)[0]
+        self.assertEqual(circuit_to_dag(out_circuit), dag)
 
 
 if __name__ == '__main__':
