@@ -20,8 +20,7 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import BasicAer
 import numpy as np
-from parameterized import parameterized
-from qiskit import execute as q_execute
+from qiskit import execute
 from qiskit.test import QiskitTestCase
 from scipy.stats import unitary_group
 
@@ -46,15 +45,16 @@ class TestUCG(QiskitTestCase):
                 # test the UC gate for all possible basis states.
                 for i in range(2 ** (num_con + 1)):
                     qc = _prepare_basis_state(q, i)
-                    ucg = UCG(squs, q[1:num_con + 1], q[0], up_to_diagonal=up_to_diagonal)
-                    qc._attach(ucg)
+                    qc.ucg(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
                     # ToDo: improve efficiency here by allowing to execute circuit on several states in parallel (this would
                     # ToDo: in particular allow to get out the isometry the circuit is implementing by applying it to the first
                     # ToDo: few basis vectors
-                    vec_out = np.asarray(q_execute(qc, BasicAer.get_backend(
-                        'statevector_simulator')).result().get_statevector(qc, decimals=16))
+                    job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+                    result = job.result()
+                    vec_out = result.get_statevector()
                     if up_to_diagonal:
-                        vec_out = np.array(ucg.diag) * vec_out
+                        ucg = UCG(squs, up_to_diagonal=up_to_diagonal)
+                        vec_out = np.array(ucg.get_diagonal()) * vec_out
                     vec_desired = _apply_squ_to_basis_state(squs, i)
                     # It is fine if the gate is implemented up to a global phase (however, the phases between the different
                     # outputs for different bases states must be correct!

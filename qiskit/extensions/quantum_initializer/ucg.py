@@ -14,51 +14,37 @@ single target qubit. If the k control qubits are in the state ket(i) (in the com
 a single-qubit unitary U_i is applied to the target qubit.
 """
 
+import cmath
 import math
 
 import numpy as np
 
-from qiskit.circuit import CompositeGate
+from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.diag import DiagGate
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
-from qiskit.extensions.standard.cx import CnotGate
-import cmath
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class UCG(CompositeGate):
+class UCG(Gate):
     """Uniformly controlled gates (also called multiplexed gates). The decomposition is based on: 
     https://arxiv.org/pdf/quant-ph/0410066.pdf.
     
     Input:
     gate_list =     list of two qubit unitaries [U_0,...,U_{2^k-1}], where each single-qubit unitary U_i is a given as 
                     a 2*2 numpy array.
-                    
-    q_controls =    list of k control qubits. The qubits are ordered according to their significance 
-                    in the computational basis. For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)), 
-                    the unitary U_0 is performed  if q[1] and q[2] are in the state zero,
-                    U_1 is performed if q[2] is in the state zero and q[1] is in the state one, and so on.
-                    
-    q_target =      target qubit, where we act on with the single-qubit gates.
-    
-    circ =          QuantumCircuit or CompositeGate containing this gate
+
+    up_to_diagonal - determines if the gate is implemented up to a diagonal (up_to_diagonal=True) or if it is
+                     decomposed completely (default; up_to_diagonal=False). If the UCG u is decomposed up to
+                     a diagonal d, this means that the circuit implements a unitary u' such that d.u'=u.
     """
 
-    def __init__(self, gate_list, q_controls, q_target, up_to_diagonal=False, circ=None):
-        self.q_controls = q_controls
-        self.q_target = q_target
-        """Check types"""
-        # Check if q_controls has type "list"
-        if not type(q_controls) == list:
-            raise QiskitError(
-                "The control qubits must be provided as a list (also if there is only one control qubit).")
+    def __init__(self, gate_list, up_to_diagonal=False):
+        """Check types and dimensions"""
         # Check if gate_list has type "list"
         if not type(gate_list) == list:
-            raise QiskitError(
-                "The single-qubit unitaries are not provided in a list.")
+            raise QiskitError("The single-qubit unitaries are not provided in a list.")
         # Check if the gates in gate_list have the right dimension
         for gate in gate_list:
             if not gate.shape == (2, 2):
@@ -71,43 +57,51 @@ class UCG(CompositeGate):
         num_contr = math.log2(len(gate_list))
         if num_contr < 0 or not num_contr.is_integer():
             raise QiskitError("The number of controlled single-qubit gates is not a non negative power of 2.")
-        # Check if number of control qubits does correspond to the number of single-qubit rotations
-        if num_contr != len(q_controls):
-            raise QiskitError("Number of controlled gates does not correspond to the number of control-qubits.")
         # Check if the single-qubit gates are unitaries
         for gate in gate_list:
             if not _is_isometry(gate, _EPS):
                 raise QiskitError("A controlled gate is not unitary.")
+        # Create new gate.
+        super().__init__("UCG", int(num_contr)+1, gate_list)
+        self.up_to_diagonal = up_to_diagonal
 
-        # Create new composite gate.
-        num_qubits = len(q_controls) + 1
-        self.num_qubits = int(num_qubits)
-        # Important: for a control list q_controls = [q[0],...,q_[k-1]] the diagonal gate is provided in the
-        # computational basis of the qubits q[k-1],...,q[0],q_target, decreasingly ordered with respect to the
-        # significance of the qubit in the computational basis
-        self.diag = np.ones(2 ** self.num_qubits)
-        qubits = [q_target] + q_controls
-        super().__init__("init", gate_list, qubits, circ)
-        # Check if the target qubit is also a control qubit
-        self._check_dups(qubits, message="The target qubit cannot also be listed as a control qubit.")
-        # call to generate the circuit that implements the UCG
-        self.dec_ucg(up_to_diagonal)
+    # Important: for a control list q_controls = [q[0],...,q_[k-1]] the diagonal gate is provided in the
+    # computational basis of the qubits q[k-1],...,q[0],q_target, decreasingly ordered with respect to the
+    # significance of the qubit in the computational basis
 
-    def dec_ucg(self, up_to_diagonal):
+    def get_diagonal(self):
+        _, diag = self._dec_ucg()
+        return diag
+
+    def _define(self):
+        ucg_circuit, _ = self._dec_ucg()
+        gate = ucg_circuit.to_instruction()
+        q = QuantumRegister(self.num_qubits)
+        ucg_circuit = QuantumCircuit(q)
+        ucg_circuit.append(gate, q[:])
+        self.definition = ucg_circuit.data
+
+    def _dec_ucg(self):
         """
-        Call to populate the self.data list with gates that implement the uniformly controlled gate. If 
-        up_to_diagonal=True, the diagonal gate is stored in self.diag.
+        Call to create a circuit that implements the uniformly controlled gate. If
+        up_to_diagonal=True, the circuit implements the gate up to a diagonal gate and the diagonal gate is
+        also returned.
         """
+        diag = np.ones(2 ** self.num_qubits).tolist()
+        q = QuantumRegister(self.num_qubits)
+        q_controls = q[1:]
+        q_target = q[0]
+        circuit = QuantumCircuit(q)
         # If there is no control, we use the ZYZ decomposition
-        if len(self.q_controls) == 0:
-            if up_to_diagonal:
-                squ = SingleQubitUnitary(self.params[0], self.q_target, mode="ZYZ", up_to_diagonal=True)
-                self._attach(squ)
-                self.diag = squ.diag
+        if len(q_controls) == 0:
+            if self.up_to_diagonal:
+                squ = SingleQubitUnitary(self.params[0], mode="ZYZ", up_to_diagonal=True)
+                circuit.append(squ, [q_target])
+                return circuit, squ.get_diag()
             else:
-                squ = SingleQubitUnitary(self.params[0], self.q_target, mode="ZYZ")
-                self._attach(squ)
-            return None
+                squ = SingleQubitUnitary(self.params[0], mode="ZYZ")
+                circuit.append(squ, [q_target])
+                return circuit, diag
         # If there is at least one control, first, we find the single qubit gates of the decomposition.
         (single_qubit_gates, diag) = self._dec_ucg_help()
         # Now, it is easy to place the C-NOT gates and some Hadamards and Rz(pi/2) gates (which are absorbed into the
@@ -121,7 +115,7 @@ class UCG(CompositeGate):
             else:
                 squ = _h().dot(single_qubit_gates[i].dot(_rz(np.pi / 2))).dot(_h())
             # Add single-qubit gate
-            self._attach(SingleQubitUnitary(squ, self.q_target))
+            circuit.squ(squ, q_target)
             # The number of the control qubit is given by the number of zeros at the end
             # of the binary representation of (i+1)
             binary_rep = np.binary_repr(i + 1)
@@ -129,14 +123,13 @@ class UCG(CompositeGate):
             q_contr_index = num_trailing_zeros
             # Add C-NOT gate
             if not i == len(single_qubit_gates) - 1:
-                self._attach(CnotGate(self.q_controls[q_contr_index], self.q_target))
-        if up_to_diagonal:
-            self.diag = diag
-        else:
+                circuit.cx(q_controls[q_contr_index], q_target)
+        if not self.up_to_diagonal:
             # Important: the diagonal gate is given in the computational basis of the qubits
             # q[k-1],...,q[0],q_target (ordered with decreasing significance),
             # where q[i] are the control qubits and t denotes the target qubit.
-            self._attach(DiagGate(diag.tolist(), [self.q_target] + self.q_controls))
+            circuit.diag(diag.tolist(), q)
+        return circuit, diag
 
     def _dec_ucg_help(self):
         """
@@ -145,7 +138,7 @@ class UCG(CompositeGate):
         """
         single_qubit_gates = [gate.astype(complex) for gate in self.params]
         diag = np.ones(2 ** self.num_qubits, dtype=complex)
-        num_contr = len(self.q_controls)
+        num_contr = self.num_qubits -1
         for dec_step in range(num_contr):
             num_ucgs = 2 ** dec_step
             # The decomposition works recursively and the following loop goes over the different UCGs that arise
@@ -235,9 +228,46 @@ def _is_isometry(m, eps):
     return math.isclose(err, 0, abs_tol=eps)
 
 
+"""
+    Input:
+    gate_list =     list of two qubit unitaries [U_0,...,U_{2^k-1}], where each single-qubit unitary U_i is a given as 
+                    a 2*2 numpy array.
+                    
+    q_controls =    list of k control qubits. The qubits are ordered according to their significance 
+                    in the computational basis. For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)), 
+                    the unitary U_0 is performed  if q[1] and q[2] are in the state zero,
+                    U_1 is performed if q[2] is in the state zero and q[1] is in the state one, and so on.
+                    
+    q_target =      target qubit, where we act on with the single-qubit gates.
+"""
+
+
 def ucg(self, gate_list, q_controls, q_target, up_to_diagonal=False):
-    return self._attach(UCG(gate_list, q_controls, q_target, up_to_diagonal))
+    if isinstance(q_controls, QuantumRegister):
+        q_controls = q_controls[:]
+    if isinstance(q_target, QuantumRegister):
+        q_target = q_target[:]
+        if len(q_target) == 1:
+            q_target = q_target[0]
+        else:
+            raise QiskitError("The target qubit is a QuantumRegister containing more than one qubits.")
+    # Check if q_controls has type "list"
+    if not type(q_controls) == list:
+        raise QiskitError("The control qubits must be provided as a list (also if there is only one control qubit).")
+    # Check if gate_list has type "list"
+    if not type(gate_list) == list:
+        raise QiskitError("The single-qubit unitaries are not provided in a list.")
+        # Check if number of gates in gate_list is a positive power of two
+    num_contr = math.log2(len(gate_list))
+    if num_contr < 0 or not num_contr.is_integer():
+        raise QiskitError("The number of controlled single-qubit gates is not a non negative power of 2.")
+    # Check if number of control qubits does correspond to the number of single-qubit rotations
+    if num_contr != len(q_controls):
+        raise QiskitError("Number of controlled gates does not correspond to the number of control-qubits.")
+
+    qubits = [q_target] + q_controls
+
+    return self.append(UCG(gate_list, up_to_diagonal), [q_target] + q_controls)
 
 
 QuantumCircuit.ucg = ucg
-CompositeGate.ucg = ucg
