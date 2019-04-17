@@ -17,11 +17,9 @@ import math
 
 import numpy as np
 
-from qiskit.circuit import CompositeGate
+from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer.ucz import UCZ
-from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -30,26 +28,16 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 # ToDo: however, maybe a bit less user friendly. @Ali: What would you prefer?
 
 
-class DiagGate(CompositeGate):  # pylint: disable=abstract-method
+class DiagGate(Gate):
     """
     diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least two entries.
-     q   =  list of k qubits the diagonal is acting on (the order of the qubits specifies the computational basis in
-            which the diagonal gate is provided: the first element in diag acts on the state where all the qubits
-            in q are in the state 0, the second entry acts on the state where all the qubits q[1],...,q[k-1] are in the
-            state zero and q[0] is in the state 1, and so on.
-    circ =  QuantumCircuit or CompositeGate containing this gate
     """
 
-    def __init__(self, diag, q, circ=None):
+    def __init__(self, diag):
         """Check types"""
-        # Check if q has type "list"
-        if not type(q) == list:
-            raise QiskitError(
-                "The qubits must be provided as a list (also if there is only one qubit).")
         # Check if diag has type "list"
         if not type(diag) == list:
-            raise QiskitError(
-                "The diagonal entries are not provided in a list.")
+            raise QiskitError("The diagonal entries are not provided in a list.")
 
         """Check input form"""
         # Check if the right number of diagonal entries is provided and if the diagonal entries have absolute value one.
@@ -61,35 +49,41 @@ class DiagGate(CompositeGate):  # pylint: disable=abstract-method
                 complex(z)
             except:
                 raise QiskitError("Not all of the diagonal entries can be converted to complex numbers.")
-            if not len(q) == num_action_qubits:
-                raise QiskitError("The number of diagonal entries does not correspond to the number of qubits.")
             if not np.abs(z) - 1 < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
 
-        # Create new composite gate.
-        super().__init__("init", diag, q, circ)
-        # call to generate the circuit corresponding to the diagonal gate
-        self.dec_diag()
+        # Create new gate.
+        super().__init__("diag", int(num_action_qubits), diag)
 
-    def dec_diag(self):
+    def _define(self):
+        diag_circuit = self._dec_diag()
+        gate = diag_circuit.to_instruction()
+        q = QuantumRegister(self.num_qubits)
+        diag_circuit = QuantumCircuit(q)
+        diag_circuit.append(gate, q[:])
+        self.definition = diag_circuit.data
+
+    def _dec_diag(self):
         """
-        Call to populate the self.data list with gates that implement the diagonal gate
+        Call to create a circuit implementing the diagonal gate.
         """
-        n = len(self.params)
-        num_qubits = int(np.log2(n))
+        q = QuantumRegister(self.num_qubits)
+        circuit = QuantumCircuit(q)
         # Since the diagonal is a unitary, all its entries have absolute value one and the diagonal is fully specified
         #  by the phases of its entries
         diag_phases = [cmath.phase(z) for z in self.params]
+        n = len(self.params)
         while n >= 2:
             angles_rz = []
             for i in range(0, n, 2):
                 diag_phases[i // 2], rz_angle = _extract_rz(diag_phases[i], diag_phases[i + 1])
                 angles_rz.append(rz_angle)
             num_act_qubits = int(np.log2(n))
-            contr_qubits = self.qargs[num_qubits - num_act_qubits + 1:num_qubits]
-            target_qubit = self.qargs[num_qubits - num_act_qubits]
-            self._attach(UCZ(angles_rz, contr_qubits, target_qubit))
+            contr_qubits = q[self.num_qubits - num_act_qubits + 1:self.num_qubits]
+            target_qubit = q[self.num_qubits - num_act_qubits]
+            circuit.ucz(angles_rz, contr_qubits, target_qubit)
             n //= 2
+        return circuit
 
 
 # extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle) is equal to the diagonal matrix
@@ -100,9 +94,31 @@ def _extract_rz(phi1, phi2):
     return phase, z_angle
 
 
+"""
+Input:
+
+    diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least two entries.
+    
+     q   =  list of k qubits the diagonal is acting on (the order of the qubits specifies the computational basis in
+            which the diagonal gate is provided: the first element in diag acts on the state where all the qubits
+            in q are in the state 0, the second entry acts on the state where all the qubits q[1],...,q[k-1] are in the
+            state zero and q[0] is in the state 1, and so on.
+"""
+
+
 def diag(self, diag, q):
-    return self._attach(DiagGate(diag, q))
+    if isinstance(q, QuantumRegister):
+        q = q[:]
+    # Check if q has type "list"
+    if not type(q) == list:
+        raise QiskitError("The qubits must be provided as a list (also if there is only one qubit).")
+    # Check if diag has type "list"
+    if not type(diag) == list:
+        raise QiskitError("The diagonal entries are not provided in a list.")
+    num_action_qubits = math.log2(len(diag))
+    if not len(q) == num_action_qubits:
+        raise QiskitError("The number of diagonal entries does not correspond to the number of qubits.")
+    return self.append(DiagGate(diag), q)
 
 
-QuantumCircuit.diag= diag
-CompositeGate.diag = diag
+QuantumCircuit.diag = diag

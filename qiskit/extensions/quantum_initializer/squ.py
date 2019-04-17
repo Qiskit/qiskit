@@ -45,6 +45,8 @@ class SingleQubitUnitary(Gate):
         # Create new gate
         super().__init__("unitary", 1, [u])
 
+    # Returns the diagonal gate D up to which the single-qubit unitary u is implemented, i.e., u=D.u', where u' is
+    # the unitary implemented by the found circuit.
     def get_diag(self):
         _, diag = self._dec_single_qubit_unitary()
         return diag
