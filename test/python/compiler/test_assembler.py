@@ -214,8 +214,7 @@ class TestPulseAssembler(QiskitTestCase):
         }
 
     def test_assemble_single_schedule_without_lo_config(self):
-        """Test assembling a single schedule, no lo config.
-        """
+        """Test assembling a single schedule, no lo config."""
         qobj = assemble_schedules(schedules=self.schedule,
                                   user_lo_configs=[],
                                   dict_config=self.config,
@@ -227,8 +226,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_multi_schedules_without_lo_config(self):
-        """Test assembling schedules, no lo config.
-        """
+        """Test assembling schedules, no lo config."""
         qobj = assemble_schedules(schedules=[self.schedule, self.schedule],
                                   user_lo_configs=[],
                                   dict_config=self.config,
@@ -240,8 +238,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_lo_config(self):
-        """Test assembling a single schedule, with a single lo config.
-        """
+        """Test assembling a single schedule, with a single lo config."""
         qobj = assemble_schedules(schedules=self.schedule,
                                   user_lo_configs=self.user_lo_config,
                                   dict_config=self.config,
@@ -253,8 +250,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_lo_config_dict(self):
-        """Test assembling a single schedule, with a single lo config supplied as dictionary.
-        """
+        """Test assembling a single schedule, with a single lo config supplied as dictionary."""
         qobj = assemble_schedules(schedules=self.schedule,
                                   user_lo_configs=self.user_lo_config_dict,
                                   dict_config=self.config,
@@ -266,8 +262,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
 
     def test_assemble_single_schedule_with_multi_lo_configs(self):
-        """Test assembling a single schedule, with lo configs (frequency sweep).
-        """
+        """Test assembling a single schedule, with lo configs (frequency sweep)."""
         qobj = assemble_schedules(schedules=self.schedule,
                                   user_lo_configs=[self.user_lo_config, self.user_lo_config],
                                   dict_config=self.config,
@@ -281,8 +276,7 @@ class TestPulseAssembler(QiskitTestCase):
                              {'qubit_lo_freq': [4.91, 5.0]})
 
     def test_assemble_multi_schedules_with_multi_lo_configs(self):
-        """Test assembling schedules, with the same number of lo configs (n:n setup).
-        """
+        """Test assembling schedules, with the same number of lo configs (n:n setup)."""
         qobj = assemble_schedules(schedules=[self.schedule, self.schedule],
                                   user_lo_configs=[self.user_lo_config, self.user_lo_config],
                                   dict_config=self.config,
@@ -296,8 +290,7 @@ class TestPulseAssembler(QiskitTestCase):
                              {'qubit_lo_freq': [4.91, 5.0]})
 
     def test_assemble_multi_schedules_with_wrong_number_of_multi_lo_configs(self):
-        """Test assembling schedules, with a different number of lo configs (n:m setup).
-        """
+        """Test assembling schedules, with a different number of lo configs (n:m setup)."""
         with self.assertRaises(QiskitError):
             _ = assemble_schedules(schedules=[self.schedule, self.schedule, self.schedule],
                                    user_lo_configs=[self.user_lo_config, self.user_lo_config],
