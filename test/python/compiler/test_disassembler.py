@@ -94,7 +94,7 @@ class TestAssembler(QiskitTestCase):
 
         qobj = assemble_circuits(circ)
         circuits, run_config_out, header = disassemble(qobj)
-        self.assertEqual({}, run_config_out)
+        self.assertEqual({'memory_slots': 0, 'n_qubits': 2}, run_config_out)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, header)
