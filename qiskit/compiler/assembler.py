@@ -22,7 +22,7 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjConfig,
                          PulseQobjInstruction, PulseQobjExperimentConfig, PulseQobjExperiment,
                          PulseQobjConfig, QobjPulseLibrary)
-from qiskit.compiler.pulse_instruction_converter import PulseQobjConverter
+from qiskit.qobj.converters.pulse_instruction import PulseQobjConverter
 from .run_config import RunConfig
 
 
