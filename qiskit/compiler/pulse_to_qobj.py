@@ -128,10 +128,6 @@ class PulseQobjConverter:
                             params=instruction.command.discriminator.params)
                     ]
                 })
-            else:
-                command_dict.update({
-                    'discriminators': []
-                })
             # setup register_slots
             command_dict.update({
                 'register_slot': [regs.index for regs in instruction.reg_slots]
@@ -145,10 +141,6 @@ class PulseQobjConverter:
                             name=instruction.command.kernel.name,
                             params=instruction.command.kernel.params)
                     ]
-                })
-            else:
-                command_dict.update({
-                    'kernels': []
                 })
         return self._qobj_model(**command_dict)
 
