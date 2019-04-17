@@ -67,7 +67,7 @@ class PulseQobjConverter:
                 'param1': instruction.param1,
                 'param2': instruction.param2
             }
-            if self._exp_config('option1', True):
+            if self._run_config('option1', True):
                 command_dict.update({
                     'param3': instruction.param3
                 })
@@ -78,15 +78,15 @@ class PulseQobjConverter:
     Provided fields are automatically serialized by given qobj model.
     """
 
-    def __init__(self, qobj_model, **exp_config):
+    def __init__(self, qobj_model, **run_config):
         """Create new converter.
 
         Args:
              qobj_model (QobjInstruction): marshmallow model to serialize to object.
-             exp_config (dict): experimental configuration.
+             run_config (dict): experimental configuration.
         """
         self._qobj_model = qobj_model
-        self._exp_config = exp_config
+        self._run_config = run_config
 
     def __call__(self, instruction):
 
@@ -109,7 +109,7 @@ class PulseQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
-        meas_level = self._exp_config.get('meas_level', 2)
+        meas_level = self._run_config.get('meas_level', 2)
 
         command_dict = {
             'name': 'acquire',

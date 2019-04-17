@@ -17,15 +17,19 @@ class LoConfigConverter:
     `get_qubit_los` and `get_meas_los` to align with your backend.
     """
 
-    def __init__(self, qobj_model, **exp_config):
+    def __init__(self, qobj_model, default_qubit_lo_freq, default_meas_lo_freq, **run_config):
         """Create new converter.
 
         Args:
             qobj_model (PulseQobjExperimentConfig): qobj model for experiment config.
-            exp_config (dict): experimental configuration.
+            default_qubit_lo_freq (list): List of default qubit lo frequencies.
+            default_meas_lo_freq (list): List of default meas lo frequencies.
+            run_config (dict): experimental configuration.
         """
-        self._qobj_model = qobj_model
-        self._exp_config = exp_config
+        self.qobj_model = qobj_model
+        self.default_qubit_lo_freq = default_qubit_lo_freq
+        self.default_meas_lo_freq = default_meas_lo_freq
+        self.run_config = run_config
 
     def __call__(self, user_lo_config):
         """Return PulseQobjExperimentConfig
@@ -45,7 +49,7 @@ class LoConfigConverter:
         if m_los:
             lo_config['meas_lo_freq'] = m_los
 
-        return self._qobj_model(**lo_config)
+        return self.qobj_model(**lo_config)
 
     def get_qubit_los(self, user_lo_config):
         """Embed default qubit LO frequencies from backend and format them to list object.
@@ -61,16 +65,16 @@ class LoConfigConverter:
             PulseError: when LO frequencies are missing.
         """
         try:
-            _q_los = self._exp_config['qubit_lo_freq'].copy()
+            _q_los = self.default_qubit_lo_freq.copy()
         except KeyError:
             raise PulseError('Qubit default frequencies not exist.')
 
         for channel, lo_freq in user_lo_config.qubit_lo_dict():
             _q_los[channel.index] = lo_freq
 
-        if _q_los != self._exp_config['qubit_lo_freq']:
-            return _q_los
-        return None
+        if _q_los == self.default_qubit_lo_freq:
+            return None
+        return _q_los
 
     def get_meas_los(self, user_lo_config):
         """Embed default meas LO frequencies from backend and format them to list object.
@@ -86,13 +90,13 @@ class LoConfigConverter:
             PulseError: when LO frequencies are missing.
         """
         try:
-            _m_los = self._exp_config['meas_lo_freq'].copy()
+            _m_los = self.default_meas_lo_freq.copy()
         except KeyError:
-            raise PulseError('Meas default frequencies not exist.')
+            raise PulseError('Default measurement frequencies not exist.')
 
         for channel, lo_freq in user_lo_config.meas_lo_dict():
             _m_los[channel.index] = lo_freq
 
-        if _m_los != self._exp_config['meas_lo_freq']:
-            return _m_los
-        return None
+        if _m_los == self.default_meas_lo_freq:
+            return None
+        return _m_los

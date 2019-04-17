@@ -198,13 +198,14 @@ class TestPulseAssembler(QiskitTestCase):
         self.user_lo_config_dict = {self.device.q[0].drive: 4.91}
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
+        self.default_qubit_lo_freq = [4.9, 5.0]
+        self.default_meas_lo_freq = [6.5, 6.6]
+
         self.config = {
             'meas_level': 1,
             'memory_slots': 2,
             'memory_slot_size': 100,
             'meas_return': 'avg',
-            'qubit_lo_freq': [4.9, 5.0],
-            'meas_lo_freq': [6.5, 6.6],
             'rep_time': 100
         }
 
@@ -215,10 +216,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_without_lo_config(self):
         """Test assembling a single schedule, no lo config."""
-        qobj = assemble_schedules(schedules=self.schedule,
+        qobj = assemble_schedules(self.schedule,
+                                  self.default_qubit_lo_freq,
+                                  self.default_meas_lo_freq,
                                   user_lo_configs=[],
-                                  dict_config=self.config,
-                                  dict_header=self.header)
+                                  dict_header=self.header,
+                                  **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
@@ -227,10 +230,11 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_multi_schedules_without_lo_config(self):
         """Test assembling schedules, no lo config."""
-        qobj = assemble_schedules(schedules=[self.schedule, self.schedule],
-                                  user_lo_configs=[],
-                                  dict_config=self.config,
-                                  dict_header=self.header)
+        qobj = assemble_schedules([self.schedule, self.schedule],
+                                  self.default_qubit_lo_freq,
+                                  self.default_meas_lo_freq,
+                                  dict_header=self.header,
+                                  **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
@@ -239,10 +243,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_lo_config(self):
         """Test assembling a single schedule, with a single lo config."""
-        qobj = assemble_schedules(schedules=self.schedule,
+        qobj = assemble_schedules(self.schedule,
+                                  self.default_qubit_lo_freq,
+                                  self.default_meas_lo_freq,
                                   user_lo_configs=self.user_lo_config,
-                                  dict_config=self.config,
-                                  dict_header=self.header)
+                                  dict_header=self.header,
+                                  **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
@@ -251,10 +257,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_lo_config_dict(self):
         """Test assembling a single schedule, with a single lo config supplied as dictionary."""
-        qobj = assemble_schedules(schedules=self.schedule,
+        qobj = assemble_schedules(self.schedule,
+                                  self.default_qubit_lo_freq,
+                                  self.default_meas_lo_freq,
                                   user_lo_configs=self.user_lo_config_dict,
-                                  dict_config=self.config,
-                                  dict_header=self.header)
+                                  dict_header=self.header,
+                                  **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
@@ -263,10 +271,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_multi_lo_configs(self):
         """Test assembling a single schedule, with lo configs (frequency sweep)."""
-        qobj = assemble_schedules(schedules=self.schedule,
+        qobj = assemble_schedules(self.schedule,
+                                  self.default_qubit_lo_freq,
+                                  self.default_meas_lo_freq,
                                   user_lo_configs=[self.user_lo_config, self.user_lo_config],
-                                  dict_config=self.config,
-                                  dict_header=self.header)
+                                  dict_header=self.header,
+                                  **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
@@ -277,10 +287,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_multi_schedules_with_multi_lo_configs(self):
         """Test assembling schedules, with the same number of lo configs (n:n setup)."""
-        qobj = assemble_schedules(schedules=[self.schedule, self.schedule],
+        qobj = assemble_schedules([self.schedule, self.schedule],
+                                  self.default_qubit_lo_freq,
+                                  self.default_meas_lo_freq,
                                   user_lo_configs=[self.user_lo_config, self.user_lo_config],
-                                  dict_config=self.config,
-                                  dict_header=self.header)
+                                  dict_header=self.header,
+                                  **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
@@ -292,10 +304,12 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_multi_schedules_with_wrong_number_of_multi_lo_configs(self):
         """Test assembling schedules, with a different number of lo configs (n:m setup)."""
         with self.assertRaises(QiskitError):
-            assemble_schedules(schedules=[self.schedule, self.schedule, self.schedule],
+            assemble_schedules([self.schedule, self.schedule, self.schedule],
+                               self.default_qubit_lo_freq,
+                               self.default_meas_lo_freq,
                                user_lo_configs=[self.user_lo_config, self.user_lo_config],
-                               dict_config=self.config,
-                               dict_header=self.header)
+                               dict_header=self.header,
+                               **self.config)
 
 
 if __name__ == '__main__':

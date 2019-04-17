@@ -39,7 +39,6 @@ class LoConfig:
                     raise PulseError("Specified channel %s cannot be configured." %
                                      channel.name)
 
-    # TODO: what should we publish? (with keeping this object immutable)
     def qubit_lo_dict(self):
         """Return items of qubit LOs."""
         return self._q_lo_freq.items()
