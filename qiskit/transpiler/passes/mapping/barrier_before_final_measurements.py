@@ -57,7 +57,7 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
             Barrier(len(final_qubits)), list(final_qubits), [])
 
         # Preserve order of final ops collected earlier from the original DAG.
-        ordered_final_nodes = [node for node in dag.nodes_in_topological_order()
+        ordered_final_nodes = [node for node in dag.topological_op_nodes()
                                if node in set(final_ops)]
 
         # Move final ops to the new layer and append the new layer to the DAG.
