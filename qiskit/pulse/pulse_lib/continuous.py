@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-return-doc
+# pylint: disable=missing-return-doc, invalid-unary-operand-type
 
 """Module for builtin continuous pulse functions."""
 
@@ -114,7 +114,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
                  be rescaled so that $\Omega_g(center)-\Omega_g(center\pm zeroed_width/2)=amp$.
     ret_scale_factor: Return amplitude scale factor.
     """
-    if not zeroed_width:
+    if zeroed_width is None:
         zeroed_width = 2*(center+1)
 
     zero_offset = gaussian(np.array([-zeroed_width/2]), amp, center, sigma)
@@ -139,8 +139,9 @@ def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
     Args:
         times: Times to output pulse for.
         amp: Pulse amplitude at `center`. If `zeroed_width` is set pulse amplitude at center
-            will be $amp-\Omega_g(center\pm zeroed_width/2)$ unless `rescale_amp` is set in which case
-            all samples will be rescaled such that the center amplitude will be `amp`
+            will be $amp-\Omega_g(center\pm zeroed_width/2)$ unless `rescale_amp` is set,
+            in which case all samples will be rescaled such that the center
+            amplitude will be `amp`.
         center: Center (mean) of pulse.
         sigma: Width (standard deviation) of pulse.
         zeroed_width: Subtract baseline to gaussian pulses to make sure

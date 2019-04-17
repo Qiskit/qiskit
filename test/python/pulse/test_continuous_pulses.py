@@ -164,8 +164,8 @@ class TestContinuousPulses(QiskitTestCase):
         times, dt = np.linspace(0, 20, 1001, retstep=True)
         gaussian_arr = continuous.gaussian(times, amp, center, sigma)
         gaussian_arr_zeroed = continuous.gaussian(np.array([-1, 10]), amp, center,
-                                                   sigma, zeroed_width=2*(center+1),
-                                                   rescale_amp=True)
+                                                  sigma, zeroed_width=2*(center+1),
+                                                  rescale_amp=True)
 
         self.assertEqual(gaussian_arr.dtype, np.complex_)
 

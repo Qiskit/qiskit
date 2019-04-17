@@ -226,7 +226,7 @@ def sampler(sample_function: Callable) -> Callable:
 
     return generate_sampler
 
-  
+
 def left(continuous_pulse: Callable) -> Callable:
     r"""Left sampling strategy decorator.
 
