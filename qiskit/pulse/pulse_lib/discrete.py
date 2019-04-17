@@ -39,7 +39,7 @@ def zero(duration: int) -> SamplePulse:
 
 
 def square(duration: int, amp: complex, period: float = None, phase: float = 0) -> SamplePulse:
-    """Generates squaure wave `SamplePulse`.
+    """Generates square wave `SamplePulse`.
 
     Applies `left` sampling strategy to generate discrete pulse from continuous function.
 
