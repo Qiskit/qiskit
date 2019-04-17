@@ -9,14 +9,8 @@
 about the current state of the circuit """
 
 
-class PropertySet:
-    """ A dictionary-like object """
+class PropertySet(dict):
+    """ A default dictionary-like object """
 
-    def __init__(self):
-        self._properties = {}
-
-    def __getitem__(self, key):
-        return self._properties.get(key, None)
-
-    def __setitem__(self, key, value):
-        self._properties[key] = value
+    def __missing__(self, key):
+        return None
