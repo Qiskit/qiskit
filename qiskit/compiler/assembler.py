@@ -19,9 +19,8 @@ from qiskit.pulse import Schedule, LoConfig
 from qiskit.pulse.commands import DriveInstruction
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
-                         QasmQobjConfig,
-                         PulseQobjInstruction, PulseQobjExperimentConfig, PulseQobjExperiment,
-                         PulseQobjConfig, QobjPulseLibrary)
+                         QasmQobjConfig, PulseQobjInstruction, PulseQobjExperimentConfig,
+                         PulseQobjExperiment, PulseQobjConfig, QobjPulseLibrary)
 from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
 from .run_config import RunConfig
 
