@@ -259,7 +259,7 @@ class QuantumCircuit:
             regs = (QuantumRegister(regs[0], 'q'),)
         elif len(regs) == 2 and all([isinstance(reg, int) for reg in regs]):
             # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
-            regs = (QuantumRegister(regs[0]), ClassicalRegister(regs[1]))
+            regs = (QuantumRegister(regs[0], 'q'), ClassicalRegister(regs[1], 'c'))
 
         for register in regs:
             if register in self.qregs or register in self.cregs:

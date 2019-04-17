@@ -118,3 +118,12 @@ class TestCircuitWires(QiskitTestCase):
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
 
         self.assertEqual(circuit, expected)
+
+    def test_circuit_constructor_cwires(self):
+        """Create a QuantumCircuit directly with quantum and classical wires
+        """
+        circuit = QuantumCircuit(2, 3)
+
+        expected = QuantumCircuit(QuantumRegister(2, 'q'), ClassicalRegister(3, 'c'))
+
+        self.assertEqual(circuit, expected)
