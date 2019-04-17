@@ -256,10 +256,10 @@ class QuantumCircuit:
             return
         elif len(regs) == 1 and isinstance(regs[0], int):
             # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
-            return
+            regs = (QuantumRegister(regs[0], 'q'),)
         elif len(regs) == 2 and all([isinstance(reg, int) for reg in regs]):
             # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
-            return
+            regs = (QuantumRegister(regs[0]), ClassicalRegister(regs[1]))
 
         for register in regs:
             if register in self.qregs or register in self.cregs:

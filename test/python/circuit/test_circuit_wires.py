@@ -115,7 +115,6 @@ class TestCircuitWires(QiskitTestCase):
         """
         circuit = QuantumCircuit(2)
 
-        qreg = QuantumRegister(2)
-        expected = QuantumCircuit(qreg)
+        expected = QuantumCircuit(QuantumRegister(2, 'q'))
 
         self.assertEqual(circuit, expected)
