@@ -96,8 +96,7 @@ class OutputChannel(Channel):
         return self._lo_freq_range
 
     def __eq__(self, other):
-        """Two output channels are the same if they are of the same type, and
-        have the same index and lo_freq.
+        """Two output channels are the same if they are of the same type and index.
 
         Args:
             other (OutputChannel): other OutputChannel
@@ -105,10 +104,7 @@ class OutputChannel(Channel):
         Returns:
             bool: are self and other equal.
         """
-        if (type(self) is type(other) and
-                self._index == other._index and
-                self.lo_freq_range == other.lo_freq_range and
-                self._lo_freq == other._lo_freq):
+        if (type(self) is type(other) and self._index == other._index):
             return True
         return False
 
