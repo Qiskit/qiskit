@@ -292,10 +292,10 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_multi_schedules_with_wrong_number_of_multi_lo_configs(self):
         """Test assembling schedules, with a different number of lo configs (n:m setup)."""
         with self.assertRaises(QiskitError):
-            _ = assemble_schedules(schedules=[self.schedule, self.schedule, self.schedule],
-                                   user_lo_configs=[self.user_lo_config, self.user_lo_config],
-                                   dict_config=self.config,
-                                   dict_header=self.header)
+            assemble_schedules(schedules=[self.schedule, self.schedule, self.schedule],
+                               user_lo_configs=[self.user_lo_config, self.user_lo_config],
+                               dict_config=self.config,
+                               dict_header=self.header)
 
 
 if __name__ == '__main__':
