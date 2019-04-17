@@ -400,7 +400,7 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
 def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_qobj_validation=False):
     if skip_qobj_validation:
         job_id = str(uuid.uuid4())
-        if is_simulator_backend(backend):
+        if is_simulator_backend(backend) and not is_ibmq_provider(backend):
             if is_aer_provider(backend):
                 from qiskit.providers.aer.aerjob import AerJob
                 temp_backend_options = backend_options['backend_options'] if backend_options != {} else None
@@ -415,8 +415,8 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
             # TODO: IBMQJob performs validation during the constructor. the following lines deos not
             # skip validation but run as is.
             from qiskit.providers.ibmq.ibmqjob import IBMQJob
-            job = IBMQJob(backend, None, backend._api, not is_simulator_backend(backend), qobj=qobj)
-            job._future = job._executor.submit(job._fn, job._job_id, job._qobj)
+            job = IBMQJob(backend, None, backend._api, qobj=qobj)
+            job.submit()
         else:
             logger.info("Can not skip qobj validation for the third-party provider.")
             job = backend.run(qobj, **backend_options, **noise_config)
