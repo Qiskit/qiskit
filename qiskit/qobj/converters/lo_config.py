@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Helper class used to convert a user lo configuration into lo_freq."""
+"""Helper class used to convert a user lo configuration into a list of frequencies."""
 
 
 from qiskit.pulse.exceptions import PulseError
