@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=missing-return-doc
+# pylint: disable=missing-return-doc, E0302
 
 """Module for builtin discrete pulses.
 
@@ -17,6 +17,9 @@ from qiskit.pulse.pulse_lib import continuous
 from qiskit.pulse import samplers
 
 
+_sampled_constant_pulse = samplers.left(continuous.constant)
+
+
 def constant(duration: int, amp: complex) -> SamplePulse:
     """Generates constant-sampled `SamplePulse`.
 
@@ -26,7 +29,10 @@ def constant(duration: int, amp: complex) -> SamplePulse:
         duration: Duration of pulse. Must be greater than zero.
         amp: Complex pulse amplitude.
     """
-    return samplers.left(continuous.constant)(duration, amp)
+    return _sampled_constant_pulse(duration, amp)
+
+
+_sampled_zero_pulse = samplers.left(continuous.zero)
 
 
 def zero(duration: int) -> SamplePulse:
@@ -35,7 +41,10 @@ def zero(duration: int) -> SamplePulse:
     Args:
         duration: Duration of pulse. Must be greater than zero.
     """
-    return samplers.left(continuous.zero)(duration)
+    return _sampled_zero_pulse(duration)
+
+
+_sampled_square_pulse = samplers.left(continuous.square)
 
 
 def square(duration: int, amp: complex, period: float = None, phase: float = 0) -> SamplePulse:
@@ -52,7 +61,10 @@ def square(duration: int, amp: complex, period: float = None, phase: float = 0) 
     if period is None:
         period = duration
 
-    return samplers.left(continuous.square)(duration, amp, period, phase=phase)
+    return _sampled_square_pulse(duration, amp, period, phase=phase)
+
+
+_sampled_sawtooth_pulse = samplers.left(continuous.sawtooth)
 
 
 def sawtooth(duration: int, amp: complex, period: float = None, phase: float = 0) -> SamplePulse:
@@ -67,7 +79,10 @@ def sawtooth(duration: int, amp: complex, period: float = None, phase: float = 0
     if period is None:
         period = duration
 
-    return samplers.left(continuous.sawtooth)(duration, amp, period, phase=phase)
+    return _sampled_sawtooth_pulse(duration, amp, period, phase=phase)
+
+
+_sampled_triangle_pulse = samplers.left(continuous.triangle)
 
 
 def triangle(duration: int, amp: complex, period: float = None, phase: float = 0) -> SamplePulse:
@@ -84,7 +99,10 @@ def triangle(duration: int, amp: complex, period: float = None, phase: float = 0
     if period is None:
         period = duration
 
-    return samplers.left(continuous.triangle)(duration, amp, period, phase=phase)
+    return _sampled_triangle_pulse(duration, amp, period, phase=phase)
+
+
+_sampled_cos_pulse = samplers.left(continuous.cos)
 
 
 def cos(duration: int, amp: complex, freq: float = None, phase: float = 0) -> SamplePulse:
@@ -101,7 +119,10 @@ def cos(duration: int, amp: complex, freq: float = None, phase: float = 0) -> Sa
     if freq is None:
         freq = 1/duration
 
-    return samplers.left(continuous.cos)(duration, amp, freq, phase=phase)
+    return _sampled_cos_pulse(duration, amp, freq, phase=phase)
+
+
+_sampled_sin_pulse = samplers.left(continuous.sin)
 
 
 def sin(duration: int, amp: complex, freq: float = None, phase: float = 0) -> SamplePulse:
@@ -116,7 +137,10 @@ def sin(duration: int, amp: complex, freq: float = None, phase: float = 0) -> Sa
     if freq is None:
         freq = 1/duration
 
-    return samplers.left(continuous.sin)(duration, amp, freq, phase=phase)
+    return _sampled_sin_pulse(duration, amp, freq, phase=phase)
+
+
+_sampled_gaussian_pulse = samplers.left(continuous.gaussian)
 
 
 def gaussian(duration: int, amp: complex, sigma: float) -> SamplePulse:
@@ -135,8 +159,11 @@ def gaussian(duration: int, amp: complex, sigma: float) -> SamplePulse:
     """
     center = duration/2
     zeroed_width = duration + 2
-    return samplers.left(continuous.gaussian)(duration, amp, center, sigma,
-                                              zeroed_width=zeroed_width, rescale_amp=True)
+    return _sampled_gaussian_pulse(duration, amp, center, sigma,
+                                   zeroed_width=zeroed_width, rescale_amp=True)
+
+
+_sampled_gaussian_deriv_pulse = samplers.left(continuous.gaussian_deriv)
 
 
 def gaussian_deriv(duration: int, amp: complex, sigma: float) -> SamplePulse:
@@ -150,7 +177,10 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float) -> SamplePulse:
         sigma: Width (standard deviation) of pulse.
     """
     center = duration/2
-    return samplers.left(continuous.gaussian_deriv)(duration, amp, center, sigma)
+    return _sampled_gaussian_deriv_pulse(duration, amp, center, sigma)
+
+
+_sampled_gaussian_square_pulse = samplers.left(continuous.gaussian_square)
 
 
 def gaussian_square(duration: int, amp: complex, sigma: float, risefall: int) -> SamplePulse:
@@ -171,8 +201,11 @@ def gaussian_square(duration: int, amp: complex, sigma: float, risefall: int) ->
     center = duration/2
     width = duration-2*risefall
     zeroed_width = duration + 2
-    return samplers.left(continuous.gaussian_square)(duration, amp, center, width, sigma,
-                                                     zeroed_width=zeroed_width)
+    return _sampled_gaussian_square_pulse(duration, amp, center, width, sigma,
+                                          zeroed_width=zeroed_width)
+
+
+_sampled_drag_pulse = samplers.left(continuous.drag)
 
 
 def drag(duration: int, amp: complex, sigma: float, beta: float) -> SamplePulse:
@@ -197,5 +230,5 @@ def drag(duration: int, amp: complex, sigma: float, beta: float) -> SamplePulse:
     """
     center = duration/2
     zeroed_width = duration + 2
-    return samplers.left(continuous.drag)(duration, amp, center, sigma, beta,
-                                          zeroed_width=zeroed_width, rescale_amp=True)
+    return _sampled_drag_pulse(duration, amp, center, sigma, beta,
+                               zeroed_width=zeroed_width, rescale_amp=True)
