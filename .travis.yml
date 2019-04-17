@@ -29,7 +29,7 @@ stage_generic: &stage_generic
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt -c constraints.txt
     - pip install qiskit-aer
-    - pip install qiskit-ibmq-provider -c constraints.txt
+    - pip install "qiskit-ibmq-provider==0.1rc3" -c constraints.txt
   script:
     # Compile the executables and run the tests.
     - python setup.py build_ext --inplace
