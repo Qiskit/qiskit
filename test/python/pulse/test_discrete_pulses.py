@@ -134,7 +134,7 @@ class TestDiscretePulses(QiskitTestCase):
         center = duration/2
         times = np.arange(0, duration)
         gaussian_ref = continuous.gaussian(times, amp, center, sigma,
-                                           zero_at=-1, rescale_amp=True)
+                                           zeroed_width=2*(center+1), rescale_amp=True)
         gaussian_pulse = pulse_lib.gaussian(duration, amp, sigma)
         self.assertIsInstance(gaussian_pulse, SamplePulse)
         np.testing.assert_array_equal(gaussian_pulse.samples, gaussian_ref)
@@ -176,7 +176,7 @@ class TestDiscretePulses(QiskitTestCase):
         times = np.arange(0, duration)
         # reference drag pulse
         drag_ref = continuous.drag(times, amp, center, sigma, beta=beta,
-                                   zero_at=-1, rescale_amp=True)
+                                   zeroed_width=2*(center+1), rescale_amp=True)
         drag_pulse = pulse_lib.drag(duration, amp, sigma, beta=beta)
         self.assertIsInstance(drag_pulse, SamplePulse)
         np.testing.assert_array_equal(drag_pulse.samples, drag_ref)

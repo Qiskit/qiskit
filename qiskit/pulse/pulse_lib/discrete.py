@@ -134,8 +134,9 @@ def gaussian(duration: int, amp: complex, sigma: float) -> SamplePulse:
         sigma: Width (standard deviation) of pulse.
     """
     center = duration/2
+    zeroed_width = duration + 2
     return samplers.left(continuous.gaussian)(duration, amp, center, sigma,
-                                              zero_at=-1, rescale_amp=True)
+                                              zeroed_width=zeroed_width, rescale_amp=True)
 
 
 def gaussian_deriv(duration: int, amp: complex, sigma: float) -> SamplePulse:
@@ -169,8 +170,9 @@ def gaussian_square(duration: int, amp: complex, sigma: float, risefall: int) ->
     """
     center = duration/2
     width = duration-2*risefall
+    zeroed_width = duration + 2
     return samplers.left(continuous.gaussian_square)(duration, amp, center, width, sigma,
-                                                     rise_zero_at=-1, fall_zero_at=duration+1)
+                                                     zeroed_width=zeroed_width)
 
 
 def drag(duration: int, amp: complex, sigma: float, beta: float) -> SamplePulse:
@@ -194,5 +196,6 @@ def drag(duration: int, amp: complex, sigma: float, beta: float) -> SamplePulse:
             excited states and $\Delta_2$ is the detuning between the resepective excited states.
     """
     center = duration/2
+    zeroed_width = duration + 2
     return samplers.left(continuous.drag)(duration, amp, center, sigma, beta,
-                                          zero_at=-1, rescale_amp=True)
+                                          zeroed_width=zeroed_width, rescale_amp=True)

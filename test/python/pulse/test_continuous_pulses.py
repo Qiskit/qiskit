@@ -163,16 +163,17 @@ class TestContinuousPulses(QiskitTestCase):
         sigma = 2
         times, dt = np.linspace(0, 20, 1001, retstep=True)
         gaussian_arr = continuous.gaussian(times, amp, center, sigma)
-        gaussian_arr_zero_at = continuous.gaussian(np.array([-1, 10]), amp, center,
-                                                   sigma, zero_at=-1, rescale_amp=True)
+        gaussian_arr_zeroed = continuous.gaussian(np.array([-1, 10]), amp, center,
+                                                   sigma, zeroed_width=2*(center+1),
+                                                   rescale_amp=True)
 
         self.assertEqual(gaussian_arr.dtype, np.complex_)
 
         center_time = np.argmax(gaussian_arr)
         self.assertAlmostEqual(times[center_time], center)
         self.assertAlmostEqual(gaussian_arr[center_time], amp)
-        self.assertAlmostEqual(gaussian_arr_zero_at[0], 0.)
-        self.assertAlmostEqual(gaussian_arr_zero_at[1], amp)
+        self.assertAlmostEqual(gaussian_arr_zeroed[0], 0., places=6)
+        self.assertAlmostEqual(gaussian_arr_zeroed[1], amp)
         self.assertAlmostEqual(np.sum(gaussian_arr*dt), amp*np.sqrt(2*np.pi*sigma**2), places=3)
 
     def test_gaussian_deriv(self):
@@ -235,10 +236,10 @@ class TestContinuousPulses(QiskitTestCase):
         times = np.linspace(0, 20, 2001)
         # test that we recover gaussian for beta=0
         gaussian_arr = continuous.gaussian(times, amp, center, sigma,
-                                           zero_at=-1, rescale_amp=True)
+                                           zeroed_width=2*(center+1), rescale_amp=True)
 
         drag_arr = continuous.drag(times, amp, center, sigma, beta=beta,
-                                   zero_at=-1, rescale_amp=True)
+                                   zeroed_width=2*(center+1), rescale_amp=True)
 
         self.assertEqual(drag_arr.dtype, np.complex_)
 
