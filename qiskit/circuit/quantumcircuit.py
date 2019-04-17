@@ -252,6 +252,15 @@ class QuantumCircuit:
 
     def add_register(self, *regs):
         """Add registers."""
+        if not regs:
+            return
+        elif len(regs) == 1 and isinstance(regs[0], int):
+            # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
+            return
+        elif len(regs) == 2 and all([isinstance(reg, int) for reg in regs]):
+            # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
+            return
+
         for register in regs:
             if register in self.qregs or register in self.cregs:
                 raise QiskitError("register name \"%s\" already exists"

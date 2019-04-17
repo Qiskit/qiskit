@@ -109,3 +109,13 @@ class TestCircuitWires(QiskitTestCase):
 
         circ = QuantumCircuit(qreg, creg)
         self.assertRaises(QiskitError, circ.measure, 1, 99)  # circ.measure(1, 99)
+
+    def test_circuit_constructor_qwires(self):
+        """Create a QuantumCircuit directly with quantum wires
+        """
+        circuit = QuantumCircuit(2)
+
+        qreg = QuantumRegister(2)
+        expected = QuantumCircuit(qreg)
+
+        self.assertEqual(circuit, expected)
