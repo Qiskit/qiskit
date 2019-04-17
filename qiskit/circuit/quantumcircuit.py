@@ -316,13 +316,6 @@ class QuantumCircuit:
 
     def _check_qargs(self, qargs):
         """Raise exception if a qarg is not in this circuit or bad format."""
-        flat_qbit_list = [qbit for qreg in self.qregs for qbit in qreg]
-        for index, qarg in enumerate(qargs):
-            if isinstance(qarg, int):
-                if qarg < len(flat_qbit_list):
-                    qargs[index] = flat_qbit_list[qarg]
-                else:
-                    raise QiskitError("The integer param is out of range")
         if not all(isinstance(i, tuple) and
                    isinstance(i[0], QuantumRegister) and
                    isinstance(i[1], int) for i in qargs):
@@ -334,13 +327,13 @@ class QuantumCircuit:
 
     def _check_cargs(self, cargs):
         """Raise exception if clbit is not in this circuit or bad format."""
-        flat_cbit_list = [cbit for creg in self.cregs for cbit in creg]
-        for index, carg in enumerate(cargs):
-            if isinstance(carg, int):
-                if carg < len(flat_cbit_list):
-                    cargs[index] = flat_cbit_list[carg]
-                else:
-                    raise QiskitError("The integer param is out of range")
+        # flat_cbit_list = [cbit for creg in self.cregs for cbit in creg]
+        # for index, carg in enumerate(cargs):
+        #     if isinstance(carg, int):
+        #         if carg < len(flat_cbit_list):
+        #             cargs[index] = flat_cbit_list[carg]
+        #         else:
+        #             raise QiskitError("The integer param is out of range")
         if not all(isinstance(i, tuple) and
                    isinstance(i[0], ClassicalRegister) and
                    isinstance(i[1], int) for i in cargs):

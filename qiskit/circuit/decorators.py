@@ -30,8 +30,8 @@ def _op_expand(n_qbits, func=None, n_cbits=0, broadcastable=None):
     """Decorator for expanding an operation across a whole register or register subset.
     Args:
         n_qbits (int): the number of register qubit arguments the decorated function takes
-        n_cbits (int): the number of register clbit arguments the decorated function takes
         func (function): used for decorators with keyword args
+        n_cbits (int): the number of register clbit arguments the decorated function takes
         broadcastable (list(bool)): list of bool for which register args can be
             broadcast from 1 bit to the max size of the rest of the args. Defaults
             to all True if not specified.
@@ -46,12 +46,26 @@ def _op_expand(n_qbits, func=None, n_cbits=0, broadcastable=None):
     def wrapper(self, *args):
         n_bits = n_qbits + n_cbits
         params = args[0:-n_bits] if len(args) > n_bits else tuple()
-        rargs = args[-n_bits:]
+        rargs = list(args[-n_bits:])
+
+        # Convert items to [qu|cl]bits
+        if any([isinstance(item, int) for item in rargs]):
+            rqargs = rargs[:n_qbits]
+            rcargs = rargs[-n_cbits:]
+            flat_qbit_list = [qbit for qreg in self.qregs for qbit in qreg]
+            flat_cbit_list = [cbit for creg in self.cregs for cbit in creg]
+            for index, qarg in enumerate(rqargs):
+                rqargs[index] = flat_qbit_list[qarg]
+            for index, carg in enumerate(rcargs):
+                rcargs[index] = flat_cbit_list[carg]
+            rargs = rqargs+rcargs
+
         if broadcastable is None:
             blist = [True] * len(rargs)
         else:
             blist = broadcastable
-        if not all([(_is_bit(arg) or isinstance(arg, int)) for arg in rargs]):
+
+        if not all([ _is_bit(arg) for arg in rargs]):
             rarg_size = [1] * n_bits
             for iarg, arg in enumerate(rargs):
                 if isinstance(arg, Register):
