@@ -51,13 +51,16 @@ def _op_expand(n_qbits, func=None, n_cbits=0, broadcastable=None):
         # Convert items to [qu|cl]bits
         if any([isinstance(item, int) for item in rargs]):
             rqargs = rargs[:n_qbits]
-            rcargs = rargs[-n_cbits:]
+            rcargs = [] if n_cbits ==0 else rargs[-n_cbits:]
             flat_qbit_list = [qbit for qreg in self.qregs for qbit in qreg]
             flat_cbit_list = [cbit for creg in self.cregs for cbit in creg]
-            for index, qarg in enumerate(rqargs):
-                rqargs[index] = flat_qbit_list[qarg]
-            for index, carg in enumerate(rcargs):
-                rcargs[index] = flat_cbit_list[carg]
+            try:
+                for index, qarg in enumerate(rqargs):
+                    rqargs[index] = flat_qbit_list[qarg]
+                for index, carg in enumerate(rcargs):
+                    rcargs[index] = flat_cbit_list[carg]
+            except IndexError:
+                raise QiskitError("The integer param is out of range")
             rargs = rqargs+rcargs
 
         if broadcastable is None:
