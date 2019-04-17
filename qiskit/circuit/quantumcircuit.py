@@ -11,11 +11,13 @@ from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
+import sympy
 
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
+from .variabletable import VariableTable
 
 
 class QuantumCircuit:
@@ -63,6 +65,9 @@ class QuantumCircuit:
         self.qregs = []
         self.cregs = []
         self.add_register(*regs)
+
+        # Variable table tracks instructions with variable parameters.
+        self._variable_table = VariableTable()
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -244,6 +249,21 @@ class QuantumCircuit:
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
         self.data.append(instruction_context)
+
+        # track variable parameters in instruction
+        for param_index, param in enumerate(instruction.params):
+            if isinstance(param, sympy.Expr):
+                current_symbols = set(self._variable_table.keys())
+                these_symbols = set(param.free_symbols)
+                new_symbols = these_symbols - current_symbols
+                common_symbols = these_symbols & current_symbols
+                if new_symbols:
+                    for symbol in new_symbols:
+                        self._variable_table[symbol] = [(instruction, param_index)]
+                if common_symbols:
+                    for symbol in common_symbols:
+                        self._variable_table[symbol].append((instruction, param_index))
+
         return instruction
 
     def _attach(self, instruction, qargs, cargs):
@@ -632,6 +652,30 @@ class QuantumCircuit:
         """
         qasm = Qasm(data=qasm_str)
         return _circuit_from_qasm(qasm)
+
+    @property
+    def variable_table(self):
+        """get the circuit variable table"""
+        return self._variable_table
+
+    @property
+    def variables(self):
+        """convenience function to get the variables defined in the variable table"""
+        return set(self._variable_table.keys())
+
+    def assign_variables(self, value_dict):
+        """Assign variables to values yielding a new circuit.
+
+        Args:
+            value_dict (dict): {variable: value, ...}
+
+        Returns:
+            QuantumCircuit: copy of self with assignment substitution.
+        """
+        new_circuit = self.copy()
+        for variable in value_dict:
+            new_circuit.variable_table[variable] = value_dict
+        return new_circuit
 
 
 def _circuit_from_qasm(qasm):
