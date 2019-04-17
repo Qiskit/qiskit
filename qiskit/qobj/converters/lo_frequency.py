@@ -13,6 +13,8 @@ from qiskit.pulse.exceptions import PulseError
 
 class LoDictConverter:
     """ This class supports to convert UserLoDict into ~`lo_freq` attribute of configs.
+    The format of LO frequency setup can be easily modified by replacing
+    `get_qubit_los` and `get_meas_los` to align with your backend.
     """
 
     def __init__(self, qobj_model, **exp_config):
@@ -47,6 +49,7 @@ class LoDictConverter:
 
     def get_qubit_los(self, user_lo_dict):
         """Embed default qubit LO frequencies from backend and format them to list object.
+        If configured lo frequency is the same as default, this method returns `None`.
 
         Args:
             user_lo_dict (UserLoDict): A dictionary of LOs to format.
@@ -71,6 +74,7 @@ class LoDictConverter:
 
     def get_meas_los(self, user_lo_dict):
         """Embed default meas LO frequencies from backend and format them to list object.
+        If configured lo frequency is the same as default, this method returns `None`.
 
         Args:
             user_lo_dict (UserLoDict): A dictionary of LOs to format.
