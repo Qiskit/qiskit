@@ -156,4 +156,4 @@ class Schedule(ScheduleComponent):
         elif isinstance(node, Instruction):
             yield node.shifted(time)
         else:
-            raise PulseError("Unknown ScheduleComponent type: %s", node.__class__.__name__)
+            raise PulseError("Unknown ScheduleComponent type: %s" % node.__class__.__name__)

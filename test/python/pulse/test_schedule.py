@@ -25,9 +25,9 @@ class TestSchedule(QiskitTestCase):
 
     def setUp(self):
         @functional_pulse
-        def linear(duration, a, b):
+        def linear(duration, slope, intercept):
             x = np.linspace(0, duration - 1, duration)
-            return a * x + b
+            return slope * x + intercept
 
         self.linear = linear
 
@@ -43,7 +43,7 @@ class TestSchedule(QiskitTestCase):
         """Test append instructions to schedule.
         """
         device = self.two_qubit_device
-        lp0 = self.linear(duration=3, name='pulse0', a=0.2, b=0.1)
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
         sched = sched.append(lp0(device.q[0].drive))
@@ -54,7 +54,7 @@ class TestSchedule(QiskitTestCase):
         """Test append instructions to schedule.
         """
         device = self.two_qubit_device
-        lp0 = self.linear(duration=3, name='pulse0', a=0.2, b=0.1)
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
         sched = sched.append(lp0(device.q[0].drive))
@@ -66,7 +66,7 @@ class TestSchedule(QiskitTestCase):
         """Test insert an instruction before an existing instruction.
         """
         device = self.two_qubit_device
-        lp0 = self.linear(duration=3, name='pulse0', a=0.2, b=0.1)
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
         sched = sched.insert(10, lp0(device.q[0].drive))
@@ -77,7 +77,7 @@ class TestSchedule(QiskitTestCase):
         """Test insert an instruction before an existing instruction.
         """
         device = self.two_qubit_device
-        lp0 = self.linear(duration=3, name='pulse0', a=0.2, b=0.1)
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
         sched = sched.insert(10, lp0(device.q[0].drive))
@@ -89,7 +89,7 @@ class TestSchedule(QiskitTestCase):
         """Test insert an instruction before an existing instruction.
         """
         device = self.two_qubit_device
-        lp0 = self.linear(duration=3, name='pulse0', a=0.2, b=0.1)
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
         sched = sched.insert(10, lp0(device.q[0].drive))
@@ -101,13 +101,14 @@ class TestSchedule(QiskitTestCase):
         """
         device = self.two_qubit_device
 
+        # pylint: disable=invalid-name
         @functional_pulse
         def gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        gp0 = gaussian(duration=20, name='pulse0', amp=0.7, t0=9.5, sig=3)
-        gp1 = gaussian(duration=20, name='pulse1', amp=0.5, t0=9.5, sig=3)
+        gp0 = gaussian(duration=20, amp=0.7, t0=9.5, sig=3)
+        gp1 = gaussian(duration=20, amp=0.5, t0=9.5, sig=3)
 
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
@@ -137,13 +138,14 @@ class TestSchedule(QiskitTestCase):
         """
         device = self.two_qubit_device
 
+        # pylint: disable=invalid-name
         @functional_pulse
         def gaussian(duration, amp, t0, sig):
             x = np.linspace(0, duration - 1, duration)
             return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
 
-        gp0 = gaussian(duration=20, name='pulse0', amp=0.7, t0=9.5, sig=3)
-        gp1 = gaussian(duration=20, name='pulse1', amp=0.5, t0=9.5, sig=3)
+        gp0 = gaussian(duration=20, amp=0.7, t0=9.5, sig=3)
+        gp1 = gaussian(duration=20, amp=0.5, t0=9.5, sig=3)
 
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
@@ -157,7 +159,7 @@ class TestSchedule(QiskitTestCase):
         sched |= fc_pi_2(device.q[0].drive).shifted(90)
         sched |= acquire(device.q[1], device.mem[1], device.c[1]).shifted(90)
         # print(sched)
-        new_sched = Schedule() + sched + sched
+        _ = Schedule() + sched + sched
         # print(new_sched)
 
     def test_empty_schedule(self):
@@ -175,7 +177,7 @@ class TestSchedule(QiskitTestCase):
         """Test if `flat_instruction_sequence` returns `Instruction`s.
         """
         device = self.two_qubit_device
-        lp0 = self.linear(duration=3, name='pulse0', a=0.2, b=0.1)
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         # empty schedule with empty schedule
         empty = Schedule().append(Schedule())
@@ -197,7 +199,7 @@ class TestSchedule(QiskitTestCase):
         """Test correct calculation of start time of grandchild of a schedule.
         """
         device = self.two_qubit_device
-        lp0 = self.linear(duration=10, name='pulse0', a=0.02, b=0.01)
+        lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
         subsched = Schedule()
         subsched = subsched.insert(20, lp0(device.q[0].drive))  # grand child 1
@@ -218,7 +220,7 @@ class TestSchedule(QiskitTestCase):
         """Test shifted schedule.
         """
         device = self.two_qubit_device
-        lp0 = self.linear(duration=10, name='pulse0', a=0.02, b=0.01)
+        lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
         subsched = Schedule()
         subsched = subsched.insert(20, lp0(device.q[0].drive))  # grand child 1

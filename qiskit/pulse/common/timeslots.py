@@ -10,7 +10,7 @@ Timeslot occupancy for each channels.
 """
 import logging
 from collections import defaultdict
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
