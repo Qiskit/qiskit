@@ -49,17 +49,16 @@ def ucy(self, angle_list, q_controls, q_target):
             q_target = q_target[0]
         else:
             raise QiskitError("The target qubit is a QuantumRegister containing more than one qubits.")
-            # Check if q_controls has type "list"
-    if not type(q_controls) == list:
-        raise QiskitError(
-            "The control qubits must be provided as a list (also if there is only one control qubit).")
+    # Check if q_controls has type "list"
+    if not type(angle_list) == list:
+        raise QiskitError("The angles must be provided as a list.")
     num_contr = math.log2(len(angle_list))
     if num_contr < 0 or not num_contr.is_integer():
         raise QiskitError("The number of controlled rotation gates is not a non-negative power of 2.")
     # Check if number of control qubits does correspond to the number of rotations
     if num_contr != len(q_controls):
         raise QiskitError("Number of controlled rotations does not correspond to the number of control-qubits.")
-    return self.append(UCY(angle_list), [q_target]+ q_controls, [])
+    return self.append(UCY(angle_list), [q_target] + q_controls, [])
 
 
 QuantumCircuit.ucy = ucy

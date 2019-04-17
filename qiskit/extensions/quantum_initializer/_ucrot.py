@@ -42,14 +42,13 @@ class UCRot(Gate):
         """Check types"""
         # Check if angle_list has type "list"
         if not type(angle_list) == list:
-            raise QiskitError(
-                "The angles are not provided in a list.")
+            raise QiskitError("The angles are not provided in a list.")
         # Check if the angles in angle_list are real numbers
         for a in angle_list:
             try:
                 float(a)
             except:
-                raise QiskitError("An angle cannot be converted to type float.")
+                raise QiskitError("An angle cannot be converted to type float (real angles are expected).")
 
         """Check input form"""
         num_contr = math.log2(len(angle_list))
@@ -59,8 +58,7 @@ class UCRot(Gate):
             raise QiskitError("Rotation axis is not supported.")
         # Create new gate.
         num_qubits = int(num_contr) + 1
-        super().__init__("UG"+rot_axis, num_qubits, angle_list)
-
+        super().__init__("UC" + rot_axis, num_qubits, angle_list)
 
     def _define(self):
         ucr_circuit = self._dec_ucrot()
@@ -69,6 +67,8 @@ class UCRot(Gate):
         q = QuantumRegister(self.num_qubits)
         ucr_circuit = QuantumCircuit(q)
         if gate_num == 0:
+            # ToDo: if we would not add the identity here, this would lead to troubles simulating the circuit afterwards.
+            #  this should probably be fixed in the bahaviour of QuantumCircuit.
             ucr_circuit.iden(q[0])
         else:
             ucr_circuit.append(gate, q[:])
@@ -77,6 +77,7 @@ class UCRot(Gate):
     """
     finds a decomposition of a UC rotation gate into elementary gates (C-NOTs and single-qubit rotations).
     """
+
     def _dec_ucrot(self):
         q = QuantumRegister(self.num_qubits)
         circuit = QuantumCircuit(q)
@@ -112,6 +113,7 @@ class UCRot(Gate):
                 circuit.cx(q_controls[q_contr_index], q_target)
         return circuit
 
+
 # Calculates rotation angles for a uniformly controlled R_t gate with a C-NOT gate at the end of the circuit.
 # The rotation angles of the gate R_t are stored in angles[start_index:end_index].
 # If reversed == True, it decomposes the gate such that there is a C-NOT gate at the start of the circuit
@@ -128,6 +130,7 @@ def _dec_uc_rotations(angles, start_index, end_index, reversedDec):
     else:
         _dec_uc_rotations(angles, start_index, start_index + interval_len_half, False)
         _dec_uc_rotations(angles, start_index + interval_len_half, end_index, True)
+
 
 # Calculate the new rotation angles according to Shende's decomposition
 
