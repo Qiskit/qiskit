@@ -13,7 +13,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.qobj import PulseQobjInstruction
-from qiskit.compiler.pulse_instruction_converter import PulseQobjConverter
+from qiskit.qobj.converters.pulse_instruction import PulseQobjConverter
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire
 from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
                                    RegisterSlot, MemorySlot)

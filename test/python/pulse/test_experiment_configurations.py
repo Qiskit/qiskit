@@ -40,7 +40,7 @@ class TestUserLoDict(QiskitTestCase):
         with self.assertRaises(PulseError):
             _ = UserLoDict({channel: 3.3})
 
-    def test_fail_to_create_with_out_of_range_user_lo(self):
+    def test_fail_to_create_with_invalid_channel(self):
         """Test if a UserLoDict cannot be created with invalid channel.
         """
         channel = AcquireChannel(0)
