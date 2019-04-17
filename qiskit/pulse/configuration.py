@@ -15,7 +15,7 @@ from .exceptions import PulseError
 
 
 class LoConfig:
-    """Dictionary of user LO frequency by channel"""
+    """Output channel LO frequency container."""
 
     def __init__(self, user_lo_dic: Dict[OutputChannel, float] = None):
         self._q_lo_freq = {}
@@ -39,10 +39,11 @@ class LoConfig:
                     raise PulseError("Specified channel %s cannot be configured." %
                                      channel.name)
 
-    def qubit_lo_dict(self):
-        """Return items of qubit LOs."""
-        return self._q_lo_freq.items()
+    def qubit_lo_dict(self) -> Dict:
+        """Return items of qubit LOs.
+        """
+        return self._q_lo_freq
 
-    def meas_lo_dict(self):
+    def meas_lo_dict(self) -> Dict:
         """Return items of meas LOs."""
-        return self._m_lo_freq.items()
+        return self._m_lo_freq

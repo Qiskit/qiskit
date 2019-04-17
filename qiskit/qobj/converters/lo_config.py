@@ -69,7 +69,7 @@ class LoConfigConverter:
         except KeyError:
             raise PulseError('Qubit default frequencies not exist.')
 
-        for channel, lo_freq in user_lo_config.qubit_lo_dict():
+        for channel, lo_freq in user_lo_config.qubit_lo_dict().items():
             _q_los[channel.index] = lo_freq
 
         if _q_los == self.default_qubit_lo_freq:
@@ -94,7 +94,7 @@ class LoConfigConverter:
         except KeyError:
             raise PulseError('Default measurement frequencies not exist.')
 
-        for channel, lo_freq in user_lo_config.meas_lo_dict():
+        for channel, lo_freq in user_lo_config.meas_lo_dict().items():
             _m_los[channel.index] = lo_freq
 
         if _m_los == self.default_meas_lo_freq:
