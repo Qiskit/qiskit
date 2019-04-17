@@ -10,6 +10,7 @@
 """Disassemble function for a qobj into a list of circuits and it's config"""
 
 from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 
@@ -41,8 +42,11 @@ def _experiments_to_circuits(qobj):
             for reg in classical_registers:
                 creg_dict[reg.name] = reg
             for i in x.instructions:
-                instr_method = getattr(circuit, i.name)
+                name = i.name
+                if i.name == 'id':
+                    name = 'iden'
                 qubits = []
+                params = []
                 try:
                     for qubit in i.qubits:
                         qubit_label = x.header.qubit_labels[qubit]
@@ -58,21 +62,27 @@ def _experiments_to_circuits(qobj):
                             creg_dict[clbit_label[0]][clbit_label[1]])
                 except Exception:  # pylint: disable=broad-except
                     pass
-                params = []
                 try:
                     params = i.params
                 except Exception:  # pylint: disable=broad-except
                     pass
-                if i.name in ['snapshot']:
-                    instr_method(
-                        i.label,
-                        snapshot_type=i.snapshot_type,
-                        qubits=qubits,
-                        params=params)
-                elif i.name == 'initialize':
-                    instr_method(params, qubits)
+                if hasattr(circuit, name):
+                    instr_method = getattr(circuit, name)
+                    if i.name in ['snapshot']:
+                        instr_method(
+                            i.label,
+                            snapshot_type=i.snapshot_type,
+                            qubits=qubits,
+                            params=params)
+                    elif i.name == 'initialize':
+                        instr_method(params, qubits)
+                    else:
+                        instr_method(*params, *qubits, *clbits)
                 else:
-                    instr_method(*params, *qubits, *clbits)
+                    temp_opaque_instruction = Instruction(
+                        name=name, num_qubits=len(qubits),
+                        num_clbits=len(clbits), params=params)
+                    circuit.append(temp_opaque_instruction, qubits, clbits)
             circuits.append(circuit)
         return circuits
     return None
