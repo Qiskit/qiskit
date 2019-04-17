@@ -15,9 +15,10 @@ import numpy
 import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, UserLoDict
-from qiskit.pulse.commands import DriveInstruction
 from qiskit.pulse.channels import OutputChannel, DriveChannel, MeasureChannel
+from qiskit.pulse.commands import DriveInstruction
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig,
@@ -25,7 +26,6 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          PulseQobjConfig, QobjPulseLibrary)
 from .pulse_to_qobj import PulseQobjConverter
 from .run_config import RunConfig
-from qiskit.exceptions import QiskitError
 
 
 def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None):

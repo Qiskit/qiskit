@@ -21,10 +21,8 @@ import warnings
 
 from qiskit.compiler import RunConfig, TranspileConfig
 from qiskit.compiler import assemble_circuits, assemble_schedules, transpile
-from qiskit.pulse import Schedule, ConditionedSchedule, UserLoDict
-from qiskit.pulse.exceptions import PulseError
-from qiskit.validation.exceptions import ModelValidationError
 from qiskit.qobj import QobjHeader
+from qiskit.validation.exceptions import ModelValidationError
 
 logger = logging.getLogger(__name__)
 
