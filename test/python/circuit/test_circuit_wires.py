@@ -119,11 +119,13 @@ class TestCircuitWires(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
-    def test_circuit_constructor_cwires(self):
-        """Create a QuantumCircuit directly with quantum and classical wires
+    def test_circuit_constructor_wires_wrong(self):
+        """Create a registerless QuantumCircuit wrongly
         """
-        circuit = QuantumCircuit(2, 3)
+        self.assertRaises(QiskitError, QuantumCircuit, 1, 2, 3)  # QuantumCircuit(1, 2, 3)
 
-        expected = QuantumCircuit(QuantumRegister(2, 'q'), ClassicalRegister(3, 'c'))
-
-        self.assertEqual(circuit, expected)
+    def test_circuit_constructor_wires_wrong_mix(self):
+        """Create an almost-registerless QuantumCircuit
+        """
+        # QuantumCircuit(1, ClassicalRegister(2))
+        self.assertRaises(QiskitError, QuantumCircuit, 1, ClassicalRegister(2))

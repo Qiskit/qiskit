@@ -263,12 +263,19 @@ class QuantumCircuit:
         """Add registers."""
         if not regs:
             return
-        elif len(regs) == 1 and isinstance(regs[0], int):
-            # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
-            regs = (QuantumRegister(regs[0], 'q'),)
-        elif len(regs) == 2 and all([isinstance(reg, int) for reg in regs]):
-            # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
-            regs = (QuantumRegister(regs[0], 'q'), ClassicalRegister(regs[1], 'c'))
+
+        if any([isinstance(reg, int) for reg in regs]):
+            # QuantumCircuit defined without registers
+            if len(regs) == 1 and isinstance(regs[0], int):
+                # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
+                regs = (QuantumRegister(regs[0], 'q'),)
+            elif len(regs) == 2 and all([isinstance(reg, int) for reg in regs]):
+                # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
+                regs = (QuantumRegister(regs[0], 'q'), ClassicalRegister(regs[1], 'c'))
+            else:
+                raise QiskitError("QuantumCircuit parameters can be Registers or Integers."
+                                  " If Integers, up to 2 arguments. QuantumCircuit was called"
+                                  " with %s." % (regs,))
 
         for register in regs:
             if register in self.qregs or register in self.cregs:
