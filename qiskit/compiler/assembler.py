@@ -15,7 +15,7 @@ import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule, UserLoDict
+from qiskit.pulse import Schedule, LoConfig
 from qiskit.pulse.commands import DriveInstruction
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
@@ -164,7 +164,7 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                     experiments=experiments, header=qobj_header)
 
 
-def assemble_schedules(schedules, user_lo_dicts,
+def assemble_schedules(schedules, user_lo_configs,
                        dict_config, dict_header,
                        inst_converter=PulseQobjConverter,
                        lo_converter=LoDictConverter):
@@ -172,7 +172,7 @@ def assemble_schedules(schedules, user_lo_dicts,
 
     Args:
         schedules (list[Schedule] or Schedule): schedules to assemble
-        user_lo_dicts(list[UserLoDict] or UserLoDict): LO dictionary to assemble
+        user_lo_configs(list[LoConfig] or LoConfig): LO dictionary to assemble
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
         inst_converter (PulseQobjConverter): converter for pulse instruction
@@ -191,8 +191,8 @@ def assemble_schedules(schedules, user_lo_dicts,
     if isinstance(schedules, Schedule):
         schedules = [schedules]
 
-    if isinstance(user_lo_dicts, UserLoDict):
-        user_lo_dicts = [user_lo_dicts]
+    if isinstance(user_lo_configs, LoConfig):
+        user_lo_configs = [user_lo_configs]
 
     user_pulselib = set()
 
@@ -224,8 +224,8 @@ def assemble_schedules(schedules, user_lo_dicts,
 
     # create qob experiment field
     experiments = []
-    if len(user_lo_dicts) == 1:
-        lo_dict = user_lo_dicts.pop()
+    if len(user_lo_configs) == 1:
+        lo_dict = user_lo_configs.pop()
         # update global config
         q_los = _lo_converter.get_qubit_los(lo_dict)
         if q_los:
@@ -234,19 +234,19 @@ def assemble_schedules(schedules, user_lo_dicts,
         if m_los:
             dict_config['meas_lo_freq'] = m_los
 
-    if user_lo_dicts:
+    if user_lo_configs:
         # multiple frequency setups
         if len(qobj_schedules) == 1:
             # frequency sweep
-            for lo_dict in user_lo_dicts:
+            for lo_dict in user_lo_configs:
                 experiments.append(PulseQobjExperiment(
                     instructions=qobj_schedules[0]['instructions'],
                     experimentheader=qobj_schedules[0]['header'],
                     experimentconfig=_lo_converter(lo_dict)
                 ))
-        elif len(qobj_schedules) == len(user_lo_dicts):
+        elif len(qobj_schedules) == len(user_lo_configs):
             # n:n setup
-            for lo_dict, schedule in zip(user_lo_dicts, qobj_schedules):
+            for lo_dict, schedule in zip(user_lo_configs, qobj_schedules):
                 experiments.append(PulseQobjExperiment(
                     instructions=schedule['instructions'],
                     experimentheader=schedule['header'],

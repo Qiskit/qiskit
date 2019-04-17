@@ -17,7 +17,7 @@ from qiskit.qobj.converters import PulseQobjConverter, LoDictConverter
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire
 from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
                                    MeasureChannel, RegisterSlot, MemorySlot)
-from qiskit.pulse import UserLoDict
+from qiskit.pulse import LoConfig
 
 
 class TestInstructionConverter(QiskitTestCase):
@@ -135,7 +135,7 @@ class TestLoConverter(QiskitTestCase):
 
     def test_qubit_los(self):
         """Test qubit channel configuration."""
-        user_lo_dict = UserLoDict({self.device.q[0].drive: 1.3})
+        user_lo_config = LoConfig({self.device.q[0].drive: 1.3})
         converter = LoDictConverter(PulseQobjExperimentConfig,
                                     qubit_lo_freq=[1.2], meas_lo_freq=[3.4])
 
@@ -143,11 +143,11 @@ class TestLoConverter(QiskitTestCase):
             qubit_lo_freq=[1.3]
         )
 
-        self.assertEqual(converter(user_lo_dict), valid_qobj)
+        self.assertEqual(converter(user_lo_config), valid_qobj)
 
     def test_meas_los(self):
         """Test measurement channel configuration."""
-        user_lo_dict = UserLoDict({self.device.q[0].measure: 3.5})
+        user_lo_config = LoConfig({self.device.q[0].measure: 3.5})
         converter = LoDictConverter(PulseQobjExperimentConfig,
                                     qubit_lo_freq=[1.2], meas_lo_freq=[3.4])
 
@@ -155,4 +155,4 @@ class TestLoConverter(QiskitTestCase):
             meas_lo_freq=[3.5]
         )
 
-        self.assertEqual(converter(user_lo_dict), valid_qobj)
+        self.assertEqual(converter(user_lo_config), valid_qobj)

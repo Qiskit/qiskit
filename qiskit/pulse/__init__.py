@@ -9,5 +9,5 @@
 from .channels import DeviceSpecification
 from .commands import (Acquire, FrameChange, PersistentValue, SamplePulse, Snapshot,
                        Kernel, Discriminator, functional_pulse)
-from .configuration import UserLoDict
+from .configuration import LoConfig
 from .schedule import Schedule

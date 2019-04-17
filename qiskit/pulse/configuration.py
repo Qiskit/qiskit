@@ -14,7 +14,7 @@ from .channels import OutputChannel, DriveChannel, MeasureChannel
 from .exceptions import PulseError
 
 
-class UserLoDict:
+class LoConfig:
     """Dictionary of user LO frequency by channel"""
 
     def __init__(self, user_lo_dic: Dict[OutputChannel, float] = None):
