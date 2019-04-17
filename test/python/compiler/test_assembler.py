@@ -195,7 +195,8 @@ class TestPulseAssembler(QiskitTestCase):
         self.schedule = self.schedule.insert(0, test_pulse(self.device.q[0].drive))
         self.schedule = self.schedule.insert(5, acquire(self.device.q, self.device.mem))
 
-        self.user_lo_config = pulse.UserLoDict({self.device.q[0].drive: 4.91})
+        self.user_lo_config_dict = {self.device.q[0].drive: 4.91}
+        self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
         self.config = {
             'meas_level': 1,
@@ -216,7 +217,7 @@ class TestPulseAssembler(QiskitTestCase):
         """Test assembling a single schedule, no lo config.
         """
         qobj = assemble_schedules(schedules=self.schedule,
-                                  user_lo_dicts=[],
+                                  user_lo_configs=[],
                                   dict_config=self.config,
                                   dict_header=self.header)
         test_dict = qobj.to_dict()
@@ -229,7 +230,7 @@ class TestPulseAssembler(QiskitTestCase):
         """Test assembling schedules, no lo config.
         """
         qobj = assemble_schedules(schedules=[self.schedule, self.schedule],
-                                  user_lo_dicts=[],
+                                  user_lo_configs=[],
                                   dict_config=self.config,
                                   dict_header=self.header)
         test_dict = qobj.to_dict()
@@ -242,7 +243,20 @@ class TestPulseAssembler(QiskitTestCase):
         """Test assembling a single schedule, with a single lo config.
         """
         qobj = assemble_schedules(schedules=self.schedule,
-                                  user_lo_dicts=self.user_lo_config,
+                                  user_lo_configs=self.user_lo_config,
+                                  dict_config=self.config,
+                                  dict_header=self.header)
+        test_dict = qobj.to_dict()
+
+        self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
+        self.assertEqual(len(test_dict['experiments']), 1)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
+
+    def test_assemble_single_schedule_with_lo_config_dict(self):
+        """Test assembling a single schedule, with a single lo config supplied as dictionary.
+        """
+        qobj = assemble_schedules(schedules=self.schedule,
+                                  user_lo_configs=self.user_lo_config_dict,
                                   dict_config=self.config,
                                   dict_header=self.header)
         test_dict = qobj.to_dict()
@@ -255,7 +269,7 @@ class TestPulseAssembler(QiskitTestCase):
         """Test assembling a single schedule, with lo configs (frequency sweep).
         """
         qobj = assemble_schedules(schedules=self.schedule,
-                                  user_lo_dicts=[self.user_lo_config, self.user_lo_config],
+                                  user_lo_configs=[self.user_lo_config, self.user_lo_config],
                                   dict_config=self.config,
                                   dict_header=self.header)
         test_dict = qobj.to_dict()
@@ -270,7 +284,7 @@ class TestPulseAssembler(QiskitTestCase):
         """Test assembling schedules, with the same number of lo configs (n:n setup).
         """
         qobj = assemble_schedules(schedules=[self.schedule, self.schedule],
-                                  user_lo_dicts=[self.user_lo_config, self.user_lo_config],
+                                  user_lo_configs=[self.user_lo_config, self.user_lo_config],
                                   dict_config=self.config,
                                   dict_header=self.header)
         test_dict = qobj.to_dict()
@@ -286,7 +300,7 @@ class TestPulseAssembler(QiskitTestCase):
         """
         with self.assertRaises(QiskitError):
             _ = assemble_schedules(schedules=[self.schedule, self.schedule, self.schedule],
-                                   user_lo_dicts=[self.user_lo_config, self.user_lo_config],
+                                   user_lo_configs=[self.user_lo_config, self.user_lo_config],
                                    dict_config=self.config,
                                    dict_header=self.header)
 

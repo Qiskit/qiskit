@@ -134,13 +134,13 @@ def execute_circuits(circuits, backend, qobj_header=None,
     return backend.run(qobj, **kwargs)
 
 
-def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
+def execute_schedules(schedules, backend, user_lo_configs=None, **kwargs):
     """Executes a list of schedules.
 
     Args:
         schedules (Schedule or List[Schedule]): schedules to execute
         backend (BaseBackend): a backend to execute the schedules on
-        user_lo_dicts (UserLoDict or list[UserLoDict]): Dictionaries of user LO frequencies
+        user_lo_configs (LoConfig or list[LoConfig]): Dictionaries of user LO frequencies
         kwargs: extra arguments to configure backend
 
     Kwargs:
@@ -162,7 +162,7 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
         BaseJob: returns job instance derived from BaseJob
 
     Raises:
-        PulseError: when #schedules : #user_lo_dicts is not either of `None`, 1:n, n:1 or n:n.
+        PulseError: when #schedules : #user_lo_configs is not either of `None`, 1:n, n:1 or n:n.
     """
     backend_config = backend.configuration()
 
@@ -197,7 +197,7 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
     }
 
     qobj = assemble_schedules(schedules=schedules,
-                              user_lo_dicts=user_lo_dicts,
+                              user_lo_configs=user_lo_configs,
                               dict_header=header,
                               dict_config=config)
 
