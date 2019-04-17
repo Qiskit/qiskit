@@ -10,8 +10,8 @@ Configurations for pulse experiments.
 """
 from typing import Dict
 
-from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.exceptions import PulseError
+from .channels import OutputChannel
+from .exceptions import PulseError
 
 
 class UserLoDict:

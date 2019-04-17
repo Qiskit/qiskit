@@ -10,7 +10,7 @@ import unittest
 
 from qiskit.pulse.channels import DriveChannel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import UserLoDict
+from qiskit.pulse import UserLoDict
 from qiskit.test import QiskitTestCase
 
 
