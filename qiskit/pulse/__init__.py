@@ -6,8 +6,8 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Module for Pulses."""
+from .channels import DeviceSpecification
 from .commands import (Acquire, FrameChange, PersistentValue, SamplePulse, Snapshot,
                        Kernel, Discriminator, functional_pulse)
-from .schedule import Schedule
-from .channels import DeviceSpecification
 from .configuration import UserLoDict
+from .schedule import Schedule
