@@ -257,12 +257,11 @@ class QuantumCircuit:
                 these_symbols = set(param.free_symbols)
                 new_symbols = these_symbols - current_symbols
                 common_symbols = these_symbols & current_symbols
-                if new_symbols:
-                    for symbol in new_symbols:
-                        self._variable_table[symbol] = [(instruction, param_index)]
-                if common_symbols:
-                    for symbol in common_symbols:
-                        self._variable_table[symbol].append((instruction, param_index))
+
+                for symbol in new_symbols:
+                    self._variable_table[symbol] = [(instruction, param_index)]
+                for symbol in common_symbols:
+                    self._variable_table[symbol].append((instruction, param_index))
 
         return instruction
 

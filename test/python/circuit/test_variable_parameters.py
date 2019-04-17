@@ -66,7 +66,7 @@ class TestVariableParameters(QiskitTestCase):
         self.assertEqual(qc.variable_table[theta][1][0].params[1], 0.6)
 
     def test_multiple_variables(self):
-        """Test setting a varaible to a constant value"""
+        """Test setting multiple variables"""
         theta = sympy.Symbol('θ')
         x = sympy.Symbol('x')
         qr = QuantumRegister(1)
