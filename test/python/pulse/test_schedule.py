@@ -55,12 +55,10 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(80, Snapshot("label", "snap_type"))
         sched = sched.insert(90, fc_pi_2(device.q[0].drive))
         sched = sched.insert(90, acquire(device.q[1], device.mem[1], device.c[1]))
-        # print(sched)
         new_sched = Schedule()
         new_sched = new_sched.append(sched)
         new_sched = new_sched.append(sched)
-        _ = new_sched.flat_instruction_sequence()
-        # print(pprint.pformat(new_sched.flat_instruction_sequence()))
+        new_sched.flat_instruction_sequence()
 
     def test_can_create_valid_schedule_with_syntax_sugar(self):
         """Test valid schedule creation using syntax sugar without error.
@@ -86,10 +84,8 @@ class TestSchedule(QiskitTestCase):
         sched |= Snapshot("label", "snap_type").shifted(80)
         sched |= fc_pi_2(device.q[0].drive).shifted(90)
         sched |= acquire(device.q[1], device.mem[1], device.c[1]).shifted(90)
-        # print(sched)
         new_sched = Schedule() + sched + sched
-        _ = new_sched.flat_instruction_sequence()
-        # print(pprint.pformat(new_sched.flat_instruction_sequence()))
+        new_sched.flat_instruction_sequence()
 
     def test_absolute_start_time_of_grandchild(self):
         """Test correct calculation of start time of grandchild of a schedule.

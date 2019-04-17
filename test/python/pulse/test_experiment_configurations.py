@@ -38,14 +38,14 @@ class TestLoConfig(QiskitTestCase):
         """
         channel = DriveChannel(0, lo_freq=1.2, lo_freq_range=(1.0, 2.0))
         with self.assertRaises(PulseError):
-            _ = LoConfig({channel: 3.3})
+            LoConfig({channel: 3.3})
 
     def test_fail_to_create_with_invalid_channel(self):
         """Test if a LoConfig cannot be created with invalid channel.
         """
         channel = AcquireChannel(0)
         with self.assertRaises(PulseError):
-            _ = LoConfig({channel: 1.0})
+            LoConfig({channel: 1.0})
 
     def test_keep_dict_unchanged_after_updating_the_dict_used_in_construction(self):
         """Test if a LoConfig keeps its dictionary unchanged even after
