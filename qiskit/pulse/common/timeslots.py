@@ -152,11 +152,6 @@ class TimeslotCollection:
                     raise PulseError("Cannot create TimeslotCollection from overlapped timeslots")
             self._table[slot.channel].append(slot.interval)
 
-    @property
-    def timeslots(self) -> Tuple[Timeslot, ...]:
-        """Time slots of this occupancy."""
-        return self._timeslots
-
     def is_mergeable_with(self, occupancy: 'TimeslotCollection') -> bool:
         """Return if self is mergeable with a specified `occupancy` or not.
 

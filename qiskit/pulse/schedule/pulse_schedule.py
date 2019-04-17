@@ -122,8 +122,17 @@ class Schedule(ScheduleComponent):
 
     @property
     def stop_time(self) -> int:
-        return max([slot.interval.end for slot in self._occupancy.timeslots],
-                   default=self._start_time)
+        if not self._children:  # empty schedule
+            return self._start_time
+        return Schedule._stop_time(self, self._start_time)
+
+    @staticmethod
+    def _stop_time(node: ScheduleComponent, time: int) -> int:
+        if node.children:
+            return max([Schedule._stop_time(child, time + node.start_time)
+                        for child in node.children])
+        else:
+            return time + node.stop_time
 
     @property
     def children(self) -> Tuple[ScheduleComponent, ...]:
