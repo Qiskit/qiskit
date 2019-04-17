@@ -39,7 +39,7 @@ class Unitary(Gate):
             validate (bool): whether to validate unitarity of matrix
             rtol (float): relative tolerance (see numpy.allclose)
             atol (float): absolute tolerance (see numpy.allclose)
-        
+
         Raises:
             QiskitError: if input representation is not valid.
         """
@@ -91,7 +91,8 @@ class Unitary(Gate):
         return str(self.representation)
 
     def __repr__(self):
-        return '{}\n{}'.format(super().__repr__(), self.__representation.__repr__())
+        return '{}\n{}'.format(super().__repr__(),
+                               self.__representation.__repr__())
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary.
