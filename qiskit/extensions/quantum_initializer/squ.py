@@ -130,8 +130,11 @@ def is_isometry(m):
 
 def squ(self, params, qubit, mode="ZYZ", up_to_diagonal=False):
     if isinstance(qubit, QuantumRegister):
-        qubit = qubit[0]
-    print(qubit)
+        qubit = qubit[:]
+        if len(qubit) == 1:
+            qubit = qubit[0]
+        else:
+            raise QiskitError("The target qubit is a QuantumRegister containing more than one qubits.")
     # Check if there is one target qubit provided
     if not (type(qubit) == tuple and type(qubit[0]) == QuantumRegister):
         raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
