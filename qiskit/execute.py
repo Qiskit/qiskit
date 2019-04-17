@@ -140,7 +140,8 @@ def execute_schedules(schedules, backend, user_lo_configs=None, **kwargs):
     Args:
         schedules (Schedule or List[Schedule]): schedules to execute
         backend (BaseBackend): a backend to execute the schedules on
-        user_lo_configs (LoConfig or list[LoConfig]): Dictionaries of user LO frequencies
+                user_lo_configs(list[Union[Dict[OutputChannel, float], LoConfig]] or
+                        Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
         kwargs: extra arguments to configure backend
 
     Kwargs:

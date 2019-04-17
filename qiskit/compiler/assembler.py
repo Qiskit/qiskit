@@ -171,7 +171,7 @@ def assemble_schedules(schedules, user_lo_configs,
     Args:
         schedules (list[Schedule] or Schedule): schedules to assemble
         user_lo_configs(list[Union[Dict[OutputChannel, float], LoConfig]] or
-                        Union[Dict[OutputChannel, float], LoConfig]): LO dictionary to assemble
+                        Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
         inst_converter (PulseQobjConverter): converter for pulse instruction
