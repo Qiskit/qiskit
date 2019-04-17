@@ -135,10 +135,10 @@ def execute_circuits(circuits, backend, qobj_header=None,
 
 
 def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
-    """Executes a list of circuits.
+    """Executes a list of schedules.
 
     Args:
-        schedules (Schedule or list[Schedule]): schedules to execute
+        schedules (Schedule or List[Schedule]): schedules to execute
         backend (BaseBackend): a backend to execute the schedules on
         user_lo_dicts (UserLoDict or list[UserLoDict]): Dictionaries of user LO frequencies
         kwargs: extra arguments to configure backend
@@ -162,7 +162,7 @@ def execute_schedules(schedules, backend, user_lo_dicts=None, **kwargs):
         BaseJob: returns job instance derived from BaseJob
 
     Raises:
-        PulseError: when #schedules : #user_lo_dicts is not either of 1:n, n:1 or n:n.
+        PulseError: when #schedules : #user_lo_dicts is not either of `None`, 1:n, n:1 or n:n.
     """
     backend_config = backend.configuration()
 
