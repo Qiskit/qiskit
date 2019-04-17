@@ -13,7 +13,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.qobj import PulseQobjInstruction, PulseQobjExperimentConfig
-from qiskit.qobj.converters import PulseQobjConverter, LoDictConverter
+from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire
 from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
                                    MeasureChannel, RegisterSlot, MemorySlot)
@@ -136,7 +136,7 @@ class TestLoConverter(QiskitTestCase):
     def test_qubit_los(self):
         """Test qubit channel configuration."""
         user_lo_config = LoConfig({self.device.q[0].drive: 1.3})
-        converter = LoDictConverter(PulseQobjExperimentConfig,
+        converter = LoConfigConverter(PulseQobjExperimentConfig,
                                     qubit_lo_freq=[1.2], meas_lo_freq=[3.4])
 
         valid_qobj = PulseQobjExperimentConfig(
@@ -148,7 +148,7 @@ class TestLoConverter(QiskitTestCase):
     def test_meas_los(self):
         """Test measurement channel configuration."""
         user_lo_config = LoConfig({self.device.q[0].measure: 3.5})
-        converter = LoDictConverter(PulseQobjExperimentConfig,
+        converter = LoConfigConverter(PulseQobjExperimentConfig,
                                     qubit_lo_freq=[1.2], meas_lo_freq=[3.4])
 
         valid_qobj = PulseQobjExperimentConfig(

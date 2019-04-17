@@ -22,7 +22,7 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjConfig,
                          PulseQobjInstruction, PulseQobjExperimentConfig, PulseQobjExperiment,
                          PulseQobjConfig, QobjPulseLibrary)
-from qiskit.qobj.converters import PulseQobjConverter, LoDictConverter
+from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
 from .run_config import RunConfig
 
 
@@ -185,7 +185,7 @@ def assemble_schedules(schedules, user_lo_configs,
     """
 
     _inst_converter = inst_converter(PulseQobjInstruction, **dict_config)
-    _lo_converter = LoDictConverter(PulseQobjExperimentConfig, **dict_config)
+    _lo_converter = LoConfigConverter(PulseQobjExperimentConfig, **dict_config)
 
     if isinstance(schedules, Schedule):
         schedules = [schedules]

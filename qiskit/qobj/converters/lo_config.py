@@ -11,7 +11,7 @@
 from qiskit.pulse.exceptions import PulseError
 
 
-class LoDictConverter:
+class LoConfigConverter:
     """ This class supports to convert LoConfig into ~`lo_freq` attribute of configs.
     The format of LO frequency setup can be easily modified by replacing
     `get_qubit_los` and `get_meas_los` to align with your backend.
