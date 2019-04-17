@@ -91,9 +91,7 @@ class TestPulseConverter(QiskitTestCase):
             duration=10,
             qubits=[0],
             memory_slot=[0],
-            discriminators=[],
-            register_slot=[0],
-            kernels=[]
+            register_slot=[0]
         )
 
         self.assertEqual(self.converter(instruction), valid_qobj)
