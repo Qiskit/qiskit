@@ -40,31 +40,6 @@ def basis_state(str_state, num):
         raise QiskitError('size of bitstring is greater than num.')
 
 
-def random_state(dim, seed=None):
-    """
-    Return a random quantum state from the uniform (Haar) measure on
-    state space.
-
-    Args:
-        dim (int): the dim of the state spaxe
-        seed (int): Optional. To set a random seed.
-
-    Returns:
-        ndarray:  state(2**num) a random quantum state.
-    """
-    if seed is None:
-        seed = np.random.randint(0, np.iinfo(np.int32).max)
-    rng = np.random.RandomState(seed)
-    logger.debug("random_state RandomState seeded with seed=%s", seed)
-    # Random array over interval (0, 1]
-    x = rng.rand(dim)
-    x += x == 0
-    x = -np.log(x)
-    sumx = sum(x)
-    phases = rng.rand(dim)*2.0*np.pi
-    return np.sqrt(x/sumx)*np.exp(1j*phases)
-
-
 def projector(state, flatten=False):
     """
     maps a pure state to a state matrix
