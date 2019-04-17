@@ -195,7 +195,8 @@ class TestPulseAssembler(QiskitTestCase):
         self.schedule = self.schedule.insert(0, test_pulse(self.device.q[0].drive))
         self.schedule = self.schedule.insert(5, acquire(self.device.q, self.device.mem))
 
-        self.user_lo_config = pulse.LoConfig({self.device.q[0].drive: 4.91})
+        self.user_lo_config_dict = {self.device.q[0].drive: 4.91}
+        self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
         self.config = {
             'meas_level': 1,
@@ -243,6 +244,19 @@ class TestPulseAssembler(QiskitTestCase):
         """
         qobj = assemble_schedules(schedules=self.schedule,
                                   user_lo_configs=self.user_lo_config,
+                                  dict_config=self.config,
+                                  dict_header=self.header)
+        test_dict = qobj.to_dict()
+
+        self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
+        self.assertEqual(len(test_dict['experiments']), 1)
+        self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
+
+    def test_assemble_single_schedule_with_lo_config_dict(self):
+        """Test assembling a single schedule, with a single lo config supplied as dictionary.
+        """
+        qobj = assemble_schedules(schedules=self.schedule,
+                                  user_lo_configs=self.user_lo_config_dict,
                                   dict_config=self.config,
                                   dict_header=self.header)
         test_dict = qobj.to_dict()

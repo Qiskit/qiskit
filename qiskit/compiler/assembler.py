@@ -171,7 +171,8 @@ def assemble_schedules(schedules, user_lo_configs,
 
     Args:
         schedules (list[Schedule] or Schedule): schedules to assemble
-        user_lo_configs(list[LoConfig] or LoConfig): LO dictionary to assemble
+        user_lo_configs(list[Union[Dict[OutputChannel, float], LoConfig]] or
+                        Union[Dict[OutputChannel, float], LoConfig]): LO dictionary to assemble
         dict_config (dict): configuration of experiments
         dict_header (dict): header to pass to the results
         inst_converter (PulseQobjConverter): converter for pulse instruction
@@ -189,8 +190,12 @@ def assemble_schedules(schedules, user_lo_configs,
     if isinstance(schedules, Schedule):
         schedules = [schedules]
 
-    if isinstance(user_lo_configs, LoConfig):
+    if isinstance(user_lo_configs, (LoConfig, dict)):
         user_lo_configs = [user_lo_configs]
+
+    # Convert to LoConfig if lo configuration supplied as dictionary
+    user_lo_configs = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
+                       for lo_config in user_lo_configs]
 
     user_pulselib = set()
 
