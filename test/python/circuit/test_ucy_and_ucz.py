@@ -19,7 +19,7 @@ import numpy as np
 from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit import execute as q_execute
+from qiskit import execute
 from qiskit.test import QiskitTestCase
 
 angles_list = [[0], [0.4], [0, 0], [0, 0.8], [0, 0, 1, 1], [0, 1, 0.5, 1],
@@ -46,8 +46,9 @@ class TestUCY(QiskitTestCase):
                     # ToDo: improve efficiency here by allowing to execute circuit on several states in parallel (this would
                     # ToDo: in particular allow to get out the isometry the circuit is implementing by applying it to the first
                     # ToDo: few basis vectors
-                    vec_out = np.asarray(q_execute(qc, BasicAer.get_backend(
-                        'statevector_simulator')).result().get_statevector(qc, decimals=16))
+                    job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+                    result = job.result()
+                    vec_out = result.get_statevector()
                     vec_desired = _apply_ucr_to_basis_state(angles, i, rot_axis)
                     # It is fine if the gate is implemented up to a global phase (however, the phases between the different
                     # outputs for different bases states must be correct!)

@@ -15,7 +15,7 @@ from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
 from qiskit import BasicAer
 import numpy as np
-from qiskit import execute as q_execute
+from qiskit import execute
 from qiskit.test import QiskitTestCase
 
 
@@ -32,8 +32,9 @@ class TestDiagGate(QiskitTestCase):
                 for i in range(2 ** (num_qubits)):
                     qc = _prepare_basis_state(q, i)
                     qc.diag(diag, q[0:num_qubits])
-                    vec_out = np.asarray(q_execute(qc, BasicAer.get_backend(
-                        'statevector_simulator')).result().get_statevector(qc, decimals=16))
+                    job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+                    result = job.result()
+                    vec_out = result.get_statevector()
                     vec_desired = _apply_diag_gate_to_basis_state(phases, i)
                     if i == 0:
                         global_phase = vec_out[0] / vec_desired[0]

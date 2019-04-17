@@ -21,7 +21,7 @@ from scipy.stats import unitary_group
 from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
-from qiskit import execute as q_execute
+from qiskit import execute
 from qiskit.test import QiskitTestCase
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -47,8 +47,9 @@ class TestUCG(QiskitTestCase):
                     # ToDo: improve efficiency here by allowing to execute circuit on several states in parallel (this would
                     # ToDo: in particular allow to get out the isometry the circuit is implementing by applying it to the first
                     # ToDo: few basis vectors)
-                    vec_out = np.asarray(q_execute(qc, BasicAer.get_backend(
-                        'statevector_simulator')).result().get_statevector(qc, decimals=16))
+                    v         job = execute(qc, BasicAer.get_backend('statevector_simulator'))
+                    result = job.result()
+                    vec_out = result.get_statevector()
                     vec_desired = _apply_isometry_to_basis_state(iso, i)
                     # It is fine if the gate is implemented up to a global phase (however, the phases between the different
                     # outputs for different bases states must be correct!
