@@ -11,24 +11,22 @@
 mpl pulse visualization.
 """
 
-from abc import ABCMeta, abstractmethod
-
-import numpy as np
 import logging
-from scipy.interpolate import CubicSpline
+from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
-from qiskit.pulse import commands
-from qiskit.tools.visualization import exceptions
-from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched
-from qiskit.pulse import SamplePulse, Schedule, DeviceSpecification
-from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
-from qiskit.pulse.exceptions import PulseError
+import numpy as np
 
+from qiskit.pulse import SamplePulse, Schedule, DeviceSpecification
+from qiskit.pulse import commands
+from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
+from qiskit.tools.visualization import exceptions
+from qiskit.visualization.interpolation import cubic_spline
+from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched
+from qiskit.pulse.exceptions import PulseError
 
 try:
     from matplotlib import pyplot as plt, gridspec
-
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -36,87 +34,53 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def pulse_drawer(data, dt=1, interp_method='None',
-                 style=None, filename=None,
-                 interactive=False, plot_channels=None,
-                 plot_empty=False, plot_range=None):
+def pulse_drawer(data, dt=1, device=None, style=None, filename=None,
+                 interp_method=None, channels_to_plot=None,
+                 plot_all=False, plot_range=None, scaling=None,
+                 interactive=False):
     """Plot the interpolated envelope of pulse
 
     Args:
-        data (PulseSchedule or SamplePulse): Data to plot.
+        data (Schedule or SamplePulse): Data to plot.
         dt (float): Time interval of samples.
-        interp_method (str): A method of interpolation.
-            'None' for turn off interpolation
-            'CubicSpline' for cubic spline interpolation
+        device (DeviceSpecification): Device information to organize channels.
         filename (str): Name required to save pulse image.
+        interp_method (Callable): A function for interpolation.
         style (dict): A style sheet to configure plot appearance.
+        channels_to_plot (list): A list of channel names to plot.
+        plot_all (bool): Plot empty channels.
+        plot_range (tuple): A tuple of time range to plot.
+        scaling (float): scaling of waveform amplitude.
         interactive (bool): When set true show the circuit in a new window
             (this depends on the matplotlib backend being used supporting this).
-        plot_empty (bool): Plot empty channels.
-        plot_channels (list): A list of channel names to plot.
-        plot_range (tuple): A tuple of time range to plot.
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope.
     Raises:
-        QiskitError: when invalid data is given.
+        VisualizationError: when invalid data is given or lack of information.
     """
-    _style = op_default()
-    if style:
-        _style.update(style)
-
-    drawer = PulseDrawer(_style)
-
-    if isinstance(data, (SamplePulse, FunctionalPulse)):
-        image = drawer.draw_sample(data, dt, interp_method)
-    elif isinstance(data, PulseSchedule):
-        image = drawer.draw_schedule(data, dt, interp_method,
-                                     plot_empty, plot_channels, plot_range)
+    if isinstance(data, SamplePulse):
+        drawer = SamplePulseDrawer(style=style)
+        image = drawer.draw(pulse_obj=data, dt=dt,
+                            interp_method=interp_method, scaling=scaling)
+    elif isinstance(data, Schedule):
+        if not device:
+            raise exceptions.VisualizationError('Schedule visualizer needs device information.')
+        drawer = ScheduleDrawer(device=device, style=style)
+        image = drawer.draw(pulse_obj=data, dt=dt, plot_range=plot_range,
+                            channels_to_plot=channels_to_plot,
+                            plot_all=plot_all, interp_method=interp_method,
+                            scaling=scaling)
     else:
         raise exceptions.VisualizationError('This data cannot be visualized.')
 
     if filename:
-        image.savefig(filename, dpi=_style['dpi'], bbox_inches='tight')
+        image.savefig(filename, dpi=drawer.style.dpi, bbox_inches='tight')
 
     plt.close(image)
 
     if image and interactive:
         image.show()
     return image
-
-
-def op_default():
-    """Pulse default style.
-    """
-    return {
-        'sched2d':
-            {
-                'colors': {
-                    'd': ['#648fff', '#002999'],
-                    'u': ['#ffb000', '#994A00'],
-                    'm': ['#dc267f', '#760019'],
-                    'table': ['#e0e0e0', '#f6f6f6', '#f6f6f6']
-                },
-                'fig_w': 10,
-                'use_table': True,
-                'table_font': 10,
-                'label_font': 18,
-                'table_cols': 2,
-                'table_row_height': 0.4,
-                'pulse_row_height': 2.5
-            },
-        'sample':
-            {
-                'color': {
-                    'real': '#ff0000',
-                    'imag': '#0000ff'
-                },
-                'fig_w': 6,
-                'fig_h': 5
-            },
-        'bg_color': '#f2f3f4',
-        'num_points': 1000,
-        'dpi': 150
-    }
 
 
 class EventsOutputChannels:
@@ -259,23 +223,23 @@ class EventsOutputChannels:
         return events_in_timerange
 
 
-class PulseDrawer(metaclass=ABCMeta):
+class OpenPulseDrawer(metaclass=ABCMeta):
     """Common interface for OpenPulse drawer."""
 
     @abstractmethod
-    def draw(self, pulse_obj, dt, interp_method, **kwargs):
+    def draw(self, pulse_obj, dt, interp_method, scaling):
         """Draw OpenPulse waveform.
 
         Args:
             pulse_obj (ScheduleComponent): waveform data.
             dt (float): time interval.
             interp_method (Callable): interpolation function.
-            kwargs (dict): additional properties to setup drawing.
+            scaling (float): scaling of waveform amplitude.
         """
         pass
 
 
-class SamplePulseDrawer(PulseDrawer):
+class SamplePulseDrawer(OpenPulseDrawer):
     """A class to create figure for sample pulse."""
 
     def __init__(self, style):
@@ -286,68 +250,80 @@ class SamplePulseDrawer(PulseDrawer):
         """
         self.style = style or OPStylePulse()
 
-    def draw(self, pulse_obj, dt, interp_method, **kwargs):
+    def draw(self, pulse_obj, dt, interp_method, scaling):
         """Draw figure.
         Args:
             pulse_obj (SamplePulse): SamplePulse to draw.
             dt (float): time interval.
             interp_method (Callable): interpolation function.
-            kwargs (dict): additional properties to setup drawing.
+            scaling (float): scaling of waveform amplitude.
         """
         figure = plt.figure()
+
+        interp_method = interp_method or cubic_spline
 
         figure.set_size_inches(self.style.fig_w, self.style.fig_h)
         ax = figure.add_subplot(111)
         ax.set_facecolor(self.style.bg_color)
 
         samples = pulse_obj.samples
-        time, waveform = interp_method(samples, dt, self.style.num_points)
+        time, re, im = interp_method(samples, dt, self.style.num_points)
 
         # plot
-        ax.fill_between(x=time, y1=waveform.real, y2=np.zeros_like(time),
+        ax.fill_between(x=time, y1=re, y2=np.zeros_like(time),
                         facecolor=self.style.wave_color[0], alpha=0.3,
                         edgecolor=self.style.wave_color[0], linewidth=1.5,
                         label='real part')
-        ax.fill_between(x=time, y1=waveform.imag, y2=np.zeros_like(time),
+        ax.fill_between(x=time, y1=im, y2=np.zeros_like(time),
                         facecolor=self.style.wave_color[1], alpha=0.3,
                         edgecolor=self.style.wave_color[1], linewidth=1.5,
                         label='imaginary part')
 
+        ax.set_xlim(0, pulse_obj.duration * dt)
+        if scaling:
+            ax.set_ylim(-scaling, scaling)
+        else:
+            v_max = max(max(np.abs(re)), max(np.abs(im)))
+            ax.set_ylim(-1.2 * v_max, 1.2 * v_max)
+
         return figure
 
 
-class ScheduleDrawer(PulseDrawer):
+class ScheduleDrawer(OpenPulseDrawer):
     """A class to create figure for schedule and channel."""
 
-    def __init__(self, style, device):
+    def __init__(self, device, style):
         """Create new figure.
 
         Args:
-            style (OPStyleSched): style sheet.
             device (DeviceSpecification): configuration of device.
+            style (OPStyleSched): style sheet.
         """
-        self.style = style or OPStyleSched()
         self.device = device
+        self.style = style or OPStyleSched()
 
-    def draw(self, pulse_obj, dt, interp_method, **kwargs):
+    def draw(self, pulse_obj, dt, plot_range, channels_to_plot, plot_all,
+             interp_method, scaling):
         """Draw figure.
         Args:
             pulse_obj (Schedule): Schedule to draw.
             dt (float): time interval.
+            plot_range (tuple[float]): plot range.
+            channels_to_plot (list[OutputChannel]): channels to draw.
+            plot_all (bool): if plot all channels even it is empty.
             interp_method (Callable): interpolation function.
-            kwargs (dict): additional properties to setup drawing.
+            scaling (float): scaling of waveform amplitude.
         """
         figure = plt.figure()
 
-        # get extra configs
-        prange = kwargs.get('plot_range')
-        channels_to_plot = kwargs.get('channels')
-        plot_all = kwargs.get('plot_all')
+        if not channels_to_plot:
+            channels_to_plot = []
+        interp_method = interp_method or cubic_spline
 
         # setup plot range
-        if prange:
-            t0 = int(np.floor(prange[0]/dt))
-            tf = int(np.floor(prange[1]/dt))
+        if plot_range:
+            t0 = int(np.floor(plot_range[0]/dt))
+            tf = int(np.floor(plot_range[1]/dt))
         else:
             t0 = 0
             tf = pulse_obj.stop_time
@@ -355,18 +331,31 @@ class ScheduleDrawer(PulseDrawer):
         # prepare waveform channels
         channels = OrderedDict()
         for q in self.device.q:
-            channels[q.drive] = EventsOutputChannels(duration=tf)
-            channels[q.control] = EventsOutputChannels(duration=tf)
-            channels[q.measure] = EventsOutputChannels(duration=tf)
+            try:
+                channels[q.drive] = EventsOutputChannels(duration=tf)
+            except PulseError:
+                pass
+            try:
+                channels[q.control] = EventsOutputChannels(duration=tf)
+            except PulseError:
+                pass
+            try:
+                channels[q.measure] = EventsOutputChannels(duration=tf)
+            except PulseError:
+                pass
 
-        # add instructions
         for instruction in pulse_obj.flat_instruction_sequence():
             channels[instruction.channel].add_instruction(instruction)
 
         # count numbers of valid waveform
         n_valid_waveform = 0
+        v_max = 0
         for channel, events in channels.items():
             if not events.is_empty(t0, tf) or channel in channels_to_plot or plot_all:
+                waveform = events.get_waveform()
+                v_max = max(v_max,
+                            max(np.abs(np.real(waveform))),
+                            max(np.abs(np.imag(waveform))))
                 n_valid_waveform += 1
                 events.enable = True
 
@@ -433,10 +422,14 @@ class ScheduleDrawer(PulseDrawer):
                 elif isinstance(channels, MeasureChannel):
                     color = self.style.m_ch_color
                 else:
-                    raise PulseError('Ch %s cannot be drawn.' % channel.name)
+                    raise exceptions.VisualizationError('Ch %s cannot be drawn.' % channel.name)
                 # scaling and offset
-                re = 0.5 * re + y0
-                im = 0.5 * im + y0
+                if scaling:
+                    v_max = 0.5 * scaling
+                else:
+                    v_max = 0.5 * 1.2 * v_max
+                re = v_max * re + y0
+                im = v_max * im + y0
                 offset = np.zeros_like(time) + y0
                 # plot
                 ax.fill_between(x=time, y1=re, y2=offset,

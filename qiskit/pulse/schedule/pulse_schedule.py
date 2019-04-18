@@ -157,3 +157,29 @@ class Schedule(ScheduleComponent):
                 yield from Schedule._flatten_generator(child, time + node.start_time)
         else:
             yield node.shifted(time)
+
+    def draw(self, device, dt=1, style=None, filename=None,
+             interp_method=None, channels_to_plot=None,
+             plot_all=False, plot_range=None, scaling=None,
+             interactive=False):
+        """Plot the interpolated envelope of pulse.
+
+        Args:
+            device (DeviceSpecification): Device information to organize channels.
+            dt (float): Time interval of samples.
+            filename (str): Name required to save pulse image.
+            interp_method (Callable): A function for interpolation.
+            style (dict): A style sheet to configure plot appearance.
+            channels_to_plot (list): A list of channel names to plot.
+            plot_all (bool): Plot empty channels.
+            plot_range (tuple): A tuple of time range to plot.
+            scaling (float): scaling of waveform amplitude.
+            interactive (bool): When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this).
+        """
+        from qiskit.visualization.pulse_visualization import pulse_drawer
+
+        return pulse_drawer(self, device=device, dt=dt, style=style, filename=filename,
+                            interp_method=interp_method, channels_to_plot=channels_to_plot,
+                            plot_all=plot_all, plot_range=plot_range, scaling=scaling,
+                            interactive=interactive)
