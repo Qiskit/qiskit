@@ -239,7 +239,6 @@ class TestGatesOnWireSlice(QiskitTestCase):
         init_vector = [0.5, 0.5, 0.5, 0.5]
         qreg01 = QuantumRegister(2)
         qreg23 = QuantumRegister(2)
-
         circuit = QuantumCircuit(qreg01, qreg23)
         circuit.initialize(init_vector, slice(1,3))
 
@@ -248,19 +247,21 @@ class TestGatesOnWireSlice(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
-#     # def test_circuit_conditional(self):
-#     #     """Test conditional on wires.
-#     #     """
-#     #     qreg = QuantumRegister(2)
-#     #     creg = ClassicalRegister(4)
-#     #     circuit = QuantumCircuit(qreg, creg)
-#     #     circuit.h(0).c_if(creg, 3)
-#     #
-#     #     expected = QuantumCircuit(qreg, creg)
-#     #     expected.h(qreg[0]).c_if(creg, 3)
-#     #
-#     #     self.assertEqual(circuit, expected)
-#     #
+    def test_circuit_conditional(self):
+        """Test conditional on wires.
+        """
+        qreg0 = QuantumRegister(2)
+        qreg1 = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        circuit = QuantumCircuit(qreg0, qreg1, creg)
+        circuit.h(slice(1,3)).c_if(creg, 3)
+
+        expected = QuantumCircuit(qreg0, qreg1, creg)
+        expected.h(qreg0[1]).c_if(creg, 3)
+        expected.h(qreg1[0]).c_if(creg, 3)
+
+        self.assertEqual(circuit, expected)
+
 #     # def test_circuit_qwire_out_of_range(self):
 #     #     """Fail if quantum wire is out of range.
 #     #     """
