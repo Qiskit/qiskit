@@ -183,7 +183,7 @@ class TestCompiler(QiskitTestCase):
                 [9, 8], [9, 10], [11, 3], [11, 10],
                 [11, 12], [12, 2], [13, 1], [13, 12]]
 
-        self.assertRaises(MapperError, transpile, qc,
+        self.assertRaises(TranspilerError, transpile, qc,
                           backend=None,
                           coupling_map=cmap,
                           basis_gates=['h'],
