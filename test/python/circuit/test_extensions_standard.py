@@ -135,6 +135,13 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [])
         self.assertEqual(qargs, [self.qr[0], self.qr[1], self.qr[2]])
 
+    def test_cswap_wires(self):
+        self.circuit.cswap(0, 1, 2)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'cswap')
+        self.assertEqual(op.params, [])
+        self.assertEqual(qargs, [self.qr[0], self.qr[1], self.qr[2]])
+
     def test_cswap_invalid(self):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.cswap, self.cr[0], self.cr[1], self.cr[2])
