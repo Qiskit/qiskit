@@ -157,9 +157,6 @@ class TestGatesOnWires(QiskitTestCase):
         circuit = QuantumCircuit(qreg, creg)
         self.assertRaises(QiskitError, circuit.measure, 1, 99)  # circuit.measure(1, 99)
 
-class TestGatesOnWireRange(QiskitTestCase):
-    """Test gates on wire range."""
-
     def test_circuit_initialize(self):
         """Test initialize on wires.
         """
@@ -173,6 +170,110 @@ class TestGatesOnWireRange(QiskitTestCase):
         expected.initialize(init_vector, [qreg01[0], qreg23[0]])
 
         self.assertEqual(circuit, expected)
+
+class TestGatesOnWireRange(QiskitTestCase):
+    """Test gates on wire range."""
+
+    def test_wire_range(self):
+        """Test gate wire range
+        """
+        qreg = QuantumRegister(4)
+        circuit = QuantumCircuit(qreg)
+        circuit.h(range(0, 2))
+
+        expected = QuantumCircuit(qreg)
+        expected.h(qreg[0:2])
+
+        self.assertEqual(circuit, expected)
+
+    def test_circuit_multi_qregs_h(self):
+        """Test circuit multi qregs in range of wires (H gate).
+        """
+        qreg0 = QuantumRegister(2)
+        qreg1 = QuantumRegister(2)
+        circuit = QuantumCircuit(qreg0, qreg1)
+        circuit.h(range(0, 3))
+
+        expected = QuantumCircuit(qreg0, qreg1)
+        expected.h(qreg0[0])
+        expected.h(qreg0[1])
+        expected.h(qreg1[0])
+
+        self.assertEqual(circuit, expected)
+
+    def test_circuit_multi_qreg_cregs_measure(self):
+        """Test circuit multi qregs in range of wires (measure).
+        """
+        qreg0 = QuantumRegister(2)
+        creg0 = ClassicalRegister(2)
+        qreg1 = QuantumRegister(2)
+        creg1 = ClassicalRegister(2)
+        circuit = QuantumCircuit(qreg0, qreg1, creg0, creg1)
+        circuit.measure(range(1,3), range(0,4,2))
+
+        expected = QuantumCircuit(qreg0, qreg1, creg0, creg1)
+        expected.measure(qreg0[1], creg0[0])
+        expected.measure(qreg1[0], creg1[0])
+
+        self.assertEqual(circuit, expected)
+
+    def test_circuit_barrier(self):
+        """Test barrier on range of wires with multi regs.
+        """
+        qreg01 = QuantumRegister(2)
+        qreg23 = QuantumRegister(2)
+        circuit = QuantumCircuit(qreg01, qreg23)
+        circuit.barrier(range(0,3))
+
+        expected = QuantumCircuit(qreg01, qreg23)
+        expected.barrier([qreg01[0], qreg01[1], qreg23[0]])
+
+        self.assertEqual(circuit, expected)
+
+    def test_circuit_initialize(self):
+        """Test initialize on wires.
+        """
+        init_vector = [0.5, 0.5, 0.5, 0.5]
+        qreg01 = QuantumRegister(2)
+        qreg23 = QuantumRegister(2)
+        circuit = QuantumCircuit(qreg01, qreg23)
+        circuit.initialize(init_vector, range(1,3))
+
+        expected = QuantumCircuit(qreg01, qreg23)
+        expected.initialize(init_vector, [qreg01[1], qreg23[0]])
+
+        self.assertEqual(circuit, expected)
+
+    def test_circuit_conditional(self):
+        """Test conditional on wires.
+        """
+        qreg0 = QuantumRegister(2)
+        qreg1 = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        circuit = QuantumCircuit(qreg0, qreg1, creg)
+        circuit.h(range(1,3)).c_if(creg, 3)
+
+        expected = QuantumCircuit(qreg0, qreg1, creg)
+        expected.h(qreg0[1]).c_if(creg, 3)
+        expected.h(qreg1[0]).c_if(creg, 3)
+
+        self.assertEqual(circuit, expected)
+
+    def test_circuit_qwire_out_of_range(self):
+        """Fail if quantum wire is out of range.
+        """
+        qreg = QuantumRegister(2)
+        circuit = QuantumCircuit(qreg)
+        self.assertRaises(QiskitError, circuit.h, range(9,99))  # circuit.h(range(9,99))
+
+    def test_circuit_cwire_out_of_range(self):
+        """Fail if classical wire is out of range.
+        """
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        circuit = QuantumCircuit(qreg, creg)
+        # circuit.measure(1, range(9,99))
+        self.assertRaises(QiskitError, circuit.measure, 1, range(9,99))
 
 class TestGatesOnWireSlice(QiskitTestCase):
     """Test gates on wire slice."""

@@ -37,9 +37,12 @@ def _convert_to_bits(a_list, bits):
                 raise QiskitError("The integer param is out of range")
         elif isinstance(item, list):
             new_list.append(_convert_to_bits(item, bits))
+        elif isinstance(item, range):
+            new_list.append(_convert_to_bits([index for index in item], bits))
         else:
             new_list.append(item)
     return new_list
+
 
 def _to_bits(nqbits, func=None):
     """Convert to [qu|cl]bits from integers, slices, ranges, etc"""
@@ -50,10 +53,12 @@ def _to_bits(nqbits, func=None):
     def wrapper(self, *args):
         qbits = [qbit for qreg in self.qregs for qbit in qreg]
         cbits = [cbit for creg in self.cregs for cbit in creg]
-        args = _convert_to_bits(args[:nqbits], qbits)+\
+        args = _convert_to_bits(args[:nqbits], qbits) + \
                _convert_to_bits(args[nqbits:], cbits)
         return func(self, *args)
+
     return wrapper
+
 
 def _op_expand(n_bits, func=None, broadcastable=None):
     """Decorator for expanding an operation across a whole register or register subset.
@@ -81,7 +86,7 @@ def _op_expand(n_bits, func=None, broadcastable=None):
         else:
             blist = broadcastable
 
-        if not all([ _is_bit(arg) for arg in rargs]):
+        if not all([_is_bit(arg) for arg in rargs]):
             rarg_size = [1] * n_bits
             for iarg, arg in enumerate(rargs):
                 if isinstance(arg, Register):
@@ -117,4 +122,5 @@ def _op_expand(n_bits, func=None, broadcastable=None):
                 else:
                     raise QiskitError('empty control or target argument')
         return func(self, *params, *rargs)
+
     return wrapper
