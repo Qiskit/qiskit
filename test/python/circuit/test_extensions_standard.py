@@ -88,6 +88,12 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.name, 'ch')
         self.assertEqual(qargs, [self.qr[0], self.qr[1]])
 
+    def test_ch_wires(self):
+        self.circuit.ch(0, 1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'ch')
+        self.assertEqual(qargs, [self.qr[0], self.qr[1]])
+
     def test_ch_invalid(self):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.ch, self.cr[0], self.cr[1])
