@@ -27,23 +27,32 @@ def _is_bit(obj):
     return False
 
 
-# Convert integers to [qu|cl]bits
-def _op_expand(n_qbits, func=None):
+def _convert_to_bits(a_list, bits):
+    new_list = []
+    for item in a_list:
+        if isinstance(item, int):
+            try:
+                new_list.append(bits[item])
+            except IndexError:
+                raise QiskitError("The integer param is out of range")
+        elif isinstance(item, list):
+            new_list.append(_convert_to_bits(item, bits))
+        else:
+            new_list.append(item)
+    return new_list
+
+def _to_bits(nqbits, func=None):
+    """Convert to [qu|cl]bits from integers, slices, ranges, etc"""
+    if func is None:
+        return functools.partial(_to_bits, nqbits)
+
     @functools.wraps(func)
     def wrapper(self, *args):
-        if any([isinstance(item, int) for item in rargs]):
-            flat_qbit_list = [qbit for qreg in self.qregs for qbit in qreg]
-            flat_cbit_list = [cbit for creg in self.cregs for cbit in creg]
-            for index, arg in enumerate(rargs):
-                if isinstance(arg, int):
-                    try:
-                        if n_qbits > index:
-                            rargs[index] = flat_qbit_list[arg]
-                        else:
-                            rargs[index] = flat_cbit_list[arg]
-                    except IndexError:
-                        raise QiskitError("The integer param is out of range")
-        return func(self, *params, *rargs)
+        qbits = [qbit for qreg in self.qregs for qbit in qreg]
+        cbits = [cbit for creg in self.cregs for cbit in creg]
+        args = _convert_to_bits(args[:nqbits], qbits)+\
+               _convert_to_bits(args[nqbits:], cbits)
+        return func(self, *args)
     return wrapper
 
 def _op_expand(n_bits, func=None, broadcastable=None):

@@ -17,7 +17,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Gate
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _convert_to_bits
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -236,6 +236,7 @@ def initialize(self, params, qubits):
     """Apply initialize to circuit."""
     # TODO: make initialize an Instruction, and insert reset
     # TODO: avoid explicit reset if compiler determines a |0> state
+    qubits = _convert_to_bits(qubits, [qbit for qreg in self.qregs for qbit in qreg])
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     return self.append(InitializeGate(params), qubits, [])
