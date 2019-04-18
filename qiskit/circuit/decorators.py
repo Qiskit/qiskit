@@ -44,17 +44,20 @@ def _convert_to_bits(a_list, bits):
     return new_list
 
 
-def _to_bits(nqbits, func=None):
+def _to_bits(nqbits, ncbits=0, func=None):
     """Convert to [qu|cl]bits from integers, slices, ranges, etc"""
     if func is None:
-        return functools.partial(_to_bits, nqbits)
+        return functools.partial(_to_bits, nqbits, ncbits)
 
     @functools.wraps(func)
     def wrapper(self, *args):
         qbits = [qbit for qreg in self.qregs for qbit in qreg]
         cbits = [cbit for creg in self.cregs for cbit in creg]
-        args = _convert_to_bits(args[:nqbits], qbits) + \
-               _convert_to_bits(args[nqbits:], cbits)
+        qb_args = args[-(nqbits+ncbits):] if ncbits == 0 else args[-(nqbits+ncbits):-ncbits]
+        cl_args = [] if ncbits == 0 else args[-ncbits:]
+        args = list(args[:-(nqbits+ncbits)]) + \
+               _convert_to_bits(qb_args, qbits) + \
+               _convert_to_bits(cl_args, cbits)
         return func(self, *args)
 
     return wrapper

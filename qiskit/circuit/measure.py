@@ -20,7 +20,7 @@ class Measure(Instruction):
         """Create new measurement instruction."""
         super().__init__("measure", 1, 1, [])
 
-@_to_bits(1)
+@_to_bits(1, 1)
 @_op_expand(2, broadcastable=[True, False])
 def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
