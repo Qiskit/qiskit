@@ -22,6 +22,8 @@ from qiskit.pulse import commands
 from qiskit.tools.visualization import exceptions
 from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched
 from qiskit.pulse import SamplePulse, Schedule, DeviceSpecification
+from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
+from qiskit.pulse.exceptions import PulseError
 
 
 try:
@@ -180,34 +182,52 @@ class EventsOutputChannels:
 
         return fc_t * (self.samples + pv_t)
 
-    def is_empty(self, time_range=None):
-        """Return if pulse is empty.
-        """
-        waveform = self.get_waveform()
+    def get_framechange(self, t0, tf):
+        """Get frame changes to draw symbols.
 
-        if time_range:
-            waveform = waveform[time_range[0]:time_range[1] + 1]
-        fc_pulses = self.trim(self.fc_pulses, time_range)
+        Args:
+            name: name of channel.
+            t0 (int): starting time of plot
+            tf (int): ending time of plot
+
+        Returns:
+            dict: dictionary of events in the channel.
+        """
+        return self.trim(self.fc_pulses, t0, tf)
+
+    def is_empty(self, t0, tf):
+        """Return if pulse is empty.
+
+        Args:
+            t0 (int): starting time of plot
+            tf (int): ending time of plot
+
+        Returns:
+            bool: if the channel has nothing to plot.
+        """
+        waveform = self.get_waveform()[t0:tf + 1]
+        fc_pulses = self.trim(self.fc_pulses, t0, tf)
 
         if any(waveform) or len(fc_pulses):
             return False
 
         return True
 
-    def to_table(self, name, time_range=None):
+    def to_table(self, name, t0, tf):
         """Get table contains.
 
         Args:
             name: name of channel.
-            time_range (tuple): start and ending time of schedule to plot.
+            t0 (int): starting time of plot
+            tf (int): ending time of plot
 
         Returns:
             dict: dictionary of events in the channel.
         """
         time_event = []
 
-        fc_pulses = self.trim(self.fc_pulses, time_range)
-        conditionals = self.trim(self.conditionals, time_range)
+        fc_pulses = self.trim(self.fc_pulses, t0, tf)
+        conditionals = self.trim(self.conditionals, t0, tf)
 
         for key, val in fc_pulses.items():
             data_str = 'FrameChange, %.2f' % val
@@ -219,22 +239,18 @@ class EventsOutputChannels:
         return time_event
 
     @staticmethod
-    def trim(events, time_range):
+    def trim(events, t0, tf):
         """Return events during given `time_range`.
 
         Args:
             events (dict): time and operation of events.
-            time_range (tuple): start and ending time of schedule to plot.
+            t0 (int): starting time of plot
+            tf (int): ending time of plot
 
         Returns:
             dict: dictionary of events within the time.
         """
-
-        if not time_range:
-            return events
-
         events_in_timerange = {}
-        t0, tf = time_range
 
         for k, v in events.items():
             if t0 <= k <= tf:
@@ -323,16 +339,21 @@ class ScheduleDrawer(PulseDrawer):
         """
         figure = plt.figure()
 
+        # get extra configs
+        prange = kwargs.get('plot_range')
+        channels_to_plot = kwargs.get('channels')
+        plot_all = kwargs.get('plot_all')
+
         # setup plot range
-        _prange = kwargs.get('plot_range')
-        if _prange:
-            prange = int(np.floor(_prange[0]/dt)), int(np.floor(_prange[1]/dt))
+        if prange:
+            t0 = int(np.floor(prange[0]/dt))
+            tf = int(np.floor(prange[1]/dt))
         else:
-            prange = None
+            t0 = 0
+            tf = pulse_obj.stop_time
 
         # prepare waveform channels
         channels = OrderedDict()
-        tf = pulse_obj.stop_time
         for q in self.device.q:
             channels[q.drive] = EventsOutputChannels(duration=tf)
             channels[q.control] = EventsOutputChannels(duration=tf)
@@ -342,237 +363,109 @@ class ScheduleDrawer(PulseDrawer):
         for instruction in pulse_obj.flat_instruction_sequence():
             channels[instruction.channel].add_instruction(instruction)
 
+        # count numbers of valid waveform
+        n_valid_waveform = 0
+        for channel, events in channels.items():
+            if not events.is_empty(t0, tf) or channel in channels_to_plot or plot_all:
+                n_valid_waveform += 1
+                events.enable = True
 
-
-class __PulseDrawer:
-    def __init__(self, style):
-        """Create new figure.
-
-        Args:
-            style (dict): A style sheet to configure plot appearance.
-        """
-        self.style = style
-
-        self.figure = plt.figure()
-
-    def draw_schedule(self, schedule, dt, interp_method,
-                      plot_empty=False, plot_channels=None,
-                      plot_range=None):
-        """Draw pulse schedules.
-
-        Args:
-            schedule (PulseSchedule): PulseSchedule to draw.
-            dt (float): Time interval of samples.
-            interp_method (str): A method of interpolation.
-            plot_empty (bool): Plot empty channels.
-            plot_channels (list): A list of channel names to plot.
-            plot_range (tuple): A tuple of time range to plot.
-        """
-        if plot_range:
-            t0 = int(np.floor(plot_range[0]/dt))
-            tf = int(np.floor(plot_range[1]/dt))
-            _times = t0, tf
-        else:
-            _times = None
-
-        # generate channels
-        regs = [
-            schedule.channels.drive,
-            schedule.channels.control,
-            schedule.channels.measure
-        ]
-        chs_dict = OrderedDict()
-        tf = schedule.end_time()
-        for chs in zip(*regs):
-            for ch in chs:
-                chs_dict[ch.name] = Channels(tf)
-
-        # add pulses
-        for pulse in schedule.flat_pulse_sequence():
-            chs_dict[pulse.channel.name].add_timedpulse(pulse)
-
-        # check active channels
+        # create table
         table_data = []
-        n_channels = 0
-        for name, channel in chs_dict.items():
-            table_data.extend(channel.to_table(name))
-            if not channel.is_empty(time_range=_times) or plot_empty:
-                if plot_channels:
-                    if name in plot_channels:
-                        channel.enable = True
-                        n_channels += 1
-                else:
-                    channel.enable = True
-                    n_channels += 1
-        table_data = sorted(table_data, key=lambda x: x[0])
+        if self.style.use_table:
+            for channel, events in channels.items():
+                table_data.extend(events.to_table(channel.name, (t0, tf)))
+            table_data = sorted(table_data, key=lambda x: x[0])
 
         # plot table
-        default = self.style['sched2d']
-        if default['use_table'] and len(table_data) > 0:
-            # height
-            ncols = default['table_cols']
+        if len(table_data) > 0:
+            # table area size
+            ncols = self.style.table_columns
             nrows = int(np.ceil(len(table_data)/ncols))
-            _th = nrows * default['table_row_height']
-            _ah = n_channels * default['pulse_row_height']
-            fig_h = _th + _ah
-            # object
-            gs = gridspec.GridSpec(2, 1, height_ratios=[_th, _ah], hspace=0)
-            tb = plt.subplot(gs[0])
-            tb.axis('off')
-            # generate table
-            _table_value = [
-                ['' for _kk in range(ncols*3)]
-                for _jj in range(nrows)
-            ]
-            _table_color = [
-                default['colors']['table'] * ncols
-                for _jj in range(nrows)
-            ]
-            _col_width = [
-                *([0.2, 0.2, 0.5] * ncols)
-            ]
-            for ii, item in enumerate(table_data):
-                _r, _c = np.unravel_index(ii, (nrows, ncols), order='f')
-                _t, _ch, _dstr = item
-                # time
-                _table_value[_r][3*_c+0] = 't = %s' % _t * dt
-                # channel
-                _table_value[_r][3*_c+1] = 'ch %s' % _ch
-                # description
-                _table_value[_r][3*_c+2] = _dstr
-            _table = tb.table(cellText=_table_value,
-                              cellLoc='left',
-                              rowLoc='center',
-                              colWidths=_col_width,
-                              bbox=[0, 0, 1, 1],
-                              cellColours=_table_color)
-            _table.auto_set_font_size(False)
-            _table.set_fontsize = default['table_font']
-            ax = plt.subplot(gs[1])
-        else:
-            # height
-            fig_h = n_channels * default['pulse_row_height']
-            # object
-            ax = self.figure.add_subplot(111)
-        self.figure.set_size_inches(default['fig_w'], fig_h)
-        ax.set_facecolor(self.style['bg_color'])
 
-        # plot waveforms
-        colors = self.style['sched2d']['colors']
+            # fig size
+            h_table = nrows * self.style.fig_unit_h_table
+            h_waves = n_valid_waveform * self.style.fig_unit_h_waveform
+            fig_h = h_table + h_waves
+
+            # create subplots
+            gs = gridspec.GridSpec(2, 1, height_ratios=[h_table, h_waves], hspace=0)
+            tb = plt.subplot(gs[0])
+            ax = plt.subplot(gs[1])
+
+            # configure each cell
+            tb.axis('off')
+            cell_value = [['' for _kk in range(ncols * 3)] for _jj in range(nrows)]
+            cell_color = [[self.style.table_color * ncols for _jj in range(nrows)]]
+            cell_width = [*([0.2, 0.2, 0.5] * ncols)]
+            for ii, data in enumerate(table_data):
+                r, c = np.unravel_index(ii, (nrows, ncols), order='f')
+                time, ch_name, data_str = data
+                # item
+                cell_value[r][3 * c + 0] = 't = %s' % time * dt
+                cell_value[r][3 * c + 1] = 'ch %s' % ch_name
+                cell_value[r][3 * c + 2] = data_str
+            table = tb.table(cellText=cell_value,
+                             cellLoc='left',
+                             rowLoc='center',
+                             colWidths=cell_width,
+                             bbox=[0, 0, 1, 1],
+                             cellColours=cell_color)
+            table.auto_set_font_size(False)
+            table.set_fontsize = self.style.table_font_size
+        else:
+            fig_h = n_valid_waveform * self.style.fig_unit_h_waveform
+            ax = figure.add_subplot(111)
+
+        figure.set_size_inches(self.style.fig_w, fig_h)
+        ax.set_facecolor = self.style.bg_color
 
         y0 = 0
-        for name, channel in chs_dict.items():
-            if channel.enable:
+        for channel, events in channels.items():
+            if events.enable:
                 # plot waveform
-                time, re, im = self.interp(channel.get_waveform(), dt, self.style['num_points'],
-                                           interp_method)
+                time, re, im = interp_method(events.get_waveform(), dt, self.style.num_points)
+                # choose color
+                if isinstance(channels, DriveChannel):
+                    color = self.style.d_ch_color
+                elif isinstance(channels, ControlChannel):
+                    color = self.style.u_ch_color
+                elif isinstance(channels, MeasureChannel):
+                    color = self.style.m_ch_color
+                else:
+                    raise PulseError('Ch %s cannot be drawn.' % channel.name)
+                # scaling and offset
                 re = 0.5 * re + y0
                 im = 0.5 * im + y0
                 offset = np.zeros_like(time) + y0
+                # plot
                 ax.fill_between(x=time, y1=re, y2=offset,
-                                facecolor=colors[name[0]][0], alpha=0.3,
-                                edgecolor=colors[name[0]][0], linewidth=1.5,
+                                facecolor=color[0], alpha=0.3,
+                                edgecolor=color[0], linewidth=1.5,
                                 label='real part')
                 ax.fill_between(x=time, y1=im, y2=offset,
-                                facecolor=colors[name[0]][1], alpha=0.3,
-                                edgecolor=colors[name[0]][1], linewidth=1.5,
+                                facecolor=color[1], alpha=0.3,
+                                edgecolor=color[1], linewidth=1.5,
                                 label='imaginary part')
-                ax.plot((time[0], time[1]), (0, 0), color='#000000', linewidth=1.0)
-                # plot fcs
-                if len(channel.fc_pulses) > 0:
-                    for time, val in channel.fc_pulses.items():
-                        if plot_range:
-                            if time > plot_range[1] or time < plot_range[0]:
-                                continue
+                ax.plot((t0, tf), (0, 0), color='#000000', linewidth=1.0)
+
+                # plot frame changes
+                fcs = events.get_framechange(t0, tf)
+                if len(fcs) > 0:
+                    for time, fc in fcs.items():
                         ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
-                                fontsize=default['label_font'], ha='center', va='center')
+                                fontsize=self.style.label_font_size,
+                                ha='center', va='center')
                 # plot label
-                ax.text(x=0, y=y0, s=name, fontsize=default['label_font'],
+                ax.text(x=0, y=y0, s=channel.name,
+                        fontsize=self.style.label_font_size,
                         ha='right', va='center')
             else:
                 continue
             y0 -= 1
 
-        if plot_range:
-            ax.set_xlim(plot_range)
-        else:
-            ax.set_xlim(0, schedule.end_time() * dt)
+        ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)
         ax.set_yticklabels([])
 
-        return self.figure
-
-    def draw_sample(self, pulse, dt, interp_method):
-        """Draw sample pulses.
-
-        Args:
-            pulse (SamplePulse): SamplePulse to draw.
-            dt (float): Time interval of samples.
-            interp_method (str): A method of interpolation.
-        """
-        self.figure.set_size_inches(self.style['sample']['fig_w'],
-                                    self.style['sample']['fig_h'])
-        ax = self.figure.add_subplot(111)
-        ax.set_facecolor(self.style['bg_color'])
-
-        samples = pulse.samples
-        time, re, im = self.interp(samples, dt, self.style['num_points'], interp_method)
-
-        # plot
-        colors = self.style['sample']['color']
-
-        ax.fill_between(x=time, y1=re, y2=np.zeros_like(time),
-                        facecolor=colors['real'], alpha=0.3,
-                        edgecolor=colors['real'], linewidth=1.5,
-                        label='real part')
-        ax.fill_between(x=time, y1=im, y2=np.zeros_like(time),
-                        facecolor=colors['imag'], alpha=0.3,
-                        edgecolor=colors['imag'], linewidth=1.5,
-                        label='imaginary part')
-
-        ax.set_xlim(0, len(samples) * dt)
-        ax.grid(b=True, linestyle='-')
-        ax.legend(bbox_to_anchor=(0.5, 1.00), loc='lower center',
-                  ncol=2, frameon=False, fontsize=14)
-
-        return self.figure
-
-    @staticmethod
-    def interp(samples, dt, nop, interp_method):
-        """Interpolate interval time.
-
-        Args:
-            samples (ndarray): A list of complex pulse envelope.
-            dt (float): Time interval of samples.
-            nop (int): Data points for interpolation.
-            interp_method (str): A method of interpolation.
-
-        Returns:
-            tuple: Timebase, real and imaginary part of pulse envelope.
-
-        Raises:
-            VisualizationError: when invalid interp method is specified.
-        """
-        re_y = np.real(samples)
-        im_y = np.imag(samples)
-
-        if interp_method == 'CubicSpline':
-            # spline interpolation, use mid-point of dt
-            time = (np.arange(0, len(samples) + 1) + 0.5) * dt
-            cs_ry = CubicSpline(time[:-1], re_y)
-            cs_iy = CubicSpline(time[:-1], im_y)
-
-            _time = np.linspace(0, len(samples) * dt, nop)
-            _re_y = cs_ry(_time)
-            _im_y = cs_iy(_time)
-        elif interp_method == 'None':
-            # pseudo-DAC output
-            time = np.arange(0, len(samples) + 1) * dt
-
-            _time = np.r_[time[0], np.repeat(time[1:-1], 2), time[-1]]
-            _re_y = np.repeat(re_y, 2)
-            _im_y = np.repeat(im_y, 2)
-        else:
-            raise exceptions.VisualizationError('Invalid interpolation method.')
-
-        return _time, _re_y, _im_y
+        return figure
