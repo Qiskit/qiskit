@@ -5,9 +5,11 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 """
-Look-up table for varaible parameters in QuantumCircuit to support fast
+Look-up table for varaible parameters in QuantumCircuit.
 """
 from collections import MutableMapping
+
+from .instruction import Instruction
 
 
 class VariableTable(MutableMapping):
@@ -27,11 +29,14 @@ class VariableTable(MutableMapping):
         """set the value of variable
 
         Args:
-            key (Object): the variable to set
+            key (sympy.Symbol): the variable to set
             value (Number or dict): numeric constant or dictionary of
                 (Symbol:value) pairs
         """
         if key not in self._table:
+            for instruction, param_index in value:
+                assert isinstance(instruction, Instruction)
+                assert isinstance(param_index, int)
             self._table[key] = value
         else:
             for (instr, param_index) in self._table[key]:

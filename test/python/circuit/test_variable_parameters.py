@@ -48,8 +48,9 @@ class TestVariableParameters(QiskitTestCase):
         rxg = RXGate(theta)
         qc.append(rxg, [qr[0]], [])
         vparams = qc.variable_table
+        self.assertEqual(len(vparams), 1)
         self.assertIs(theta, next(iter(vparams)))
-        self.assertIs(rxg, next(iter(next(iter(vparams[theta])))))
+        self.assertIs(rxg, vparams[theta][0][0])
 
     def test_fix_variable(self):
         """Test setting a varaible to a constant value"""
@@ -66,7 +67,7 @@ class TestVariableParameters(QiskitTestCase):
         self.assertEqual(qc.variable_table[theta][1][0].params[1], 0.6)
 
     def test_multiple_variables(self):
-        """Test setting a varaible to a constant value"""
+        """Test setting multiple variables"""
         theta = sympy.Symbol('θ')
         x = sympy.Symbol('x')
         qr = QuantumRegister(1)
@@ -151,3 +152,28 @@ class TestVariableParameters(QiskitTestCase):
             self.assertEqual(circs[index].data[0][0].params[0], ones)
             self.assertEqual(circs[index].data[1][0].params[0], ones + tens)
             self.assertEqual(circs[index].data[2][0].params[0], -ones)
+
+    def test_parameter_expression_through_composite_instructions(self):
+        """Test evaluation of parameters through instruction."""
+        x = sympy.Symbol('x')
+        y = sympy.Symbol('y')
+        qr1 = QuantumRegister(1, name='qr1')
+        qc1 = QuantumCircuit(qr1)
+        qc1.rx(x, qr1)
+        qc1.rz(x + y, qr1)
+        qc1.ry(-x, qr1)
+        gate = qc1.to_instruction()
+
+        qc = QuantumCircuit(qr1)
+        qc.append(gate, [qr1[0]], [])
+
+        circs = []
+        x_list = numpy.arange(0, 5)
+        y_list = numpy.arange(10, 51, 10)
+        for ones, tens in zip(x_list, y_list):
+            circs.append(qc.assign_variables({x: ones, y: tens}))
+
+        for index, (ones, tens) in enumerate(zip(x_list, y_list)):
+            self.assertEqual(circs[index].data[0][0].params[0], ones)
+            self.assertEqual(circs[index].data[0][0].params[1], ones + tens)
+            self.assertEqual(circs[index].data[0][0].params[2], -ones)
