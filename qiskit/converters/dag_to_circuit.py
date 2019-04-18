@@ -36,7 +36,7 @@ def dag_to_circuit(dag):
     name = dag.name or None
     circuit = QuantumCircuit(*qregs.values(), *cregs.values(), name=name)
 
-    for node in dag.nodes_in_topological_order():
+    for node in dag.topological_op_nodes():
         if node.type == 'op':
             qubits = []
             for qubit in node.qargs:

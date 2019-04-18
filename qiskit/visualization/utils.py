@@ -81,9 +81,8 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
         cregs += [(creg, bitno) for bitno in range(creg.size)]
 
     if justify == 'none':
-        for node in dag.nodes_in_topological_order():
-            if node.type == 'op':
-                ops.append([node])
+        for node in dag.topological_op_nodes():
+            ops.append([node])
 
     if justify == 'left':
         for dag_layer in dag.layers():

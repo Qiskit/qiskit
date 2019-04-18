@@ -25,6 +25,8 @@ from .commutation_analysis import CommutationAnalysis
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
 from .commutative_cancellation import CommutativeCancellation
 from .remove_reset_in_zero_state import RemoveResetInZeroState
+from .collect_2q_blocks import Collect2qBlocks
+from .consolidate_blocks import ConsolidateBlocks
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
 from .mapping.check_cnot_direction import CheckCnotDirection
