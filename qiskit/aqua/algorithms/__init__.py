@@ -20,7 +20,7 @@ from .adaptive import VQE, QAOA, QSVMVariational, QGAN
 from .classical import ExactEigensolver, ExactLPsolver, SVM_Classical
 from .many_sample import EOH, QSVMKernel
 from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, Simon, \
-    DeutschJozsa, BernsteinVazirani, HHL
+    DeutschJozsa, BernsteinVazirani, HHL, Shor
 
 
 __all__ = ['QuantumAlgorithm',
@@ -42,6 +42,26 @@ __all__ = ['QuantumAlgorithm',
            'BernsteinVazirani',
            'HHL'
            ]
+__all__ = [
+    'QuantumAlgorithm',
+    'VQE',
+    'QAOA',
+    'QSVMVariational',
+    'ExactEigensolver',
+    'ExactLPsolver',
+    'SVM_Classical',
+    'EOH',
+    'QSVMKernel',
+    'Grover',
+    'IQPE',
+    'QPE',
+    'AmplitudeEstimation',
+    'Simon',
+    'DeutschJozsa',
+    'BernsteinVazirani',
+    'HHL',
+    'Shor',
+]
 
 try:
     from .classical import CPLEX_Ising
