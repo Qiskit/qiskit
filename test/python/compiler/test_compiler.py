@@ -392,5 +392,6 @@ class TestCompiler(QiskitTestCase):
         qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, QasmQobj)
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
