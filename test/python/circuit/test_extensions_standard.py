@@ -31,6 +31,13 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.name, 'barrier')
         self.assertEqual(qargs, [self.qr[1]])
 
+    def test_barrier_wires(self):
+        self.circuit.barrier(1)
+        self.assertEqual(len(self.circuit), 1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'barrier')
+        self.assertEqual(qargs, [self.qr[1]])
+
     def test_barrier_invalid(self):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.barrier, self.cr[0])
@@ -56,6 +63,12 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_ccx(self):
         self.circuit.ccx(self.qr[0], self.qr[1], self.qr[2])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'ccx')
+        self.assertEqual(qargs, [self.qr[0], self.qr[1], self.qr[2]])
+
+    def test_ccx_wires(self):
+        self.circuit.ccx(0, 1, 2)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'ccx')
         self.assertEqual(qargs, [self.qr[0], self.qr[1], self.qr[2]])
