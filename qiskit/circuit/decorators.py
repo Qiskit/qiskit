@@ -63,9 +63,8 @@ def _to_bits(nqbits, func=None):
 def _op_expand(n_bits, func=None, broadcastable=None):
     """Decorator for expanding an operation across a whole register or register subset.
     Args:
-        n_qbits (int): the number of register qubit arguments the decorated function takes
+        n_bits (int): the number of register qubit arguments the decorated function takes
         func (function): used for decorators with keyword args
-        n_cbits (int): the number of register clbit arguments the decorated function takes
         broadcastable (list(bool)): list of bool for which register args can be
             broadcast from 1 bit to the max size of the rest of the args. Defaults
             to all True if not specified.
