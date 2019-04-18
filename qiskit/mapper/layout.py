@@ -6,11 +6,11 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-A two-ways dict that represent a layout.
+A two-ways dict to represent a layout.
 
 Layout is the relation between virtual (qu)bits and physical (qu)bits.
-Virtual (qu)bits are tuples (eg, `(QuantumRegister(3, 'qr'),2)`.
-Physical (qu)bits are numbers.
+Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
+Physical (qu)bits are integers.
 """
 import warnings
 
@@ -20,7 +20,7 @@ from qiskit.circuit.register import Register
 
 
 class Layout():
-    """ Two-ways dict to represent a Layout."""
+    """Two-ways dict to represent a Layout."""
 
     def __init__(self, input_=None):
         self._p2v = {}
@@ -42,12 +42,28 @@ class Layout():
     def from_dict(self, input_dict):
         """
         Populates a Layout from a dictionary.
+        The dictionary must be a bijective mapping between
+        virtual qubits (tuple) and physical qubits (int).
 
         Args:
-            input_dict (dict): For example,
-            {(QuantumRegister(3, 'qr'), 0): 0,
-             (QuantumRegister(3, 'qr'), 1): 1,
-             (QuantumRegister(3, 'qr'), 2): 2}
+            input_dict (dict):
+
+            e.g.:
+            virtual to physical:
+                {(QuantumRegister(3, 'qr'), 0): 0,
+                 (QuantumRegister(3, 'qr'), 1): 1,
+                 (QuantumRegister(3, 'qr'), 2): 2}
+
+            or shorter:
+                {qr[0]: 0,
+                 qr[1]: 1,
+                 qr[2]: 2}
+
+            physical to virtual:
+                {0: qr[0],
+                 1: qr[1],
+                 2: qr[2]
+                }
         """
 
         # TODO (luciano): Remove this full block after 0.8.
@@ -227,7 +243,7 @@ class Layout():
         return self._p2v
 
     def swap(self, left, right):
-        """ Swaps the map between left and right.
+        """Swaps the map between left and right.
         Args:
             left (tuple or int): Item to swap with right.
             right (tuple or int): Item to swap with left.
@@ -241,7 +257,7 @@ class Layout():
         self[right] = temp
 
     def combine_into_edge_map(self, another_layout):
-        """ Combines self and another_layout into an "edge map".
+        """Combines self and another_layout into an "edge map".
 
         For example::
 
