@@ -32,7 +32,6 @@ import numpy as np
 
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
@@ -44,18 +43,7 @@ class Kraus(QuantumChannel):
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a Kraus quantum channel operator."""
-        if issubclass(data.__class__, BaseOperator):
-            # If not a channel we use `to_operator` method to get
-            # the unitary-representation matrix for input
-            if not issubclass(data.__class__, QuantumChannel):
-                data = data.to_operator()
-            input_dim, output_dim = data.dim
-            kraus = _to_kraus(data.rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        elif isinstance(data, (list, tuple, np.ndarray)):
+        if isinstance(data, (list, tuple, np.ndarray)):
             # Check if it is a single unitary matrix A for channel:
             # E(rho) = A * rho * A^\dagger
             if isinstance(data, np.ndarray) or np.array(data).ndim == 2:
@@ -105,7 +93,14 @@ class Kraus(QuantumChannel):
             else:
                 raise QiskitError("Invalid input for Kraus channel.")
         else:
-            raise QiskitError("Invalid input data format for Krausß")
+            # Initialize from Qiskit objects
+            data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            kraus = _to_kraus(data.rep, data._data, input_dim, output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
 
         output_dim, input_dim = kraus[0][0].shape
         # Check and format input and output dimensions
