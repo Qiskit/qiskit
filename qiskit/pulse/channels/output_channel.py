@@ -108,9 +108,6 @@ class OutputChannel(Channel):
             return True
         return False
 
-    def __hash__(self):
-        return super().__hash__()
-
 
 class DriveChannel(OutputChannel):
     """Drive Channel."""
