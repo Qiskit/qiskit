@@ -127,35 +127,35 @@ class TestGatesOnWires(QiskitTestCase):
 
         self.assertEqual(circ, expected)
 
-    # def test_circuit_conditional(self):
-    #     """Test conditional on wires.
-    #     """
-    #     qreg = QuantumRegister(2)
-    #     creg = ClassicalRegister(4)
-    #     circ = QuantumCircuit(qreg, creg)
-    #     circ.h(0).c_if(creg, 3)
-    #
-    #     expected = QuantumCircuit(qreg, creg)
-    #     expected.h(qreg[0]).c_if(creg, 3)
-    #
-    #     self.assertEqual(circ, expected)
-    #
-    # def test_circuit_qwire_out_of_range(self):
-    #     """Fail if quantum wire is out of range.
-    #     """
-    #     qreg = QuantumRegister(2)
-    #
-    #     circ = QuantumCircuit(qreg)
-    #     self.assertRaises(QiskitError, circ.h, 99)  # circ.h(99)
-    #
-    # def test_circuit_cwire_out_of_range(self):
-    #     """Fail if classical wire is out of range.
-    #     """
-    #     qreg = QuantumRegister(2)
-    #     creg = ClassicalRegister(2)
-    #
-    #     circ = QuantumCircuit(qreg, creg)
-    #     self.assertRaises(QiskitError, circ.measure, 1, 99)  # circ.measure(1, 99)
+    def test_circuit_conditional(self):
+        """Test conditional on wires.
+        """
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(4)
+        circ = QuantumCircuit(qreg, creg)
+        circ.h(0).c_if(creg, 3)
+
+        expected = QuantumCircuit(qreg, creg)
+        expected.h(qreg[0]).c_if(creg, 3)
+
+        self.assertEqual(circ, expected)
+
+    def test_circuit_qwire_out_of_range(self):
+        """Fail if quantum wire is out of range.
+        """
+        qreg = QuantumRegister(2)
+
+        circ = QuantumCircuit(qreg)
+        self.assertRaises(QiskitError, circ.h, 99)  # circ.h(99)
+
+    def test_circuit_cwire_out_of_range(self):
+        """Fail if classical wire is out of range.
+        """
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+
+        circ = QuantumCircuit(qreg, creg)
+        self.assertRaises(QiskitError, circ.measure, 1, 99)  # circ.measure(1, 99)
 
 class TestGatesOnWireRange(QiskitTestCase):
     """Test gates on wire range."""
