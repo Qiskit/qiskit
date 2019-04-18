@@ -14,7 +14,7 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.cxbase import CXBase
 
 
@@ -42,7 +42,7 @@ class CnotGate(Gate):
         """Invert this gate."""
         return CnotGate()  # self-inverse
 
-
+@_to_bits(2)
 @_op_expand(2)
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""

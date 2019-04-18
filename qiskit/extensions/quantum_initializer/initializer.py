@@ -236,9 +236,10 @@ def initialize(self, params, qubits):
     """Apply initialize to circuit."""
     # TODO: make initialize an Instruction, and insert reset
     # TODO: avoid explicit reset if compiler determines a |0> state
-    qubits = _convert_to_bits(qubits, [qbit for qreg in self.qregs for qbit in qreg])
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
+    else:
+        qubits = _convert_to_bits(qubits, [qbit for qreg in self.qregs for qbit in qreg])
     return self.append(InitializeGate(params), qubits, [])
 
 
