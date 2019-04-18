@@ -30,7 +30,7 @@ def _is_bit(obj):
 def _convert_to_bits(a_list, bits):
     new_list = []
     for item in a_list:
-        if isinstance(item, int) or isinstance(item, slice):
+        if isinstance(item, (int, slice)):
             try:
                 new_list.append(bits[item])
             except IndexError:
