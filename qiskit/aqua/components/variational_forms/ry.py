@@ -35,7 +35,7 @@ class RY(VariationalForm):
                 'depth': {
                     'type': 'integer',
                     'default': 3,
-                    'minimum': 1
+                    'minimum': 0
                 },
                 'entanglement': {
                     'type': 'string',
