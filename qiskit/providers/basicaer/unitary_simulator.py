@@ -361,7 +361,7 @@ class UnitarySimulatorPy(BaseBackend):
             raise BasicAerError('Number of qubits {} '.format(n_qubits) +
                                 'is greater than maximum ({}) '.format(max_qubits) +
                                 'for "{}".'.format(self.name()))
-        if qobj.config.shots != 1:
+        if hasattr(qobj.config, 'shots') and qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.',
                         self.name())
             qobj.config.shots = 1

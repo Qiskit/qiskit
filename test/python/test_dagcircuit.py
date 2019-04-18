@@ -218,15 +218,15 @@ class TestDagOperations(QiskitTestCase):
             (self.qubit0, self.qubit2)}
         self.assertEqual(expected_qargs, node_qargs)
 
-    def test_nodes_in_topological_order(self):
-        """The node_nums_in_topological_order() method"""
+    def test_topological_nodes(self):
+        """The topological_nodes() method"""
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2], [])
         self.dag.apply_operation_back(HGate(), [self.qubit2], [])
 
-        named_nodes = self.dag.nodes_in_topological_order()
+        named_nodes = self.dag.topological_nodes()
 
         expected = [('qr[0]', []),
                     ('qr[1]', []),
@@ -243,6 +243,23 @@ class TestDagOperations(QiskitTestCase):
                     ('cr[0]', []),
                     ('cr[1]', []),
                     ('cr[1]', [])]
+        self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
+
+    def test_topological_op_nodes(self):
+        """The topological_op_nodes() method"""
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        named_nodes = self.dag.topological_op_nodes()
+
+        expected = [('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
+                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
+                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
+                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
+                    ('h', [(QuantumRegister(3, 'qr'), 2)])]
         self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
     def test_dag_nodes_on_wire(self):
@@ -285,7 +302,7 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(node_names, ['cx', 'h', 'cx'])
 
     def test_remove_op_node(self):
-        """ Test remove_op_node method."""
+        """Test remove_op_node method."""
         self.dag.apply_operation_back(HGate(), [self.qubit0])
 
         op_nodes = self.dag.gate_nodes()
@@ -295,38 +312,28 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(self.dag.gate_nodes()), 0)
 
     def test_remove_op_node_longer(self):
-        """ Test remove_op_node method in a "longer" dag"""
+        """Test remove_op_node method in a "longer" dag"""
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1])
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2])
         self.dag.apply_operation_back(HGate(), [self.qubit2])
 
-        named_nodes = [node for node in self.dag.nodes_in_topological_order()]
-        self.dag.remove_op_node(named_nodes[2])
+        op_nodes = [node for node in self.dag.topological_op_nodes()]
+        self.dag.remove_op_node(op_nodes[0])
 
-        expected = [('qr[0]', []),
-                    ('h', [self.qubit0]),
-                    ('qr[1]', []),
-                    ('qr[2]', []),
+        expected = [('h', [self.qubit0]),
                     ('cx', [self.qubit2, self.qubit1]),
                     ('cx', [self.qubit0, self.qubit2]),
-                    ('h', [self.qubit2]),
-                    ('qr[0]', []),
-                    ('qr[1]', []),
-                    ('qr[2]', []),
-                    ('cr[0]', []),
-                    ('cr[0]', []),
-                    ('cr[1]', []),
-                    ('cr[1]', [])]
+                    ('h', [self.qubit2])]
         self.assertEqual(expected,
-                         [(i.name, i.qargs) for i in self.dag.nodes_in_topological_order()])
+                         [(i.name, i.qargs) for i in self.dag.topological_op_nodes()])
 
     def test_remove_non_op_node(self):
-        """ Try to remove a non-op node with remove_op_node method."""
+        """Try to remove a non-op node with remove_op_node method."""
         self.dag.apply_operation_back(HGate(), [self.qubit0])
 
-        in_node = next(self.dag.nodes_in_topological_order())
+        in_node = next(self.dag.topological_nodes())
         self.assertRaises(DAGCircuitError, self.dag.remove_op_node, in_node)
 
 
