@@ -14,7 +14,6 @@ import numpy as np
 
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
-from qiskit.quantum_info.operators.pauli import Pauli
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
@@ -46,25 +45,16 @@ class Operator(BaseOperator):
         the input operator is not an N-qubit operator, it will assign a
         single subsystem with dimension specifed by the shape of the input.
         """
-        if hasattr(data, 'to_operator'):
+        if isinstance(data, (list, np.ndarray)):
+            # We initialize directly from operator matrix
+            mat = np.array(data, dtype=complex)
+        elif hasattr(data, 'to_operator'):
             data = data.to_operator()
             mat = data.data
             if input_dims is None:
                 input_dims = data.input_dims()
             if output_dims is None:
                 output_dims = data.output_dims()
-        elif isinstance(data, Pauli):
-            # TODO:
-            # This is a place holder until Pauli is modified to inherit
-            # from BaseOperator and have its own `to_operator` method
-            mat = data.to_matrix()
-            if input_dims is None:
-                input_dims = len(data) * [2]
-            if output_dims is None:
-                output_dims = len(data) * [2]
-        elif isinstance(data, (list, np.ndarray)):
-            # We initialize directly from operator matrix
-            mat = np.array(data, dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Operator")
         # Determine input and output dimensions

@@ -29,7 +29,6 @@ from numbers import Number
 import numpy as np
 
 from qiskit.qiskiterror import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.kraus import Kraus
@@ -43,19 +42,7 @@ class Stinespring(QuantumChannel):
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a Stinespring quantum channel operator."""
-        if issubclass(data.__class__, BaseOperator):
-            # If not a channel we use `to_operator` method to get
-            # the unitary-representation matrix for input
-            if not issubclass(data.__class__, QuantumChannel):
-                data = data.to_operator()
-            input_dim, output_dim = data.dim
-            stine = _to_stinespring(data.rep, data._data, input_dim,
-                                    output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        elif isinstance(data, (list, tuple, np.ndarray)):
+        if isinstance(data, (list, tuple, np.ndarray)):
             if not isinstance(data, tuple):
                 # Convert single Stinespring set to length 1 tuple
                 stine = (np.array(data, dtype=complex), None)
@@ -79,7 +66,15 @@ class Stinespring(QuantumChannel):
             if dim_left % output_dim != 0:
                 raise QiskitError("Invalid output_dim")
         else:
-            raise QiskitError("Invalid input data format for Stinespring")
+            # Initialize from Qiskit objects
+            data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            stine = _to_stinespring(data.rep, data._data, input_dim,
+                                    output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
 
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
