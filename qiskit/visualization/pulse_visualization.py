@@ -117,7 +117,7 @@ def op_default():
     }
 
 
-class OutputChannels:
+class EventsOutputChannels:
     """Pulse dataset for channel."""
 
     def __init__(self, duration):
@@ -130,6 +130,7 @@ class OutputChannels:
         self.samples = np.zeros(duration + 1, dtype=np.complex128)
         self.fc_pulses = {}
         self.pv_pulses = {}
+        self.conditionals = {}
 
         self.all_events = set()
 
@@ -169,8 +170,13 @@ class OutputChannels:
 
         # sort pv by time index
         pvs = sorted(self.pv_pulses.items(), key=lambda x: x[0])
+        _all_events = np.array(list(self.all_events))
         for t0, val in pvs:
-            pv_t[t0:] = val
+            next_ts = _all_events[_all_events >= t0]
+            if len(next_ts):
+                pv_t[t0:min(next_ts)] = val
+            else:
+                pv_t[t0:] = val
 
         return fc_t * (self.samples + pv_t)
 
@@ -180,36 +186,61 @@ class OutputChannels:
         waveform = self.get_waveform()
 
         if time_range:
-            t0, tf = time_range
-            _fc_times = np.array(list(self.fc_pulses.keys()))
-            if any(waveform[t0:tf + 1]):
-                return False
-            elif any(_fc_times) and any(t0 <= _fc_times <= tf):
-                return False
-            else:
-                return True
-        else:
-            if any(waveform) or len(self.fc_pulses) > 0:
-                return False
-            else:
-                return True
+            waveform = waveform[time_range[0]:time_range[1] + 1]
+        fc_pulses = self.trim(self.fc_pulses, time_range)
 
-    def to_table(self, name):
+        if any(waveform) or len(fc_pulses):
+            return False
+
+        return True
+
+    def to_table(self, name, time_range=None):
         """Get table contains.
 
         Args:
             name: name of channel.
+            time_range (tuple): start and ending time of schedule to plot.
+
+        Returns:
+            dict: dictionary of events in the channel.
         """
         time_event = []
 
-        for key, val in self.fc_pulses.items():
+        fc_pulses = self.trim(self.fc_pulses, time_range)
+        conditionals = self.trim(self.conditionals, time_range)
+
+        for key, val in fc_pulses.items():
             data_str = 'FrameChange, %.2f' % val
             time_event.append((key, name, data_str))
-        for key, val in self.conditionals.items():
+        for key, val in conditionals.items():
             data_str = 'Conditional, %s' % val
             time_event.append((key, name, data_str))
 
         return time_event
+
+    @staticmethod
+    def trim(events, time_range):
+        """Return events during given `time_range`.
+
+        Args:
+            events (dict): time and operation of events.
+            time_range (tuple): start and ending time of schedule to plot.
+
+        Returns:
+            dict: dictionary of events within the time.
+        """
+
+        if not time_range:
+            return events
+
+        events_in_timerange = {}
+        t0, tf = time_range
+
+        for k, v in events.items():
+            if t0 <= k <= tf:
+                events_in_timerange[k] = v
+
+        return events_in_timerange
 
 
 class PulseDrawer(metaclass=ABCMeta):
@@ -303,9 +334,9 @@ class ScheduleDrawer(PulseDrawer):
         channels = OrderedDict()
         tf = pulse_obj.stop_time
         for q in self.device.q:
-            channels[q.drive] = OutputChannels(duration=tf)
-            channels[q.control] = OutputChannels(duration=tf)
-            channels[q.measure] = OutputChannels(duration=tf)
+            channels[q.drive] = EventsOutputChannels(duration=tf)
+            channels[q.control] = EventsOutputChannels(duration=tf)
+            channels[q.measure] = EventsOutputChannels(duration=tf)
 
         # add instructions
         for instruction in pulse_obj.flat_instruction_sequence():
