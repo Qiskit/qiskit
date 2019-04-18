@@ -26,7 +26,27 @@ def _is_bit(obj):
             return True
     return False
 
-def _op_expand(n_qbits, func=None, n_cbits=0, broadcastable=None):
+
+# Convert integers to [qu|cl]bits
+def _op_expand(n_qbits, func=None):
+    @functools.wraps(func)
+    def wrapper(self, *args):
+        if any([isinstance(item, int) for item in rargs]):
+            flat_qbit_list = [qbit for qreg in self.qregs for qbit in qreg]
+            flat_cbit_list = [cbit for creg in self.cregs for cbit in creg]
+            for index, arg in enumerate(rargs):
+                if isinstance(arg, int):
+                    try:
+                        if n_qbits > index:
+                            rargs[index] = flat_qbit_list[arg]
+                        else:
+                            rargs[index] = flat_cbit_list[arg]
+                    except IndexError:
+                        raise QiskitError("The integer param is out of range")
+        return func(self, *params, *rargs)
+    return wrapper
+
+def _op_expand(n_bits, func=None, broadcastable=None):
     """Decorator for expanding an operation across a whole register or register subset.
     Args:
         n_qbits (int): the number of register qubit arguments the decorated function takes
@@ -40,28 +60,12 @@ def _op_expand(n_qbits, func=None, n_cbits=0, broadcastable=None):
         type: partial function object
     """
     if func is None:
-        return functools.partial(_op_expand, n_qbits, n_cbits=n_cbits, broadcastable=broadcastable)
+        return functools.partial(_op_expand, n_bits, broadcastable=broadcastable)
 
     @functools.wraps(func)
     def wrapper(self, *args):
-        n_bits = n_qbits + n_cbits
         params = args[0:-n_bits] if len(args) > n_bits else tuple()
         rargs = list(args[-n_bits:])
-
-        # Convert items to [qu|cl]bits
-        if any([isinstance(item, int) for item in rargs]):
-            rqargs = rargs[:n_qbits]
-            rcargs = [] if n_cbits ==0 else rargs[-n_cbits:]
-            flat_qbit_list = [qbit for qreg in self.qregs for qbit in qreg]
-            flat_cbit_list = [cbit for creg in self.cregs for cbit in creg]
-            try:
-                for index, qarg in enumerate(rqargs):
-                    rqargs[index] = flat_qbit_list[qarg]
-                for index, carg in enumerate(rcargs):
-                    rcargs[index] = flat_cbit_list[carg]
-            except IndexError:
-                raise QiskitError("The integer param is out of range")
-            rargs = rqargs+rcargs
 
         if broadcastable is None:
             blist = [True] * len(rargs)

@@ -17,6 +17,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Gate
+from qiskit.circuit.decorators import _op_expand
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -230,7 +231,6 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         circuit.append(CnotGate(), [msb, lsb])
 
         return circuit
-
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""

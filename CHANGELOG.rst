@@ -78,6 +78,10 @@ Added
   rotations about the Z axis, leveraging previously-found gate commutation relations.
 - Gates and instructions in a circuit accept integers as parameters to refer to
   wires instead of named bits.
+- Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
+  of gates (blocks) acting on 2 qubits.
+- Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
+  into equivalent Unitary operators in the circuit.
 
 Changed
 -------
