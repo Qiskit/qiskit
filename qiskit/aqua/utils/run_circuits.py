@@ -31,7 +31,9 @@ from qiskit.providers.basicaer import BasicAerJob
 from qiskit.aqua.aqua_error import AquaError
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
-                                             is_simulator_backend, is_ibmq_provider,
+                                             is_basicaer_provider,
+                                             is_ibmq_provider,
+                                             is_simulator_backend,
                                              is_local_backend)
 
 MAX_CIRCUITS_PER_JOB = os.environ.get('QISKIT_AQUA_MAX_CIRCUITS_PER_JOB', None)
@@ -400,25 +402,24 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
 def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_qobj_validation=False):
     if skip_qobj_validation:
         job_id = str(uuid.uuid4())
-        if is_simulator_backend(backend):
-            if is_aer_provider(backend):
-                from qiskit.providers.aer.aerjob import AerJob
-                temp_backend_options = backend_options['backend_options'] if backend_options != {} else None
-                temp_noise_config = noise_config['noise_model'] if noise_config != {} else None
-                job = AerJob(backend, job_id, backend._run_job, qobj, temp_backend_options, temp_noise_config, False)
-                job._future = job._executor.submit(job._fn, job._job_id, job._qobj, *job._args)
-            else:
-                backend._set_options(qobj_config=qobj.config, **backend_options)
-                job = BasicAerJob(backend, job_id, backend._run_job, qobj)
-                job._future = job._executor.submit(job._fn, job._job_id, job._qobj)
+        if is_aer_provider(backend):
+            from qiskit.providers.aer.aerjob import AerJob
+            temp_backend_options = backend_options['backend_options'] if backend_options != {} else None
+            temp_noise_config = noise_config['noise_model'] if noise_config != {} else None
+            job = AerJob(backend, job_id, backend._run_job, qobj, temp_backend_options, temp_noise_config, False)
+            job._future = job._executor.submit(job._fn, job._job_id, job._qobj, *job._args)
+        elif is_basicaer_provider(backend):
+            backend._set_options(qobj_config=qobj.config, **backend_options)
+            job = BasicAerJob(backend, job_id, backend._run_job, qobj)
+            job._future = job._executor.submit(job._fn, job._job_id, job._qobj)
         elif is_ibmq_provider(backend):
-            # TODO: IBMQJob performs validation during the constructor. the following lines deos not
+            # TODO: IBMQJob performs validation during the constructor. the following lines does not
             # skip validation but run as is.
             from qiskit.providers.ibmq.ibmqjob import IBMQJob
-            job = IBMQJob(backend, None, backend._api, not is_simulator_backend(backend), qobj=qobj)
-            job._future = job._executor.submit(job._fn, job._job_id, job._qobj)
+            job = IBMQJob(backend, None, backend._api, qobj=qobj)
+            job._future = job._executor.submit(job._submit_callback)
         else:
-            logger.info("Can not skip qobj validation for the third-party provider.")
+            logger.info("Can't skip qobj validation for the third-party provider.")
             job = backend.run(qobj, **backend_options, **noise_config)
         return job
     else:
