@@ -16,6 +16,7 @@
 
 from .unroller import Unroller
 from .cx_cancellation import CXCancellation
+from .optimize_phase_shift_gates import OptimizePhaseShiftGates
 from .fixed_point import FixedPoint
 from .resource_estimation import ResourceEstimation
 from .depth import Depth
