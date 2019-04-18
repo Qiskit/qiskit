@@ -78,7 +78,7 @@ def _op_expand(n_bits, func=None, broadcastable=None):
     @functools.wraps(func)
     def wrapper(self, *args):
         params = args[0:-n_bits] if len(args) > n_bits else tuple()
-        rargs = list(args[-n_bits:])
+        rargs = args[-n_bits:]
 
         if broadcastable is None:
             blist = [True] * len(rargs)
