@@ -40,7 +40,7 @@ class MergeAdjacentBarriers(TransformationPass):
 
         # sorted to so that they are in the order they appear in the DAG
         # so ancestors/descendants makes sense
-        barriers = [nd for nd in dag.nodes_in_topological_order() if nd.name == 'barrier']
+        barriers = [nd for nd in dag.topological_op_nodes() if nd.name == 'barrier']
 
         # get dict of barrier merges
         node_to_barrier_qubits = MergeAdjacentBarriers._collect_potential_merges(dag, barriers)
@@ -57,21 +57,19 @@ class MergeAdjacentBarriers(TransformationPass):
             new_dag.add_creg(creg)
 
         # go over current nodes, and add them to the new dag
-        for node in dag.nodes_in_topological_order():
-
-            if node.type == 'op':
-                if node.name == 'barrier':
-                    if node in node_to_barrier_qubits:
-                        qubits = node_to_barrier_qubits[node]
-                        # qubits are stored as a set, need to convert to a list
-                        new_dag.apply_operation_back(Barrier(len(qubits)), qargs=list(qubits))
+        for node in dag.topological_op_nodes():
+            if node.name == 'barrier':
+                if node in node_to_barrier_qubits:
+                    qubits = node_to_barrier_qubits[node]
+                    # qubits are stored as a set, need to convert to a list
+                    new_dag.apply_operation_back(Barrier(len(qubits)), qargs=list(qubits))
+            else:
+                # copy the condition over too
+                if node.condition:
+                    new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs,
+                                                 condition=node.condition)
                 else:
-                    # copy the condition over too
-                    if node.condition:
-                        new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs,
-                                                     condition=node.condition)
-                    else:
-                        new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
+                    new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
         return new_dag
 
     @staticmethod
