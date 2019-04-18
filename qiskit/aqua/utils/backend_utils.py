@@ -19,6 +19,7 @@ from collections import OrderedDict
 import importlib
 import logging
 from qiskit.providers import BaseBackend
+from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.aqua import Preferences
 
 logger = logging.getLogger(__name__)
@@ -54,10 +55,35 @@ def is_aer_provider(backend):
     Args:
         backend (BaseBackend): backend instance
     Returns:
-        bool: True is statevector
+        bool: True is AerProvider
     """
     if has_aer():
         return isinstance(backend.provider(), AerProvider)
+    else:
+        return False
+
+
+def is_basicaer_provider(backend):
+    """Detect whether or not backend is from BasicAer provider.
+
+    Args:
+        backend (BaseBackend): backend instance
+    Returns:
+        bool: True is BasicAer
+    """
+    return isinstance(backend.provider(), BasicAerProvider)
+
+
+def is_ibmq_provider(backend):
+    """Detect whether or not backend is from IBMQ provider.
+
+    Args:
+        backend (BaseBackend): backend instance
+    Returns:
+        bool: True is IBMQ
+    """
+    if has_ibmq():
+        return isinstance(backend.provider(), IBMQProvider)
     else:
         return False
 
@@ -108,20 +134,6 @@ def is_local_backend(backend):
         bool: True is a local backend
     """
     return backend.configuration().local
-
-
-def is_ibmq_provider(backend):
-    """Detect whether or not backend is from IBMQ provider.
-
-    Args:
-        backend (BaseBackend): backend instance
-    Returns:
-        bool: True is statevector
-    """
-    if has_ibmq():
-        return isinstance(backend.provider(), IBMQProvider)
-    else:
-        return False
 
 
 def get_aer_backend(backend_name):
