@@ -95,19 +95,6 @@ class OutputChannel(Channel):
         """Get the acceptable LO range."""
         return self._lo_freq_range
 
-    def __eq__(self, other):
-        """Two output channels are the same if they are of the same type and index.
-
-        Args:
-            other (OutputChannel): other OutputChannel
-
-        Returns:
-            bool: are self and other equal.
-        """
-        if (type(self) is type(other) and self._index == other._index):
-            return True
-        return False
-
 
 class DriveChannel(OutputChannel):
     """Drive Channel."""
