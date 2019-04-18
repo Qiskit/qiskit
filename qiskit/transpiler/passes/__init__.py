@@ -17,12 +17,16 @@ from .width import Width
 from .count_ops import CountOps
 from .num_tensor_factors import NumTensorFactors
 from .dag_fixed_point import DAGFixedPoint
+from .merge_adjacent_barriers import MergeAdjacentBarriers
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
 from .unroll_3q_or_more import Unroll3qOrMore
 from .commutation_analysis import CommutationAnalysis
 from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
 from .commutative_cancellation import CommutativeCancellation
+from .remove_reset_in_zero_state import RemoveResetInZeroState
+from .collect_2q_blocks import Collect2qBlocks
+from .consolidate_blocks import ConsolidateBlocks
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
 from .mapping.check_cnot_direction import CheckCnotDirection

@@ -37,7 +37,7 @@ def transpile(circuits, transpile_config=None):
         initial_layout = Layout(initial_layout)
 
     pass_manager = None
-    backend = transpile_config.backend
+    backend = getattr(transpile_config, 'backend', None)
     new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
                                         initial_layout, seed_mapper, pass_manager)
     # ---------
