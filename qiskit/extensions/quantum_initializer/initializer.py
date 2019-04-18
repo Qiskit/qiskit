@@ -239,7 +239,7 @@ def initialize(self, params, qubits):
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     else:
-        qubits = _convert_to_bits(qubits, [qbit for qreg in self.qregs for qbit in qreg])
+        qubits = _convert_to_bits([qubits], [qbit for qreg in self.qregs for qbit in qreg])[0]
     return self.append(InitializeGate(params), qubits, [])
 
 
