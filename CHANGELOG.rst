@@ -66,16 +66,26 @@ Added
   (reverses its sub-instructions) (#1816).
 - Added an ``PassManager.passes()`` method that returns a list of the passes that
   have been added to the pass manager, including options and flow controllers.
+- Added a ``PassManager.run()`` that transforms a ``QuantumCircuit`` according to its
+  pass schedule and returns a ``QuantumCircuit``.
+- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc.
+- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits.
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
   are followed by a measurement instruction, moving the latter to the proper wire.
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
   rotations about the Z axis, leveraging previously-found gate commutation relations.
+- Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
+  of gates (blocks) acting on 2 qubits.
+- Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
+  into equivalent Unitary operators in the circuit.
+- Added support for parameterized circuits. (#2103)
 
 Changed
 -------
 
+- Backend defaults values are no longer required (#2101).
 - QuantumCircuit properties more self-consistent and no longer need DAG (#1993).
 - The most connected subset in DenseLayout is now reduced bandwidth (#2021).
 - plot_histogram now allows sorting by Hamming distance from target_string (#2064).

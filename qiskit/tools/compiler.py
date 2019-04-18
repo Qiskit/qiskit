@@ -9,7 +9,8 @@
 import warnings
 import logging
 
-from qiskit.compiler import assemble_circuits, RunConfig
+from qiskit.compiler.assembler import assemble_circuits
+from qiskit.compiler.run_config import RunConfig
 from qiskit import transpiler
 
 logger = logging.getLogger(__name__)
