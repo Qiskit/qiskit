@@ -262,19 +262,18 @@ class TestGatesOnWireSlice(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
-#     # def test_circuit_qwire_out_of_range(self):
-#     #     """Fail if quantum wire is out of range.
-#     #     """
-#     #     qreg = QuantumRegister(2)
-#     #
-#     #     circuit = QuantumCircuit(qreg)
-#     #     self.assertRaises(QiskitError, circuit.h, 99)  # circuit.h(99)
-#     #
-#     # def test_circuit_cwire_out_of_range(self):
-#     #     """Fail if classical wire is out of range.
-#     #     """
-#     #     qreg = QuantumRegister(2)
-#     #     creg = ClassicalRegister(2)
-#     #
-#     #     circuit = QuantumCircuit(qreg, creg)
-#     #     self.assertRaises(QiskitError, circuit.measure, 1, 99)  # circuit.measure(1, 99)
+    def test_circuit_qwire_out_of_range(self):
+        """Fail if quantum wire is out of range.
+        """
+        qreg = QuantumRegister(2)
+        circuit = QuantumCircuit(qreg)
+        self.assertRaises(QiskitError, circuit.h, slice(9,99))  # circuit.h(slice(9,99))
+
+    def test_circuit_cwire_out_of_range(self):
+        """Fail if classical wire is out of range.
+        """
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        circuit = QuantumCircuit(qreg, creg)
+        # circuit.measure(1, slice(9,99))
+        self.assertRaises(QiskitError, circuit.measure, 1, slice(9,99))
