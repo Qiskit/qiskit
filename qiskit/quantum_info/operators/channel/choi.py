@@ -27,7 +27,6 @@ from numbers import Number
 import numpy as np
 
 from qiskit.qiskiterror import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
@@ -39,18 +38,9 @@ class Choi(QuantumChannel):
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a Choi quantum channel operator."""
-        if issubclass(data.__class__, BaseOperator):
-            # If not a channel we use `to_operator` method to get
-            # the unitary-representation matrix for input
-            if not issubclass(data.__class__, QuantumChannel):
-                data = data.to_operator()
-            input_dim, output_dim = data.dim
-            choi_mat = _to_choi(data.rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        elif isinstance(data, (list, np.ndarray)):
+
+        if isinstance(data, (list, np.ndarray)):
+            # Initialize from raw numpy or list matrix.
             choi_mat = np.array(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = choi_mat.shape
@@ -71,7 +61,14 @@ class Choi(QuantumChannel):
             if input_dim * output_dim != dim_l:
                 raise QiskitError("Invalid shape for input Choi-matrix.")
         else:
-            raise QiskitError("Invalid input data format for Choi")
+            # Initialize from Qiskit objects
+            data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            choi_mat = _to_choi(data.rep, data._data, input_dim, output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)

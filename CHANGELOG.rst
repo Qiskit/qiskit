@@ -23,6 +23,9 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+- Added QuantumChannel classes SuperOp, Choi, Kraus, Stinespring, PTM, Chi to
+  quantum_info for manipulating quantum channels and CPTP maps.
+- Added Operator object to quantum_info for representing matrix operators.
 - Introduced the backend defaults model and endpoint for pulse backends (#2101).
 - `meas_level` to result schema (#2085).
 - Core StochasticSwap routine implemented in Cython (#1789).
@@ -87,6 +90,8 @@ Added
 Changed
 -------
 
+- two_qubit_kak decomposition works with Operator or raw matrix input objects.
+- process_fidelity works with QuantumChannel and Operator object inputs.
 - Backend defaults values are no longer required (#2101).
 - QuantumCircuit properties more self-consistent and no longer need DAG (#1993).
 - The most connected subset in DenseLayout is now reduced bandwidth (#2021).
