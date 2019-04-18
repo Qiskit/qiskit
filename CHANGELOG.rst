@@ -22,7 +22,7 @@ The format is based on `Keep a Changelog`_.
 
 Added
 -----
-
+- Introduced schedule lo configuration. (#2115)
 - Introduced pulse schedule assembler. (#2115)
 - Introduced the backend defaults model and endpoint for pulse backends (#2101).
 - `meas_level` to result schema (#2085).
