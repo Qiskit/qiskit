@@ -26,7 +26,6 @@ from numbers import Number
 import numpy as np
 
 from qiskit.qiskiterror import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.choi import Choi
 from qiskit.quantum_info.operators.channel.superop import SuperOp
@@ -41,23 +40,13 @@ class Chi(QuantumChannel):
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a Chi quantum channel operator."""
-        if issubclass(data.__class__, BaseOperator):
-            # If not a channel we use `to_operator` method to get
-            # the unitary-representation matrix for input
-            if not issubclass(data.__class__, QuantumChannel):
-                data = data.to_operator()
-            input_dim, output_dim = data.dim
-            chi_mat = _to_chi(data.rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        elif isinstance(data, (list, np.ndarray)):
+        if isinstance(data, (list, np.ndarray)):
+            # Initialize from raw numpy or list matrix.
             chi_mat = np.array(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = chi_mat.shape
             if dim_l != dim_r:
-                raise QiskitError('Invalid Choi-matrix input.')
+                raise QiskitError('Invalid Chi-matrix input.')
             if input_dims:
                 input_dim = np.product(input_dims)
             if output_dims:
@@ -73,8 +62,15 @@ class Chi(QuantumChannel):
             if input_dim * output_dim != dim_l:
                 raise QiskitError("Invalid shape for Chi-matrix input.")
         else:
-            raise QiskitError("Invalid input data format for Chi")
-
+            # Initialize from Qiskit objects
+            data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            chi_mat = _to_chi(data.rep, data._data, input_dim, output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
+        # Check input is N-qubit channel
         nqubits = int(np.log2(input_dim))
         if 2**nqubits != input_dim:
             raise QiskitError("Input is not an n-qubit Chi matrix.")
