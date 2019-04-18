@@ -30,13 +30,16 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 class TestUCG(QiskitTestCase):
     """Qiskit isometry tests."""
     def test_isometry(self):
-        for iso in [np.eye(4, 4), unitary_group.rvs(4)[:, 0:2], np.eye(4, 4)[:, 0:2], unitary_group.rvs(4),
+        for iso in [np.eye(4, 4), unitary_group.rvs(4)[:, 0], np.eye(4, 4)[:, 0:2], unitary_group.rvs(4),
                     np.eye(4, 4)[:, np.random.permutation(np.eye(4, 4).shape[1])][:, 0:2],
                     np.eye(8, 8)[:, np.random.permutation(np.eye(8, 8).shape[1])],
                     unitary_group.rvs(8)[:, 0:4], unitary_group.rvs(8), unitary_group.rvs(16),
                     unitary_group.rvs(16)[:, 0:8]]:
             with self.subTest(iso=iso):
-                num_q_input = int(np.log2(iso.shape[1]))
+                if len(iso.shape) == 1:
+                    num_q_input = 0
+                else:
+                    num_q_input = int(np.log2(iso.shape[1]))
                 num_q_ancilla_for_output = int(np.log2(iso.shape[0])) - num_q_input
                 n = num_q_input + num_q_ancilla_for_output
                 q = QuantumRegister(n)
@@ -74,7 +77,10 @@ def _prepare_basis_state(q, i):
 
 
 def _apply_isometry_to_basis_state(iso, basis_state):
-    return iso[:, basis_state]
+    if len(iso.shape) == 1:
+        return iso.reshape(iso.shape[0], 1)[:, basis_state]
+    else:
+        return iso[:, basis_state]
 
 
 def _get_binary_rep_as_list(n, num_digits):

@@ -53,6 +53,9 @@ class Isometry(Gate):
     def __init__(self, isometry, num_ancillas_zero, num_ancillas_dirty):
         self. num_ancillas_zero = num_ancillas_zero
         self. num_ancillas_dirty = num_ancillas_dirty
+        # change a row vector to a column vector (in the case of state preparation)
+        if len(isometry.shape) == 1:
+            isometry = isometry.reshape(isometry.shape[0], 1)
         # Check if the isometry has the right dimension and if the columns are orthonormal
         n = np.log2(isometry.shape[0])
         m = np.log2(isometry.shape[1])
@@ -489,6 +492,10 @@ def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=[], q_an
         q_ancillas_zero = q_ancillas_zero[:]
     if isinstance(q_ancillas_dirty, QuantumRegister):
             q_ancillas_dirty = q_ancillas_dirty[:]
+
+    # change a row vector to a column vector (in the case of state preparation)
+    if len(isometry.shape) == 1:
+        isometry = isometry.reshape(isometry.shape[0], 1)
 
     # Check if q_input and q_ancillas_for_output have type "list"
     if not type(q_input) == list:
