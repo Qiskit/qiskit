@@ -83,6 +83,7 @@ Added
   of gates (blocks) acting on 2 qubits.
 - Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
   into equivalent Unitary operators in the circuit.
+- Added support for parameterized circuits. (#2103)
 
 Changed
 -------
