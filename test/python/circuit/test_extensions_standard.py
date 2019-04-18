@@ -161,6 +161,13 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[1], self.qr[2]])
 
+    def test_cu1_wires(self):
+        self.circuit.cu1(1, 1, 2)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'cu1')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[1], self.qr[2]])
+
     def test_cu1_invalid(self):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.cu1, self.cr[0], self.cr[1], self.cr[2])
@@ -177,6 +184,13 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_cu3(self):
         self.circuit.cu3(1, 2, 3, self.qr[1], self.qr[2])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'cu3')
+        self.assertEqual(op.params, [1, 2, 3])
+        self.assertEqual(qargs, [self.qr[1], self.qr[2]])
+
+    def test_cu3_wires(self):
+        self.circuit.cu3(1, 2, 3, 1, 2)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'cu3')
         self.assertEqual(op.params, [1, 2, 3])

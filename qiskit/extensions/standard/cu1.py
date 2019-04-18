@@ -12,7 +12,7 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.cx import CnotGate
 
@@ -49,7 +49,7 @@ class Cu1Gate(Gate):
         """Invert this gate."""
         return Cu1Gate(-self.params[0])
 
-
+@_to_bits(2)
 @_op_expand(2)
 def cu1(self, theta, ctl, tgt):
     """Apply cu1 from ctl to tgt with angle theta."""

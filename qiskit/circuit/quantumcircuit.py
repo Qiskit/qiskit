@@ -31,11 +31,9 @@ class QuantumCircuit:
 
     def __init__(self, *regs, name=None):
         """Create a new circuit.
-
         A circuit is a list of instructions bound to some registers.
-
         Args:
-            *regs ([Register] or [Int]):
+            *regs ([Register] or [Int]): To be included in the circuit.
               - If [Register], the QuantumRegister and/or ClassicalRegister
                 to include in the circuit.
                 E.g.: QuantumCircuit(QuantumRegister(4))
