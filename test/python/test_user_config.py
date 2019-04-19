@@ -7,7 +7,7 @@
 
 # pylint: disable=missing-docstring
 
-import builtins  # noqa pylint: disable=unused-import
+import os
 import sys
 import tempfile
 import unittest
@@ -26,34 +26,30 @@ class TestUserConfig(QiskitTestCase):
         config.read_config_file()
         self.assertEqual({}, config.settings)
 
-    @unittest.mock.patch('os.path.isfile', return_value=True)
-    def test_invalid_circuit_drawer(self, _):
+    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
+    def test_invalid_circuit_drawer(self):
         test_config = """
         [default]
         circuit_drawer = MSPaint
         """
-        m = unittest.mock.mock_open(read_data=test_config)
-        if sys.version_info[1] < 7:
-            mock_name = '%s.open' % __name__
-        else:
-            mock_name = 'builtins.open'
-        with unittest.mock.patch(mock_name, m):
-            config = user_config.UserConfig('fake_path')
-            self.assertRaises(exceptions.QiskitUserConfigError,
-                              config.read_config_file)
+        file_path = tempfile.NamedTemporaryFile(mode='w')
+        self.addCleanup(file_path.close)
+        file_path.write(test_config)
+        file_path.flush()
+        config = user_config.UserConfig(file_path.name)
+        self.assertRaises(exceptions.QiskitUserConfigError,
+                          config.read_config_file)
 
-    @unittest.mock.patch('os.path.isfile', return_value=True)
-    def test_circuit_drawer_valid(self, _):
+    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
+    def test_circuit_drawer_valid(self):
         test_config = """
         [default]
         circuit_drawer = latex
         """
-        m = unittest.mock.mock_open(read_data=test_config)
-        if sys.version_info[1] < 7:
-            mock_name = '%s.open' % __name__
-        else:
-            mock_name = 'builtins.open'
-        with unittest.mock.patch(mock_name, m):
-            config = user_config.UserConfig(file_path.name)
-            config.read_config_file()
-            self.assertEqual({'circuit_drawer': 'latex'}, config.settings)
+        file_path = tempfile.NamedTemporaryFile(mode='w')
+        self.addCleanup(file_path.close)
+        file_path.write(test_config)
+        file_path.flush()
+        config = user_config.UserConfig(file_path.name)
+        config.read_config_file()
+        self.assertEqual({'circuit_drawer': 'latex'}, config.settings)
