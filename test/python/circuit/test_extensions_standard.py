@@ -619,9 +619,14 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[2].params, [])
 
     def test_tdg(self):
-        self.assertRaises(QiskitError, self.circuit.tdg, self.cr[0])
-        self.assertRaises(QiskitError, self.circuit.tdg, .0)
         self.circuit.tdg(self.qr[1])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'tdg')
+        self.assertEqual(op.params, [])
+        self.assertEqual(qargs, [self.qr[1]])
+
+    def test_tdg_wires(self):
+        self.circuit.tdg(1)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'tdg')
         self.assertEqual(op.params, [])
