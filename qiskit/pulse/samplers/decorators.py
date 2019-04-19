@@ -47,6 +47,7 @@ explicitly defining our samplers such as `left`, `right` and `midpoint` and
 calling `sampler` internally on the function that implements the sampling schemes such as
 `left_sample`, `right_sample` and `midpoint_sample` respectively. See `left` for an example of this.
 
+
 In this way our standard samplers will expose the proper help signature, but a user can
 still create their own sampler with
     @sampler
@@ -194,6 +195,7 @@ def sampler(sample_function: Callable) -> Callable:
 
     Note if your continuous pulse function outputs a `complex` scalar rather than a
     `np.ndarray`, you should first vectorize it before applying a sampler.
+
 
     This class implements the sampler boilerplate for the sampler.
 
