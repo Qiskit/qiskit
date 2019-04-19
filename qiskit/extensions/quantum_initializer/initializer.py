@@ -135,8 +135,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             # multiplexor being in state |i>)
             (remains,
              add_theta,
-             add_phi) = InitializeGate._bloch_angles(
-                local_param[2 * i: 2 * (i + 1)])
+             add_phi) = InitializeGate._bloch_angles(local_param[2 * i: 2 * (i + 1)])
 
             remaining_vector.append(remains)
 
