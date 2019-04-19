@@ -138,6 +138,7 @@ class TestQobjToCircuits(QiskitTestCase):
         self.assertEqual(circuit_to_dag(out_circuit), dag)
 
     def test_qobj_to_circuits_with_opaque(self):
+        """Check qobj_to_circuit's result with an opaque instruction."""
         opaque_inst = Instruction(name='my_inst', num_qubits=4,
                                   num_clbits=2, params=[0.5, 0.4])
         q = QuantumRegister(6, name='q')
