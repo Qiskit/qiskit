@@ -15,9 +15,9 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.mapper.layout import Layout
-from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.preset_passmanagers import default_pass_manager_simulator, default_pass_manager
+from qiskit.transpiler.preset_passmanagers import default_pass_manager_simulator, \
+    default_pass_manager
 
 logger = logging.getLogger(__name__)
 
@@ -162,8 +162,8 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
         # if a coupling map is given compile to the map
         if coupling_map:
             pass_manager = default_pass_manager(basis_gates,
-                                                initial_layout,
                                                 CouplingMap(coupling_map),
+                                                initial_layout,
                                                 seed_mapper=seed_mapper)
         else:
             pass_manager = default_pass_manager_simulator(basis_gates)

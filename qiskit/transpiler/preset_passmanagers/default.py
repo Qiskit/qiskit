@@ -25,17 +25,20 @@ from ..passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
 from ..passes.mapping.extend_layout import ExtendLayout
 
 
-def default_pass_manager(basis_gates, initial_layout, coupling_map, seed_mapper=None):
+def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_mapper):
     """
+    The default pass manager that maps to the coupling map.
 
     Args:
-        basis_gates:
-        coupling_map:
-        initial_layout:
-        seed_mapper:
+        basis_gates (list[str]): list of basis gate names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
+        initial_layout (Layout or None): If None, trivial layout will be chosen.
+        coupling_map (CouplingMap): coupling map (perhaps custom) to target
+            in mapping.
+        seed_mapper (int or None): random seed for the swap_mapper.
 
     Returns:
-        PassManager:
+        PassManager: A pass manager to map and optimize.
     """
     pass_manager = PassManager()
     pass_manager.property_set['layout'] = initial_layout
@@ -76,12 +79,14 @@ def default_pass_manager(basis_gates, initial_layout, coupling_map, seed_mapper=
 
 def default_pass_manager_simulator(basis_gates):
     """
+    The default pass manager without a coupling map.
 
     Args:
-        basis_gates:
+        basis_gates (list[str]): list of basis gate names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
 
     Returns:
-        PassManager:
+        PassManager: A passmanager without any optimization
     """
     pass_manager = PassManager()
     pass_manager.append(Unroller(basis_gates))
