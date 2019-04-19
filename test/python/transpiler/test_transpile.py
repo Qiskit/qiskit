@@ -12,6 +12,7 @@
 import math
 from unittest.mock import patch
 
+import sympy
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
 from qiskit.extensions.standard import CnotGate
@@ -492,3 +493,34 @@ class TestTranspile(QiskitTestCase):
 
         self.assertRaises(TranspilerError, transpile,
                           qc, backend, initial_layout=bad_initial_layout)
+
+    def test_parameterized_circuit_for_simulator(self):
+        """Verify that a parameterized circuit can be transpiled for a simulator backend."""
+        qr = QuantumRegister(2, name='qr')
+        qc = QuantumCircuit(qr)
+
+        theta = sympy.Symbol('theta')
+        qc.rz(theta, qr[0])
+
+        transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
+
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.u1(theta, qr[0])
+
+        self.assertEqual(expected_qc, transpiled_qc)
+
+    def test_parameterized_circuit_for_device(self):
+        """Verify that a parameterized circuit can be transpiled for a device backend."""
+        qr = QuantumRegister(2, name='qr')
+        qc = QuantumCircuit(qr)
+
+        theta = sympy.Symbol('theta')
+        qc.rz(theta, qr[0])
+
+        transpiled_qc = transpile(qc, backend=FakeMelbourne())
+
+        qr = QuantumRegister(14, 'q')
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.u1(theta, qr[0])
+
+        self.assertEqual(expected_qc, transpiled_qc)
