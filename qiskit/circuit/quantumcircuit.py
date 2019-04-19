@@ -11,11 +11,13 @@ from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
+import sympy
 
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
+from .variabletable import VariableTable
 
 
 class QuantumCircuit:
@@ -63,6 +65,9 @@ class QuantumCircuit:
         self.qregs = []
         self.cregs = []
         self.add_register(*regs)
+
+        # Variable table tracks instructions with variable parameters.
+        self._variable_table = VariableTable()
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -244,6 +249,20 @@ class QuantumCircuit:
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
         self.data.append(instruction_context)
+
+        # track variable parameters in instruction
+        for param_index, param in enumerate(instruction.params):
+            if isinstance(param, sympy.Expr):
+                current_symbols = set(self._variable_table.keys())
+                these_symbols = set(param.free_symbols)
+                new_symbols = these_symbols - current_symbols
+                common_symbols = these_symbols & current_symbols
+
+                for symbol in new_symbols:
+                    self._variable_table[symbol] = [(instruction, param_index)]
+                for symbol in common_symbols:
+                    self._variable_table[symbol].append((instruction, param_index))
+
         return instruction
 
     def _attach(self, instruction, qargs, cargs):
@@ -408,23 +427,82 @@ class QuantumCircuit:
                                             justify=justify)
 
     def size(self):
-        """Return total number of operations in circuit."""
-        # TODO: removed the DAG from this function
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.size()
+        """Returns total number of gate operations in circuit.
+
+        Returns:
+            int: Total number of gate operations.
+        """
+        gate_ops = 0
+        for item in self.data:
+            if item.name not in ['barrier', 'snapshot']:
+                gate_ops += 1
+        return gate_ops
 
     def depth(self):
-        """Return circuit depth (i.e. length of critical path)."""
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.depth()
+        """Return circuit depth (i.e. length of critical path).
+        This does not include compiler or simulator directives
+        such as 'barrier' or 'snapshot'.
+
+        Returns:
+            int: Depth of circuit.
+
+        Notes:
+            The circuit depth and the DAG depth need not bt the
+            same.
+        """
+        # Labels the registers by ints
+        # and then the qubit position in
+        # a register is given by reg_int+qubit_num
+        reg_offset = 0
+        reg_map = {}
+        for reg in self.qregs+self.cregs:
+            reg_map[reg.name] = reg_offset
+            reg_offset += reg.size
+
+        # A list that holds the height of each qubit
+        # and classical bit.
+        op_stack = [0]*reg_offset
+        # Here we are playing a modified version of
+        # Tetris where we stack gates, but multi-qubit
+        # gates, or measurements have a block for each
+        # qubit or cbit that are connected by a virtual
+        # line so that they all stacked at the same depth.
+        # Conditional gates act on all cbits in the register
+        # they are conditioned on.
+        # We do not consider barriers or snapshots as
+        # They are transpiler and simulator directives.
+        # The max stack height is the circuit depth.
+        for op in self.data:
+            if op[0].name not in ['barrier', 'snapshot']:
+                levels = []
+                reg_ints = []
+                for ind, reg in enumerate(op[1]+op[2]):
+                    # Add to the stacks of the qubits and
+                    # cbits used in the gate.
+                    reg_ints.append(reg_map[reg[0].name]+reg[1])
+                    levels.append(op_stack[reg_ints[ind]] + 1)
+                if op[0].control:
+                    # Controls operate over all bits in the
+                    # classical register they use.
+                    cint = reg_map[op[0].control[0].name]
+                    for off in range(op[0].control[0].size):
+                        if cint+off not in reg_ints:
+                            reg_ints.append(cint+off)
+                            levels.append(op_stack[cint+off]+1)
+
+                max_level = max(levels)
+                for ind in reg_ints:
+                    op_stack[ind] = max_level
+        return max(op_stack)
 
     def width(self):
-        """Return number of qubits in circuit."""
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.width()
+        """Return number of qubits plus clbits in circuit.
+
+        Returns:
+            int: Width of circuit.
+
+        """
+        return sum(reg.size for reg in self.qregs+self.cregs)
 
     def count_ops(self):
         """Count each operation kind in the circuit.
@@ -432,15 +510,110 @@ class QuantumCircuit:
         Returns:
             dict: a breakdown of how many operations of each kind.
         """
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.count_ops()
+        count_ops = {}
+        for op in self.data:
+            if op[0].name in count_ops.keys():
+                count_ops[op[0].name] += 1
+            else:
+                count_ops[op[0].name] = 1
+        return count_ops
+
+    def num_connected_components(self, unitary_only=False):
+        """How many non-entangled subcircuits can the circuit be factored to.
+
+        Args:
+            unitary_only (bool): Compute only unitary part of graph.
+
+        Returns:
+            int: Number of connected components in circuit.
+        """
+        # Convert registers to ints (as done in depth).
+        reg_offset = 0
+        reg_map = {}
+
+        if unitary_only:
+            regs = self.qregs
+        else:
+            regs = self.qregs+self.cregs
+
+        for reg in regs:
+            reg_map[reg.name] = reg_offset
+            reg_offset += reg.size
+        # Start with each qubit or cbit being its own subgraph.
+        sub_graphs = [[bit] for bit in range(reg_offset)]
+
+        num_sub_graphs = len(sub_graphs)
+
+        # Here we are traversing the gates and looking to see
+        # which of the sub_graphs the gate joins together.
+        for op in self.data:
+            if unitary_only:
+                args = op[1]
+                num_qargs = len(args)
+            else:
+                args = op[1]+op[2]
+                num_qargs = len(args) + (1 if op[0].control else 0)
+
+            if num_qargs >= 2 and op[0].name not in ['barrier', 'snapshot']:
+                graphs_touched = []
+                num_touched = 0
+                # Controls necessarily join all the cbits in the
+                # register that they use.
+                if op[0].control and not unitary_only:
+                    creg = op[0].control[0]
+                    creg_int = reg_map[creg.name]
+                    for coff in range(creg.size):
+                        temp_int = creg_int+coff
+                        for k in range(num_sub_graphs):
+                            if temp_int in sub_graphs[k]:
+                                graphs_touched.append(k)
+                                num_touched += 1
+                                break
+
+                for item in args:
+                    reg_int = reg_map[item[0].name]+item[1]
+                    for k in range(num_sub_graphs):
+                        if reg_int in sub_graphs[k]:
+                            if k not in graphs_touched:
+                                graphs_touched.append(k)
+                                num_touched += 1
+                                break
+
+                # If the gate touches more than one subgraph
+                # join those graphs together and return
+                # reduced number of subgraphs
+                if num_touched > 1:
+                    connections = []
+                    for idx in graphs_touched:
+                        connections.extend(sub_graphs[idx])
+                    _sub_graphs = []
+                    for idx in range(num_sub_graphs):
+                        if idx not in graphs_touched:
+                            _sub_graphs.append(sub_graphs[idx])
+                    _sub_graphs.append(connections)
+                    sub_graphs = _sub_graphs
+                    num_sub_graphs -= (num_touched-1)
+            # Cannot go lower than one so break
+            if num_sub_graphs == 1:
+                break
+        return num_sub_graphs
+
+    def num_unitary_factors(self):
+        """Computes the number of tensor factors in the unitary
+        (quantum) part of the circuit only.
+        """
+        return self.num_connected_components(unitary_only=True)
 
     def num_tensor_factors(self):
-        """How many non-entangled subcircuits can the circuit be factored to."""
-        from qiskit.converters import circuit_to_dag
-        dag = circuit_to_dag(self)
-        return dag.num_tensor_factors()
+        """Computes the number of tensor factors in the unitary
+        (quantum) part of the circuit only.
+
+        Notes:
+            This is here for backwards compatibility, and will be
+            removed in a future release of qiskit. You should call
+            `num_unitary_factors` instead.
+        """
+        return self.num_unitary_factors()
 
     def copy(self, name=None):
         """
@@ -478,6 +651,30 @@ class QuantumCircuit:
         """
         qasm = Qasm(data=qasm_str)
         return _circuit_from_qasm(qasm)
+
+    @property
+    def variable_table(self):
+        """get the circuit variable table"""
+        return self._variable_table
+
+    @property
+    def variables(self):
+        """convenience function to get the variables defined in the variable table"""
+        return set(self._variable_table.keys())
+
+    def assign_variables(self, value_dict):
+        """Assign variables to values yielding a new circuit.
+
+        Args:
+            value_dict (dict): {variable: value, ...}
+
+        Returns:
+            QuantumCircuit: copy of self with assignment substitution.
+        """
+        new_circuit = self.copy()
+        for variable in value_dict:
+            new_circuit.variable_table[variable] = value_dict
+        return new_circuit
 
 
 def _circuit_from_qasm(qasm):

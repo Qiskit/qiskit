@@ -10,21 +10,14 @@
 """Compiler Test."""
 
 import unittest
-from unittest.mock import patch
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, transpile, transpile_dag
+from qiskit.transpiler import PassManager
 from qiskit import compile, execute
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
-from qiskit.converters import circuit_to_dag
-from qiskit.tools.qi.qi import random_unitary_matrix
-from qiskit.mapper.compiling import two_qubit_kak
-from qiskit.mapper.exceptions import MapperError
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.mapper import Layout
 
 
 class TestCompiler(QiskitTestCase):
@@ -33,178 +26,6 @@ class TestCompiler(QiskitTestCase):
     def setUp(self):
         self.seed = 42
         self.backend = BasicAer.get_backend("qasm_simulator")
-
-    def test_compile(self):
-        """Test Compiler.
-
-        If all correct some should exists.
-        """
-        backend = BasicAer.get_backend('qasm_simulator')
-
-        qubit_reg = QuantumRegister(2, name='q')
-        clbit_reg = ClassicalRegister(2, name='c')
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-
-        circuits = transpile(qc, backend)
-        self.assertIsInstance(circuits, QuantumCircuit)
-
-    def test_compile_two(self):
-        """Test Compiler.
-
-        If all correct some should exists.
-        """
-        backend = BasicAer.get_backend('qasm_simulator')
-
-        qubit_reg = QuantumRegister(2)
-        clbit_reg = ClassicalRegister(2)
-        qubit_reg2 = QuantumRegister(2)
-        clbit_reg2 = ClassicalRegister(2)
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-        qc_extra = QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
-        qc_extra.measure(qubit_reg, clbit_reg)
-        circuits = transpile([qc, qc_extra], backend)
-        self.assertIsInstance(circuits[0], QuantumCircuit)
-        self.assertIsInstance(circuits[1], QuantumCircuit)
-
-    def test_mapping_correction(self):
-        """Test mapping works in previous failed case.
-        """
-        backend = FakeRueschlikon()
-        qr = QuantumRegister(name='qr', size=11)
-        cr = ClassicalRegister(name='qc', size=11)
-        circuit = QuantumCircuit(qr, cr)
-        circuit.u3(1.564784764685993, -1.2378965763410095, 2.9746763177861713, qr[3])
-        circuit.u3(1.2269835563676523, 1.1932982847014162, -1.5597357740824318, qr[5])
-        circuit.cx(qr[5], qr[3])
-        circuit.u1(0.856768317675967, qr[3])
-        circuit.u3(-3.3911273825190915, 0.0, 0.0, qr[5])
-        circuit.cx(qr[3], qr[5])
-        circuit.u3(2.159209321625547, 0.0, 0.0, qr[5])
-        circuit.cx(qr[5], qr[3])
-        circuit.u3(0.30949966910232335, 1.1706201763833217, 1.738408691990081, qr[3])
-        circuit.u3(1.9630571407274755, -0.6818742967975088, 1.8336534616728195, qr[5])
-        circuit.u3(1.330181833806101, 0.6003162754946363, -3.181264980452862, qr[7])
-        circuit.u3(0.4885914820775024, 3.133297443244865, -2.794457469189904, qr[8])
-        circuit.cx(qr[8], qr[7])
-        circuit.u1(2.2196187596178616, qr[7])
-        circuit.u3(-3.152367609631023, 0.0, 0.0, qr[8])
-        circuit.cx(qr[7], qr[8])
-        circuit.u3(1.2646005789809263, 0.0, 0.0, qr[8])
-        circuit.cx(qr[8], qr[7])
-        circuit.u3(0.7517780502091939, 1.2828514296564781, 1.6781179605443775, qr[7])
-        circuit.u3(0.9267400575390405, 2.0526277839695153, 2.034202361069533, qr[8])
-        circuit.u3(2.550304293455634, 3.8250017126569698, -2.1351609599720054, qr[1])
-        circuit.u3(0.9566260876600556, -1.1147561503064538, 2.0571590492298797, qr[4])
-        circuit.cx(qr[4], qr[1])
-        circuit.u1(2.1899329069137394, qr[1])
-        circuit.u3(-1.8371715243173294, 0.0, 0.0, qr[4])
-        circuit.cx(qr[1], qr[4])
-        circuit.u3(0.4717053496327104, 0.0, 0.0, qr[4])
-        circuit.cx(qr[4], qr[1])
-        circuit.u3(2.3167620677708145, -1.2337330260253256, -0.5671322899563955, qr[1])
-        circuit.u3(1.0468499525240678, 0.8680750644809365, -1.4083720073192485, qr[4])
-        circuit.u3(2.4204244021892807, -2.211701932616922, 3.8297006565735883, qr[10])
-        circuit.u3(0.36660280497727255, 3.273119149343493, -1.8003362351299388, qr[6])
-        circuit.cx(qr[6], qr[10])
-        circuit.u1(1.067395863586385, qr[10])
-        circuit.u3(-0.7044917541291232, 0.0, 0.0, qr[6])
-        circuit.cx(qr[10], qr[6])
-        circuit.u3(2.1830003849921527, 0.0, 0.0, qr[6])
-        circuit.cx(qr[6], qr[10])
-        circuit.u3(2.1538343756723917, 2.2653381826084606, -3.550087952059485, qr[10])
-        circuit.u3(1.307627685019188, -0.44686656993522567, -2.3238098554327418, qr[6])
-        circuit.u3(2.2046797998462906, 0.9732961754855436, 1.8527865921467421, qr[9])
-        circuit.u3(2.1665254613904126, -1.281337664694577, -1.2424905413631209, qr[0])
-        circuit.cx(qr[0], qr[9])
-        circuit.u1(2.6209599970201007, qr[9])
-        circuit.u3(0.04680566321901303, 0.0, 0.0, qr[0])
-        circuit.cx(qr[9], qr[0])
-        circuit.u3(1.7728411151289603, 0.0, 0.0, qr[0])
-        circuit.cx(qr[0], qr[9])
-        circuit.u3(2.4866395967434443, 0.48684511243566697, -3.0069186877854728, qr[9])
-        circuit.u3(1.7369112924273789, -4.239660866163805, 1.0623389015296005, qr[0])
-        circuit.barrier(qr)
-        circuit.measure(qr, cr)
-
-        circuits = transpile(circuit, backend)
-
-        self.assertIsInstance(circuits, QuantumCircuit)
-
-    def test_transpiler_layout_from_intlist(self):
-        """A list of ints gives layout to correctly map circuit.
-        virtual  physical
-         q1_0  -  4   ---[H]---
-         q2_0  -  5
-         q2_1  -  6   ---[H]---
-         q3_0  -  8
-         q3_1  -  9
-         q3_2  -  10  ---[H]---
-
-        """
-        qr1 = QuantumRegister(1, 'qr1')
-        qr2 = QuantumRegister(2, 'qr2')
-        qr3 = QuantumRegister(3, 'qr3')
-        qc = QuantumCircuit(qr1, qr2, qr3)
-        qc.h(qr1[0])
-        qc.h(qr2[1])
-        qc.h(qr3[2])
-        layout = [4, 5, 6, 8, 9, 10]
-
-        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10],
-                [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
-                [9, 8], [9, 10], [11, 3], [11, 10],
-                [11, 12], [12, 2], [13, 1], [13, 12]]
-
-        new_circ = transpile(qc, backend=None,
-                             coupling_map=cmap,
-                             basis_gates=['u2'],
-                             initial_layout=layout)
-        mapped_qubits = []
-        for _, qargs, _ in new_circ.data:
-            mapped_qubits.append(qargs[0][1])
-
-        self.assertEqual(mapped_qubits, [4, 6, 10])
-
-    def test_mapping_multi_qreg(self):
-        """Test mapping works for multiple qregs.
-        """
-        backend = FakeRueschlikon()
-        qr = QuantumRegister(3, name='qr')
-        qr2 = QuantumRegister(1, name='qr2')
-        qr3 = QuantumRegister(4, name='qr3')
-        cr = ClassicalRegister(3, name='cr')
-        qc = QuantumCircuit(qr, qr2, qr3, cr)
-        qc.h(qr[0])
-        qc.cx(qr[0], qr2[0])
-        qc.cx(qr[1], qr3[2])
-        qc.measure(qr, cr)
-
-        circuits = transpile(qc, backend)
-
-        self.assertIsInstance(circuits, QuantumCircuit)
-
-    def test_compile_circuits_diff_registers(self):
-        """Compile list of circuits with different qreg names.
-        """
-        backend = FakeRueschlikon()
-        circuits = []
-        for _ in range(2):
-            qr = QuantumRegister(2)
-            cr = ClassicalRegister(2)
-            circuit = QuantumCircuit(qr, cr)
-            circuit.h(qr[0])
-            circuit.cx(qr[0], qr[1])
-            circuit.measure(qr, cr)
-            circuits.append(circuit)
-
-        circuits = transpile(circuits, backend)
-        self.assertIsInstance(circuits[0], QuantumCircuit)
 
     def test_example_multiple_compile(self):
         """Test a toy example compiling multiple circuits.
@@ -343,6 +164,25 @@ class TestCompiler(QiskitTestCase):
         qlist = [qc for k in range(10)]
         qobj = compile(qlist, backend=backend)
         self.assertEqual(len(qobj.experiments), 10)
+
+    def test_compile_single_qubit(self):
+        """ Compile a single-qubit circuit in a non-trivial layout
+        """
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        layout = {(qr, 0): 12}
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
+                [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]]
+
+        qobj = compile(circuit, backend=None, coupling_map=cmap, basis_gates=['u2'],
+                       initial_layout=layout)
+
+        compiled_instruction = qobj.experiments[0].instructions[0]
+
+        self.assertEqual(compiled_instruction.name, 'u2')
+        self.assertEqual(compiled_instruction.qubits, [12])
+        self.assertEqual(str(compiled_instruction.params), str([0, 3.14159265358979]))
 
     def test_compile_pass_manager(self):
         """Test compile with and without an empty pass manager."""
@@ -570,72 +410,6 @@ class TestCompiler(QiskitTestCase):
         circ2.h(qr[0])
         qobj2 = compile(circ2, backend)
         self.assertIsInstance(qobj2, QasmQobj)
-
-    def test_move_measurements(self):
-        """Measurements applied AFTER swap mapping.
-        """
-        backend = FakeRueschlikon()
-        cmap = backend.configuration().coupling_map
-        circ = QuantumCircuit.from_qasm_file(
-            self._get_resource_path('move_measurements.qasm', Path.QASMS))
-
-        dag_circuit = circuit_to_dag(circ)
-        lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
-                      ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
-                      ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
-                      ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
-        out_dag = transpile_dag(dag_circuit, initial_layout=lay, coupling_map=cmap)
-        meas_nodes = out_dag.named_nodes('measure')
-        for meas_node in meas_nodes:
-            is_last_measure = all([after_measure.type == 'out'
-                                   for after_measure in out_dag.quantum_successors(meas_node)])
-            self.assertTrue(is_last_measure)
-
-    def test_kak_decomposition(self):
-        """Verify KAK decomposition for random Haar unitaries.
-        """
-        for _ in range(100):
-            unitary = random_unitary_matrix(4)
-            with self.subTest(unitary=unitary):
-                try:
-                    two_qubit_kak(unitary, verify_gate_sequence=True)
-                except MapperError as ex:
-                    self.fail(str(ex))
-
-    barrier_pass = BarrierBeforeFinalMeasurements()
-
-    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
-    def test_final_measurement_barrier_for_devices(self, mock_pass):
-        """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
-
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
-        dag_circuit = circuit_to_dag(circ)
-        layout = Layout.generate_trivial_layout(*circ.qregs)
-        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map,
-                      initial_layout=layout)
-
-        self.assertTrue(mock_pass.called)
-
-    def test_optimize_to_nothing(self):
-        """ Optimze gates up to fixed point in the default pipeline
-        See https://github.com/Qiskit/qiskit-terra/issues/2035 """
-        qr = QuantumRegister(2)
-        circ = QuantumCircuit(qr)
-        circ.h(qr[0])
-        circ.cx(qr[0], qr[1])
-        circ.x(qr[0])
-        circ.y(qr[0])
-        circ.z(qr[0])
-        circ.cx(qr[0], qr[1])
-        circ.h(qr[0])
-        circ.cx(qr[0], qr[1])
-        circ.cx(qr[0], qr[1])
-        dag_circuit = circuit_to_dag(circ)
-
-        after = transpile_dag(dag_circuit, coupling_map=[[0, 1], [1, 0]])
-
-        expected = QuantumCircuit(QuantumRegister(2, 'q'))
-        self.assertEqual(after, circuit_to_dag(expected))
 
 
 if __name__ == '__main__':

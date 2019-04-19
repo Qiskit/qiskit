@@ -23,6 +23,14 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+- Builtin library of continuous pulses and builtin library of discrete pulses which are obtained
+  by sampling continuous pulses with default sampling strategy.
+- Sampler decorator and standard sampler library for conversion of continuous pulses
+  to discrete `SamplePulse`s (#2042).
+- Core StochasticSwap routine implimented in Cython (#1789).
+- Added QuantumChannel classes SuperOp, Choi, Kraus, Stinespring, PTM, Chi to
+  quantum_info for manipulating quantum channels and CPTP maps.
+- Added Operator object to quantum_info for representing matrix operators.
 - Introduced the backend defaults model and endpoint for pulse backends (#2101).
 - `meas_level` to result schema (#2085).
 - Core StochasticSwap routine implemented in Cython (#1789).
@@ -66,16 +74,29 @@ Added
   (reverses its sub-instructions) (#1816).
 - Added an ``PassManager.passes()`` method that returns a list of the passes that
   have been added to the pass manager, including options and flow controllers.
+- Added a ``PassManager.run()`` that transforms a ``QuantumCircuit`` according to its
+  pass schedule and returns a ``QuantumCircuit``.
+- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc.
+- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits.
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
   are followed by a measurement instruction, moving the latter to the proper wire.
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
   rotations about the Z axis, leveraging previously-found gate commutation relations.
+- Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
+  of gates (blocks) acting on 2 qubits.
+- Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
+  into equivalent Unitary operators in the circuit.
+- Added support for parameterized circuits. (#2103)
 
 Changed
 -------
 
+- two_qubit_kak decomposition works with Operator or raw matrix input objects.
+- process_fidelity works with QuantumChannel and Operator object inputs.
+- Backend defaults values are no longer required (#2101).
+- QuantumCircuit properties more self-consistent and no longer need DAG (#1993).
 - The most connected subset in DenseLayout is now reduced bandwidth (#2021).
 - plot_histogram now allows sorting by Hamming distance from target_string (#2064).
 - FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
