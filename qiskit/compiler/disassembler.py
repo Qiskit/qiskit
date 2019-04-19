@@ -9,11 +9,13 @@
 
 """Disassemble function for a qobj into a list of circuits and it's config"""
 
-from qiskit.converters import qobj_to_circuits
+from qiskit import ClassicalRegister
+from qiskit import QuantumRegister
+from qiskit import QuantumCircuit
 
 
 # TODO: This is broken for conditionals. Will fix after circuits_2_qobj pr
-def _ experiments_to_ciruits(qobj):
+def _experiments_to_circuits(qobj):
     """Return a list of QuantumCircuit object(s) from a qobj
 
     Args:
