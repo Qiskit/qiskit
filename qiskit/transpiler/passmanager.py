@@ -9,6 +9,7 @@
 from functools import partial
 from collections import OrderedDict
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from .propertyset import PropertySet
 from .basepasses import BasePass
 from .fencedobjs import FencedDAGCircuit
@@ -126,6 +127,20 @@ class PassManager():
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
         return dag
+
+    def run(self, circuit):
+        """Run all the passes on a QuantumCircuit
+        Args:
+            circuit (QuantumCircuit): circuit to transform via all the registered passes
+        Returns:
+            QuantumCircuit: Transformed circuit.
+        """
+        dag = circuit_to_dag(circuit)
+        for passset in self.working_list:
+            for pass_ in passset:
+                dag = self._do_pass(pass_, dag, passset.options)
+        circuit = dag_to_circuit(dag)
+        return circuit
 
     def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".

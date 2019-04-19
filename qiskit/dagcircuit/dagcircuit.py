@@ -751,14 +751,24 @@ class DAGCircuit:
         return nx.is_isomorphic(slf, oth,
                                 node_match=lambda x, y: DAGNode.semantic_eq(x['node'], y['node']))
 
-    def nodes_in_topological_order(self):
+    def topological_nodes(self):
         """
-        Returns the nodes (their ids) in topological order.
+        Yield nodes in topological order.
 
         Returns:
-            list: The list of node numbers in topological order
+            generator(DAGNode): node in topological order
         """
-        return nx.lexicographical_topological_sort(self.multi_graph, key=lambda x: str(x.qargs))
+        return nx.lexicographical_topological_sort(self.multi_graph,
+                                                   key=lambda x: str(x.qargs))
+
+    def topological_op_nodes(self):
+        """
+        Yield op nodes in topological order.
+
+        Returns:
+            generator(DAGnode): op node in topological order
+        """
+        return (nd for nd in self.topological_nodes() if nd.type == 'op')
 
     def substitute_node_with_dag(self, node, input_dag, wires=None):
         """Replace one node with dag.
@@ -1255,30 +1265,29 @@ class DAGCircuit:
         A serial layer is a circuit with one gate. The layers have the
         same structure as in layers().
         """
-        for next_node in self.nodes_in_topological_order():
-            if next_node.type == "op":
-                new_layer = DAGCircuit()
-                for qreg in self.qregs.values():
-                    new_layer.add_qreg(qreg)
-                for creg in self.cregs.values():
-                    new_layer.add_creg(creg)
-                # Save the support of the operation we add to the layer
-                support_list = []
-                # Operation data
-                op = copy.copy(next_node.op)
-                qa = copy.copy(next_node.qargs)
-                ca = copy.copy(next_node.cargs)
-                co = copy.copy(next_node.condition)
-                _ = self._bits_in_condition(co)
+        for next_node in self.topological_op_nodes():
+            new_layer = DAGCircuit()
+            for qreg in self.qregs.values():
+                new_layer.add_qreg(qreg)
+            for creg in self.cregs.values():
+                new_layer.add_creg(creg)
+            # Save the support of the operation we add to the layer
+            support_list = []
+            # Operation data
+            op = copy.copy(next_node.op)
+            qa = copy.copy(next_node.qargs)
+            ca = copy.copy(next_node.cargs)
+            co = copy.copy(next_node.condition)
+            _ = self._bits_in_condition(co)
 
-                # Add node to new_layer
-                new_layer.apply_operation_back(op, qa, ca, co)
-                # Add operation to partition
-                if next_node.name not in ["barrier",
-                                          "snapshot", "save", "load", "noise"]:
-                    support_list.append(list(qa))
-                l_dict = {"graph": new_layer, "partition": support_list}
-                yield l_dict
+            # Add node to new_layer
+            new_layer.apply_operation_back(op, qa, ca, co)
+            # Add operation to partition
+            if next_node.name not in ["barrier",
+                                      "snapshot", "save", "load", "noise"]:
+                support_list.append(list(qa))
+            l_dict = {"graph": new_layer, "partition": support_list}
+            yield l_dict
 
     def multigraph_layers(self):
         """Yield layers of the multigraph."""
@@ -1322,12 +1331,11 @@ class DAGCircuit:
         # Iterate through the nodes of self in topological order
         # and form tuples containing sequences of gates
         # on the same qubit(s).
-        tops_node = list(self.nodes_in_topological_order())
-        nodes_seen = dict(zip(tops_node, [False] * len(tops_node)))
-        for node in tops_node:
-            if node.type == "op" and node.name in namelist \
-                    and node.condition is None and not nodes_seen[node]:
-
+        topo_ops = list(self.topological_op_nodes())
+        nodes_seen = dict(zip(topo_ops, [False] * len(topo_ops)))
+        for node in topo_ops:
+            if node.name in namelist and node.condition is None \
+                    and not nodes_seen[node]:
                 group = [node]
                 nodes_seen[node] = True
                 s = list(self.multi_graph.successors(node))
@@ -1368,10 +1376,9 @@ class DAGCircuit:
             if current_node.type == 'op' or not only_ops:
                 yield current_node
 
-            for node in self.successors(current_node):
-                # check if this node includes the given wire
-                if (node.type in ['in', 'out'] and wire == node.wire) or \
-                   (node.type == 'op' and wire in node.qargs + node.cargs):
+            # find the adjacent node that takes the wire being looked at as input
+            for node, edges in self.multi_graph.adj[current_node].items():
+                if any(wire == edge['wire'] for edge in edges.values()):
                     current_node = node
                     more_nodes = True
                     break
@@ -1382,13 +1389,12 @@ class DAGCircuit:
         Returns a dictionary of counts keyed on the operation name.
         """
         op_dict = {}
-        for node in self.nodes_in_topological_order():
+        for node in self.topological_op_nodes():
             name = node.name
-            if node.type == "op":
-                if name not in op_dict:
-                    op_dict[name] = 1
-                else:
-                    op_dict[name] += 1
+            if name not in op_dict:
+                op_dict[name] = 1
+            else:
+                op_dict[name] += 1
         return op_dict
 
     def properties(self):

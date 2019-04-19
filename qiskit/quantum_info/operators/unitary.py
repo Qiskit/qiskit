@@ -14,8 +14,11 @@ A simple unitary class and some tools.
 import copy
 import numpy
 import sympy
-from qiskit.exceptions import QiskitError
+
 from qiskit.circuit.gate import Gate
+from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.synthesis.two_qubit_kak import two_qubit_kak
+from qiskit.exceptions import QiskitError
 
 
 class Unitary(Gate):
@@ -36,6 +39,9 @@ class Unitary(Gate):
             validate (bool): whether to validate unitarity of matrix
             rtol (float): relative tolerance (see numpy.allclose)
             atol (float): absolute tolerance (see numpy.allclose)
+
+        Raises:
+            QiskitError: if input representation is not valid.
         """
         self.__validate = validate
         self.__rtol = rtol
@@ -46,13 +52,23 @@ class Unitary(Gate):
         self.__label = None
         self.__dimension = None
         # set representation (depends on previous attributes)
-        if isinstance(representation, (numpy.ndarray, sympy.Matrix, list)):
-            self._representation = representation
-            super().__init__('unitary', self.__n_qubits,
-                             [sympy.Matrix(representation)])
-        elif isinstance(representation, Unitary):
+        if isinstance(representation, Unitary):
             for attrib, value in vars(representation).items():
                 setattr(self, attrib, value)
+        else:
+            if hasattr(representation, 'to_operator'):
+                # Convert to an operator and check if unitary
+                representation = representation.to_operator()
+                if not representation.is_unitary():
+                    raise QiskitError('Input is not unitary.')
+                # Extract numpy matrix from Opeator
+                representation = representation.data
+            if isinstance(representation, (numpy.ndarray, sympy.Matrix, list)):
+                self._representation = representation
+                super().__init__('unitary', self.__n_qubits,
+                                 [sympy.Matrix(representation)])
+            else:
+                raise QiskitError('Invalid unitary representation')
         if isinstance(label, str):
             self._label = label
         self._decompostion = []  # storage (needed?)
@@ -75,7 +91,14 @@ class Unitary(Gate):
         return str(self.representation)
 
     def __repr__(self):
-        return '{}\n{}'.format(super().__repr__(), self.__representation.__repr__())
+        return '{}\n{}'.format(super().__repr__(),
+                               self.__representation.__repr__())
+
+    def _define(self):
+        """Calculate a subcircuit that implements this unitary.
+        """
+        if self.__dimension == 4:
+            self.definition = two_qubit_kak(self.representation)
 
     @property
     def dimension(self):
@@ -85,6 +108,10 @@ class Unitary(Gate):
             int: dimension of matrix
         """
         return self.__dimension
+
+    def to_operator(self):
+        """Convert unitary to Operator object"""
+        return Operator(self.representation)
 
     def tensor(self, other):
         """
