@@ -12,13 +12,12 @@ mpl pulse visualization.
 """
 
 import logging
-from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 
 import numpy as np
 
-from qiskit.pulse import SamplePulse, Schedule, DeviceSpecification
-from qiskit.pulse import commands
+from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue,
+                          Schedule, DeviceSpecification)
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
 from qiskit.tools.visualization import exceptions
 from qiskit.visualization.interpolation import cubic_spline
@@ -46,7 +45,7 @@ def pulse_drawer(data, dt=1, device=None, style=None, filename=None,
         device (DeviceSpecification): Device information to organize channels.
         filename (str): Name required to save pulse image.
         interp_method (Callable): A function for interpolation.
-        style (dict): A style sheet to configure plot appearance.
+        style (OPStylePulse or OPStyleSched): A style sheet to configure plot appearance.
         channels_to_plot (list): A list of channel names to plot.
         plot_all (bool): Plot empty channels.
         plot_range (tuple): A tuple of time range to plot.
@@ -66,10 +65,10 @@ def pulse_drawer(data, dt=1, device=None, style=None, filename=None,
         if not device:
             raise exceptions.VisualizationError('Schedule visualizer needs device information.')
         drawer = ScheduleDrawer(device=device, style=style)
-        image = drawer.draw(pulse_obj=data, dt=dt, plot_range=plot_range,
-                            channels_to_plot=channels_to_plot,
-                            plot_all=plot_all, interp_method=interp_method,
-                            scaling=scaling)
+        image = drawer.draw(pulse_obj=data, dt=dt,
+                            interp_method=interp_method, scaling=scaling,
+                            plot_range=plot_range, channels_to_plot=channels_to_plot,
+                            plot_all=plot_all)
     else:
         raise exceptions.VisualizationError('This data cannot be visualized.')
 
@@ -86,19 +85,20 @@ def pulse_drawer(data, dt=1, device=None, style=None, filename=None,
 class EventsOutputChannels:
     """Pulse dataset for channel."""
 
-    def __init__(self, duration):
+    def __init__(self, t0, tf):
         """Create new channel dataset.
 
         Args:
-            duration (int):
+            t0 (int): starting time of plot.
+            tf (int): ending time of plot.
         """
+        self.pulses = {}
+        self.t0 = t0
+        self.tf = tf
 
-        self.samples = np.zeros(duration + 1, dtype=np.complex128)
-        self.fc_pulses = {}
-        self.pv_pulses = {}
-        self.conditionals = {}
-
-        self.all_events = set()
+        self._waveform = None
+        self._frame_change = None
+        self._conditionals = None
 
         self.enable = False
 
@@ -108,90 +108,63 @@ class EventsOutputChannels:
         Args:
             pulse (Instruction): Instruction object to be added.
         """
-        if isinstance(pulse, commands.DriveInstruction):
-            self.samples[pulse.start_time:pulse.stop_time] = pulse.command.samples
-        elif isinstance(pulse, commands.FrameChangeInstruction):
-            if pulse.start_time in self.fc_pulses.keys():
-                self.fc_pulses[pulse.start_time] += pulse.command.phase
-            else:
-                self.fc_pulses[pulse.start_time] = pulse.command.phase
-        elif isinstance(pulse, commands.PersistentValueInstruction):
-            if pulse.start_time not in self.pv_pulses.keys():
-                self.pv_pulses[pulse.start_time] = pulse.command.value
+
+        if pulse.start_time in self.pulses.keys():
+            self.pulses[pulse.start_time].append(pulse.command)
         else:
-            return
+            self.pulses[pulse.start_time] = [pulse.command]
 
-        self.all_events.add(pulse.start_time)
-
-    def get_waveform(self):
+    @property
+    def waveform(self):
         """Get waveform.
         """
-        fc_t = np.ones_like(self.samples)
-        pv_t = np.zeros_like(self.samples)
+        if self._waveform is None:
+            self._build_waveform()
 
-        # sort fc by time index
-        fcs = sorted(self.fc_pulses.items(), key=lambda x: x[0])
-        for t0, val in fcs:
-            fc_t[t0:] *= np.exp(1j * val)
+        return self._waveform[self.t0:self.tf + 1]
 
-        # sort pv by time index
-        pvs = sorted(self.pv_pulses.items(), key=lambda x: x[0])
-        _all_events = np.array(list(self.all_events))
-        for t0, val in pvs:
-            next_ts = _all_events[_all_events >= t0]
-            if len(next_ts):
-                pv_t[t0:min(next_ts)] = val
-            else:
-                pv_t[t0:] = val
-
-        return fc_t * (self.samples + pv_t)
-
-    def get_framechange(self, t0, tf):
-        """Get frame changes to draw symbols.
-
-        Args:
-            name: name of channel.
-            t0 (int): starting time of plot
-            tf (int): ending time of plot
-
-        Returns:
-            dict: dictionary of events in the channel.
+    @property
+    def frame_change(self):
+        """Get frame changes.
         """
-        return self.trim(self.fc_pulses, t0, tf)
+        if self._frame_change is None:
+            self._build_waveform()
 
-    def is_empty(self, t0, tf):
+        return self._trim(self._frame_change)
+
+    @property
+    def conditionals(self):
+        """Get conditionals.
+        """
+        if self._conditionals is None:
+            self._build_waveform()
+
+        return self._trim(self._conditionals)
+
+    def is_empty(self):
         """Return if pulse is empty.
-
-        Args:
-            t0 (int): starting time of plot
-            tf (int): ending time of plot
 
         Returns:
             bool: if the channel has nothing to plot.
         """
-        waveform = self.get_waveform()[t0:tf + 1]
-        fc_pulses = self.trim(self.fc_pulses, t0, tf)
-
-        if any(waveform) or len(fc_pulses):
+        if any(self.waveform) or len(self.frame_change):
             return False
 
         return True
 
-    def to_table(self, name, t0, tf):
+    def to_table(self, name):
         """Get table contains.
 
         Args:
             name: name of channel.
-            t0 (int): starting time of plot
-            tf (int): ending time of plot
 
         Returns:
             dict: dictionary of events in the channel.
         """
         time_event = []
 
-        fc_pulses = self.trim(self.fc_pulses, t0, tf)
-        conditionals = self.trim(self.conditionals, t0, tf)
+        fc_pulses = self.frame_change
+        conditionals = self.conditionals
 
         for key, val in fc_pulses.items():
             data_str = 'FrameChange, %.2f' % val
@@ -202,44 +175,54 @@ class EventsOutputChannels:
 
         return time_event
 
-    @staticmethod
-    def trim(events, t0, tf):
+    def _build_waveform(self):
+        """Create waveform from stored pulses.
+        """
+        self._frame_change = {}
+        self._conditionals = {}
+
+        fc = 0
+        pv = np.zeros(self.tf + 1, dtype=np.complex128)
+        wf = np.zeros(self.tf + 1, dtype=np.complex128)
+        for time, commands in sorted(self.pulses.items()):
+            tmp_fc = 0
+            for command in commands:
+                if isinstance(command, FrameChange):
+                    tmp_fc += command.phase
+                    pv[time:] = 0
+            if tmp_fc != 0:
+                self._frame_change[time] = tmp_fc
+                fc += tmp_fc
+            for command in commands:
+                if isinstance(command, PersistentValue):
+                    pv[time:] = np.exp(1j*fc) * command.value
+                    break
+            for command in commands:
+                if isinstance(command, SamplePulse):
+                    wf[time:time+command.duration] = np.exp(1j*fc) * command.samples
+                    pv[time:] = 0
+
+        self._waveform = wf + pv
+
+    def _trim(self, events):
         """Return events during given `time_range`.
 
         Args:
             events (dict): time and operation of events.
-            t0 (int): starting time of plot
-            tf (int): ending time of plot
 
         Returns:
             dict: dictionary of events within the time.
         """
-        events_in_timerange = {}
+        events_in_time_range = {}
 
         for k, v in events.items():
-            if t0 <= k <= tf:
-                events_in_timerange[k] = v
+            if self.t0 <= k <= self.tf:
+                events_in_time_range[k] = v
 
-        return events_in_timerange
-
-
-class OpenPulseDrawer(metaclass=ABCMeta):
-    """Common interface for OpenPulse drawer."""
-
-    @abstractmethod
-    def draw(self, pulse_obj, dt, interp_method, scaling):
-        """Draw OpenPulse waveform.
-
-        Args:
-            pulse_obj (ScheduleComponent): waveform data.
-            dt (float): time interval.
-            interp_method (Callable): interpolation function.
-            scaling (float): scaling of waveform amplitude.
-        """
-        pass
+        return events_in_time_range
 
 
-class SamplePulseDrawer(OpenPulseDrawer):
+class SamplePulseDrawer:
     """A class to create figure for sample pulse."""
 
     def __init__(self, style):
@@ -289,7 +272,7 @@ class SamplePulseDrawer(OpenPulseDrawer):
         return figure
 
 
-class ScheduleDrawer(OpenPulseDrawer):
+class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
     def __init__(self, device, style):
@@ -302,17 +285,17 @@ class ScheduleDrawer(OpenPulseDrawer):
         self.device = device
         self.style = style or OPStyleSched()
 
-    def draw(self, pulse_obj, dt, plot_range, channels_to_plot, plot_all,
-             interp_method, scaling):
+    def draw(self, pulse_obj, dt, interp_method, scaling,
+             plot_range, channels_to_plot, plot_all):
         """Draw figure.
         Args:
             pulse_obj (Schedule): Schedule to draw.
             dt (float): time interval.
+            interp_method (Callable): interpolation function.
+            scaling (float): scaling of waveform amplitude.
             plot_range (tuple[float]): plot range.
             channels_to_plot (list[OutputChannel]): channels to draw.
             plot_all (bool): if plot all channels even it is empty.
-            interp_method (Callable): interpolation function.
-            scaling (float): scaling of waveform amplitude.
         """
         figure = plt.figure()
 
@@ -332,15 +315,15 @@ class ScheduleDrawer(OpenPulseDrawer):
         channels = OrderedDict()
         for q in self.device.q:
             try:
-                channels[q.drive] = EventsOutputChannels(duration=tf)
+                channels[q.drive] = EventsOutputChannels(t0, tf)
             except PulseError:
                 pass
             try:
-                channels[q.control] = EventsOutputChannels(duration=tf)
+                channels[q.control] = EventsOutputChannels(t0, tf)
             except PulseError:
                 pass
             try:
-                channels[q.measure] = EventsOutputChannels(duration=tf)
+                channels[q.measure] = EventsOutputChannels(t0, tf)
             except PulseError:
                 pass
 
@@ -351,19 +334,24 @@ class ScheduleDrawer(OpenPulseDrawer):
         n_valid_waveform = 0
         v_max = 0
         for channel, events in channels.items():
-            if not events.is_empty(t0, tf) or channel in channels_to_plot or plot_all:
-                waveform = events.get_waveform()
+            if not events.is_empty() or channel in channels_to_plot or plot_all:
+                waveform = events.waveform
                 v_max = max(v_max,
                             max(np.abs(np.real(waveform))),
                             max(np.abs(np.imag(waveform))))
                 n_valid_waveform += 1
                 events.enable = True
+        if scaling:
+            v_max = 0.5 / scaling
+        else:
+            v_max = 0.5 / (1.2 * v_max)
 
         # create table
         table_data = []
         if self.style.use_table:
             for channel, events in channels.items():
-                table_data.extend(events.to_table(channel.name, (t0, tf)))
+                if events.enable:
+                    table_data.extend(events.to_table(channel.name))
             table_data = sorted(table_data, key=lambda x: x[0])
 
         # plot table
@@ -385,7 +373,7 @@ class ScheduleDrawer(OpenPulseDrawer):
             # configure each cell
             tb.axis('off')
             cell_value = [['' for _kk in range(ncols * 3)] for _jj in range(nrows)]
-            cell_color = [[self.style.table_color * ncols for _jj in range(nrows)]]
+            cell_color = [self.style.table_color * ncols for _jj in range(nrows)]
             cell_width = [*([0.2, 0.2, 0.5] * ncols)]
             for ii, data in enumerate(table_data):
                 r, c = np.unravel_index(ii, (nrows, ncols), order='f')
@@ -413,21 +401,17 @@ class ScheduleDrawer(OpenPulseDrawer):
         for channel, events in channels.items():
             if events.enable:
                 # plot waveform
-                time, re, im = interp_method(events.get_waveform(), dt, self.style.num_points)
+                time, re, im = interp_method(events.waveform, dt, self.style.num_points)
                 # choose color
-                if isinstance(channels, DriveChannel):
+                if isinstance(channel, DriveChannel):
                     color = self.style.d_ch_color
-                elif isinstance(channels, ControlChannel):
+                elif isinstance(channel, ControlChannel):
                     color = self.style.u_ch_color
-                elif isinstance(channels, MeasureChannel):
+                elif isinstance(channel, MeasureChannel):
                     color = self.style.m_ch_color
                 else:
                     raise exceptions.VisualizationError('Ch %s cannot be drawn.' % channel.name)
                 # scaling and offset
-                if scaling:
-                    v_max = 0.5 * scaling
-                else:
-                    v_max = 0.5 * 1.2 * v_max
                 re = v_max * re + y0
                 im = v_max * im + y0
                 offset = np.zeros_like(time) + y0
@@ -440,10 +424,10 @@ class ScheduleDrawer(OpenPulseDrawer):
                                 facecolor=color[1], alpha=0.3,
                                 edgecolor=color[1], linewidth=1.5,
                                 label='imaginary part')
-                ax.plot((t0, tf), (0, 0), color='#000000', linewidth=1.0)
+                ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
 
                 # plot frame changes
-                fcs = events.get_framechange(t0, tf)
+                fcs = events.frame_change
                 if len(fcs) > 0:
                     for time, fc in fcs.items():
                         ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
