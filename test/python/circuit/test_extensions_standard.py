@@ -568,6 +568,13 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [])
         self.assertEqual(qargs, [self.qr[1], self.qr[2]])
 
+    def test_swap_wires(self):
+        self.circuit.swap(1, 2)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'swap')
+        self.assertEqual(op.params, [])
+        self.assertEqual(qargs, [self.qr[1], self.qr[2]])
+
     def test_swap_invalid(self):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.swap, self.cr[1], self.cr[2])
