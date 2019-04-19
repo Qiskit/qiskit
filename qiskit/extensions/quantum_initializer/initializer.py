@@ -22,7 +22,6 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
 
-
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
@@ -33,6 +32,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
     """
+
     def __init__(self, params):
         """Create new initialize composite gate.
 
@@ -136,7 +136,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             (remains,
              add_theta,
              add_phi) = InitializeGate._bloch_angles(
-                 local_param[2*i: 2*(i + 1)])
+                local_param[2 * i: 2 * (i + 1)])
 
             remaining_vector.append(remains)
 
@@ -171,7 +171,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             final_t = a_arg + b_arg
             phi = b_arg - a_arg
 
-        return final_r * np.exp(1.J * final_t/2), theta, phi
+        return final_r * np.exp(1.J * final_t / 2), theta, phi
 
     def _multiplex(self, target_gate, list_of_angles):
         """
@@ -193,7 +193,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         local_num_qubits = int(math.log2(list_len)) + 1
 
         q = QuantumRegister(local_num_qubits)
-        circuit = QuantumCircuit(q, name="multiplex"+local_num_qubits.__str__())
+        circuit = QuantumCircuit(q, name="multiplex" + local_num_qubits.__str__())
 
         lsb = q[0]
         msb = q[local_num_qubits - 1]
@@ -231,6 +231,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         circuit.append(CnotGate(), [msb, lsb])
 
         return circuit
+
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""

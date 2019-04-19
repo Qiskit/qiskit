@@ -676,6 +676,7 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[0].name, 't')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
+
     def test_u0(self):
         self.circuit.u0(1, self.qr[1])
         op, qargs, _ = self.circuit[0]
