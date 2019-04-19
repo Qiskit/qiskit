@@ -27,9 +27,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
 
     def test_no_extension(self):
         """There are no idle physical bits to extend."""
-        layout = Layout([(self.qr3, 0),
-                         (self.qr3, 1),
-                         (self.qr3, 2)])
+        layout = Layout({self.qr3[0]: 0, self.qr3[1]: 1, self.qr3[2]: 2})
 
         pass_ = EnlargeWithAncilla(layout)
         after = pass_.run(self.dag)
@@ -40,11 +38,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
 
     def test_with_extension(self):
         """There are 2 idle physical bits to extend."""
-        layout = Layout([(self.qr3, 0),
-                         None,
-                         (self.qr3, 1),
-                         None,
-                         (self.qr3, 2)])
+        layout = Layout({self.qr3[0]: 0, self.qr3[1]: 1, self.qr3[2]: 2})
 
         pass_ = EnlargeWithAncilla(layout)
         after = pass_.run(self.dag)
@@ -66,11 +60,7 @@ class TestEnlargeWithAncilla(QiskitTestCase):
         circuit.h(qr_ancilla)
         dag = circuit_to_dag(circuit)
 
-        layout = Layout([(qr_ancilla, 0),
-                         None,
-                         (qr_ancilla, 1),
-                         None,
-                         (qr_ancilla, 2)])
+        layout = Layout({qr_ancilla[0]: 0, qr_ancilla[1]: 1, qr_ancilla[2]: 2})
 
         pass_ = EnlargeWithAncilla(layout)
         after = pass_.run(dag)

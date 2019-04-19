@@ -75,7 +75,7 @@ def execute(circuits, backend, qobj_header=None, config=None, basis_gates=None,
         run_config.shots = shots
     if max_credits:
         run_config.max_credits = max_credits
-    if seed:
+    if seed is not None:
         run_config.seed = seed
     if memory:
         run_config.memory = memory

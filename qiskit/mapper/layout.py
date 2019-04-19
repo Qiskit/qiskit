@@ -22,13 +22,15 @@ from qiskit.circuit.register import Register
 class Layout():
     """Two-ways dict to represent a Layout."""
 
-    def __init__(self, input_=None):
+    def __init__(self, input_dict=None):
+        """construct a Layout from a bijective dictionary, mapping
+        virtual qubits to physical qubits"""
         self._p2v = {}
         self._v2p = {}
-        if isinstance(input_, dict):
+        if input_dict is not None:
+            if not isinstance(input_, dict):
+                raise LayoutError("Layout constructor takes a dict")
             self.from_dict(input_)
-        if isinstance(input_, list):
-            self.from_list(input_)
 
     def __repr__(self):
         """Representation of a Layout"""
@@ -48,24 +50,17 @@ class Layout():
         Args:
             input_dict (dict):
 
-            e.g.:
-            virtual to physical:
-                {(QuantumRegister(3, 'qr'), 0): 0,
-                 (QuantumRegister(3, 'qr'), 1): 1,
-                 (QuantumRegister(3, 'qr'), 2): 2}
+                e.g.:
+                virtual to physical:
+                    {qr[0]: 0,
+                     qr[1]: 1,
+                     qr[2]: 2}
 
-            or shorter:
-                {qr[0]: 0,
-                 qr[1]: 1,
-                 qr[2]: 2}
-
-            physical to virtual:
-                {0: qr[0],
-                 1: qr[1],
-                 2: qr[2]
-                }
+                physical to virtual:
+                    {0: qr[0],
+                     1: qr[1],
+                     2: qr[2]}
         """
-
         # TODO (luciano): Remove this full block after 0.8.
         #  its here to support {("qr", 0): ("q", 0),...}
         if len(input_dict) >= 1:
@@ -99,25 +94,6 @@ class Layout():
             if virtual is None:
                 continue
             self._v2p[virtual] = physical
-
-    def from_list(self, input_list):
-        """
-        Populates a Layout from a list.
-
-        Args:
-            input_list (list): For example,
-            [(QuantumRegister(3, 'qr'), 0), None,
-             (QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 3)]
-
-        Raises:
-            LayoutError: If the elements are not (Register, integer) or None
-        """
-        for physical, virtual in enumerate(input_list):
-            if Layout.is_virtual(virtual):
-                self._set_type_checked_item(virtual, physical)
-            else:
-                raise LayoutError("The list should contain elements of the form"
-                                  " (Register, integer) or None")
 
     @staticmethod
     def order_based_on_type(value1, value2):
@@ -300,7 +276,7 @@ class Layout():
         return layout
 
     @staticmethod
-    def generate_from_intlist(int_list, *qregs):
+    def from_intlist(int_list, *qregs):
         """Converts a list of integers to a Layout
         mapping virtual qubits (index of the list) to
         physical qubits (the list values).
@@ -314,9 +290,10 @@ class Layout():
         Raises:
             LayoutError: Invalid input layout.
         """
-        # check for duplicate values in list
+        if not all((isinstance(i, int) for i in int_list)):
+            raise LayoutError('Expected a list of ints')
         if len(int_list) != len(set(int_list)):
-            raise LayoutError('Duplicate values not permitted in integer layout.')
+            raise LayoutError('Duplicate values not permitted; Layout is bijective.')
         n_qubits = sum(reg.size for reg in qregs)
         # Check if list is too short to cover all qubits
         if len(int_list) < n_qubits:
@@ -331,4 +308,31 @@ class Layout():
         if main_idx != len(int_list):
             for int_item in int_list[main_idx:]:
                 out[int_item] = None
+        return out
+
+    @staticmethod
+    def from_tuplelist(tuple_list):
+        """
+        Populates a Layout from a list containing virtual
+        qubits---(QuantumRegister, int) tuples---, or None.
+
+        Args:
+            tuple_list (list):
+                e.g.: [qr[0], None, qr[2], qr[3]]
+        Returns:
+            Layout: the corresponding Layout object
+        Raises:
+            LayoutError: If the elements are not (Register, integer) or None
+        """
+        out = Layout()
+        for physical, virtual in enumerate(tuple_list):
+            if virtual is None:
+                continue
+            elif Layout.is_virtual(virtual):
+                if virtual in out._v2p:
+                    raise LayoutError('Duplicate values not permitted; Layout is bijective.')
+                out[virtual] = physical
+            else:
+                raise LayoutError("The list should contain elements of the form"
+                                  " (Register, integer) or None")
         return out

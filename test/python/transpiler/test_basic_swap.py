@@ -356,7 +356,7 @@ class TestBasicSwap(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[1], qr[2])
         dag = circuit_to_dag(circuit)
-        layout = Layout([(qr, 1), (qr, 0), (qr, 2)])
+        layout = Layout({qr[1]: 0, qr[0]: 1, qr[2]: 2})
 
         expected = QuantumCircuit(qr)
         expected.swap(qr[1], qr[0])
@@ -391,7 +391,7 @@ class TestBasicSwap(QiskitTestCase):
         circuit = QuantumCircuit(qr0, qr1, qr2)
         circuit.cx(qr1[0], qr2[0])
         dag = circuit_to_dag(circuit)
-        layout = Layout([(qr1, 0), (qr0, 0), (qr2, 0)])
+        layout = Layout({qr1[0]: 0, qr0[0]: 1, qr2[0]: 2})
 
         expected = QuantumCircuit(qr0, qr1, qr2)
         expected.swap(qr1[0], qr0[0])

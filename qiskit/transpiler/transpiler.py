@@ -32,12 +32,42 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         basis_gates (list[str]): list of basis gate names supported by the
             target. Default: ['u1','u2','u3','cx','id']
         coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
+
+        initial_layout (Layout or dict or list):
+            Initial position of virtual qubits on physical qubits. The final
+            layout is not guaranteed to be the same, as the transpiler may permute
+            qubits through swaps or other means.
+
+            Multiple formats are supported:
+            a. Layout instance
+
+            b. dict
+                virtual to physical:
+                    {qr[0]: 0,
+                     qr[1]: 3,
+                     qr[2]: 5}
+
+                physical to virtual:
+                    {0: qr[0],
+                     3: qr[1],
+                     5: qr[2]}
+
+            c. list
+                virtual to physical:
+                    [0, 3, 5]  # virtual qubits are ordered (in addition to named)
+
+                physical to virtual:
+                    [qr[0], None, None, qr[1], None, qr[2]]
+
+
         seed_mapper (int): random seed for the swap_mapper
         pass_manager (PassManager): a pass_manager for the transpiler stages
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
+
+    Raises:
+        TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
     return_form_is_single = False
     if isinstance(circuits, QuantumCircuit):
@@ -51,16 +81,17 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         # This needs to be removed once Aer 0.2 is out
         coupling_map = coupling_map or getattr(backend.configuration(), 'coupling_map', None)
 
-    # Convert integer list format to Layout
-    if isinstance(initial_layout, list) and \
-            all(isinstance(elem, int) for elem in initial_layout):
-        if isinstance(circuits, list):
-            circ = circuits[0]
+    # Accomodate initial_layout in the form of Layout, or dict, or list
+    # TODO: (Ali) allow partial layout specifications
+    if isinstance(initial_layout, list):
+        if all(isinstance(elem, int) for elem in initial_layout):
+            # FIXME: (Ali) must allow a list of initial layouts
+            initial_layout = Layout.from_intlist(initial_layout, *circuits[0].qregs)
+        elif all(elem is None or isinstance(elem, tuple) for elem in initial_layout):
+            initial_layout = Layout.from_tuplelist(initial_layout)
         else:
-            circ = circuits
-        initial_layout = Layout.generate_from_intlist(initial_layout, *circ.qregs)
-
-    if initial_layout is not None and not isinstance(initial_layout, Layout):
+            raise TranspilerError("bad format for initial_layout")
+    elif isinstance(initial_layout, dict):
         initial_layout = Layout(initial_layout)
 
     circuits = parallel_map(_transpilation, circuits,
