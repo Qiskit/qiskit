@@ -110,14 +110,6 @@ class LayoutTest(QiskitTestCase):
         layout.add((self.qr, 1), 3)
         self.assertEqual(len(layout), 2)
 
-    def test_layout_idle_physical_bits(self):
-        """Get physical_bits that are not mapped"""
-        layout = Layout()
-        layout.add((self.qr, 1), 2)
-        layout.add(None, 4)
-        layout.add(None, 6)
-        self.assertEqual(layout.idle_physical_bits(), [4, 6])
-
     def test_layout_get_bits(self):
         """Get the map from the (qu)bits view"""
         layout_dict = {(self.qr, 0): 0,

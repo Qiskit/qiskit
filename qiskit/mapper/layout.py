@@ -194,16 +194,6 @@ class Layout():
         """
         return {reg for reg, _ in self.get_virtual_bits()}
 
-    def idle_physical_bits(self):
-        """
-        Returns a list of physical (qu)bits that are not mapped to a virtual (qu)bit.
-        """
-        idle_physical_bit_list = []
-        for physical_bit in self.get_physical_bits():
-            if self._p2v[physical_bit] is None:
-                idle_physical_bit_list.append(physical_bit)
-        return idle_physical_bit_list
-
     def get_virtual_bits(self):
         """
         Returns the dictionary where the keys are virtual (qu)bits and the

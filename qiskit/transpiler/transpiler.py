@@ -16,8 +16,8 @@ from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
 from qiskit.mapper.layout import Layout
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.preset_passmanagers import default_pass_manager_simulator, \
-    default_pass_manager
+from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
+                                                   default_pass_manager)
 
 logger = logging.getLogger(__name__)
 
