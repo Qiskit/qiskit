@@ -8,7 +8,6 @@
 # pylint: disable=missing-docstring
 
 import os
-import sys
 import tempfile
 import unittest
 
