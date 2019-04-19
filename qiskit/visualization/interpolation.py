@@ -35,7 +35,7 @@ def cubic_spline(time, samples, nop):
     cs_ry = CubicSpline(time[:-1], re_y)
     cs_iy = CubicSpline(time[:-1], im_y)
 
-    time_ = np.linspace(0, len(samples) * dt, nop)
+    time_ = np.linspace(time[0], time[-1] * dt, nop)
 
     return time_, cs_ry(time_), cs_iy(time_)
 

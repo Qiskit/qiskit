@@ -114,7 +114,7 @@ class EventsOutputChannels:
         if self._waveform is None:
             self._build_waveform()
 
-        return self._waveform[self.t0:self.tf + 1]
+        return self._waveform[self.t0:self.tf]
 
     @property
     def frame_change(self):
