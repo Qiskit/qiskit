@@ -497,6 +497,31 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [pi / 2])
         self.assertEqual(qargs, [self.qr[1]])
 
+    def test_rzz(self):
+        self.circuit.rzz(1, self.qr[1], self.qr[2])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'rzz')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[1], self.qr[2]])
+
+    def test_rzz_wires(self):
+        self.circuit.rzz(1, 1, 2)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'rzz')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[1], self.qr[2]])
+
+    def test_rzz_invalid(self):
+        qc = self.circuit
+        self.assertRaises(QiskitError, qc.rzz, 1, self.cr[1], self.cr[2])
+        self.assertRaises(QiskitError, qc.rzz, 1, self.qr[0], self.qr[0])
+        self.assertRaises(QiskitError, qc.rzz, 1, .0, self.qr[0])
+        self.assertRaises(QiskitError, qc.rzz, 1, (self.qr, 3), self.qr[0])
+        self.assertRaises(QiskitError, qc.rzz, 1, self.cr, self.qr)
+        self.assertRaises(QiskitError, qc.rzz, 1, 'a', self.qr[1])
+        self.assertRaises(QiskitError, qc.rzz, 0.1, self.cr[1], self.cr[2])
+        self.assertRaises(QiskitError, qc.rzz, 0.1, self.qr[0], self.qr[0])
+
     def test_s(self):
         self.circuit.s(self.qr[1])
         op, qargs, _ = self.circuit[0]
@@ -659,6 +684,13 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [1])
         self.assertEqual(qargs, [self.qr[1]])
 
+    def test_u1_wires(self):
+        self.circuit.u1(1, 1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'u1')
+        self.assertEqual(op.params, [1])
+        self.assertEqual(qargs, [self.qr[1]])
+
     def test_u1_invalid(self):
         qc = self.circuit
         # CHECKME? self.assertRaises(QiskitError, qc.u1, self.cr[0], self.qr[0])
@@ -694,6 +726,13 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_u2(self):
         self.circuit.u2(1, 2, self.qr[1])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'u2')
+        self.assertEqual(op.params, [1, 2])
+        self.assertEqual(qargs, [self.qr[1]])
+
+    def test_u2_wires(self):
+        self.circuit.u2(1, 2, 1)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'u2')
         self.assertEqual(op.params, [1, 2])
@@ -738,6 +777,13 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [1, 2, 3])
         self.assertEqual(qargs, [self.qr[1]])
 
+    def test_u3_wires(self):
+        self.circuit.u3(1, 2, 3, 1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'u3')
+        self.assertEqual(op.params, [1, 2, 3])
+        self.assertEqual(qargs, [self.qr[1]])
+
     def test_u3_invalid(self):
         qc = self.circuit
         # TODO self.assertRaises(QiskitError, qc.u3, 0, self.cr[0], self.qr[0])
@@ -772,6 +818,13 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_ubase(self):
         self.circuit.u_base(1, 2, 3, self.qr[1])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'U')
+        self.assertEqual(op.params, [1, 2, 3])
+        self.assertEqual(qargs, [self.qr[1]])
+
+    def test_ubase_wires(self):
+        self.circuit.u_base(1, 2, 3, 1)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'U')
         self.assertEqual(op.params, [1, 2, 3])
@@ -816,6 +869,13 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [])
         self.assertEqual(qargs, [self.qr[1]])
 
+    def test_x_wires(self):
+        self.circuit.x(1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'x')
+        self.assertEqual(op.params, [])
+        self.assertEqual(qargs, [self.qr[1]])
+
     def test_x_invalid(self):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.x, self.cr[0])
@@ -838,6 +898,13 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_y(self):
         self.circuit.y(self.qr[1])
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'y')
+        self.assertEqual(op.params, [])
+        self.assertEqual(qargs, [self.qr[1]])
+
+    def test_y_wires(self):
+        self.circuit.y(1)
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 'y')
         self.assertEqual(op.params, [])
@@ -870,10 +937,12 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [])
         self.assertEqual(qargs, [self.qr[1]])
 
-    def test_rzz(self):
-        qc = self.circuit
-        self.assertRaises(QiskitError, qc.rzz, 0.1, self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.rzz, 0.1, self.qr[0], self.qr[0])
+    def test_z_wires(self):
+        self.circuit.z(1)
+        op, qargs, _ = self.circuit[0]
+        self.assertEqual(op.name, 'z')
+        self.assertEqual(op.params, [])
+        self.assertEqual(qargs, [self.qr[1]])
 
     def test_z_reg(self):
         instruction_set = self.circuit.z(self.qr)
