@@ -153,10 +153,12 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
                   "0.9 release. Circuits can be transpiled directly to other "
                   "circuits with the transpile function.", DeprecationWarning)
     return _transpile_dag(dag, basis_gates, coupling_map, initial_layout,
-                          seed_mapper, pass_manager)
+                          skip_numeric_passes, seed_mapper, pass_manager)
+
 
 def _transpile_dag(dag, basis_gates=None, coupling_map=None,
-                   initial_layout=None, seed_mapper=None, pass_manager=None):
+                   initial_layout=None, skip_numeric_passes=None,
+                   seed_mapper=None, pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
