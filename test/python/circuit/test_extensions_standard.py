@@ -587,8 +587,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(QiskitError, qc.swap, self.qr[:2], self.qr2)
 
     def test_t(self):
-        self.assertRaises(QiskitError, self.circuit.t, self.cr[0])
-        self.assertRaises(QiskitError, self.circuit.t, .0)
         self.circuit.t(self.qr[1])
         op, qargs, _ = self.circuit[0]
         self.assertEqual(op.name, 't')
