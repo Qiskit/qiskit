@@ -204,10 +204,10 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             # Extend and enlarge the the dag/layout with ancillas using the full coupling map
             pass_manager.property_set['layout'] = initial_layout
             pass_manager.append(ExtendLayout(coupling))
-            pass_manager.append(EnlargeWithAncilla(initial_layout))
+            pass_manager.append(EnlargeWithAncilla())
 
             # Swap mapper
-            pass_manager.append(LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper))
+            pass_manager.append(LegacySwap(coupling, trials=20, seed=seed_mapper))
 
             # Expand swaps
             pass_manager.append(Decompose(SwapGate))
