@@ -14,24 +14,10 @@ from qiskit.mapper import CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
-from qiskit.extensions.standard import SwapGate
 from qiskit.mapper.layout import Layout
-from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-
-from .passes.unroller import Unroller
-from .passes.cx_cancellation import CXCancellation
-from .passes.decompose import Decompose
-from .passes.optimize_1q_gates import Optimize1qGates
-from .passes.fixed_point import FixedPoint
-from .passes.depth import Depth
-from .passes.mapping.check_map import CheckMap
-from .passes.mapping.cx_direction import CXDirection
-from .passes.mapping.dense_layout import DenseLayout
-from .passes.mapping.trivial_layout import TrivialLayout
-from .passes.mapping.legacy_swap import LegacySwap
-from .passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
-from .passes.mapping.extend_layout import ExtendLayout
+from qiskit.transpiler.preset_passmanagers import default_pass_manager_simulator, \
+    default_pass_manager
 
 logger = logging.getLogger(__name__)
 
@@ -118,24 +104,6 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     dag = circuit_to_dag(circuit)
     del circuit
 
-    # if the circuit and layout already satisfy the coupling_constraints, use that layout
-    # if there's no layout but the circuit is compatible, use a trivial layout
-    # otherwise layout on the most densely connected physical qubit subset
-    # FIXME: this should be simplified once it is ported to a PassManager
-    if coupling_map:
-        cm_object = CouplingMap(coupling_map)
-        check_map = CheckMap(cm_object, initial_layout)
-        check_map.run(dag)
-        if check_map.property_set['is_swap_mapped']:
-            if not initial_layout:
-                trivial_layout = TrivialLayout(cm_object)
-                trivial_layout.run(dag)
-                initial_layout = trivial_layout.property_set['layout']
-        else:
-            dense_layout = DenseLayout(cm_object)
-            dense_layout.run(dag)
-            initial_layout = dense_layout.property_set['layout']
-
     final_dag = transpile_dag(dag, basis_gates=basis_gates,
                               coupling_map=coupling_map,
                               initial_layout=initial_layout,
@@ -188,39 +156,17 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
                       "removed after 0.9", DeprecationWarning, 2)
         basis_gates = basis_gates.split(',')
 
-    if initial_layout is None:
-        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
     if pass_manager is None:
         # default set of passes
 
-        pass_manager = PassManager()
-        pass_manager.append(Unroller(basis_gates))
-
         # if a coupling map is given compile to the map
         if coupling_map:
-            coupling = CouplingMap(coupling_map)
-
-            # Extend and enlarge the the dag/layout with ancillas using the full coupling map
-            pass_manager.property_set['layout'] = initial_layout
-            pass_manager.append(ExtendLayout(coupling))
-            pass_manager.append(EnlargeWithAncilla(initial_layout))
-
-            # Swap mapper
-            pass_manager.append(LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper))
-
-            # Expand swaps
-            pass_manager.append(Decompose(SwapGate))
-
-            # Change CX directions
-            pass_manager.append(CXDirection(coupling))
-
-            # Unroll to the basis
-            pass_manager.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
-
-            # Simplify single qubit gates and CXs
-            pass_manager.append([Optimize1qGates(), CXCancellation(), Depth(), FixedPoint('depth')],
-                                do_while=lambda property_set: not property_set['depth_fixed_point'])
+            pass_manager = default_pass_manager(basis_gates,
+                                                CouplingMap(coupling_map),
+                                                initial_layout,
+                                                seed_mapper=seed_mapper)
+        else:
+            pass_manager = default_pass_manager_simulator(basis_gates)
 
     # run the passes specified by the pass manager
     # TODO return the property set too. See #1086
