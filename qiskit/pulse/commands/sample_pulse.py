@@ -49,18 +49,23 @@ class SamplePulse(PulseCommand):
 
         Args:
             dt (float): Time interval of samples.
+            style (OPStylePulse): A style sheet to configure plot appearance.
             filename (str): Name required to save pulse image.
             interp_method (Callable): A function for interpolation.
-            style (dict): A style sheet to configure plot appearance.
             scaling (float): scaling of waveform amplitude.
             interactive (bool): When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this).
-        """
-        from qiskit.visualization.pulse_visualization import pulse_drawer
 
-        return pulse_drawer(self, dt=dt, style=style, filename=filename,
-                            interp_method=interp_method, scaling=scaling,
-                            interactive=interactive)
+        Returns:
+            matplotlib.figure: A matplotlib figure object of the pulse envelope.
+        """
+        # pylint: disable=invalid-name, cyclic-import
+
+        from qiskit.tools import visualization
+
+        return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
+                                          interp_method=interp_method, scaling=scaling,
+                                          interactive=interactive)
 
     def __eq__(self, other):
         """Two SamplePulses are the same if they are of the same type

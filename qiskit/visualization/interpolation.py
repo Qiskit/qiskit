@@ -7,16 +7,20 @@
 
 # pylint: disable=invalid-name
 
+"""
+interpolation module for pulse visualization.
+"""
+
 from scipy.interpolate import CubicSpline
 import numpy as np
 
 
-def cubic_spline(samples, dt, nop):
+def cubic_spline(time, samples, nop):
     """Cubic spline interpolation.
 
     Args:
+        time (ndarray): time.
         samples (ndarray): complex pulse envelope.
-        dt (float): time interval of samples.
         nop (int): data points for interpolation.
 
     Returns:
@@ -25,7 +29,9 @@ def cubic_spline(samples, dt, nop):
     re_y = np.real(samples)
     im_y = np.imag(samples)
 
-    time = (np.arange(0, len(samples) + 1) + 0.5) * dt
+    dt = time[1] - time[0]
+
+    time += 0.5 * dt
     cs_ry = CubicSpline(time[:-1], re_y)
     cs_iy = CubicSpline(time[:-1], im_y)
 
@@ -34,21 +40,22 @@ def cubic_spline(samples, dt, nop):
     return time_, cs_ry(time_), cs_iy(time_)
 
 
-def step_wise(samples, dt, nop):
+def step_wise(time, samples, nop):
     """Step-wise interpolation.
 
     Args:
+        time (ndarray): time.
         samples (ndarray): complex pulse envelope.
-        dt (float): time interval of samples.
         nop (int): data points for interpolation.
 
     Returns:
         ndarray: interpolated waveform.
     """
+    # pylint: disable=unused-argument
+
     re_y = np.real(samples)
     im_y = np.imag(samples)
 
-    time = np.arange(0, len(samples) + 1) * dt
     re_y = np.repeat(re_y, 2)
     im_y = np.repeat(im_y, 2)
 
