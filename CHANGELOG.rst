@@ -153,6 +153,8 @@ Changed
   ``qiskit.visualization``. The public API (which was declared stable in
   the 0.7 release) is still accessible off of ``qiskit.tools.visualization``.
   (#1878)
+- Layout object can now only be constructed from a dictionary, and must be bijective (#2157).
+- ``transpile()`` accepts ``initial_layout`` in the form of dict, list or Layout (#2157).
 
 Deprecated
 ----------
