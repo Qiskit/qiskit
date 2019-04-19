@@ -118,24 +118,6 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     dag = circuit_to_dag(circuit)
     del circuit
 
-    # if the circuit and layout already satisfy the coupling_constraints, use that layout
-    # if there's no layout but the circuit is compatible, use a trivial layout
-    # otherwise layout on the most densely connected physical qubit subset
-    # FIXME: this should be simplified once it is ported to a PassManager
-    if coupling_map:
-        cm_object = CouplingMap(coupling_map)
-        check_map = CheckMap(cm_object, initial_layout)
-        check_map.run(dag)
-        if check_map.property_set['is_swap_mapped']:
-            if not initial_layout:
-                trivial_layout = TrivialLayout(cm_object)
-                trivial_layout.run(dag)
-                initial_layout = trivial_layout.property_set['layout']
-        else:
-            dense_layout = DenseLayout(cm_object)
-            dense_layout.run(dag)
-            initial_layout = dense_layout.property_set['layout']
-
     final_dag = transpile_dag(dag, basis_gates=basis_gates,
                               coupling_map=coupling_map,
                               initial_layout=initial_layout,
@@ -188,9 +170,6 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
                       "removed after 0.9", DeprecationWarning, 2)
         basis_gates = basis_gates.split(',')
 
-    if initial_layout is None:
-        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
     if pass_manager is None:
         # default set of passes
 
@@ -200,9 +179,19 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
         # if a coupling map is given compile to the map
         if coupling_map:
             coupling = CouplingMap(coupling_map)
+            pass_manager.property_set['layout'] = initial_layout
+
+            # Use the trivial layout if no layouto is found
+            pass_manager.append(TrivialLayout(coupling),
+                                condition=lambda property_set: not property_set['layout'])
+
+            # if the circuit and layout already satisfy the coupling_constraints, use that layout
+            # otherwise layout on the most densely connected physical qubit subset
+            pass_manager.append(CheckMap(coupling))
+            pass_manager.append(DenseLayout(coupling),
+                                condition=lambda property_set: not property_set['is_swap_mapped'])
 
             # Extend and enlarge the the dag/layout with ancillas using the full coupling map
-            pass_manager.property_set['layout'] = initial_layout
             pass_manager.append(ExtendLayout(coupling))
             pass_manager.append(EnlargeWithAncilla())
 
