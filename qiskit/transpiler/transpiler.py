@@ -106,22 +106,57 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     dag = circuit_to_dag(circuit)
     del circuit
 
-    final_dag = transpile_dag(dag, basis_gates=basis_gates,
-                              coupling_map=coupling_map,
-                              initial_layout=initial_layout,
-                              skip_numeric_passes=is_parametric_circuit,
-                              seed_mapper=seed_mapper,
-                              pass_manager=pass_manager)
+    final_dag = _transpile_dag(dag, basis_gates=basis_gates,
+                               coupling_map=coupling_map,
+                               initial_layout=initial_layout,
+                               skip_numeric_passes=is_parametric_circuit,
+                               seed_mapper=seed_mapper,
+                               pass_manager=pass_manager)
 
     out_circuit = dag_to_circuit(final_dag)
 
     return out_circuit
 
 
-# pylint: disable=redefined-builtin
 def transpile_dag(dag, basis_gates=None, coupling_map=None,
                   initial_layout=None, skip_numeric_passes=None,
                   seed_mapper=None, pass_manager=None):
+    """Deprecated - Transform a dag circuit into another dag circuit
+    (transpile), through consecutive passes on the dag.
+
+    Args:
+        dag (DAGCircuit): dag circuit to transform via transpilation
+        basis_gates (list[str]): list of basis gate names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
+        coupling_map (list): A graph of coupling::
+
+            [
+             [control0(int), target0(int)],
+             [control1(int), target1(int)],
+            ]
+
+            eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
+
+        initial_layout (Layout or None): A layout object
+        skip_numeric_passes (bool): If true, skip passes which require fixed parameter values
+        seed_mapper (int): random seed_mapper for the swap mapper
+        pass_manager (PassManager): pass manager instance for the transpilation process
+            If None, a default set of passes are run.
+            Otherwise, the passes defined in it will run.
+            If contains no passes in it, no dag transformations occur.
+
+    Returns:
+        DAGCircuit: transformed dag
+    """
+
+    warnings.warn("transpile_dag has been deprecated and will be removed in the "
+                  "0.9 release. Circuits can be transpiled directly to other "
+                  "circuits with the transpile function.", DeprecationWarning)
+    return _transpile_dag(dag, basis_gates, coupling_map, initial_layout,
+                          seed_mapper, pass_manager)
+
+def _transpile_dag(dag, basis_gates=None, coupling_map=None,
+                   initial_layout=None, seed_mapper=None, pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
