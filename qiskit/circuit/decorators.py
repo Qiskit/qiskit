@@ -28,6 +28,8 @@ def _is_bit(obj):
 
 
 def _convert_to_bits(a_list, bits):
+    """ Recursively converts the integers, tuples and ranges in a_list
+    for a qu/clbit from the bits. E.g. bits[item_in_a_list]"""
     new_list = []
     for item in a_list:
         if isinstance(item, (int, slice)):
