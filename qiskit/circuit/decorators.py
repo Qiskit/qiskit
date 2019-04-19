@@ -33,13 +33,17 @@ def _convert_to_bits(a_list, bits):
     new_list = []
     for item in a_list:
         if isinstance(item, (int, slice)):
+            # eg. circuit.h(2)
+            # eg. circuit.h(slice(0, 2))
             try:
                 new_list.append(bits[item])
             except IndexError:
                 raise QiskitError("The integer param is out of range")
         elif isinstance(item, list):
+            # eg. circuit.h([0, 2])
             new_list.append(_convert_to_bits(item, bits))
         elif isinstance(item, range):
+            # eg. circuit.h(range(0, 2))
             new_list.append(_convert_to_bits([index for index in item], bits))
         else:
             new_list.append(item)
