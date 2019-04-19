@@ -28,9 +28,9 @@ class Layout():
         self._p2v = {}
         self._v2p = {}
         if input_dict is not None:
-            if not isinstance(input_, dict):
+            if not isinstance(input_dict, dict):
                 raise LayoutError("Layout constructor takes a dict")
-            self.from_dict(input_)
+            self.from_dict(input_dict)
 
     def __repr__(self):
         """Representation of a Layout"""
