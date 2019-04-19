@@ -51,7 +51,8 @@ def _convert_to_bits(a_list, bits):
 
 
 def _to_bits(nqbits, ncbits=0, func=None):
-    """Convert to [qu|cl]bits from integers, slices, ranges, etc"""
+    """Convert gate arguments to [qu|cl]bits from integers, slices, ranges, etc.
+    For example circuit.h(0) -> circuit.h(QuantumRegister(2)[0]) """
     if func is None:
         return functools.partial(_to_bits, nqbits, ncbits)
 
