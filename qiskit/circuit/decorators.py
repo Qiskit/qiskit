@@ -60,10 +60,14 @@ def _to_bits(nqbits, ncbits=0, func=None):
     def wrapper(self, *args):
         qbits = [qbit for qreg in self.qregs for qbit in qreg]
         cbits = [cbit for creg in self.cregs for cbit in creg]
-        qb_args = args[-(nqbits + ncbits):] if ncbits == 0 else args[-(nqbits + ncbits):-ncbits]
-        cl_args = [] if ncbits == 0 else args[-ncbits:]
-        args = list(args[:-(nqbits + ncbits)])
-        args += _convert_to_bits(qb_args, qbits) + _convert_to_bits(cl_args, cbits)
+
+        nparams = len(args) - nqbits - ncbits
+        params = args[:nparams]
+        qb_args = args[nparams:nparams + nqbits]
+        cl_args = args[nparams + nqbits:]
+
+        args = list(params) + _convert_to_bits(qb_args, qbits) + _convert_to_bits(cl_args, cbits)
+
         return func(self, *args)
 
     return wrapper
