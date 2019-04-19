@@ -62,6 +62,7 @@ class ToffoliGate(Gate):
         """Invert this gate."""
         return ToffoliGate()  # self-inverse
 
+
 @_to_bits(3)
 @_op_expand(3, broadcastable=[True, True, False])
 def ccx(self, ctl1, ctl2, tgt):

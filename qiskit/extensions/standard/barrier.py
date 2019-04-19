@@ -14,6 +14,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.circuit.decorators import _convert_to_bits
 
+
 class Barrier(Instruction):
     """Barrier instruction."""
 

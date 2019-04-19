@@ -36,11 +36,11 @@ class Cu3Gate(Gate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (U1Gate((self.params[2] - self.params[1])/2), [q[1]], []),
+            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0]/2, 0, -(self.params[1]+self.params[2])/2), [q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0]/2, self.params[1], 0), [q[1]], [])
+            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -49,6 +49,7 @@ class Cu3Gate(Gate):
     def inverse(self):
         """Invert this gate."""
         return Cu3Gate(-self.params[0], -self.params[2], -self.params[1])
+
 
 @_to_bits(2)
 @_op_expand(2)

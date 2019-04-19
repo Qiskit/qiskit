@@ -42,6 +42,7 @@ class CnotGate(Gate):
         """Invert this gate."""
         return CnotGate()  # self-inverse
 
+
 @_to_bits(2)
 @_op_expand(2)
 def cx(self, ctl, tgt):

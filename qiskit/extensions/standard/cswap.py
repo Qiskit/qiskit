@@ -47,6 +47,7 @@ class FredkinGate(Gate):
         """Invert this gate."""
         return FredkinGate()  # self-inverse
 
+
 @_to_bits(3)
 @_op_expand(3, broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):

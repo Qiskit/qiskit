@@ -43,6 +43,7 @@ class HGate(Gate):
         """Invert this gate."""
         return HGate()  # self-inverse
 
+
 @_to_bits(1)
 @_op_expand(1)
 def h(self, q):
