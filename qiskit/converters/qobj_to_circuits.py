@@ -61,6 +61,8 @@ def qobj_to_circuits(qobj):
                     pass
                 if i.name in ['snapshot']:
                     instr_method(*params)
+                elif i.name == 'initialize':
+                    instr_method(params, qubits)
                 else:
                     instr_method(*params, *qubits, *clbits)
             circuits.append(circuit)
