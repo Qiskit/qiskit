@@ -107,16 +107,12 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                 ]
                 params = [sympy.matrix2numpy(x, dtype=complex)
                           if isinstance(x, sympy.Matrix) else x for x in params]
-                if len(params) == 1 and isinstance(params[0], numpy.ndarray):
-                    # TODO: Aer expects list of rows for unitary instruction params;
-                    # change to matrix in Aer.
-                    params = params[0]
                 current_instruction.params = params
             # TODO: I really dont like this for snapshot. I also think we should change
             # type to snap_type
             if op.name == "snapshot":
                 current_instruction.label = str(op.params[0])
-                current_instruction.type = str(op.params[1])
+                current_instruction.snapshot_type = str(op.params[1])
             if op.name == 'unitary':
                 if op._label:
                     current_instruction.label = op._label
