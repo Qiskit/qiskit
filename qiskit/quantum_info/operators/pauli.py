@@ -17,6 +17,7 @@ import numpy as np
 from scipy import sparse
 
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.operator import Operator
 
 
 def _make_np_bool(arr):
@@ -293,6 +294,10 @@ class Pauli:
                 mat = sparse.bmat([[None, -mat], [mat, None]], format='coo')
 
         return mat.tocsr()
+
+    def to_operator(self):
+        """Convert to Operator object."""
+        return Operator(self.to_matrix())
 
     def update_z(self, z, indices=None):
         """
