@@ -337,6 +337,12 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.name, 'id')
         self.assertEqual(op.params, [])
 
+    def test_iden_wires(self):
+        self.circuit.iden(1)
+        op, _, _ = self.circuit[0]
+        self.assertEqual(op.name, 'id')
+        self.assertEqual(op.params, [])
+
     def test_iden_invalid(self):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.iden, self.cr[0])
