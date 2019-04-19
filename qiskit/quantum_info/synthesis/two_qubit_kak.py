@@ -28,7 +28,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.standard import IdGate, U1Gate, U2Gate, U3Gate, CnotGate
 from qiskit.exceptions import QiskitError
-
+from qiskit.quantum_info.operators.operator import Operator
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -128,7 +128,7 @@ def two_qubit_kak(unitary):
     """Decompose a two-qubit gate over SU(2)+CNOT using the KAK decomposition.
 
     Args:
-        unitary (Unitary): a 4x4 unitary operator to decompose.
+        unitary (Operator): a 4x4 unitary operator to decompose.
 
     Returns:
         QuantumCircuit: a circuit implementing the unitary over SU(2)+CNOT
@@ -136,7 +136,13 @@ def two_qubit_kak(unitary):
     Raises:
         QiskitError: input not a unitary, or error in KAK decomposition.
     """
-    unitary_matrix = unitary.representation
+    # Convert to operator and check input is unitary
+    if not isinstance(unitary, Operator):
+        unitary = Operator(unitary)
+    if not unitary.is_unitary():
+        raise QiskitError("Input operator is not unitary.")
+    # Check input is 2-qubit unitary
+    unitary_matrix = unitary.data
     if unitary_matrix.shape != (4, 4):
         raise QiskitError("two_qubit_kak: Expected 4x4 matrix")
     phase = la.det(unitary_matrix)**(-1.0/4.0)

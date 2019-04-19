@@ -337,6 +337,12 @@ class QasmSimulatorPy(BaseBackend):
         Args:
             experiment (QobjExperiment): a qobj experiment.
         """
+        # If shots=1 we should disable measure sampling.
+        # This is also required for statevector simulator to return the
+        # correct final statevector without silently dropping final measurements.
+        if self._shots <= 1:
+            self._sample_measure = False
+            return
 
         # Check for config flag
         if hasattr(experiment.config, 'allows_measure_sampling'):

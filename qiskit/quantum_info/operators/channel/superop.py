@@ -25,7 +25,6 @@ from numbers import Number
 import numpy as np
 
 from qiskit.qiskiterror import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.transformations import _to_superop
 from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
@@ -36,19 +35,7 @@ class SuperOp(QuantumChannel):
 
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a SuperOp quantum channel operator."""
-        if issubclass(data.__class__, BaseOperator):
-            # If not a channel we use `to_operator` method to get
-            # the unitary-representation matrix for input
-            if not issubclass(data.__class__, QuantumChannel):
-                data = data.to_operator()
-            input_dim, output_dim = data.dim
-            super_mat = _to_superop(data.rep, data._data, input_dim,
-                                    output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        elif isinstance(data, (list, np.ndarray)):
+        if isinstance(data, (list, np.ndarray)):
             # We initialize directly from superoperator matrix
             super_mat = np.array(data, dtype=complex)
             # Determine total input and output dimensions
@@ -58,7 +45,15 @@ class SuperOp(QuantumChannel):
             if output_dim**2 != dout or input_dim**2 != din:
                 raise QiskitError("Invalid shape for SuperOp matrix.")
         else:
-            raise QiskitError("Invalid input data format for SuperOp")
+            # Initialize from Qiskit objects
+            data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            super_mat = _to_superop(data.rep, data._data, input_dim,
+                                    output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
