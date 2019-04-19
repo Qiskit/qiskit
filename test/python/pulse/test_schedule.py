@@ -40,8 +40,7 @@ class TestSchedule(QiskitTestCase):
         self.two_qubit_device = DeviceSpecification(qubits, registers, mem_slots)
 
     def test_append_an_instruction_to_empty_schedule(self):
-        """Test append instructions to schedule.
-        """
+        """Test append instructions to an emtpy schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -51,8 +50,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(3, sched.stop_time)
 
     def test_append_instructions_applying_to_different_channels(self):
-        """Test append instructions to schedule.
-        """
+        """Test append instructions to schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -63,8 +61,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(6, sched.stop_time)
 
     def test_insert_an_instruction_into_empty_schedule(self):
-        """Test insert an instruction before an existing instruction.
-        """
+        """Test insert an instruction into an emtpy schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -74,8 +71,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(13, sched.stop_time)
 
     def test_insert_an_instruction_before_an_existing_instruction(self):
-        """Test insert an instruction before an existing instruction.
-        """
+        """Test insert an instruction before an existing instruction."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -86,19 +82,17 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(13, sched.stop_time)
 
     def test_fail_to_insert_instruction_into_occupied_timing(self):
-        """Test insert an instruction before an existing instruction.
-        """
+        """Test insert an instruction before an existing instruction."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
         sched = Schedule()
         sched = sched.insert(10, lp0(device.q[0].drive))
         with self.assertRaises(PulseError):
-            _ = sched.insert(11, lp0(device.q[0].drive))
+            sched.insert(11, lp0(device.q[0].drive))
 
     def test_can_create_valid_schedule(self):
-        """Test valid schedule creation without error.
-        """
+        """Test valid schedule creation without error."""
         device = self.two_qubit_device
 
         # pylint: disable=invalid-name
@@ -134,8 +128,7 @@ class TestSchedule(QiskitTestCase):
         # print(new_sched)
 
     def test_can_create_valid_schedule_with_syntax_sugar(self):
-        """Test valid schedule creation using syntax sugar without error.
-        """
+        """Test valid schedule creation using syntax sugar without error."""
         device = self.two_qubit_device
 
         # pylint: disable=invalid-name
@@ -159,12 +152,11 @@ class TestSchedule(QiskitTestCase):
         sched |= fc_pi_2(device.q[0].drive).shifted(90)
         sched |= acquire(device.q[1], device.mem[1], device.c[1]).shifted(90)
         # print(sched)
-        _ = Schedule() + sched + sched
+        Schedule() + sched + sched
         # print(new_sched)
 
     def test_empty_schedule(self):
-        """Test empty schedule.
-        """
+        """Test empty schedule."""
         sched = Schedule()
         self.assertEqual(0, sched.start_time)
         self.assertEqual(0, sched.stop_time)
@@ -174,8 +166,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual([], sched.flat_instruction_sequence())
 
     def test_flat_instruction_sequence_returns_instructions(self):
-        """Test if `flat_instruction_sequence` returns `Instruction`s.
-        """
+        """Test if `flat_instruction_sequence` returns `Instruction`s."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -196,8 +187,7 @@ class TestSchedule(QiskitTestCase):
             self.assertIsInstance(i, Instruction)
 
     def test_absolute_start_time_of_grandchild(self):
-        """Test correct calculation of start time of grandchild of a schedule.
-        """
+        """Test correct calculation of start time of grandchild of a schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
@@ -209,16 +199,11 @@ class TestSchedule(QiskitTestCase):
         sched = sched.append(lp0(device.q[0].drive))   # child
         sched = sched.append(subsched)
 
-        # expected = [DriveInstruction(lp0, device.q[0].drive, start_time=0),
-        #             DriveInstruction(lp0, device.q[0].drive, start_time=30),
-        #             DriveInstruction(lp0, device.q[0].drive, start_time=40)]
-        # self.assertEqual(expected, sched.flat_instruction_sequence())
         start_times = sorted([i.start_time for i in sched.flat_instruction_sequence()])
         self.assertEqual([0, 30, 40], start_times)
 
     def test_shifted_schedule(self):
-        """Test shifted schedule.
-        """
+        """Test shifted schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
@@ -232,16 +217,11 @@ class TestSchedule(QiskitTestCase):
 
         shifted = sched.shifted(100)
 
-        # expected = [DriveInstruction(lp0, device.q[0].drive, start_time=100),
-        #             DriveInstruction(lp0, device.q[0].drive, start_time=130),
-        #             DriveInstruction(lp0, device.q[0].drive, start_time=140)]
-        # self.assertEqual(expected, shifted.flat_instruction_sequence())
         start_times = sorted([i.start_time for i in shifted.flat_instruction_sequence()])
         self.assertEqual([100, 130, 140], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
-        """Test if a schedule keeps its children after attached to another schedule.
-        """
+        """Test if a schedule keeps its children after attached to another schedule."""
         device = self.two_qubit_device
 
         acquire = Acquire(10)
