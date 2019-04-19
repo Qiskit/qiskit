@@ -120,11 +120,11 @@ class Schedule(ScheduleComponent):
 
     @property
     def start_time(self) -> int:
-        return self._occupancy.begin_time(default=self._start_time)
+        return self._occupancy.start_time(default=self._start_time)
 
     @property
     def stop_time(self) -> int:
-        return self._occupancy.end_time(default=self._start_time)
+        return self._occupancy.stop_time(default=self._start_time)
 
     @property
     def children(self) -> Tuple[ScheduleComponent, ...]:

@@ -192,25 +192,25 @@ class TimeslotCollection:
         slots = [Timeslot(slot.interval.shifted(time), slot.channel) for slot in self._timeslots]
         return TimeslotCollection(slots)
 
-    def begin_time(self, default: int = None) -> int:
-        """Return earliest begin time in this collection.
+    def start_time(self, default: int = None) -> int:
+        """Return earliest start time in this collection.
 
         Args:
             default(int, optional): default value used when this collection is empty
 
         Returns:
-            The earliest begin time in this collection.
+            The earliest start time in this collection.
         """
         return min([slot.interval.begin for slot in self._timeslots], default=default)
 
-    def end_time(self, default: int = None) -> int:
-        """Return latest end time in this collection.
+    def stop_time(self, default: int = None) -> int:
+        """Return latest stop time in this collection.
 
         Args:
             default(int, optional): default value used when this collection is empty
 
         Returns:
-            The latest end time in this collection.
+            The latest stop time in this collection.
         """
         return max([slot.interval.end for slot in self._timeslots], default=default)
 
