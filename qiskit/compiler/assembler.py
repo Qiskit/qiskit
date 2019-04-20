@@ -8,7 +8,6 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
 
-import numpy
 import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
