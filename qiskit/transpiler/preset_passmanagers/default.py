@@ -25,7 +25,8 @@ from ..passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
 from ..passes.mapping.extend_layout import ExtendLayout
 
 
-def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_mapper):
+def default_pass_manager(basis_gates, coupling_map, initial_layout,
+                         skip_numeric_passes, seed_mapper):
     """
     The default pass manager that maps to the coupling map.
 
@@ -33,6 +34,7 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_mapper)
         basis_gates (list[str]): list of basis gate names supported by the
             target. Default: ['u1','u2','u3','cx','id']
         initial_layout (Layout or None): If None, trivial layout will be chosen.
+        skip_numeric_passes (bool): If true, skip passes which require fixed parameter values
         coupling_map (CouplingMap): coupling map (perhaps custom) to target
             in mapping.
         seed_mapper (int or None): random seed for the swap_mapper.
@@ -72,8 +74,14 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_mapper)
     pass_manager.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
 
     # Simplify single qubit gates and CXs
-    pass_manager.append([Optimize1qGates(), CXCancellation(), Depth(), FixedPoint('depth')],
+    if not skip_numeric_passes:
+        simplification_passes = [Optimize1qGates(), CXCancellation()]
+    else:
+        simplification_passes = [CXCancellation()]
+
+    pass_manager.append(simplification_passes + [Depth(), FixedPoint('depth')],
                         do_while=lambda property_set: not property_set['depth_fixed_point'])
+
     return pass_manager
 
 

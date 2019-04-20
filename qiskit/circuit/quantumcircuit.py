@@ -699,6 +699,14 @@ class QuantumCircuit:
             new_circuit.variable_table[variable] = value_dict
         return new_circuit
 
+    @property
+    def unassigned_variables(self):
+        """Returns a set containing any variables which have not yet been assigned."""
+        return {variable
+                for variable, parameterized_instructions in self.variable_table.items()
+                if any(instruction.params[parameter_index].free_symbols
+                       for instruction, parameter_index in parameterized_instructions)}
+
 
 def _circuit_from_qasm(qasm):
     # pylint: disable=cyclic-import

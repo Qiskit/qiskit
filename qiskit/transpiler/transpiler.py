@@ -101,12 +101,15 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     if pass_manager and not pass_manager.working_list:
         return circuit
 
+    is_parametric_circuit = bool(circuit.unassigned_variables)
+
     dag = circuit_to_dag(circuit)
     del circuit
 
     final_dag = transpile_dag(dag, basis_gates=basis_gates,
                               coupling_map=coupling_map,
                               initial_layout=initial_layout,
+                              skip_numeric_passes=is_parametric_circuit,
                               seed_mapper=seed_mapper,
                               pass_manager=pass_manager)
 
@@ -117,7 +120,8 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
 
 # pylint: disable=redefined-builtin
 def transpile_dag(dag, basis_gates=None, coupling_map=None,
-                  initial_layout=None, seed_mapper=None, pass_manager=None):
+                  initial_layout=None, skip_numeric_passes=None,
+                  seed_mapper=None, pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
@@ -135,6 +139,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
 
         initial_layout (Layout or None): A layout object
+        skip_numeric_passes (bool): If true, skip passes which require fixed parameter values
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
@@ -164,6 +169,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             pass_manager = default_pass_manager(basis_gates,
                                                 CouplingMap(coupling_map),
                                                 initial_layout,
+                                                skip_numeric_passes,
                                                 seed_mapper=seed_mapper)
         else:
             pass_manager = default_pass_manager_simulator(basis_gates)
