@@ -158,6 +158,15 @@ class TimeslotCollection:
         """Time slots of this occupancy."""
         return self._timeslots
 
+    @property
+    def channels(self):
+        """Channels within the timeslot collection.
+
+        Returns:
+            tuple
+        """
+        return tuple(self._table.keys())
+
     def start_time(self, default: int = None, channel: Channel = None) -> int:
         """Return earliest start time in this collection.
 
@@ -223,14 +232,6 @@ class TimeslotCollection:
         """
         slots = [Timeslot(slot.interval.shifted(time), slot.channel) for slot in self.timeslots]
         return TimeslotCollection(*slots)
-
-    def channels(self):
-        """Channels within the timeslot collection.
-
-        Returns:
-            tuple
-        """
-        return tuple(self._table.keys())
 
     def __eq__(self, other):
         """Two time-slot collections are the same if they have the same time-slots.
