@@ -54,10 +54,10 @@ def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent)
 
 def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
     """Return a new schedule with by appending `child` to `parent` at
-       the last time of the `parent` schedule's channels (+ buffer)
+       the last time of the `parent` schedule's channels
        over the intersection of the parent and child schedule's channels.
 
-       $t = buffer + \textrm{max}({x.stop\_time |x \in parent.channels \cap child.channels})$
+       $t = \textrm{max}({x.stop\_time |x \in parent.channels \cap child.channels})$
 
     Args:
         schedule (ScheduleComponent): schedule to be appended
@@ -68,6 +68,9 @@ def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
     Raises:
         PulseError: when an invalid schedule is specified or failed to append
     """
+    common_channels = set(parent.channels) & set(child.channels)
+    insertion_time = max(*[parent.stop_time(channel=ch) for ch in common_channels])
+    return insert(parent, insertion_time, child)
 
 
 def flatten_generator(node: ScheduleComponent, time: int = 0):
