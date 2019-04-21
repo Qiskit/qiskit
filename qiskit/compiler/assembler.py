@@ -226,7 +226,6 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
 
     qobj_header = qobj_header or QobjHeader()
     # create run configuration and populate
-    run_config = {}
     run_config['qubit_lo_freq'] = default_qubit_los
     run_config['meas_lo_freq'] = default_meas_los
     run_config['shots'] = shots
@@ -299,10 +298,11 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
                     experimentconfig=lo_converter(lo_dict)
                 ))
         else:
-            raise QiskitError('Invalid LO setting is specified. ' +
-                              'This should be provided for each schedule, or ' +
-                              'single setup for all schedules (unique), or ' +
-                              'multiple setups for a single schedule (frequency sweep).')
+            raise QiskitError('Invalid LO setting is specified. '
+                              'The LO should be configured for each schedule, or '
+                              'single setup for all schedules (unique), or '
+                              'multiple setups for a single schedule (frequency sweep),'
+                              'or no LO configured at all.')
     else:
         # unique frequency setup
         for schedule in qobj_schedules:
