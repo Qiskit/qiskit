@@ -136,8 +136,9 @@ def execute_circuits(circuits, backend, qobj_header=None,
 
 def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
                       shots=1024, max_credits=10, seed=None, meas_level=2,
-                      meas_return='avg', memory_slots=None, memory_slot_size=100,
-                      rep_time=None, run_config=None, **kwargs):
+                      meas_return='avg', memory=None, memory_slots=None,
+                      memory_slot_size=100, rep_time=None, run_config=None,
+                      **kwargs):
     """Executes a list of schedules.
 
     Args:
@@ -150,10 +151,11 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
         meas_level (int): set the appropriate level of the measurement output.
-        meas_return (str): indicates the level of measurement information to return.
-            "single" returns information from every shot of the experiment.
-            "avg" returns the average measurement output (averaged over the number of shots).
-            If the meas level is 2 then this is fixed to single.
+        meas_return (str): indicates the level of measurement data for the backend to return
+            for `meas_level` 0 and 1:
+                "single" returns information from every shot of the experiment.
+                "avg" returns the average measurement output (averaged over the number of shots).
+        memory (bool or None): For `meas_level` 2, return the individual shot results.
         memory_slots (int): number of classical memory slots used in this job.
         memory_slot_size (int): size of each memory slot if the output is Level 0.
         rep_time (int): repetition time of the experiment in μs.
@@ -201,7 +203,8 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
                               qobj_header=qobj_header,
                               shots=shots, max_credits=max_credits, seed=seed,
                               meas_level=meas_level, meas_return=meas_return,
-                              memory_slots=memory_slots, memory_slot_size=memory_slot_size,
+                              memory=memory, memory_slots=memory_slots,
+                              memory_slot_size=memory_slot_size,
                               rep_time=rep_time, **run_config)
 
     return backend.run(qobj, **kwargs)

@@ -9,8 +9,9 @@
 
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
+import logging
 
-import numpy
+import numpy as np
 import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -23,6 +24,8 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          PulseQobjExperiment, PulseQobjConfig, QobjPulseLibrary)
 from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
 from .run_config import RunConfig
+
+logger = logging.getLogger(__name__)
 
 
 def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None):
@@ -114,7 +117,7 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                 ]
                 params = [sympy.matrix2numpy(x, dtype=complex)
                           if isinstance(x, sympy.Matrix) else x for x in params]
-                if len(params) == 1 and isinstance(params[0], numpy.ndarray):
+                if len(params) == 1 and isinstance(params[0], np.ndarray):
                     # TODO: Aer expects list of rows for unitary instruction params;
                     # change to matrix in Aer.
                     params = params[0]
@@ -169,8 +172,8 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 def assemble_schedules(schedules, default_qubit_los, default_meas_los,
                        qobj_header=None, qobj_id=None, schedule_los=None,
                        shots=1024, max_credits=10, seed=None,
-                       meas_level=2, meas_return='avg', memory_slots=None,
-                       memory_slot_size=100, rep_time=None,
+                       meas_level=2, meas_return='avg', memory=None,
+                       memory_slots=None, memory_slot_size=100, rep_time=None,
                        instruction_converter=PulseQobjConverter,
                        **run_config):
     """Assembles a list of circuits into a qobj which can be run on the backend.
@@ -187,10 +190,11 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
         meas_level (int): set the appropriate level of the measurement output.
-        meas_return (str): indicates the level of measurement information to return.
-            "single" returns information from every shot of the experiment.
-            "avg" returns the average measurement output (averaged over the number of shots).
-            If the meas level is 2 then this is fixed to single.
+        meas_return (str): indicates the level of measurement data for the backend to return
+            for `meas_level` 0 and 1:
+                "single" returns information from every shot of the experiment.
+                "avg" returns the average measurement output (averaged over the number of shots).
+        memory (bool or None): For `meas_level` 2, return the individual shot results.
         memory_slots (int): number of classical memory slots used in this job.
         memory_slot_size (int): size of each memory slot if the output is Level 0.
         rep_time (int): repetition time of the experiment in μs.
@@ -232,6 +236,20 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
     run_config['max_credits'] = max_credits
     run_config['meas_level'] = meas_level
     run_config['meas_return'] = meas_return
+
+    if meas_level == 2:
+        logger.warning('"meas_return" is not a supported option for "meas_level=2".'
+                       'If you wish to obtain the binned counts please use "meas_level=2" and'
+                       'if you wish to obtain the individual shot results, set "memory=True".')
+        if meas_return == 'single':
+            logger.warning('Setting "memory=True".')
+            memory = True
+
+        run_config['memory'] = memory
+    else:
+        if memory:
+            logger.warning('Setting "memory" does not have an effect for "meas_level=0/1".')
+
     run_config['memory_slot'] = memory_slots
     run_config['memory_slot_size'] = memory_slot_size
     run_config['rep_time'] = rep_time
