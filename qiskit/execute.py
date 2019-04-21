@@ -167,9 +167,6 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
 
     Returns:
         BaseJob: returns job instance derived from BaseJob
-
-    Raises:
-        PulseError: when #schedules -> #schedule_los map is not one of `None`, 1:n, n:1 or n:n.
     """
     backend_config = backend.configuration()
 
