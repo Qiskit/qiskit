@@ -10,7 +10,6 @@ Schedule.
 """
 import itertools
 import logging
-from copy import copy
 from operator import attrgetter
 from typing import List, Tuple
 
@@ -51,7 +50,7 @@ class Schedule(ScheduleComponent):
         """Name of this schedule."""
         return self._name
 
-    def union(self, *schedules: List[ScheduleComponent]) -> Schedule:
+    def union(self, *schedules: List[ScheduleComponent]) -> 'Schedule':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
 
         Args:
@@ -65,7 +64,7 @@ class Schedule(ScheduleComponent):
         """
         return ops.union(self, *schedules)
 
-    def insert(self, start_time: int, schedule: ScheduleComponent) -> Schedule:
+    def insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`.
 
         Args:
@@ -115,19 +114,19 @@ class Schedule(ScheduleComponent):
     def children(self) -> Tuple[ScheduleComponent, ...]:
         return self._children
 
-    def __add__(self, schedule: ScheduleComponent) -> Schedule:
+    def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`."""
         return self.compose(schedule)
 
-    def __or__(self, schedule: ScheduleComponent) -> Schedule:
+    def __or__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`."""
         return self.union(schedule)
 
-    def __lshift__(self, time: int) -> Schedule:
+    def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is the parent `Schedule` shifted forward by `time`."""
         return self.shifted(time)
 
-    def __rshift__(self, time: int) -> Schedule:
+    def __rshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is the parent `Schedule` shifted backwards by `time`."""
         return self.shifted(-time)
 
