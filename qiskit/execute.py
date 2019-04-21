@@ -143,8 +143,6 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
     Args:
         schedules (Schedule or List[Schedule]): schedules to execute
         backend (BaseBackend): a backend to execute the schedules on
-                schedule_los(list[Union[Dict[OutputChannel, float], LoConfig]] or
-                        Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
         schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
         qobj_header (QobjHeader): user input to go into the header
