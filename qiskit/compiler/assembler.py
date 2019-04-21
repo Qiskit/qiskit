@@ -8,43 +8,67 @@
 # pylint: disable=unused-import
 
 """Assemble function for converting a list of circuits into a qobj"""
+import warnings
 import uuid
 import logging
-
 import sympy
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, LoConfig
 from qiskit.pulse.commands import DriveInstruction
+from qiskit.compiler.run_config import RunConfig
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig, PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, QobjPulseLibrary)
 from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
-from .run_config import RunConfig
 
 logger = logging.getLogger(__name__)
 
 
-def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None):
+def assemble_circuits(circuits, qobj_header=None,
+                      shots=None, memory=None, max_credits=None,
+                      seed_simulator=None, run_config=None,
+                      qobj_id=None, seed=None):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to assemble
         run_config (RunConfig): RunConfig object
-        qobj_header (QobjHeader): header to pass to the results
+        qobj_header (QobjHeader or dict): header to pass to the results
         qobj_id (int): identifier for the generated qobj
 
     Returns:
         QasmQobj: the Qobj to be run on the backends
     """
+    # deprecation matter
+    if qobj_id:
+        warnings.warn('qobj_id is deprecated in terra 0.8', DeprecationWarning)
+        qobj_header = qobj_header or QobjHeader()
+        qobj_header.qobj_id = qobj_id
+    if seed:
+        warnings.warn('seed is deprecated in favor of seed_simulator.', DeprecationWarning)
+        seed_simulator = seed_simulator or seed
+
+    # The header that goes at the top of the Qobj (and later Result)
     qobj_header = qobj_header or QobjHeader()
     if isinstance(qobj_header, dict):
         qobj_header = QobjHeader(**qobj_header)
+
+    # Get RunConfig(s) to configure each QASM experiment
     run_config = run_config or RunConfig()
-    if isinstance(circuits, QuantumCircuit):
-        circuits = [circuits]
+    shots = shots or getattr(run_config, 'shots', None) or 1024
+    memory = memory or getattr(run_config, 'memory', None) or False
+    max_credits = max_credits or getattr(run_config, 'max_credits', None) or 10
+    seed_simulator = seed_simulator or getattr(run_config, 'seed_simulator', None)
+    run_config = RunConfig(shots=shots,
+                           memory=memory,
+                           max_credits=max_credits,
+                           seed_simulator=seed_simulator)
+
+    # Pack everything into the Qobj
+    circuits = circuits if isinstance(circuits, list) else [circuits]
 
     userconfig = QasmQobjConfig(**run_config.to_dict())
     experiments = []

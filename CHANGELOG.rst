@@ -180,8 +180,9 @@ Deprecated
   ``QuantumCircuit`` objects from a compiled qobj. (#2137)
 - The ``qiskit.transpiler.transpile()`` function is deprecated in favor of
   ``qiskit.compiler.transpile()`` (#2166).
-- The ``seed_mapper`` argument in ``transpile()`` is deprecated in favor of
+- The ``seed_mapper`` argument in ``transpile()`` and ``execute()`` is deprecated in favor of
   ``seed_transpile()``, which sets the seed for all stochastic stages of the transpiler (#2166).
+- The ``seed`` argument is ``execute()`` is deprecated in favor of ``seed_simulator`` (#2166).
 - The ``pass_manager`` argument in ``transpile()`` is deprecated. Instead, the
   ``pass_manager.run()`` methdod can be used directly to transform the circuit (#2166).
 

@@ -11,6 +11,7 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 
 from qiskit.transpiler.passes.unroller import Unroller
+from qiskit.transpiler.passes.unroll_3q_or_more import Unroll3qOrMore
 from qiskit.transpiler.passes.cx_cancellation import CXCancellation
 from qiskit.transpiler.passes.decompose import Decompose
 from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
@@ -45,7 +46,7 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
 
     pass_manager.append(Unroller(basis_gates))
 
-    # Use the trivial layout if no layouto is found
+    # Use the trivial layout if no layout is found
     pass_manager.append(TrivialLayout(coupling_map),
                         condition=lambda property_set: not property_set['layout'])
 
@@ -58,6 +59,9 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
     # Extend the the dag/layout with ancillas using the full coupling map
     pass_manager.append(FullAncillaAllocation(coupling_map))
     pass_manager.append(EnlargeWithAncilla())
+
+    # Circuit must only contain 1- or 2-qubit interactions for swapper to work
+    pass_manager.append(Unroll3qOrMore())
 
     # Swap mapper
     pass_manager.append(LegacySwap(coupling_map, trials=20, seed=seed_transpiler))

@@ -167,6 +167,11 @@ def _transpile_circuit(circuit_config_tuple):
         QuantumCircuit: transpiled circuit
     """
     circuit, transpile_config = circuit_config_tuple
+
+    # no basis means don't unroll (all circuit gates are valid basis)
+    if transpile_config.basis_gates is None:
+        transpile_config.basis_gates = [inst.name for inst, _, _ in circuit.data]
+
     if transpile_config.coupling_map:
         pass_manager = default_pass_manager(transpile_config.basis_gates,
                                             transpile_config.coupling_map,
