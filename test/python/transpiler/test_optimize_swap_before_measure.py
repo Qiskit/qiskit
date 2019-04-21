@@ -10,7 +10,7 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.transpiler import PassManager, transpile_dag
+from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -107,7 +107,6 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         circuit.swap(qr[0], qr[1])
         circuit.swap(qr[0], qr[1])
         circuit.measure(qr[0], cr[0])
-        dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
         expected.measure(qr[0], cr[0])
@@ -116,9 +115,9 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         pass_manager.append(
             [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
             do_while=lambda property_set: not property_set['dag_fixed_point'])
-        after = transpile_dag(dag, pass_manager=pass_manager)
+        after = transpile(circuit, pass_manager=pass_manager)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(expected, after)
 
     def test_optimize_overlap_swap(self):
         """ Remove two swaps that overlap
@@ -136,7 +135,6 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         circuit.swap(qr[0], qr[1])
         circuit.swap(qr[1], qr[2])
         circuit.measure(qr[2], cr[0])
-        dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
         expected.measure(qr[0], cr[0])
@@ -145,9 +143,9 @@ class TestOptimizeSwapBeforeMeasureFixedPoint(QiskitTestCase):
         pass_manager.append(
             [OptimizeSwapBeforeMeasure(), DAGFixedPoint()],
             do_while=lambda property_set: not property_set['dag_fixed_point'])
-        after = transpile_dag(dag, pass_manager=pass_manager)
+        after = transpile(circuit, pass_manager=pass_manager)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(expected, after)
 
 
 if __name__ == '__main__':

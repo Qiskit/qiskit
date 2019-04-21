@@ -108,7 +108,10 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                     current_instruction.register = clbit_indices
 
             if op.params:
-                params = list(map(lambda x: x.evalf(), op.params))
+                # Evalute Sympy parameters
+                params = [
+                    x.evalf() if hasattr(x, 'evalf') else x for x in op.params
+                ]
                 params = [sympy.matrix2numpy(x, dtype=complex)
                           if isinstance(x, sympy.Matrix) else x for x in params]
                 if len(params) == 1 and isinstance(params[0], numpy.ndarray):
