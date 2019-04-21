@@ -148,6 +148,12 @@ class Schedule(ScheduleComponent):
         """
         return ops.append(self, schedule)
 
+    def flat_instruction_sequence(self) -> List[Instruction]:
+        """Return instruction sequence of this schedule.
+        Each instruction has absolute start time.
+        """
+        return list(ops.flatten_generator(self))
+
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`."""
         return self.compose(schedule)
@@ -169,9 +175,3 @@ class Schedule(ScheduleComponent):
         instructions = sorted(self.flat_instruction_sequence(), key=attrgetter("start_time"))
         res += '\n'.join([str(i) for i in instructions])
         return res
-
-    def flat_instruction_sequence(self) -> List[Instruction]:
-        """Return instruction sequence of this schedule.
-        Each instruction has absolute start time.
-        """
-        return list(ops.flatten_generator(self))
