@@ -17,7 +17,7 @@ from .exceptions import TranspilerError
 
 
 class PassManager():
-    """ A PassManager schedules the passes """
+    """A PassManager schedules the passes"""
 
     def __init__(self, passes=None,
                  ignore_requires=None,
@@ -57,7 +57,7 @@ class PassManager():
             self.append(passes)
 
     def _join_options(self, passset_options):
-        """ Set the options of each passset, based on precedence rules:
+        """Set the options of each passset, based on precedence rules:
         passset options (set via ``PassManager.append()``) override
         passmanager options (set via ``PassManager.__init__()``), which override Default.
         .
@@ -131,12 +131,15 @@ class PassManager():
 
     def run(self, circuit):
         """Run all the passes on a QuantumCircuit
+
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
+
         Returns:
             QuantumCircuit: Transformed circuit.
         """
         dag = circuit_to_dag(circuit)
+        del circuit
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
@@ -286,7 +289,7 @@ class FlowController():
 
 
 class FlowControllerLinear(FlowController):
-    """ The basic controller run the passes one after the other one. """
+    """The basic controller runs the passes one after the other."""
 
     def __init__(self, passes, options):  # pylint: disable=super-init-not-called
         self.passes = self._passes = passes
@@ -294,7 +297,7 @@ class FlowControllerLinear(FlowController):
 
 
 class DoWhileController(FlowController):
-    """Implements a set of passes in a do while loop. """
+    """Implements a set of passes in a do-while loop."""
 
     def __init__(self, passes, options, do_while=None,
                  **partial_controller):
@@ -314,7 +317,7 @@ class DoWhileController(FlowController):
 
 
 class ConditionalController(FlowController):
-    """Implements a set of passes under certain condition. """
+    """Implements a set of passes under a certain condition."""
 
     def __init__(self, passes, options, condition=None,
                  **partial_controller):

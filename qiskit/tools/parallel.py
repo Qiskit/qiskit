@@ -69,7 +69,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
     overhead from spawning processes in Windows.
 
     Args:
-        task (func): Function that is to be called for each value in ``task_vec``.
+        task (func): Function that is to be called for each value in ``values``.
         values (array_like): List or array of values for which the ``task``
                             function is to be evaluated.
         task_args (list): Optional additional arguments to the ``task`` function.

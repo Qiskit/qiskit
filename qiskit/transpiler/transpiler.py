@@ -5,9 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Tools for compiling a batch of quantum circuits.
-
-This file is deprecated and should be removed after the 0.8 release.
+"""THIS FILE IS DEPRECATED AND WILL BE REMOVED IN RELEASE 0.9.
 """
 import warnings
 
