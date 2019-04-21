@@ -10,10 +10,12 @@ Schedule.
 """
 import itertools
 import logging
+from copy import copy
+from operator import attrgetter
 from typing import List, Tuple
 
 from qiskit.pulse import ops
-from qiskit.pulse import Schedule
+from qiskit.pulse.commands import Instruction
 from qiskit.pulse.common.interfaces import ScheduleComponent
 from qiskit.pulse.common.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
@@ -103,12 +105,11 @@ class Schedule(ScheduleComponent):
 
     @property
     def start_time(self) -> int:
-        return self._start_time
+        return self._occupancy.start_time(default=self._start_time)
 
     @property
     def stop_time(self) -> int:
-        return max([slot.interval.end for slot in self._occupancy.timeslots],
-                   default=self._start_time)
+        return self._occupancy.stop_time(default=self._start_time)
 
     @property
     def children(self) -> Tuple[ScheduleComponent, ...]:
@@ -131,24 +132,23 @@ class Schedule(ScheduleComponent):
         return self.shifted(-time)
 
     def __str__(self):
-        # TODO: Handle schedule of schedules
+        res = "Schedule(%s):\n" % (self._name or "")
+        instructions = sorted(self.flat_instruction_sequence(), key=attrgetter("start_time"))
+        res += '\n'.join([str(i) for i in instructions])
+        return res
 
-        child_strs = [str(child) for child in self.children]
-        return 'Schedule(name={name},children={children})'.format(name=self.name,
-                                                                  children=child_strs)
-
-    def flat_instruction_sequence(self) -> List[ScheduleComponent]:
+    def flat_instruction_sequence(self) -> List[Instruction]:
         """Return instruction sequence of this schedule.
         Each instruction has absolute start time.
         """
-        if not self._children:  # empty schedule
-            return []
-        return [_ for _ in Schedule._flatten_generator(self, self.start_time)]
+        return [_ for _ in Schedule._flatten_generator(self)]
 
     @staticmethod
-    def _flatten_generator(node: ScheduleComponent, time: int):
-        if node.children:
+    def _flatten_generator(node: ScheduleComponent, time: int = 0):
+        if isinstance(node, Schedule):
             for child in node.children:
-                yield from Schedule._flatten_generator(child, time + node.start_time)
-        else:
+                yield from Schedule._flatten_generator(child, time + node._start_time)
+        elif isinstance(node, Instruction):
             yield node.shifted(time)
+        else:
+            raise PulseError("Unknown ScheduleComponent type: %s" % node.__class__.__name__)

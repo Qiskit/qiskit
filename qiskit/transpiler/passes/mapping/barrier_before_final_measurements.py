@@ -11,19 +11,19 @@ This pass adds a barrier before the set of final measurements. Measurements
 are considered final if they are followed by no other operations (aside from
 other measurements or barriers.)
 
-A new barrier will not be added if an equivalent barrier is already present.
 """
 
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
+from ..merge_adjacent_barriers import MergeAdjacentBarriers
 
 
 class BarrierBeforeFinalMeasurements(TransformationPass):
     """Adds a barrier before final measurements."""
 
     def run(self, dag):
-        """Return a circuit with a barrier before last measurments."""
+        """Return a circuit with a barrier before last measurements."""
 
         # Collect DAG nodes which are followed only by barriers or other measures.
         final_op_types = ['measure', 'barrier']
@@ -53,11 +53,11 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
 
         final_qubits = set(final_op.qargs[0] for final_op in final_ops)
 
-        new_barrier_node = barrier_layer.apply_operation_back(
+        barrier_layer.apply_operation_back(
             Barrier(len(final_qubits)), list(final_qubits), [])
 
         # Preserve order of final ops collected earlier from the original DAG.
-        ordered_final_nodes = [node for node in dag.nodes_in_topological_order()
+        ordered_final_nodes = [node for node in dag.topological_op_nodes()
                                if node in set(final_ops)]
 
         # Move final ops to the new layer and append the new layer to the DAG.
@@ -69,41 +69,8 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         for final_op in final_ops:
             dag.remove_op_node(final_op)
 
-        # Check to see if the new barrier added to the DAG is equivalent to any
-        # existing barriers, and if so, consolidate the two.
-        our_ancestors = barrier_layer.ancestors(new_barrier_node)
-        our_descendants = barrier_layer.descendants(new_barrier_node)
-        our_qubits = final_qubits
-
-        existing_barriers = sorted(barrier_layer.named_nodes('barrier'))
-        # remove element from the list
-        for i, node in enumerate(existing_barriers):
-            if node == new_barrier_node:
-                del existing_barriers[i]
-                break
-
-        for candidate_barrier in existing_barriers:
-            their_ancestors = barrier_layer.ancestors(candidate_barrier)
-            their_descendants = barrier_layer.descendants(candidate_barrier)
-            their_qubits = set(candidate_barrier.qargs)
-
-            if (
-                    not our_qubits.isdisjoint(their_qubits)
-                    and our_ancestors.isdisjoint(their_descendants)
-                    and our_descendants.isdisjoint(their_ancestors)
-            ):
-                merge_barrier_qubits = (our_qubits | their_qubits)
-                merge_barrier_node = barrier_layer.apply_operation_front(
-                    Barrier(len(merge_barrier_qubits)), merge_barrier_qubits, [])
-
-                our_ancestors = our_ancestors | their_ancestors
-                our_descendants = our_descendants | their_descendants
-
-                barrier_layer.remove_op_node(candidate_barrier)
-                barrier_layer.remove_op_node(new_barrier_node)
-
-                new_barrier_node = merge_barrier_node
-
         dag.extend_back(barrier_layer)
 
-        return dag
+        # Merge the new barrier into any other barriers
+        adjacent_pass = MergeAdjacentBarriers()
+        return adjacent_pass.run(dag)

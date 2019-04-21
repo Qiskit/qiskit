@@ -60,37 +60,14 @@ class Instruction:
         self.num_qubits = num_qubits
         self.num_clbits = num_clbits
 
-        self.params = []  # a list of gate params stored
-        for single_param in params:
-            # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, sympy.Basic):
-                self.params.append(single_param)
-            # example: OpenQASM parsed instruction
-            elif isinstance(single_param, node.Node):
-                self.params.append(single_param.sym())
-            # example: u3(0.1, 0.2, 0.3)
-            elif isinstance(single_param, (int, float)):
-                self.params.append(sympy.Number(single_param))
-            # example: Initialize([complex(0,1), complex(0,0)])
-            elif isinstance(single_param, complex):
-                self.params.append(single_param.real + single_param.imag * sympy.I)
-            # example: snapshot('label')
-            elif isinstance(single_param, str):
-                self.params.append(sympy.Symbol(single_param))
-            # example: numpy.array([[1, 0], [0, 1]])
-            elif isinstance(single_param, numpy.ndarray):
-                self.params.append(single_param)
-            # example: sympy.Matrix([[1, 0], [0, 1]])
-            elif isinstance(single_param, sympy.Matrix):
-                self.params.append(single_param)
-            else:
-                raise QiskitError("invalid param type {0} in instruction "
-                                  "{1}".format(type(single_param), name))
+        self._params = []  # a list of gate params stored
+
         # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
         self.control = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
+        self.params = params
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -118,6 +95,51 @@ class Instruction:
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
         pass
+
+    @property
+    def params(self):
+        """return instruction params"""
+        # if params already defined don't attempt to get them from definition
+        if self._definition and not self._params:
+            self._params = []
+            for sub_instr, _, _ in self._definition:
+                self._params.extend(sub_instr.params)  # recursive call
+            return self._params
+        else:
+            return self._params
+
+    @params.setter
+    def params(self, parameters):
+        self._params = []
+        for single_param in parameters:
+            # example: u2(pi/2, sin(pi/4))
+            if isinstance(single_param, sympy.Basic):
+                self._params.append(single_param)
+            # example: OpenQASM parsed instruction
+            elif isinstance(single_param, node.Node):
+                self._params.append(single_param.sym())
+            # example: u3(0.1, 0.2, 0.3)
+            elif isinstance(single_param, (int, float)):
+                self._params.append(sympy.Number(single_param))
+            # example: Initialize([complex(0,1), complex(0,0)])
+            elif isinstance(single_param, complex):
+                self._params.append(single_param.real + single_param.imag * sympy.I)
+            # example: snapshot('label')
+            elif isinstance(single_param, str):
+                self._params.append(sympy.Symbol(single_param))
+            # example: numpy.array([[1, 0], [0, 1]])
+            elif isinstance(single_param, numpy.ndarray):
+                self._params.append(single_param)
+            # example: sympy.Matrix([[1, 0], [0, 1]])
+            elif isinstance(single_param, sympy.Matrix):
+                self._params.append(single_param)
+            elif isinstance(single_param, sympy.Expr):
+                self._params.append(single_param)
+            elif isinstance(single_param, numpy.number):
+                self._params.append(sympy.Number(single_param.item()))
+            else:
+                raise QiskitError("invalid param type {0} in instruction "
+                                  "{1}".format(type(single_param), self.name))
 
     @property
     def definition(self):
