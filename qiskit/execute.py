@@ -36,7 +36,7 @@ def execute(circuits, backend, qobj_header=None, config=None, basis_gates=None,
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
         backend (BaseBackend): a backend to execute the circuits on
-        qobj_header (QobjHeader): user input to go into the header
+        qobj_header (QobjHeader or dict): user input to go into the header
         config (dict): dictionary of parameters (e.g. noise) used by runner
         basis_gates (list[str]): list of basis gate names supported by the
             target. Default: ['u1','u2','u3','cx','id']
@@ -97,7 +97,7 @@ def execute_circuits(circuits, backend, qobj_header=None,
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
         backend (BaseBackend): a backend to execute the circuits on
-        qobj_header (QobjHeader): User input to go in the header
+        qobj_header (QobjHeader or dict): User input to go in the header
         transpile_config (TranspileConfig): Configurations for the transpiler
         run_config (RunConfig): Run Configuration
         kwargs: extra arguments used by AER for running configurable backends.
@@ -115,6 +115,8 @@ def execute_circuits(circuits, backend, qobj_header=None,
 
     # filling in the header with the backend name the qobj was run on
     qobj_header = qobj_header or QobjHeader()
+    if isinstance(qobj_header, dict):
+        qobj_header = QobjHeader(**qobj_header)
     qobj_header.backend_name = backend.name()
 
     # default values

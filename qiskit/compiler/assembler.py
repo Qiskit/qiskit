@@ -41,6 +41,8 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
         QasmQobj: the Qobj to be run on the backends
     """
     qobj_header = qobj_header or QobjHeader()
+    if isinstance(qobj_header, dict):
+        qobj_header = QobjHeader(**qobj_header)
     run_config = run_config or RunConfig()
     if isinstance(circuits, QuantumCircuit):
         circuits = [circuits]
