@@ -149,7 +149,7 @@ class TestSchedule(QiskitTestCase):
         sched |= Snapshot("label", "snap_type").shifted(80)
         sched |= fc_pi_2(device.q[0].drive).shifted(90)
         sched |= acquire(device.q[1], device.mem[1], device.c[1]).shifted(90)
-        Schedule() + sched + sched
+        _ = Schedule() + sched + sched
 
     def test_empty_schedule(self):
         """Test empty schedule."""

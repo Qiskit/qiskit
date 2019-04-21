@@ -172,11 +172,11 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
 
 
 def assemble_schedules(schedules, default_qubit_los, default_meas_los,
-                       qobj_header=None, qobj_id=None, schedule_los=None,
-                       shots=1024, max_credits=10, seed=None,
+                       schedule_los=None, shots=1024, qobj_id=None,
                        meas_level=2, meas_return='avg', memory=None,
-                       memory_slots=None, memory_slot_size=100, rep_time=None,
-                       instruction_converter=PulseQobjConverter,
+                       memory_slots=None, memory_slot_size=100,
+                       rep_time=None, max_credits=10, seed=None,
+                       qobj_header=None, instruction_converter=PulseQobjConverter,
                        **run_config):
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
@@ -185,12 +185,10 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
         default_qubit_los (list): List of default qubit lo frequencies
         default_meas_los (list): List of default meas lo frequencies
         qobj_header (QobjHeader or dict): header to pass to the results
-        qobj_id (int): identifier for the generated qobj
         schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
         shots (int): number of repetitions of each circuit, for sampling
-        max_credits (int): maximum credits to use
-        seed (int): random seed for simulators
+        qobj_id (int): identifier for the generated qobj
         meas_level (int): set the appropriate level of the measurement output.
         meas_return (str): indicates the level of measurement data for the backend to return
             for `meas_level` 0 and 1:
@@ -202,6 +200,8 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
         rep_time (int): repetition time of the experiment in μs.
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
         instruction_converter (PulseQobjConverter): converter for pulse instruction
         run_config: Additional keyword arguments to be inserted in the Qobj configuration.
 
@@ -239,18 +239,18 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
     run_config['shots'] = shots
     run_config['max_credits'] = max_credits
     run_config['meas_level'] = meas_level
-    run_config['meas_return'] = meas_return
 
     if meas_level == 2:
-        logger.warning('"meas_return" is not a supported option for "meas_level=2".'
-                       'If you wish to obtain the binned counts please use "meas_level=2" and'
-                       'if you wish to obtain the individual shot results, set "memory=True".')
-        if meas_return == 'single':
-            logger.warning('Setting "memory=True".')
-            memory = True
+        if meas_return == 'avg':
+            logger.warning('"meas_return=avg" is not a supported option for "meas_level=2".'
+                           'If you wish to obtain the binned counts please use "meas_level=2" and'
+                           'if you wish to obtain the individual shot results, set "memory=True".')
+        memory = True
 
         run_config['memory'] = memory
+        run_config['meas_return'] = 'single'
     else:
+        run_config['meas_return'] = meas_return
         if memory:
             logger.warning('Setting "memory" does not have an effect for "meas_level=0/1".')
 

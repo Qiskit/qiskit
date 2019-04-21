@@ -136,10 +136,11 @@ def execute_circuits(circuits, backend, qobj_header=None,
     return backend.run(qobj, **kwargs)
 
 
-def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
-                      shots=1024, max_credits=10, seed=None, meas_level=2,
-                      meas_return='avg', memory=None, memory_slots=None,
-                      memory_slot_size=100, rep_time=None, run_config=None,
+def execute_schedules(schedules, backend, schedule_los=None, shots=1024,
+                      meas_level=2, meas_return='avg', memory=None,
+                      memory_slots=None, memory_slot_size=100,
+                      rep_time=None, max_credits=10, seed=None,
+                      qobj_header=None, run_config=None,
                       **kwargs):
     """Executes a list of schedules.
 
@@ -148,10 +149,7 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
         backend (BaseBackend): a backend to execute the schedules on
         schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
-        qobj_header (QobjHeader or dict): user input to go into the header
         shots (int): number of repetitions of each circuit, for sampling
-        max_credits (int): maximum credits to use
-        seed (int): random seed for simulators
         meas_level (int): set the appropriate level of the measurement output.
         meas_return (str): indicates the level of measurement data for the backend to return
             for `meas_level` 0 and 1:
@@ -163,6 +161,9 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
         rep_time (int): repetition time of the experiment in μs.
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
+        max_credits (int): maximum credits to use
+        seed (int): random seed for simulators
+        qobj_header (QobjHeader or dict): user input to go into the header
         run_config (dict): Additional run time configuration arguments to be inserted
                     in the qobj configuration.
         kwargs: extra arguments to configure backend
@@ -201,12 +202,12 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
     qobj = assemble_schedules(schedules,
                               backend_default.qubit_freq_est,
                               backend_default.meas_freq_est,
-                              schedule_los=schedule_los,
-                              qobj_header=qobj_header,
-                              shots=shots, max_credits=max_credits, seed=seed,
+                              schedule_los=schedule_los, shots=shots,
                               meas_level=meas_level, meas_return=meas_return,
                               memory=memory, memory_slots=memory_slots,
                               memory_slot_size=memory_slot_size,
-                              rep_time=rep_time, **run_config)
+                              rep_time=rep_time, max_credits=max_credits,
+                              seed=seed, qobj_header=qobj_header,
+                              **run_config)
 
     return backend.run(qobj, **kwargs)
