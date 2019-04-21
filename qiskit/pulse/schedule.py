@@ -14,6 +14,7 @@ from operator import attrgetter
 from typing import List, Tuple
 
 from qiskit.pulse import ops
+from qiskit.pulse.channels import Channel
 from qiskit.pulse.commands import Instruction
 from qiskit.pulse.common.interfaces import ScheduleComponent
 from qiskit.pulse.common.timeslots import TimeslotCollection
@@ -23,14 +24,18 @@ logger = logging.getLogger(__name__)
 
 
 class Schedule(ScheduleComponent):
-    """Schedule of instructions. The composite node of a schedule tree."""
+    """Schedule of `ScheduleComponent`s. The composite node of a schedule tree."""
 
     def __init__(self, *schedules, name: str = None):
         """Create empty schedule.
 
         Args:
+            schedules (List[Union[ScheduleComponent,
+                       Tuple[int, ScheduleComponent]]): Child Schedules of this parent Schedule.
+                       Each element is either a ScheduleComponent, or a tuple pair of the form
+                       (t0, ScheduleComponent) where t0 (int) is the starting time of the
+                       `ScheduleComponent`.
             name (str, optional): Name of this schedule. Defaults to None.
-            start_time (int, optional): Begin time of this schedule. Defaults to 0.
 
         Raises PulseError
         """
@@ -38,7 +43,7 @@ class Schedule(ScheduleComponent):
         self._start_time = 0
 
         try:
-            self._occupancy = TimeslotCollection(*itertools.chain(
+            self._timeslots = TimeslotCollection(*itertools.chain(
                                 *[sched.occupancy for sched in schedules]))
         except PulseError as ts_err:
             raise PulseError('Child schedules {} overlap.'.format(
@@ -47,8 +52,57 @@ class Schedule(ScheduleComponent):
 
     @property
     def name(self) -> str:
-        """Name of this schedule."""
+        """Name of this schedule.
+
+        Returns:
+            str
+        """
         return self._name
+
+    @property
+    def duration(self) -> int:
+        return self.stop_time() - self.start_time()
+
+    @property
+    def timeslots(self) -> TimeslotCollection:
+        return self._timeslots
+
+    @property
+    def channels(self):
+        """Returns channels that this schedule uses.
+
+        Returns:
+            Tuple
+        """
+        return self._timeslots.channels
+
+    @property
+    def children(self) -> Tuple[ScheduleComponent, ...]:
+        return self._children
+
+    def start_time(self, default: int = None, channel: Channel = None) -> int:
+        """Return start time on this schedule or channel.
+
+        Args:
+            default(int, optional): default value used when this collection is empty
+            channel (Channel): Optional channel
+
+        Returns:
+            The latest stop time in this collection.
+        """
+        return self._timeslots.start_time(default=self._start_time, channel=channel)
+
+    def stop_time(self, default: int = None, channel: Channel = None) -> int:
+        """Return stop time on this schedule or channel.
+
+        Args:
+            default(int, optional): default value used when this collection is empty
+            channel (Channel): Optional channel
+
+        Returns:
+            The latest stop time in this collection.
+        """
+        return self._timeslots.stop_time(default=self._start_time, channel=channel)
 
     def union(self, *schedules: List[ScheduleComponent]) -> 'Schedule':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
@@ -94,26 +148,6 @@ class Schedule(ScheduleComponent):
         """
         return ops.append(self, schedule)
 
-    @property
-    def duration(self) -> int:
-        return self.stop_time - self.start_time
-
-    @property
-    def occupancy(self) -> TimeslotCollection:
-        return self._occupancy
-
-    @property
-    def start_time(self) -> int:
-        return self._occupancy.start_time(default=self._start_time)
-
-    @property
-    def stop_time(self) -> int:
-        return self._occupancy.stop_time(default=self._start_time)
-
-    @property
-    def children(self) -> Tuple[ScheduleComponent, ...]:
-        return self._children
-
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`."""
         return self.compose(schedule)
@@ -140,14 +174,4 @@ class Schedule(ScheduleComponent):
         """Return instruction sequence of this schedule.
         Each instruction has absolute start time.
         """
-        return [_ for _ in Schedule._flatten_generator(self)]
-
-    @staticmethod
-    def _flatten_generator(node: ScheduleComponent, time: int = 0):
-        if isinstance(node, Schedule):
-            for child in node.children:
-                yield from Schedule._flatten_generator(child, time + node._start_time)
-        elif isinstance(node, Instruction):
-            yield node.shifted(time)
-        else:
-            raise PulseError("Unknown ScheduleComponent type: %s" % node.__class__.__name__)
+        return list(ops.flatten_generator(self))

@@ -10,27 +10,15 @@ Schedule operations.
 """
 import logging
 from copy import copy
-from functools import reduce
-from typing import List, Tuple
+from typing import List
 
 from qiskit.pulse.common.interfaces import ScheduleComponent
-from qiskit.pulse.common.timeslots import TimeslotCollection
+from qiskit.pulse.commands import Instruction
 from qiskit.pulse.exceptions import PulseError
 
 from .pulse_schedule import Schedule
 
 logger = logging.getLogger(__name__)
-
-
-def _union(sched1: ScheduleComponent, sched2: ScheduleComponent) ->Schedule:
-    """Take the union of two `ScheduleComponent`s."""
-
-    return Schedule(sched1, sched2)
-    if sched1.occupancy.is_mergeable_with(sched2):
-        self._occupancy = self._occupancy.merged(shifted)
-        self._children += (schedule.shifted(start_time),)
-    else:
-        raise PulseError("Fail to insert %s at %s due to overlap" % (str(schedule), start_time))
 
 
 def union(self, *schedules: List[ScheduleComponent], name: str = None) -> Schedule:
@@ -43,7 +31,14 @@ def union(self, *schedules: List[ScheduleComponent], name: str = None) -> Schedu
     return Schedule(*schedules, name=name)
 
 
-def insert(self, parent: ScheduleComponent, start_time: int, child: ScheduleComponent) -> Schedule:
+def shifted(self, shift: int) -> ScheduleComponent:
+    news = copy(self)
+    news._start_time += shift
+    news._occupancy = self._occupancy.shifted(shift)
+    return news
+
+
+def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent) -> Schedule:
     """Return a new schedule with the `child` schedule inserted into the `parent` at `start_time`.
 
     Args:
@@ -53,42 +48,16 @@ def insert(self, parent: ScheduleComponent, start_time: int, child: ScheduleComp
 
     Returns:
         Schedule: The new inserted `Schedule`
-
-    Raises:
-        PulseError: when an invalid schedule is specified or failed to insert
     """
-    if not isinstance(schedule, ScheduleComponent):
-        raise PulseError("Invalid to be inserted: %s" % schedule.__class__.__name__)
-    news = copy(self)
-    try:
-        news._insert(start_time, schedule)
-    except PulseError as err:
-        raise PulseError(err.message)
-    return news
+    return union(parent, shifted(child, start_time))
 
 
-def _insert(self, start_time: int, schedule: ScheduleComponent):
-    """Insert a new `schedule` at `start_time`.
-    Args:
-        start_time (int): start time of the schedule
-        schedule (ScheduleComponent): schedule to be inserted
-    Raises:
-        PulseError: when an invalid schedule is specified or failed to insert
-    """
-    if schedule == self:
-        raise PulseError("Cannot insert self to avoid infinite recursion")
-    shifted = schedule.occupancy.shifted(start_time)
-    if self._occupancy.is_mergeable_with(shifted):
-        self._occupancy = self._occupancy.merged(shifted)
-        self._children += (schedule.shifted(start_time),)
-    else:
-        logger.warning("Fail to insert %s at %s due to timing overlap", schedule, start_time)
-        raise PulseError("Fail to insert %s at %s due to overlap" % (str(schedule), start_time))
+def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
+    """Return a new schedule with by appending `child` to `parent` at
+       the last time of the `parent` schedule's channels (+ buffer)
+       over the intersection of the parent and child schedule's channels.
 
-
-def append(self, schedule: ScheduleComponent) -> Schedule:
-    """Return a new schedule with appending a `schedule` at the timing
-    just after the last instruction finishes.
+       $t = buffer + \textrm{max}({x.stop\_time |x \in parent.channels \cap child.channels})$
 
     Args:
         schedule (ScheduleComponent): schedule to be appended
@@ -99,19 +68,13 @@ def append(self, schedule: ScheduleComponent) -> Schedule:
     Raises:
         PulseError: when an invalid schedule is specified or failed to append
     """
-    if not isinstance(schedule, ScheduleComponent):
-        raise PulseError("Invalid to be appended: %s" % schedule.__class__.__name__)
-    news = copy(self)
-    try:
-        news._insert(self.stop_time, schedule)
-    except PulseError:
-        logger.warning("Fail to append %s due to timing overlap", schedule)
-        raise PulseError("Fail to append %s due to overlap" % str(schedule))
-    return news
 
 
-def shifted(self, shift: int) -> ScheduleComponent:
-    news = copy(self)
-    news._start_time += shift
-    news._occupancy = self._occupancy.shifted(shift)
-    return news
+def flatten_generator(node: ScheduleComponent, time: int = 0):
+    if isinstance(node, Schedule):
+        for child in node.children:
+            yield from flatten_generator(child, time + node.t0)
+    elif isinstance(node, Instruction):
+        yield node.shifted(time)
+    else:
+        raise PulseError("Unknown ScheduleComponent type: %s" % node.__class__.__name__)

@@ -43,18 +43,6 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def start_time(self) -> int:
-        """Relative start time of this schedule component. """
-        pass
-
-    @property
-    @abstractmethod
-    def stop_time(self) -> int:
-        """Relative stop time of this schedule component. """
-        pass
-
-    @property
-    @abstractmethod
     def children(self) -> Tuple['ScheduleComponent', ...]:
         """Child nodes of this schedule component. """
         pass

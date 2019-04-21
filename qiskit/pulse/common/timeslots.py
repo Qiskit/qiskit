@@ -10,7 +10,7 @@ Timeslot occupancy for each channels.
 """
 import logging
 from collections import defaultdict
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
@@ -146,6 +146,7 @@ class TimeslotCollection:
         """
         self._timeslots = tuple(timeslots)
         self._table = defaultdict(list)
+
         for slot in timeslots:
             for interval in self._table[slot.channel]:
                 if slot.interval.has_overlap(interval):
@@ -156,6 +157,32 @@ class TimeslotCollection:
     def timeslots(self) -> Tuple[Timeslot]:
         """Time slots of this occupancy."""
         return self._timeslots
+
+    def start_time(self, default: int = None, channel: Channel = None) -> int:
+        """Return earliest start time in this collection.
+
+        Args:
+            default(int, optional): default value used when this collection is empty
+            channel (Channel): Optional channel
+
+        Returns:
+            The earliest start time in this collection.
+        """
+        timeslots = self._table[channel] if channel else self._timeslots
+        return min([slot.interval.begin for slot in timeslots], default=default)
+
+    def stop_time(self, default: int = None, channel: Channel = None) -> int:
+        """Return latest stop time in this collection.
+
+        Args:
+            default(int, optional): default value used when this collection is empty
+            channel (Channel): Optional channel
+
+        Returns:
+            The latest stop time in this collection.
+        """
+        timeslots = self._table[channel] if channel else self._timeslots
+        return max([slot.interval.end for slot in timeslots], default=default)
 
     def is_mergeable_with(self, occupancy: 'TimeslotCollection') -> bool:
         """Return if self is mergeable with a specified `occupancy` or not.
@@ -197,27 +224,13 @@ class TimeslotCollection:
         slots = [Timeslot(slot.interval.shifted(time), slot.channel) for slot in self.timeslots]
         return TimeslotCollection(*slots)
 
-    def start_time(self, default: int = None) -> int:
-        """Return earliest start time in this collection.
-
-        Args:
-            default(int, optional): default value used when this collection is empty
+    def channels(self):
+        """Channels within the timeslot collection.
 
         Returns:
-            The earliest start time in this collection.
+            tuple
         """
-        return min([slot.interval.begin for slot in self._timeslots], default=default)
-
-    def stop_time(self, default: int = None) -> int:
-        """Return latest stop time in this collection.
-
-        Args:
-            default(int, optional): default value used when this collection is empty
-
-        Returns:
-            The latest stop time in this collection.
-        """
-        return max([slot.interval.end for slot in self._timeslots], default=default)
+        return tuple(self._table.keys())
 
     def __eq__(self, other):
         """Two time-slot collections are the same if they have the same time-slots.
