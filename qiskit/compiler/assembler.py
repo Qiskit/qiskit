@@ -182,7 +182,7 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
         schedules (list[Schedule] or Schedule): schedules to assemble
         default_qubit_los (list): List of default qubit lo frequencies
         default_meas_los (list): List of default meas lo frequencies
-        qobj_header (QobjHeader): header to pass to the results
+        qobj_header (QobjHeader or dict): header to pass to the results
         qobj_id (int): identifier for the generated qobj
         schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
@@ -229,6 +229,8 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
     user_pulselib = set()
 
     qobj_header = qobj_header or QobjHeader()
+    if isinstance(qobj_header, dict):
+        qobj_header = QobjHeader(**qobj_header)
     # create run configuration and populate
     run_config['qubit_lo_freq'] = default_qubit_los
     run_config['meas_lo_freq'] = default_meas_los

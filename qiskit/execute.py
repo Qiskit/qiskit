@@ -146,7 +146,7 @@ def execute_schedules(schedules, backend, schedule_los=None, qobj_header=None,
         backend (BaseBackend): a backend to execute the schedules on
         schedule_los(None or list[Union[Dict[OutputChannel, float], LoConfig]] or
                         Union[Dict[OutputChannel, float], LoConfig]): Experiment LO configurations
-        qobj_header (QobjHeader): user input to go into the header
+        qobj_header (QobjHeader or dict): user input to go into the header
         shots (int): number of repetitions of each circuit, for sampling
         max_credits (int): maximum credits to use
         seed (int): random seed for simulators
