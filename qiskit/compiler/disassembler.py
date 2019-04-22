@@ -9,9 +9,9 @@
 
 """Disassemble function for a qobj into a list of circuits and it's config"""
 
-from qiskit import ClassicalRegister
-from qiskit import QuantumRegister
-from qiskit import QuantumCircuit
+from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumregister import QuantumRegister
 
 
 # TODO: This is broken for conditionals. Will fix after circuits_2_qobj pr
