@@ -49,8 +49,13 @@ class Layout():
 
         Args:
             input_dict (dict):
-
                 e.g.:
+                {(QuantumRegister(3, 'qr'), 0): 0,
+                 (QuantumRegister(3, 'qr'), 1): 1,
+                 (QuantumRegister(3, 'qr'), 2): 2}
+
+                Can be written more concisely as follows:
+
                 virtual to physical:
                     {qr[0]: 0,
                      qr[1]: 1,
