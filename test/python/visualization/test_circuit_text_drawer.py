@@ -9,10 +9,12 @@
 
 """ `_text_circuit_drawer` "draws" a circuit in "ascii art" """
 
-import unittest
-import sympy
-from math import pi
 from codecs import encode
+from math import pi
+import unittest
+
+import sympy
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import \
@@ -945,6 +947,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
 
 class TestTextDrawerParams(QiskitTestCase):
+    """Test drawing parameters."""
     def test_text_symbols_mix(self):
         """ cu3 drawing with symbols"""
         expected = '\n'.join(["                                   ",
