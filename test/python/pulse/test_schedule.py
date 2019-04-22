@@ -10,10 +10,11 @@ import unittest
 
 import numpy as np
 
-from qiskit.pulse.channels import DeviceSpecification, Qubit, RegisterSlot, MemorySlot
-from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel
-from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot
-from qiskit.pulse.commands import functional_pulse, Instruction
+from qiskit.pulse.channels import (DeviceSpecification, Qubit, RegisterSlot, MemorySlot,
+                                   DriveChannel, AcquireChannel, ControlChannel)
+from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot,
+                                   functional_pulse, Instruction)
+from qiskit.pulse import pulse_lib
 from qiskit.pulse.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
@@ -96,14 +97,8 @@ class TestSchedule(QiskitTestCase):
         """Test valid schedule creation without error."""
         device = self.two_qubit_device
 
-        # pylint: disable=invalid-name
-        @functional_pulse
-        def gaussian(duration, amp, t0, sig):
-            x = np.linspace(0, duration - 1, duration)
-            return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
-
-        gp0 = gaussian(duration=20, amp=0.7, t0=9.5, sig=3)
-        gp1 = gaussian(duration=20, amp=0.5, t0=9.5, sig=3)
+        gp0 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
 
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
@@ -127,30 +122,51 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(200, new_sched.duration)
 
     def test_can_create_valid_schedule_with_syntax_sugar(self):
-        """Test valid schedule creation using syntax sugar without error."""
+        """Test that in place operations on schedule are still immutable
+           and return equivalent schedules."""
         device = self.two_qubit_device
 
-        # pylint: disable=invalid-name
-        @functional_pulse
-        def gaussian(duration, amp, t0, sig):
-            x = np.linspace(0, duration - 1, duration)
-            return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
-
-        gp0 = gaussian(duration=20, amp=0.7, t0=9.5, sig=3)
-        gp1 = gaussian(duration=20, amp=0.5, t0=9.5, sig=3)
-
+        gp0 = pulse_lib.gaussian(duration=20, amp=0.7, sigma=3)
+        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
+
         sched = Schedule()
         sched += gp0(device.q[0].drive)
         sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control)
-        sched |= FrameChange(phase=-1.57)(device.q[0].drive).shift(60)
-        sched |= gp1(device.q[1].drive).shift(30)
-        sched |= gp0(device.q[0].control).shift(60)
-        sched |= Snapshot("label", "snap_type").shift(80)
-        sched |= fc_pi_2(device.q[0].drive).shift(90)
-        sched |= acquire(device.q[1], device.mem[1], device.c[1]).shift(90)
-        _ = sched + sched
+        sched |= FrameChange(phase=-1.57)(device.q[0].drive) << 60
+        sched |= gp1(device.q[1].drive) << 30
+        sched |= gp0(device.q[0].control) << 60
+        sched |= Snapshot("label", "snap_type") << 60
+        sched |= fc_pi_2(device.q[0].drive) << 90
+        sched |= acquire(device.q[1], device.mem[1], device.c[1]) << 90
+        sched += sched
+
+    def test_immutability(self):
+        """Test that operations are immutable."""
+        device = self.two_qubit_device
+
+        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
+
+        sched = gp1(device.q[0].drive) << 100
+        # if schedule was mutable the next two sequences would overlap and an error
+        # would be raised.
+        sched.union(gp0(device.q[0].drive))
+        sched.union(gp0(device.q[0].drive))
+
+    def test_inplace(self):
+        """Test that in place operations on schedule are still immutable."""
+        device = self.two_qubit_device
+
+        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3)
+        gp1 = pulse_lib.gaussian(duration=20, amp=0.5, sigma=3)
+
+        sched = Schedule()
+        sched = sched + gp1(device.q[0].drive)
+        sched2 = sched
+        sched += gp0(device.q[0].drive)
+        self.assertNotEqual(sched, sched2)
 
     def test_empty_schedule(self):
         """Test empty schedule."""
