@@ -9,7 +9,7 @@
 Schedule operations.
 """
 import logging
-from typing import List
+from typing import List, Generator
 
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.commands import Instruction
@@ -69,7 +69,13 @@ def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
     return insert(parent, insertion_time, child)
 
 
-def flatten_generator(node: ScheduleComponent, time: int = 0):
+def flatten(node: ScheduleComponent, time: int = 0) -> Generator[Instruction]:
+    """Generator for flattening Schedule tree.
+
+    Args:
+        node: Root of Schedule tree to traverse
+        time: Initial time of this node
+    """
     if isinstance(node, Schedule):
         for child in node.children:
             yield from flatten_generator(child, time + node.start_time)

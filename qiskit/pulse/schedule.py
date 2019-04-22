@@ -163,7 +163,7 @@ class Schedule(ScheduleComponent):
         """Return instruction sequence of this schedule.
         Each instruction has absolute start time.
         """
-        return list(ops.flatten_generator(self))
+        return list(ops.flatten(self))
 
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
