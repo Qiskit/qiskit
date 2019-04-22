@@ -64,6 +64,9 @@ class BenchRandomCircuitHex:
     def time_simulator_transpile(self, _):
         transpiler.transpile(self.circuit, self.sim_backend)
 
+    def track_depth_simulator_transpile(self, _):
+        return transpiler.transpile(self.circuit, self.sim_backend).depth()
+
     def time_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
         coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
@@ -73,3 +76,13 @@ class BenchRandomCircuitHex:
         transpiler.transpile(self.circuit,
                              basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                              coupling_map=coupling_map)
+
+    def track_depth_ibmq_backend_transpile(self, _):
+        # Run with ibmq_16_melbourne configuration
+        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
+                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
+                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                        [13, 12]]
+        return transpiler.transpile(self.circuit,
+                                    basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                                    coupling_map=coupling_map).depth()
