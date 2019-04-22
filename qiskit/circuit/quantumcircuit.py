@@ -206,6 +206,18 @@ class QuantumCircuit:
             self.append(*instruction_context)
         return self
 
+    def qubits(self):
+        """
+        Returns a list of quantum bits in the order that the registers had been added.
+        """
+        return [qbit for qreg in self.qregs for qbit in qreg]
+
+    def clbits(self):
+        """
+        Returns a list of classical bits in the order that the registers had been added.
+        """
+        return [cbit for creg in self.cregs for cbit in creg]
+
     def __add__(self, rhs):
         """Overload + to implement self.combine."""
         return self.combine(rhs)
