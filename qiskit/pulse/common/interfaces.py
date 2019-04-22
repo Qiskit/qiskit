@@ -25,19 +25,16 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def occupancy(self) -> TimeslotCollection:
+    def timeslots(self) -> TimeslotCollection:
         """Occupied time slots by this schedule component. """
         pass
 
     @abstractmethod
-    def shifted(self, shift: int) -> 'ScheduleComponent':
-        """Return a new shifted schedule component by `shift`.
+    def shift(self, time: int) -> 'ScheduleComponent':
+        """Return a new schedule shifted by amount `shift`.
 
         Args:
-            shift: time to be shifted
-
-        Returns:
-            ScheduleComponent: shifted schedule component
+            time: time to be shifted
         """
         pass
 

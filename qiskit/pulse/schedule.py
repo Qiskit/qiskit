@@ -31,24 +31,29 @@ class Schedule(ScheduleComponent):
 
         Args:
             schedules (List[Union[ScheduleComponent,
-                       Tuple[int, ScheduleComponent]]): Child Schedules of this parent Schedule.
+                       Tuple[ScheduleComponent, int]]): Child Schedules of this parent Schedule.
                        Each element is either a ScheduleComponent, or a tuple pair of the form
-                       (t0, ScheduleComponent) where t0 (int) is the starting time of the
+                       (ScheduleComponent, t0) where t0 (int) is the starting time of the
                        `ScheduleComponent`.
             name (str, optional): Name of this schedule. Defaults to None.
 
-        Raises PulseError
+        Raises:
+            PulseError: If timeslots intercept.
         """
         self._name = name
-        self._start_time = 0
 
         try:
+            timeslots = []
+            for sched in schedules:
+                if isinstance(sched, (list, tuple)):
+                    timeslots.append(sched[0].timeslots.shift(sched[1]))
+
             self._timeslots = TimeslotCollection(*itertools.chain(
-                                *[sched.occupancy for sched in schedules]))
+                                *[sched.timeslots for sched in timeslots]))
         except PulseError as ts_err:
             raise PulseError('Child schedules {} overlap.'.format(
                     [sched.name for sched in schedules])) from ts_err
-        self._children = tuple(*schedules)
+        self._children = tuple(*zip(schedules, timeslots))
 
     @property
     def name(self) -> str:
@@ -90,7 +95,7 @@ class Schedule(ScheduleComponent):
         Returns:
             The latest stop time in this collection.
         """
-        return self._timeslots.start_time(default=self._start_time, channel=channel)
+        return self._timeslots.start_time(channel=channel)
 
     def stop_time(self, default: int = None, channel: Channel = None) -> int:
         """Return stop time on this schedule or channel.
@@ -102,7 +107,7 @@ class Schedule(ScheduleComponent):
         Returns:
             The latest stop time in this collection.
         """
-        return self._timeslots.stop_time(default=self._start_time, channel=channel)
+        return self._timeslots.stop_time(channel=channel)
 
     def union(self, *schedules: List[ScheduleComponent]) -> 'Schedule':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
@@ -164,11 +169,11 @@ class Schedule(ScheduleComponent):
 
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is the parent `Schedule` shifted forward by `time`."""
-        return self.shifted(time)
+        return self.shift(time)
 
     def __rshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is the parent `Schedule` shifted backwards by `time`."""
-        return self.shifted(-time)
+        return self.shift(-time)
 
     def __str__(self):
         res = "Schedule(%s):\n" % (self._name or "")

@@ -59,12 +59,12 @@ class Snapshot(PulseCommand, Instruction):
         Returns:
             bool: are self and other equal.
         """
-        if type(self) is type(other) and \
-                self._label == other._label and \
-                self._type == other._type:
+        if (type(self) is type(other) and
+                self._label == other._label and
+                self._type == other._type):
             return True
         return False
 
     def __repr__(self):
-        return '%4d: %s(%s, %s) -> %s' % \
-               (self._start_time, self.__class__.__name__, self._label, self._type, self._channel)
+        return '%4d: %s(%s, %s) -> %s' % (self.__class__.__name__, self._label,
+                                          self._type, self._channel)

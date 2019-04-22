@@ -69,4 +69,4 @@ class FrameChangeInstruction(Instruction):
         return self._channel
 
     def __repr__(self):
-        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)
+        return '%s -> %s' % (self._command, self._channel)

@@ -31,11 +31,14 @@ def union(self, *schedules: List[ScheduleComponent], name: str = None) -> Schedu
     return Schedule(*schedules, name=name)
 
 
-def shifted(self, shift: int) -> ScheduleComponent:
-    news = copy(self)
-    news._start_time += shift
-    news._occupancy = self._occupancy.shifted(shift)
-    return news
+def shift(schedule: ScheduleComponent, time: int) -> Schedule:
+    """Return schedule shifted by `time`.
+
+    Args:
+        schedule (ScheduleComponent): Schedule to shift
+        time (int): Time to shift by
+    """
+    return Schedule((schedule, time))
 
 
 def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent) -> Schedule:
@@ -45,11 +48,8 @@ def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent)
         parent: Schedule to be inserted into.
         start_time (int): time to be inserted defined with respect to `parent`.
         schedule (ScheduleComponent): schedule to be inserted
-
-    Returns:
-        Schedule: The new inserted `Schedule`
     """
-    return union(parent, shifted(child, start_time))
+    return union(parent, shift(child, start_time))
 
 
 def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
@@ -61,9 +61,6 @@ def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
 
     Args:
         schedule (ScheduleComponent): schedule to be appended
-
-    Returns:
-        Schedule: a new schedule appended a `schedule`
 
     Raises:
         PulseError: when an invalid schedule is specified or failed to append
@@ -78,6 +75,6 @@ def flatten_generator(node: ScheduleComponent, time: int = 0):
         for child in node.children:
             yield from flatten_generator(child, time + node.t0)
     elif isinstance(node, Instruction):
-        yield node.shifted(time)
+        yield node.shift(time)
     else:
         raise PulseError("Unknown ScheduleComponent type: %s" % node.__class__.__name__)

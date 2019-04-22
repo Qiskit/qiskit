@@ -137,4 +137,4 @@ class AcquireInstruction(Instruction):
         return self._reg_slots
 
     def __repr__(self):
-        return '%4d: %s -> q%s' % (self._start_time, self._command, [q.index for q in self._qubits])
+        return '%s -> q%s' % (self._command, [q.index for q in self._qubits])

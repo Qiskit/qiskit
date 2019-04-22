@@ -142,13 +142,13 @@ class TestSchedule(QiskitTestCase):
         acquire = Acquire(10)
         sched = Schedule()
         sched += gp0(device.q[0].drive)
-        sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control).shifted(0)
-        sched |= FrameChange(phase=-1.57)(device.q[0].drive).shifted(60)
-        sched |= gp1(device.q[1].drive).shifted(30)
-        sched |= gp0(device.q[0].control).shifted(60)
-        sched |= Snapshot("label", "snap_type").shifted(80)
-        sched |= fc_pi_2(device.q[0].drive).shifted(90)
-        sched |= acquire(device.q[1], device.mem[1], device.c[1]).shifted(90)
+        sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control).shift(0)
+        sched |= FrameChange(phase=-1.57)(device.q[0].drive).shift(60)
+        sched |= gp1(device.q[1].drive).shift(30)
+        sched |= gp0(device.q[0].control).shift(60)
+        sched |= Snapshot("label", "snap_type").shift(80)
+        sched |= fc_pi_2(device.q[0].drive).shift(90)
+        sched |= acquire(device.q[1], device.mem[1], device.c[1]).shift(90)
         _ = Schedule() + sched + sched
 
     def test_empty_schedule(self):
@@ -158,7 +158,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(0, sched.stop_time)
         self.assertEqual(0, sched.duration)
         self.assertEqual((), sched.children)
-        self.assertEqual(TimeslotCollection([]), sched.occupancy)
+        self.assertEqual(TimeslotCollection([]), sched.timeslots)
         self.assertEqual([], sched.flat_instruction_sequence())
 
     def test_flat_instruction_sequence_returns_instructions(self):
@@ -198,8 +198,8 @@ class TestSchedule(QiskitTestCase):
         start_times = sorted([i.start_time for i in sched.flat_instruction_sequence()])
         self.assertEqual([0, 30, 40], start_times)
 
-    def test_shifted_schedule(self):
-        """Test shifted schedule."""
+    def test_shift_schedule(self):
+        """Test shift schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=10, slope=0.02, intercept=0.01)
 
@@ -211,9 +211,9 @@ class TestSchedule(QiskitTestCase):
         sched = sched.append(lp0(device.q[0].drive))   # child
         sched = sched.append(subsched)
 
-        shifted = sched.shifted(100)
+        shift = sched.shift(100)
 
-        start_times = sorted([i.start_time for i in shifted.flat_instruction_sequence()])
+        start_times = sorted([i.start_time for i in shift.flat_instruction_sequence()])
         self.assertEqual([100, 130, 140], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):

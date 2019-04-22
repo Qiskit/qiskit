@@ -12,6 +12,8 @@ import logging
 from copy import copy
 from typing import Tuple
 
+from qiskit.pulse import ops
+from qiskit.pulse import Schedule
 from qiskit.pulse.common.interfaces import ScheduleComponent
 from qiskit.pulse.common.timeslots import TimeslotCollection
 from .pulse_command import PulseCommand
@@ -22,10 +24,9 @@ logger = logging.getLogger(__name__)
 class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
-    def __init__(self, command: PulseCommand, start_time: int, occupancy: TimeslotCollection):
+    def __init__(self, command: PulseCommand, start_time: int, timeslots: TimeslotCollection):
         self._command = command
-        self._start_time = start_time
-        self._occupancy = occupancy
+        self._timeslots = timeslots
 
     @property
     def duration(self) -> int:
@@ -33,20 +34,14 @@ class Instruction(ScheduleComponent):
         return self._command.duration
 
     @property
-    def occupancy(self) -> TimeslotCollection:
+    def timeslots(self) -> TimeslotCollection:
         """Occupied time slots by this instruction. """
-        return self._occupancy
-
-    def shifted(self, shift: int) -> ScheduleComponent:
-        news = copy(self)
-        news._start_time += shift
-        news._occupancy = self._occupancy.shifted(shift)
-        return news
+        return self.timeslots
 
     @property
     def start_time(self) -> int:
         """Relative begin time of this instruction. """
-        return self._start_time
+        return self.timeslot.start_time()
 
     @property
     def stop_time(self) -> int:
@@ -58,5 +53,8 @@ class Instruction(ScheduleComponent):
         """Instruction has no child nodes. """
         return ()
 
+    def shift(self, time: int) -> Schedule:
+        return ops.shift(self, time)
+
     def __repr__(self):
-        return "%4d: %s" % (self._start_time, self._command)
+        return "%s" % (self._command)
