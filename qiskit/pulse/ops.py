@@ -37,7 +37,7 @@ def shift(schedule: ScheduleComponent, time: int) -> Schedule:
         schedule (ScheduleComponent): Schedule to shift
         time (int): Time to shift by
     """
-    return Schedule((schedule, time))
+    return Schedule(schedule, shift=time)
 
 
 def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent) -> Schedule:

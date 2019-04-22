@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 class Schedule(ScheduleComponent):
     """Schedule of `ScheduleComponent`s. The composite node of a schedule tree."""
 
-    def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[ScheduleComponent, int]]],
-                 name: str = None):
+    def __init__(self, *schedules: List[ScheduleComponent],
+                 shift: int = 0, name: str = None):
         """Create empty schedule.
 
         Args:
@@ -35,6 +35,7 @@ class Schedule(ScheduleComponent):
                        Each element is either a ScheduleComponent, or a tuple pair of the form
                        (schedule, t0), where t0 (int) is the starting time of the
                        schedule (`ScheduleComponent`).
+            shift: Shift schedule timing by amount.
             name: Name of this schedule.
 
         Raises:
@@ -45,11 +46,12 @@ class Schedule(ScheduleComponent):
         try:
             timeslots = []
             for sched in schedules:
-                if isinstance(sched, (list, tuple)):
-                    timeslots.append(sched[0].timeslots.shift(sched[1]))
+                timeslot = sched.timeslots
+                if shift:
+                    timeslot = timeslot.shift(shift)
+                timeslots.append(timeslot)
 
-            self._timeslots = TimeslotCollection(*itertools.chain(
-                                *[sched.timeslots for sched in timeslots]))
+            self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
         except PulseError as ts_err:
             raise PulseError('Child schedules {} overlap.'.format(
                     [sched.name for sched in schedules])) from ts_err
