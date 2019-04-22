@@ -15,7 +15,7 @@ from unittest.mock import patch
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
 from qiskit.extensions.standard import CnotGate
-from qiskit.transpiler import PassManager, transpile, TranspilerError
+from qiskit.transpiler import PassManager, transpile
 from qiskit.compiler import assemble_circuits
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path

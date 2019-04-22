@@ -460,7 +460,8 @@ def execute(circuits, backend,
     elif (isinstance(circuits, Schedule) or
           (isinstance(circuits, list) and
            all(isinstance(c, Schedule) for c in circuits))):
-        return execute_schedules()
+        return execute_schedules(schedules=circuits,
+                                 backend=backend)
 
     else:
         raise QiskitError("bad input to execute function; must be either circuits or schedules")
