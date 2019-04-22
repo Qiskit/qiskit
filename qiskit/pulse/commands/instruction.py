@@ -9,11 +9,11 @@
 Instruction = Leaf node of schedule.
 """
 import logging
-from copy import copy
-from typing import Tuple
+from typing import Tuple, List
 
 from qiskit.pulse import ops
 from qiskit.pulse import Schedule
+from qiskit.pulse.channels import Channel
 from qiskit.pulse.common.interfaces import ScheduleComponent
 from qiskit.pulse.common.timeslots import TimeslotCollection
 from .pulse_command import PulseCommand
@@ -29,29 +29,62 @@ class Instruction(ScheduleComponent):
         self._timeslots = timeslots
 
     @property
-    def duration(self) -> int:
-        """Duration of this instruction. """
-        return self._command.duration
-
-    @property
-    def timeslots(self) -> TimeslotCollection:
-        """Occupied time slots by this instruction. """
-        return self.timeslots
-
-    @property
     def start_time(self) -> int:
         """Relative begin time of this instruction. """
-        return self.timeslot.start_time()
+        return self.timeslots.start_time
 
     @property
     def stop_time(self) -> int:
         """Relative end time of this instruction. """
-        return self.start_time + self.duration
+        return self.timeslots.stop_time
+
+    @property
+    def duration(self) -> int:
+        """Duration of this instruction. """
+        return self.timeslots.duration
+
+    @property
+    def timeslots(self) -> TimeslotCollection:
+        """Occupied time slots by this instruction. """
+        return self._timeslots
 
     @property
     def children(self) -> Tuple[ScheduleComponent, ...]:
         """Instruction has no child nodes. """
         return ()
+
+    def ch_duration(self, *channels: List[Channel]) -> int:
+        """Return start time on this schedule or channel.
+
+        Args:
+            channels: Supplied channels
+
+        Returns:
+            The latest stop time in this collection.
+        """
+        return self.timeslots.ch_start_time(*channels)
+
+    def ch_start_time(self, *channels: List[Channel]) -> int:
+        """Return minimum start time for supplied channels.
+
+        Args:
+            channels: Supplied channels
+
+        Returns:
+            The latest stop time in this collection.
+        """
+        return self.timeslots.ch_start_time(*channels)
+
+    def ch_stop_time(self, *channels: List[Channel]) -> int:
+        """Return maximum start time for supplied channels.
+
+        Args:
+            channels: Supplied channels
+
+        Returns:
+            The latest stop time in this collection.
+        """
+        return self.timeslots.ch_stop_time(*channels)
 
     def shift(self, time: int) -> Schedule:
         return ops.shift(self, time)

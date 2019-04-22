@@ -66,7 +66,15 @@ class Schedule(ScheduleComponent):
 
     @property
     def duration(self) -> int:
-        return self.stop_time() - self.start_time()
+        return self.timeslots.duration
+
+    @property
+    def start_time(self) -> int:
+        return self.timeslots.start_time
+
+    @property
+    def stop_time(self) -> int:
+        return self.timeslots.stop_time
 
     @property
     def timeslots(self) -> TimeslotCollection:
@@ -85,29 +93,38 @@ class Schedule(ScheduleComponent):
     def children(self) -> Tuple[ScheduleComponent, ...]:
         return self._children
 
-    def start_time(self, default: int = None, channel: Channel = None) -> int:
+    def ch_duration(self, *channels: List[Channel]) -> int:
         """Return start time on this schedule or channel.
 
         Args:
-            default(int, optional): default value used when this collection is empty
-            channel (Channel): Optional channel
+            channels: Supplied channels
 
         Returns:
             The latest stop time in this collection.
         """
-        return self._timeslots.start_time(channel=channel)
+        return self.timeslots.ch_start_time(*channels)
 
-    def stop_time(self, default: int = None, channel: Channel = None) -> int:
-        """Return stop time on this schedule or channel.
+    def ch_start_time(self, *channels: List[Channel]) -> int:
+        """Return minimum start time for supplied channels.
 
         Args:
-            default(int, optional): default value used when this collection is empty
-            channel (Channel): Optional channel
+            channels: Supplied channels
 
         Returns:
             The latest stop time in this collection.
         """
-        return self._timeslots.stop_time(channel=channel)
+        return self.timeslots.ch_start_time(*channels)
+
+    def ch_stop_time(self, *channels: List[Channel]) -> int:
+        """Return maximum start time for supplied channels.
+
+        Args:
+            channels: Supplied channels
+
+        Returns:
+            The latest stop time in this collection.
+        """
+        return self.timeslots.ch_stop_time(*channels)
 
     def union(self, *schedules: List[ScheduleComponent]) -> 'Schedule':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`.

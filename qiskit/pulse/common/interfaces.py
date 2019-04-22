@@ -25,6 +25,33 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def start_time(self) -> int:
+        """Starting time of this schedule component. """
+        pass
+
+    @property
+    @abstractmethod
+    def stop_time(self) -> int:
+        """Stopping time of this schedule component. """
+        pass
+
+    @abstractmethod
+    def ch_duration(self, *channels) -> int:
+        """Duration of the `channels` in schedule component. """
+        pass
+
+    @abstractmethod
+    def ch_start_time(self) -> int:
+        """Starting time of the `channels` in schedule component. """
+        pass
+
+    @abstractmethod
+    def ch_stop_time(self) -> int:
+        """Stopping of the `channels` in schedule component. """
+        pass
+
+    @property
+    @abstractmethod
     def timeslots(self) -> TimeslotCollection:
         """Occupied time slots by this schedule component. """
         pass

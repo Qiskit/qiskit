@@ -167,31 +167,67 @@ class TimeslotCollection:
         """
         return tuple(self._table.keys())
 
-    def start_time(self, default: int = None, channel: Channel = None) -> int:
+    @property
+    def start_time(self) -> int:
         """Return earliest start time in this collection.
-
-        Args:
-            default(int, optional): default value used when this collection is empty
-            channel (Channel): Optional channel
 
         Returns:
             The earliest start time in this collection.
         """
-        timeslots = self._table[channel] if channel else self._timeslots
-        return min([slot.interval.begin for slot in timeslots], default=default)
+        return self.ch_start_time(*self.channels)
 
-    def stop_time(self, default: int = None, channel: Channel = None) -> int:
-        """Return latest stop time in this collection.
+    @property
+    def stop_time(self) -> int:
+        """Return maximum time of timeslots over all channels.
+
+        Returns:
+            The latest stop time in this collection.
+        """
+        return self.ch_stop_time(*self.channels)
+
+    @property
+    def duration(self) -> int:
+        """Return maximum duration of timeslots over all channels.
+
+        Returns:
+            The duration over all chanels.
+        """
+        return self.stop_time - self.start_time
+
+    def ch_start_time(self, *channels: List[Channel]) -> int:
+        """Return earliest start time in this collection.
+
+        Args:
+            channels: Channels over which to obtain start_time.
+
+        Returns:
+            The earliest start time over all channels.
+        """
+        timeslots = [self._table[chan] for chan in channels if chan in self._table]
+        return min([slot.interval.begin for slot in timeslots], 0)
+
+    def ch_stop_time(self, *channels: List[Channel]) -> int:
+        """Return maximum time of timeslots over all channels.
 
         Args:
             default(int, optional): default value used when this collection is empty
             channel (Channel): Optional channel
 
         Returns:
-            The latest stop time in this collection.
+            The latest stop time over all channels.
         """
-        timeslots = self._table[channel] if channel else self._timeslots
-        return max([slot.interval.end for slot in timeslots], default=default)
+        timeslots = [self._table[chan] for chan in channels if chan in self._table]
+        return max([slot.interval.end for slot in timeslots], 0)
+
+    def ch_duration(self, *channels: List[Channel]) -> int:
+        """Return maximum duration of timeslots over all channels.
+
+        Args:
+            channels: Channels over which to obtain start_time.
+        Returns:
+            The maximum duration over all channels.
+        """
+        return self.ch_stop_time(*channels) - self.ch_start_time(*channels)
 
     def is_mergeable_with(self, timeslots: 'TimeslotCollection') -> bool:
         """Return if self is mergeable with `timeslots`.
