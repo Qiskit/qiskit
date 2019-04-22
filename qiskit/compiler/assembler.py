@@ -16,7 +16,7 @@ import sympy
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, LoConfig
-from qiskit.pulse.commands import DriveInstruction
+from qiskit.pulse.commands import PulseInstruction
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig, PulseQobjInstruction, PulseQobjExperimentConfig,
@@ -268,7 +268,7 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
         for instruction in schedule.flat_instruction_sequence():
             # TODO: support conditional gate
             qobj_instructions.append(instruction_converter(instruction))
-            if isinstance(instruction, DriveInstruction):
+            if isinstance(instruction, PulseInstruction):
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)
         # experiment header

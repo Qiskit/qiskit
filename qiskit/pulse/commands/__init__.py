@@ -14,5 +14,5 @@ from .meas_opts import Discriminator, Kernel
 from .persistent_value import PersistentValue, PersistentValueInstruction
 from .command import Command
 from .pulse_decorators import functional_pulse
-from .sample_pulse import SamplePulse, DriveInstruction
+from .sample_pulse import SamplePulse, PulseInstruction
 from .snapshot import Snapshot

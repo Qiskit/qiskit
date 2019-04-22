@@ -178,12 +178,12 @@ class PulseQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.DriveInstruction)
-    def _convert_drive(self, instruction):
-        """Return converted `DriveInstruction`.
+    @bind_instruction(commands.PulseInstruction)
+    def _convert_pulse(self, instruction):
+        """Return converted `PulseInstruction`.
 
         Args:
-            instruction (DriveInstruction): drive instruction.
+            instruction (PulseInstruction): pulse instruction.
         Returns:
             dict: Dictionary of required parameters.
         """

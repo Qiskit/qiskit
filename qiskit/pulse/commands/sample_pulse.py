@@ -80,11 +80,11 @@ class SamplePulse(Command):
     def __repr__(self):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
 
-    def __call__(self, channel: PulseChannel) -> 'DriveInstruction':
-        return DriveInstruction(self, channel)
+    def __call__(self, channel: PulseChannel) -> 'PulseInstruction':
+        return PulseInstruction(self, channel)
 
 
-class DriveInstruction(Instruction):
+class PulseInstruction(Instruction):
     """Instruction to drive a pulse to an `PulseChannel`. """
 
     def __init__(self, command: SamplePulse, channel: PulseChannel, start_time: int = 0):
