@@ -10,7 +10,7 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, transpile_dag
+from qiskit.transpiler import PassManager, transpile
 from qiskit.transpiler.passes import RemoveResetInZeroState, DAGFixedPoint
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -84,7 +84,6 @@ class TestRemoveResetInZeroStateFixedPoint(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.reset(qr[0])
         circuit.reset(qr[0])
-        dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
 
@@ -92,9 +91,9 @@ class TestRemoveResetInZeroStateFixedPoint(QiskitTestCase):
         pass_manager.append(
             [RemoveResetInZeroState(), DAGFixedPoint()],
             do_while=lambda property_set: not property_set['dag_fixed_point'])
-        after = transpile_dag(dag, pass_manager=pass_manager)
+        after = transpile(circuit, pass_manager=pass_manager)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(expected, after)
 
 
 if __name__ == '__main__':
