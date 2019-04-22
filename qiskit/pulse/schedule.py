@@ -33,8 +33,8 @@ class Schedule(ScheduleComponent):
         Args:
             schedules: Child Schedules of this parent Schedule.
                        Each element is either a ScheduleComponent, or a tuple pair of the form
-                       (ScheduleComponent, t0) where t0 (int) is the starting time of the
-                       `ScheduleComponent`.
+                       (schedule, t0), where t0 (int) is the starting time of the
+                       schedule (`ScheduleComponent`).
             name: Name of this schedule.
 
         Raises:
