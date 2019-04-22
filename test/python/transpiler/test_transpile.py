@@ -12,10 +12,11 @@
 import math
 from unittest.mock import patch
 
+import sympy
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
 from qiskit.extensions.standard import CnotGate
-from qiskit.transpiler import PassManager, transpile_dag, transpile, TranspilerError
+from qiskit.transpiler import PassManager, transpile, TranspilerError
 from qiskit.compiler import assemble_circuits
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
@@ -35,10 +36,9 @@ class TestTranspileDag(QiskitTestCase):
         """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
 
         circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
-        dag_circuit = circuit_to_dag(circ)
         layout = Layout.generate_trivial_layout(*circ.qregs)
-        transpile_dag(dag_circuit, coupling_map=FakeRueschlikon().configuration().coupling_map,
-                      initial_layout=layout)
+        transpile(circ, coupling_map=FakeRueschlikon().configuration().coupling_map,
+                  initial_layout=layout)
 
         self.assertTrue(mock_pass.called)
 
@@ -75,12 +75,11 @@ class TestTranspileDag(QiskitTestCase):
         circ.h(qr[0])
         circ.cx(qr[0], qr[1])
         circ.cx(qr[0], qr[1])
-        dag_circuit = circuit_to_dag(circ)
 
-        after = transpile_dag(dag_circuit, coupling_map=[[0, 1], [1, 0]])
+        after = transpile(circ, coupling_map=[[0, 1], [1, 0]])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
-        self.assertEqual(after, circuit_to_dag(expected))
+        self.assertEqual(after, expected)
 
     def test_pass_manager_empty(self):
         """Test passing an empty PassManager() to the transpiler.
@@ -95,12 +94,11 @@ class TestTranspileDag(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
-        dag_circuit = circuit_to_dag(circuit)
-        resources_before = dag_circuit.count_ops()
+        resources_before = circuit.count_ops()
 
         pass_manager = PassManager()
-        dag_circuit = transpile_dag(dag_circuit, pass_manager=pass_manager)
-        resources_after = dag_circuit.count_ops()
+        out_circuit = transpile(circuit, pass_manager=pass_manager)
+        resources_after = out_circuit.count_ops()
 
         self.assertDictEqual(resources_before, resources_after)
 
@@ -112,12 +110,12 @@ class TestTranspileDag(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(
             self._get_resource_path('move_measurements.qasm', Path.QASMS))
 
-        dag_circuit = circuit_to_dag(circ)
         lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
                       ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
                       ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
                       ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
-        out_dag = transpile_dag(dag_circuit, initial_layout=lay, coupling_map=cmap)
+        out = transpile(circ, initial_layout=lay, coupling_map=cmap)
+        out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes('measure')
         for meas_node in meas_nodes:
             is_last_measure = all([after_measure.type == 'out'
@@ -492,3 +490,34 @@ class TestTranspile(QiskitTestCase):
 
         self.assertRaises(TranspilerError, transpile,
                           qc, backend, initial_layout=bad_initial_layout)
+
+    def test_parameterized_circuit_for_simulator(self):
+        """Verify that a parameterized circuit can be transpiled for a simulator backend."""
+        qr = QuantumRegister(2, name='qr')
+        qc = QuantumCircuit(qr)
+
+        theta = sympy.Symbol('theta')
+        qc.rz(theta, qr[0])
+
+        transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
+
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.u1(theta, qr[0])
+
+        self.assertEqual(expected_qc, transpiled_qc)
+
+    def test_parameterized_circuit_for_device(self):
+        """Verify that a parameterized circuit can be transpiled for a device backend."""
+        qr = QuantumRegister(2, name='qr')
+        qc = QuantumCircuit(qr)
+
+        theta = sympy.Symbol('theta')
+        qc.rz(theta, qr[0])
+
+        transpiled_qc = transpile(qc, backend=FakeMelbourne())
+
+        qr = QuantumRegister(14, 'q')
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.u1(theta, qr[0])
+
+        self.assertEqual(expected_qc, transpiled_qc)

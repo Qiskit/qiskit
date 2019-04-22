@@ -221,7 +221,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.cx(qr[1], qr[2])
         circuit.measure(qr, cr)
 
-        layout = [qr[3], qr[0], qr[1], qr[2]]
+        layout = {qr[3]: 0, qr[0]: 1, qr[1]: 2, qr[2]: 3}
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
                            seed_mapper=self.seed_mapper,
