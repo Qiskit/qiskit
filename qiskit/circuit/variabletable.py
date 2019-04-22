@@ -7,7 +7,7 @@
 """
 Look-up table for varaible parameters in QuantumCircuit.
 """
-from collections import MutableMapping
+from collections.abc import MutableMapping
 
 from .instruction import Instruction
 
