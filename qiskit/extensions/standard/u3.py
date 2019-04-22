@@ -14,7 +14,7 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.ubase import UBase
 
 
@@ -43,6 +43,7 @@ class U3Gate(Gate):
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 
+@_to_bits(1)
 @_op_expand(1)
 def u3(self, theta, phi, lam, q):
     """Apply u3 to q."""
