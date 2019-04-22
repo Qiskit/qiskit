@@ -11,7 +11,7 @@ ScheduleComponent = Common interface for components of schedule (Instruction and
 from abc import ABCMeta, abstractmethod
 from typing import Tuple
 
-from .timeslots import TimeslotCollection
+from qiskit.pulse.timeslots import TimeslotCollection
 
 
 class ScheduleComponent(metaclass=ABCMeta):

@@ -14,8 +14,8 @@ from operator import attrgetter
 from typing import List, Tuple
 
 from qiskit.pulse.commands import Instruction
-from qiskit.pulse.common.interfaces import ScheduleComponent
-from qiskit.pulse.common.timeslots import TimeslotCollection
+from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.pulse.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)

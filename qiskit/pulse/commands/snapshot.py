@@ -10,7 +10,7 @@ Snapshot.
 """
 
 from qiskit.pulse.channels import SnapshotChannel
-from qiskit.pulse.common.timeslots import TimeslotCollection
+from qiskit.pulse.timeslots import TimeslotCollection
 from .instruction import Instruction
 from .pulse_command import PulseCommand
 

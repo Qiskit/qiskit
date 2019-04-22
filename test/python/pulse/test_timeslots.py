@@ -9,7 +9,7 @@
 import unittest
 
 from qiskit.pulse.channels import AcquireChannel
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
+from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.test import QiskitTestCase
 
 
