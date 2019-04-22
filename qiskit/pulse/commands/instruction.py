@@ -14,7 +14,7 @@ from typing import Tuple
 
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.timeslots import TimeslotCollection
-from .pulse_command import PulseCommand
+from .pulse_command import Command
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
-    def __init__(self, command: PulseCommand, start_time: int, occupancy: TimeslotCollection):
+    def __init__(self, command: Command, start_time: int, occupancy: TimeslotCollection):
         self._command = command
         self._start_time = start_time
         self._occupancy = occupancy

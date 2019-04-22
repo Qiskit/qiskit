@@ -13,7 +13,7 @@ from abc import ABCMeta, abstractmethod
 from qiskit.pulse.exceptions import PulseError
 
 
-class PulseCommand(metaclass=ABCMeta):
+class Command(metaclass=ABCMeta):
     """Super abstract class of command group."""
 
     pulseIndex = 0
@@ -36,8 +36,8 @@ class PulseCommand(metaclass=ABCMeta):
         if name:
             self._name = name
         else:
-            self._name = 'p%d' % PulseCommand.pulseIndex
-            PulseCommand.pulseIndex += 1
+            self._name = 'p%d' % Command.pulseIndex
+            Command.pulseIndex += 1
 
     @property
     def duration(self) -> int:
@@ -54,7 +54,7 @@ class PulseCommand(metaclass=ABCMeta):
         and have the same duration and name.
 
         Args:
-            other (PulseCommand): other PulseCommand.
+            other (Command): other PulseCommand.
 
         Returns:
             bool: are self and other equal.

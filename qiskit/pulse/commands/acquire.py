@@ -15,10 +15,10 @@ from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
-from .pulse_command import PulseCommand
+from .pulse_command import Command
 
 
-class Acquire(PulseCommand):
+class Acquire(Command):
     """Acquire."""
 
     def __init__(self, duration, discriminator=None, kernel=None):

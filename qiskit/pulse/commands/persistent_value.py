@@ -13,10 +13,10 @@ from qiskit.pulse.channels import OutputChannel
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
-from .pulse_command import PulseCommand
+from .pulse_command import Command
 
 
-class PersistentValue(PulseCommand):
+class PersistentValue(Command):
     """Persistent value."""
 
     def __init__(self, value):

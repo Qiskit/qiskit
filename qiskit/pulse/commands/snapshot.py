@@ -12,10 +12,10 @@ Snapshot.
 from qiskit.pulse.channels import SnapshotChannel
 from qiskit.pulse.timeslots import TimeslotCollection
 from .instruction import Instruction
-from .pulse_command import PulseCommand
+from .pulse_command import Command
 
 
-class Snapshot(PulseCommand, Instruction):
+class Snapshot(Command, Instruction):
     """Snapshot."""
 
     def __init__(self, label: str, snap_type: str, start_time: int = 0):
@@ -28,7 +28,7 @@ class Snapshot(PulseCommand, Instruction):
                 document for simulators.
             start_time (int, optional): Begin time of snapshot. Defaults to 0.
         """
-        PulseCommand.__init__(self, duration=0)
+        Command.__init__(self, duration=0)
         Instruction.__init__(self, self, start_time, TimeslotCollection([]))
         self._label = label
         self._type = snap_type

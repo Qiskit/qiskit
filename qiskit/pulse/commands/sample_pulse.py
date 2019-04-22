@@ -14,10 +14,10 @@ from qiskit.pulse.channels import OutputChannel
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
-from .pulse_command import PulseCommand
+from .pulse_command import Command
 
 
-class SamplePulse(PulseCommand):
+class SamplePulse(Command):
     """Container for functional pulse."""
 
     def __init__(self, samples, name=None):
