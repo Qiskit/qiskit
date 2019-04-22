@@ -11,7 +11,7 @@ Schedule operations.
 import logging
 from typing import List
 
-from qiskit.pulse.common.interfaces import ScheduleComponent
+from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.commands import Instruction
 from qiskit.pulse.exceptions import PulseError
 

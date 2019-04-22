@@ -14,7 +14,7 @@ from qiskit.pulse.channels import DeviceSpecification, Qubit, RegisterSlot, Memo
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel
 from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot
 from qiskit.pulse.commands import functional_pulse, Instruction
-from qiskit.pulse.common.timeslots import TimeslotCollection
+from qiskit.pulse.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
 from qiskit.test import QiskitTestCase

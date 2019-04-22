@@ -11,7 +11,7 @@ Acquire.
 from typing import Union, List
 
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
+from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
