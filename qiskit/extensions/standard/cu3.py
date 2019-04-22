@@ -12,7 +12,7 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.cx import CnotGate
@@ -36,11 +36,11 @@ class Cu3Gate(Gate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (U1Gate((self.params[2] - self.params[1])/2), [q[1]], []),
+            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
-            (U3Gate(-self.params[0]/2, 0, -(self.params[1]+self.params[2])/2), [q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
-            (U3Gate(self.params[0]/2, self.params[1], 0), [q[1]], [])
+            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -51,6 +51,7 @@ class Cu3Gate(Gate):
         return Cu3Gate(-self.params[0], -self.params[2], -self.params[1])
 
 
+@_to_bits(2)
 @_op_expand(2)
 def cu3(self, theta, phi, lam, ctl, tgt):
     """Apply cu3 from ctl to tgt with angle theta, phi, lam."""
