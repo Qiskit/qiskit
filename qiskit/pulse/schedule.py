@@ -11,7 +11,7 @@ Schedule.
 import itertools
 import logging
 from operator import attrgetter
-from typing import List, Tuple
+from typing import Union, List, Tuple
 
 from qiskit.pulse import ops
 from qiskit.pulse.channels import Channel
@@ -26,16 +26,16 @@ logger = logging.getLogger(__name__)
 class Schedule(ScheduleComponent):
     """Schedule of `ScheduleComponent`s. The composite node of a schedule tree."""
 
-    def __init__(self, *schedules, name: str = None):
+    def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[ScheduleComponent, int]]],
+                 name: str = None):
         """Create empty schedule.
 
         Args:
-            schedules (List[Union[ScheduleComponent,
-                       Tuple[ScheduleComponent, int]]): Child Schedules of this parent Schedule.
+            schedules: Child Schedules of this parent Schedule.
                        Each element is either a ScheduleComponent, or a tuple pair of the form
                        (ScheduleComponent, t0) where t0 (int) is the starting time of the
                        `ScheduleComponent`.
-            name (str, optional): Name of this schedule. Defaults to None.
+            name: Name of this schedule.
 
         Raises:
             PulseError: If timeslots intercept.
@@ -131,27 +131,23 @@ class Schedule(ScheduleComponent):
 
         Args:
             schedules: Schedules to be take the union with the parent `Schedule`.
-
-        Returns:
-            Schedule: a new schedule with `schedule` inserted at `start_time`
-
-        Raises:
-            PulseError: when an invalid schedule is specified or failed to insert
         """
         return ops.union(self, *schedules)
+
+    def shift(self: ScheduleComponent, time: int) -> 'Schedule':
+        """Return a new schedule shifted forward by `time`.
+
+        Args:
+            time: Time to shift by
+        """
+        return ops.shift(self, time)
 
     def insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`.
 
         Args:
-            start_time (int): time to be inserted
-            schedule (ScheduleComponent): schedule to be inserted
-
-        Returns:
-            Schedule: a new schedule with `schedule` inserted at `start_time`
-
-        Raises:
-            PulseError: when an invalid schedule is specified or failed to insert
+            start_time: time to be inserted
+            schedule: schedule to be inserted
         """
         return ops.insert(self, start_time, schedule)
 
@@ -160,13 +156,7 @@ class Schedule(ScheduleComponent):
         all channels shared between `self` and `schedule`.
 
         Args:
-            schedule (ScheduleComponent): schedule to be appended
-
-        Returns:
-            Schedule: a new schedule appended a `schedule`
-
-        Raises:
-            PulseError: when an invalid schedule is specified or failed to append
+            schedule: schedule to be appended
         """
         return ops.append(self, schedule)
 
