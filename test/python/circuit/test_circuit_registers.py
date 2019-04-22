@@ -61,6 +61,35 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertNotEqual(qr1, qr2)
         self.assertNotEqual(qr1, cr1)
 
+    def test_qubits(self):
+        """Test qubits() method.
+        """
+        qr1 = QuantumRegister(1, "q1")
+        cr1 = ClassicalRegister(3, "c1")
+        qr2 = QuantumRegister(2, "q2")
+        qc = QuantumCircuit(qr2, cr1, qr1)
+
+        qubtis = qc.qubits()
+
+        self.assertEqual(qubtis[0], qr2[0])
+        self.assertEqual(qubtis[1], qr2[1])
+        self.assertEqual(qubtis[2], qr1[0])
+
+    def test_clbits(self):
+        """Test clbits() method.
+        """
+        qr1 = QuantumRegister(1, "q1")
+        cr1 = ClassicalRegister(2, "c1")
+        qr2 = QuantumRegister(2, "q2")
+        cr2 = ClassicalRegister(1, "c2")
+        qc = QuantumCircuit(qr2, cr2, qr1, cr1)
+
+        clbtis = qc.clbits()
+
+        self.assertEqual(clbtis[0], cr2[0])
+        self.assertEqual(clbtis[1], cr1[0])
+        self.assertEqual(clbtis[2], cr1[1])
+
     def test_qregs_circuit(self):
         """Test getting quantum registers from circuit.
         """
