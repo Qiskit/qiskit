@@ -456,7 +456,7 @@ class TestTranspile(QiskitTestCase):
     def test_wrong_initial_layout(self):
         """Test transpile with a bad initial layout.
         """
-        backend = BasicAer.get_backend('qasm_simulator')
+        backend = FakeMelbourne()
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -469,7 +469,7 @@ class TestTranspile(QiskitTestCase):
                               (QuantumRegister(3, 'q'), 1),
                               (QuantumRegister(3, 'q'), 2)]
 
-        self.assertRaises(TranspilerError, transpile,
+        self.assertRaises(KeyError, transpile,
                           qc, backend, initial_layout=bad_initial_layout)
 
     def test_parameterized_circuit_for_simulator(self):
