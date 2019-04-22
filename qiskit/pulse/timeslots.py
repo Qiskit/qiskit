@@ -8,12 +8,13 @@
 """
 Timeslots for channels.
 """
-import logging
 from collections import defaultdict
-from typing import List, Optional, Tuple
+import itertools
+import logging
+from typing import List, Tuple
 
-from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError
+from .channels import Channel
+from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,6 @@ class TimeslotCollection:
         Raises:
             PulseError: when overlapped time slots are specified
         """
-        self._timeslots = tuple(timeslots)
         self._table = defaultdict(list)
 
         for slot in timeslots:
@@ -152,6 +152,8 @@ class TimeslotCollection:
                 if slot.interval.has_overlap(interval):
                     raise PulseError("Cannot create TimeslotCollection from overlapped timeslots")
             self._table[slot.channel].append(slot.interval)
+
+        self._timeslots = tuple(timeslots)
 
     @property
     def timeslots(self) -> Tuple[Timeslot]:
@@ -203,8 +205,11 @@ class TimeslotCollection:
         Returns:
             The earliest start time over all channels.
         """
-        timeslots = [self._table[chan] for chan in channels if chan in self._table]
-        return min([slot.interval.begin for slot in timeslots], 0)
+        intervals = list(itertools.chain(*(self._table[chan] for chan in channels
+                                           if chan in self._table)))
+        if intervals:
+            return min((interval.begin for interval in intervals))
+        return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Return maximum time of timeslots over all channels.
@@ -216,8 +221,11 @@ class TimeslotCollection:
         Returns:
             The latest stop time over all channels.
         """
-        timeslots = [self._table[chan] for chan in channels if chan in self._table]
-        return max([slot.interval.end for slot in timeslots], 0)
+        intervals = list(itertools.chain(*(self._table[chan] for chan in channels
+                                           if chan in self._table)))
+        if intervals:
+            return max((interval.end for interval in intervals))
+        return 0
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return maximum duration of timeslots over all channels.

@@ -90,17 +90,11 @@ class DriveInstruction(Instruction):
     def __init__(self, command: SamplePulse, channel: OutputChannel):
         slots = [Timeslot(Interval(0, command.duration), channel)]
         super().__init__(command, TimeslotCollection(*slots))
-        self._channel = channel
-
-    @property
-    def command(self) -> SamplePulse:
-        """SamplePulse command. """
-        return self._command
 
     @property
     def channel(self) -> OutputChannel:
         """OutputChannel command. """
-        return self._channel
+        return self.channels[0]
 
     def __repr__(self):
-        return '%s -> %s' % (self._command, self._channel)
+        return '%s -> %s' % (self.command, self.channel)

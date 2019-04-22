@@ -9,15 +9,21 @@
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, List
+from typing import Tuple, List, Iterable
 
-from qiskit.pulse.commands import Instruction
+from qiskit.pulse.channels import Channel
 
 from .timeslots import TimeslotCollection
 
 
 class ScheduleComponent(metaclass=ABCMeta):
     """Common interface for components of schedule. """
+
+    @property
+    @abstractmethod
+    def channels(self) -> List[Channel]:
+        """Return channels used by schedule."""
+        pass
 
     @property
     @abstractmethod
@@ -102,6 +108,15 @@ class ScheduleComponent(metaclass=ABCMeta):
         """
         pass
 
+    def flatten(self, time: int = 0) -> Iterable[Tuple[int, 'ScheduleComponent']]:
+        """Iterable for flattening Schedule tree.
+
+        Args:
+            node: Root of Schedule tree to traverse
+            time: Initial time of this node
+        """
+        pass
+
     @abstractmethod
     def __add__(self, schedule: 'ScheduleComponent') -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
@@ -115,9 +130,9 @@ class ScheduleComponent(metaclass=ABCMeta):
     @abstractmethod
     def __lshift__(self, time: int) -> 'ScheduleComponent':
         """Return a new schedule which is shifted forward by `time`."""
-        return self.shift(time)
+        pass
 
     @abstractmethod
     def __rshift__(self, time: int) -> 'ScheduleComponent':
         """Return a new schedule which is shifted backwards by `time`."""
-        return self.shift(-time)
+        pass

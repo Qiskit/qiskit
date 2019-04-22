@@ -129,11 +129,6 @@ class AcquireInstruction(Instruction):
         self._reg_slots = reg_slots
 
     @property
-    def command(self) -> Acquire:
-        """Acquire command. """
-        return self._command
-
-    @property
     def qubits(self):
         """Qubits to be acquired. """
         return self._qubits
@@ -149,4 +144,4 @@ class AcquireInstruction(Instruction):
         return self._reg_slots
 
     def __repr__(self):
-        return '%s -> q%s' % (self._command, [q.index for q in self._qubits])
+        return '%s -> q%s' % (self.command, [q.index for q in self.qubits])

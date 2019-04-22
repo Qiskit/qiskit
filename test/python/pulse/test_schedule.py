@@ -158,8 +158,8 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(0, sched.stop_time)
         self.assertEqual(0, sched.duration)
         self.assertEqual((), sched.children)
-        self.assertEqual(TimeslotCollection([]), sched.timeslots)
-        self.assertEqual([], sched.flat_instruction_sequence())
+        self.assertEqual(TimeslotCollection(), sched.timeslots)
+        self.assertEqual([], list(sched.flatten()))
 
     def test_flat_instruction_sequence_returns_instructions(self):
         """Test if `flat_instruction_sequence` returns `Instruction`s."""
@@ -168,8 +168,8 @@ class TestSchedule(QiskitTestCase):
 
         # empty schedule with empty schedule
         empty = Schedule().append(Schedule())
-        for i in empty.flat_instruction_sequence():
-            self.assertIsInstance(i, Instruction)
+        for t0, instr in empty.flatten():
+            self.assertIsInstance(instr, Instruction)
 
         # normal schedule
         subsched = Schedule()
@@ -179,8 +179,8 @@ class TestSchedule(QiskitTestCase):
         sched = Schedule()
         sched = sched.append(lp0(device.q[0].drive))   # child
         sched = sched.append(subsched)
-        for i in sched.flat_instruction_sequence():
-            self.assertIsInstance(i, Instruction)
+        for t0, instr in sched.flatten():
+            self.assertIsInstance(instr, Instruction)
 
     def test_absolute_start_time_of_grandchild(self):
         """Test correct calculation of start time of grandchild of a schedule."""
@@ -195,7 +195,7 @@ class TestSchedule(QiskitTestCase):
         sched = sched.append(lp0(device.q[0].drive))   # child
         sched = sched.append(subsched)
 
-        start_times = sorted([i.start_time for i in sched.flat_instruction_sequence()])
+        start_times = sorted([shft+instr.start_time for shft, instr in sched.flatten()])
         self.assertEqual([0, 30, 40], start_times)
 
     def test_shift_schedule(self):
@@ -213,7 +213,7 @@ class TestSchedule(QiskitTestCase):
 
         shift = sched.shift(100)
 
-        start_times = sorted([i.start_time for i in shift.flat_instruction_sequence()])
+        start_times = sorted([shft+instr.start_time for shft, instr in shift.flatten()])
         self.assertEqual([100, 130, 140], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
@@ -224,19 +224,19 @@ class TestSchedule(QiskitTestCase):
         children = Schedule()\
             .insert(20, acquire(device.q[1], device.mem[1]))\
             .append(acquire(device.q[1], device.mem[1]))
-        self.assertEqual(2, len(children.flat_instruction_sequence()))
+        self.assertEqual(2, len(list(children.flatten())))
 
         sched = Schedule()\
             .append(acquire(device.q[1], device.mem[1]))\
             .append(children)
-        self.assertEqual(3, len(sched.flat_instruction_sequence()))
+        self.assertEqual(3, len(list(sched.flatten())))
 
         # add 2 instructions to children (2 instructions -> 4 instructions)
         children = children.append(acquire(device.q[1], device.mem[1]))
         children = children.insert(100, acquire(device.q[1], device.mem[1]))
-        self.assertEqual(4, len(children.flat_instruction_sequence()))
+        self.assertEqual(4, len(list(children.flatten())))
         # sched must keep 3 instructions (must not update to 5 instructions)
-        self.assertEqual(3, len(sched.flat_instruction_sequence()))
+        self.assertEqual(3, len(list(sched.flatten())))
 
 
 if __name__ == '__main__':

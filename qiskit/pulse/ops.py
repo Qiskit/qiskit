@@ -9,13 +9,10 @@
 Schedule operations.
 """
 import logging
-from typing import List, Generator
+from typing import List
 
-from qiskit.pulse.interfaces import ScheduleComponent
-from qiskit.pulse.commands import Instruction
-from qiskit.pulse.exceptions import PulseError
-
-from .pulse_schedule import Schedule
+from .interfaces import ScheduleComponent
+from .schedule import Schedule
 
 logger = logging.getLogger(__name__)
 
@@ -60,26 +57,7 @@ def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
 
     Args:
         schedule (ScheduleComponent): schedule to be appended
-
-    Raises:
-        PulseError: when an invalid schedule is specified or failed to append
     """
     common_channels = set(parent.channels) & set(child.channels)
-    insertion_time = max(*[parent.ch_stop_time(*common_channels)])
+    insertion_time = parent.ch_stop_time(*common_channels)
     return insert(parent, insertion_time, child)
-
-
-def flatten(node: ScheduleComponent, time: int = 0) -> Generator[Instruction]:
-    """Generator for flattening Schedule tree.
-
-    Args:
-        node: Root of Schedule tree to traverse
-        time: Initial time of this node
-    """
-    if isinstance(node, Schedule):
-        for child in node.children:
-            yield from flatten_generator(child, time + node.start_time)
-    elif isinstance(node, Instruction):
-        yield node.shift(time)
-    else:
-        raise PulseError("Unknown ScheduleComponent type: %s" % node.__class__.__name__)

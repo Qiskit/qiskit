@@ -11,14 +11,13 @@ Schedule.
 import itertools
 import logging
 from operator import attrgetter
-from typing import List, Tuple
+from typing import List, Tuple, Iterable
 
 from qiskit.pulse import ops
-from qiskit.pulse.channels import Channel
-from qiskit.pulse.commands import Instruction
-from qiskit.pulse.interfaces import ScheduleComponent
-from qiskit.pulse.timeslots import TimeslotCollection
-from qiskit.pulse.exceptions import PulseError
+from .channels import Channel
+from .interfaces import ScheduleComponent
+from .timeslots import TimeslotCollection
+from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +42,17 @@ class Schedule(ScheduleComponent):
         try:
             timeslots = []
             for sched in schedules:
-                timeslot = sched.timeslots
+                sched_timeslots = sched.timeslots
                 if shift:
-                    timeslot = timeslot.shift(shift)
-                timeslots.append(timeslot)
+                    sched_timeslots = sched_timeslots.shift(shift)
+                timeslots.append(sched_timeslots.timeslots)
 
             self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
+            self._children = tuple(schedules)
+
         except PulseError as ts_err:
             raise PulseError('Child schedules {} overlap.'.format(
                     [sched.name for sched in schedules])) from ts_err
-        self._children = tuple(*zip(schedules, timeslots))
 
     @property
     def name(self) -> str:
@@ -86,7 +86,7 @@ class Schedule(ScheduleComponent):
         Returns:
             Tuple
         """
-        return self._timeslots.channels
+        return self.timeslots.channels
 
     @property
     def children(self) -> Tuple[ScheduleComponent, ...]:
@@ -159,15 +159,19 @@ class Schedule(ScheduleComponent):
         """
         return ops.append(self, schedule)
 
-    def flat_instruction_sequence(self) -> List[Instruction]:
-        """Return instruction sequence of this schedule.
-        Each instruction has absolute start time.
+    def flatten(self, time: int = 0) -> Iterable[Tuple[int, ScheduleComponent]]:
+        """Iterable for flattening Schedule tree.
+
+        Args:
+            node: Root of Schedule tree to traverse
+            time: Initial time of this node
         """
-        return list(ops.flatten(self))
+        for child in self.children:
+            yield from child.flatten(time + self.start_time)
 
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
-        return self.compose(schedule)
+        return self.union(schedule)
 
     def __or__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `schedule`."""

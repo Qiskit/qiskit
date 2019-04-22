@@ -269,9 +269,10 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
     for idx, schedule in enumerate(schedules):
         # instructions
         qobj_instructions = []
-        for instruction in schedule.flat_instruction_sequence():
+        # Instructions are returned as tuple of shifted time and instruction
+        for shift, instruction in list(schedule.flat_instruction_sequence()):
             # TODO: support conditional gate
-            qobj_instructions.append(instruction_converter(instruction))
+            qobj_instructions.append(instruction_converter(shift, instruction))
             if isinstance(instruction, DriveInstruction):
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)

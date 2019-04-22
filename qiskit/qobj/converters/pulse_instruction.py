@@ -29,13 +29,13 @@ def bind_instruction(type_instruction):
     def _apply_converter(converter):
         """Return decorated converter function."""
         @functools.wraps(converter)
-        def _call_valid_converter(self, instruction):
+        def _call_valid_converter(self, shift, instruction):
             """Return a dictionary for to be used to construct a qobj
             if the given instruction matches the
             bound instruction type supplied to the function,
             otherwise return None."""
             if isinstance(instruction, type_instruction):
-                return converter(self, instruction)
+                return converter(self, shift, instruction)
             else:
                 return None
         return _call_valid_converter
@@ -60,10 +60,10 @@ class PulseQobjConverter:
     class CustomConverter(PulseQobjConverter):
 
         @bind_instruction(CustomInstruction)
-        def _convert_custom_command(self, instruction):
+        def _convert_custom_command(self, shift, instruction):
             command_dict = {
                 'name': 'custom_command',
-                't0': instruction.start_time,
+                't0': shift+instruction.start_time,
                 'param1': instruction.param1,
                 'param2': instruction.param2
             }
@@ -88,11 +88,11 @@ class PulseQobjConverter:
         self._qobj_model = qobj_model
         self._run_config = run_config
 
-    def __call__(self, instruction):
+    def __call__(self, shift, instruction):
 
         for name, method in inspect.getmembers(self, inspect.ismethod):
             if name.startswith('_convert_'):
-                dict_qobj = method(instruction)
+                dict_qobj = method(shift, instruction)
                 if dict_qobj:
                     break
         else:
@@ -101,10 +101,11 @@ class PulseQobjConverter:
         return dict_qobj
 
     @bind_instruction(commands.AcquireInstruction)
-    def _convert_acquire(self, instruction):
+    def _convert_acquire(self, shift, instruction):
         """Return converted `AcquireInstruction`.
 
         Args:
+            shift(int): Offset time.
             instruction (AcquireInstruction): acquire instruction.
         Returns:
             dict: Dictionary of required parameters.
@@ -113,7 +114,7 @@ class PulseQobjConverter:
 
         command_dict = {
             'name': 'acquire',
-            't0': instruction.start_time,
+            't0': shift+instruction.start_time,
             'duration': instruction.duration,
             'qubits': [q.index for q in instruction.qubits],
             'memory_slot': [m.index for m in instruction.mem_slots]
@@ -145,67 +146,71 @@ class PulseQobjConverter:
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.FrameChangeInstruction)
-    def _convert_frame_change(self, instruction):
+    def _convert_frame_change(self, shift, instruction):
         """Return converted `FrameChangeInstruction`.
 
         Args:
+            shift(int): Offset time.
             instruction (FrameChangeInstruction): frame change instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
         command_dict = {
             'name': 'fc',
-            't0': instruction.start_time,
+            't0': shift+instruction.start_time,
             'ch': instruction.channel.name,
             'phase': instruction.command.phase
         }
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.PersistentValueInstruction)
-    def _convert_persistent_value(self, instruction):
+    def _convert_persistent_value(self, shift, instruction):
         """Return converted `PersistentValueInstruction`.
 
         Args:
+            shift(int): Offset time.
             instruction (PersistentValueInstruction): persistent value instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
         command_dict = {
             'name': 'pv',
-            't0': instruction.start_time,
+            't0': shift+instruction.start_time,
             'ch': instruction.channel.name,
             'val': instruction.command.value
         }
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.DriveInstruction)
-    def _convert_drive(self, instruction):
+    def _convert_drive(self, shift, instruction):
         """Return converted `DriveInstruction`.
 
         Args:
+            shift(int): Offset time.
             instruction (DriveInstruction): drive instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
         command_dict = {
             'name': instruction.command.name,
-            't0': instruction.start_time,
+            't0': shift+instruction.start_time,
             'ch': instruction.channel.name
         }
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.Snapshot)
-    def _convert_snapshot(self, instruction):
+    def _convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
 
         Args:
+            shift(int): Offset time.
             instruction (Snapshot): snapshot instruction.
         Returns:
             dict: Dictionary of required parameters.
         """
         command_dict = {
             'name': 'snapshot',
-            't0': instruction.start_time,
+            't0': shift+instruction.start_time,
             'label': instruction.label,
             'type': instruction.type
         }
