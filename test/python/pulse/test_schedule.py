@@ -10,7 +10,6 @@ import unittest
 
 import numpy as np
 
-from qiskit.pulse import ops
 from qiskit.pulse.channels import DeviceSpecification, Qubit, RegisterSlot, MemorySlot
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel
 from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot
@@ -59,7 +58,8 @@ class TestSchedule(QiskitTestCase):
         sched = sched.append(lp0(device.q[0].drive))
         sched = sched.append(lp0(device.q[1].drive))
         self.assertEqual(0, sched.start_time)
-        self.assertEqual(6, sched.stop_time)
+        # appending to separate channel so should be at same time.
+        self.assertEqual(3, sched.stop_time)
 
     def test_insert_an_instruction_into_empty_schedule(self):
         """Test insert an instruction into an emtpy schedule."""
@@ -143,14 +143,14 @@ class TestSchedule(QiskitTestCase):
         acquire = Acquire(10)
         sched = Schedule()
         sched += gp0(device.q[0].drive)
-        sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control).shift(0)
+        sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control)
         sched |= FrameChange(phase=-1.57)(device.q[0].drive).shift(60)
         sched |= gp1(device.q[1].drive).shift(30)
         sched |= gp0(device.q[0].control).shift(60)
         sched |= Snapshot("label", "snap_type").shift(80)
         sched |= fc_pi_2(device.q[0].drive).shift(90)
         sched |= acquire(device.q[1], device.mem[1], device.c[1]).shift(90)
-        _ = Schedule() + sched + sched
+        _ = sched + sched
 
     def test_empty_schedule(self):
         """Test empty schedule."""

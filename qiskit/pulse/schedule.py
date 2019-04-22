@@ -38,7 +38,7 @@ class Schedule(ScheduleComponent):
             PulseError: If timeslots intercept.
         """
         self._name = name
-
+        self._shift = shift
         try:
             timeslots = []
             for sched in schedules:
@@ -51,8 +51,7 @@ class Schedule(ScheduleComponent):
             self._children = tuple(schedules)
 
         except PulseError as ts_err:
-            raise PulseError('Child schedules {} overlap.'.format(
-                    [sched.name for sched in schedules])) from ts_err
+            raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
 
     @property
     def name(self) -> str:
@@ -167,11 +166,11 @@ class Schedule(ScheduleComponent):
             time: Shifted time due to parent
         """
         for child in self.children:
-            yield from child.flatten(time + self.start_time)
+            yield from child.flatten(time + self._shift)
 
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
-        return self.union(schedule)
+        return self.append(schedule)
 
     def __or__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `schedule`."""
@@ -188,8 +187,8 @@ class Schedule(ScheduleComponent):
     def __repr__(self):
         res = 'Schedule("name=%s", ' % self._name if self._name else 'Schedule('
         res += '%d, ' % self.start_time
-        instructions = [repr(child) for child in self.children]
-        res += ', '.join([str(i) for i in instructions[:5]])
-        if len(instructions) > 5:
+        instructions = [repr(child) for child in self.flatten()]
+        res += ', '.join([str(i) for i in instructions[:50]])
+        if len(instructions) > 50:
             return res + ', ...)'
         return res + ')'

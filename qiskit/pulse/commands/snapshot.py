@@ -67,5 +67,5 @@ class Snapshot(PulseCommand, Instruction):
         return False
 
     def __repr__(self):
-        return '%4d: %s(%s, %s) -> %s' % (self.__class__.__name__, self._label,
+        return '%s(%s, %s) -> %s' % (self.__class__.__name__, self._label,
                                           self._type, self._channel)

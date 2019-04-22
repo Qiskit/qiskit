@@ -150,7 +150,7 @@ class Instruction(ScheduleComponent):
 
         Args:
             node: Root of Schedule tree to traverse
-            time: Initial time of this node
+            time: Shifted time of this node due to parent
         """
         yield (time, self)
 
