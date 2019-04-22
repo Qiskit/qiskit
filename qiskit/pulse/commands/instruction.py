@@ -14,7 +14,7 @@ from typing import Tuple
 
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.timeslots import TimeslotCollection
-from .pulse_command import Command
+from .command import Command
 
 logger = logging.getLogger(__name__)
 

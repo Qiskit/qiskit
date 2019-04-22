@@ -12,7 +12,7 @@ from typing import List
 
 from qiskit.pulse.exceptions import PulseError
 from .output_channel import DriveChannel, ControlChannel, MeasureChannel
-from .pulse_channel import AcquireChannel
+from .channels import AcquireChannel
 
 
 class Qubit:

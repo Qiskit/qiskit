@@ -12,7 +12,7 @@ Snapshot.
 from qiskit.pulse.device import SnapshotChannel
 from qiskit.pulse.timeslots import TimeslotCollection
 from .instruction import Instruction
-from .pulse_command import Command
+from .command import Command
 
 
 class Snapshot(Command, Instruction):

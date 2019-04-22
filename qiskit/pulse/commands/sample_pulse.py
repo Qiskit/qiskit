@@ -14,7 +14,7 @@ from qiskit.pulse.device import OutputChannel
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
-from .pulse_command import Command
+from .command import Command
 
 
 class SamplePulse(Command):

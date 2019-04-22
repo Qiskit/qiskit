@@ -12,7 +12,7 @@ from abc import abstractmethod
 from typing import Tuple
 
 from qiskit.pulse.exceptions import PulseError
-from .pulse_channel import Channel
+from .channels import Channel
 
 
 class LoRange:

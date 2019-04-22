@@ -20,11 +20,11 @@ class Command(metaclass=ABCMeta):
 
     @abstractmethod
     def __init__(self, duration: int = None, name: str = None):
-        """Create new pulse commands.
+        """Create a new command.
 
         Args:
-            duration (int): Duration of pulse.
-            name (str): Name of pulse command.
+            duration (int): Duration of this command.
+            name (str): Name of this command.
         Raises:
             PulseError: when duration is not number of points.
         """
@@ -50,11 +50,11 @@ class Command(metaclass=ABCMeta):
         return self._name
 
     def __eq__(self, other):
-        """Two PulseCommands are the same if they are of the same type
+        """Two Commands are the same if they are of the same type
         and have the same duration and name.
 
         Args:
-            other (Command): other PulseCommand.
+            other (Command): other Command.
 
         Returns:
             bool: are self and other equal.
