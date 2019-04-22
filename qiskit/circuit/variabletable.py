@@ -42,7 +42,8 @@ class VariableTable(MutableMapping):
             for (instr, param_index) in self._table[key]:
                 params = instr.params
                 if isinstance(value, dict):
-                    params[param_index] = params[param_index].evalf(subs=value)
+                    for param, this_value in value.items():
+                        params[param_index] = params[param_index].subs(param, this_value)
                 else:
                     params[param_index] = value
                 instr.params = params
