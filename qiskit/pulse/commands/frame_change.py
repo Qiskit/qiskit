@@ -26,7 +26,12 @@ class FrameChange(PulseCommand):
                 The allowable precision is device specific.
         """
         super().__init__(duration=0)
-        self.phase = phase
+        self._phase = phase
+
+    @property
+    def phase(self):
+        """Framechange phase."""
+        return self._phase
 
     def __eq__(self, other):
         """Two FrameChanges are the same if they are of the same type

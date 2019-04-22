@@ -117,7 +117,7 @@ class Timeslot:
         Returns:
             A new Timeslot object shifted by `time`.
         """
-        return Timeslot(self._interval.shift(time), self._channel)
+        return Timeslot(self.interval.shift(time), self.channel)
 
     def __eq__(self, other):
         """Two time-slots are the same if they have the same interval and channel.
@@ -128,7 +128,7 @@ class Timeslot:
         Returns:
             bool: are self and other equal.
         """
-        if self._interval == other._interval and self._channel == other._channel:
+        if self.interval == other.interval and self.channel == other.channel:
             return True
         return False
 
@@ -275,6 +275,6 @@ class TimeslotCollection:
         Returns:
             bool: are self and other equal.
         """
-        if self._timeslots == other._timeslots:
+        if self.timeslots == other.timeslots:
             return True
         return False

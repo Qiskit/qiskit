@@ -65,6 +65,10 @@ class Schedule(ScheduleComponent):
         return self._name
 
     @property
+    def timeslots(self) -> TimeslotCollection:
+        return self._timeslots
+
+    @property
     def duration(self) -> int:
         return self.timeslots.duration
 
@@ -75,10 +79,6 @@ class Schedule(ScheduleComponent):
     @property
     def stop_time(self) -> int:
         return self.timeslots.stop_time
-
-    @property
-    def timeslots(self) -> TimeslotCollection:
-        return self._timeslots
 
     @property
     def channels(self):

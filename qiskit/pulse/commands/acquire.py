@@ -39,19 +39,29 @@ class Acquire(PulseCommand):
 
         if discriminator:
             if isinstance(discriminator, Discriminator):
-                self.discriminator = discriminator
+                self._discriminator = discriminator
             else:
                 raise PulseError('Invalid discriminator object is specified.')
         else:
-            self.discriminator = None
+            self._discriminator = None
 
         if kernel:
             if isinstance(kernel, Kernel):
-                self.kernel = kernel
+                self._kernel = kernel
             else:
                 raise PulseError('Invalid kernel object is specified.')
         else:
-            self.kernel = None
+            self._kernel = None
+
+    @property
+    def kernel(self):
+        """Return kernel settings."""
+        return self._kernel
+
+    @property
+    def discriminator(self):
+        """Return discrimination settings."""
+        return self._discriminator
 
     def __eq__(self, other):
         """Two Acquires are the same if they are of the same type
@@ -89,13 +99,16 @@ class AcquireInstruction(Instruction):
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
                  reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None):
+
         if isinstance(qubits, Qubit):
             qubits = [qubits]
+
         if mem_slots:
             if isinstance(mem_slots, MemorySlot):
                 mem_slots = [mem_slots]
             elif len(qubits) != len(mem_slots):
                 raise PulseError("#mem_slots must be equals to #qubits")
+
         if reg_slots:
             if isinstance(reg_slots, RegisterSlot):
                 reg_slots = [reg_slots]

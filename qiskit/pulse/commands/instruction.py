@@ -29,6 +29,11 @@ class Instruction(ScheduleComponent):
         self._timeslots = timeslots
 
     @property
+    def timeslots(self) -> TimeslotCollection:
+        """Occupied time slots by this instruction. """
+        return self._timeslots
+
+    @property
     def start_time(self) -> int:
         """Relative begin time of this instruction. """
         return self.timeslots.start_time
@@ -42,11 +47,6 @@ class Instruction(ScheduleComponent):
     def duration(self) -> int:
         """Duration of this instruction. """
         return self.timeslots.duration
-
-    @property
-    def timeslots(self) -> TimeslotCollection:
-        """Occupied time slots by this instruction. """
-        return self._timeslots
 
     @property
     def children(self) -> Tuple[ScheduleComponent, ...]:

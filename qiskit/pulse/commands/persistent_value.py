@@ -33,7 +33,12 @@ class PersistentValue(PulseCommand):
         if abs(value) > 1:
             raise PulseError("Absolute value of PV amplitude exceeds 1.")
 
-        self.value = complex(value)
+        self._value = complex(value)
+
+    @property
+    def value(self):
+        """Persistent value amplitude."""
+        return self._value
 
     def __eq__(self, other):
         """Two PersistentValues are the same if they are of the same type
