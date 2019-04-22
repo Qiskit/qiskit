@@ -23,6 +23,8 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+- Introduced schedule lo configuration. (#2115)
+- Introduced pulse schedule assembler. (#2115)
 - Builtin library of continuous pulses and builtin library of discrete pulses which are obtained
   by sampling continuous pulses with default sampling strategy.
 - Sampler decorator and standard sampler library for conversion of continuous pulses
