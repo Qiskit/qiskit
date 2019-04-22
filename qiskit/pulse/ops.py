@@ -17,7 +17,7 @@ from .schedule import Schedule
 logger = logging.getLogger(__name__)
 
 
-def union(self, *schedules: List[ScheduleComponent], name: str = None) -> Schedule:
+def union(*schedules: List[ScheduleComponent], name: str = None) -> Schedule:
     """Create a union of all input `Schedule`s.
 
     Args:

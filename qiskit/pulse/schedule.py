@@ -164,7 +164,7 @@ class Schedule(ScheduleComponent):
 
         Args:
             node: Root of Schedule tree to traverse
-            time: Initial time of this node
+            time: Shifted time due to parent
         """
         for child in self.children:
             yield from child.flatten(time + self.start_time)
@@ -185,8 +185,11 @@ class Schedule(ScheduleComponent):
         """Return a new schedule which is shifted backwards by `time`."""
         return self.shift(-time)
 
-    def __str__(self):
-        res = "Schedule(%s):\n" % (self._name or "")
-        instructions = sorted(self.flat_instruction_sequence(), key=attrgetter("start_time"))
-        res += '\n'.join([str(i) for i in instructions])
-        return res
+    def __repr__(self):
+        res = 'Schedule("name=%s", ' % self._name if self._name else 'Schedule('
+        res += '%d, ' % self.start_time
+        instructions = [repr(child) for child in self.children]
+        res += ', '.join([str(i) for i in instructions[:5]])
+        if len(instructions) > 5:
+            return res + ', ...)'
+        return res + ')'

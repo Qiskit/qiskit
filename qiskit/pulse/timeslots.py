@@ -194,7 +194,7 @@ class TimeslotCollection:
         Returns:
             The duration over all chanels.
         """
-        return self.stop_time - self.start_time
+        return self.stop_time - 0
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return earliest start time in this collection.
@@ -235,7 +235,7 @@ class TimeslotCollection:
         Returns:
             The maximum duration over all channels.
         """
-        return self.ch_stop_time(*channels) - self.ch_start_time(*channels)
+        return self.ch_stop_time(*channels) - 0
 
     def is_mergeable_with(self, timeslots: 'TimeslotCollection') -> bool:
         """Return if self is mergeable with `timeslots`.

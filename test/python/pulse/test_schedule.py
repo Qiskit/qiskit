@@ -10,6 +10,7 @@ import unittest
 
 import numpy as np
 
+from qiskit.pulse import ops
 from qiskit.pulse.channels import DeviceSpecification, Qubit, RegisterSlot, MemorySlot
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel
 from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot
@@ -214,6 +215,7 @@ class TestSchedule(QiskitTestCase):
         shift = sched.shift(100)
 
         start_times = sorted([shft+instr.start_time for shft, instr in shift.flatten()])
+
         self.assertEqual([100, 130, 140], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
@@ -221,14 +223,11 @@ class TestSchedule(QiskitTestCase):
         device = self.two_qubit_device
 
         acquire = Acquire(10)
-        children = Schedule()\
-            .insert(20, acquire(device.q[1], device.mem[1]))\
-            .append(acquire(device.q[1], device.mem[1]))
+        children = (acquire(device.q[1], device.mem[1]).shift(20) +
+                    acquire(device.q[1], device.mem[1]))
         self.assertEqual(2, len(list(children.flatten())))
 
-        sched = Schedule()\
-            .append(acquire(device.q[1], device.mem[1]))\
-            .append(children)
+        sched = acquire(device.q[1], device.mem[1]).append(children)
         self.assertEqual(3, len(list(sched.flatten())))
 
         # add 2 instructions to children (2 instructions -> 4 instructions)
