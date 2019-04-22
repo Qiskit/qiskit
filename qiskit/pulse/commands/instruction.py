@@ -87,7 +87,7 @@ class Instruction(ScheduleComponent):
         return self.timeslots.ch_stop_time(*channels)
 
     def union(self, *schedules: List[ScheduleComponent]) -> 'Schedule':
-        """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
+        """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
             schedules: Schedules to be take the union with the parent `Schedule`.
@@ -103,7 +103,7 @@ class Instruction(ScheduleComponent):
         return ops.shift(self, time)
 
     def insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`.
+        """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
             start_time: time to be inserted
@@ -121,19 +121,19 @@ class Instruction(ScheduleComponent):
         return ops.append(self, schedule)
 
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted within the parent `Schedule` at `start_time`."""
+        """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
         return self.compose(schedule)
 
     def __or__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule which is the union of the parent `Schedule` and `schedule`."""
+        """Return a new schedule which is the union of `self` and `schedule`."""
         return self.union(schedule)
 
     def __lshift__(self, time: int) -> 'Schedule':
-        """Return a new schedule which is the parent `Schedule` shifted forward by `time`."""
+        """Return a new schedule which is shifted forward by `time`."""
         return self.shift(time)
 
     def __rshift__(self, time: int) -> 'Schedule':
-        """Return a new schedule which is the parent `Schedule` shifted backwards by `time`."""
+        """Return a new schedule which is shifted backwards by `time`."""
         return self.shift(-time)
 
     def __repr__(self):
