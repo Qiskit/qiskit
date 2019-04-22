@@ -82,6 +82,8 @@ Added
 - Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits.
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
+- Gates and instructions in a circuit accept integers as parameters to refer to
+  wires instead of named bits.
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
   are followed by a measurement instruction, moving the latter to the proper wire. (#1890)
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines

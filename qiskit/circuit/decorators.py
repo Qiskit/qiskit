@@ -27,6 +27,52 @@ def _is_bit(obj):
     return False
 
 
+def _convert_to_bits(a_list, bits):
+    """ Recursively converts the integers, tuples and ranges in a_list
+    for a qu/clbit from the bits. E.g. bits[item_in_a_list]"""
+    new_list = []
+    for item in a_list:
+        if isinstance(item, (int, slice)):
+            # eg. circuit.h(2)
+            # eg. circuit.h(slice(0, 2))
+            try:
+                new_list.append(bits[item])
+            except IndexError:
+                raise QiskitError("The integer param is out of range")
+        elif isinstance(item, list):
+            # eg. circuit.h([0, 2])
+            new_list.append(_convert_to_bits(item, bits))
+        elif isinstance(item, range):
+            # eg. circuit.h(range(0, 2))
+            new_list.append(_convert_to_bits([index for index in item], bits))
+        else:
+            new_list.append(item)
+    return new_list
+
+
+def _to_bits(nqbits, ncbits=0, func=None):
+    """Convert gate arguments to [qu|cl]bits from integers, slices, ranges, etc.
+    For example circuit.h(0) -> circuit.h(QuantumRegister(2)[0]) """
+    if func is None:
+        return functools.partial(_to_bits, nqbits, ncbits)
+
+    @functools.wraps(func)
+    def wrapper(self, *args):
+        qbits = self.qubits()
+        cbits = self.clbits()
+
+        nparams = len(args) - nqbits - ncbits
+        params = args[:nparams]
+        qb_args = args[nparams:nparams + nqbits]
+        cl_args = args[nparams + nqbits:]
+
+        args = list(params) + _convert_to_bits(qb_args, qbits) + _convert_to_bits(cl_args, cbits)
+
+        return func(self, *args)
+
+    return wrapper
+
+
 def _op_expand(n_bits, func=None, broadcastable=None):
     """Decorator for expanding an operation across a whole register or register subset.
     Args:
@@ -46,10 +92,12 @@ def _op_expand(n_bits, func=None, broadcastable=None):
     def wrapper(self, *args):
         params = args[0:-n_bits] if len(args) > n_bits else tuple()
         rargs = args[-n_bits:]
+
         if broadcastable is None:
             blist = [True] * len(rargs)
         else:
             blist = broadcastable
+
         if not all([_is_bit(arg) for arg in rargs]):
             rarg_size = [1] * n_bits
             for iarg, arg in enumerate(rargs):
@@ -57,7 +105,7 @@ def _op_expand(n_bits, func=None, broadcastable=None):
                     rarg_size[iarg] = len(arg)
                 elif isinstance(arg, list) and all([_is_bit(bit) for bit in arg]):
                     rarg_size[iarg] = len(arg)
-                elif isinstance(arg, tuple) and _is_bit(arg):
+                elif _is_bit(arg):
                     rarg_size[iarg] = 1
                 else:
                     raise QiskitError('operation arguments must be qubits/cbits')
@@ -86,4 +134,5 @@ def _op_expand(n_bits, func=None, broadcastable=None):
                 else:
                     raise QiskitError('empty control or target argument')
         return func(self, *params, *rargs)
+
     return wrapper
