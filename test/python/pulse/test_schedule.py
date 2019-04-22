@@ -31,10 +31,10 @@ class TestSchedule(QiskitTestCase):
 
         self.linear = linear
 
-        qubits = [
-            Qubit(0, drive_channels=[DriveChannel(0, 1.2)], control_channels=[ControlChannel(0)]),
-            Qubit(1, drive_channels=[DriveChannel(1, 3.4)], acquire_channels=[AcquireChannel(1)])
-        ]
+        qubits = [Qubit(0, drive_channels=[DriveChannel(0, 1.2)],
+                        control_channels=[ControlChannel(0)]),
+                  Qubit(1, drive_channels=[DriveChannel(1, 3.4)],
+                        acquire_channels=[AcquireChannel(1)])]
         registers = [RegisterSlot(i) for i in range(2)]
         mem_slots = [MemorySlot(i) for i in range(2)]
         self.two_qubit_device = DeviceSpecification(qubits, registers, mem_slots)
@@ -118,14 +118,12 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(0, sched.start_time)
         self.assertEqual(100, sched.stop_time)
         self.assertEqual(100, sched.duration)
-        # print(sched)
         new_sched = Schedule()
         new_sched = new_sched.append(sched)
         new_sched = new_sched.append(sched)
         self.assertEqual(0, new_sched.start_time)
         self.assertEqual(200, new_sched.stop_time)
         self.assertEqual(200, new_sched.duration)
-        # print(new_sched)
 
     def test_can_create_valid_schedule_with_syntax_sugar(self):
         """Test valid schedule creation using syntax sugar without error."""
@@ -151,9 +149,7 @@ class TestSchedule(QiskitTestCase):
         sched |= Snapshot("label", "snap_type").shifted(80)
         sched |= fc_pi_2(device.q[0].drive).shifted(90)
         sched |= acquire(device.q[1], device.mem[1], device.c[1]).shifted(90)
-        # print(sched)
         _ = Schedule() + sched + sched
-        # print(new_sched)
 
     def test_empty_schedule(self):
         """Test empty schedule."""
