@@ -100,6 +100,13 @@ class Unitary(Gate):
         if self.__dimension == 4:
             self.definition = two_qubit_kak(self.representation)
 
+    def assemble(self):
+        """Assemble a QasmQobjInstruction"""
+        instruction = super().assemble()
+        if self._label:
+            instruction.label = self._label
+        return instruction
+
     @property
     def dimension(self):
         """dimension of matrix

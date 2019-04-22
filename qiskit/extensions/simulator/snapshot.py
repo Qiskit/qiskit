@@ -22,6 +22,14 @@ class Snapshot(Instruction):
         """Create new snapshot instruction."""
         super().__init__('snapshot', num_qubits, num_clbits, [label, snapshot_type])
 
+    def assemble(self):
+        """Assemble a QasmQobjInstruction"""
+        instruction = super().assemble()
+        instruction.label = self.params[0]
+        instruction.snapshot_type = self.params[1]
+        del instruction.params
+        return instruction
+
     def inverse(self):
         """Special case. Return self."""
         return Snapshot(self.num_qubits, self.num_clbits, self.params[0], self.params[1])
