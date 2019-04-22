@@ -47,26 +47,27 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[1], (self.qr, 1))
         self.assertEqual(layout[2], (self.qr, 2))
 
-    def test_layout_from_list(self):
-        """Constructor from a list"""
-        layout = Layout([(QuantumRegister(2, 'q0'), 0),
-                         (QuantumRegister(2, 'qr1'), 0),
-                         None,
-                         (QuantumRegister(2, 'qr1'), 1),
-                         (QuantumRegister(2, 'q0'), 1)])
+    def test_layout_from_dict_hole(self):
+        """Constructor from a dict with a hole"""
+        qr0 = QuantumRegister(2)
+        qr1 = QuantumRegister(2)
 
-        self.assertEqual(layout[(QuantumRegister(2, 'q0'), 0)], 0)
-        self.assertEqual(layout[(QuantumRegister(2, 'qr1'), 0)], 1)
+        layout = Layout({qr0[0]: 0,
+                         qr1[0]: 1,
+                         qr1[1]: 3,
+                         qr0[1]: 4})
+
+        self.assertEqual(layout[qr0[0]], 0)
+        self.assertEqual(layout[qr1[0]], 1)
         with self.assertRaises(KeyError):
             _ = layout[None]
-        self.assertEqual(layout[(QuantumRegister(2, 'qr1'), 1)], 3)
-        self.assertEqual(layout[(QuantumRegister(2, 'q0'), 1)], 4)
+        self.assertEqual(layout[qr1[1]], 3)
+        self.assertEqual(layout[qr0[1]], 4)
 
-        self.assertEqual(layout[0], (QuantumRegister(2, 'q0'), 0))
-        self.assertEqual(layout[1], (QuantumRegister(2, 'qr1'), 0))
-        self.assertEqual(layout[2], None)
-        self.assertEqual(layout[3], (QuantumRegister(2, 'qr1'), 1))
-        self.assertEqual(layout[4], (QuantumRegister(2, 'q0'), 1))
+        self.assertEqual(layout[0], qr0[0])
+        self.assertEqual(layout[1], qr1[0])
+        self.assertEqual(layout[3], qr1[1])
+        self.assertEqual(layout[4], qr0[1])
 
     def test_layout_set(self):
         """Setter"""
@@ -108,14 +109,6 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(len(layout), 1)
         layout.add((self.qr, 1), 3)
         self.assertEqual(len(layout), 2)
-
-    def test_layout_idle_physical_bits(self):
-        """Get physical_bits that are not mapped"""
-        layout = Layout()
-        layout.add((self.qr, 1), 2)
-        layout.add(None, 4)
-        layout.add(None, 6)
-        self.assertEqual(layout.idle_physical_bits(), [4, 6])
 
     def test_layout_get_bits(self):
         """Get the map from the (qu)bits view"""
@@ -287,7 +280,7 @@ class LayoutTest(QiskitTestCase):
     def test_layout_repr_with_holes(self):
         """A non-bijective Layout repr reproduces layout"""
         qr = QuantumRegister(5, 'qr')
-        layout = Layout([(qr, 0), None, None, (qr, 1), (qr, 2), (qr, 3), (qr, 4), None])
+        layout = Layout({qr[0]: 0, qr[1]: 3, qr[2]: 4, qr[3]: 5, qr[4]: 6})
 
         repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
         self.assertDictEqual(layout._p2v, repr_layout._p2v)
@@ -307,14 +300,14 @@ class LayoutTest(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qr2')
         qr3 = QuantumRegister(3, 'qr3')
         intlist_layout = [4, 5, 6, 8, 9, 10]
-        layout = Layout.generate_from_intlist(intlist_layout, qr1, qr2, qr3)
+        layout = Layout.from_intlist(intlist_layout, qr1, qr2, qr3)
 
-        expected = Layout({4: (QuantumRegister(1, 'qr1'), 0),
-                           5: (QuantumRegister(2, 'qr2'), 0),
-                           6: (QuantumRegister(2, 'qr2'), 1),
-                           8: (QuantumRegister(3, 'qr3'), 0),
-                           9: (QuantumRegister(3, 'qr3'), 1),
-                           10: (QuantumRegister(3, 'qr3'), 2)
+        expected = Layout({4: qr1[0],
+                           5: qr2[0],
+                           6: qr2[1],
+                           8: qr3[0],
+                           9: qr3[1],
+                           10: qr3[2]
                            })
         self.assertDictEqual(layout._p2v, expected._p2v)
         self.assertDictEqual(layout._v2p, expected._v2p)
@@ -333,11 +326,11 @@ class LayoutTest(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qr2')
 
         intlist_layout = [4, 5, 6, 8, 9, 10]
-        layout = Layout.generate_from_intlist(intlist_layout, qr1, qr2)
+        layout = Layout.from_intlist(intlist_layout, qr1, qr2)
 
-        expected = Layout({4: (QuantumRegister(1, 'qr1'), 0),
-                           5: (QuantumRegister(2, 'qr2'), 0),
-                           6: (QuantumRegister(2, 'qr2'), 1),
+        expected = Layout({4: qr1[0],
+                           5: qr2[0],
+                           6: qr2[1],
                            8: None,
                            9: None,
                            10: None
@@ -361,7 +354,7 @@ class LayoutTest(QiskitTestCase):
         intlist_layout = [4, 5, 6, 8]
 
         with self.assertRaises(LayoutError):
-            _ = Layout.generate_from_intlist(intlist_layout, qr1, qr2, qr3)
+            _ = Layout.from_intlist(intlist_layout, qr1, qr2, qr3)
 
     def test_layout_from_intlist_duplicated(self):
         """If the intlist contains duplicated ints, fail.
@@ -375,7 +368,27 @@ class LayoutTest(QiskitTestCase):
         intlist_layout = [4, 6, 6]
 
         with self.assertRaises(LayoutError):
-            _ = Layout.generate_from_intlist(intlist_layout, qr1, qr2)
+            _ = Layout.from_intlist(intlist_layout, qr1, qr2)
+
+    def test_layout_from_tuplelist(self):
+        """Create a Layout from list of tuples
+        virtual  physical
+         q1_0  ->  3
+         q2_0  ->  5
+         q2_1  ->  7
+        """
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        tuplelist_layout = [None, None, None, qr1[0], None, qr2[0], None, qr2[1]]
+
+        layout = Layout.from_tuplelist(tuplelist_layout)
+
+        expected = Layout({3: qr1[0],
+                           5: qr2[0],
+                           7: qr2[1],
+                           })
+        self.assertDictEqual(layout._p2v, expected._p2v)
+        self.assertDictEqual(layout._v2p, expected._v2p)
 
 
 if __name__ == '__main__':
