@@ -14,7 +14,7 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.qasm import pi
 from qiskit.extensions.standard.u1 import U1Gate
 
@@ -41,6 +41,7 @@ class ZGate(Gate):
         return ZGate()  # self-inverse
 
 
+@_to_bits(1)
 @_op_expand(1)
 def z(self, q):
     """Apply Z to q."""
