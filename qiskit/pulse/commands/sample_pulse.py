@@ -87,9 +87,9 @@ class SamplePulse(PulseCommand):
 class DriveInstruction(Instruction):
     """Instruction to drive a pulse to an `OutputChannel`. """
 
-    def __init__(self, command: SamplePulse, channel: OutputChannel, start_time: int = 0):
-        slots = [Timeslot(Interval(start_time, start_time + command.duration), channel)]
-        super().__init__(command, start_time, TimeslotCollection(*slots))
+    def __init__(self, command: SamplePulse, channel: OutputChannel):
+        slots = [Timeslot(Interval(0, command.duration), channel)]
+        super().__init__(command, TimeslotCollection(*slots))
         self._channel = channel
 
     @property

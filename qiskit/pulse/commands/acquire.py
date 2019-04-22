@@ -88,8 +88,7 @@ class AcquireInstruction(Instruction):
                  command: Acquire,
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
-                 start_time: int = 0):
+                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None):
         if isinstance(qubits, Qubit):
             qubits = [qubits]
         if mem_slots:
@@ -106,11 +105,11 @@ class AcquireInstruction(Instruction):
             reg_slots = []
 
         # TODO: more precise time-slots when we have `acquisition_latency`
-        stop_time = start_time+command.duration
-        slots = [Timeslot(Interval(start_time, stop_time), q.acquire) for q in qubits]
-        slots.extend([Timeslot(Interval(start_time, stop_time), mem) for mem in mem_slots])
+        stop_time = command.duration
+        slots = [Timeslot(Interval(0, stop_time), q.acquire) for q in qubits]
+        slots.extend([Timeslot(Interval(0, stop_time), mem) for mem in mem_slots])
 
-        super().__init__(command, start_time, TimeslotCollection(*slots))
+        super().__init__(command, TimeslotCollection(*slots))
 
         self._qubits = qubits
         self._mem_slots = mem_slots

@@ -53,9 +53,9 @@ class FrameChange(PulseCommand):
 class FrameChangeInstruction(Instruction):
     """Instruction to change frame of an `OutputChannel`. """
 
-    def __init__(self, command: FrameChange, channel: OutputChannel, start_time: int = 0):
-        slots = [Timeslot(Interval(start_time, start_time), channel)]
-        super().__init__(command, start_time, TimeslotCollection(*slots))
+    def __init__(self, command: FrameChange, channel: OutputChannel):
+        slots = [Timeslot(Interval(0, 0), channel)]
+        super().__init__(command, TimeslotCollection(*slots))
         self._channel = channel
 
     @property

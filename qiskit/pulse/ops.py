@@ -65,7 +65,7 @@ def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
         PulseError: when an invalid schedule is specified or failed to append
     """
     common_channels = set(parent.channels) & set(child.channels)
-    insertion_time = max(*[parent.stop_time(*common_channels)])
+    insertion_time = max(*[parent.ch_stop_time(*common_channels)])
     return insert(parent, insertion_time, child)
 
 
