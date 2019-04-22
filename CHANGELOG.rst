@@ -83,14 +83,15 @@ Added
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
-  are followed by a measurement instruction, moving the latter to the proper wire.
+  are followed by a measurement instruction, moving the latter to the proper wire. (#1890)
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
-  rotations about the Z axis, leveraging previously-found gate commutation relations.
+  rotations about the Z axis, leveraging previously-found gate commutation relations. (#2012)
 - Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
-  of gates (blocks) acting on 2 qubits.
+  of gates (blocks) acting on 2 qubits. (#2134)
 - Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
-  into equivalent Unitary operators in the circuit.
+  into equivalent Unitary operators in the circuit. (#2134)
 - Added support for parameterized circuits. (#2103)
+- Added preset PassManagers that offer predetermined pipelines of transpiler passes. (#2163)
 
 Changed
 -------
@@ -153,6 +154,8 @@ Changed
   ``qiskit.visualization``. The public API (which was declared stable in
   the 0.7 release) is still accessible off of ``qiskit.tools.visualization``.
   (#1878)
+- Layout object can now only be constructed from a dictionary, and must be bijective (#2157).
+- ``transpile()`` accepts ``initial_layout`` in the form of dict, list or Layout (#2157).
 
 Deprecated
 ----------
