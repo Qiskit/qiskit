@@ -9,9 +9,8 @@
 import warnings
 import logging
 
+from qiskit.compiler.transpiler import transpile
 from qiskit.compiler.assembler import assemble_circuits
-from qiskit.compiler.run_config import RunConfig
-from qiskit import transpiler
 
 logger = logging.getLogger(__name__)
 
@@ -50,24 +49,21 @@ def compile(circuits, backend,
                   'and qiskit.assemble_circuits() to produce qobj.',
                   DeprecationWarning)
 
-    run_config = RunConfig()
+    new_circuits = transpile(circuits=circuits,
+                             basis_gates=basis_gates,
+                             coupling_map=coupling_map,
+                             initial_layout=initial_layout,
+                             seed_transpiler=seed_mapper,
+                             backend=backend,
+                             pass_manager=pass_manager)
 
-    if config:
-        warnings.warn('config is not used anymore. Set all configs in '
-                      'run_config.', DeprecationWarning)
-    if shots:
-        run_config.shots = shots
-    if max_credits:
-        run_config.max_credits = max_credits
-    if seed:
-        run_config.seed = seed
-    if memory:
-        run_config.memory = memory
-
-    new_circuits = transpiler.transpile(circuits, backend, basis_gates, coupling_map,
-                                        initial_layout, seed_mapper, pass_manager)
-
-    qobj = assemble_circuits(new_circuits, qobj_header=None, run_config=run_config,
-                             qobj_id=qobj_id)
+    qobj = assemble_circuits(circuits=new_circuits,
+                             qobj_header=None,
+                             shots=shots,
+                             max_credits=max_credits,
+                             seed_simulator=seed,
+                             memory=memory,
+                             qobj_id=qobj_id,
+                             config=config)  # deprecated
 
     return qobj

@@ -108,7 +108,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
                                                 CouplingMap(coupling_map),
                                                 initial_layout,
                                                 skip_numeric_passes,
-                                                seed_mapper=seed_mapper)
+                                                seed_transpiler=seed_mapper)
         else:
             pass_manager = default_pass_manager_simulator(basis_gates)
 

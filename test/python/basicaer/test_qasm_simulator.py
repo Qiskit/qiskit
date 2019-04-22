@@ -122,7 +122,6 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             '1': data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
         }
         self.log.info('test_teleport: circuit:')
-        self.log.info('test_teleport: circuit:')
         self.log.info(circuit.qasm())
         self.log.info('test_teleport: data %s', data)
         self.log.info('test_teleport: alice %s', alice)

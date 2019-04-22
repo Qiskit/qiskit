@@ -65,7 +65,7 @@ class TestAssembler(QiskitTestCase):
         run_config = RunConfig(shots=100, memory=False, seed=6)
         qobj = assemble_circuits([circ0, circ1], run_config=run_config)
         self.assertIsInstance(qobj, QasmQobj)
-        self.assertEqual(qobj.config.seed, 6)
+        self.assertEqual(qobj.config.seed_simulator, 6)
         self.assertEqual(len(qobj.experiments), 2)
         self.assertEqual(qobj.experiments[1].config.n_qubits, 3)
         self.assertEqual(len(qobj.experiments), 2)

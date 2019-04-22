@@ -12,7 +12,7 @@ from qiskit.qobj import QobjHeader
 from qiskit.compiler import assemble_circuits
 
 
-def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
+def circuits_to_qobj(circuits, qobj_header=None,
                      qobj_id=None, backend_name=None,
                      config=None, shots=None, max_credits=None,
                      basis_gates=None,
@@ -22,8 +22,6 @@ def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
     Args:
         circuits (list[QuantumCircuits] or QuantumCircuit): circuits to compile
         qobj_header (QobjHeader): header to pass to the results
-        run_config (RunConfig): RunConfig object
-
         qobj_id (int): TODO: delete after qiskit-terra 0.8
         backend_name (str): TODO: delete after qiskit-terra 0.8
         config (dict): TODO: delete after qiskit-terra 0.8
@@ -44,30 +42,19 @@ def circuits_to_qobj(circuits, qobj_header=None, run_config=None,
     qobj_header = qobj_header or QobjHeader()
 
     if backend_name:
-        warnings.warn('backend_name is not required anymore', DeprecationWarning)
         qobj_header.backend_name = backend_name
-    if config:
-        warnings.warn('config is not used anymore. Set all configs in '
-                      'run_config.', DeprecationWarning)
-    if shots:
-        warnings.warn('shots is not used anymore. Set it via run_config.', DeprecationWarning)
-        run_config.shots = shots
     if basis_gates:
         warnings.warn('basis_gates was unused and will be removed.', DeprecationWarning)
     if coupling_map:
         warnings.warn('coupling_map was unused and will be removed.', DeprecationWarning)
-    if seed:
-        warnings.warn('seed is not used anymore. Set it via run_config', DeprecationWarning)
-        run_config.seed = seed
-    if memory:
-        warnings.warn('memory is not used anymore. Set it via run_config', DeprecationWarning)
-        run_config.memory = memory
-    if max_credits:
-        warnings.warn('max_credits is not used anymore. Set it via run_config', DeprecationWarning)
-        run_config.max_credits = max_credits
-    if qobj_id:
-        warnings.warn('qobj_id is not used anymore', DeprecationWarning)
 
-    qobj = assemble_circuits(circuits, qobj_header, run_config)
+    qobj = assemble_circuits(circuits=circuits,
+                             qobj_id=qobj_id,
+                             qobj_header=qobj_header,
+                             shots=shots,
+                             memory=memory,
+                             max_credits=max_credits,
+                             seed_simulator=seed,
+                             config=config)
 
     return qobj

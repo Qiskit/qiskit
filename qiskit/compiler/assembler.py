@@ -13,7 +13,6 @@ import uuid
 import logging
 import sympy
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, LoConfig
 from qiskit.pulse.commands import DriveInstruction
@@ -27,26 +26,58 @@ from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
 logger = logging.getLogger(__name__)
 
 
-def assemble_circuits(circuits, qobj_header=None,
+def assemble_circuits(circuits, qobj_id=None, qobj_header=None,
                       shots=None, memory=None, max_credits=None,
                       seed_simulator=None, run_config=None,
-                      qobj_id=None, seed=None):
+                      config=None, seed=None):  # deprecated
     """Assembles a list of circuits into a qobj which can be run on the backend.
 
+    This function serializes the circuits to create Qobj "experiments", and
+    annotates the experiment payload with header and configurations.
+
     Args:
-        circuits (list[QuantumCircuits] or QuantumCircuit): circuits to assemble
-        run_config (RunConfig): RunConfig object
-        qobj_header (QobjHeader or dict): header to pass to the results
-        qobj_id (int): identifier for the generated qobj
+        circuits (list[QuantumCircuits] or QuantumCircuit):
+            circuit(s) to assemble
+
+        qobj_id (str):
+            String identifier to annotate the Qobj
+
+        qobj_header (QobjHeader or dict):
+            User input that will be inserted in Qobj header, and will also be
+            copied to the corresponding Result header. Headers do not affect the run.
+
+        shots (int):
+            number of repetitions of each circuit, for sampling. Default: 2014
+
+        memory (bool):
+            if True, per-shot measurement bitstrings are returned as well
+            (provided the backend supports it). Default: False
+
+        max_credits (int):
+            maximum credits to spend on job. Default: 10
+
+        seed_simulator (int):
+            random seed to control sampling, for when backend is a simulator
+
+        config (dict):
+            DEPRECATED in 0.8: use run_config instead
+
+        run_config (RunConfig):
+            Qobj runtime configuration, containing some or all of the above options.
+            If any other option is explicitly set (e.g. shots), it
+            will override the run_config's.
+
+        seed (int):
+            DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
 
     Returns:
         QasmQobj: the Qobj to be run on the backends
     """
     # deprecation matter
-    if qobj_id:
-        warnings.warn('qobj_id is deprecated in terra 0.8', DeprecationWarning)
-        qobj_header = qobj_header or QobjHeader()
-        qobj_header.qobj_id = qobj_id
+    if config:
+        warnings.warn('config is not used anymore. Set all configs in '
+                      'run_config.', DeprecationWarning)
+        run_config = run_config or config
     if seed:
         warnings.warn('seed is deprecated in favor of seed_simulator.', DeprecationWarning)
         seed_simulator = seed_simulator or seed
@@ -58,14 +89,20 @@ def assemble_circuits(circuits, qobj_header=None,
 
     # Get RunConfig(s) to configure each QASM experiment
     run_config = run_config or RunConfig()
-    shots = shots or getattr(run_config, 'shots', None) or 1024
-    memory = memory or getattr(run_config, 'memory', None) or False
-    max_credits = max_credits or getattr(run_config, 'max_credits', None) or 10
-    seed_simulator = seed_simulator or getattr(run_config, 'seed_simulator', None)
-    run_config = RunConfig(shots=shots,
+    shots = shots or getattr(run_config, 'shots', None)
+    memory = memory or getattr(run_config, 'memory', None)
+    max_credits = max_credits or getattr(run_config, 'max_credits', None)
+    seed_simulator = (seed_simulator or
+                      getattr(run_config, 'seed_simulator', None) or
+                      getattr(run_config, 'seed', None))  # deprecated
+    # this ensures that None values are not set, otherwise
+    # validation fails when 'null' is not acceptable
+    run_config_dict = dict(shots=shots,
                            memory=memory,
                            max_credits=max_credits,
-                           seed_simulator=seed_simulator)
+                           seed_simulator=seed_simulator,
+                           seed=seed_simulator)  # deprecated
+    run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
     # Pack everything into the Qobj
     circuits = circuits if isinstance(circuits, list) else [circuits]
@@ -187,8 +224,10 @@ def assemble_circuits(circuits, qobj_header=None,
     userconfig.memory_slots = max_memory_slots
     userconfig.n_qubits = max_n_qubits
 
-    return QasmQobj(qobj_id=qobj_id or str(uuid.uuid4()), config=userconfig,
-                    experiments=experiments, header=qobj_header)
+    return QasmQobj(qobj_id=qobj_id or str(uuid.uuid4()),
+                    config=userconfig,
+                    experiments=experiments,
+                    header=qobj_header)
 
 
 def assemble_schedules(schedules, default_qubit_los, default_meas_los,

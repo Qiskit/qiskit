@@ -138,12 +138,14 @@ class PassManager():
         Returns:
             QuantumCircuit: Transformed circuit.
         """
+        name = circuit.name
         dag = circuit_to_dag(circuit)
         del circuit
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
         circuit = dag_to_circuit(dag)
+        circuit.name = name
         return circuit
 
     def _do_pass(self, pass_, dag, options):

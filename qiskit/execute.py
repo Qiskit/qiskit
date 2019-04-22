@@ -22,7 +22,6 @@ import logging
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.pulse import Schedule
-from qiskit.compiler import transpile, assemble_circuits
 from qiskit.compiler import assemble_circuits, assemble_schedules, transpile
 from qiskit.qobj import QobjHeader
 from qiskit.validation.exceptions import ModelValidationError
@@ -35,9 +34,9 @@ def execute_circuits(circuits, backend,
                      basis_gates=None, coupling_map=None,  # transpile options
                      backend_properties=None, initial_layout=None,
                      seed_transpiler=None, optimization_level=None, transpile_config=None,
-                     qobj_header=None, shots=1024, memory=False,  # run options
-                     max_credits=10, seed_simulator=None, run_config=None,
-                     seed=None, seed_mapper=None, qobj_id=None,  # deprecated
+                     qobj_id=None, qobj_header=None, shots=1024,  # run options
+                     memory=False, max_credits=10, seed_simulator=None, run_config=None,
+                     seed=None, seed_mapper=None,  # deprecated
                      config=None, pass_manager=None,
                      **kwargs):
     """Executes a list of circuits on a backend.
@@ -129,6 +128,9 @@ def execute_circuits(circuits, backend,
             If any other option is explicitly set (e.g. coupling_map), it
             will override the transpile_config's.
 
+        qobj_id (str):
+            String identifier to annotate the Qobj
+
         qobj_header (QobjHeader or dict):
             User input that will be inserted in Qobj header, and will also be
             copied to the corresponding Result header. Headers do not affect the run.
@@ -145,11 +147,11 @@ def execute_circuits(circuits, backend,
 
         seed_simulator (int):
             random seed to control sampling, for when backend is a simulator
-            
+
         run_config (RunConfig):
             Qobj runtime configuration, containing some or all of the above options.
             If any other option is explicitly set (e.g. shots), it
-            will override the run_config's.            
+            will override the run_config's.
 
         seed (int):
             DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
@@ -157,11 +159,8 @@ def execute_circuits(circuits, backend,
         seed_mapper (int):
             DEPRECATED in 0.8: use ``seed_transpiler`` kwarg instead
 
-        qobj_id (int):
-            DEPRECATED in 0.8: use qobj_header instead
-
         config (dict):
-            DEPRECATED in 0.8: use **kwargs instead
+            DEPRECATED in 0.8: use run_config instead
 
         pass_manager (PassManager):
             DEPRECATED in 0.8: use pass_manager.run() to transpile the circuit,
@@ -197,14 +196,15 @@ def execute_circuits(circuits, backend,
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble_circuits(new_circuits,
+                             qobj_id=qobj_id,
                              qobj_header=qobj_header,
                              shots=shots,
                              memory=memory,
                              max_credits=max_credits,
                              seed_simulator=seed_simulator,
                              run_config=run_config,
-                             qobj_id=qobj_id,  # deprecated
-                             seed=seed,  # deprecated
+                             config=config,  # deprecated
+                             seed=seed  # deprecated
                              )
 
     # executing the circuits on the backend and returning the job
@@ -293,10 +293,10 @@ def execute(circuits, backend,
             basis_gates=None, coupling_map=None,  # transpile options
             backend_properties=None, initial_layout=None,
             seed_transpiler=None, optimization_level=None, transpile_config=None,
-            qobj_header=None, shots=1024, memory=False,  # run options
-            max_credits=10, seed_simulator=None, run_config=None,
-            seed=None, seed_mapper=None, qobj_id=None,  # deprecated
-            config=None,  pass_manager=None,
+            qobj_id=None, qobj_header=None, shots=1024,  # run options
+            memory=False, max_credits=10, seed_simulator=None, run_config=None,
+            seed=None, seed_mapper=None,  # deprecated
+            config=None, pass_manager=None,
             **kwargs):
     """Execute a list of circuits or pulse schedules on a backend.
 
@@ -306,29 +306,135 @@ def execute(circuits, backend,
     The execution is asynchronous, and a handle to a job instance is returned.
 
     Args:
-        circuits (QuantumCircuit or list[QuantumCircuit])
-        backend (BaseBackend)
-        basis_gates (list[str])
-        coupling_map (CouplingMap or list)
-        backend_properties (BackendProperties)
-        initial_layout (Layout or dict or list)
-        seed_transpiler (int)
-        optimization_level (int)
-        transpile_config (TranspileConfig)
-        qobj_header (QobjHeader or dict)
-        shots (int)
-        memory (bool)
-        max_credits (int)
-        seed_simulator (int)
-        run_config (RunConfig)
-        seed (int): DEPRECATED
-        seed_mapper (int): DEPRECATED
-        qobj_id (int): DEPRECATED
-        config (dict): DEPRECATED
-        pass_manager (PassManager): DEPRECATED
+        circuits (QuantumCircuit or list[QuantumCircuit]):
+            Circuit(s) to execute
+
+        backend (BaseBackend):
+            Backend to execute circuits on.
+            Transpiler options are automatically grabbed from
+            backend.configuration() and backend.properties().
+            If any other option is explicitly set (e.g. coupling_map), it
+            will override the backend's.
+            If any other options is set in the transpile_config, it will
+            also override the backend's.
+
+        basis_gates (list[str]):
+            List of basis gate names to unroll to.
+            e.g:
+                ['u1', 'u2', 'u3', 'cx']
+            If None, do not unroll.
+
+        coupling_map (CouplingMap or list):
+            Coupling map (perhaps custom) to target in mapping.
+            Multiple formats are supported:
+            a. CouplingMap instance
+
+            b. list
+                Must be given as an adjacency matrix, where each entry
+                specifies all two-qubit interactions supported by backend
+                e.g:
+                    [[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]
+
+        backend_properties (BackendProperties):
+            properties returned by a backend, including information on gate
+            errors, readout errors, qubit coherence times, etc. For a backend
+            that provides this information, it can be obtained with:
+            ``backend.properties()``
+
+        initial_layout (Layout or dict or list):
+            Initial position of virtual qubits on physical qubits.
+            If this layout makes the circuit compatible with the coupling_map
+            constraints, it will be used.
+            The final layout is not guaranteed to be the same, as the transpiler
+            may permute qubits through swaps or other means.
+
+            Multiple formats are supported:
+            a. Layout instance
+
+            b. dict
+                virtual to physical:
+                    {qr[0]: 0,
+                     qr[1]: 3,
+                     qr[2]: 5}
+
+                physical to virtual:
+                    {0: qr[0],
+                     3: qr[1],
+                     5: qr[2]}
+
+            c. list
+                virtual to physical:
+                    [0, 3, 5]  # virtual qubits are ordered (in addition to named)
+
+                physical to virtual:
+                    [qr[0], None, None, qr[1], None, qr[2]]
+
+        seed_transpiler (int):
+            sets random seed for the stochastic parts of the transpiler
+
+        optimization_level (int):
+            How much optimization to perform on the circuits.
+            Higher levels generate more optimized circuits,
+            at the expense of longer transpilation time.
+                0: no optimization
+                1: light optimization
+                2: heavy optimization
+
+        transpile_config (TranspileConfig):
+            Transpiler configuration, containing some or all of the above options.
+            If any other option is explicitly set (e.g. coupling_map), it
+            will override the transpile_config's.
+
+        qobj_id (str):
+            String identifier to annotate the Qobj
+
+        qobj_header (QobjHeader):
+            User input that will be inserted in Qobj header, and will also be
+            copied to the corresponding Result header. Headers do not affect the run.
+
+        shots (int):
+            number of repetitions of each circuit, for sampling. Default: 2014
+
+        memory (bool):
+            if True, per-shot measurement bitstrings are returned as well
+            (provided the backend supports it). Default: False
+
+        max_credits (int):
+            maximum credits to spend on job. Default: 10
+
+        seed_simulator (int):
+            random seed to control sampling, for when backend is a simulator
+
+        run_config (RunConfig):
+            Qobj runtime configuration, containing some or all of the above options.
+            If any other option is explicitly set (e.g. shots), it
+            will override the run_config's.
+
+        seed (int):
+            DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
+
+        seed_mapper (int):
+            DEPRECATED in 0.8: use ``seed_transpiler`` kwarg instead
+
+        config (dict):
+            DEPRECATED in 0.8: use run_config instead
+
+        pass_manager (PassManager):
+            DEPRECATED in 0.8: use pass_manager.run() to transpile the circuit,
+            then assemble and run it.
+
+        kwargs: extra arguments used by Aer for running configurable backends.
+                Refer to the backend documentation for details on these arguments
+
+    Returns:
+        BaseJob: returns job instance derived from BaseJob
+
+    Raises:
+        QiskitError: if the execution cannot be interpreted as either circuits or pulses
     """
-    if isinstance(circuits, QuantumCircuit) or \
-       (isinstance(circuits, list) and all(isinstance(c, QuantumCircuit) for c in circuits)):
+    if (isinstance(circuits, QuantumCircuit) or
+            (isinstance(circuits, list) and
+             all(isinstance(c, QuantumCircuit) for c in circuits))):
         return execute_circuits(circuits=circuits,
                                 backend=backend,
                                 basis_gates=basis_gates,  # transpile options
@@ -338,7 +444,8 @@ def execute(circuits, backend,
                                 seed_transpiler=seed_transpiler,
                                 optimization_level=optimization_level,
                                 transpile_config=transpile_config,
-                                qobj_header=qobj_header,  # run options
+                                qobj_id=qobj_id,  # run options
+                                qobj_header=qobj_header,
                                 shots=shots,
                                 memory=memory,
                                 max_credits=max_credits,
@@ -346,14 +453,14 @@ def execute(circuits, backend,
                                 run_config=run_config,
                                 seed=seed,  # deprecated
                                 seed_mapper=seed_mapper,
-                                qobj_id=qobj_id,
                                 config=config,
                                 pass_manager=pass_manager,
                                 **kwargs)
 
-    elif isinstance(circuits, Schedule) or \
-       (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
-        return execute_schedules(circuits)
+    elif (isinstance(circuits, Schedule) or
+          (isinstance(circuits, list) and
+           all(isinstance(c, Schedule) for c in circuits))):
+        return execute_schedules()
 
     else:
         raise QiskitError("bad input to execute function; must be either circuits or schedules")

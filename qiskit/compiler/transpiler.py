@@ -8,11 +8,8 @@
 """Circuit transpile function"""
 import warnings
 
-from qiskit.circuit import QuantumCircuit
-from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.mapper import Layout, CouplingMap
 from qiskit.tools.parallel import parallel_map
-from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
                                                    default_pass_manager)
 from qiskit.compiler.transpile_config import TranspileConfig
@@ -222,7 +219,7 @@ def _parse_transpile_args(circuits,
     optimization_level = _parse_optimization_level(optimization_level,
                                                    transpile_config, num_circuits)
 
-    is_parametric_circuit=[bool(circuit.variables) for circuit in circuits]
+    is_parametric_circuit = [bool(circuit.variables) for circuit in circuits]
 
     transpile_configs = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
@@ -304,26 +301,26 @@ def _parse_initial_layout(initial_layout, transpile_config, circuits):
     initial_layout = initial_layout or getattr(transpile_config, 'initial_layout', None)
     # multiple layouts?
     if isinstance(initial_layout, list) and \
-       not any(isinstance(i, (int, dict)) for i in initial_layout):
+       any(isinstance(i, (list, dict)) for i in initial_layout):
         initial_layout = [_layout_from_raw(lo, circ) if isinstance(lo, (list, dict)) else lo
                           for lo, circ in zip(initial_layout, circuits)]
     else:
-        # even if one layout, but multiple circuits, the layout need to be adapted for each
+        # even if one layout, but multiple circuits, the layout needs to be adapted for each
         initial_layout = [_layout_from_raw(initial_layout, circ) for circ in circuits]
     if not isinstance(initial_layout, list):
-        initial_layout = [initial_layout] * num_circuits
+        initial_layout = [initial_layout] * len(circuits)
     return initial_layout
 
 
 def _parse_seed_transpiler(seed_transpiler, transpile_config, num_circuits):
     seed_transpiler = seed_transpiler or getattr(transpile_config, 'seed_transpiler', None)
     if not isinstance(seed_transpiler, list):
-        seed_transpiler = [seed_transpiler, num_circuits]
+        seed_transpiler = [seed_transpiler] * num_circuits
     return seed_transpiler
 
 
 def _parse_optimization_level(optimization_level, transpile_config, num_circuits):
     optimization_level = optimization_level or getattr(transpile_config, 'seed_transpiler', None)
     if not isinstance(optimization_level, list):
-        optimization_level = [optimization_level, num_circuits]
+        optimization_level = [optimization_level] * num_circuits
     return optimization_level
