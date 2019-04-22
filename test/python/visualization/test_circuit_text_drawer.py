@@ -538,13 +538,14 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         if(c0==1) x q[0];
         if(c1==1) x q[0];
         """
-        expected = '\n'.join(["        ┌─────┐┌─────┐",
-                              "q_0: |0>┤  X  ├┤  X  ├",
-                              "        ├──┴──┤└──┬──┘",
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
                               "c0_0: 0 ╡ = 1 ╞═══╪═══",
                               "        └─────┘┌──┴──┐",
                               "c1_0: 0 ═══════╡ = 1 ╞",
                               "               └─────┘"])
+
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -559,9 +560,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         if(c0==2) x q[0];
         if(c1==2) x q[0];
         """
-        expected = '\n'.join(["        ┌─────┐┌─────┐",
-                              "q_0: |0>┤  X  ├┤  X  ├",
-                              "        ├──┴──┤└──┬──┘",
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
                               "c0_0: 0 ╡     ╞═══╪═══",
                               "        │ = 2 │   │   ",
                               "c0_1: 0 ╡     ╞═══╪═══",
@@ -570,6 +571,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "               │ = 2 │",
                               "c1_1: 0 ═══════╡     ╞",
                               "               └─────┘"])
+        expected = '\n'.join([""])
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -849,6 +851,24 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.x(qr1[0])
         circuit.measure(qr1[1], cr1[1])
         self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
+
+    def test_text_box_length(self):
+        """The length of boxes is indepedent of other boxes in the layer
+        https://github.com/Qiskit/qiskit-terra/issues/1882"""
+        expected = '\n'.join(["             ┌───┐    ┌───┐",
+                              "q1_0: |0>────┤ H ├────┤ H ├",
+                              "             └───┘    └───┘",
+                              "q1_1: |0>──────────────────",
+                              "         ┌───────────┐     ",
+                              "q1_2: |0>┤ U1(1e-07) ├─────",
+                              "         └───────────┘     "])
+
+        qr = QuantumRegister(3, 'q1')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.u1(0.0000001, qr[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
 class TestTextDrawerMultiQGates(QiskitTestCase):

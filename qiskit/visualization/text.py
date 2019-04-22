@@ -26,9 +26,10 @@ class DrawElement():
         self.top_format = self.mid_format = self.bot_format = "%s"
         self.top_connect = self.bot_connect = " "
         self.top_pad = self._mid_padding = self.bot_pad = " "
+        self.mid_bck = self.top_bck = self.bot_bck = " "
         self.bot_connector = {}
         self.top_connector = {}
-        self.right_fill = self.left_fill = 0
+        self.right_fill = self.left_fill = self.layer_width = 0
         self.wire_label = ""
 
     @property
@@ -40,7 +41,7 @@ class DrawElement():
             ret = ret.ljust(self.right_fill, self.top_pad)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self.top_pad)
-
+        ret = ret.center(self.layer_width, self.top_bck)
         return ret
 
     @property
@@ -52,6 +53,7 @@ class DrawElement():
             ret = ret.ljust(self.right_fill, self._mid_padding)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self._mid_padding)
+        ret = ret.center(self.layer_width, self.mid_bck)
         return ret
 
     @property
@@ -63,19 +65,13 @@ class DrawElement():
             ret = ret.ljust(self.right_fill, self.bot_pad)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self.bot_pad)
-
+        ret = ret.center(self.layer_width, self.bot_bck)
         return ret
 
     @property
     def length(self):
         """ Returns the length of the element, including the box around."""
         return max(len(self.top), len(self.mid), len(self.bot))
-
-    @length.setter
-    def length(self, value):
-        """ Adjusts width so the length fits."""
-        self.width = value - max(
-            [len(getattr(self, i) % '') for i in ["bot_format", "mid_format", "top_format"]])
 
     @property
     def width(self):
@@ -137,7 +133,7 @@ class BoxOnQuWire(DrawElement):
         self.top_format = "┌─%s─┐"
         self.mid_format = "┤ %s ├"
         self.bot_format = "└─%s─┘"
-        self.top_pad = self.bot_pad = '─'
+        self.top_pad = self.bot_pad = self.mid_bck = '─'
         self.top_connect = top_connect
         self.bot_connect = bot_connect
         self.mid_content = label
@@ -157,7 +153,7 @@ class MeasureTo(DrawElement):
         self.top_connect = " ║ "
         self.mid_content = "═╩═"
         self.bot_connect = "   "
-        self._mid_padding = "═"
+        self.mid_bck = "═"
 
 
 class MeasureFrom(BoxOnQuWire):
@@ -346,6 +342,7 @@ class Bullet(DirectOnQuWire):
         super().__init__('■')
         self.top_connect = top_connect
         self.bot_connect = bot_connect
+        self.mid_bck = '─'
 
 
 class EmptyWire(DrawElement):
@@ -353,7 +350,7 @@ class EmptyWire(DrawElement):
 
     def __init__(self, wire):
         super().__init__(wire)
-        self._mid_padding = wire
+        self._mid_padding = self.mid_bck = wire
 
     @staticmethod
     def fillup_layer(layer, first_clbit):
@@ -663,6 +660,8 @@ class TextDrawing():
                 ret += "┤"
             elif botc in "┐┌":
                 ret += "┬"
+            elif topc in "┘└" and botc in "─" and icod == 'top':
+                ret += "┴"
             else:
                 ret += botc
         return ret
@@ -677,7 +676,7 @@ class TextDrawing():
         instructions = [instruction for instruction in filter(lambda x: x is not None, layer)]
         longest = max([instruction.length for instruction in instructions])
         for instruction in instructions:
-            instruction.length = longest
+            instruction.layer_width = longest
 
     def _instruction_to_gate(self, instruction, layer):
         """ Convert an instruction into its corresponding Gate object, and establish
