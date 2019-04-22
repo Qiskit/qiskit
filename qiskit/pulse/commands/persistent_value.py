@@ -9,7 +9,7 @@
 Persistent value.
 """
 
-from qiskit.pulse.channels import OutputChannel
+from qiskit.pulse.device import OutputChannel
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction

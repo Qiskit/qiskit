@@ -9,7 +9,7 @@
 Frame change pulse.
 """
 
-from qiskit.pulse.channels import OutputChannel
+from qiskit.pulse.device import OutputChannel
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from .instruction import Instruction
 from .pulse_command import Command

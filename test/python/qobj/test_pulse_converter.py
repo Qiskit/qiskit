@@ -15,8 +15,8 @@ from qiskit.test import QiskitTestCase
 from qiskit.qobj import PulseQobjInstruction, PulseQobjExperimentConfig
 from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire
-from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
-                                   MeasureChannel, RegisterSlot, MemorySlot)
+from qiskit.pulse.device import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
+                                 MeasureChannel, RegisterSlot, MemorySlot)
 from qiskit.pulse import LoConfig
 
 
