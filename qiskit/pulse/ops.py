@@ -72,7 +72,7 @@ def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
 def flatten_generator(node: ScheduleComponent, time: int = 0):
     if isinstance(node, Schedule):
         for child in node.children:
-            yield from flatten_generator(child, time + node.t0)
+            yield from flatten_generator(child, time + node.start_time)
     elif isinstance(node, Instruction):
         yield node.shift(time)
     else:

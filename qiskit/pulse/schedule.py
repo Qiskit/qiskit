@@ -11,7 +11,7 @@ Schedule.
 import itertools
 import logging
 from operator import attrgetter
-from typing import Union, List, Tuple
+from typing import List, Tuple
 
 from qiskit.pulse import ops
 from qiskit.pulse.channels import Channel
@@ -31,12 +31,9 @@ class Schedule(ScheduleComponent):
         """Create empty schedule.
 
         Args:
-            schedules: Child Schedules of this parent Schedule.
-                       Each element is either a ScheduleComponent, or a tuple pair of the form
-                       (schedule, t0), where t0 (int) is the starting time of the
-                       schedule (`ScheduleComponent`).
-            shift: Shift schedule timing by amount.
-            name: Name of this schedule.
+            schedules: Child Schedules of this parent Schedule
+            shift: Time to shift schedule children by
+            name: Name of this schedule
 
         Raises:
             PulseError: If timeslots intercept.
