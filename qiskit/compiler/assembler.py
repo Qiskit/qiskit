@@ -270,7 +270,7 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
         # instructions
         qobj_instructions = []
         # Instructions are returned as tuple of shifted time and instruction
-        for shift, instruction in list(schedule.flat_instruction_sequence()):
+        for shift, instruction in list(schedule.flatten()):
             # TODO: support conditional gate
             qobj_instructions.append(instruction_converter(shift, instruction))
             if isinstance(instruction, DriveInstruction):

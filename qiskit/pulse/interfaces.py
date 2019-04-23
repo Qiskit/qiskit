@@ -77,6 +77,15 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def union(self, *schedules: List['ScheduleComponent']) -> 'ScheduleComponent':
+        """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
+
+        Args:
+            schedules: Schedules to be take the union with the parent `Schedule`.
+        """
+        pass
+
+    @abstractmethod
     def shift(self: 'ScheduleComponent', time: int) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
 
