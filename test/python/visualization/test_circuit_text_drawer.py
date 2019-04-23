@@ -9,9 +9,12 @@
 
 """ `_text_circuit_drawer` "draws" a circuit in "ascii art" """
 
-import unittest
-from math import pi
 from codecs import encode
+from math import pi
+import unittest
+
+import sympy
+
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import \
@@ -941,6 +944,37 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circuit.append(my_gate2, [qr[0], qr[3]])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
+
+
+class TestTextDrawerParams(QiskitTestCase):
+    """Test drawing parameters."""
+    def test_text_symbols_mix(self):
+        """ cu3 drawing with symbols"""
+        expected = '\n'.join(["                                   ",
+                              "q_0: |0>─────────────■─────────────",
+                              "        ┌────────────┴────────────┐",
+                              "q_1: |0>┤ U3(1.5708,theta,3.1416) ├",
+                              "        └─────────────────────────┘"])
+
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cu3(pi / 2, sympy.Symbol('theta'), pi, qr[0], qr[1])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_sympy_constant(self):
+        """ cu3 drawing with symbols"""
+        expected = '\n'.join(["                              ",
+                              "q_0: |0>──────────■───────────",
+                              "        ┌─────────┴──────────┐",
+                              "q_1: |0>┤ U3(1.5708,pi/2,pi) ├",
+                              "        └────────────────────┘"])
+
+        qr = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cu3(pi / 2, sympy.pi / 2, sympy.pi, qr[0], qr[1])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
 if __name__ == '__main__':
