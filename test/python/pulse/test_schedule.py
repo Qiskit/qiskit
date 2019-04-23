@@ -283,5 +283,6 @@ class TestSchedule(QiskitTestCase):
         sched_snapshot = snapshot | sched1
         self.assertEqual(sched_snapshot.name, 'snapshot_label')
 
+
 if __name__ == '__main__':
     unittest.main()
