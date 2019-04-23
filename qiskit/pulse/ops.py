@@ -16,21 +16,26 @@ from .schedule import Schedule
 
 logger = logging.getLogger(__name__)
 
+# pylint: disable=missing-return-doc,missing-type-doc
 
-def union(*schedules: List[ScheduleComponent], shift: int = 0, name: str = None) -> Schedule:
+
+def union(*schedules: List[ScheduleComponent],
+          shift_time: int = 0, name: str = None) -> Schedule:
     """Create a union (and also shift if desired) of all input `Schedule`s.
 
     Args:
         *schedules: Schedules to take the union of
-        shift: Time to shift by
+        shift_time: Time to shift by
         name: Name of the new schedule. Defaults to first element of `schedules`
     """
     if name is None and schedules:
         name = schedules[0].name
-    return Schedule(*schedules, shift=shift, name=name)
+    return Schedule(*schedules, shift_time=shift_time, name=name)
+
+# pylint: enable=missing-type-doc
 
 
-def shift(schedule: ScheduleComponent, time: int, name=None) -> Schedule:
+def shift(schedule: ScheduleComponent, time: int, name: str = None) -> Schedule:
     """Return schedule shifted by `time`.
 
     Args:
@@ -40,7 +45,7 @@ def shift(schedule: ScheduleComponent, time: int, name=None) -> Schedule:
     """
     if name is None:
         name = schedule.name
-    return Schedule(schedule, shift=time, name=name)
+    return Schedule(schedule, shift_time=time, name=name)
 
 
 def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent,
@@ -56,8 +61,9 @@ def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent,
     return union(parent, shift(child, start_time), name=name)
 
 
-def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
-    """Return a new schedule with by appending `child` to `parent` at
+def append(parent: ScheduleComponent, child: ScheduleComponent,
+           name: str = None) -> Schedule:
+    r"""Return a new schedule with by appending `child` to `parent` at
        the last time of the `parent` schedule's channels
        over the intersection of the parent and child schedule's channels.
 
@@ -70,4 +76,4 @@ def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
     """
     common_channels = set(parent.channels) & set(child.channels)
     insertion_time = parent.ch_stop_time(*common_channels)
-    return insert(parent, insertion_time, child)
+    return insert(parent, insertion_time, child, name=name)

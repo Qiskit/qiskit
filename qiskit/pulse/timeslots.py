@@ -18,6 +18,8 @@ from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
+# pylint: disable=missing-return-doc
+
 
 class Interval:
     """Time interval."""
@@ -114,20 +116,14 @@ class Timeslot:
 
         Args:
             time: time to be shifted
-
-        Returns:
-            A new Timeslot object shifted by `time`.
         """
         return Timeslot(self.interval.shift(time), self.channel)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """Two time-slots are the same if they have the same interval and channel.
 
         Args:
             other (Timeslot): other Timeslot
-
-        Returns:
-            bool: are self and other equal.
         """
         if self.interval == other.interval and self.channel == other.channel:
             return True
@@ -141,7 +137,7 @@ class TimeslotCollection:
         """Create a new time-slot collection.
 
         Args:
-            timeslots: list of time slots
+            *timeslots: list of time slots
         Raises:
             PulseError: when overlapped time slots are specified
         """
@@ -161,49 +157,30 @@ class TimeslotCollection:
         return self._timeslots
 
     @property
-    def channels(self):
-        """Channels within the timeslot collection.
-
-        Returns:
-            tuple
-        """
+    def channels(self) -> Tuple[Timeslot]:
+        """Channels within the timeslot collection."""
         return tuple(self._table.keys())
 
     @property
     def start_time(self) -> int:
-        """Return earliest start time in this collection.
-
-        Returns:
-            The earliest start time in this collection.
-        """
+        """Return earliest start time in this collection."""
         return self.ch_start_time(*self.channels)
 
     @property
     def stop_time(self) -> int:
-        """Return maximum time of timeslots over all channels.
-
-        Returns:
-            The latest stop time in this collection.
-        """
+        """Return maximum time of timeslots over all channels."""
         return self.ch_stop_time(*self.channels)
 
     @property
     def duration(self) -> int:
-        """Return maximum duration of timeslots over all channels.
-
-        Returns:
-            The duration over all chanels.
-        """
+        """Return maximum duration of timeslots over all channels."""
         return self.stop_time
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return earliest start time in this collection.
 
         Args:
-            channels: Channels over which to obtain start_time.
-
-        Returns:
-            The earliest start time over all channels.
+            *channels: Channels over which to obtain start_time.
         """
         intervals = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
@@ -215,11 +192,7 @@ class TimeslotCollection:
         """Return maximum time of timeslots over all channels.
 
         Args:
-            default(int, optional): default value used when this collection is empty
-            channel (Channel): Optional channel
-
-        Returns:
-            The latest stop time over all channels.
+            *channels: Channels over which to obtain stop time.
         """
         intervals = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
@@ -231,9 +204,7 @@ class TimeslotCollection:
         """Return maximum duration of timeslots over all channels.
 
         Args:
-            channels: Channels over which to obtain start_time.
-        Returns:
-            The maximum duration over all channels.
+            *channels: Channels over which to obtain the duration.
         """
         return self.ch_stop_time(*channels)
 
@@ -242,9 +213,6 @@ class TimeslotCollection:
 
         Args:
             timeslots: TimeslotCollection to be checked
-
-        Returns:
-            True if self is mergeable with `timeslots`, otherwise False.
         """
         for slot in timeslots.timeslots:
             for interval in self._table[slot.channel]:
@@ -257,9 +225,6 @@ class TimeslotCollection:
 
         Args:
             timeslots: TimeslotCollection to be merged
-
-        Returns:
-            A new TimeslotCollection object merged with a specified `timeslots`.
         """
         slots = [Timeslot(slot.interval, slot.channel) for slot in self.timeslots]
         slots.extend([Timeslot(slot.interval, slot.channel) for slot in timeslots.timeslots])
@@ -274,14 +239,11 @@ class TimeslotCollection:
         slots = [Timeslot(slot.interval.shift(time), slot.channel) for slot in self.timeslots]
         return TimeslotCollection(*slots)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """Two time-slot collections are the same if they have the same time-slots.
 
         Args:
             other (TimeslotCollection): other TimeslotCollection
-
-        Returns:
-            bool: are self and other equal.
         """
         if self.timeslots == other.timeslots:
             return True

@@ -50,17 +50,17 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def ch_duration(self, *channels) -> int:
+    def ch_duration(self, *channels: List[Channel]) -> int:
         """Duration of the `channels` in schedule component. """
         pass
 
     @abstractmethod
-    def ch_start_time(self) -> int:
+    def ch_start_time(self, *channels: List[Channel]) -> int:
         """Starting time of the `channels` in schedule component. """
         pass
 
     @abstractmethod
-    def ch_stop_time(self) -> int:
+    def ch_stop_time(self, *channels: List[Channel]) -> int:
         """Stopping of the `channels` in schedule component. """
         pass
 
@@ -118,7 +118,6 @@ class ScheduleComponent(metaclass=ABCMeta):
         """Iterable for flattening Schedule tree.
 
         Args:
-            node: Root of Schedule tree to traverse
             time: Initial time of this node
         """
         pass

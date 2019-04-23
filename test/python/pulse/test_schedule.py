@@ -185,7 +185,7 @@ class TestSchedule(QiskitTestCase):
 
         # empty schedule with empty schedule
         empty = Schedule().append(Schedule())
-        for t0, instr in empty.flatten():
+        for _, instr in empty.flatten():
             self.assertIsInstance(instr, Instruction)
 
         # normal schedule
@@ -196,7 +196,7 @@ class TestSchedule(QiskitTestCase):
         sched = Schedule()
         sched = sched.append(lp0(device.q[0].drive))   # child
         sched = sched.append(subsched)
-        for t0, instr in sched.flatten():
+        for _, instr in sched.flatten():
             self.assertIsInstance(instr, Instruction)
 
     def test_absolute_start_time_of_grandchild(self):
@@ -258,9 +258,9 @@ class TestSchedule(QiskitTestCase):
         device = self.two_qubit_device
 
         acquire = Acquire(10)
-        gp = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
-        pv = PersistentValue(0.1)
-        fc = FrameChange(0.1)
+        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
+        pv0 = PersistentValue(0.1)
+        fc0 = FrameChange(0.1)
         snapshot = Snapshot('snapshot_label', 'state')
 
         sched1 = Schedule(name='test_name')
@@ -271,13 +271,13 @@ class TestSchedule(QiskitTestCase):
         sched_acq = acquire(device.q[1], device.mem[1], name='acq_name') | sched1
         self.assertEqual(sched_acq.name, 'acq_name')
 
-        sched_pulse = gp(device.q[0].drive) | sched1
+        sched_pulse = gp0(device.q[0].drive) | sched1
         self.assertEqual(sched_pulse.name, 'pulse_name')
 
-        sched_pv = pv(device.q[0].drive, name='pv_name') | sched1
+        sched_pv = pv0(device.q[0].drive, name='pv_name') | sched1
         self.assertEqual(sched_pv.name, 'pv_name')
 
-        sched_fc = fc(device.q[0].drive, name='fc_name') | sched1
+        sched_fc = fc0(device.q[0].drive, name='fc_name') | sched1
         self.assertEqual(sched_fc.name, 'fc_name')
 
         sched_snapshot = snapshot | sched1

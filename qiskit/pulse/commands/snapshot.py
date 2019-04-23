@@ -26,7 +26,6 @@ class Snapshot(PulseCommand, Instruction):
             snap_type (str): Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
                 The types of snapshots offered are defined in a separate specification
                 document for simulators.
-            start_time (int, optional): Begin time of snapshot. Defaults to 0.
         """
         self._label = label
         self._type = snap_type
@@ -69,4 +68,4 @@ class Snapshot(PulseCommand, Instruction):
 
     def __repr__(self):
         return '%s(%s, %s) -> %s' % (self.__class__.__name__, self._label,
-                                          self._type, self._channel)
+                                     self._type, self._channel)

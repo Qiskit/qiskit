@@ -60,6 +60,7 @@ def square(duration: int, amp: complex, period: float = None,
         amp: Pulse amplitude. Wave range is [-amp, amp].
         period: Pulse period, units of dt. If `None` defaults to single cycle.
         phase: Pulse phase.
+        name: Name of pulse.
     """
     if period is None:
         period = duration
@@ -123,6 +124,7 @@ def cos(duration: int, amp: complex, freq: float = None,
         amp: Pulse amplitude.
         freq: Pulse frequency, units of 1/dt. If `None` defaults to single cycle.
         phase: Pulse phase.
+        name: Name of pulse.
     """
     if freq is None:
         freq = 1/duration
@@ -186,6 +188,7 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float, name: str = None) 
         duration: Duration of pulse. Must be greater than zero.
         amp: Pulse amplitude at `center`.
         sigma: Width (standard deviation) of pulse.
+        name: Name of pulse.
     """
     center = duration/2
     return _sampled_gaussian_deriv_pulse(duration, amp, center, sigma, name=name)

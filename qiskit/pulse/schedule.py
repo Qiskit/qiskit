@@ -10,7 +10,6 @@ Schedule.
 """
 import itertools
 import logging
-from operator import attrgetter
 from typing import List, Tuple, Iterable
 
 from qiskit.pulse import ops
@@ -21,30 +20,32 @@ from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
+# pylint: disable=missing-return-doc
+
 
 class Schedule(ScheduleComponent):
     """Schedule of `ScheduleComponent`s. The composite node of a schedule tree."""
-
+    # pylint: disable=missing-type-doc
     def __init__(self, *schedules: List[ScheduleComponent],
-                 shift: int = 0, name: str = None):
+                 shift_time: int = 0, name: str = None):
         """Create empty schedule.
 
         Args:
-            schedules: Child Schedules of this parent Schedule
-            shift: Time to shift schedule children by
+            *schedules: Child Schedules of this parent Schedule
+            shift_time: Time to shift schedule children by
             name: Name of this schedule
 
         Raises:
             PulseError: If timeslots intercept.
         """
         self._name = name
-        self._shift = shift
+        self._shift_time = shift_time
         try:
             timeslots = []
             for sched in schedules:
                 sched_timeslots = sched.timeslots
-                if shift:
-                    sched_timeslots = sched_timeslots.shift(shift)
+                if shift_time:
+                    sched_timeslots = sched_timeslots.shift(shift_time)
                 timeslots.append(sched_timeslots.timeslots)
 
             self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
@@ -52,6 +53,8 @@ class Schedule(ScheduleComponent):
 
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+
+    # pylint: enable=missing-type-doc
 
     @property
     def name(self) -> str:
@@ -74,37 +77,27 @@ class Schedule(ScheduleComponent):
         return self.timeslots.stop_time
 
     @property
-    def channels(self):
-        """Returns channels that this schedule uses.
-
-        Returns:
-            Tuple
-        """
+    def channels(self) -> Tuple[Channel]:
+        """Returns channels that this schedule uses."""
         return self.timeslots.channels
 
     @property
-    def children(self) -> Tuple[ScheduleComponent, ...]:
+    def children(self) -> Tuple[ScheduleComponent]:
         return self._children
 
     def ch_duration(self, *channels: List[Channel]) -> int:
-        """Return start time on this schedule or channel.
+        """Return duration of supplied channels.
 
         Args:
-            channels: Supplied channels
-
-        Returns:
-            The latest stop time in this collection.
+            *channels: Supplied channels
         """
-        return self.timeslots.ch_start_time(*channels)
+        return self.timeslots.ch_duration(*channels)
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
         """Return minimum start time for supplied channels.
 
         Args:
-            channels: Supplied channels
-
-        Returns:
-            The latest stop time in this collection.
+            *channels: Supplied channels
         """
         return self.timeslots.ch_start_time(*channels)
 
@@ -112,10 +105,7 @@ class Schedule(ScheduleComponent):
         """Return maximum start time for supplied channels.
 
         Args:
-            channels: Supplied channels
-
-        Returns:
-            The latest stop time in this collection.
+            *channels: Supplied channels
         """
         return self.timeslots.ch_stop_time(*channels)
 
@@ -123,7 +113,7 @@ class Schedule(ScheduleComponent):
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
-            schedules: Schedules to be take the union with the parent `Schedule`.
+            *schedules: Schedules to be take the union with the parent `Schedule`.
         """
         return ops.union(self, *schedules)
 
@@ -157,11 +147,14 @@ class Schedule(ScheduleComponent):
         """Iterable for flattening Schedule tree.
 
         Args:
-            node: Root of Schedule tree to traverse
             time: Shifted time due to parent
+
+        Yields:
+            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
+                at and the flattened `ScheduleComponent`.
         """
         for child in self.children:
-            yield from child.flatten(time + self._shift)
+            yield from child.flatten(time + self._shift_time)
 
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
