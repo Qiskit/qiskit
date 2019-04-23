@@ -17,35 +17,43 @@ from .schedule import Schedule
 logger = logging.getLogger(__name__)
 
 
-def union(*schedules: List[ScheduleComponent], name: str = None) -> Schedule:
-    """Create a union of all input `Schedule`s.
+def union(*schedules: List[ScheduleComponent], shift: int = 0, name: str = None) -> Schedule:
+    """Create a union (and also shift if desired) of all input `Schedule`s.
 
     Args:
-        *schedules: Schedules to take the union of.
-        name (str, optional): Name of this schedule. Defaults to None.
+        *schedules: Schedules to take the union of
+        shift: Time to shift by
+        name: Name of the new schedule. Defaults to first element of `schedules`
     """
-    return Schedule(*schedules, name=name)
+    if name is None and schedules:
+        name = schedules[0].name
+    return Schedule(*schedules, shift=shift, name=name)
 
 
-def shift(schedule: ScheduleComponent, time: int) -> Schedule:
+def shift(schedule: ScheduleComponent, time: int, name=None) -> Schedule:
     """Return schedule shifted by `time`.
 
     Args:
-        schedule (ScheduleComponent): Schedule to shift
-        time (int): Time to shift by
+        schedule: The schedule to shift
+        time: The time to shift by
+        name: Name of shifted schedule. Defaults to name of `schedule`
     """
-    return Schedule(schedule, shift=time)
+    if name is None:
+        name = schedule.name
+    return Schedule(schedule, shift=time, name=name)
 
 
-def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent) -> Schedule:
+def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent,
+           name: str = None) -> Schedule:
     """Return a new schedule with the `child` schedule inserted into the `parent` at `start_time`.
 
     Args:
-        parent: Schedule to be inserted into.
-        start_time (int): time to be inserted defined with respect to `parent`.
-        schedule (ScheduleComponent): schedule to be inserted
+        parent: Schedule to be inserted into
+        start_time: Time to be inserted defined with respect to `parent`
+        child: Schedule to insert
+        name: Name of the new schedule. Defaults to name of parent
     """
-    return union(parent, shift(child, start_time))
+    return union(parent, shift(child, start_time), name=name)
 
 
 def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
@@ -56,7 +64,9 @@ def append(parent: ScheduleComponent, child: ScheduleComponent) -> Schedule:
        $t = \textrm{max}({x.stop\_time |x \in parent.channels \cap child.channels})$
 
     Args:
-        schedule (ScheduleComponent): schedule to be appended
+        parent: The schedule to be inserted into
+        child: The schedule to insert
+        name: Name of the new schedule. Defaults to name of parent
     """
     common_channels = set(parent.channels) & set(child.channels)
     insertion_time = parent.ch_stop_time(*common_channels)

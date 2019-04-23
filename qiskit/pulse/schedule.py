@@ -55,11 +55,6 @@ class Schedule(ScheduleComponent):
 
     @property
     def name(self) -> str:
-        """Name of this schedule.
-
-        Returns:
-            str
-        """
         return self._name
 
     @property

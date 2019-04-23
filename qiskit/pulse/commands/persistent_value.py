@@ -58,16 +58,16 @@ class PersistentValue(PulseCommand):
     def __repr__(self):
         return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
 
-    def __call__(self, channel: OutputChannel) -> 'PersistentValueInstruction':
-        return PersistentValueInstruction(self, channel)
+    def __call__(self, channel: OutputChannel, name=None) -> 'PersistentValueInstruction':
+        return PersistentValueInstruction(self, channel, name=name)
 
 
 class PersistentValueInstruction(Instruction):
     """Instruction to keep persistent value. """
 
-    def __init__(self, command: PersistentValue, channel: OutputChannel):
+    def __init__(self, command: PersistentValue, channel: OutputChannel, name=None):
         slots = [Timeslot(Interval(0, 0), channel)]
-        super().__init__(command, TimeslotCollection(*slots))
+        super().__init__(command, TimeslotCollection(*slots), name=name)
 
     @property
     def channel(self) -> OutputChannel:

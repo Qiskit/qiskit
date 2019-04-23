@@ -21,6 +21,12 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
+    def name(self) -> str:
+        """Name of ScheduleComponent."""
+        pass
+
+    @property
+    @abstractmethod
     def channels(self) -> List[Channel]:
         """Return channels used by schedule."""
         pass

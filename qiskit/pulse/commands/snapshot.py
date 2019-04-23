@@ -33,7 +33,8 @@ class Snapshot(PulseCommand, Instruction):
         self._channel = SnapshotChannel()
         PulseCommand.__init__(self, duration=0)
         Instruction.__init__(self, self,
-                             TimeslotCollection(Timeslot(Interval(0, 0), self._channel)))
+                             TimeslotCollection(Timeslot(Interval(0, 0), self._channel)),
+                             name=self.label)
 
     @property
     def label(self) -> str:

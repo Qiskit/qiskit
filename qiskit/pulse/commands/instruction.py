@@ -23,9 +23,15 @@ logger = logging.getLogger(__name__)
 class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
-    def __init__(self, command: PulseCommand, timeslots: TimeslotCollection):
+    def __init__(self, command: PulseCommand, timeslots: TimeslotCollection, name: str = None):
+        self._name = name
         self._command = command
         self._timeslots = timeslots
+
+    @property
+    def name(self) -> str:
+        """Name of this instruction."""
+        return self._name
 
     @property
     def command(self) -> PulseCommand:

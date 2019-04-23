@@ -87,8 +87,9 @@ class Acquire(PulseCommand):
     def __call__(self,
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None) -> 'AcquireInstruction':
-        return AcquireInstruction(self, qubits, mem_slots, reg_slots)
+                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
+                 name=None) -> 'AcquireInstruction':
+        return AcquireInstruction(self, qubits, mem_slots, reg_slots, name=name)
 
 
 class AcquireInstruction(Instruction):
@@ -98,7 +99,8 @@ class AcquireInstruction(Instruction):
                  command: Acquire,
                  qubits: Union[Qubit, List[Qubit]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None):
+                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
+                 name=None):
 
         if isinstance(qubits, Qubit):
             qubits = [qubits]
@@ -122,7 +124,7 @@ class AcquireInstruction(Instruction):
         slots = [Timeslot(Interval(0, stop_time), q.acquire) for q in qubits]
         slots.extend([Timeslot(Interval(0, stop_time), mem) for mem in mem_slots])
 
-        super().__init__(command, TimeslotCollection(*slots))
+        super().__init__(command, TimeslotCollection(*slots), name=name)
 
         self._qubits = qubits
         self._mem_slots = mem_slots

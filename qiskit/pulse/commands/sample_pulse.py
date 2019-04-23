@@ -80,16 +80,18 @@ class SamplePulse(PulseCommand):
     def __repr__(self):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
 
-    def __call__(self, channel: OutputChannel) -> 'DriveInstruction':
-        return DriveInstruction(self, channel)
+    def __call__(self, channel: OutputChannel, name=None) -> 'DriveInstruction':
+        if name is None:
+            name = self.name
+        return DriveInstruction(self, channel, name=name)
 
 
 class DriveInstruction(Instruction):
     """Instruction to drive a pulse to an `OutputChannel`. """
 
-    def __init__(self, command: SamplePulse, channel: OutputChannel):
+    def __init__(self, command: SamplePulse, channel: OutputChannel, name=None):
         slots = [Timeslot(Interval(0, command.duration), channel)]
-        super().__init__(command, TimeslotCollection(*slots))
+        super().__init__(command, TimeslotCollection(*slots), name=name)
 
     @property
     def channel(self) -> OutputChannel:

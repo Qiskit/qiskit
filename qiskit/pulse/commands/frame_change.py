@@ -51,16 +51,16 @@ class FrameChange(PulseCommand):
     def __repr__(self):
         return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)
 
-    def __call__(self, channel: OutputChannel) -> 'FrameChangeInstruction':
-        return FrameChangeInstruction(self, channel)
+    def __call__(self, channel: OutputChannel, name=None) -> 'FrameChangeInstruction':
+        return FrameChangeInstruction(self, channel, name=name)
 
 
 class FrameChangeInstruction(Instruction):
     """Instruction to change frame of an `OutputChannel`. """
 
-    def __init__(self, command: FrameChange, channel: OutputChannel):
+    def __init__(self, command: FrameChange, channel: OutputChannel, name=None):
         slots = [Timeslot(Interval(0, 0), channel)]
-        super().__init__(command, TimeslotCollection(*slots))
+        super().__init__(command, TimeslotCollection(*slots), name=name)
 
     @property
     def channel(self) -> OutputChannel:

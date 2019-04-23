@@ -253,6 +253,35 @@ class TestSchedule(QiskitTestCase):
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.flatten())))
 
+    def test_name_inherited(self):
+        """Test that schedule keeps name if an instruction is added."""
+        device = self.two_qubit_device
+
+        acquire = Acquire(10)
+        gp = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
+        pv = PersistentValue(0.1)
+        fc = FrameChange(0.1)
+        snapshot = Snapshot('snapshot_label', 'state')
+
+        sched1 = Schedule(name='test_name')
+        sched2 = Schedule(name=None)
+        sched3 = sched1 | sched2
+        self.assertEqual(sched3.name, 'test_name')
+
+        sched_acq = acquire(device.q[1], device.mem[1], name='acq_name') | sched1
+        self.assertEqual(sched_acq.name, 'acq_name')
+
+        sched_pulse = gp(device.q[0].drive) | sched1
+        self.assertEqual(sched_pulse.name, 'pulse_name')
+
+        sched_pv = pv(device.q[0].drive, name='pv_name') | sched1
+        self.assertEqual(sched_pv.name, 'pv_name')
+
+        sched_fc = fc(device.q[0].drive, name='fc_name') | sched1
+        self.assertEqual(sched_fc.name, 'fc_name')
+
+        sched_snapshot = snapshot | sched1
+        self.assertEqual(sched_snapshot.name, 'snapshot_label')
 
 if __name__ == '__main__':
     unittest.main()
