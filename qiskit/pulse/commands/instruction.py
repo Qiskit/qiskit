@@ -105,17 +105,6 @@ class Instruction(ScheduleComponent):
         """
         return self.timeslots.ch_stop_time(*channels)
 
-    def union(self, *schedules: List[ScheduleComponent]):
-        """Return a new schedule which is the union of `self` and `schedule`.
-
-        Args:
-            schedules: Schedules to be take the union with the parent `Schedule`.
-
-        Returns:
-            Schedule
-        """
-        return ops.union(self, *schedules)
-
     def shift(self: ScheduleComponent, time: int):
         """Return a new schedule shifted forward by `time`.
 
@@ -174,7 +163,7 @@ class Instruction(ScheduleComponent):
         Returns:
             Schedule
         """
-        return self.union(schedule)
+        return ops.union(self, schedule)
 
     def __lshift__(self, time: int):
         """Return a new schedule which is shifted forward by `time`.
