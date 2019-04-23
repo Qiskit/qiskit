@@ -99,7 +99,7 @@ class PulseInstruction(Instruction):
 
     @property
     def channel(self) -> PulseChannel:
-        """The channel to be instructed. """
+        """Instruction's channel. """
         return self._channel
 
     def __repr__(self):
