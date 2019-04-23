@@ -5,6 +5,8 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=missing-return-doc,cyclic-import
+
 """
 Schedule.
 """
@@ -19,8 +21,6 @@ from .timeslots import TimeslotCollection
 from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
-
-# pylint: disable=missing-return-doc
 
 
 class Schedule(ScheduleComponent):
