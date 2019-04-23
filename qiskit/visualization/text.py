@@ -105,9 +105,9 @@ class DrawElement():
 
 class BoxOnClWire(DrawElement):
     """ Draws a box on the classical wire
-        top: ┌───┐ ┌───────┐
-        mid: ╡ A ╞ ╡   A   ╞
-        bot: └───┘ └───────┘
+        top: ┌───┐   ┌───┐
+        mid: ╡ A ╞ ══╡ A ╞══
+        bot: └───┘   └───┘
     """
 
     def __init__(self, label="", top_connect='─', bot_connect='─'):
@@ -116,6 +116,7 @@ class BoxOnClWire(DrawElement):
         self.mid_format = "╡ %s ╞"
         self.bot_format = "└─%s─┘"
         self.top_pad = self.bot_pad = '─'
+        self.mid_bck = '═'
         self.top_connect = top_connect
         self.bot_connect = bot_connect
         self.mid_content = label
@@ -123,9 +124,9 @@ class BoxOnClWire(DrawElement):
 
 class BoxOnQuWire(DrawElement):
     """ Draws a box on the quantum wire
-        top: ┌───┐ ┌───────┐
-        mid: ┤ A ├ ┤   A   ├
-        bot: └───┘ └───────┘
+        top: ┌───┐   ┌───┐
+        mid: ┤ A ├ ──┤ A ├──
+        bot: └───┘   └───┘
     """
 
     def __init__(self, label="", top_connect='─', bot_connect='─'):
