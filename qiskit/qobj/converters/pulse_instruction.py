@@ -8,38 +8,56 @@
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
 import functools
-import inspect
 
 from qiskit.pulse import commands
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjMeasurementOption
 
 
-def bind_instruction(type_instruction):
-    """ Converter decorator method.
+class ConversionMethodBinder:
+    def __init__(self):
+        """Acts as method registration decorator and tracker for instruction conversion methods."""
+        self._bound_instructions = {}
 
-    Pulse instruction converter is defined for each instruction type,
-    and this decorator binds converter function to valid instruction type.
+    def __call__(self, type_instruction):
+        """ Converter decorator method.
 
-    Args:
-        type_instruction (Instruction): valid pulse instruction class to the converter.
-    """
-    # pylint: disable=missing-return-doc, missing-return-type-doc
+        Pulse instruction converter is defined for each instruction type,
+        and this decorator binds converter function to valid instruction type.
 
-    def _apply_converter(converter):
-        """Return decorated converter function."""
-        @functools.wraps(converter)
-        def _call_valid_converter(self, shift, instruction):
-            """Return a dictionary for to be used to construct a qobj
-            if the given instruction matches the
-            bound instruction type supplied to the function,
-            otherwise return None."""
-            if isinstance(instruction, type_instruction):
-                return converter(self, shift, instruction)
-            else:
-                return None
-        return _call_valid_converter
-    return _apply_converter
+        Args:
+            type_instruction (Instruction): valid pulse instruction class to the converter.
+
+        """
+        # pylint: disable=missing-return-doc, missing-return-type-doc
+
+        def _apply_converter(converter):
+            """Return decorated converter function."""
+
+            @functools.wraps(converter)
+            def _call_valid_converter(self, shift, instruction):
+                """Return a dictionary for to be used to construct a qobj
+                if the given instruction matches the
+                bound instruction type supplied to the function,
+                otherwise return None."""
+                if isinstance(instruction, type_instruction):
+                    return converter(self, shift, instruction)
+                else:
+                    raise PulseError('Supplied instruction {0} '
+                                     'is not of type {1}.'.format(instruction, type_instruction))
+
+            # Track conversion methods for class.
+            self._bound_instructions[type_instruction] = _call_valid_converter
+            return _call_valid_converter
+
+        return _apply_converter
+
+    def get_bound_method(self, instruction):
+        """Get conversion method for instruction."""
+        try:
+            return self._bound_instructions[type(instruction)]
+        except KeyError:
+                raise PulseError('Qobj conversion method for %s is not found.' % instruction)
 
 
 class PulseQobjConverter:
@@ -60,7 +78,7 @@ class PulseQobjConverter:
     class CustomConverter(PulseQobjConverter):
 
         @bind_instruction(CustomInstruction)
-        def _convert_custom_command(self, shift, instruction):
+        def convert_custom_command(self, shift, instruction):
             command_dict = {
                 'name': 'custom_command',
                 't0': shift+instruction.start_time,
@@ -73,10 +91,9 @@ class PulseQobjConverter:
                 })
             return self.qobj_model(**command_dict)
     ```
-
-    The name of converter method should start with `_convert_` otherwise it is ignored.
-    Provided fields are automatically serialized by given qobj model.
     """
+    # class level tracking of conversion methods
+    bind_instruction = ConversionMethodBinder()
 
     def __init__(self, qobj_model, **run_config):
         """Create new converter.
@@ -90,18 +107,11 @@ class PulseQobjConverter:
 
     def __call__(self, shift, instruction):
 
-        for name, method in inspect.getmembers(self, inspect.ismethod):
-            if name.startswith('_convert_'):
-                dict_qobj = method(shift, instruction)
-                if dict_qobj:
-                    break
-        else:
-            raise PulseError('Qobj conversion method for %s is not found.' % instruction.command)
-
-        return dict_qobj
+        method = self.bind_instruction.get_bound_method(instruction)
+        return method(self, shift, instruction)
 
     @bind_instruction(commands.AcquireInstruction)
-    def _convert_acquire(self, shift, instruction):
+    def convert_acquire(self, shift, instruction):
         """Return converted `AcquireInstruction`.
 
         Args:
@@ -146,7 +156,7 @@ class PulseQobjConverter:
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.FrameChangeInstruction)
-    def _convert_frame_change(self, shift, instruction):
+    def convert_frame_change(self, shift, instruction):
         """Return converted `FrameChangeInstruction`.
 
         Args:
@@ -164,7 +174,7 @@ class PulseQobjConverter:
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.PersistentValueInstruction)
-    def _convert_persistent_value(self, shift, instruction):
+    def convert_persistent_value(self, shift, instruction):
         """Return converted `PersistentValueInstruction`.
 
         Args:
@@ -182,7 +192,7 @@ class PulseQobjConverter:
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.DriveInstruction)
-    def _convert_drive(self, shift, instruction):
+    def convert_drive(self, shift, instruction):
         """Return converted `DriveInstruction`.
 
         Args:
@@ -199,7 +209,7 @@ class PulseQobjConverter:
         return self._qobj_model(**command_dict)
 
     @bind_instruction(commands.Snapshot)
-    def _convert_snapshot(self, shift, instruction):
+    def convert_snapshot(self, shift, instruction):
         """Return converted `Snapshot`.
 
         Args:
