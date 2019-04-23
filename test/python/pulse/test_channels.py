@@ -9,9 +9,9 @@
 
 import unittest
 
-from qiskit.pulse.device import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from qiskit.pulse.device import DeviceSpecification, Qubit
-from qiskit.pulse.device import DriveChannel, ControlChannel, MeasureChannel
+from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
+from qiskit.pulse.channels import DeviceSpecification, Qubit
+from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q

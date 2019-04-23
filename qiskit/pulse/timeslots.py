@@ -12,7 +12,7 @@ import logging
 from collections import defaultdict
 from typing import List, Optional
 
-from qiskit.pulse.device import Channel
+from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)

@@ -10,7 +10,7 @@ Acquire.
 """
 from typing import Union, List
 
-from qiskit.pulse.device import Qubit, MemorySlot, RegisterSlot
+from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction

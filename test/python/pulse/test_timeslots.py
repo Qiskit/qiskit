@@ -8,7 +8,7 @@
 """Test cases for the timeslots."""
 import unittest
 
-from qiskit.pulse.device import AcquireChannel
+from qiskit.pulse.channels import AcquireChannel
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.test import QiskitTestCase
 

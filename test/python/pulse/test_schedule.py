@@ -10,8 +10,8 @@ import unittest
 
 import numpy as np
 
-from qiskit.pulse.device import DeviceSpecification, Qubit, RegisterSlot, MemorySlot
-from qiskit.pulse.device import DriveChannel, AcquireChannel, ControlChannel
+from qiskit.pulse.channels import DeviceSpecification, Qubit, RegisterSlot, MemorySlot
+from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel
 from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot
 from qiskit.pulse.commands import functional_pulse, Instruction
 from qiskit.pulse.timeslots import TimeslotCollection

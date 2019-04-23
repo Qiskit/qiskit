@@ -10,7 +10,7 @@ Configurations for pulse experiments.
 """
 from typing import Dict
 
-from .device import PulseChannel, DriveChannel, MeasureChannel
+from .channels import PulseChannel, DriveChannel, MeasureChannel
 from .exceptions import PulseError
 
 

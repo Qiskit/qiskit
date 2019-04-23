@@ -8,7 +8,7 @@
 """Test cases for the experimental conditions for pulse."""
 import unittest
 
-from qiskit.pulse.device import DriveChannel, MeasureChannel, AcquireChannel
+from qiskit.pulse.channels import DriveChannel, MeasureChannel, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse import LoConfig
 from qiskit.test import QiskitTestCase
