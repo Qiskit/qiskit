@@ -521,3 +521,25 @@ class TestTranspile(QiskitTestCase):
         expected_qc.u1(theta, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
+
+    def test_non_standard_basis(self):
+        """Test a transpilation with a non-standard basis"""
+        qr1 = QuantumRegister(1, 'q1')
+        qr2 = QuantumRegister(2, 'q2')
+        qr3 = QuantumRegister(3, 'q3')
+        qc = QuantumCircuit(qr1, qr2, qr3)
+        qc.h(qr1[0])
+        qc.h(qr2[1])
+        qc.h(qr3[2])
+        layout = [4, 5, 6, 8, 9, 10]
+
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9],
+                [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                [13, 12]]
+
+        circuit = transpile(qc, backend=None, coupling_map=cmap,
+                            basis_gates=['h'], initial_layout=layout)
+
+        dag_circuit = circuit_to_dag(circuit)
+        resources_after = dag_circuit.count_ops()
+        self.assertEqual({'h': 3}, resources_after)
