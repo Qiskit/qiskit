@@ -143,7 +143,7 @@ class TestLoConverter(QiskitTestCase):
             qubit_lo_freq=[1.3]
         )
 
-        self.assertEqual(converter(0, user_lo_config), valid_qobj)
+        self.assertEqual(converter(user_lo_config), valid_qobj)
 
     def test_meas_los(self):
         """Test measurement channel configuration."""
@@ -155,4 +155,4 @@ class TestLoConverter(QiskitTestCase):
             meas_lo_freq=[3.5]
         )
 
-        self.assertEqual(converter(0, user_lo_config), valid_qobj)
+        self.assertEqual(converter(user_lo_config), valid_qobj)
