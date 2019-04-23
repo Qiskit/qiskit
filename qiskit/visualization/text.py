@@ -11,7 +11,6 @@ A module for drawing circuits in ascii art or some other text representation
 
 from shutil import get_terminal_size
 import sys
-import numpy
 import sympy
 
 from .exceptions import VisualizationError
