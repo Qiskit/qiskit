@@ -102,6 +102,7 @@ class TestSchedule(QiskitTestCase):
 
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
+
         sched = Schedule()
         sched = sched.append(gp0(device.q[0].drive))
         sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(device.q[0].control))
