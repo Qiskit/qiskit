@@ -711,6 +711,9 @@ class QuantumCircuit:
         new_circuit = self.copy()
         for variable in value_dict:
             new_circuit.variable_table[variable] = value_dict
+        # clear evaluated expressions
+        for variable in value_dict:
+            del new_circuit.variable_table[variable]
         return new_circuit
 
     @property
