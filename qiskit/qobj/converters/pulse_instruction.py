@@ -15,6 +15,7 @@ from qiskit.qobj import QobjMeasurementOption
 
 
 class ConversionMethodBinder:
+    """Instruction conversion method registrar."""
     def __init__(self):
         """Acts as method registration decorator and tracker for instruction conversion methods."""
         self._bound_instructions = {}
@@ -57,7 +58,7 @@ class ConversionMethodBinder:
         try:
             return self._bound_instructions[type(instruction)]
         except KeyError:
-                raise PulseError('Qobj conversion method for %s is not found.' % instruction)
+            raise PulseError('Qobj conversion method for %s is not found.' % instruction)
 
 
 class PulseQobjConverter:
