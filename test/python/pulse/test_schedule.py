@@ -169,15 +169,6 @@ class TestSchedule(QiskitTestCase):
         sched += gp0(device.q[0].drive)
         self.assertNotEqual(sched, sched2)
 
-        sched |= PersistentValue(value=0.2 + 0.4j)(device.q[0].control).shifted(0)
-        sched |= FrameChange(phase=-1.57)(device.q[0].drive).shifted(60)
-        sched |= gp1(device.q[1].drive).shifted(30)
-        sched |= gp0(device.q[0].control).shifted(60)
-        sched |= Snapshot("label", "snap_type").shifted(80)
-        sched |= fc_pi_2(device.q[0].drive).shifted(90)
-        sched |= acquire(device.q[1], device.mem[1], device.c[1]).shifted(90)
-        _ = Schedule() + sched + sched
-
     def test_empty_schedule(self):
         """Test empty schedule."""
         sched = Schedule()
