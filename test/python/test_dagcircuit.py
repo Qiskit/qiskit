@@ -109,8 +109,8 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(XGate(), [self.qubit1], [], condition=self.condition)
         self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [], condition=None)
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
-        self.assertEqual(len(self.dag.multi_graph.nodes), 16)
-        self.assertEqual(len(self.dag.multi_graph.edges), 17)
+        self.assertEqual(len(list(self.dag.nodes())), 16)
+        self.assertEqual(len(list(self.dag.edges())), 17)
 
     def test_apply_operation_front(self):
         """The apply_operation_front() method"""
@@ -364,7 +364,7 @@ class TestDagLayers(QiskitTestCase):
 
         name_layers = [
             [node.op.name
-             for node in layer["graph"].multi_graph.nodes()
+             for node in layer["graph"].nodes()
              if node.type == "op"] for layer in layers]
 
         self.assertEqual([
