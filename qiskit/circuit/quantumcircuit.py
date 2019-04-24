@@ -282,8 +282,6 @@ class QuantumCircuit:
                     self._variable_table[symbol] = [(instruction, param_index)]
                 for symbol in common_symbols:
                     self._variable_table[symbol].append((instruction, param_index))
-            elif isinstance(param, Parameter):
-                self._variable_table[param] = [(instruction, param_index)]
 
         return instruction
 
