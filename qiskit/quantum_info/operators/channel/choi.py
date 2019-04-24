@@ -96,12 +96,12 @@ class Choi(QuantumChannel):
         return Choi(
             data, input_dims=self.output_dims(), output_dims=self.input_dims())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -113,9 +113,10 @@ class Choi(QuantumChannel):
             QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if qubits is not None:
-            # TODO
-            raise QiskitError("NOT IMPLEMENTED: subsystem composition.")
+        if qargs is not None:
+            return Choi(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
+
         # Convert to Choi matrix
         if not isinstance(other, Choi):
             other = Choi(other)
@@ -249,12 +250,12 @@ class Choi(QuantumChannel):
             raise QiskitError("other is not a number")
         return Choi(other * self._data, self._input_dims, self._output_dims)
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -265,8 +266,8 @@ class Choi(QuantumChannel):
             specified QuantumState subsystem dimensions.
         """
         # If subsystem evolution we use the SuperOp representation
-        if qubits is not None:
-            return SuperOp(self)._evolve(state, qubits)
+        if qargs is not None:
+            return SuperOp(self)._evolve(state, qargs)
         # Otherwise we compute full evolution directly
         state = self._format_state(state, density_matrix=True)
         if state.shape[0] != self._input_dim:

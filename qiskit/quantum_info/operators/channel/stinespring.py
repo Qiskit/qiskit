@@ -102,8 +102,12 @@ class Stinespring(QuantumChannel):
         else:
             return self._data
 
-    def is_cptp(self):
+    def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving."""
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
         if self._data[1] is not None:
             return False
         check = np.dot(np.transpose(np.conj(self._data[0])), self._data[0])
@@ -134,12 +138,12 @@ class Stinespring(QuantumChannel):
             input_dims=self.output_dims(),
             output_dims=self.input_dims())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -151,9 +155,9 @@ class Stinespring(QuantumChannel):
             QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if qubits is not None:
-            # TODO
-            raise QiskitError("NOT IMPLEMENTED: subsystem composition.")
+        if qargs is not None:
+            return Stinespring(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
 
         # Convert other to Kraus
         if not isinstance(other, Kraus):
@@ -285,12 +289,12 @@ class Stinespring(QuantumChannel):
         return Stinespring((stine_l, stine_r), self.input_dims(),
                            self.output_dims())
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -301,8 +305,8 @@ class Stinespring(QuantumChannel):
             specified QuantumState subsystem dimensions.
         """
         # If subsystem evolution we use the SuperOp representation
-        if qubits is not None:
-            return SuperOp(self)._evolve(state, qubits)
+        if qargs is not None:
+            return SuperOp(self)._evolve(state, qargs)
 
         # Otherwise we compute full evolution directly
         state = self._format_state(state)

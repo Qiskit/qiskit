@@ -83,12 +83,12 @@ class SuperOp(QuantumChannel):
             input_dims=self.output_dims(),
             output_dims=self.input_dims())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -104,15 +104,15 @@ class SuperOp(QuantumChannel):
         if not isinstance(other, SuperOp):
             other = SuperOp(other)
         # Check dimensions are compatible
-        if front and self.input_dims(qubits=qubits) != other.output_dims():
+        if front and self.input_dims(qargs=qargs) != other.output_dims():
             raise QiskitError(
                 'output_dims of other must match subsystem input_dims')
-        if not front and self.output_dims(qubits=qubits) != other.input_dims():
+        if not front and self.output_dims(qargs=qargs) != other.input_dims():
             raise QiskitError(
                 'input_dims of other must match subsystem output_dims')
 
         # Full composition of superoperators
-        if qubits is None:
+        if qargs is None:
             if front:
                 # Composition A(B(input))
                 return SuperOp(
@@ -125,7 +125,7 @@ class SuperOp(QuantumChannel):
                 input_dims=self.input_dims(),
                 output_dims=other.output_dims())
         # Composition on subsystem
-        return self._compose_subsystem(other, qubits, front)
+        return self._compose_subsystem(other, qargs, front)
 
     def power(self, n):
         """Return the compose of a QuantumChannel with itself n times.
@@ -239,12 +239,12 @@ class SuperOp(QuantumChannel):
         return SuperOp(other * self._data, self.input_dims(),
                        self.output_dims())
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -255,7 +255,7 @@ class SuperOp(QuantumChannel):
             specified QuantumState subsystem dimensions.
         """
         state = self._format_state(state, density_matrix=True)
-        if qubits is None:
+        if qargs is None:
             if state.shape[0] != self._input_dim:
                 raise QiskitError(
                     "QuantumChannel input dimension is not equal to state dimension."
@@ -268,24 +268,24 @@ class SuperOp(QuantumChannel):
                 shape_out,
                 order='F')
         # Subsystem evolution
-        return self._evolve_subsystem(state, qubits)
+        return self._evolve_subsystem(state, qargs)
 
-    def _compose_subsystem(self, other, qubits, front=False):
+    def _compose_subsystem(self, other, qargs, front=False):
         """Return the composition channel."""
-        # Compute tensor contraction indices from qubits
+        # Compute tensor contraction indices from qargs
         input_dims = list(self.input_dims())
         output_dims = list(self.output_dims())
         if front:
             num_indices = len(self.input_dims())
             shift = 2 * len(self.output_dims())
             right_mul = True
-            for pos, qubit in enumerate(qubits):
+            for pos, qubit in enumerate(qargs):
                 input_dims[qubit] = other._input_dims[pos]
         else:
             num_indices = len(self.output_dims())
             shift = 0
             right_mul = False
-            for pos, qubit in enumerate(qubits):
+            for pos, qubit in enumerate(qargs):
                 output_dims[qubit] = other._output_dims[pos]
         # Reshape current matrix
         # Note that we must reverse the subsystem dimension order as
@@ -294,20 +294,20 @@ class SuperOp(QuantumChannel):
         tensor = np.reshape(self.data, self._shape)
         mat = np.reshape(other.data, other._shape)
         # Add first set of indicies
-        indices = [2 * num_indices - 1 - qubit for qubit in qubits
-                   ] + [num_indices - 1 - qubit for qubit in qubits]
+        indices = [2 * num_indices - 1 - qubit for qubit in qargs
+                   ] + [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims)**2, np.product(input_dims)**2]
         data = np.reshape(
             self._einsum_matmul(tensor, mat, indices, shift, right_mul),
             final_shape)
         return SuperOp(data, input_dims, output_dims)
 
-    def _evolve_subsystem(self, state, qubits):
+    def _evolve_subsystem(self, state, qargs):
         """Evolve a quantum state by the operator.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -322,15 +322,15 @@ class SuperOp(QuantumChannel):
         # is in place
         state_size = len(state)
         state_dims = self._automatic_dims(None, state_size)
-        if self.input_dims() != len(qubits) * (2, ):
+        if self.input_dims() != len(qargs) * (2, ):
             raise QiskitError(
                 "Channel input dimensions are not compatible with state subsystem dimensions."
             )
         # Return evolved density matrix
         tensor = np.reshape(state, 2 * state_dims)
         num_inidices = len(state_dims)
-        indices = [num_inidices - 1 - qubit for qubit in qubits
-                   ] + [2 * num_inidices - 1 - qubit for qubit in qubits]
+        indices = [num_inidices - 1 - qubit for qubit in qargs
+                   ] + [2 * num_inidices - 1 - qubit for qubit in qargs]
         tensor = self._einsum_matmul(tensor, mat, indices)
         return np.reshape(tensor, [state_size, state_size])
 

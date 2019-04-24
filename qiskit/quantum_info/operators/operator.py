@@ -63,9 +63,13 @@ class Operator(BaseOperator):
         input_dims = self._automatic_dims(input_dims, din)
         super().__init__('Operator', mat, input_dims, output_dims)
 
-    def is_unitary(self):
+    def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
-        return is_unitary_matrix(self._data, rtol=self._rtol, atol=self._atol)
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
+        return is_unitary_matrix(self._data, rtol=rtol, atol=atol)
 
     def to_operator(self):
         """Convert operator to matrix operator class"""
@@ -81,12 +85,12 @@ class Operator(BaseOperator):
         return Operator(
             np.transpose(self.data), self.input_dims(), self.output_dims())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (Operator): an operator object.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -102,14 +106,14 @@ class Operator(BaseOperator):
         if not isinstance(other, Operator):
             other = Operator(other)
         # Check dimensions are compatible
-        if front and self.input_dims(qubits=qubits) != other.output_dims():
+        if front and self.input_dims(qargs=qargs) != other.output_dims():
             raise QiskitError(
                 'output_dims of other must match subsystem input_dims')
-        if not front and self.output_dims(qubits=qubits) != other.input_dims():
+        if not front and self.output_dims(qargs=qargs) != other.input_dims():
             raise QiskitError(
                 'input_dims of other must match subsystem output_dims')
         # Full composition of operators
-        if qubits is None:
+        if qargs is None:
             if front:
                 # Composition A(B(input))
                 input_dims = other.input_dims()
@@ -122,7 +126,7 @@ class Operator(BaseOperator):
                 data = np.dot(other.data, self._data)
             return Operator(data, input_dims, output_dims)
         # Compose with other on subsystem
-        return self._compose_subsystem(other, qubits, front)
+        return self._compose_subsystem(other, qargs, front)
 
     def power(self, n):
         """Return the matrix power of the operator.
@@ -238,12 +242,12 @@ class Operator(BaseOperator):
         return tuple(reversed(self.output_dims())) + tuple(
             reversed(self.input_dims()))
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the operator.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -254,7 +258,7 @@ class Operator(BaseOperator):
             specified QuantumState subsystem dimensions.
         """
         state = self._format_state(state)
-        if qubits is None:
+        if qargs is None:
             if state.shape[0] != self._input_dim:
                 raise QiskitError(
                     "Operator input dimension is not equal to state dimension."
@@ -266,7 +270,7 @@ class Operator(BaseOperator):
             return np.dot(
                 np.dot(self.data, state), np.transpose(np.conj(self.data)))
         # Subsystem evolution
-        return self._evolve_subsystem(state, qubits)
+        return self._evolve_subsystem(state, qargs)
 
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product operator.
@@ -294,22 +298,22 @@ class Operator(BaseOperator):
             data = np.kron(self._data, other._data)
         return Operator(data, input_dims, output_dims)
 
-    def _compose_subsystem(self, other, qubits, front=False):
+    def _compose_subsystem(self, other, qargs, front=False):
         """Return the composition channel."""
-        # Compute tensor contraction indices from qubits
+        # Compute tensor contraction indices from qargs
         input_dims = list(self.input_dims())
         output_dims = list(self.output_dims())
         if front:
             num_indices = len(self.input_dims())
             shift = len(self.output_dims())
             right_mul = True
-            for pos, qubit in enumerate(qubits):
+            for pos, qubit in enumerate(qargs):
                 input_dims[qubit] = other._input_dims[pos]
         else:
             num_indices = len(self.output_dims())
             shift = 0
             right_mul = False
-            for pos, qubit in enumerate(qubits):
+            for pos, qubit in enumerate(qargs):
                 output_dims[qubit] = other._output_dims[pos]
         # Reshape current matrix
         # Note that we must reverse the subsystem dimension order as
@@ -317,19 +321,19 @@ class Operator(BaseOperator):
         # product, which is the last tensor wire index.
         tensor = np.reshape(self.data, self._shape)
         mat = np.reshape(other.data, other._shape)
-        indices = [num_indices - 1 - qubit for qubit in qubits]
+        indices = [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims), np.product(input_dims)]
         data = np.reshape(
             self._einsum_matmul(tensor, mat, indices, shift, right_mul),
             final_shape)
         return Operator(data, input_dims, output_dims)
 
-    def _evolve_subsystem(self, state, qubits):
+    def _evolve_subsystem(self, state, qargs):
         """Evolve a quantum state by the operator.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -344,19 +348,19 @@ class Operator(BaseOperator):
         # is in place
         state_size = len(state)
         state_dims = self._automatic_dims(None, state_size)
-        if self.input_dims() != len(qubits) * (2,):
+        if self.input_dims() != len(qargs) * (2,):
             raise QiskitError(
                 "Operator input dimensions are not compatible with state subsystem dimensions."
             )
         if state.ndim == 1:
             # Return evolved statevector
             tensor = np.reshape(state, state_dims)
-            indices = [len(state_dims) - 1 - qubit for qubit in qubits]
+            indices = [len(state_dims) - 1 - qubit for qubit in qargs]
             tensor = self._einsum_matmul(tensor, mat, indices)
             return np.reshape(tensor, state_size)
         # Return evolved density matrix
         tensor = np.reshape(state, 2 * state_dims)
-        indices = [len(state_dims) - 1 - qubit for qubit in qubits]
+        indices = [len(state_dims) - 1 - qubit for qubit in qargs]
         right_shift = len(state_dims)
         # Left multiply by operator
         tensor = self._einsum_matmul(tensor, mat, indices)

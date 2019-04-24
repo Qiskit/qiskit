@@ -18,22 +18,34 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
+from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
 
 
 class QuantumChannel(BaseOperator):
     """Quantum channel representation base class."""
 
-    def is_cptp(self):
-        """Return True if completely-positive trace-preserving."""
+    def is_cptp(self, atol=None, rtol=None):
+        """Return True if completely-positive trace-preserving (CPTP)."""
         choi = _to_choi(self.rep, self._data, *self.dim)
-        return self._is_cp(choi) and self._is_tp(choi)
+        return self._is_cp_helper(choi, atol, rtol) and self._is_tp_helper(
+            choi, atol, rtol)
 
-    def is_unitary(self):
+    def is_tp(self, atol=None, rtol=None):
+        """Test if a channel is completely-positive (CP)"""
+        choi = _to_choi(self.rep, self._data, *self.dim)
+        return self._is_tp_helper(choi, atol, rtol)
+
+    def is_cp(self, atol=None, rtol=None):
+        """Test if Choi-matrix is completely-positive (CP)"""
+        choi = _to_choi(self.rep, self._data, *self.dim)
+        return self._is_cp_helper(choi, atol, rtol)
+
+    def is_unitary(self, atol=None, rtol=None):
         """Return True if QuantumChannel is a unitary channel."""
         try:
             op = self.to_operator()
-            return op.is_unitary()
+            return op.is_unitary(atol=atol, rtol=rtol)
         except QiskitError:
             return False
 
@@ -42,22 +54,25 @@ class QuantumChannel(BaseOperator):
         mat = _to_operator(self.rep, self._data, *self.dim)
         return Operator(mat, self.input_dims(), self.output_dims())
 
-    def _is_cp(self, choi=None):
+    def _is_cp_helper(self, choi, atol, rtol):
         """Test if a channel is completely-positive (CP)"""
-        if choi is None:
-            choi = _to_choi(self.rep, self._data, *self.dim)
-        return is_positive_semidefinite_matrix(
-            choi, rtol=self._rtol, atol=self._atol)
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
+        return is_positive_semidefinite_matrix(choi, rtol=rtol, atol=atol)
 
-    def _is_tp(self, choi=None):
+    def _is_tp_helper(self, choi, atol, rtol):
         """Test if Choi-matrix is trace-preserving (TP)"""
-        if choi is None:
-            choi = _to_choi(self.rep, self._data, *self.dim)
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
         # Check if the partial trace is the identity matrix
         d_in, d_out = self.dim
         mat = np.trace(
             np.reshape(choi, (d_in, d_out, d_in, d_out)), axis1=1, axis2=3)
-        return is_identity_matrix(mat, rtol=self._rtol, atol=self._atol)
+        return is_identity_matrix(mat, rtol=rtol, atol=atol)
 
     def _format_state(self, state, density_matrix=False):
         """Format input state so it is statevector or density matrix"""

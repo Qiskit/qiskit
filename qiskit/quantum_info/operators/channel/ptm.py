@@ -70,8 +70,8 @@ class PTM(QuantumChannel):
             if output_dims is None:
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
-        nqubits = int(np.log2(input_dim))
-        if 2**nqubits != input_dim:
+        n_qubits = int(np.log2(input_dim))
+        if 2**n_qubits != input_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
@@ -98,12 +98,12 @@ class PTM(QuantumChannel):
         # conjugate channel
         return PTM(SuperOp(self).transpose())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -115,9 +115,9 @@ class PTM(QuantumChannel):
             QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if qubits is not None:
-            # TODO
-            raise QiskitError("NOT IMPLEMENTED: subsystem composition.")
+        if qargs is not None:
+            return PTM(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
 
         # Convert other to PTM
         if not isinstance(other, PTM):
@@ -240,18 +240,18 @@ class PTM(QuantumChannel):
             raise QiskitError("other is not a number")
         return PTM(other * self._data, self._input_dims, self._output_dims)
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
             DensityMatrix: the output quantum state as a density matrix.
         """
-        return SuperOp(self)._evolve(state, qubits)
+        return SuperOp(self)._evolve(state, qargs)
 
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
