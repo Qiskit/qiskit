@@ -136,8 +136,3 @@ class ScheduleComponent(metaclass=ABCMeta):
     def __lshift__(self, time: int) -> 'ScheduleComponent':
         """Return a new schedule which is shifted forward by `time`."""
         pass
-
-    @abstractmethod
-    def __rshift__(self, time: int) -> 'ScheduleComponent':
-        """Return a new schedule which is shifted backwards by `time`."""
-        pass

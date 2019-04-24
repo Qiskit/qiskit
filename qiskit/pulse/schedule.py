@@ -168,10 +168,6 @@ class Schedule(ScheduleComponent):
         """Return a new schedule which is shifted forward by `time`."""
         return self.shift(time)
 
-    def __rshift__(self, time: int) -> 'Schedule':
-        """Return a new schedule which is shifted backwards by `time`."""
-        return self.shift(-time)
-
     def __repr__(self):
         res = 'Schedule("name=%s", ' % self._name if self._name else 'Schedule('
         res += '%d, ' % self.start_time
