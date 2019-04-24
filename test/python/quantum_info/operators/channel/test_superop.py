@@ -38,6 +38,18 @@ class TestSuperOp(ChannelTestCase):
         self.assertRaises(
             QiskitError, SuperOp, mat, input_dims=[4], output_dims=[4])
 
+    def test_circuit_init(self):
+        """Test initialization from a circuit."""
+        circuit, target = self.simple_circuit_no_measure()
+        op = SuperOp(circuit)
+        target = SuperOp(target)
+        self.assertEqual(op, target)
+
+    def test_circuit_init_except(self):
+        """Test initialization from circuit with measure raises exception."""
+        circuit = self.simple_circuit_with_measure()
+        self.assertRaises(QiskitError, SuperOp, circuit)
+
     def test_equal(self):
         """Test __eq__ method"""
         mat = self.rand_matrix(4, 4)

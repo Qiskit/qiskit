@@ -25,6 +25,8 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.choi import Choi
@@ -39,7 +41,30 @@ class Chi(QuantumChannel):
     """
 
     def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a Chi quantum channel operator."""
+        """Initialize a quantum channel Chi-matrix operator.
+
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+
+        Raises:
+            QiskitError: if input data is not an N-qubit channel or
+            cannot be initialized as a Chi-matrix.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. The Chi matrix
+        representation is only valid for N-qubit channels.
+        """
+        # If the input is a raw list or matrix we assume that it is
+        # already a Chi matrix.
         if isinstance(data, (list, np.ndarray)):
             # Initialize from raw numpy or list matrix.
             chi_mat = np.array(data, dtype=complex)
@@ -62,9 +87,18 @@ class Chi(QuantumChannel):
             if input_dim * output_dim != dim_l:
                 raise QiskitError("Invalid shape for Chi-matrix input.")
         else:
-            # Initialize from Qiskit objects
-            data = self._init_transformer(data)
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
             input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a Chi object
             chi_mat = _to_chi(data.rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()

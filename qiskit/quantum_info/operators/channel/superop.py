@@ -24,6 +24,8 @@ References:
 from numbers import Number
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.transformations import _to_superop
@@ -34,7 +36,32 @@ class SuperOp(QuantumChannel):
     """Superoperator representation of a quantum channel"""
 
     def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a SuperOp quantum channel operator."""
+        """Initialize a quantum channel Superoperator operator.
+
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+
+        Raises:
+            QiskitError: if input data cannot be initialized as a
+            superoperator.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. If the input data is
+        a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
+        the input operator is not an N-qubit operator, it will assign a
+        single subsystem with dimension specifed by the shape of the input.
+        """
+        # If the input is a raw list or matrix we assume that it is
+        # already a superoperator.
         if isinstance(data, (list, np.ndarray)):
             # We initialize directly from superoperator matrix
             super_mat = np.array(data, dtype=complex)
@@ -45,8 +72,23 @@ class SuperOp(QuantumChannel):
             if output_dim**2 != dout or input_dim**2 != din:
                 raise QiskitError("Invalid shape for SuperOp matrix.")
         else:
-            # Initialize from Qiskit objects
-            data = self._init_transformer(data)
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # perform a simulation to construct the circuit superoperator.
+                # This will only work if the cirucit or instruction can be
+                # defined in terms of instructions which have no classical
+                # register components. The instructions can be gates, reset,
+                # or kraus instructions. Any conditional gates or measure
+                # will cause an exception to be raised.
+                data = self._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
+            # Now that the input is an operator we convert it to a
+            # SuperOp object
             input_dim, output_dim = data.dim
             super_mat = _to_superop(data.rep, data._data, input_dim,
                                     output_dim)
@@ -54,7 +96,8 @@ class SuperOp(QuantumChannel):
                 input_dims = data.input_dims()
             if output_dims is None:
                 output_dims = data.output_dims()
-        # Check and format input and output dimensions
+        # Finally we format and validate the channel input and
+        # output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
         super().__init__('SuperOp', super_mat, input_dims, output_dims)
@@ -368,3 +411,62 @@ class SuperOp(QuantumChannel):
                 shape1=self._bipartite_shape,
                 shape2=other._bipartite_shape)
         return SuperOp(data, input_dims, output_dims)
+
+    @classmethod
+    def _instruction_to_superop(cls, instruction):
+        """Convert a QuantumCircuit or Instruction to a SuperOp."""
+        # Convert circuit to an instruction
+        if isinstance(instruction, QuantumCircuit):
+            instruction = instruction.to_instruction()
+        # Initialize an identity superoperator of the correct size
+        # of the circuit
+        op = SuperOp(np.eye(4 ** instruction.num_qubits))
+        op._append_instruction(instruction)
+        return op
+
+    def _append_instruction(self, obj, qargs=None):
+        """Update the current Operator by apply an instruction."""
+        if isinstance(obj, Instruction):
+            chan = None
+            if obj.name == 'reset':
+                # For superoperator evolution we can simulate a reset as
+                # a non-unitary supeorperator matrix
+                chan = SuperOp(
+                    np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0],
+                              [0, 0, 0, 0]]))
+            if obj.name == 'kraus':
+                kraus = obj.params
+                dim = len(kraus[0])
+                chan = SuperOp(_to_superop('Kraus', (kraus, None), dim, dim))
+            elif hasattr(obj, 'to_matrix'):
+                # If instruction is a gate first we see if it has a
+                # `to_matrix` definition and if so use that.
+                try:
+                    kraus = [obj.to_matrix()]
+                    dim = len(kraus[0])
+                    chan = SuperOp(
+                        _to_superop('Kraus', (kraus, None), dim, dim))
+                except QiskitError:
+                    pass
+            if chan is not None:
+                # Perform the composition and inplace update the current state
+                # of the operator
+                op = self.compose(chan, qargs=qargs)
+                self._data = op.data
+            else:
+                # If the instruction doesn't have a matrix defined we use its
+                # circuit decomposition definition if it exists, otherwise we
+                # cannot compose this gate and raise an error.
+                if obj.definition is None:
+                    raise QiskitError('Cannot apply Instruction: {}'.format(
+                        obj.name))
+                for instr, qregs, cregs in obj.definition:
+                    if cregs:
+                        raise QiskitError(
+                            'Cannot apply instruction with classical registers: {}'
+                            .format(instr.name))
+                    # Get the integer position of the flat register
+                    new_qargs = [tup[1] for tup in qregs]
+                    self._append_instruction(instr, qargs=new_qargs)
+        else:
+            raise QiskitError('Input is not an instruction.')

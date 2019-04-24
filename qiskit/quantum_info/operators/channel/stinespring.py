@@ -28,6 +28,8 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -41,7 +43,32 @@ class Stinespring(QuantumChannel):
     """Stinespring representation of a quantum channel"""
 
     def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a Stinespring quantum channel operator."""
+        """Initialize a quantum channel Stinespring operator.
+
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+
+        Raises:
+            QiskitError: if input data cannot be initialized as a
+            a list of Kraus matrices.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. This can fail for the
+        Stinespring operator if the output dimension cannot be automatically
+        determined.
+        """
+        # If the input is a list or tuple we assume it is a pair of general
+        # Stinespring matrices. If it is a numpy array we assume that it is
+        # a single stinespring matrix.
         if isinstance(data, (list, tuple, np.ndarray)):
             if not isinstance(data, tuple):
                 # Convert single Stinespring set to length 1 tuple
@@ -66,9 +93,20 @@ class Stinespring(QuantumChannel):
             if dim_left % output_dim != 0:
                 raise QiskitError("Invalid output_dim")
         else:
-            # Initialize from Qiskit objects
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
             data = self._init_transformer(data)
             input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a
+            # Stinespring operator
             stine = _to_stinespring(data.rep, data._data, input_dim,
                                     output_dim)
             if input_dims is None:

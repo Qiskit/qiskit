@@ -15,6 +15,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
+from qiskit.extensions.exceptions import ExtensionError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -412,6 +413,7 @@ class Operator(BaseOperator):
 
     @classmethod
     def _instruction_to_operator(cls, instruction):
+        """Convert a QuantumCircuit or Instruction to an Operator."""
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
             instruction = instruction.to_instruction()
@@ -421,7 +423,7 @@ class Operator(BaseOperator):
         return op
 
     def _append_instruction(self, obj, qargs=None):
-        from qiskit.extensions.exceptions import ExtensionError
+        """Update the current Operator by apply an instruction."""
         if isinstance(obj, Instruction):
             mat = None
             if hasattr(obj, 'to_matrix'):

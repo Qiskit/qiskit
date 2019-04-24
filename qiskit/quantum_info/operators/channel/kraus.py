@@ -30,6 +30,8 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -42,7 +44,33 @@ class Kraus(QuantumChannel):
     """Kraus representation of a quantum channel."""
 
     def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a Kraus quantum channel operator."""
+        """Initialize a quantum channel Kraus operator.
+
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+
+        Raises:
+            QiskitError: if input data cannot be initialized as a
+            a list of Kraus matrices.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. If the input data is
+        a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be used. If
+        the input does not correspond to an N-qubit channel, it will assign a
+        single subsystem with dimension specifed by the shape of the input.
+        """
+        # If the input is a list or tuple we assume it is a list of Kraus
+        # matrices, if it is a numpy array we assume that it is a single Kraus
+        # operator
         if isinstance(data, (list, tuple, np.ndarray)):
             # Check if it is a single unitary matrix A for channel:
             # E(rho) = A * rho * A^\dagger
@@ -93,9 +121,18 @@ class Kraus(QuantumChannel):
             else:
                 raise QiskitError("Invalid input for Kraus channel.")
         else:
-            # Initialize from Qiskit objects
-            data = self._init_transformer(data)
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
             input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a Kraus
             kraus = _to_kraus(data.rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()

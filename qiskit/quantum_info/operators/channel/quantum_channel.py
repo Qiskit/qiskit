@@ -18,7 +18,6 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
-from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
 
 
@@ -96,12 +95,24 @@ class QuantumChannel(BaseOperator):
     @classmethod
     def _init_transformer(cls, data):
         """Convert input into a QuantumChannel subclass object or Operator object"""
-        if issubclass(data.__class__, QuantumChannel):
+        # This handles common conversion for all QuantumChannel subclasses.
+        # If the input is already a QuantumChannel subclass it will return
+        # the original object
+        if isinstance(data, QuantumChannel):
             return data
-        # Use to_channel method to convert to channel
-        if hasattr(data, 'to_channel'):
-            # Use to_channel method to convert to channel
+        if hasattr(data, 'to_quantumchannel'):
+            # If the data object is not a QuantumChannel it will give
+            # preference to a 'to_quantumchannel' attribute that allows
+            # an arbitrary object to define its own conversion to any
+            # quantum channel subclass.
             return data.to_channel()
-        # If no to_channel method try converting to a matrix Operator
-        # which can be transformed into a channel
+        if hasattr(data, 'to_channel'):
+            # TODO: this 'to_channel' method is the same case as the above
+            # but is used by current version of Aer. It should be removed
+            # once Aer is nupdated to use `to_quantumchannel`
+            # instead of `to_channel`,
+            return data.to_channel()
+        # Finally if the input is not a QuantumChannel and doesn't have a
+        # 'to_quantumchannel' conversion method we try and initialize it as a
+        # regular matrix Operator which can be converted into a QuantumChannel.
         return Operator(data)

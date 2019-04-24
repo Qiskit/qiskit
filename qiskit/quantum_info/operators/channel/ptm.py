@@ -31,6 +31,8 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
@@ -38,13 +40,32 @@ from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 
 
 class PTM(QuantumChannel):
-    """Pauli transfer matrix (PTM) representation of a quantum channel.
+    """Initialize a quantum channel Pauli-Transfer Matrix operator.
 
-    The PTM is the Pauli-basis representation of the PTM.
-    """
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
 
+        Raises:
+            QiskitError: if input data is not an N-qubit channel or
+            cannot be initialized as a PTM.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. The PTM
+        representation is only valid for N-qubit channels.
+        """
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a PTM quantum channel operator."""
+        # If the input is a raw list or matrix we assume that it is
+        # already a Chi matrix.
         if isinstance(data, (list, np.ndarray)):
             # Should we force this to be real?
             ptm = np.array(data, dtype=complex)
@@ -61,9 +82,18 @@ class PTM(QuantumChannel):
             if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
                 raise QiskitError("Invalid shape for PTM matrix.")
         else:
-            # Initialize from Qiskit objects
-            data = self._init_transformer(data)
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
             input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a PTM object
             ptm = _to_ptm(data.rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
