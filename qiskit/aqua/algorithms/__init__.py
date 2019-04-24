@@ -29,7 +29,7 @@ __all__ = [
     'QAOA',
     'QSVMVariational',
     'ExactEigensolver',
-    'ExactLPsolver',
+    'ExactLSsolver',
     'SVM_Classical',
     'EOH',
     'QSVMKernel',
