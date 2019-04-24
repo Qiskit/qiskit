@@ -12,6 +12,8 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -28,7 +30,10 @@ class Operator(BaseOperator):
         """Initialize an operator object.
 
         Args:
-            data (BaseOperator or Numpy.array): data to initialize operator.
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize operator.
             input_dims (tuple): the input subsystem dimensions.
                                 [Default: None]
             output_dims (tuple): the output subsystem dimensions.
@@ -45,16 +50,34 @@ class Operator(BaseOperator):
         the input operator is not an N-qubit operator, it will assign a
         single subsystem with dimension specifed by the shape of the input.
         """
-        if isinstance(data, (list, np.ndarray)):
-            # We initialize directly from operator matrix
-            mat = np.array(data, dtype=complex)
+        if isinstance(data, (QuantumCircuit, Instruction)):
+            # If the input is a Terra QuantumCircuit or Instruction we
+            # perform a simulation to construct the untiary operator.
+            # This will only work if the cirucit or instruction can be
+            # defined in terms of unitary gate instructions which have a
+            # 'to_matrix' method defined. Any other instructions such as
+            # conditional gates, measure, or reset will cause an
+            # exception to be raised.
+            mat = self._instruction_to_operator(data).data
         elif hasattr(data, 'to_operator'):
+            # If the data object has a 'to_operator' attribute this is given
+            # higher preference than the 'to_matrix' method for initializing
+            # an Operator object.
             data = data.to_operator()
             mat = data.data
             if input_dims is None:
                 input_dims = data.input_dims()
             if output_dims is None:
                 output_dims = data.output_dims()
+        elif hasattr(data, 'to_matrix'):
+            # If no 'to_operator' attribute exists we next look for a
+            # 'to_matrix' attribute to a matrix that will be cast into
+            # a complex numpy matrix.
+            mat = np.array(data.to_matrix(), dtype=complex)
+        elif isinstance(data, (list, np.ndarray)):
+            # Finally we check if the input is a raw matrix in either a
+            # python list or numpy array format.
+            mat = np.array(data, dtype=complex)
         else:
             raise QiskitError("Invalid input data format for Operator")
         # Determine input and output dimensions
@@ -386,3 +409,46 @@ class Operator(BaseOperator):
                 # flatten colum-vector to vector
                 state = np.reshape(state, shape[0])
         return state
+
+    @classmethod
+    def _instruction_to_operator(cls, instruction):
+        # Convert circuit to an instruction
+        if isinstance(instruction, QuantumCircuit):
+            instruction = instruction.to_instruction()
+        # Initialize an identity operator of the correct size of the circuit
+        op = Operator(np.eye(2 ** instruction.num_qubits))
+        op._append_instruction(instruction)
+        return op
+
+    def _append_instruction(self, obj, qargs=None):
+        from qiskit.extensions.exceptions import ExtensionError
+        if isinstance(obj, Instruction):
+            mat = None
+            if hasattr(obj, 'to_matrix'):
+                # If instruction is a gate first we see if it has a
+                # `to_matrix` definition and if so use that.
+                try:
+                    mat = obj.to_matrix()
+                except QiskitError:
+                    pass
+            if mat is not None:
+                # Perform the composition and inplace update the current state
+                # of the operator
+                op = self.compose(mat, qargs=qargs)
+                self._data = op.data
+            else:
+                # If the instruction doesn't have a matrix defined we use its
+                # circuit decomposition definition if it exists, otherwise we
+                # cannot compose this gate and raise an error.
+                if obj.definition is None:
+                    raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
+                for instr, qregs, cregs in obj.definition:
+                    if cregs:
+                        raise QiskitError(
+                            'Cannot apply instruction with classical registers: {}'.format(
+                                instr.name))
+                    # Get the integer position of the flat register
+                    new_qargs = [tup[1] for tup in qregs]
+                    self._append_instruction(instr, qargs=new_qargs)
+        else:
+            raise QiskitError('Input is not an instruction.')

@@ -13,8 +13,11 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit import QiskitError
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.extensions.standard import HGate, CHGate, CnotGate
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
 class OperatorTestCase(QiskitTestCase):
@@ -43,6 +46,25 @@ class OperatorTestCase(QiskitTestCase):
         if real:
             return np.random.rand(rows, cols)
         return np.random.rand(rows, cols) + 1j * np.random.rand(rows, cols)
+
+    def simple_circuit_no_measure(self):
+        """Return a unitary circuit and the corresponding unitary array."""
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.x(qr[1])
+        target = Operator(np.kron(self.UX, self.UH))
+        return circ, target
+
+    def simple_circuit_with_measure(self):
+        """Return a unitary circuit with measurement."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        circ = QuantumCircuit(qr, cr)
+        circ.h(qr[0])
+        circ.x(qr[1])
+        circ.measure(qr, cr)
+        return circ
 
     def assertAllClose(self,
                        obj1,
@@ -107,6 +129,34 @@ class TestOperator(OperatorTestCase):
         op1 = Operator(self.rand_matrix(4, 4))
         op2 = Operator(op1)
         self.assertEqual(op1, op2)
+
+    def test_circuit_init(self):
+        """Test initialization from a circuit."""
+        circuit, target = self.simple_circuit_no_measure()
+        op = Operator(circuit)
+        target = Operator(target)
+        self.assertEqual(op, target)
+
+    def test_instruction_init(self):
+        """Test initialization from a circuit."""
+        gate = CnotGate()
+        op = Operator(gate).data
+        target = gate.to_matrix()
+        global_phase_equivalent = matrix_equal(op, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        gate = CHGate()
+        op = Operator(gate).data
+        had = HGate().to_matrix()
+        target = np.kron(had, np.diag([0, 1])) + np.kron(
+            np.eye(2), np.diag([1, 0]))
+        global_phase_equivalent = matrix_equal(op, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_circuit_init_except(self):
+        """Test initialization from circuit with measure raises exception."""
+        circuit = self.simple_circuit_with_measure()
+        self.assertRaises(QiskitError, Operator, circuit)
 
     def test_equal(self):
         """Test __eq__ method"""
