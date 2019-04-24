@@ -220,6 +220,57 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[3], c[0])
         self.assertEqual(qc.depth(), 5)
 
+    def test_circuit_size_empty(self):
+        """Circuit.size should return 0 for an empty circuit."""
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        self.assertEqual(qc.size(), 0)
+
+    def test_circuit_size_single_qubit_gates(self):
+        """Circuit.size should increment for each added single qubit gate."""
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        self.assertEqual(qc.size(), 1)
+        qc.h(q[1])
+        self.assertEqual(qc.size(), 2)
+
+    def test_circuit_size_two_qubit_gates(self):
+        """Circuit.size should increment for each added two qubit gate."""
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.cx(q[0], q[1])
+        self.assertEqual(qc.size(), 1)
+        qc.cx(q[2], q[3])
+        self.assertEqual(qc.size(), 2)
+
+    def test_circuit_size_ignores_barriers_snapshots(self):
+        """Circuit.size should not count barriers or snapshots."""
+
+        import qiskit.extensions.simulator  # pylint: disable=unused-import
+
+        size = 4
+        q = QuantumRegister(size, 'q')
+        c = ClassicalRegister(size, 'c')
+        qc = QuantumCircuit(q, c)
+
+        qc.h(q[0])
+        qc.cx(q[0], q[1])
+        self.assertEqual(qc.size(), 2)
+        qc.barrier(q)
+        self.assertEqual(qc.size(), 2)
+        qc.snapshot('snapshot_label')
+        self.assertEqual(qc.size(), 2)
+
     def test_circuit_count_ops(self):
         """Tet circuit count ops
         """

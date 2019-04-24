@@ -116,11 +116,13 @@ jobs:
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
+      name: Python Style and Linter
       <<: *stage_linux
       script: make style && make lint
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
+      name: Python 3.5 Tests Linux
       <<: *stage_linux
 
     # "test" stage
@@ -128,11 +130,13 @@ jobs:
 
     # GNU/Linux, Python 3.6
     - stage: test
+      name: Python 3.6 Tests Linux
       <<: *stage_linux
       python: 3.6
 
     # GNU/Linux, Python 3.7
     - stage: test
+      name: Python 3.7 Tests Linux
       <<: *stage_linux
       # Compiling Python 3.7 requires an Ubuntu Xenial distribution
       # and sudo set to true
@@ -145,12 +149,14 @@ jobs:
     # OSX, Python 3.5.6 (via pyenv)
     - stage: test
       <<: *stage_osx
+      name: Python 3.5 Tests OSX
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
 
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test
+      name: Python 3.6 Tests OSX
       <<: *stage_osx
       env:
         - MPLBACKEND=ps
@@ -158,6 +164,7 @@ jobs:
 
     # OSX, Python 3.7.2 (via pyenv)
     - stage: test
+      name: Python 3.7 Tests OSX
       <<: *stage_osx
       env:
         - MPLBACKEND=ps
