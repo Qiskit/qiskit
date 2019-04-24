@@ -43,23 +43,26 @@ class AQGD(Optimizer):
                 'maxiter': {
                     'type': 'integer',
                     'default': 1000
-                    },
+                },
                 'eta': {
-                        'type': 'number',
-                        'default': 1e-2
-                    },
+                    'type': 'number',
+                    'default': 3.0
+                },
                 'tol': {
-                    'type': ['number', 'null'],
-                    'default': 1e-4
-                    },
+                    'type': 'number',
+                    'default': 1e-6
+                },
                 'disp': {
-                        'type': 'boolean',
-                        'default': False
-                    },
+                    'type': 'boolean',
+                    'default': False
+                 },
                 'momentum': {
-                        'type': 'float',
-                        'default': 0.25
-                    }
+                    'type': 'number',
+                    'default': 0.25,
+                    'minimum': 0,
+                    'maximum': 1.0,
+                    'exclusiveMaximum': True
+                }
             },
             'additionalProperties': False
         },
@@ -72,14 +75,14 @@ class AQGD(Optimizer):
         'optimizer': ['local']
     }
 
-    def __init__(self, maxiter=1000, eta=2.0, tol=None, disp=False, momentum = 0.25):
+    def __init__(self, maxiter=1000, eta=3.0, tol=1e-6, disp=False, momentum=0.25):
         """
         Constructor.
         
         Performs Analytical Quantum Gradient Descent (AQGD).
         
         Args:
-            maxiter (int): Maximum number of function evaluations.
+            maxiter (int): Maximum number of iterations, each iteration evaluation gradient.
             eta (float): The coefficient of the gradient update. Increasing this value 
                          results in larger step sizes: param = previous_param - eta * deriv
             tol (float): The convergence criteria that must be reached before stopping. 
@@ -97,8 +100,6 @@ class AQGD(Optimizer):
         self._tol = tol if tol is not None else 1e-6
         self._disp = disp
         self._momentum_coeff = momentum
-        assert momentum >= 0 and momentum < 1, ("Momentum must be within bounds: [0,1) however "
-                                               +str(momentum)+" was given.")
 
     def deriv(self, j, params, obj):
         """
@@ -126,7 +127,7 @@ class AQGD(Optimizer):
         return 0.5 * (obj(plus_params) - obj(minus_params))
 
     def update(self, j, params, deriv, mprev):
-        '''
+        """
         Updates the jth parameter based on the derivative and previous momentum
         
         Args:
@@ -135,13 +136,13 @@ class AQGD(Optimizer):
                             the objective function at. 
             deriv (float): Value of the derivative w.r.t. the jth parameter
             mprev (array): Array containing all of the parameter momentums
-        '''
+        """
         mnew = self._eta * (deriv * (1-self._momentum_coeff) + mprev[j] * self._momentum_coeff)
         params[j] -= mnew
         return params, mnew
 
     def converged(self, objval, n = 2):
-        '''
+        """
         Determines if the objective function has converged by finding the difference between
         the current value and the previous n values.
         
@@ -153,7 +154,7 @@ class AQGD(Optimizer):
         
         Returns:
             (bool) Whether or not the optimization has converged.
-        '''
+        """
         if not hasattr(self, '_previous_loss'):
             self._previous_loss = [objval + 2 * self._tol] * n
             
@@ -174,7 +175,7 @@ class AQGD(Optimizer):
         super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
 
         params = array(initial_point)
-        it = 1
+        it = 0
         momentum = zeros(shape=(num_vars,))
         objval = objective_function(params)
         
