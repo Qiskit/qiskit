@@ -8,9 +8,10 @@
 Parameter Class for variable parameters.
 """
 
-from sympy import Symbol
-
-
-class Parameter(Symbol):
+class Parameter():
     """Parameter Class for variable parameters"""
-    pass
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return self.name
