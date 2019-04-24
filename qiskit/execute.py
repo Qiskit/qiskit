@@ -17,7 +17,7 @@ This module includes
 In general we recommend using the SDK modules directly. However, to get something
 running quickly we have provided this wrapper module.
 """
-
+import warnings
 import logging
 
 from qiskit.circuit import QuantumCircuit
@@ -289,25 +289,24 @@ def execute_schedules(schedules, backend, schedule_los=None, shots=1024,
     return backend.run(qobj, **kwargs)
 
 
-def execute(circuits, backend,
-            basis_gates=None, coupling_map=None,  # transpile options
+def execute(experiments, backend,
+            basis_gates=None, coupling_map=None,  # circuit transpile options
             backend_properties=None, initial_layout=None,
             seed_transpiler=None, optimization_level=None, transpile_config=None,
-            qobj_id=None, qobj_header=None, shots=1024,  # run options
+            qobj_id=None, qobj_header=None, shots=1024,  # common run options
             memory=False, max_credits=10, seed_simulator=None, run_config=None,
+            schedule_los=None, meas_level=2, meas_return='avg',  # schedule run options
+            memory_slots=None, memory_slot_size=100, rep_time=None,
             seed=None, seed_mapper=None,  # deprecated
-            config=None, pass_manager=None,
+            config=None, pass_manager=None, circuits=None,
             **kwargs):
     """Execute a list of circuits or pulse schedules on a backend.
-
-    This is a wrapper around either ``execute_circuits()`` or ``execute_schedules()``.
-    Refer to those functions for more details.
 
     The execution is asynchronous, and a handle to a job instance is returned.
 
     Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]):
-            Circuit(s) to execute
+        experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
+            Circuit(s) or pulse schedule(s) to execute
 
         backend (BaseBackend):
             Backend to execute circuits on.
@@ -336,7 +335,7 @@ def execute(circuits, backend,
                     [[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]
 
         backend_properties (BackendProperties):
-            properties returned by a backend, including information on gate
+            Properties returned by a backend, including information on gate
             errors, readout errors, qubit coherence times, etc. For a backend
             that provides this information, it can be obtained with:
             ``backend.properties()``
@@ -370,7 +369,7 @@ def execute(circuits, backend,
                     [qr[0], None, None, qr[1], None, qr[2]]
 
         seed_transpiler (int):
-            sets random seed for the stochastic parts of the transpiler
+            Sets random seed for the stochastic parts of the transpiler
 
         optimization_level (int):
             How much optimization to perform on the circuits.
@@ -388,22 +387,46 @@ def execute(circuits, backend,
         qobj_id (str):
             String identifier to annotate the Qobj
 
-        qobj_header (QobjHeader):
+        qobj_header (QobjHeader or dict):
             User input that will be inserted in Qobj header, and will also be
             copied to the corresponding Result header. Headers do not affect the run.
 
         shots (int):
-            number of repetitions of each circuit, for sampling. Default: 2014
+            Number of repetitions of each circuit, for sampling. Default: 2014
 
         memory (bool):
-            if True, per-shot measurement bitstrings are returned as well
-            (provided the backend supports it). Default: False
+            If True, per-shot measurement bitstrings are returned as well
+            (provided the backend supports it). For OpenPulse jobs, only
+            measurement level 2 supports this option. Default: False
 
         max_credits (int):
-            maximum credits to spend on job. Default: 10
+            Maximum credits to spend on job. Default: 10
 
         seed_simulator (int):
-            random seed to control sampling, for when backend is a simulator
+            Random seed to control sampling, for when backend is a simulator
+
+        schedule_los (None or list[Union[Dict[OutputChannel, float], LoConfig]] or
+                      Union[Dict[OutputChannel, float], LoConfig]):
+            Experiment LO configurations
+
+        meas_level (int):
+            Set the appropriate level of the measurement output for pulse experiments.
+
+        meas_return (str):
+            Level of measurement data for the backend to return
+            For `meas_level` 0 and 1:
+                "single" returns information from every shot.
+                "avg" returns average measurement output (averaged over number of shots).
+
+        memory_slots (int):
+            Number of classical memory slots used in this job.
+
+        memory_slot_size (int):
+            Size of each memory slot if the output is Level 0.
+
+        rep_time (int): repetition time of the experiment in μs.
+            The delay between experiments will be rep_time.
+            Must be from the list provided by the device.
 
         run_config (RunConfig):
             Qobj runtime configuration, containing some or all of the above options.
@@ -423,6 +446,9 @@ def execute(circuits, backend,
             DEPRECATED in 0.8: use pass_manager.run() to transpile the circuit,
             then assemble and run it.
 
+        circuits (QuantumCircuit or list[QuantumCircuit]):
+            DEPRECATED in 0.8: use ``experiments`` kwarg instead.
+
         kwargs: extra arguments used by Aer for running configurable backends.
                 Refer to the backend documentation for details on these arguments
 
@@ -430,12 +456,18 @@ def execute(circuits, backend,
         BaseJob: returns job instance derived from BaseJob
 
     Raises:
-        QiskitError: if the execution cannot be interpreted as either circuits or pulses
+        QiskitError: if the execution cannot be interpreted as either circuits or schedules
     """
-    if (isinstance(circuits, QuantumCircuit) or
-            (isinstance(circuits, list) and
-             all(isinstance(c, QuantumCircuit) for c in circuits))):
-        return execute_circuits(circuits=circuits,
+    if circuits is not None:
+        experiments = circuits
+        warnings.warn("the `circuits` arg in `execute()` has been deprecated. "
+                      "please use `experiments`, which can handle both circuit "
+                      "and pulse Schedules", DeprecationWarning)
+
+    if (isinstance(experiments, QuantumCircuit) or
+            (isinstance(experiments, list) and
+             all(isinstance(c, QuantumCircuit) for c in experiments))):
+        return execute_circuits(circuits=experiments,
                                 backend=backend,
                                 basis_gates=basis_gates,  # transpile options
                                 coupling_map=coupling_map,
@@ -457,11 +489,26 @@ def execute(circuits, backend,
                                 pass_manager=pass_manager,
                                 **kwargs)
 
-    elif (isinstance(circuits, Schedule) or
-          (isinstance(circuits, list) and
-           all(isinstance(c, Schedule) for c in circuits))):
-        return execute_schedules(schedules=circuits,
-                                 backend=backend)
+    elif (isinstance(experiments, Schedule) or
+          (isinstance(experiments, list) and
+           all(isinstance(c, Schedule) for c in experiments))):
+        return execute_schedules(schedules=experiments,
+                                 backend=backend,
+                                 qobj_id=qobj_id,  # run options
+                                 qobj_header=qobj_header,
+                                 shots=shots,
+                                 memory=memory,
+                                 max_credits=max_credits,
+                                 seed_simulator=seed_simulator,
+                                 schedule_los=schedule_los,
+                                 meas_level=meas_level,
+                                 meas_return=meas_return,
+                                 memory_slots=memory_slots,
+                                 memory_slot_size=memory_slot_size,
+                                 rep_time=rep_time,
+                                 run_config=run_config,
+                                 seed=seed,  # deprecated
+                                 **kwargs)
 
     else:
-        raise QiskitError("bad input to execute function; must be either circuits or schedules")
+        raise QiskitError("bad input to execute() function; must be either circuits or schedules")

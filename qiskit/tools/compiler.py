@@ -5,12 +5,12 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-"""Helper module for simplified Qiskit usage. THIS WILL BE REMOVED IN AFTER 0.8."""
+"""DEPRECATED: WILL BE REMOVED AFTER 0.8."""
 import warnings
 import logging
 
 from qiskit.compiler.transpiler import transpile
-from qiskit.compiler.assembler import assemble_circuits
+from qiskit.compiler.assembler import assemble
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +45,11 @@ def compile(circuits, backend,
         QiskitError: if the desired options are not supported by backend
     """
     warnings.warn('qiskit.compile() is deprecated and will be removed in Qiskit Terra 0.9. '
-                  'Please use qiskit.transpile() to transform circuits '
-                  'and qiskit.assemble_circuits() to produce qobj.',
+                  'Please use qiskit.compiler.transpile() to transform circuits '
+                  'and qiskit.compiler.assemble() to produce a runnable qobj.',
                   DeprecationWarning)
 
-    new_circuits = transpile(circuits=circuits,
+    new_circuits = transpile(circuits,
                              basis_gates=basis_gates,
                              coupling_map=coupling_map,
                              initial_layout=initial_layout,
@@ -57,13 +57,13 @@ def compile(circuits, backend,
                              backend=backend,
                              pass_manager=pass_manager)
 
-    qobj = assemble_circuits(circuits=new_circuits,
-                             qobj_header=None,
-                             shots=shots,
-                             max_credits=max_credits,
-                             seed_simulator=seed,
-                             memory=memory,
-                             qobj_id=qobj_id,
-                             config=config)  # deprecated
+    qobj = assemble(new_circuits,
+                    qobj_header=None,
+                    shots=shots,
+                    max_credits=max_credits,
+                    seed_simulator=seed,
+                    memory=memory,
+                    qobj_id=qobj_id,
+                    config=config)  # deprecated
 
     return qobj

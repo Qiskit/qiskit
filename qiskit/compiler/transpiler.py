@@ -165,10 +165,6 @@ def _transpile_circuit(circuit_config_tuple):
     """
     circuit, transpile_config = circuit_config_tuple
 
-    # no basis means don't unroll (all circuit gates are valid basis)
-    if transpile_config.basis_gates is None:
-        transpile_config.basis_gates = [inst.name for inst, _, _ in circuit.data]
-
     if transpile_config.coupling_map:
         pass_manager = default_pass_manager(transpile_config.basis_gates,
                                             transpile_config.coupling_map,
@@ -205,7 +201,7 @@ def _parse_transpile_args(circuits,
     # number of circuits. If single, duplicate to create a list of that size.
     num_circuits = len(circuits)
 
-    basis_gates = _parse_basis_gates(basis_gates, transpile_config, backend, num_circuits)
+    basis_gates = _parse_basis_gates(basis_gates, transpile_config, backend, circuits)
 
     coupling_map = _parse_coupling_map(coupling_map, transpile_config, backend, num_circuits)
 
@@ -236,7 +232,7 @@ def _parse_transpile_args(circuits,
     return transpile_configs
 
 
-def _parse_basis_gates(basis_gates, transpile_config, backend, num_circuits):
+def _parse_basis_gates(basis_gates, transpile_config, backend, circuits):
     # try getting basis_gates from user, else transpile_config, else backend
     if basis_gates is None:
         basis_gates = getattr(transpile_config, 'basis_gates', None)
@@ -252,7 +248,11 @@ def _parse_basis_gates(basis_gates, transpile_config, backend, num_circuits):
         basis_gates = basis_gates.split(',')
     if basis_gates is None or (isinstance(basis_gates, list) and
                                all(isinstance(i, str) for i in basis_gates)):
-        basis_gates = [basis_gates] * num_circuits
+        basis_gates = [basis_gates] * len(circuits)
+    # no basis means don't unroll (all circuit gates are valid basis)
+    basis_gates = [[inst.name for inst, _, _ in circuit.data] if basis is None
+                   else basis for basis, circuit in zip(basis_gates, circuits)]
+
     return basis_gates
 
 

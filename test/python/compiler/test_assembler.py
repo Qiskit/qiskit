@@ -15,8 +15,8 @@ import qiskit.pulse as pulse
 from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import RunConfig
-from qiskit.compiler import assemble_circuits
-from qiskit.compiler import assemble_schedules
+from qiskit.compiler.assembler import assemble_circuits
+from qiskit.compiler.assembler import assemble_schedules
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase

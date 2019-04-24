@@ -13,6 +13,7 @@ import uuid
 import logging
 import sympy
 
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, LoConfig
 from qiskit.pulse.commands import DriveInstruction
@@ -270,9 +271,6 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
     Raises:
         QiskitError: when invalid schedules or configs are provided
     """
-    if isinstance(schedules, Schedule):
-        schedules = [schedules]
-
     # add default empty lo config
     if schedule_los is None:
         schedule_los = []
@@ -323,7 +321,8 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
     lo_converter = LoConfigConverter(PulseQobjExperimentConfig, default_qubit_los,
                                      default_meas_los, **run_config)
 
-    # assemble schedules
+    # Pack everything into the Qobj
+    schedules = schedules if isinstance(schedules, list) else [schedules]
     qobj_schedules = []
     for idx, schedule in enumerate(schedules):
         # instructions
@@ -398,3 +397,129 @@ def assemble_schedules(schedules, default_qubit_los, default_meas_los,
                      config=qobj_config,
                      experiments=experiments,
                      header=qobj_header)
+
+
+def assemble(experiments,
+             qobj_id=None, qobj_header=None,  # common run options
+             shots=None, memory=None, max_credits=None,
+             seed_simulator=None, run_config=None,
+             default_qubit_los=None, default_meas_los=None,  # schedule run options
+             schedule_los=None, meas_level=2, meas_return='avg',
+             memory_slots=None, memory_slot_size=100, rep_time=None,
+             config=None, seed=None,  # deprecated
+             **kwargs):
+    """Assemble a list of circuits or pulse schedules into a Qobj.
+
+    This is a wrapper around either ``assemble_circuits()`` or ``assemble_schedules()``.
+    Refer to those functions for more details.
+
+    qobj_id (str):
+        String identifier to annotate the Qobj
+
+    qobj_header (QobjHeader or dict):
+        User input that will be inserted in Qobj header, and will also be
+        copied to the corresponding Result header. Headers do not affect the run.
+
+    shots (int):
+        Number of repetitions of each circuit, for sampling. Default: 2014
+
+    memory (bool):
+        If True, per-shot measurement bitstrings are returned as well
+        (provided the backend supports it). For OpenPulse jobs, only
+        measurement level 2 supports this option. Default: False
+
+    max_credits (int):
+        Maximum credits to spend on job. Default: 10
+
+    seed_simulator (int):
+        Random seed to control sampling, for when backend is a simulator
+
+    default_qubit_los (list):
+        List of default qubit lo frequencies
+
+    default_meas_los (list):
+        List of default meas lo frequencies
+
+    schedule_los (None or list[Union[Dict[OutputChannel, float], LoConfig]] or
+                  Union[Dict[OutputChannel, float], LoConfig]):
+        Experiment LO configurations
+
+    meas_level (int):
+        Set the appropriate level of the measurement output for pulse experiments.
+
+    meas_return (str):
+        Level of measurement data for the backend to return
+        For `meas_level` 0 and 1:
+            "single" returns information from every shot.
+            "avg" returns average measurement output (averaged over number of shots).
+
+    memory_slots (int):
+        Number of classical memory slots used in this job.
+
+    memory_slot_size (int):
+        Size of each memory slot if the output is Level 0.
+
+    rep_time (int): repetition time of the experiment in μs.
+        The delay between experiments will be rep_time.
+        Must be from the list provided by the device.
+
+    run_config (RunConfig):
+        Qobj runtime configuration, containing some or all of the above options.
+        If any other option is explicitly set (e.g. shots), it
+        will override the run_config's.
+
+    seed (int):
+        DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
+
+    config (dict):
+        DEPRECATED in 0.8: use run_config instead
+
+    kwargs: extra arguments used by Aer for running configurable backends.
+            Refer to the backend documentation for details on these arguments
+
+    Returns:
+        Qobj: a qobj which can be run on a backend. Depending on the type of input,
+            this will be either a QasmQobj or a PulseQobj.
+
+    Raises:
+        QiskitError: if the input cannot be interpreted as either circuits or schedules
+    """
+    if (isinstance(experiments, QuantumCircuit) or
+            (isinstance(experiments, list) and
+             all(isinstance(c, QuantumCircuit) for c in experiments))):
+        return assemble_circuits(circuits=experiments,
+                                 qobj_id=qobj_id,
+                                 qobj_header=qobj_header,
+                                 shots=shots,
+                                 memory=memory,
+                                 max_credits=max_credits,
+                                 seed_simulator=seed_simulator,
+                                 run_config=run_config,
+                                 seed=seed,  # deprecated
+                                 config=config,
+                                 **kwargs)
+
+    elif (isinstance(experiments, Schedule) or
+          (isinstance(experiments, list) and
+           all(isinstance(c, Schedule) for c in experiments))):
+        return assemble_schedules(schedules=experiments,
+                                  default_qubit_los=default_qubit_los,
+                                  default_meas_los=default_meas_los,
+                                  qobj_id=qobj_id,
+                                  qobj_header=qobj_header,
+                                  shots=shots,
+                                  memory=memory,
+                                  max_credits=max_credits,
+                                  seed_simulator=seed_simulator,
+                                  schedule_los=schedule_los,
+                                  meas_level=meas_level,
+                                  meas_return=meas_return,
+                                  memory_slots=memory_slots,
+                                  memory_slot_size=memory_slot_size,
+                                  rep_time=rep_time,
+                                  run_config=run_config,
+                                  seed=seed,  # deprecated
+                                  **kwargs)
+
+    else:
+        raise QiskitError("bad input to assemble() function; must be either circuits or schedules")
