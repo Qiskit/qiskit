@@ -468,8 +468,8 @@ class QuantumCircuit:
             int: Total number of gate operations.
         """
         gate_ops = 0
-        for item in self.data:
-            if item.name not in ['barrier', 'snapshot']:
+        for instr, _, _ in self.data:
+            if instr.name not in ['barrier', 'snapshot']:
                 gate_ops += 1
         return gate_ops
 
@@ -507,20 +507,20 @@ class QuantumCircuit:
         # We do not consider barriers or snapshots as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        for op in self.data:
-            if op[0].name not in ['barrier', 'snapshot']:
+        for instr, qargs, cargs in self.data:
+            if instr.name not in ['barrier', 'snapshot']:
                 levels = []
                 reg_ints = []
-                for ind, reg in enumerate(op[1]+op[2]):
+                for ind, reg in enumerate(qargs+cargs):
                     # Add to the stacks of the qubits and
                     # cbits used in the gate.
                     reg_ints.append(reg_map[reg[0].name]+reg[1])
                     levels.append(op_stack[reg_ints[ind]] + 1)
-                if op[0].control:
+                if instr.control:
                     # Controls operate over all bits in the
                     # classical register they use.
-                    cint = reg_map[op[0].control[0].name]
-                    for off in range(op[0].control[0].size):
+                    cint = reg_map[instr.control[0].name]
+                    for off in range(instr.control[0].size):
                         if cint+off not in reg_ints:
                             reg_ints.append(cint+off)
                             levels.append(op_stack[cint+off]+1)
@@ -546,11 +546,11 @@ class QuantumCircuit:
             dict: a breakdown of how many operations of each kind.
         """
         count_ops = {}
-        for op in self.data:
-            if op[0].name in count_ops.keys():
-                count_ops[op[0].name] += 1
+        for instr, _, _ in self.data:
+            if instr.name in count_ops.keys():
+                count_ops[instr.name] += 1
             else:
-                count_ops[op[0].name] = 1
+                count_ops[instr.name] = 1
         return count_ops
 
     def num_connected_components(self, unitary_only=False):
@@ -581,21 +581,21 @@ class QuantumCircuit:
 
         # Here we are traversing the gates and looking to see
         # which of the sub_graphs the gate joins together.
-        for op in self.data:
+        for instr, qargs, cargs in self.data:
             if unitary_only:
-                args = op[1]
+                args = qargs
                 num_qargs = len(args)
             else:
-                args = op[1]+op[2]
-                num_qargs = len(args) + (1 if op[0].control else 0)
+                args = qargs+cargs
+                num_qargs = len(args) + (1 if instr.control else 0)
 
-            if num_qargs >= 2 and op[0].name not in ['barrier', 'snapshot']:
+            if num_qargs >= 2 and instr.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if op[0].control and not unitary_only:
-                    creg = op[0].control[0]
+                if instr.control and not unitary_only:
+                    creg = instr.control[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
                         temp_int = creg_int+coff
