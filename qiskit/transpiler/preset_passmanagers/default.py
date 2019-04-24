@@ -70,10 +70,8 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
     # Change CX directions
     pass_manager.append(CXDirection(coupling_map))
 
-    # Unroll to the basis
-    pass_manager.append(Unroller(basis_gates))
+    if set(basis_gates).issubset(set(['u1', 'u2', 'u3', 'id', 'cx'])):
 
-    if set(basis_gates) == set(['u1', 'u2', 'u3', 'id', 'cx']):
         # Simplify single qubit gates and CXs
         if not skip_numeric_passes:
             simplification_passes = [Optimize1qGates(), CXCancellation()]
@@ -82,6 +80,9 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
 
         pass_manager.append(simplification_passes + [Depth(), FixedPoint('depth')],
                             do_while=lambda property_set: not property_set['depth_fixed_point'])
+
+    # Unroll to the basis
+    pass_manager.append(Unroller(basis_gates))
 
     return pass_manager
 

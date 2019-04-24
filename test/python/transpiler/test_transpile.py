@@ -543,3 +543,24 @@ class TestTranspile(QiskitTestCase):
         dag_circuit = circuit_to_dag(circuit)
         resources_after = dag_circuit.count_ops()
         self.assertEqual({'h': 3}, resources_after)
+
+    def test_basis_subset(self):
+        """Test a transpilation with a basis subset of the standard basis"""
+        qr = QuantumRegister(1, 'q1')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.x(qr[0])
+        qc.t(qr[0])
+
+        layout = [4, 5, 6, 8, 9, 10]
+
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9],
+                [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                [13, 12]]
+
+        circuit = transpile(qc, backend=None, coupling_map=cmap,
+                            basis_gates=['u3'], initial_layout=layout)
+
+        dag_circuit = circuit_to_dag(circuit)
+        resources_after = dag_circuit.count_ops()
+        self.assertEqual({'u3': 1}, resources_after)
