@@ -20,18 +20,19 @@ from qiskit.providers.ibmq import least_busy
 ###############################################################
 # Make a quantum circuit for the GHZ state.
 ###############################################################
-q = QuantumRegister(5, "q")
-c = ClassicalRegister(5, "c")
+num_qubits = 5
+q = QuantumRegister(num_qubits, "q")
+c = ClassicalRegister(num_qubits, "c")
 qc = QuantumCircuit(q, c, name='ghz')
 
 # Create a GHZ state
 qc.h(q[0])
-for i in range(4):
+for i in range(num_qubits-1):
     qc.cx(q[i], q[i+1])
 # Insert a barrier before measurement
 qc.barrier()
 # Measure all of the qubits in the standard basis
-for i in range(5):
+for i in range(num_qubits):
     qc.measure(q[i], c[i])
 
 ###############################################################
@@ -48,7 +49,7 @@ except:
 sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
-print('Qasm simulator')
+print('Qasm simulator : ')
 print(result.get_counts(qc))
 
 # Second version: real device
@@ -57,4 +58,5 @@ least_busy_device = least_busy(IBMQ.backends(simulator=False,
 print("Running on current least busy device: ", least_busy_device)
 job = execute(qc, least_busy_device, shots=1024)
 result = job.result()
+print('Physical device (%s) : ' % least_busy_device)
 print(result.get_counts(qc))

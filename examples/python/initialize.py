@@ -56,7 +56,7 @@ print(circuit.qasm())
 shots = 10000
 
 # Desired vector
-print("Desired probabilities...")
+print("Desired probabilities: ")
 print(str(list(map(lambda x: format(abs(x * x), '.3f'), desired_vector))))
 
 # Initialize on local simulator
@@ -69,6 +69,6 @@ counts = result.get_counts(circuit)
 
 qubit_strings = [format(i, '0%sb' % n_qubits_qureg) for
                  i in range(2 ** n_qubits_qureg)]
-print("Probabilities from simulator...")
+print("Probabilities from simulator: ")
 print([format(counts.get(s, 0) / shots, '.3f') for
        s in qubit_strings])
