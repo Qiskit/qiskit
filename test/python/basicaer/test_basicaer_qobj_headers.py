@@ -10,7 +10,7 @@
 from qiskit import BasicAer
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.compiler import transpile
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler import assemble
 from qiskit.qobj import QobjHeader
 from qiskit.test import QiskitTestCase
 
@@ -33,7 +33,7 @@ class TestBasicAerQobj(QiskitTestCase):
         for backend in BasicAer.backends():
             with self.subTest(backend=backend):
                 new_circ = transpile(self.qc1, backend=backend)
-                qobj = assemble_circuits(new_circ, shots=1024)
+                qobj = assemble(new_circ, shots=1024)
 
                 # Update the Qobj header.
                 qobj.header = QobjHeader.from_dict(custom_qobj_header)
@@ -48,6 +48,6 @@ class TestBasicAerQobj(QiskitTestCase):
         """Test job.qobj()."""
         for backend in BasicAer.backends():
             with self.subTest(backend=backend):
-                qobj = assemble_circuits(self.qc1)
+                qobj = assemble(self.qc1)
                 job = backend.run(qobj)
                 self.assertEqual(job.qobj(), qobj)

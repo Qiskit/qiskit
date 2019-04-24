@@ -14,7 +14,7 @@ import uuid
 import jsonschema
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler import assemble
 from qiskit.providers.basicaer import basicaerjob
 
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
@@ -119,7 +119,7 @@ class TestQASMQobj(QiskitTestCase):
         qc1.measure(qr, cr)
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
-        qobj1 = assemble_circuits(circuits, shots=1024, seed=88)
+        qobj1 = assemble(circuits, shots=1024, seed=88)
         qobj1.experiments[0].config.shots = 50
         qobj1.experiments[1].config.shots = 1
         self.assertTrue(qobj1.experiments[0].config.shots == 50)

@@ -9,7 +9,7 @@
 import warnings
 
 from qiskit.qobj import QobjHeader
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler import assemble
 
 
 def circuits_to_qobj(circuits, qobj_header=None,
@@ -36,7 +36,7 @@ def circuits_to_qobj(circuits, qobj_header=None,
         Qobj: the Qobj to be run on the backends
     """
     warnings.warn('circuits_to_qobj is deprecated and will be removed in Qiskit Terra 0.9. '
-                  'Use qiskit.compiler.assemble_circuits() to serialize circuits into a qobj.',
+                  'Use qiskit.compiler.assemble() to serialize circuits into a qobj.',
                   DeprecationWarning)
 
     qobj_header = qobj_header or QobjHeader()
@@ -48,13 +48,13 @@ def circuits_to_qobj(circuits, qobj_header=None,
     if coupling_map:
         warnings.warn('coupling_map was unused and will be removed.', DeprecationWarning)
 
-    qobj = assemble_circuits(circuits=circuits,
-                             qobj_id=qobj_id,
-                             qobj_header=qobj_header,
-                             shots=shots,
-                             memory=memory,
-                             max_credits=max_credits,
-                             seed_simulator=seed,
-                             config=config)
+    qobj = assemble(circuits=circuits,
+                    qobj_id=qobj_id,
+                    qobj_header=qobj_header,
+                    shots=shots,
+                    memory=memory,
+                    max_credits=max_credits,
+                    seed_simulator=seed,
+                    config=config)
 
     return qobj

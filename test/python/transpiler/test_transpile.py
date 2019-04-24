@@ -16,11 +16,10 @@ from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
 from qiskit.extensions.standard import CnotGate
 from qiskit.transpiler import PassManager, transpile
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler import assemble
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
-from qiskit.compiler import RunConfig
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.mapper import Layout
 from qiskit.circuit import Parameter
@@ -131,8 +130,7 @@ class TestTranspile(QiskitTestCase):
                              pass_manager=None)
 
         qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
-        run_config = RunConfig(shots=1024, max_credits=10)
-        qobj2 = assemble_circuits(circuit2, qobj_id=qobj.qobj_id, run_config=run_config)
+        qobj2 = assemble(circuit2, qobj_id=qobj.qobj_id, shots=1024, max_credits=10)
         self.assertEqual(qobj, qobj2)
 
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):

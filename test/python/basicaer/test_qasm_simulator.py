@@ -13,8 +13,7 @@ import numpy as np
 
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.compiler import transpile
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import Path
 from qiskit.test import providers
@@ -33,7 +32,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         transpiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         transpiled_circuit.name = 'test'
         transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
-        self.qobj = assemble_circuits(transpiled_circuit, shots=1000)
+        self.qobj = assemble(transpiled_circuit, shots=1000)
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
