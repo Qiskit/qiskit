@@ -639,7 +639,7 @@
                     },
                     "required": [
                         "label",
-                        "type"
+                        "snapshot_type"
                     ],
                     "title": "snapshot"
                 },
