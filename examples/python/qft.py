@@ -14,8 +14,8 @@ used `pip install`, the examples only work from the root directory.
 
 import math
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import execute, BasicAer, IBMQ
-from qiskit.providers.ibmq import least_busy
+from qiskit import execute, BasicAer
+from qiskit.providers.ibmq import least_busy, IBMQ
 
 
 ###############################################################
