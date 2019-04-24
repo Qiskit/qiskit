@@ -10,6 +10,7 @@ Parameter Class for variable parameters.
 
 from sympy import Symbol
 
+
 class Parameter(Symbol):
     """Parameter Class for variable parameters"""
     pass
