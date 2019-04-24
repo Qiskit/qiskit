@@ -8,11 +8,10 @@
 
 """Test circuits with variable parameters."""
 import numpy
-import sympy
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, Parameter
 from qiskit.transpiler import transpile
 from qiskit.compiler import assemble_circuits
 from qiskit.test import QiskitTestCase
@@ -23,14 +22,14 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_gate(self):
         """Test instantiating gate with variable parmeters"""
-        theta = sympy.Symbol('θ')
+        theta = Parameter('θ')
         theta_gate = Gate('test', 1, params=[theta])
         self.assertEqual(theta_gate.name, 'test')
-        self.assertIsInstance(theta_gate.params[0], sympy.Symbol)
+        self.assertIsInstance(theta_gate.params[0], Parameter)
 
     def test_compile_quantum_circuit(self):
         """Test instantiating gate with variable parmeters"""
-        theta = sympy.Symbol('θ')
+        theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
@@ -42,7 +41,7 @@ class TestVariableParameters(QiskitTestCase):
     def test_get_variables(self):
         """Test instantiating gate with variable parmeters"""
         from qiskit.extensions.standard.rx import RXGate
-        theta = sympy.Symbol('θ')
+        theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         rxg = RXGate(theta)
@@ -54,7 +53,7 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_fix_variable(self):
         """Test setting a varaible to a constant value"""
-        theta = sympy.Symbol('θ')
+        theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
@@ -68,8 +67,8 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_multiple_variables(self):
         """Test setting multiple variables"""
-        theta = sympy.Symbol('θ')
-        x = sympy.Symbol('x')
+        theta = Parameter('θ')
+        x = Parameter('x')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
@@ -78,7 +77,7 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
-        theta = sympy.Symbol('θ')
+        theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
@@ -97,13 +96,13 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_circuit_composition(self):
         """Test preservation of variables when combining circuits."""
-        theta = sympy.Symbol('θ')
+        theta = Parameter('θ')
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
         qc1 = QuantumCircuit(qr)
         qc1.rx(theta, qr)
 
-        phi = sympy.Symbol('phi')
+        phi = Parameter('phi')
         qc2 = QuantumCircuit(qr, cr)
         qc2.ry(phi, qr)
         qc2.h(qr)
@@ -114,7 +113,7 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_composite_instruction(self):
         """Test preservation of variables when combining circuits."""
-        theta = sympy.Symbol('θ')
+        theta = Parameter('θ')
         qr1 = QuantumRegister(1, name='qr1')
         qc1 = QuantumCircuit(qr1)
         qc1.rx(theta, qr1)
@@ -123,7 +122,7 @@ class TestVariableParameters(QiskitTestCase):
         gate = qc1.to_instruction()
         self.assertEqual(gate.params, [theta, numpy.pi/2, -theta])
 
-        phi = sympy.Symbol('phi')
+        phi = Parameter('phi')
         qr2 = QuantumRegister(3, name='qr2')
         qc2 = QuantumCircuit(qr2)
         qc2.ry(phi, qr2[0])
@@ -133,8 +132,8 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_parameter_expression(self):
         """Test evaluation with parameter expressions"""
-        x = sympy.Symbol('x')
-        y = sympy.Symbol('y')
+        x = Parameter('x')
+        y = Parameter('y')
         qr1 = QuantumRegister(1, name='qr1')
         qc1 = QuantumCircuit(qr1)
         qc1.rx(x, qr1)
@@ -156,9 +155,9 @@ class TestVariableParameters(QiskitTestCase):
     def test_parameter_reduction(self):
         """Test circuit parameter reduction upon assignment with partial
         numeric substitution."""
-        x = sympy.Symbol('x')
-        y = sympy.Symbol('y')
-        z = sympy.Symbol('z')
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
         qr1 = QuantumRegister(1, name='qr1')
         qc1 = QuantumCircuit(qr1)
         qc1.rx(x, qr1)
@@ -173,8 +172,8 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_parameter_expression_through_composite_instructions(self):
         """Test evaluation of parameters through instruction."""
-        x = sympy.Symbol('x')
-        y = sympy.Symbol('y')
+        x = Parameter('x')
+        y = Parameter('y')
         qr1 = QuantumRegister(1, name='qr1')
         qc1 = QuantumCircuit(qr1)
         qc1.rx(x, qr1)
@@ -198,8 +197,8 @@ class TestVariableParameters(QiskitTestCase):
 
     def test_unassigned_variables(self):
         """Test to check for presence of unassigned variables."""
-        x = sympy.Symbol('x')
-        y = sympy.Symbol('y')
+        x = Parameter('x')
+        y = Parameter('y')
         qr = QuantumRegister(1, name='qr')
         qc = QuantumCircuit(qr)
 
