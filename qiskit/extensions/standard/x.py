@@ -10,6 +10,9 @@
 """
 Pauli X (bit-flip) gate.
 """
+
+import numpy
+
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -44,6 +47,11 @@ class XGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return XGate()  # self-inverse
+
+    def to_matrix(self):
+        """Return a Numpy.array for the X gate."""
+        return numpy.array([[0, 1],
+                            [1, 0]], dtype=complex)
 
 
 @_to_bits(1)
