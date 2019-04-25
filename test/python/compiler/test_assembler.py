@@ -79,7 +79,7 @@ class TestCircuitAssembler(QiskitTestCase):
 
         qobj = assemble(circ)
         self.assertIsInstance(qobj, QasmQobj)
-        self.assertIsNone(getattr(qobj.config, 'shots', None))
+        self.assertEqual(qobj.config.shots, 1024)
 
     def test_assemble_initialize(self):
         """Test assembling a circuit with an initialize.

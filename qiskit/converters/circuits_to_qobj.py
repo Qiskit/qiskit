@@ -48,7 +48,7 @@ def circuits_to_qobj(circuits, qobj_header=None,
     if coupling_map:
         warnings.warn('coupling_map was unused and will be removed.', DeprecationWarning)
 
-    qobj = assemble(circuits=circuits,
+    qobj = assemble(experiments=circuits,
                     qobj_id=qobj_id,
                     qobj_header=qobj_header,
                     shots=shots,

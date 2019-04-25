@@ -271,7 +271,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
 def assemble(experiments,
              qobj_id=None, qobj_header=None,  # common run options
-             shots=None, memory=None, max_credits=None,
+             shots=1024, memory=False, max_credits=None,
              seed_simulator=None,
              default_qubit_los=None, default_meas_los=None,  # schedule run options
              schedule_los=None, meas_level=2, meas_return='avg',
@@ -447,17 +447,6 @@ def _parse_run_args(qobj_id, qobj_header,
 
     qubit_lo_freq = default_qubit_los or getattr(backend_default, 'qubit_freq_est', [])
     meas_lo_freq = default_meas_los or getattr(backend_default, 'meas_freq_est', [])
-
-    if meas_level == 2:
-        if meas_return == 'avg':
-            logger.warning('"meas_return=avg" is not a supported option for "meas_level=2".'
-                           'If you wish to obtain the binned counts please use "meas_level=2" and'
-                           'if you wish to obtain the individual shot results, set "memory=True".')
-        memory = True
-        meas_return = 'single'
-    else:
-        if memory:
-            logger.warning('Setting "memory" does not have an effect for "meas_level=0/1".')
 
     # an identifier for the Qobj
     qobj_id = qobj_id or str(uuid.uuid4())

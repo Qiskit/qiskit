@@ -126,8 +126,8 @@ class TestTranspile(QiskitTestCase):
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
 
         backend = BasicAer.get_backend('qasm_simulator')
-        circuit2 = transpile(circuit, backend, coupling_map=coupling_map, basis_gates=basis_gates,
-                             pass_manager=None)
+        circuit2 = transpile(circuit, backend=backend, coupling_map=coupling_map,
+                             basis_gates=basis_gates, pass_manager=None)
 
         qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
         qobj2 = assemble(circuit2, qobj_id=qobj.qobj_id, shots=1024, max_credits=10)
