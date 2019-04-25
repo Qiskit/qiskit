@@ -22,6 +22,7 @@ import logging
 import numpy as np
 from scipy import optimize as sciopt
 
+from qiskit.aqua import aqua_globals
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -123,7 +124,7 @@ class P_BFGS(Optimizer):
         # Start off as many other processes running the optimize (can be 0)
         processes = []
         for i in range(num_procs):
-            i_pt = np.random.uniform(low, high)  # Another random point in bounds
+            i_pt = aqua_globals.random.uniform(low, high)  # Another random point in bounds
             p = multiprocessing.Process(target=optimize_runner, args=(queue, i_pt))
             processes.append(p)
             p.start()
