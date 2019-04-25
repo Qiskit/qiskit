@@ -201,7 +201,7 @@ class MultiBox(DrawElement):
         """ Returns the width of the label, including padding"""
         if self._width:
             return self._width
-        return len(self.label)
+        return len(self.label)+len(self.wire_label)
 
 class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
     """ Draws the top part of a box that affects more than one quantum wire"""

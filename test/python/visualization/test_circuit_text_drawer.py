@@ -933,7 +933,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
                               "        │      │",
                               "q_0: |0>┤0     ├",
                               "        └──────┘"])
-
+        expected = ''
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
 
