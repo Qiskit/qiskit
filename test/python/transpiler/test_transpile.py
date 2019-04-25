@@ -12,7 +12,6 @@
 import math
 from unittest.mock import patch
 
-import sympy
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
 from qiskit.extensions.standard import CnotGate
@@ -24,6 +23,7 @@ from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.compiler import RunConfig
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.mapper import Layout
+from qiskit.circuit import Parameter
 
 
 class TestTranspileDag(QiskitTestCase):
@@ -496,7 +496,7 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(2, name='qr')
         qc = QuantumCircuit(qr)
 
-        theta = sympy.Symbol('theta')
+        theta = Parameter('theta')
         qc.rz(theta, qr[0])
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
@@ -511,7 +511,7 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(2, name='qr')
         qc = QuantumCircuit(qr)
 
-        theta = sympy.Symbol('theta')
+        theta = Parameter('theta')
         qc.rz(theta, qr[0])
 
         transpiled_qc = transpile(qc, backend=FakeMelbourne())
