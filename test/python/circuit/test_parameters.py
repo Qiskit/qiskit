@@ -88,7 +88,7 @@ class TestParameters(QiskitTestCase):
         circs = []
         theta_list = numpy.linspace(0, numpy.pi, 20)
         for theta_i in theta_list:
-            circs.append(qc_aer.assign_parameters({theta: theta_i}))
+            circs.append(qc_aer.bind_parameters({theta: theta_i}))
         qobj = assemble(circs)
         for index, theta_i in enumerate(theta_list):
             self.assertEqual(qobj.experiments[index].instructions[0].params[0],

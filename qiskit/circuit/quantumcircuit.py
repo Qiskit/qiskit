@@ -695,7 +695,7 @@ class QuantumCircuit:
         """convenience function to get the parameters defined in the parameter table"""
         return set(self._parameter_table.keys())
 
-    def assign_parameters(self, value_dict):
+    def bind_parameters(self, value_dict):
         """Assign parameters to values yielding a new circuit.
 
         Args:
