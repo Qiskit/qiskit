@@ -15,6 +15,7 @@ from qiskit.circuit import Gate, Parameter
 from qiskit.transpiler import transpile
 from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
+from qiskit.exceptions import QiskitError
 
 
 class TestParameters(QiskitTestCase):
@@ -74,6 +75,19 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
         self.assertEqual(qc.parameters, {theta, x})
+
+    def test_raise_if_assigning_params_not_in_circuit(self):
+        """Verify binding parameters which are not present in the circuit raises an error."""
+        x = Parameter('x')
+        y = Parameter('y')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+
+        qc.u1(0.1, qr[0])
+        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1})
+
+        qc.u1(x, qr[0])
+        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1, y: 2})
 
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
