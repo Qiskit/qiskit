@@ -12,8 +12,8 @@ from collections.abc import MutableMapping
 from .instruction import Instruction
 
 
-class VariableTable(MutableMapping):
-    """Class for managing and setting circuit variables"""
+class ParameterTable(MutableMapping):
+    """Class for managing and setting circuit parameters"""
 
     def __init__(self, *args, **kwargs):
         """
@@ -26,10 +26,10 @@ class VariableTable(MutableMapping):
         return self._table[key]
 
     def __setitem__(self, key, value):
-        """set the value of variable
+        """set the value of parameter
 
         Args:
-            key (Parameter): the variable to set
+            key (Parameter): the parameter to set
             value (Number or dict): numeric constant or dictionary of
                 (Parameter) pairs
         """

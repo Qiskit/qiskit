@@ -17,7 +17,7 @@ from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
 
 
-class TestVariableParameters(QiskitTestCase):
+class TestParameters(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
     def test_gate(self):
@@ -38,7 +38,7 @@ class TestVariableParameters(QiskitTestCase):
         qobj = assemble(qc_aer)
         self.assertIn(theta, qobj.experiments[0].instructions[0].params)
 
-    def test_get_variables(self):
+    def test_get_parameters(self):
         """Test instantiating gate with variable parmeters"""
         from qiskit.extensions.standard.rx import RXGate
         theta = Parameter('θ')
@@ -46,7 +46,7 @@ class TestVariableParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         rxg = RXGate(theta)
         qc.append(rxg, [qr[0]], [])
-        vparams = qc.variable_table
+        vparams = qc.parameter_table
         self.assertEqual(len(vparams), 1)
         self.assertIs(theta, next(iter(vparams)))
         self.assertIs(rxg, vparams[theta][0][0])
@@ -58,22 +58,22 @@ class TestVariableParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, 0, qr)
-        qc.variable_table[theta] = 0.5
-        self.assertEqual(qc.variable_table[theta][0][0].params[0], 0.5)
-        self.assertEqual(qc.variable_table[theta][1][0].params[1], 0.5)
-        qc.variable_table[theta] = 0.6
-        self.assertEqual(qc.variable_table[theta][0][0].params[0], 0.6)
-        self.assertEqual(qc.variable_table[theta][1][0].params[1], 0.6)
+        qc.parameter_table[theta] = 0.5
+        self.assertEqual(qc.parameter_table[theta][0][0].params[0], 0.5)
+        self.assertEqual(qc.parameter_table[theta][1][0].params[1], 0.5)
+        qc.parameter_table[theta] = 0.6
+        self.assertEqual(qc.parameter_table[theta][0][0].params[0], 0.6)
+        self.assertEqual(qc.parameter_table[theta][1][0].params[1], 0.6)
 
-    def test_multiple_variables(self):
-        """Test setting multiple variables"""
+    def test_multiple_parameters(self):
+        """Test setting multiple parameters"""
         theta = Parameter('θ')
         x = Parameter('x')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
-        self.assertEqual(qc.variables, {theta, x})
+        self.assertEqual(qc.parameters, {theta, x})
 
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
@@ -88,14 +88,14 @@ class TestVariableParameters(QiskitTestCase):
         circs = []
         theta_list = numpy.linspace(0, numpy.pi, 20)
         for theta_i in theta_list:
-            circs.append(qc_aer.assign_variables({theta: theta_i}))
+            circs.append(qc_aer.assign_parameters({theta: theta_i}))
         qobj = assemble(circs)
         for index, theta_i in enumerate(theta_list):
             self.assertEqual(qobj.experiments[index].instructions[0].params[0],
                              theta_i)
 
     def test_circuit_composition(self):
-        """Test preservation of variables when combining circuits."""
+        """Test preservation of parameters when combining circuits."""
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         cr = ClassicalRegister(1)
@@ -109,10 +109,10 @@ class TestVariableParameters(QiskitTestCase):
         qc2.measure(qr, cr)
 
         qc3 = qc1 + qc2
-        self.assertEqual(qc3.variables, {theta, phi})
+        self.assertEqual(qc3.parameters, {theta, phi})
 
     def test_composite_instruction(self):
-        """Test preservation of variables when combining circuits."""
+        """Test preservation of parameters when combining circuits."""
         theta = Parameter('θ')
         qr1 = QuantumRegister(1, name='qr1')
         qc1 = QuantumCircuit(qr1)
@@ -128,4 +128,4 @@ class TestVariableParameters(QiskitTestCase):
         qc2.ry(phi, qr2[0])
         qc2.h(qr2)
         qc2.append(gate, qargs=[qr2[1]])
-        self.assertEqual(qc2.variables, {theta, phi})
+        self.assertEqual(qc2.parameters, {theta, phi})
