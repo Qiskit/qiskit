@@ -25,21 +25,29 @@ class ParameterTable(MutableMapping):
     def __getitem__(self, key):
         return self._table[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, parameter, value):
         """set the value of parameter
 
+        If the parameter is not already in the table, value should be a list of
+        (Instruction, param_index) tuples. __setitem__ will record in the
+        ParameterTable that Instruction is dependent on parameter at param_index.
+
+        If the parameter is in the table, value should be either a Number, or a
+        { Parameter: value } dict. __setitem__ will update all instructions in
+        the ParameterTable with the set value of Parameter.
+
         Args:
-            key (Parameter): the parameter to set
-            value (Number or dict): numeric constant or dictionary of
-                (Parameter) pairs
+            parameter (Parameter): the parameter to set
+            value (Number or dict or list): numeric constant or dictionary of
+                (Parameter: value) pairs or list of (Instruction, int) tuples
         """
-        if key not in self._table:
+        if parameter not in self._table:
             for instruction, param_index in value:
                 assert isinstance(instruction, Instruction)
                 assert isinstance(param_index, int)
-            self._table[key] = value
+            self._table[parameter] = value
         else:
-            for (instr, param_index) in self._table[key]:
+            for (instr, param_index) in self._table[parameter]:
                 params = instr.params
                 if isinstance(value, dict):
                     for _, this_value in value.items():
