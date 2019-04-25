@@ -14,24 +14,10 @@ from qiskit.mapper import CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.converters import circuit_to_dag
 from qiskit.converters import dag_to_circuit
-from qiskit.extensions.standard import SwapGate
 from qiskit.mapper.layout import Layout
-from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-
-from .passes.unroller import Unroller
-from .passes.cx_cancellation import CXCancellation
-from .passes.decompose import Decompose
-from .passes.optimize_1q_gates import Optimize1qGates
-from .passes.fixed_point import FixedPoint
-from .passes.depth import Depth
-from .passes.mapping.check_map import CheckMap
-from .passes.mapping.cx_direction import CXDirection
-from .passes.mapping.dense_layout import DenseLayout
-from .passes.mapping.trivial_layout import TrivialLayout
-from .passes.mapping.legacy_swap import LegacySwap
-from .passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
-from .passes.mapping.extend_layout import ExtendLayout
+from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
+                                                   default_pass_manager)
 
 logger = logging.getLogger(__name__)
 
@@ -46,12 +32,42 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         basis_gates (list[str]): list of basis gate names supported by the
             target. Default: ['u1','u2','u3','cx','id']
         coupling_map (list): coupling map (perhaps custom) to target in mapping
-        initial_layout (list): initial layout of qubits in mapping
+
+        initial_layout (Layout or dict or list):
+            Initial position of virtual qubits on physical qubits. The final
+            layout is not guaranteed to be the same, as the transpiler may permute
+            qubits through swaps or other means.
+
+            Multiple formats are supported:
+            a. Layout instance
+
+            b. dict
+                virtual to physical:
+                    {qr[0]: 0,
+                     qr[1]: 3,
+                     qr[2]: 5}
+
+                physical to virtual:
+                    {0: qr[0],
+                     3: qr[1],
+                     5: qr[2]}
+
+            c. list
+                virtual to physical:
+                    [0, 3, 5]  # virtual qubits are ordered (in addition to named)
+
+                physical to virtual:
+                    [qr[0], None, None, qr[1], None, qr[2]]
+
+
         seed_mapper (int): random seed for the swap_mapper
         pass_manager (PassManager): a pass_manager for the transpiler stages
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
+
+    Raises:
+        TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
     return_form_is_single = False
     if isinstance(circuits, QuantumCircuit):
@@ -65,16 +81,17 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
         # This needs to be removed once Aer 0.2 is out
         coupling_map = coupling_map or getattr(backend.configuration(), 'coupling_map', None)
 
-    # Convert integer list format to Layout
-    if isinstance(initial_layout, list) and \
-            all(isinstance(elem, int) for elem in initial_layout):
-        if isinstance(circuits, list):
-            circ = circuits[0]
+    # Accomodate initial_layout in the form of Layout, or dict, or list
+    # TODO: (Ali) allow partial layout specifications
+    if isinstance(initial_layout, list):
+        if all(isinstance(elem, int) for elem in initial_layout):
+            # FIXME: (Ali) must allow a list of initial layouts
+            initial_layout = Layout.from_intlist(initial_layout, *circuits[0].qregs)
+        elif all(elem is None or isinstance(elem, tuple) for elem in initial_layout):
+            initial_layout = Layout.from_tuplelist(initial_layout)
         else:
-            circ = circuits
-        initial_layout = Layout.generate_from_intlist(initial_layout, *circ.qregs)
-
-    if initial_layout is not None and not isinstance(initial_layout, Layout):
+            raise TranspilerError("bad format for initial_layout")
+    elif isinstance(initial_layout, dict):
         initial_layout = Layout(initial_layout)
 
     circuits = parallel_map(_transpilation, circuits,
@@ -115,41 +132,64 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     if pass_manager and not pass_manager.working_list:
         return circuit
 
+    is_parametric_circuit = bool(circuit.unassigned_variables)
+
     dag = circuit_to_dag(circuit)
     del circuit
 
-    # if the circuit and layout already satisfy the coupling_constraints, use that layout
-    # if there's no layout but the circuit is compatible, use a trivial layout
-    # otherwise layout on the most densely connected physical qubit subset
-    # FIXME: this should be simplified once it is ported to a PassManager
-    if coupling_map:
-        cm_object = CouplingMap(coupling_map)
-        check_map = CheckMap(cm_object, initial_layout)
-        check_map.run(dag)
-        if check_map.property_set['is_swap_mapped']:
-            if not initial_layout:
-                trivial_layout = TrivialLayout(cm_object)
-                trivial_layout.run(dag)
-                initial_layout = trivial_layout.property_set['layout']
-        else:
-            dense_layout = DenseLayout(cm_object)
-            dense_layout.run(dag)
-            initial_layout = dense_layout.property_set['layout']
-
-    final_dag = transpile_dag(dag, basis_gates=basis_gates,
-                              coupling_map=coupling_map,
-                              initial_layout=initial_layout,
-                              seed_mapper=seed_mapper,
-                              pass_manager=pass_manager)
+    final_dag = _transpile_dag(dag, basis_gates=basis_gates,
+                               coupling_map=coupling_map,
+                               initial_layout=initial_layout,
+                               skip_numeric_passes=is_parametric_circuit,
+                               seed_mapper=seed_mapper,
+                               pass_manager=pass_manager)
 
     out_circuit = dag_to_circuit(final_dag)
 
     return out_circuit
 
 
-# pylint: disable=redefined-builtin
 def transpile_dag(dag, basis_gates=None, coupling_map=None,
-                  initial_layout=None, seed_mapper=None, pass_manager=None):
+                  initial_layout=None, skip_numeric_passes=None,
+                  seed_mapper=None, pass_manager=None):
+    """Deprecated - Transform a dag circuit into another dag circuit
+    (transpile), through consecutive passes on the dag.
+
+    Args:
+        dag (DAGCircuit): dag circuit to transform via transpilation
+        basis_gates (list[str]): list of basis gate names supported by the
+            target. Default: ['u1','u2','u3','cx','id']
+        coupling_map (list): A graph of coupling::
+
+            [
+             [control0(int), target0(int)],
+             [control1(int), target1(int)],
+            ]
+
+            eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
+
+        initial_layout (Layout or None): A layout object
+        skip_numeric_passes (bool): If true, skip passes which require fixed parameter values
+        seed_mapper (int): random seed_mapper for the swap mapper
+        pass_manager (PassManager): pass manager instance for the transpilation process
+            If None, a default set of passes are run.
+            Otherwise, the passes defined in it will run.
+            If contains no passes in it, no dag transformations occur.
+
+    Returns:
+        DAGCircuit: transformed dag
+    """
+
+    warnings.warn("transpile_dag has been deprecated and will be removed in the "
+                  "0.9 release. Circuits can be transpiled directly to other "
+                  "circuits with the transpile function.", DeprecationWarning)
+    return _transpile_dag(dag, basis_gates, coupling_map, initial_layout,
+                          skip_numeric_passes, seed_mapper, pass_manager)
+
+
+def _transpile_dag(dag, basis_gates=None, coupling_map=None,
+                   initial_layout=None, skip_numeric_passes=None,
+                   seed_mapper=None, pass_manager=None):
     """Transform a dag circuit into another dag circuit (transpile), through
     consecutive passes on the dag.
 
@@ -167,6 +207,7 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
             eg. [[0, 2], [1, 2], [1, 3], [3, 4]}
 
         initial_layout (Layout or None): A layout object
+        skip_numeric_passes (bool): If true, skip passes which require fixed parameter values
         seed_mapper (int): random seed_mapper for the swap mapper
         pass_manager (PassManager): pass manager instance for the transpilation process
             If None, a default set of passes are run.
@@ -188,39 +229,18 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
                       "removed after 0.9", DeprecationWarning, 2)
         basis_gates = basis_gates.split(',')
 
-    if initial_layout is None:
-        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
     if pass_manager is None:
         # default set of passes
 
-        pass_manager = PassManager()
-        pass_manager.append(Unroller(basis_gates))
-
         # if a coupling map is given compile to the map
         if coupling_map:
-            coupling = CouplingMap(coupling_map)
-
-            # Extend and enlarge the the dag/layout with ancillas using the full coupling map
-            pass_manager.property_set['layout'] = initial_layout
-            pass_manager.append(ExtendLayout(coupling))
-            pass_manager.append(EnlargeWithAncilla(initial_layout))
-
-            # Swap mapper
-            pass_manager.append(LegacySwap(coupling, initial_layout, trials=20, seed=seed_mapper))
-
-            # Expand swaps
-            pass_manager.append(Decompose(SwapGate))
-
-            # Change CX directions
-            pass_manager.append(CXDirection(coupling))
-
-            # Unroll to the basis
-            pass_manager.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
-
-            # Simplify single qubit gates and CXs
-            pass_manager.append([Optimize1qGates(), CXCancellation(), Depth(), FixedPoint('depth')],
-                                do_while=lambda property_set: not property_set['depth_fixed_point'])
+            pass_manager = default_pass_manager(basis_gates,
+                                                CouplingMap(coupling_map),
+                                                initial_layout,
+                                                skip_numeric_passes,
+                                                seed_mapper=seed_mapper)
+        else:
+            pass_manager = default_pass_manager_simulator(basis_gates)
 
     # run the passes specified by the pass manager
     # TODO return the property set too. See #1086

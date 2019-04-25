@@ -29,8 +29,6 @@ class SamplePulse(PulseCommand):
         Raises:
             PulseError: when pulse envelope amplitude exceeds 1.
         """
-        name = name or str('pulse_object_%s' % id(self))
-
         super().__init__(duration=len(samples), name=name)
 
         if np.any(np.abs(samples) > 1):
