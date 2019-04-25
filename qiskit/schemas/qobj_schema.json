@@ -618,23 +618,27 @@
                             "type": "string"
                         },
                         "memory": {
-			    "type": "array",
-                            "maxItems": 0
+			                "type": "array"
                         },
                         "name": {
                             "enum": [
                                 "snapshot"
                             ]
                         },
+                        "params": {
+                            "type": "array"
+                        },
+                        "qubits": {
+                            "type": "array"
+                        },
                         "register": {
-			    "type": "array",
-                            "maxItems": 0
+			                "type": "array"
+                        },
+                        "snapshot_type": {
+                            "type": "string"
                         },
                         "texparams": {
                             "maxItems": 0
-                        },
-                        "type": {
-                            "type": "string"
                         }
                     },
                     "required": [
