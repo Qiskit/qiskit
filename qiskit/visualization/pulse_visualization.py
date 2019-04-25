@@ -95,17 +95,18 @@ class EventsOutputChannels:
 
         self.enable = False
 
-    def add_instruction(self, pulse):
+    def add_instruction(self, start_time, pulse):
         """Add new pulse instruction to channel.
 
         Args:
+            start_time (int): Starting time of instruction.
             pulse (Instruction): Instruction object to be added.
         """
 
-        if pulse.start_time in self.pulses.keys():
-            self.pulses[pulse.start_time].append(pulse.command)
+        if start_time in self.pulses.keys():
+            self.pulses[start_time].append(pulse.command)
         else:
-            self.pulses[pulse.start_time] = [pulse.command]
+            self.pulses[start_time] = [pulse.command]
 
     @property
     def waveform(self):
@@ -334,10 +335,10 @@ class ScheduleDrawer:
             except PulseError:
                 pass
 
-        for instruction in pulse_obj.flat_instruction_sequence():
+        for start_time, instruction in pulse_obj.flatten():
             for channel in instruction.channels:
                 if channel in channels:
-                    channels[instruction.channel].add_instruction(instruction)
+                    channels[channel].add_instruction(start_time, instruction)
 
         # count numbers of valid waveform
         n_valid_waveform = 0
