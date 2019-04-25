@@ -83,6 +83,35 @@ stages:
 # using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
+    # Wheel builds
+    - sudo: required
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython"
+        - CIBW_SKIP="cp27-* cp34-*"
+        - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_COMMAND="python3 {project}/examples/python/teleport.py"
+      if: tag IS present
+      script:
+        - sudo pip install cibuildwheel==0.10.1
+        - cibuildwheel --output-dir wheelhouse
+        - twine upload wheelhouse/*
+    - os: osx
+      language: generic
+      if: tag IS present
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython"
+        - CIBW_SKIP="cp27-* cp34-*"
+        - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_COMMAND="python3 {project}/examples/python/teleport.py"
+      script:
+        - sudo pip2 install cibuildwheel==0.10.1
+        - cibuildwheel --output-dir wheelhouse
+        - twine upload wheelhouse/*
+
     # "lint and and pure python test" stage
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
