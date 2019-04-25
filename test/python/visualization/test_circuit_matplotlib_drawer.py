@@ -9,14 +9,24 @@
 
 import tempfile
 import unittest
+import os
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.test import QiskitTestCase
 from qiskit import visualization
+
 
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
     from matplotlib.testing import compare
+
+
+def _path_to_reference(filename):
+    return os.path.join(_this_directory(), 'references', filename)
+
+
+def _this_directory():
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 class TestMatplotlibDrawer(QiskitTestCase):
@@ -33,17 +43,66 @@ class TestMatplotlibDrawer(QiskitTestCase):
         expected.set_size_inches(2.508333333333333, 0.2508333333333333)
         return expected
 
+    def _make_temp_file(self, plot):
+        tmp = tempfile.NamedTemporaryFile(suffix='.png')
+        self.addCleanup(tmp.close)
+        plot.savefig(tmp.name)
+        return tmp
+
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
     def test_empty_circuit(self):
         qc = QuantumCircuit()
         res = visualization.circuit_drawer(qc, output='mpl')
-        res_out_file = tempfile.NamedTemporaryFile(suffix='.png')
-        self.addCleanup(res_out_file.close)
-        res.savefig(res_out_file.name)
+        res_out_file = self._make_temp_file(res)
         expected = self._expected_empty()
-        expected_image_file = tempfile.NamedTemporaryFile(suffix='.png')
-        self.addCleanup(expected_image_file.close)
-        expected.savefig(expected_image_file.name)
+        expected_image_file = self._make_temp_file(expected)
         self.assertIsNone(compare.compare_images(expected_image_file.name,
                                                  res_out_file.name, 0.0001))
+
+    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
+                     'matplotlib not available.')
+    def test_plot_barriers(self):
+        """Test to see that plotting barriers works - if it is set to False, no
+        blank columns are introduced"""
+
+        # generate a circuit with barriers and other barrier like instructions in
+        q = QuantumRegister(2, 'q')
+        c = ClassicalRegister(2, 'c')
+        qc = QuantumCircuit(q, c)
+
+        # check for barriers
+        qc.h(q[0])
+        qc.barrier()
+
+        # check for other barrier like commands
+        qc.h(q[1])
+
+        # this import appears to be unused, but is actually needed to get snapshot instruction
+        import qiskit.extensions.simulator  # pylint: disable=unused-import
+        qc.snapshot('1')
+
+        # check the barriers plot properly when plot_barriers= True
+        barriers_plot = visualization.circuit_drawer(qc, output='mpl', plot_barriers=True)
+        barriers_plot_file = self._make_temp_file(barriers_plot)
+        self.assertIsNone(compare.compare_images(barriers_plot_file.name,
+                                                 _path_to_reference('matplotlib_barriers_ref.png'),
+                                                 0.0001))
+
+        # check that the barrier aren't plotted when plot_barriers = False
+        barriers_no_plot = visualization.circuit_drawer(qc, output='mpl', plot_barriers=False)
+        barriers_no_plot_file = self._make_temp_file(barriers_no_plot)
+
+        # generate the same circuit but without the barrier commands as this is what the
+        # circuit should look like when displayed with plot barriers false
+        q1 = QuantumRegister(2, 'q')
+        c1 = ClassicalRegister(2, 'c')
+        qc1 = QuantumCircuit(q1, c1)
+        qc1.h(q1[0])
+        qc1.h(q1[1])
+
+        no_barriers = visualization.circuit_drawer(qc1, output='mpl', justify='None',)
+        no_barriers_file = self._make_temp_file(no_barriers)
+
+        self.assertIsNone(compare.compare_images(barriers_no_plot_file.name,
+                                                 no_barriers_file.name, 0.0001))
