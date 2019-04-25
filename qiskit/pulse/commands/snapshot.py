@@ -10,7 +10,7 @@ Snapshot.
 """
 
 from qiskit.pulse.channels import SnapshotChannel
-from qiskit.pulse.common.timeslots import TimeslotCollection
+from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from .instruction import Instruction
 from .pulse_command import PulseCommand
 
@@ -18,7 +18,7 @@ from .pulse_command import PulseCommand
 class Snapshot(PulseCommand, Instruction):
     """Snapshot."""
 
-    def __init__(self, label: str, snap_type: str, start_time: int = 0):
+    def __init__(self, label: str, snap_type: str):
         """Create new snapshot command.
 
         Args:
@@ -26,13 +26,14 @@ class Snapshot(PulseCommand, Instruction):
             snap_type (str): Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
                 The types of snapshots offered are defined in a separate specification
                 document for simulators.
-            start_time (int, optional): Begin time of snapshot. Defaults to 0.
         """
-        PulseCommand.__init__(self, duration=0)
-        Instruction.__init__(self, self, start_time, TimeslotCollection([]))
         self._label = label
         self._type = snap_type
         self._channel = SnapshotChannel()
+        PulseCommand.__init__(self, duration=0)
+        Instruction.__init__(self, self,
+                             TimeslotCollection(Timeslot(Interval(0, 0), self._channel)),
+                             name=self.label)
 
     @property
     def label(self) -> str:
@@ -59,12 +60,12 @@ class Snapshot(PulseCommand, Instruction):
         Returns:
             bool: are self and other equal.
         """
-        if type(self) is type(other) and \
-                self._label == other._label and \
-                self._type == other._type:
+        if (type(self) is type(other) and
+                self._label == other._label and
+                self._type == other._type):
             return True
         return False
 
     def __repr__(self):
-        return '%4d: %s(%s, %s) -> %s' % \
-               (self._start_time, self.__class__.__name__, self._label, self._type, self._channel)
+        return '%s(%s, %s) -> %s' % (self.__class__.__name__, self._label,
+                                     self._type, self._channel)

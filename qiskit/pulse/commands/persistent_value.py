@@ -10,7 +10,7 @@ Persistent value.
 """
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
+from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .pulse_command import PulseCommand
@@ -33,7 +33,12 @@ class PersistentValue(PulseCommand):
         if abs(value) > 1:
             raise PulseError("Absolute value of PV amplitude exceeds 1.")
 
-        self.value = complex(value)
+        self._value = complex(value)
+
+    @property
+    def value(self):
+        """Persistent value amplitude."""
+        return self._value
 
     def __eq__(self, other):
         """Two PersistentValues are the same if they are of the same type
@@ -53,27 +58,21 @@ class PersistentValue(PulseCommand):
     def __repr__(self):
         return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
 
-    def __call__(self, channel: OutputChannel) -> 'PersistentValueInstruction':
-        return PersistentValueInstruction(self, channel)
+    def __call__(self, channel: OutputChannel, name=None) -> 'PersistentValueInstruction':
+        return PersistentValueInstruction(self, channel, name=name)
 
 
 class PersistentValueInstruction(Instruction):
     """Instruction to keep persistent value. """
 
-    def __init__(self, command: PersistentValue, channel: OutputChannel, start_time: int = 0):
-        slots = [Timeslot(Interval(start_time, start_time), channel)]
-        super().__init__(command, start_time, TimeslotCollection(slots))
-        self._channel = channel
-
-    @property
-    def command(self) -> PersistentValue:
-        """PersistentValue command. """
-        return self._command
+    def __init__(self, command: PersistentValue, channel: OutputChannel, name=None):
+        slots = [Timeslot(Interval(0, 0), channel)]
+        super().__init__(command, TimeslotCollection(*slots), name=name)
 
     @property
     def channel(self) -> OutputChannel:
-        """OutputChannel channel."""
-        return self._channel
+        """OutputChannel command. """
+        return self.channels[0]
 
     def __repr__(self):
-        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)
+        return '%s -> %s' % (self.command, self.channels)

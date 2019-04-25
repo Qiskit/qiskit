@@ -283,6 +283,7 @@ Added
 Changed
 -------
 
+- Schedules and underlying classes are now immutable. (#2186)
 - Evolved pass-based transpiler to support advanced functionality (#1060)
 - `.retrieve_job()` and `.jobs()` no longer returns results by default,
   instead the result must be accessed by the `result()` method on the job

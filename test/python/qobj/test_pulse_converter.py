@@ -50,7 +50,7 @@ class TestInstructionConverter(QiskitTestCase):
             t0=0
         )
 
-        self.assertEqual(converter(instruction), valid_qobj)
+        self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
@@ -65,7 +65,7 @@ class TestInstructionConverter(QiskitTestCase):
             phase=0.1
         )
 
-        self.assertEqual(converter(instruction), valid_qobj)
+        self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_persistent_value(self):
         """Test converted qobj from PersistentValueInstruction."""
@@ -80,7 +80,7 @@ class TestInstructionConverter(QiskitTestCase):
             val=0.1j
         )
 
-        self.assertEqual(converter(instruction), valid_qobj)
+        self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_acquire(self):
         """Test converted qobj from AcquireInstruction."""
@@ -97,7 +97,7 @@ class TestInstructionConverter(QiskitTestCase):
             register_slot=[0]
         )
 
-        self.assertEqual(converter(instruction), valid_qobj)
+        self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
@@ -111,7 +111,7 @@ class TestInstructionConverter(QiskitTestCase):
             type='type'
         )
 
-        self.assertEqual(converter(instruction), valid_qobj)
+        self.assertEqual(converter(0, instruction), valid_qobj)
 
 
 class TestLoConverter(QiskitTestCase):

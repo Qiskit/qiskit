@@ -9,54 +9,148 @@
 Instruction = Leaf node of schedule.
 """
 import logging
-from copy import copy
-from typing import Tuple
+from typing import Tuple, List, Iterable
+from qiskit.pulse import ops
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.interfaces import ScheduleComponent
+from qiskit.pulse.timeslots import TimeslotCollection
 
-from qiskit.pulse.common.interfaces import ScheduleComponent
-from qiskit.pulse.common.timeslots import TimeslotCollection
 from .pulse_command import PulseCommand
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=missing-return-doc
 
 
 class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
-    def __init__(self, command: PulseCommand, start_time: int, occupancy: TimeslotCollection):
+    def __init__(self, command: PulseCommand, timeslots: TimeslotCollection, name: str = None):
+        self._name = name
         self._command = command
-        self._start_time = start_time
-        self._occupancy = occupancy
+        self._timeslots = timeslots
 
     @property
-    def duration(self) -> int:
-        """Duration of this instruction. """
-        return self._command.duration
+    def name(self) -> str:
+        """Name of this instruction."""
+        return self._name
 
     @property
-    def occupancy(self) -> TimeslotCollection:
+    def command(self) -> PulseCommand:
+        """Acquire command. """
+        return self._command
+
+    @property
+    def channels(self) -> Tuple[Channel]:
+        """Returns channels that this schedule uses."""
+        return self.timeslots.channels
+
+    @property
+    def timeslots(self) -> TimeslotCollection:
         """Occupied time slots by this instruction. """
-        return self._occupancy
-
-    def shifted(self, shift: int) -> ScheduleComponent:
-        news = copy(self)
-        news._start_time += shift
-        news._occupancy = self._occupancy.shifted(shift)
-        return news
+        return self._timeslots
 
     @property
     def start_time(self) -> int:
         """Relative begin time of this instruction. """
-        return self._start_time
+        return self.timeslots.start_time
 
     @property
     def stop_time(self) -> int:
         """Relative end time of this instruction. """
-        return self.start_time + self.duration
+        return self.timeslots.stop_time
 
     @property
-    def children(self) -> Tuple[ScheduleComponent, ...]:
+    def duration(self) -> int:
+        """Duration of this instruction. """
+        return self.timeslots.duration
+
+    @property
+    def children(self) -> Tuple[ScheduleComponent]:
         """Instruction has no child nodes. """
         return ()
 
+    def ch_duration(self, *channels: List[Channel]) -> int:
+        """Return duration of the supplied channels in this Instruction.
+
+        Args:
+            *channels: Supplied channels
+        """
+        return self.timeslots.ch_duration(*channels)
+
+    def ch_start_time(self, *channels: List[Channel]) -> int:
+        """Return minimum start time for supplied channels.
+
+        Args:
+            *channels: Supplied channels
+        """
+        return self.timeslots.ch_start_time(*channels)
+
+    def ch_stop_time(self, *channels: List[Channel]) -> int:
+        """Return maximum start time for supplied channels.
+
+        Args:
+            *channels: Supplied channels
+        """
+        return self.timeslots.ch_stop_time(*channels)
+
+    def union(self, *schedules: List[ScheduleComponent]) -> 'ScheduleComponent':
+        """Return a new schedule which is the union of `self` and `schedule`.
+
+        Args:
+            *schedules: Schedules to be take the union with the parent `Schedule`.
+        """
+        return ops.union(self, *schedules)
+
+    def shift(self: ScheduleComponent, time: int) -> 'ScheduleComponent':
+        """Return a new schedule shifted forward by `time`.
+
+        Args:
+            time: Time to shift by
+        """
+        return ops.shift(self, time)
+
+    def insert(self, start_time: int, schedule: ScheduleComponent) -> 'ScheduleComponent':
+        """Return a new schedule with `schedule` inserted within `self` at `start_time`.
+
+        Args:
+            start_time: time to be inserted
+            schedule: schedule to be inserted
+        """
+        return ops.insert(self, start_time, schedule)
+
+    def append(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
+        """Return a new schedule with `schedule` inserted at the maximum time over
+        all channels shared between `self` and `schedule`.
+
+        Args:
+            schedule: schedule to be appended
+        """
+        return ops.append(self, schedule)
+
+    def flatten(self, time: int = 0) -> Iterable[Tuple[int, ScheduleComponent]]:
+        """Iterable for flattening Schedule tree.
+
+        Args:
+            time: Shifted time of this node due to parent
+
+        Yields:
+            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
+                at and the flattened `ScheduleComponent`.
+        """
+        yield (time, self)
+
+    def __add__(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
+        """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
+        return self.append(schedule)
+
+    def __or__(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
+        """Return a new schedule which is the union of `self` and `schedule`."""
+        return self.union(schedule)
+
+    def __lshift__(self, time: int) -> 'ScheduleComponent':
+        """Return a new schedule which is shifted forward by `time`."""
+        return self.shift(time)
+
     def __repr__(self):
-        return "%4d: %s" % (self._start_time, self._command)
+        return "%s" % (self._command)

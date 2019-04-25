@@ -13,7 +13,7 @@ from typing import Callable
 import numpy as np
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
+from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .pulse_command import PulseCommand
@@ -89,27 +89,23 @@ class SamplePulse(PulseCommand):
     def __repr__(self):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
 
-    def __call__(self, channel: OutputChannel) -> 'DriveInstruction':
-        return DriveInstruction(self, channel)
+    def __call__(self, channel: OutputChannel, name=None) -> 'DriveInstruction':
+        if name is None:
+            name = self.name
+        return DriveInstruction(self, channel, name=name)
 
 
 class DriveInstruction(Instruction):
     """Instruction to drive a pulse to an `OutputChannel`. """
 
-    def __init__(self, command: SamplePulse, channel: OutputChannel, start_time: int = 0):
-        slots = [Timeslot(Interval(start_time, start_time + command.duration), channel)]
-        super().__init__(command, start_time, TimeslotCollection(slots))
-        self._channel = channel
-
-    @property
-    def command(self) -> SamplePulse:
-        """SamplePulse command. """
-        return self._command
+    def __init__(self, command: SamplePulse, channel: OutputChannel, name=None):
+        slots = [Timeslot(Interval(0, command.duration), channel)]
+        super().__init__(command, TimeslotCollection(*slots), name=name)
 
     @property
     def channel(self) -> OutputChannel:
         """OutputChannel command. """
-        return self._channel
+        return self.channels[0]
 
     def __repr__(self):
-        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)
+        return '%s -> %s' % (self.command, self.channel)
