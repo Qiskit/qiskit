@@ -196,6 +196,13 @@ class MultiBox(DrawElement):
                 self.bot_connect = self.label
 
 
+    @property
+    def width(self):
+        """ Returns the width of the label, including padding"""
+        if self._width:
+            return self._width
+        return len(self.label)
+
 class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
     """ Draws the top part of a box that affects more than one quantum wire"""
 
