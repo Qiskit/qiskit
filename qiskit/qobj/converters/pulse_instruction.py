@@ -169,7 +169,7 @@ class PulseQobjConverter:
         command_dict = {
             'name': 'fc',
             't0': shift+instruction.start_time,
-            'ch': instruction.channel.name,
+            'ch': instruction.channels[0].name,
             'phase': instruction.command.phase
         }
         return self._qobj_model(**command_dict)
@@ -187,7 +187,7 @@ class PulseQobjConverter:
         command_dict = {
             'name': 'pv',
             't0': shift+instruction.start_time,
-            'ch': instruction.channel.name,
+            'ch': instruction.channels[0].name,
             'val': instruction.command.value
         }
         return self._qobj_model(**command_dict)
@@ -205,7 +205,7 @@ class PulseQobjConverter:
         command_dict = {
             'name': instruction.command.name,
             't0': shift+instruction.start_time,
-            'ch': instruction.channel.name
+            'ch': instruction.channels[0].name
         }
         return self._qobj_model(**command_dict)
 
