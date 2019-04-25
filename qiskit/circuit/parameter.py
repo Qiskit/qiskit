@@ -8,6 +8,7 @@
 Parameter Class for variable parameters.
 """
 
+
 class Parameter():
     """Parameter Class for variable parameters"""
     def __init__(self, name):
@@ -16,8 +17,8 @@ class Parameter():
     def __str__(self):
         return self.name
 
-    def __eq__(self, other):
-        return self.name == other.name
+    # def __eq__(self, other):
+    #     return self.name == other.name
 
-    def __hash__(self):
-        return hash(self.name)
+    # def __hash__(self):
+    #     return hash(self.name)

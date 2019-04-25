@@ -711,6 +711,7 @@ class QuantumCircuit:
             del new_circuit.variable_table[variable]
         return new_circuit
 
+
 def _circuit_from_qasm(qasm):
     # pylint: disable=cyclic-import
     from qiskit.converters import ast_to_dag
