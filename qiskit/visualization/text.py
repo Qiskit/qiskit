@@ -432,13 +432,14 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None):
+                 line_length=None, vertically_compressed=True):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
+        self.vertically_compressed = vertically_compressed
 
     def __str__(self):
         return self.single_string()
@@ -542,7 +543,7 @@ class TextDrawing():
         lines = []
         for layer_group in layer_groups:
             wires = [i for i in zip(*layer_group)]
-            lines += TextDrawing.draw_wires(wires)
+            lines += TextDrawing.draw_wires(wires, self.vertically_compressed)
 
         return lines
 
@@ -569,7 +570,7 @@ class TextDrawing():
         return qubit_labels + clbit_labels
 
     @staticmethod
-    def draw_wires(wires):
+    def draw_wires(wires, vertically_compressed=True):
         """
         Given a list of wires, creates a list of lines with the text drawing.
         Args:
@@ -589,16 +590,22 @@ class TextDrawing():
             if bot_line is None:
                 lines.append(top_line)
             else:
-                lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
+                if vertically_compressed:
+                    lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
+                else:
+                    lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
 
             # MID
-            mid_line = ""
+            mid_line = ''
             for instruction in wire:
                 mid_line += instruction.mid
-            lines.append(TextDrawing.merge_lines(lines[-1], mid_line, icod="bot"))
+            if vertically_compressed:
+                lines.append(TextDrawing.merge_lines(lines[-1], mid_line, icod="mid"))
+            else:
+                lines.append(TextDrawing.merge_lines(lines[-1], mid_line, icod="mid"))
 
             # BOT
-            bot_line = ""
+            bot_line = ''
             for instruction in wire:
                 bot_line += instruction.bot
             lines.append(TextDrawing.merge_lines(lines[-1], bot_line, icod="bot"))
@@ -651,13 +658,17 @@ class TextDrawing():
                 ret += "│"
             elif topc == " ":
                 ret += botc
-            elif topc in '┬╥' and botc in " ║│":
+            elif topc in '┬╥' and botc in " ║│" and icod == "top":
                 ret += topc
+            elif topc in '┬' and botc == " " and icod == "bot":
+                ret += '│'
+            elif topc in '╥' and botc == " " and icod == "bot":
+                ret += '║'
             elif topc in '┬│' and botc == "═":
                 ret += '╪'
             elif topc in '┬│' and botc == "─":
                 ret += '┼'
-            elif topc in '└┘║│░' and botc == " ":
+            elif topc in '└┘║│░' and botc == " " and icod == "top":
                 ret += topc
             elif topc in '─═' and botc == " " and icod == "top":
                 ret += topc
@@ -673,7 +684,7 @@ class TextDrawing():
                 ret += "├"
             elif topc == '┘' and botc == "┐":
                 ret += "┤"
-            elif botc in "┐┌":
+            elif botc in "┐┌" and icod == 'top':
                 ret += "┬"
             elif topc in "┘└" and botc in "─" and icod == 'top':
                 ret += "┴"

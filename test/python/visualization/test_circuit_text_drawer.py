@@ -994,5 +994,56 @@ class TestTextDrawerParams(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
+class TestTextDrawerVerticallyExtended(QiskitTestCase):
+    def test_text_conditional_1(self):
+        """ Conditional drawing with 1-bit-length regs."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[1];
+        creg c1[1];
+        if(c0==1) x q[0];
+        if(c1==1) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "         └─┬─┘  └─┬─┘ ",
+                              "        ┌──┴──┐   │   ",
+                              "c0_0: 0 ╡ = 1 ╞═══╪═══",
+                              "        └─────┘   │   ",
+                              "               ┌──┴──┐",
+                              "c1_0: 0 ═══════╡ = 1 ╞",
+                              "               └─────┘"])
+
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit, vertically_compressed=False)), expected)
+
+    def test_text_justify_right(self):
+        """ Drawing with right justify """
+        expected = '\n'.join(["              ┌───┐",
+                              "q1_0: |0>─────┤ X ├",
+                              "              └───┘",
+                              "         ┌───┐ ┌─┐ ",
+                              "q1_1: |0>┤ H ├─┤M├─",
+                              "         └───┘ └╥┘ ",
+                              "                ║  ",
+                              " c1_0: 0 ═══════╬══",
+                              "                ║  ",
+                              "                ║  ",
+                              " c1_1: 0 ═══════╩══",
+                              "                   "])
+
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        circuit = QuantumCircuit(qr1, cr1)
+        circuit.x(qr1[0])
+        circuit.h(qr1[1])
+        circuit.measure(qr1[1], cr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit,
+                                                  justify='right',
+                                                  vertically_compressed=False)), expected)
+
+
 if __name__ == '__main__':
     unittest.main()
