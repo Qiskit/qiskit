@@ -11,12 +11,14 @@ Schedule.
 import logging
 from copy import copy
 from operator import attrgetter
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
 from qiskit.pulse.commands import Instruction
 from qiskit.pulse.common.interfaces import ScheduleComponent
 from qiskit.pulse.common.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
+from qiskit.visualization.qcstyle import OPStyleSched
+from .channels import DeviceSpecification, Channel
 
 logger = logging.getLogger(__name__)
 
@@ -158,22 +160,23 @@ class Schedule(ScheduleComponent):
         else:
             raise PulseError("Unknown ScheduleComponent type: %s" % node.__class__.__name__)
 
-    def draw(self, device, dt=1, style=None, filename=None,
-             interp_method=None, scaling=None, channels_to_plot=None,
-             plot_all=False, plot_range=None, interactive=False):
+    def draw(self, device: DeviceSpecification, dt: float = 1, style: =None,
+             filename: str = None, interp_method: Callable = None, scaling: float = None,
+             channels_to_plot: List[Channel] = None, plot_all: bool = False,
+             plot_range: Tuple[float] = None, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
-            device (DeviceSpecification): Device information to organize channels.
-            dt (float): Time interval of samples.
-            style (OPStyleSched): A style sheet to configure plot appearance.
-            filename (str): Name required to save pulse image.
-            interp_method (Callable): A function for interpolation.
-            scaling (float): scaling of waveform amplitude.
-            channels_to_plot (list): A list of channel names to plot.
-            plot_all (bool): Plot empty channels.
-            plot_range (tuple): A tuple of time range to plot.
-            interactive (bool): When set true show the circuit in a new window
+            device: Device information to organize channels.
+            dt: Time interval of samples.
+            style: A style sheet to configure plot appearance.
+            filename: Name required to save pulse image.
+            interp_method: A function for interpolation.
+            scaling: scaling of waveform amplitude.
+            channels_to_plot: A list of channel names to plot.
+            plot_all: Plot empty channels.
+            plot_range: A tuple of time range to plot.
+            interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this).
 
         Returns:
