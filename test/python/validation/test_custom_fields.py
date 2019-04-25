@@ -12,7 +12,6 @@ import sympy
 
 from qiskit.test import QiskitTestCase
 from qiskit.validation import fields
-from qiskit.circuit import Parameter
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.exceptions import ModelValidationError
 
@@ -56,9 +55,9 @@ class TestFields(QiskitTestCase):
     def test_parameter_field_str(self):
         """Test InstructionParameter with types equivalent to str."""
         dog = Dog(barking='woof')
-        dog_sympy = Dog(barking=Parameter('woof'))
+        dog_sympy = Dog(barking=sympy.Symbol('woof'))
 
-        self.assertEqual(dog_sympy.barking, Parameter('woof'))
+        self.assertEqual(dog_sympy.barking, sympy.Symbol('woof'))
         self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
 
     def test_parameter_field_container(self):
@@ -113,5 +112,5 @@ class TestFields(QiskitTestCase):
             # Non-basic types cannot be used in from_dict, even if they are
             # accepted in the constructor. This is by design, as the serialized
             # form should only contain Python/json-schema basic types.
-            _ = Dog.from_dict({'barking': Parameter('woof')})
+            _ = Dog.from_dict({'barking': sympy.Symbol('woof')})
         self.assertIn('barking', str(context_manager.exception))

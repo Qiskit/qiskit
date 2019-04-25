@@ -11,7 +11,6 @@ from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
-import sympy
 
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
@@ -272,16 +271,13 @@ class QuantumCircuit:
 
         # track variable parameters in instruction
         for param_index, param in enumerate(instruction.params):
-            if isinstance(param, sympy.Expr):
-                current_symbols = set(self._variable_table.keys())
-                these_symbols = set(param.free_symbols)
-                new_symbols = these_symbols - current_symbols
-                common_symbols = these_symbols & current_symbols
+            if isinstance(param, Parameter):
+                current_symbols = self.variables
 
-                for symbol in new_symbols:
-                    self._variable_table[symbol] = [(instruction, param_index)]
-                for symbol in common_symbols:
-                    self._variable_table[symbol].append((instruction, param_index))
+                if param in current_symbols:
+                    self._variable_table[param].append((instruction, param_index))
+                else:
+                    self._variable_table[param] = [(instruction, param_index)]
 
         return instruction
 
