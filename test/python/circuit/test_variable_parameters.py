@@ -7,8 +7,6 @@
 
 
 """Test circuits with variable parameters."""
-import unittest
-
 import numpy
 
 from qiskit import BasicAer
@@ -131,71 +129,3 @@ class TestVariableParameters(QiskitTestCase):
         qc2.h(qr2)
         qc2.append(gate, qargs=[qr2[1]])
         self.assertEqual(qc2.variables, {theta, phi})
-
-    @unittest.skip
-    def test_parameter_expression(self):
-        """Test evaluation with parameter expressions"""
-        x = Parameter('x')
-        y = Parameter('y')
-        qr1 = QuantumRegister(1, name='qr1')
-        qc1 = QuantumCircuit(qr1)
-        qc1.rx(x, qr1)
-        qc1.rz(x + y, qr1)
-        qc1.ry(-x, qr1)
-        gate = qc1.to_instruction()
-        self.assertEqual(gate.params, [x, x+y, -x])
-
-        circs = []
-        x_list = numpy.arange(0, 5)
-        y_list = numpy.arange(10, 51, 10)
-        for ones, tens in zip(x_list, y_list):
-            circs.append(qc1.assign_variables({x: ones, y: tens}))
-        for index, (ones, tens) in enumerate(zip(x_list, y_list)):
-            self.assertEqual(circs[index].data[0][0].params[0], ones)
-            self.assertEqual(circs[index].data[1][0].params[0], ones + tens)
-            self.assertEqual(circs[index].data[2][0].params[0], -ones)
-
-    @unittest.skip
-    def test_parameter_reduction(self):
-        """Test circuit parameter reduction upon assignment with partial
-        numeric substitution."""
-        x = Parameter('x')
-        y = Parameter('y')
-        z = Parameter('z')
-        qr1 = QuantumRegister(1, name='qr1')
-        qc1 = QuantumCircuit(qr1)
-        qc1.rx(x, qr1)
-        qc1.ry(y, qr1)
-        qc1.rz(x + z, qr1)
-
-        qc2 = qc1.assign_variables({x: 5, y: 10})
-        self.assertEqual(qc2.variables, {z})
-        self.assertEqual(qc2.data[0][0].params[0], 5)
-        self.assertEqual(qc2.data[1][0].params[0], 10)
-        self.assertEqual(qc2.data[2][0].params[0], z + 5)
-
-    @unittest.skip
-    def test_parameter_expression_through_composite_instructions(self):
-        """Test evaluation of parameters through instruction."""
-        x = Parameter('x')
-        y = Parameter('y')
-        qr1 = QuantumRegister(1, name='qr1')
-        qc1 = QuantumCircuit(qr1)
-        qc1.rx(x, qr1)
-        qc1.rz(x + y, qr1)
-        qc1.ry(-x, qr1)
-        gate = qc1.to_instruction()
-
-        qc = QuantumCircuit(qr1)
-        qc.append(gate, [qr1[0]], [])
-
-        circs = []
-        x_list = numpy.arange(0, 5)
-        y_list = numpy.arange(10, 51, 10)
-        for ones, tens in zip(x_list, y_list):
-            circs.append(qc.assign_variables({x: ones, y: tens}))
-
-        for index, (ones, tens) in enumerate(zip(x_list, y_list)):
-            self.assertEqual(circs[index].data[0][0].params[0], ones)
-            self.assertEqual(circs[index].data[0][0].params[1], ones + tens)
-            self.assertEqual(circs[index].data[0][0].params[2], -ones)
