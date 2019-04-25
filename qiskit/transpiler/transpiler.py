@@ -133,7 +133,7 @@ def _transpilation(circuit, basis_gates=None, coupling_map=None,
     if pass_manager and not pass_manager.working_list:
         return circuit
 
-    is_parametric_circuit = bool(circuit.unassigned_variables)
+    is_parametric_circuit = bool(circuit.variables)
 
     dag = circuit_to_dag(circuit)
     del circuit

@@ -12,15 +12,13 @@
 from codecs import encode
 from math import pi
 import unittest
-
 import sympy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization import text as elements
-from qiskit.visualization.circuit_visualization import \
-    _text_circuit_drawer
+from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate
+from qiskit.circuit import Gate, Parameter
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -948,8 +946,8 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
 class TestTextDrawerParams(QiskitTestCase):
     """Test drawing parameters."""
-    def test_text_symbols_mix(self):
-        """ cu3 drawing with symbols"""
+    def test_text_parameters_mix(self):
+        """ cu3 drawing with parameters"""
         expected = '\n'.join(["                                   ",
                               "q_0: |0>─────────────■─────────────",
                               "        ┌────────────┴────────────┐",
@@ -958,12 +956,12 @@ class TestTextDrawerParams(QiskitTestCase):
 
         qr = QuantumRegister(2, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.cu3(pi / 2, sympy.Symbol('theta'), pi, qr[0], qr[1])
+        circuit.cu3(pi / 2, Parameter('theta'), pi, qr[0], qr[1])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_sympy_constant(self):
-        """ cu3 drawing with symbols"""
+        """ cu3 drawing with sympy pi"""
         expected = '\n'.join(["                              ",
                               "q_0: |0>──────────■───────────",
                               "        ┌─────────┴──────────┐",
