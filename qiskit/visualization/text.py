@@ -195,13 +195,13 @@ class MultiBox(DrawElement):
             else:
                 self.bot_connect = self.label
 
-
     @property
     def width(self):
         """ Returns the width of the label, including padding"""
         if self._width:
             return self._width
         return len(self.label)
+
 
 class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
     """ Draws the top part of a box that affects more than one quantum wire"""
@@ -922,7 +922,7 @@ class Layer:
                     wire_label = qargs.pop(0)
                 else:
                     named_bit = (self.qregs + self.cregs)[bit_i]
-                    wire_label = ' '*len(qargs[0])
+                    wire_label = ' ' * len(qargs[0])
                 set_bit(named_bit, BoxOnWireMid(label, box_height, order, wire_label=wire_label))
             set_bit(bits.pop(0), BoxOnWireBot(label, box_height, wire_label=qargs.pop(0)))
 
