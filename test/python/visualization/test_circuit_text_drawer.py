@@ -572,7 +572,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "               │ = 2 │",
                               "c1_1: 0 ═══════╡     ╞",
                               "               └─────┘"])
-        expected = '\n'.join([""])
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -587,9 +586,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         if(c0==3) x q[0];
         if(c1==3) x q[0];
         """
-        expected = '\n'.join(["        ┌─────┐┌─────┐",
-                              "q_0: |0>┤  X  ├┤  X  ├",
-                              "        ├──┴──┤└──┬──┘",
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
                               "c0_0: 0 ╡     ╞═══╪═══",
                               "        │     │   │   ",
                               "c0_1: 0 ╡ = 3 ╞═══╪═══",
@@ -616,9 +615,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         if(c0==4) x q[0];
         if(c1==4) x q[0];
         """
-        expected = '\n'.join(["        ┌─────┐┌─────┐",
-                              "q_0: |0>┤  X  ├┤  X  ├",
-                              "        ├──┴──┤└──┬──┘",
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
                               "c0_0: 0 ╡     ╞═══╪═══",
                               "        │     │   │   ",
                               "c0_1: 0 ╡     ╞═══╪═══",
@@ -649,9 +648,9 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         if(c0==5) x q[0];
         if(c1==5) x q[0];
         """
-        expected = '\n'.join(["        ┌─────┐┌─────┐",
-                              "q_0: |0>┤  X  ├┤  X  ├",
-                              "        ├──┴──┤└──┬──┘",
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
                               "c0_0: 0 ╡     ╞═══╪═══",
                               "        │     │   │   ",
                               "c0_1: 0 ╡     ╞═══╪═══",
@@ -966,6 +965,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 
 class TestTextDrawerParams(QiskitTestCase):
     """Test drawing parameters."""
+
     def test_text_parameters_mix(self):
         """ cu3 drawing with parameters"""
         expected = '\n'.join(["                                   ",
