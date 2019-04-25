@@ -38,7 +38,7 @@ class Snapshot(PulseCommand, Instruction):
 
     def __eq__(self, other):
         """Two Snapshots are the same if they are of the same type
-        and have the same nameand type.
+        and have the same name and type.
 
         Args:
             other (Snapshot): other Snapshot,
