@@ -19,6 +19,7 @@ import logging
 
 import numpy as np
 
+from qiskit.aqua import aqua_globals
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -172,7 +173,7 @@ class SPSA(Optimizer):
             # SPSA Parameters
             a_spsa = float(self._parameters[0]) / np.power(k + 1 + self._parameters[4], self._parameters[2])
             c_spsa = float(self._parameters[1]) / np.power(k + 1, self._parameters[3])
-            delta = 2 * np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
+            delta = 2 * aqua_globals.random.randint(2, size=np.shape(initial_theta)[0]) - 1
             # plus and minus directions
             theta_plus = theta + c_spsa * delta
             theta_minus = theta - c_spsa * delta
@@ -230,7 +231,7 @@ class SPSA(Optimizer):
         for i in range(stat):
             if i % 5 == 0:
                 logger.debug('calibration step # {} of {}'.format(str(i), str(stat)))
-            delta = 2 * np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
+            delta = 2 * aqua_globals.random.randint(2, size=np.shape(initial_theta)[0]) - 1
             theta_plus = initial_theta + initial_c * delta
             theta_minus = initial_theta - initial_c * delta
             if self._max_evals_grouped > 1:
