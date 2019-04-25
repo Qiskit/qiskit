@@ -161,10 +161,10 @@ class EventsOutputChannels:
         conditionals = self.conditionals
 
         for key, val in fc_pulses.items():
-            data_str = 'FrameChange, %.2f' % val
+            data_str = 'frame-change: %.2f' % val
             time_event.append((key, name, data_str))
         for key, val in conditionals.items():
-            data_str = 'Conditional, %s' % val
+            data_str = 'conditional, %s' % val
             time_event.append((key, name, data_str))
 
         return time_event
