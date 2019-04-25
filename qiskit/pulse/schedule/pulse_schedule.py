@@ -17,7 +17,6 @@ from qiskit.pulse.commands import Instruction
 from qiskit.pulse.common.interfaces import ScheduleComponent
 from qiskit.pulse.common.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
-from qiskit.visualization.qcstyle import OPStyleSched
 from .channels import DeviceSpecification, Channel
 
 logger = logging.getLogger(__name__)
@@ -160,7 +159,7 @@ class Schedule(ScheduleComponent):
         else:
             raise PulseError("Unknown ScheduleComponent type: %s" % node.__class__.__name__)
 
-    def draw(self, device: DeviceSpecification, dt: float = 1, style: =None,
+    def draw(self, device: DeviceSpecification, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None, scaling: float = None,
              channels_to_plot: List[Channel] = None, plot_all: bool = False,
              plot_range: Tuple[float] = None, interactive: bool = False):
@@ -169,7 +168,7 @@ class Schedule(ScheduleComponent):
         Args:
             device: Device information to organize channels.
             dt: Time interval of samples.
-            style: A style sheet to configure plot appearance.
+            style (OPStyleSched): A style sheet to configure plot appearance.
             filename: Name required to save pulse image.
             interp_method: A function for interpolation.
             scaling: scaling of waveform amplitude.
