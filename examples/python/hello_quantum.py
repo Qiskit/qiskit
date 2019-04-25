@@ -60,7 +60,7 @@ try:
     result_exp = job_exp.result()
 
     # Show the results
-    print(result_exp.get_counts(qc))
+    print('Counts: ', result_exp.get_counts(qc))
 
 except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))
