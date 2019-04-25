@@ -63,4 +63,4 @@ class FrameChangeInstruction(Instruction):
         super().__init__(command, TimeslotCollection(*slots), name=name)
 
     def __repr__(self):
-        return '%s -> %s' % (self.command, self.channel)
+        return '%s -> %s' % (self.command, self.channels[0])
