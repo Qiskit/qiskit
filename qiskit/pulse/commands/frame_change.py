@@ -62,10 +62,5 @@ class FrameChangeInstruction(Instruction):
         slots = [Timeslot(Interval(0, 0), channel)]
         super().__init__(command, TimeslotCollection(*slots), name=name)
 
-    @property
-    def channel(self) -> OutputChannel:
-        """OutputChannel command. """
-        return self.channels[0]
-
     def __repr__(self):
         return '%s -> %s' % (self.command, self.channel)

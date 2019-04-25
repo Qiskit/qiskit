@@ -45,11 +45,6 @@ class Snapshot(PulseCommand, Instruction):
         """Type of snapshot."""
         return self._type
 
-    @property
-    def channel(self) -> SnapshotChannel:
-        """Snapshot channel. """
-        return self._channel
-
     def __eq__(self, other):
         """Two Snapshots are the same if they are of the same type
         and have the same label and type.
