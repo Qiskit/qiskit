@@ -122,7 +122,7 @@ def assemble_circuits(circuits, run_config=None, qobj_header=None, qobj_id=None)
                 current_instruction.params = params
             # TODO: I really dont like this for snapshot. I also think we should change
             # type to snap_type
-            if op.name == "snapshot":
+            if op.name == 'snapshot':
                 current_instruction.label = str(op.params[0])
                 current_instruction.snapshot_type = str(op.params[1])
             if op.name == 'unitary':
