@@ -8,11 +8,14 @@
 """
 Sample pulse.
 """
+from typing import Callable
+
 import numpy as np
 
 from qiskit.pulse.channels import OutputChannel
 from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
+from qiskit.visualization.qcstyle import OPStylePulse
 from .instruction import Instruction
 from .pulse_command import PulseCommand
 
@@ -41,17 +44,18 @@ class SamplePulse(PulseCommand):
         """Return sample values."""
         return self._samples
 
-    def draw(self, dt=1, style=None, filename=None,
-             interp_method=None, scaling=None, interactive=False):
+    def draw(self, dt: float = 1, style: OPStylePulse = None,
+             filename: str = None, interp_method: Callable = None,
+             scaling: float = None, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
-            dt (float): Time interval of samples.
-            style (OPStylePulse): A style sheet to configure plot appearance.
-            filename (str): Name required to save pulse image.
-            interp_method (Callable): A function for interpolation.
-            scaling (float): scaling of waveform amplitude.
-            interactive (bool): When set true show the circuit in a new window
+            dt: Time interval of samples.
+            style: A style sheet to configure plot appearance.
+            filename: Name required to save pulse image.
+            interp_method: A function for interpolation.
+            scaling: scaling of waveform amplitude.
+            interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this).
 
         Returns:
