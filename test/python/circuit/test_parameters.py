@@ -58,12 +58,12 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, 0, qr)
-        qc._parameter_table[theta] = 0.5
-        self.assertEqual(qc._parameter_table[theta][0][0].params[0], 0.5)
-        self.assertEqual(qc._parameter_table[theta][1][0].params[1], 0.5)
-        qc._parameter_table[theta] = 0.6
-        self.assertEqual(qc._parameter_table[theta][0][0].params[0], 0.6)
-        self.assertEqual(qc._parameter_table[theta][1][0].params[1], 0.6)
+        bqc = qc.bind_parameters({theta: 0.5})
+        self.assertEqual(bqc.data[0][0].params[0], 0.5)
+        self.assertEqual(bqc.data[1][0].params[1], 0.5)
+        bqc = qc.bind_parameters({theta: 0.6})
+        self.assertEqual(bqc.data[0][0].params[0], 0.6)
+        self.assertEqual(bqc.data[1][0].params[1], 0.6)
 
     def test_multiple_parameters(self):
         """Test setting multiple parameters"""
