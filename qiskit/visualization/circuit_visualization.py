@@ -297,6 +297,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
         plotbarriers (bool): Draws the barriers when they are there.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
                         the circuit should be justified.
+        vertically_compressed (bool): Default is `True`. It merges the lines so the
+                                      drawing will take less vertical room.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
