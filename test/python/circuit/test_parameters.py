@@ -76,6 +76,22 @@ class TestParameters(QiskitTestCase):
         qc.u3(0, theta, x, qr)
         self.assertEqual(qc.parameters, {theta, x})
 
+    def test_partial_binding(self):
+        """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
+        theta = Parameter('θ')
+        x = Parameter('x')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(theta, qr)
+        qc.u3(0, theta, x, qr)
+
+        pqc = qc.bind_parameters({theta: 2})
+
+        self.assertEqual(pqc.parameters, {x})
+
+        self.assertEqual(pqc.data[0][0].params[0], 2)
+        self.assertEqual(pqc.data[1][0].params[1], 2)
+
     def test_raise_if_assigning_params_not_in_circuit(self):
         """Verify binding parameters which are not present in the circuit raises an error."""
         x = Parameter('x')
