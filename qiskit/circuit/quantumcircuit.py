@@ -686,11 +686,6 @@ class QuantumCircuit:
         return _circuit_from_qasm(qasm)
 
     @property
-    def parameter_table(self):
-        """get the circuit parameter table"""
-        return self._parameter_table
-
-    @property
     def parameters(self):
         """convenience function to get the parameters defined in the parameter table"""
         return set(self._parameter_table.keys())
@@ -706,10 +701,10 @@ class QuantumCircuit:
         """
         new_circuit = self.copy()
         for parameter in value_dict:
-            new_circuit.parameter_table[parameter] = value_dict
+            new_circuit._parameter_table[parameter] = value_dict
         # clear evaluated expressions
         for parameter in value_dict:
-            del new_circuit.parameter_table[parameter]
+            del new_circuit._parameter_table[parameter]
         return new_circuit
 
 

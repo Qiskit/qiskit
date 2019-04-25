@@ -46,7 +46,7 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         rxg = RXGate(theta)
         qc.append(rxg, [qr[0]], [])
-        vparams = qc.parameter_table
+        vparams = qc._parameter_table
         self.assertEqual(len(vparams), 1)
         self.assertIs(theta, next(iter(vparams)))
         self.assertIs(rxg, vparams[theta][0][0])
@@ -58,12 +58,12 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, 0, qr)
-        qc.parameter_table[theta] = 0.5
-        self.assertEqual(qc.parameter_table[theta][0][0].params[0], 0.5)
-        self.assertEqual(qc.parameter_table[theta][1][0].params[1], 0.5)
-        qc.parameter_table[theta] = 0.6
-        self.assertEqual(qc.parameter_table[theta][0][0].params[0], 0.6)
-        self.assertEqual(qc.parameter_table[theta][1][0].params[1], 0.6)
+        qc._parameter_table[theta] = 0.5
+        self.assertEqual(qc._parameter_table[theta][0][0].params[0], 0.5)
+        self.assertEqual(qc._parameter_table[theta][1][0].params[1], 0.5)
+        qc._parameter_table[theta] = 0.6
+        self.assertEqual(qc._parameter_table[theta][0][0].params[0], 0.6)
+        self.assertEqual(qc._parameter_table[theta][1][0].params[1], 0.6)
 
     def test_multiple_parameters(self):
         """Test setting multiple parameters"""
