@@ -9,7 +9,7 @@
 Schedule operations.
 """
 import logging
-from typing import List
+from typing import List, Union, Tuple
 
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
@@ -19,18 +19,21 @@ logger = logging.getLogger(__name__)
 # pylint: disable=missing-return-doc,missing-type-doc
 
 
-def union(*schedules: List[ScheduleComponent],
-          shift_time: int = 0, name: str = None) -> Schedule:
+def union(*schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
+          name: str = None) -> Schedule:
     """Create a union (and also shift if desired) of all input `Schedule`s.
 
     Args:
         *schedules: Schedules to take the union of
-        shift_time: Time to shift by
         name: Name of the new schedule. Defaults to first element of `schedules`
     """
     if name is None and schedules:
-        name = schedules[0].name
-    return Schedule(*schedules, shift_time=shift_time, name=name)
+        sched = schedules[0]
+        if isinstance(sched, (list, tuple)):
+            name = sched[1].name
+        else:
+            name = sched.name
+    return Schedule(*schedules, name=name)
 
 # pylint: enable=missing-type-doc
 
@@ -45,20 +48,20 @@ def shift(schedule: ScheduleComponent, time: int, name: str = None) -> Schedule:
     """
     if name is None:
         name = schedule.name
-    return Schedule(schedule, shift_time=time, name=name)
+    return union((time, schedule), name=name)
 
 
-def insert(parent: ScheduleComponent, start_time: int, child: ScheduleComponent,
+def insert(parent: ScheduleComponent, time: int, child: ScheduleComponent,
            name: str = None) -> Schedule:
     """Return a new schedule with the `child` schedule inserted into the `parent` at `start_time`.
 
     Args:
         parent: Schedule to be inserted into
-        start_time: Time to be inserted defined with respect to `parent`
+        time: Time to be inserted defined with respect to `parent`
         child: Schedule to insert
         name: Name of the new schedule. Defaults to name of parent
     """
-    return union(parent, shift(child, start_time), name=name)
+    return union(parent, (time, child), name=name)
 
 
 def append(parent: ScheduleComponent, child: ScheduleComponent,

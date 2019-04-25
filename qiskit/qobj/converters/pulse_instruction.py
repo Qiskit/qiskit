@@ -127,7 +127,7 @@ class PulseQobjConverter:
             'name': 'acquire',
             't0': shift+instruction.start_time,
             'duration': instruction.duration,
-            'qubits': [q.index for q in instruction.qubits],
+            'qubits': [q.index for q in instruction.acquires],
             'memory_slot': [m.index for m in instruction.mem_slots]
         }
         if meas_level == 2:
@@ -222,7 +222,7 @@ class PulseQobjConverter:
         command_dict = {
             'name': 'snapshot',
             't0': shift+instruction.start_time,
-            'label': instruction.label,
+            'label': instruction.name,
             'type': instruction.type
         }
         return self._qobj_model(**command_dict)

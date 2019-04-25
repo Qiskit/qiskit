@@ -12,7 +12,7 @@ Schedule.
 """
 import itertools
 import logging
-from typing import List, Tuple, Iterable, Callable
+from typing import List, Tuple, Iterable, Union, Callable
 
 from qiskit.pulse import ops
 from .channels import Channel
@@ -27,30 +27,37 @@ logger = logging.getLogger(__name__)
 class Schedule(ScheduleComponent):
     """Schedule of `ScheduleComponent`s. The composite node of a schedule tree."""
     # pylint: disable=missing-type-doc
-    def __init__(self, *schedules: List[ScheduleComponent],
-                 shift_time: int = 0, name: str = None):
+    def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
+                 name: str = None):
         """Create empty schedule.
 
         Args:
-            *schedules: Child Schedules of this parent Schedule
-            shift_time: Time to shift schedule children by
+            *schedules: Child Schedules of this parent Schedule. May either be passed as
+                the list of schedules, or a list of (start_time, schedule) pairs
             name: Name of this schedule
 
         Raises:
             PulseError: If timeslots intercept.
         """
         self._name = name
-        self._shift_time = shift_time
         try:
             timeslots = []
-            for sched in schedules:
+            children = []
+            for sched_pair in schedules:
+                # recreate as sequence starting at 0.
+                if not isinstance(sched_pair, (list, tuple)):
+                    sched_pair = (0, sched_pair)
+                # convert to tuple
+                sched_pair = tuple(sched_pair)
+                insert_time, sched = sched_pair
                 sched_timeslots = sched.timeslots
-                if shift_time:
-                    sched_timeslots = sched_timeslots.shift(shift_time)
+                if insert_time:
+                    sched_timeslots = sched_timeslots.shift(insert_time)
                 timeslots.append(sched_timeslots.timeslots)
+                children.append(sched_pair)
 
             self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
-            self._children = tuple(schedules)
+            self._children = tuple(children)
 
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
@@ -154,8 +161,8 @@ class Schedule(ScheduleComponent):
             Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
                 at and the flattened `ScheduleComponent`.
         """
-        for child in self.children:
-            yield from child.flatten(time + self._shift_time)
+        for insert_time, child_sched in self.children:
+            yield from child_sched.flatten(time + insert_time)
 
     def draw(self, device: DeviceSpecification, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None, scaling: float = None,

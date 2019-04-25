@@ -10,12 +10,13 @@ Instruction = Leaf node of schedule.
 """
 import logging
 from typing import Tuple, List, Iterable
+
 from qiskit.pulse import ops
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.interfaces import ScheduleComponent
-from qiskit.pulse.timeslots import TimeslotCollection
+from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
+from qiskit.pulse.exceptions import PulseError
 
-from .pulse_command import PulseCommand
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +26,27 @@ logger = logging.getLogger(__name__)
 class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
-    def __init__(self, command: PulseCommand, timeslots: TimeslotCollection, name: str = None):
-        self._name = name
+    def __init__(self, command, *channels: List[Channel],
+                 timeslots: TimeslotCollection = None, name=None):
+        """
+        command (PulseCommand): Pulse command to schedule
+        *channels: List of pulse channels to schedule with command
+        timeslots: Optional list of timeslots. If channels are supplied timeslots
+            cannot also be given
+        name: Name of Instruction
+        """
         self._command = command
-        self._timeslots = timeslots
+        self._name = name if name else self._command.name
+
+        if timeslots and channels:
+            raise PulseError('Channels and timeslots may not both be supplied.')
+
+        if not timeslots:
+            duration = command.duration
+            self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
+                                                   for channel in channels))
+        else:
+            self._timeslots = timeslots
 
     @property
     def name(self) -> str:
@@ -36,8 +54,11 @@ class Instruction(ScheduleComponent):
         return self._name
 
     @property
-    def command(self) -> PulseCommand:
-        """Acquire command. """
+    def command(self):
+        """Acquire command.
+
+        Returns: PulseCommand
+        """
         return self._command
 
     @property

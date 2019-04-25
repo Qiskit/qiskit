@@ -12,6 +12,8 @@ from abc import ABCMeta, abstractmethod
 
 from qiskit.pulse.exceptions import PulseError
 
+from .instruction import Instruction
+
 
 class PulseCommand(metaclass=ABCMeta):
     """Super abstract class of command group."""
@@ -48,6 +50,15 @@ class PulseCommand(metaclass=ABCMeta):
     def name(self) -> str:
         """Name of this command. """
         return self._name
+
+    @abstractmethod
+    def to_instruction(self, command, *channels, timeslots=None, name=None) -> Instruction:
+        """Create an instruction from command."""
+        pass
+
+    def __call__(self, *args, **kwargs):
+        """Creates an Instruction obtained from call to `to_instruction` wrapped in a Schedule."""
+        return self.to_instruction(*args, **kwargs)
 
     def __eq__(self, other):
         """Two PulseCommands are the same if they are of the same type

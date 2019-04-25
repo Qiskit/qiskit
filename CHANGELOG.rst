@@ -172,6 +172,10 @@ Deprecated
 - The ``qiskit.compile()`` function is now deprecated in favor of explicitly
   using the ``qiskit.compiler.transpile()`` function to transform a circuit followed
   by ``qiskit.compiler.assemble_circuits()`` to make a qobj out of it.
+- ``qiskit.converters.qobj_to_circuits()`` has been deprecated and will be
+  removed in a future release. Instead
+  ``qiskit.compiler.disassemble_circuits()`` should be used to extract
+  ``QuantumCircuit`` objects from a compiled qobj. (#2137)
 
 
 Fixed
@@ -194,6 +198,8 @@ Fixed
 - Fixed a mapping issue with layouts on non-adjacent qubits, by adding ancillas (#2023).
 - Fixed a bug in which an `initial_layout` could be changed even if it made the circuit
   compatible with the device `coupling_map` (#2036).
+- Fixed ``qobj_to_circuits`` for circuits that contain initialize instructions
+  (#2138)
 
 
 Removed
