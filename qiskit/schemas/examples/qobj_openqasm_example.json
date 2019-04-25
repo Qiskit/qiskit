@@ -22,7 +22,7 @@
             {"name": "u1", "qubits": [1], "params": [0.4]},
             {"name": "u2", "qubits": [1], "params": [0.4,0.2]},
             {"name": "u3", "qubits": [1], "params": [0.4,0.2,-0.3]},
-            {"name": "snapshot", "label": "snapstate1", "type": "state"},
+            {"name": "snapshot", "label": "snapstate1", "snapshot_type": "statevector"},
             {"name": "cx", "qubits": [1,2]},
             {"name": "barrier", "qubits": [1]},
             {"name": "measure", "qubits": [1], "register": [2], "memory": [0]},
@@ -40,7 +40,7 @@
         "instructions": [
             {"name": "u1", "qubits": [1], "params": [0.4]},
             {"name": "cx", "qubits": [1,2]},
-            {"name": "snapshot", "label": "snapstate1", "type": "state"},
+            {"name": "snapshot", "label": "snapstate1", "snapshot_type": "statevector"},
             {"name": "cx", "qubits": [1,2]},
             {"name": "barrier", "qubits": [1]},
             {"name": "measure", "qubits": [1], "register": [2], "memory": [0]},
