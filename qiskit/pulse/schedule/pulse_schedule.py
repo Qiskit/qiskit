@@ -17,7 +17,7 @@ from qiskit.pulse.commands import Instruction
 from qiskit.pulse.common.interfaces import ScheduleComponent
 from qiskit.pulse.common.timeslots import TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
-from .channels import DeviceSpecification, Channel
+from qiskit.pulse.channels import DeviceSpecification, Channel
 
 logger = logging.getLogger(__name__)
 

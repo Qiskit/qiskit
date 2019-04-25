@@ -335,7 +335,9 @@ class ScheduleDrawer:
                 pass
 
         for instruction in pulse_obj.flat_instruction_sequence():
-            channels[instruction.channel].add_instruction(instruction)
+            for channel in instruction.channels:
+                if channel in channels:
+                    channels[instruction.channel].add_instruction(instruction)
 
         # count numbers of valid waveform
         n_valid_waveform = 0
