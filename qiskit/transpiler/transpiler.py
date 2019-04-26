@@ -9,6 +9,7 @@
 """
 import warnings
 
+from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.mapper import CouplingMap
 from qiskit import compiler
 from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
@@ -104,7 +105,9 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
     # run the passes specified by the pass manager
     # TODO return the property set too. See #1086
     name = dag.name
-    dag = pass_manager.run_passes(dag)
+    circuit = dag_to_circuit(dag)
+    circuit = pass_manager.run(circuit)
+    dag = circuit_to_dag(circuit)
     dag.name = name
 
     return dag

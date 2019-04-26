@@ -115,20 +115,6 @@ class PassManager():
         self.working_list.append(
             FlowController.controller_factory(passes, options, **flow_controller_conditions))
 
-    def run_passes(self, dag):
-        """Run all the passes on a DAG.
-
-        Args:
-            dag (DAGCircuit): DAG circuit to transform via all the registered passes
-
-        Returns:
-            DAGCircuit: Transformed DAG.
-        """
-        for passset in self.working_list:
-            for pass_ in passset:
-                dag = self._do_pass(pass_, dag, passset.options)
-        return dag
-
     def run(self, circuit):
         """Run all the passes on a QuantumCircuit
 
@@ -141,7 +127,10 @@ class PassManager():
         name = circuit.name
         dag = circuit_to_dag(circuit)
         del circuit
-        circuit = dag_to_circuit(self.run_passes(dag))
+        for passset in self.working_list:
+            for pass_ in passset:
+                dag = self._do_pass(pass_, dag, passset.options)
+        circuit = dag_to_circuit(dag)
         circuit.name = name
         return circuit
 

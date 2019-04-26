@@ -19,7 +19,8 @@ from qiskit.pulse import Schedule
 def transpile(circuits,
               backend=None,
               basis_gates=None, coupling_map=None, backend_properties=None,
-              initial_layout=None, seed_transpiler=None, optimization_level=None,
+              initial_layout=None, seed_transpiler=None,
+              optimization_level=None,
               pass_manager=None,
               seed_mapper=None):  # deprecated
     """transpile one or more circuits, according to some desired
@@ -163,15 +164,17 @@ def _transpile_circuit(circuit_config_tuple):
     circuit, transpile_config = circuit_config_tuple
 
     # if the pass manager is not already selected, choose an appropriate one.
-    if not transpile_config.pass_manager:
-        if transpile_config.coupling_map:
-            pass_manager = default_pass_manager(transpile_config.basis_gates,
-                                                transpile_config.coupling_map,
-                                                transpile_config.initial_layout,
-                                                transpile_config.skip_numeric_passes,
-                                                transpile_config.seed_transpiler)
-        else:
-            pass_manager = default_pass_manager_simulator(transpile_config.basis_gates)
+    if transpile_config.pass_manager:
+        pass_manager = transpile_config.pass_manager
+
+    elif transpile_config.coupling_map:
+        pass_manager = default_pass_manager(transpile_config.basis_gates,
+                                            transpile_config.coupling_map,
+                                            transpile_config.initial_layout,
+                                            transpile_config.skip_numeric_passes,
+                                            transpile_config.seed_transpiler)
+    else:
+        pass_manager = default_pass_manager_simulator(transpile_config.basis_gates)
 
     return pass_manager.run(circuit)
 
