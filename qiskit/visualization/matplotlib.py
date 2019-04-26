@@ -32,7 +32,8 @@ from qiskit.visualization import interpolation
 from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
-from qiskit.pulse import SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire
+from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
+                          PulseError)
 from qiskit.visualization.exceptions import VisualizationError
 
 logger = logging.getLogger(__name__)
@@ -1118,9 +1119,9 @@ class ScheduleDrawer:
         channels = {**output_channels, **acquire_channels, **snapshot_channels}
         # sort by index then name to group qubits together.
         output_channels = collections.OrderedDict(sorted(output_channels.items(),
-                                                  key=lambda x: (x[0].index, x[0].name)))
+                                                         key=lambda x: (x[0].index, x[0].name)))
         channels = collections.OrderedDict(sorted(channels.items(),
-                                           key=lambda x: (x[0].index, x[0].name)))
+                                                  key=lambda x: (x[0].index, x[0].name)))
 
         for start_time, instruction in schedule.flatten():
             for channel in instruction.channels:
@@ -1208,6 +1209,9 @@ class ScheduleDrawer:
             table.set_fontsize = self.style.table_font_size
         else:
             ax = figure.add_subplot(111)
+            fig_h = n_valid_waveform * self.style.fig_unit_h_waveform
+
+        figure.set_size_inches(self.style.fig_w, fig_h)
 
         return ax
 
@@ -1341,9 +1345,9 @@ class ScheduleDrawer:
 
         else:
             ax = figure.add_subplot(111)
+            fig_h = n_valid_waveform * self.style.fig_unit_h_waveform
+            figure.set_size_inches(self.style.fig_w, fig_h)
 
-        fig_h = n_valid_waveform * self.style.fig_unit_h_waveform
-        figure.set_size_inches(self.style.fig_w, fig_h)
         ax.set_facecolor(self.style.bg_color)
 
         y0, framechanges_present = self._draw_channels(ax, output_channels, interp_method,

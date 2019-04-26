@@ -11,3 +11,4 @@ from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
                        SamplePulse, Snapshot, Kernel, Discriminator, functional_pulse)
 from .configuration import LoConfig
 from .schedule import Schedule
+from .exceptions import PulseError
