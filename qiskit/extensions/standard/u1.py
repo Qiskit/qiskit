@@ -10,6 +10,7 @@
 """
 Diagonal single qubit gate.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -38,6 +39,11 @@ class U1Gate(Gate):
     def inverse(self):
         """Invert this gate."""
         return U1Gate(-self.params[0])
+
+    def to_matrix(self):
+        """Return a Numpy.array for the U3 gate."""
+        lam = self.params[0]
+        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
 @_to_bits(1)
