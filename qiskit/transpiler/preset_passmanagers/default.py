@@ -9,6 +9,7 @@
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
+from qiskit.extensions.quantum_initializer.initializer import InitializeGate
 
 from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.transpiler.passes.unroll_3q_or_more import Unroll3qOrMore
@@ -17,6 +18,7 @@ from qiskit.transpiler.passes.decompose import Decompose
 from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
 from qiskit.transpiler.passes.fixed_point import FixedPoint
 from qiskit.transpiler.passes.depth import Depth
+from qiskit.transpiler.passes.remove_reset_in_zero_state import RemoveResetInZeroState
 from qiskit.transpiler.passes.mapping.check_map import CheckMap
 from qiskit.transpiler.passes.mapping.cx_direction import CXDirection
 from qiskit.transpiler.passes.mapping.dense_layout import DenseLayout
@@ -98,6 +100,9 @@ def default_pass_manager_simulator(basis_gates):
         PassManager: A passmanager that just unrolls, without any optimization.
     """
     pass_manager = PassManager()
+
+    pass_manager.append(Decompose(InitializeGate))
+    pass_manager.append(RemoveResetInZeroState())
     pass_manager.append(Unroller(basis_gates))
 
     return pass_manager

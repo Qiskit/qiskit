@@ -496,3 +496,21 @@ class TestTranspile(QiskitTestCase):
             is_last_measure = all([after_measure.type == 'out'
                                    for after_measure in out_dag.quantum_successors(meas_node)])
             self.assertTrue(is_last_measure)
+
+    def test_initialize_reset_should_be_removed(self):
+        """The reset in front of initializer should be removed when zero state"""
+        qr = QuantumRegister(1, "qr")
+        qc = QuantumCircuit(qr)
+        qc.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
+        qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.u_base(1.5708, 0, 0, qr[0])
+        expected.u_base(0, 0, 0, qr[0])
+        expected.reset(qr[0])
+        expected.u_base(1.5708, 0, 0, qr[0])
+        expected.u_base(0, 0, 3.1416, qr[0])
+
+        after = transpile(qc, basis_gates=['U'])
+
+        self.assertEqual(after, expected)
