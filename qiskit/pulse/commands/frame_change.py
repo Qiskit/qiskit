@@ -10,7 +10,6 @@ Frame change pulse.
 """
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
 from .instruction import Instruction
 from .pulse_command import PulseCommand
 
@@ -26,7 +25,12 @@ class FrameChange(PulseCommand):
                 The allowable precision is device specific.
         """
         super().__init__(duration=0)
-        self.phase = phase
+        self._phase = phase
+
+    @property
+    def phase(self):
+        """Framechange phase."""
+        return self._phase
 
     def __eq__(self, other):
         """Two FrameChanges are the same if they are of the same type
@@ -46,27 +50,14 @@ class FrameChange(PulseCommand):
     def __repr__(self):
         return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)
 
-    def __call__(self, channel: OutputChannel) -> 'FrameChangeInstruction':
-        return FrameChangeInstruction(self, channel)
+    # pylint: disable=arguments-differ
+    def to_instruction(self, channel: OutputChannel, name=None) -> 'FrameChangeInstruction':
+        return FrameChangeInstruction(self, channel, name=name)
+    # pylint: enable=arguments-differ
 
 
 class FrameChangeInstruction(Instruction):
     """Instruction to change frame of an `OutputChannel`. """
 
-    def __init__(self, command: FrameChange, channel: OutputChannel, start_time: int = 0):
-        slots = [Timeslot(Interval(start_time, start_time), channel)]
-        super().__init__(command, start_time, TimeslotCollection(slots))
-        self._channel = channel
-
-    @property
-    def command(self) -> FrameChange:
-        """FrameChange command. """
-        return self._command
-
-    @property
-    def channel(self) -> OutputChannel:
-        """OutputChannel channel. """
-        return self._channel
-
-    def __repr__(self):
-        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)
+    def __init__(self, command: FrameChange, channel: OutputChannel, name=None):
+        super().__init__(command, channel, name=name)
