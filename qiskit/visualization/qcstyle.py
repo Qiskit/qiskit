@@ -137,6 +137,7 @@ class OPStyleSched:
         self.d_ch_color = d_ch_color or ['#648fff', '#002999']
         self.u_ch_color = u_ch_color or ['#ffb000', '#994A00']
         self.m_ch_color = m_ch_color or ['#dc267f', '#760019']
+        self.a_ch_color = m_ch_color or ['#333333', '#666666']
         self.s_ch_color = s_ch_color or '#7da781'
         self.s_ch_linestyle = s_ch_linestyle or '--'
         self.table_color = table_color or ['#e0e0e0', '#f6f6f6', '#f6f6f6']

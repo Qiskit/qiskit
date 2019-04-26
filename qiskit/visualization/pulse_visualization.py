@@ -17,7 +17,8 @@ from collections import OrderedDict
 import numpy as np
 from matplotlib import pyplot as plt, gridspec, lines
 
-from qiskit.pulse import SamplePulse, FrameChange, PersistentValue, Schedule, Snapshot
+from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue,
+                          Schedule, Snapshot, Acquire)
 from qiskit.pulse.commands import Instruction
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
@@ -211,10 +212,13 @@ class EventsOutputChannels:
                     pv[time:] = np.exp(1j*fc) * command.value
                     break
             for command in commands:
+                duration = command.duration
+                tf = min(time + duration, self.tf)
                 if isinstance(command, SamplePulse):
-                    tf = min(time + command.duration, self.tf)
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
+                elif isinstance(command, Acquire):
+                    wf[time:tf] = np.ones(command.duration)
 
         self._waveform = wf + pv
 
@@ -337,7 +341,8 @@ class ScheduleDrawer:
                 except PulseError:
                     pass
 
-        output_channels = {**drive_channels, **measure_channels, **control_channels}
+        output_channels = {**drive_channels, **measure_channels,
+                           **control_channels, **acquire_channels}
         channels = {**output_channels, **acquire_channels, **snapshot_channels}
         # sort by index then name to group qubits together.
         output_channels = OrderedDict(sorted(output_channels.items(),
@@ -349,11 +354,9 @@ class ScheduleDrawer:
             for channel in instruction.channels:
                 if channel in output_channels:
                     output_channels[channel].add_instruction(start_time, instruction)
-                elif channel in acquire_channels:
-                    acquire_channels[channel].add_instruction(start_time, instruction)
                 elif channel in snapshot_channels:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
-        return channels, output_channels, snapshot_channels, acquire_channels
+        return channels, output_channels, snapshot_channels
 
     def _count_valid_waveforms(self, channels, scaling=1, channels_to_plot=None,
                                plot_all=False):
@@ -465,6 +468,7 @@ class ScheduleDrawer:
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max):
                 y0 = 0
                 framechanges_present = False
+
                 for channel, events in output_channels.items():
                     if events.enable:
                         # plot waveform
@@ -478,6 +482,8 @@ class ScheduleDrawer:
                             color = self.style.u_ch_color
                         elif isinstance(channel, MeasureChannel):
                             color = self.style.m_ch_color
+                        elif isinstance(channel, AcquireChannel):
+                            color = self.style.a_ch_color
                         else:
                             raise VisualizationError('Ch %s cannot be drawn.' % channel.name)
                         # scaling and offset
@@ -548,10 +554,10 @@ class ScheduleDrawer:
 
         # prepare waveform channels
         (channels, output_channels,
-         snapshot_channels, acquire_channels) = self._build_channels(schedule, t0, tf)
+         snapshot_channels) = self._build_channels(schedule, t0, tf)
 
         # count numbers of valid waveform
-        n_valid_waveform, v_max = self._count_valid_waveforms(channels, scaling=scaling,
+        n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scaling,
                                                               channels_to_plot=channels_to_plot,
                                                               plot_all=plot_all)
 
