@@ -1299,7 +1299,8 @@ class ScheduleDrawer:
                 labels = events.labels
                 if labels:
                     for time, label in labels.items():
-                        ax.text(x=time*dt, y=y0+1, s=r'%s' % label,
+                        ax.text(x=time*dt, y=y0+0.5,
+                                s=r'%s' % label,
                                 fontsize=self.style.label_font_size,
                                 ha='center', va='center')
 
@@ -1307,7 +1308,7 @@ class ScheduleDrawer:
                 continue
             # plot label
             ax.text(x=0, y=y0, s=channel.name,
-                    fontsize=self.style.axis_label_font_size,
+                    fontsize=self.style.axis_font_size,
                     ha='right', va='center')
 
             y0 -= 1
