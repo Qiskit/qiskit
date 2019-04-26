@@ -7,22 +7,24 @@
 
 
 """
-Transpiler pass to remove RZ and Z gate before a measurement
+Transpiler pass to remove diagonal gates (like RZ, T, Z, etc) before a measurement
 """
 
 from qiskit.circuit import Measure
-from qiskit.extensions.standard import RZGate, ZGate
+from qiskit.extensions.standard import RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate
 from qiskit.transpiler.basepasses import TransformationPass
 
 
-class RemoveRZandZbeforeMeasure(TransformationPass):
-    """Remove RZ and Z gate before a measurement """
+class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
+    """Remove diagonal gates (like RZ, T, Z, etc) before a measurement"""
 
     def run(self, dag):
         """Return a new circuit that has been optimized."""
+        DiagonalGates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
+
         measures = dag.op_nodes(Measure)
         for measure in measures:
             for predecessor in dag.predecessors(measure):
-                if predecessor.type == 'op' and isinstance(predecessor.op, (RZGate, ZGate)):
+                if predecessor.type == 'op' and isinstance(predecessor.op, DiagonalGates):
                     dag.remove_op_node(predecessor)
         return dag
