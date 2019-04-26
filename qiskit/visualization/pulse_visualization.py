@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def pulse_drawer(data, dt=1, style=None, filename=None, output='mpl',
                  interp_method=None, scaling=None, channels_to_plot=None,
                  plot_all=False, plot_range=None, interactive=False,
-                 legend=True, table=True):
+                 legend=True, table=True, label=False):
     """Plot the interpolated envelope of pulse
 
     Args:
@@ -43,6 +43,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None, output='mpl',
             (this depends on the matplotlib backend being used supporting this)
         legend (bool): Draw Legend for supported commands
         table (bool): Draw event table for supported commands
+        label (bool): Label individual instructions
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope
     Raises:
@@ -51,14 +52,12 @@ def pulse_drawer(data, dt=1, style=None, filename=None, output='mpl',
     if output == 'mpl':
         if isinstance(data, SamplePulse):
             drawer = _matplotlib.SamplePulseDrawer(style=style)
-            image = drawer.draw(data, dt=dt,
-                                interp_method=interp_method, scaling=scaling)
+            image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling)
         elif isinstance(data, (Schedule, Instruction)):
             drawer = _matplotlib.ScheduleDrawer(style=style)
-            image = drawer.draw(data, dt=dt,
-                                interp_method=interp_method, scaling=scaling,
+            image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling,
                                 plot_range=plot_range, channels_to_plot=channels_to_plot,
-                                plot_all=plot_all, legend=legend, table=table)
+                                plot_all=plot_all, legend=legend, table=table, label=label)
         else:
             raise VisualizationError('This data cannot be visualized.')
     else:

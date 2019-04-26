@@ -918,6 +918,14 @@ class EventsOutputChannels:
 
         return self._trim(self._snapshots)
 
+    @property
+    def labels(self):
+        """Get labels."""
+        if self._labels is None:
+            self._build_waveform()
+
+        return self._trim(self._labels)
+
     def is_empty(self):
         """Return if pulse is empty.
 
@@ -962,7 +970,7 @@ class EventsOutputChannels:
         self._framechanges = {}
         self._conditionals = {}
         self._snapshots = {}
-
+        self._labels = {}
         fc = 0
         pv = np.zeros(self.tf + 1, dtype=np.complex128)
         wf = np.zeros(self.tf + 1, dtype=np.complex128)
@@ -989,6 +997,8 @@ class EventsOutputChannels:
                 if isinstance(command, SamplePulse):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
+                    self._labels[(time+tf)//2] = command.name
+
                 elif isinstance(command, Acquire):
                     wf[time:tf] = np.ones(command.duration)
 
@@ -1240,7 +1250,8 @@ class ScheduleDrawer:
         if legend_labels:
             ax.legend(legend_lines, legend_labels, loc='upper right')
 
-    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max):
+    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
+                       label=False):
         y0 = 0
         framechanges_present = False
 
@@ -1284,12 +1295,19 @@ class ScheduleDrawer:
                         ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
                                 fontsize=self.style.icon_font_size,
                                 ha='center', va='center')
+                # plot labels
+                labels = events.labels
+                if labels:
+                    for time, label in labels.items():
+                        ax.text(x=time*dt, y=y0+1, s=r'%s' % label,
+                                fontsize=self.style.label_font_size,
+                                ha='center', va='center')
 
             else:
                 continue
             # plot label
             ax.text(x=0, y=y0, s=channel.name,
-                    fontsize=self.style.label_font_size,
+                    fontsize=self.style.axis_label_font_size,
                     ha='right', va='center')
 
             y0 -= 1
@@ -1297,7 +1315,7 @@ class ScheduleDrawer:
 
     def draw(self, schedule, dt, interp_method, scaling,
              plot_range, channels_to_plot=None, plot_all=True, legend=True,
-             table=True):
+             table=True, label=False):
         """Draw figure.
         Args:
             schedule (ScheduleComponent): Schedule to draw
@@ -1310,6 +1328,7 @@ class ScheduleDrawer:
             plot_all (bool): if plot all channels even it is empty
             legend (bool): Draw legend
             table (bool): Draw event table
+            label (bool): Label individual instructions
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
@@ -1351,7 +1370,7 @@ class ScheduleDrawer:
         ax.set_facecolor(self.style.bg_color)
 
         y0, framechanges_present = self._draw_channels(ax, output_channels, interp_method,
-                                                       t0, tf, dt, v_max)
+                                                       t0, tf, dt, v_max, label=label)
 
         snapshots_present = self._draw_snapshots(ax, snapshot_channels, dt)
 
