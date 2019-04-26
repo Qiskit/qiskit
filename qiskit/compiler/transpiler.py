@@ -211,7 +211,7 @@ def _parse_transpile_args(circuits, backend,
 
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
 
-    is_parametric_circuit = [bool(circuit.variables) for circuit in circuits]
+    is_parametric_circuit = [bool(circuit.parameters) for circuit in circuits]
 
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
 

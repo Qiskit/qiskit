@@ -160,6 +160,7 @@ Changed
 - Not specifying a basis in ``execute()`` or ``transpile()`` no longer defaults to unrolling
   to the ['u1', 'u2', 'u3', 'cx'] basis. Instead the default behavior is to not unroll,
   unless specifically requested (#2166).
+- Instruction.copy() is now a shallow copy instead of deep (#2214)
 
 Deprecated
 ----------
