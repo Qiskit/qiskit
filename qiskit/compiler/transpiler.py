@@ -17,10 +17,11 @@ from qiskit.pulse import Schedule
 
 
 def transpile(circuits,
+              backend=None,
               basis_gates=None, coupling_map=None, backend_properties=None,
-              initial_layout=None, seed_transpiler=None,
-              optimization_level=None, backend=None,
-              seed_mapper=None, pass_manager=None):
+              initial_layout=None, seed_transpiler=None, optimization_level=None,
+              pass_manager=None,
+              seed_mapper=None):  # deprecated
     """transpile one or more circuits, according to some desired
     transpilation targets.
 
@@ -32,6 +33,14 @@ def transpile(circuits,
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]):
             Circuit(s) to transpile
+
+        backend (BaseBackend):
+            If set, transpiler options are automatically grabbed from
+            backend.configuration() and backend.properties().
+            If any other option is explicitly set (e.g. coupling_map), it
+            will override the backend's.
+            Note: the backend arg is purely for convenience. The resulting
+                circuit may be run on any backend as long as it is compatible.
 
         basis_gates (list[str]):
             List of basis gate names to unroll to.
@@ -95,19 +104,14 @@ def transpile(circuits,
                 1: light optimization
                 2: heavy optimization
 
-        backend (BaseBackend):
-            If set, transpiler options are automatically grabbed from
-            backend.configuration() and backend.properties().
-            If any other option is explicitly set (e.g. coupling_map), it
-            will override the backend's.
-            Note: the backend arg is purely for convenience. The resulting
-                circuit may be run on any backend as long as it is compatible.
+        pass_manager (PassManager):
+            The pass manager to use for a custom pipeline of transpiler passes.
+            If this arg is present, all other args will be ignored and the
+            pass manager will be used directly (Qiskit will not attempt to
+            auto-select a pass manager based on transpile options).
 
         seed_mapper (int):
             DEPRECATED in 0.8: use ``seed_transpiler`` kwarg instead
-
-        pass_manager (PassManager):
-            DEPRECATED in 0.8: use ``pass_manager.run(circuits)`` directly
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
@@ -122,12 +126,6 @@ def transpile(circuits,
                       "for all stochastic parts of the.", DeprecationWarning)
         seed_transpiler = seed_mapper
 
-    if pass_manager:
-        warnings.warn("After the 0.9 release, the transpile() function no longer accepts "
-                      "a pass_manager arg. Instead use pass_manager.run(circuits) directly "
-                      "to run a custom pipeline of passes.", DeprecationWarning)
-        return pass_manager.run(circuits)
-
     # transpiling schedules is not supported yet.
     if isinstance(circuits, Schedule) or \
        (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
@@ -135,10 +133,10 @@ def transpile(circuits,
 
     # Get TranspileConfig(s) to configure the circuit transpilation job(s)
     circuits = circuits if isinstance(circuits, list) else [circuits]
-    transpile_configs = _parse_transpile_args(circuits, basis_gates, coupling_map,
+    transpile_configs = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                               backend_properties, initial_layout,
                                               seed_transpiler, optimization_level,
-                                              backend)
+                                              pass_manager)
 
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
@@ -164,22 +162,24 @@ def _transpile_circuit(circuit_config_tuple):
     """
     circuit, transpile_config = circuit_config_tuple
 
-    if transpile_config.coupling_map:
-        pass_manager = default_pass_manager(transpile_config.basis_gates,
-                                            transpile_config.coupling_map,
-                                            transpile_config.initial_layout,
-                                            transpile_config.skip_numeric_passes,
-                                            transpile_config.seed_transpiler)
-    else:
-        pass_manager = default_pass_manager_simulator(transpile_config.basis_gates)
+    # if the pass manager is not already selected, choose an appropriate one.
+    if not transpile_config.pass_manager:
+        if transpile_config.coupling_map:
+            pass_manager = default_pass_manager(transpile_config.basis_gates,
+                                                transpile_config.coupling_map,
+                                                transpile_config.initial_layout,
+                                                transpile_config.skip_numeric_passes,
+                                                transpile_config.seed_transpiler)
+        else:
+            pass_manager = default_pass_manager_simulator(transpile_config.basis_gates)
 
     return pass_manager.run(circuit)
 
 
-def _parse_transpile_args(circuits,
+def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, seed_transpiler, optimization_level,
-                          backend):
+                          pass_manager):
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -210,16 +210,20 @@ def _parse_transpile_args(circuits,
 
     is_parametric_circuit = [bool(circuit.variables) for circuit in circuits]
 
+    pass_manager = _parse_pass_manager(pass_manager, num_circuits)
+
     transpile_configs = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
-                    seed_transpiler, optimization_level, is_parametric_circuit):
+                    seed_transpiler, optimization_level, is_parametric_circuit,
+                    pass_manager):
         transpile_config = TranspileConfig(basis_gates=args[0],
                                            coupling_map=args[1],
                                            backend_properties=args[2],
                                            initial_layout=args[3],
                                            seed_transpiler=args[4],
                                            optimization_level=args[5],
-                                           skip_numeric_passes=args[6])
+                                           skip_numeric_passes=args[6],
+                                           pass_manager=args[7])
         transpile_configs.append(transpile_config)
 
     return transpile_configs
@@ -307,3 +311,9 @@ def _parse_optimization_level(optimization_level, num_circuits):
     if not isinstance(optimization_level, list):
         optimization_level = [optimization_level] * num_circuits
     return optimization_level
+
+
+def _parse_pass_manager(pass_manager, num_circuits):
+    if not isinstance(pass_manager, list):
+        pass_manager = [pass_manager] * num_circuits
+    return pass_manager

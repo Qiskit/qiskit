@@ -43,15 +43,10 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
     warnings.warn("qiskit.transpiler.transpile() has been deprecated and will be "
                   "removed in the 0.9 release. Use qiskit.compiler.transpile() instead.",
                   DeprecationWarning)
-    if pass_manager:
-        warnings.warn("The transpile() function will no longer accept a pass_manager "
-                      "argument after the 0.9 release. Instead, call pass_manager.run() "
-                      "on circuit(s) directly.", DeprecationWarning)
-        return pass_manager.run(circuits)
-    else:
-        return compiler.transpile(circuits=circuits, backend=backend,
-                                  basis_gates=basis_gates, coupling_map=coupling_map,
-                                  initial_layout=initial_layout, seed_transpiler=seed_mapper)
+    return compiler.transpile(circuits=circuits, backend=backend,
+                              basis_gates=basis_gates, coupling_map=coupling_map,
+                              initial_layout=initial_layout, seed_transpiler=seed_mapper,
+                              pass_manager=pass_manager)
 
 
 def transpile_dag(dag, basis_gates=None, coupling_map=None,
@@ -92,12 +87,6 @@ def transpile_dag(dag, basis_gates=None, coupling_map=None,
 
     if basis_gates is None:
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
-    if isinstance(basis_gates, str):
-        warnings.warn("The parameter basis_gates is now a list of strings. "
-                      "For example, this basis ['u1','u2','u3','cx'] should be used "
-                      "instead of 'u1,u2,u3,cx'. The string format will be "
-                      "removed after 0.9", DeprecationWarning, 2)
-        basis_gates = basis_gates.split(',')
 
     if pass_manager is None:
         # default set of passes

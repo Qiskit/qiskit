@@ -270,14 +270,14 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
 def assemble(experiments,
+             backend=None,
              qobj_id=None, qobj_header=None,  # common run options
-             shots=1024, memory=False, max_credits=None,
-             seed_simulator=None,
+             shots=1024, memory=False, max_credits=None, seed_simulator=None,
              default_qubit_los=None, default_meas_los=None,  # schedule run options
              schedule_los=None, meas_level=2, meas_return='avg',
              memory_slots=None, memory_slot_size=100, rep_time=None,
              config=None, seed=None,  # deprecated
-             backend=None, **run_config):
+             **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
 
     This function serializes the payloads, which could be either circuits or schedules,
@@ -287,6 +287,14 @@ def assemble(experiments,
     Args:
         experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
             Circuit(s) or pulse schedule(s) to execute
+
+        backend (BaseBackend):
+            If set, some runtime options are automatically grabbed from
+            backend.configuration() and backend.defaults().
+            If any other option is explicitly set (e.g. rep_rate), it
+            will override the backend's.
+            If any other options is set in the run_config, it will
+            also override the backend's.
 
         qobj_id (str):
             String identifier to annotate the Qobj
@@ -338,14 +346,6 @@ def assemble(experiments,
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
-        backend (BaseBackend):
-            If set, some runtime options are automatically grabbed from
-            backend.configuration() and backend.defaults().
-            If any other option is explicitly set (e.g. rep_rate), it
-            will override the backend's.
-            If any other options is set in the run_config, it will
-            also override the backend's.
-
         seed (int):
             DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
 
@@ -374,12 +374,12 @@ def assemble(experiments,
 
     # Get RunConfig(s) that will be inserted in Qobj to configure the run
     experiments = experiments if isinstance(experiments, list) else [experiments]
-    qobj_id, qobj_header, run_config = _parse_run_args(qobj_id, qobj_header,
+    qobj_id, qobj_header, run_config = _parse_run_args(backend, qobj_id, qobj_header,
                                                        shots, memory, max_credits, seed_simulator,
                                                        default_qubit_los, default_meas_los,
                                                        schedule_los, meas_level, meas_return,
                                                        memory_slots, memory_slot_size, rep_time,
-                                                       backend, **run_config)
+                                                       **run_config)
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -396,12 +396,12 @@ def assemble(experiments,
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
-def _parse_run_args(qobj_id, qobj_header,
+def _parse_run_args(backend, qobj_id, qobj_header,
                     shots, memory, max_credits, seed_simulator,
                     default_qubit_los, default_meas_los,
                     schedule_los, meas_level, meas_return,
                     memory_slots, memory_slot_size, rep_time,
-                    backend, **run_config):
+                    **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
     what types of inputs are allowed.

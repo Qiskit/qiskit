@@ -22,14 +22,14 @@ logger = logging.getLogger(__name__)
 def execute(experiments, backend,
             basis_gates=None, coupling_map=None,  # circuit transpile options
             backend_properties=None, initial_layout=None,
-            seed_transpiler=None, optimization_level=None,
+            seed_transpiler=None, optimization_level=None, pass_manager=None,
             qobj_id=None, qobj_header=None, shots=1024,  # common run options
             memory=False, max_credits=10, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=2, meas_return='avg',
             memory_slots=None, memory_slot_size=100, rep_time=None,
             seed=None, seed_mapper=None,  # deprecated
-            config=None, pass_manager=None, circuits=None,
+            config=None, circuits=None,
             **run_config):
     """Execute a list of circuits or pulse schedules on a backend.
 
@@ -108,6 +108,11 @@ def execute(experiments, backend,
                 1: light optimization
                 2: heavy optimization
 
+        pass_manager (PassManager):
+            The pass manager to use during transpilation. If this arg is present,
+            auto-selection of pass manager based on the transpile options will be
+            turned off and this pass manager will be used directly.
+
         qobj_id (str):
             String identifier to annotate the Qobj
 
@@ -167,10 +172,6 @@ def execute(experiments, backend,
         config (dict):
             DEPRECATED in 0.8: use run_config instead
 
-        pass_manager (PassManager):
-            DEPRECATED in 0.8: use pass_manager.run() to transpile the circuit,
-            then assemble and run it.
-
         circuits (QuantumCircuit or list[QuantumCircuit]):
             DEPRECATED in 0.8: use ``experiments`` kwarg instead.
 
@@ -201,8 +202,8 @@ def execute(experiments, backend,
                             seed_transpiler=seed_transpiler,
                             optimization_level=optimization_level,
                             backend=backend,
+                            pass_manager=pass_manager,
                             seed_mapper=seed_mapper,  # deprecated
-                            pass_manager=pass_manager  # deprecated
                             )
 
     # assembling the circuits into a qobj to be run on the backend
