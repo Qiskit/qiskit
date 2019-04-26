@@ -15,7 +15,7 @@ import logging
 from collections import OrderedDict
 
 import numpy as np
-from matplotlib import pyplot as plt, gridspec, lines, text
+from matplotlib import pyplot as plt, gridspec, lines
 
 from qiskit.pulse import SamplePulse, FrameChange, PersistentValue, Schedule, Snapshot
 from qiskit.pulse.commands import Instruction
@@ -302,38 +302,7 @@ class ScheduleDrawer:
         """
         self.style = style or OPStyleSched()
 
-    def draw(self, schedule, dt, interp_method, scaling,
-             plot_range, channels_to_plot, plot_all, legend):
-        """Draw figure.
-        Args:
-            schedule (ScheduleComponent): Schedule to draw.
-            dt (float): time interval.
-            interp_method (Callable): interpolation function.
-            scaling (float): scaling of waveform amplitude.
-            plot_range (tuple[float]): plot range.
-            channels_to_plot (list[OutputChannel]): channels to draw.
-            plot_all (bool): if plot all channels even it is empty.
-
-        Returns:
-            matplotlib.figure: A matplotlib figure object for the pulse schedule.
-
-        Raises:
-            VisualizationError: when schedule cannot be drawn.
-        """
-        figure = plt.figure()
-
-        if not channels_to_plot:
-            channels_to_plot = []
-        interp_method = interp_method or cubic_spline
-
-        # setup plot range
-        if plot_range:
-            t0 = int(np.floor(plot_range[0]/dt))
-            tf = int(np.floor(plot_range[1]/dt))
-        else:
-            t0 = 0
-            tf = schedule.stop_time
-
+    def _build_channels(self, schedule, t0, tf):
         # prepare waveform channels
         drive_channels = OrderedDict()
         measure_channels = OrderedDict()
@@ -384,7 +353,10 @@ class ScheduleDrawer:
                     acquire_channels[channel].add_instruction(start_time, instruction)
                 elif channel in snapshot_channels:
                     snapshot_channels[channel].add_instruction(start_time, instruction)
+        return channels, output_channels, snapshot_channels, acquire_channels
 
+    def _count_valid_waveforms(self, channels, scaling=1, channels_to_plot=None,
+                               plot_all=False):
         # count numbers of valid waveform
         n_valid_waveform = 0
         v_max = 0
@@ -410,6 +382,9 @@ class ScheduleDrawer:
         else:
             v_max = 0.5 / (1.2 * v_max)
 
+        return n_valid_waveform, v_max
+
+    def _draw_table(self, figure, channels, dt, n_valid_waveform):
         # create table
         table_data = []
         if self.style.use_table:
@@ -460,57 +435,9 @@ class ScheduleDrawer:
 
         figure.set_size_inches(self.style.fig_w, fig_h)
         ax.set_facecolor = self.style.bg_color
+        return ax
 
-        y0 = 0
-        framechanges_present = False
-        for channel, events in output_channels.items():
-            if events.enable:
-                # plot waveform
-                waveform = events.waveform
-                time = np.arange(t0, tf + 1, dtype=float) * dt
-                time, re, im = interp_method(time, waveform, self.style.num_points)
-                # choose color
-                if isinstance(channel, DriveChannel):
-                    color = self.style.d_ch_color
-                elif isinstance(channel, ControlChannel):
-                    color = self.style.u_ch_color
-                elif isinstance(channel, MeasureChannel):
-                    color = self.style.m_ch_color
-                else:
-                    raise VisualizationError('Ch %s cannot be drawn.' % channel.name)
-                # scaling and offset
-                re = v_max * re + y0
-                im = v_max * im + y0
-                offset = np.zeros_like(time) + y0
-                # plot
-                ax.fill_between(x=time, y1=re, y2=offset,
-                                facecolor=color[0], alpha=0.3,
-                                edgecolor=color[0], linewidth=1.5,
-                                label='real part')
-                ax.fill_between(x=time, y1=im, y2=offset,
-                                facecolor=color[1], alpha=0.3,
-                                edgecolor=color[1], linewidth=1.5,
-                                label='imaginary part')
-                ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
-
-                # plot frame changes
-                fcs = events.framechanges
-                if fcs:
-                    framechanges_present = True
-                    for time in fcs.keys():
-                        ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
-                                fontsize=self.style.icon_font_size,
-                                ha='center', va='center')
-
-            else:
-                continue
-            # plot label
-            ax.text(x=0, y=y0, s=channel.name,
-                    fontsize=self.style.label_font_size,
-                    ha='right', va='center')
-
-            y0 -= 1
-
+    def _draw_snapshots(self, ax, snapshot_channels, dt):
         snapshots_present = False
         for channel, events in snapshot_channels.items():
             snapshots = events.snapshots
@@ -519,20 +446,124 @@ class ScheduleDrawer:
                 for time, name in snapshots.items():
                     ax.axvline(time*dt, -1, 1, color=self.style.s_ch_color,
                                linestyle=self.style.s_ch_linestyle)
+        return snapshots_present
+
+    def _draw_legend(self, ax, framechanges_present, snapshots_present):
+        legend_labels = []
+        legend_lines = []
+        if framechanges_present:
+            legend_labels.append('framechange')
+            legend_lines.append(lines.Line2D([0], [0], marker=r'$\circlearrowleft$',
+                                             color='black', markersize=self.style.icon_font_size-6))
+        if snapshots_present:
+            legend_labels.append('snapshot')
+            legend_lines.append(lines.Line2D([0], [0], color=self.style.s_ch_color,
+                                             linestyle=self.style.s_ch_linestyle))
+        if legend_labels:
+            ax.legend(legend_lines, legend_labels, loc='upper right')
+
+    def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max):
+                y0 = 0
+                framechanges_present = False
+                for channel, events in output_channels.items():
+                    if events.enable:
+                        # plot waveform
+                        waveform = events.waveform
+                        time = np.arange(t0, tf + 1, dtype=float) * dt
+                        time, re, im = interp_method(time, waveform, self.style.num_points)
+                        # choose color
+                        if isinstance(channel, DriveChannel):
+                            color = self.style.d_ch_color
+                        elif isinstance(channel, ControlChannel):
+                            color = self.style.u_ch_color
+                        elif isinstance(channel, MeasureChannel):
+                            color = self.style.m_ch_color
+                        else:
+                            raise VisualizationError('Ch %s cannot be drawn.' % channel.name)
+                        # scaling and offset
+                        re = v_max * re + y0
+                        im = v_max * im + y0
+                        offset = np.zeros_like(time) + y0
+                        # plot
+                        ax.fill_between(x=time, y1=re, y2=offset,
+                                        facecolor=color[0], alpha=0.3,
+                                        edgecolor=color[0], linewidth=1.5,
+                                        label='real part')
+                        ax.fill_between(x=time, y1=im, y2=offset,
+                                        facecolor=color[1], alpha=0.3,
+                                        edgecolor=color[1], linewidth=1.5,
+                                        label='imaginary part')
+                        ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
+
+                        # plot frame changes
+                        fcs = events.framechanges
+                        if fcs:
+                            framechanges_present = True
+                            for time in fcs.keys():
+                                ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
+                                        fontsize=self.style.icon_font_size,
+                                        ha='center', va='center')
+
+                    else:
+                        continue
+                    # plot label
+                    ax.text(x=0, y=y0, s=channel.name,
+                            fontsize=self.style.label_font_size,
+                            ha='right', va='center')
+
+                    y0 -= 1
+                return y0, framechanges_present
+
+    def draw(self, schedule, dt, interp_method, scaling,
+             plot_range, channels_to_plot, plot_all, legend):
+        """Draw figure.
+        Args:
+            schedule (ScheduleComponent): Schedule to draw.
+            dt (float): time interval.
+            interp_method (Callable): interpolation function.
+            scaling (float): scaling of waveform amplitude.
+            plot_range (tuple[float]): plot range.
+            channels_to_plot (list[OutputChannel]): channels to draw.
+            plot_all (bool): if plot all channels even it is empty.
+
+        Returns:
+            matplotlib.figure: A matplotlib figure object for the pulse schedule.
+
+        Raises:
+            VisualizationError: when schedule cannot be drawn.
+        """
+        figure = plt.figure()
+
+        if not channels_to_plot:
+            channels_to_plot = []
+        interp_method = interp_method or cubic_spline
+
+        # setup plot range
+        if plot_range:
+            t0 = int(np.floor(plot_range[0]/dt))
+            tf = int(np.floor(plot_range[1]/dt))
+        else:
+            t0 = 0
+            tf = schedule.stop_time
+
+        # prepare waveform channels
+        (channels, output_channels,
+         snapshot_channels, acquire_channels) = self._build_channels(schedule, t0, tf)
+
+        # count numbers of valid waveform
+        n_valid_waveform, v_max = self._count_valid_waveforms(channels, scaling=scaling,
+                                                              channels_to_plot=channels_to_plot,
+                                                              plot_all=plot_all)
+
+        ax = self._draw_table(figure, channels, dt, n_valid_waveform)
+
+        y0, framechanges_present = self._draw_channels(ax, output_channels, interp_method,
+                                                       t0, tf, dt, v_max)
+
+        snapshots_present = self._draw_snapshots(ax, snapshot_channels, dt)
 
         if legend:
-            legend_labels = []
-            legend_lines = []
-            if framechanges_present:
-                legend_labels.append('framechange')
-                legend_lines.append(lines.Line2D([0], [0], marker=r'$\circlearrowleft$',
-                                                 color='black', markersize=self.style.icon_font_size-6))
-            if snapshots_present:
-                legend_labels.append('snapshot')
-                legend_lines.append(lines.Line2D([0], [0], color=self.style.s_ch_color,
-                                                 linestyle=self.style.s_ch_linestyle))
-            if legend_labels:
-                ax.legend(legend_lines, legend_labels, loc='upper right')
+            self._draw_legend(ax, framechanges_present, snapshots_present)
 
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)
