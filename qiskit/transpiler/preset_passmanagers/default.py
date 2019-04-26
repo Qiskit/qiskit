@@ -83,6 +83,9 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
     else:
         simplification_passes = [CXCancellation()]
 
+    if 'reset' in basis_gates:
+        simplification_passes = [RemoveResetInZeroState()]
+
     pass_manager.append(simplification_passes + [Depth(), FixedPoint('depth')],
                         do_while=lambda property_set: not property_set['depth_fixed_point'])
 
