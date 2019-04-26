@@ -335,6 +335,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+
 class TestRemoveDiagonalGatesBeforeMeasureFixedPoint(QiskitTestCase):
     """ Test remove_diagonal_gates_before_measure optimizations in
         a transpiler, using fixed point. """
