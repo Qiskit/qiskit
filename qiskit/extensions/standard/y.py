@@ -10,6 +10,7 @@
 """
 Pauli Y (bit-phase-flip) gate.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -39,6 +40,11 @@ class YGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return YGate()  # self-inverse
+
+    def to_matrix(self):
+        """Return a Numpy.array for the Y gate."""
+        return numpy.array([[0, -1j],
+                            [1j, 0]], dtype=complex)
 
 
 @_to_bits(1)

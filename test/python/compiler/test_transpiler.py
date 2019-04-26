@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# Copyright 2019, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
@@ -12,119 +12,23 @@
 import math
 from unittest.mock import patch
 
-import sympy
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import compile, BasicAer
 from qiskit.extensions.standard import CnotGate
-from qiskit.transpiler import PassManager, transpile, TranspilerError
-from qiskit.compiler import assemble_circuits
+from qiskit.transpiler import PassManager, transpile
+from qiskit.compiler import assemble
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
-from qiskit.compiler import RunConfig
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.mapper import Layout
-
-
-class TestTranspileDag(QiskitTestCase):
-    """Test transpile function."""
-
-    barrier_pass = BarrierBeforeFinalMeasurements()
-
-    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
-    def test_final_measurement_barrier_for_devices(self, mock_pass):
-        """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
-
-        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
-        layout = Layout.generate_trivial_layout(*circ.qregs)
-        transpile(circ, coupling_map=FakeRueschlikon().configuration().coupling_map,
-                  initial_layout=layout)
-
-        self.assertTrue(mock_pass.called)
-
-    def test_wrong_initial_layout(self):
-        """Test transpile with a bad initial layout.
-        """
-        backend = BasicAer.get_backend('qasm_simulator')
-
-        qubit_reg = QuantumRegister(2, name='q')
-        clbit_reg = ClassicalRegister(2, name='c')
-        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-        qc.h(qubit_reg[0])
-        qc.cx(qubit_reg[0], qubit_reg[1])
-        qc.measure(qubit_reg, clbit_reg)
-
-        bad_initial_layout = [(QuantumRegister(3, 'q'), 0),
-                              (QuantumRegister(3, 'q'), 1),
-                              (QuantumRegister(3, 'q'), 2)]
-
-        self.assertRaises(TranspilerError, transpile,
-                          qc, backend, initial_layout=bad_initial_layout)
-
-    def test_optimize_to_nothing(self):
-        """ Optimze gates up to fixed point in the default pipeline
-        See https://github.com/Qiskit/qiskit-terra/issues/2035 """
-        qr = QuantumRegister(2)
-        circ = QuantumCircuit(qr)
-        circ.h(qr[0])
-        circ.cx(qr[0], qr[1])
-        circ.x(qr[0])
-        circ.y(qr[0])
-        circ.z(qr[0])
-        circ.cx(qr[0], qr[1])
-        circ.h(qr[0])
-        circ.cx(qr[0], qr[1])
-        circ.cx(qr[0], qr[1])
-
-        after = transpile(circ, coupling_map=[[0, 1], [1, 0]])
-
-        expected = QuantumCircuit(QuantumRegister(2, 'q'))
-        self.assertEqual(after, expected)
-
-    def test_pass_manager_empty(self):
-        """Test passing an empty PassManager() to the transpiler.
-
-        It should perform no transformations on the circuit.
-        """
-        qr = QuantumRegister(2)
-        circuit = QuantumCircuit(qr)
-        circuit.h(qr[0])
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[1])
-        resources_before = circuit.count_ops()
-
-        pass_manager = PassManager()
-        out_circuit = transpile(circuit, pass_manager=pass_manager)
-        resources_after = out_circuit.count_ops()
-
-        self.assertDictEqual(resources_before, resources_after)
-
-    def test_move_measurements(self):
-        """Measurements applied AFTER swap mapping.
-        """
-        backend = FakeRueschlikon()
-        cmap = backend.configuration().coupling_map
-        circ = QuantumCircuit.from_qasm_file(
-            self._get_resource_path('move_measurements.qasm', Path.QASMS))
-
-        lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
-                      ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
-                      ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
-                      ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
-        out = transpile(circ, initial_layout=lay, coupling_map=cmap)
-        out_dag = circuit_to_dag(out)
-        meas_nodes = out_dag.named_nodes('measure')
-        for meas_node in meas_nodes:
-            is_last_measure = all([after_measure.type == 'out'
-                                   for after_measure in out_dag.quantum_successors(meas_node)])
-            self.assertTrue(is_last_measure)
+from qiskit.circuit import Parameter
 
 
 class TestTranspile(QiskitTestCase):
     """Test transpile function."""
+
+    barrier_pass = BarrierBeforeFinalMeasurements()
 
     def test_pass_manager_none(self):
         """Test passing the default (None) pass manager to the transpiler.
@@ -146,12 +50,11 @@ class TestTranspile(QiskitTestCase):
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
 
         backend = BasicAer.get_backend('qasm_simulator')
-        circuit2 = transpile(circuit, backend, coupling_map=coupling_map, basis_gates=basis_gates,
-                             pass_manager=None)
+        circuit2 = transpile(circuit, backend=backend, coupling_map=coupling_map,
+                             basis_gates=basis_gates, pass_manager=None)
 
         qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
-        run_config = RunConfig(shots=1024, max_credits=10)
-        qobj2 = assemble_circuits(circuit2, qobj_id=qobj.qobj_id, run_config=run_config)
+        qobj2 = assemble(circuit2, qobj_id=qobj.qobj_id, shots=1024, max_credits=10)
         self.assertEqual(qobj, qobj2)
 
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):
@@ -475,7 +378,7 @@ class TestTranspile(QiskitTestCase):
     def test_wrong_initial_layout(self):
         """Test transpile with a bad initial layout.
         """
-        backend = BasicAer.get_backend('qasm_simulator')
+        backend = FakeMelbourne()
 
         qubit_reg = QuantumRegister(2, name='q')
         clbit_reg = ClassicalRegister(2, name='c')
@@ -488,7 +391,7 @@ class TestTranspile(QiskitTestCase):
                               (QuantumRegister(3, 'q'), 1),
                               (QuantumRegister(3, 'q'), 2)]
 
-        self.assertRaises(TranspilerError, transpile,
+        self.assertRaises(KeyError, transpile,
                           qc, backend, initial_layout=bad_initial_layout)
 
     def test_parameterized_circuit_for_simulator(self):
@@ -496,7 +399,7 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(2, name='qr')
         qc = QuantumCircuit(qr)
 
-        theta = sympy.Symbol('theta')
+        theta = Parameter('theta')
         qc.rz(theta, qr[0])
 
         transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
@@ -511,7 +414,7 @@ class TestTranspile(QiskitTestCase):
         qr = QuantumRegister(2, name='qr')
         qc = QuantumCircuit(qr)
 
-        theta = sympy.Symbol('theta')
+        theta = Parameter('theta')
         qc.rz(theta, qr[0])
 
         transpiled_qc = transpile(qc, backend=FakeMelbourne())
@@ -521,3 +424,75 @@ class TestTranspile(QiskitTestCase):
         expected_qc.u1(theta, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
+
+    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
+    def test_final_measurement_barrier_for_devices(self, mock_pass):
+        """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
+
+        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+        layout = Layout.generate_trivial_layout(*circ.qregs)
+        transpile(circ, coupling_map=FakeRueschlikon().configuration().coupling_map,
+                  initial_layout=layout)
+
+        self.assertTrue(mock_pass.called)
+
+    def test_optimize_to_nothing(self):
+        """ Optimze gates up to fixed point in the default pipeline
+        See https://github.com/Qiskit/qiskit-terra/issues/2035 """
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.x(qr[0])
+        circ.y(qr[0])
+        circ.z(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.h(qr[0])
+        circ.cx(qr[0], qr[1])
+        circ.cx(qr[0], qr[1])
+
+        after = transpile(circ, coupling_map=[[0, 1], [1, 0]])
+
+        expected = QuantumCircuit(QuantumRegister(2, 'q'))
+        self.assertEqual(after, expected)
+
+    def test_pass_manager_empty(self):
+        """Test passing an empty PassManager() to the transpiler.
+
+        It should perform no transformations on the circuit.
+        """
+        qr = QuantumRegister(2)
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+        resources_before = circuit.count_ops()
+
+        pass_manager = PassManager()
+        out_circuit = transpile(circuit, pass_manager=pass_manager)
+        resources_after = out_circuit.count_ops()
+
+        self.assertDictEqual(resources_before, resources_after)
+
+    def test_move_measurements(self):
+        """Measurements applied AFTER swap mapping.
+        """
+        backend = FakeRueschlikon()
+        cmap = backend.configuration().coupling_map
+        circ = QuantumCircuit.from_qasm_file(
+            self._get_resource_path('move_measurements.qasm', Path.QASMS))
+
+        lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
+                      ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
+                      ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
+                      ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
+        out = transpile(circ, initial_layout=lay, coupling_map=cmap)
+        out_dag = circuit_to_dag(out)
+        meas_nodes = out_dag.named_nodes('measure')
+        for meas_node in meas_nodes:
+            is_last_measure = all([after_measure.type == 'out'
+                                   for after_measure in out_dag.quantum_successors(meas_node)])
+            self.assertTrue(is_last_measure)
