@@ -34,7 +34,6 @@ def circuit_to_dag(circuit):
         else:
             control = (instruction.control[0], instruction.control[1])
 
-        
         dagcircuit.apply_operation_back(instruction.copy(),
                                         qargs, cargs, control)
 
