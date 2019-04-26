@@ -17,8 +17,9 @@ from collections import OrderedDict
 import numpy as np
 from matplotlib import pyplot as plt, gridspec
 
-from qiskit.pulse import SamplePulse, FrameChange, PersistentValue, Schedule
-from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
+from qiskit.pulse import SamplePulse, FrameChange, PersistentValue, Schedule, Snapshot
+from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
+                                   AcquireChannel, SnapshotChannel)
 from qiskit.pulse.exceptions import PulseError
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.interpolation import cubic_spline
@@ -27,14 +28,13 @@ from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched
 logger = logging.getLogger(__name__)
 
 
-def pulse_drawer(data, device=None, dt=1, style=None, filename=None,
+def pulse_drawer(data, dt=1, style=None, filename=None,
                  interp_method=None, scaling=None, channels_to_plot=None,
                  plot_all=False, plot_range=None, interactive=False):
     """Plot the interpolated envelope of pulse
 
     Args:
         data (Schedule or SamplePulse): Data to plot.
-        device (DeviceSpecification): Device information to organize channels.
         dt (float): Time interval of samples.
         style (OPStylePulse or OPStyleSched): A style sheet to configure plot appearance.
         filename (str): Name required to save pulse image.
@@ -55,9 +55,7 @@ def pulse_drawer(data, device=None, dt=1, style=None, filename=None,
         image = drawer.draw(pulse_obj=data, dt=dt,
                             interp_method=interp_method, scaling=scaling)
     elif isinstance(data, Schedule):
-        if not device:
-            raise VisualizationError('Schedule visualizer needs device information.')
-        drawer = ScheduleDrawer(device=device, style=style)
+        drawer = ScheduleDrawer(style=style)
         image = drawer.draw(pulse_obj=data, dt=dt,
                             interp_method=interp_method, scaling=scaling,
                             plot_range=plot_range, channels_to_plot=channels_to_plot,
@@ -90,9 +88,9 @@ class EventsOutputChannels:
         self.tf = tf
 
         self._waveform = None
-        self._frame_change = None
+        self._framechanges = None
         self._conditionals = None
-
+        self._snapshots = None
         self.enable = False
 
     def add_instruction(self, start_time, pulse):
@@ -118,13 +116,13 @@ class EventsOutputChannels:
         return self._waveform[self.t0:self.tf]
 
     @property
-    def frame_change(self):
+    def framechanges(self):
         """Get frame changes.
         """
-        if self._frame_change is None:
+        if self._framechanges is None:
             self._build_waveform()
 
-        return self._trim(self._frame_change)
+        return self._trim(self._framechanges)
 
     @property
     def conditionals(self):
@@ -135,13 +133,22 @@ class EventsOutputChannels:
 
         return self._trim(self._conditionals)
 
+    @property
+    def snapshots(self):
+        """Get snapshots.
+        """
+        if self._snapshots is None:
+            self._build_waveform()
+
+        return self._trim(self._snapshots)
+
     def is_empty(self):
         """Return if pulse is empty.
 
         Returns:
             bool: if the channel has nothing to plot.
         """
-        if any(self.waveform) or self.frame_change:
+        if any(self.waveform) or self.framechanges or self.conditionals or self.snapshots:
             return False
 
         return True
@@ -157,14 +164,18 @@ class EventsOutputChannels:
         """
         time_event = []
 
-        fc_pulses = self.frame_change
+        framechanges = self.framechanges
         conditionals = self.conditionals
+        snapshots = self.snapshots
 
-        for key, val in fc_pulses.items():
-            data_str = 'frame-change: %.2f' % val
+        for key, val in framechanges.items():
+            data_str = 'framechange: %.2f' % val
             time_event.append((key, name, data_str))
         for key, val in conditionals.items():
             data_str = 'conditional, %s' % val
+            time_event.append((key, name, data_str))
+        for key, val in snapshots.items():
+            data_str = 'snapshot: %s' % val
             time_event.append((key, name, data_str))
 
         return time_event
@@ -172,8 +183,9 @@ class EventsOutputChannels:
     def _build_waveform(self):
         """Create waveform from stored pulses.
         """
-        self._frame_change = {}
+        self._framechanges = {}
         self._conditionals = {}
+        self._snapshots = {}
 
         fc = 0
         pv = np.zeros(self.tf + 1, dtype=np.complex128)
@@ -186,8 +198,10 @@ class EventsOutputChannels:
                 if isinstance(command, FrameChange):
                     tmp_fc += command.phase
                     pv[time:] = 0
+                elif isinstance(command, Snapshot):
+                    self._snapshots[time] = command.name
             if tmp_fc != 0:
-                self._frame_change[time] = tmp_fc
+                self._framechanges[time] = tmp_fc
                 fc += tmp_fc
             for command in commands:
                 if isinstance(command, PersistentValue):
@@ -277,14 +291,12 @@ class SamplePulseDrawer:
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
-    def __init__(self, device, style):
+    def __init__(self, style):
         """Create new figure.
 
         Args:
-            device (DeviceSpecification): configuration of device.
             style (OPStyleSched): style sheet.
         """
-        self.device = device
         self.style = style or OPStyleSched()
 
     def draw(self, pulse_obj, dt, interp_method, scaling,
@@ -320,25 +332,55 @@ class ScheduleDrawer:
             tf = pulse_obj.stop_time
 
         # prepare waveform channels
-        channels = OrderedDict()
-        for q in self.device.q:
-            try:
-                channels[q.drive] = EventsOutputChannels(t0, tf)
-            except PulseError:
-                pass
-            try:
-                channels[q.control] = EventsOutputChannels(t0, tf)
-            except PulseError:
-                pass
-            try:
-                channels[q.measure] = EventsOutputChannels(t0, tf)
-            except PulseError:
-                pass
+        drive_channels = OrderedDict()
+        measure_channels = OrderedDict()
+        control_channels = OrderedDict()
+        acquire_channels = OrderedDict()
+        snapshot_channels = OrderedDict()
+
+        for chan in pulse_obj.channels:
+            if isinstance(chan, DriveChannel):
+                try:
+                    drive_channels[chan] = EventsOutputChannels(t0, tf)
+                except PulseError:
+                    pass
+            elif isinstance(chan, MeasureChannel):
+                try:
+                    measure_channels[chan] = EventsOutputChannels(t0, tf)
+                except PulseError:
+                    pass
+            elif isinstance(chan, ControlChannel):
+                try:
+                    control_channels[chan] = EventsOutputChannels(t0, tf)
+                except PulseError:
+                    pass
+            elif isinstance(chan, AcquireChannel):
+                try:
+                    acquire_channels[chan] = EventsOutputChannels(t0, tf)
+                except PulseError:
+                    pass
+            elif isinstance(chan, SnapshotChannel):
+                try:
+                    snapshot_channels[chan] = EventsOutputChannels(t0, tf)
+                except PulseError:
+                    pass
+
+        output_channels = {**drive_channels, **measure_channels, **control_channels}
+        channels = {**output_channels, **acquire_channels, **snapshot_channels}
+        # sort by index then name to group qubits together.
+        output_channels = OrderedDict(sorted(output_channels.items(),
+                                             key=lambda x: (x[0].index, x[0].name)))
+        channels = OrderedDict(sorted(channels.items(),
+                                      key=lambda x: (x[0].index, x[0].name)))
 
         for start_time, instruction in pulse_obj.flatten():
             for channel in instruction.channels:
-                if channel in channels:
-                    channels[channel].add_instruction(start_time, instruction)
+                if channel in output_channels:
+                    output_channels[channel].add_instruction(start_time, instruction)
+                elif channel in acquire_channels:
+                    acquire_channels[channel].add_instruction(start_time, instruction)
+                elif channel in snapshot_channels:
+                    snapshot_channels[channel].add_instruction(start_time, instruction)
 
         # count numbers of valid waveform
         n_valid_waveform = 0
@@ -417,7 +459,7 @@ class ScheduleDrawer:
         ax.set_facecolor = self.style.bg_color
 
         y0 = 0
-        for channel, events in channels.items():
+        for channel, events in output_channels.items():
             if events.enable:
                 # plot waveform
                 waveform = events.waveform
@@ -448,19 +490,32 @@ class ScheduleDrawer:
                 ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
 
                 # plot frame changes
-                fcs = events.frame_change
+                fcs = events.framechanges
                 if fcs:
                     for time in fcs.keys():
                         ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
-                                fontsize=self.style.label_font_size,
+                                fontsize=self.style.icon_font_size,
                                 ha='center', va='center')
-                # plot label
-                ax.text(x=0, y=y0, s=channel.name,
-                        fontsize=self.style.label_font_size,
-                        ha='right', va='center')
+
             else:
                 continue
+            # plot label
+            ax.text(x=0, y=y0, s=channel.name,
+                    fontsize=self.style.label_font_size,
+                    ha='right', va='center')
+
             y0 -= 1
+
+        for channel, events in snapshot_channels.items():
+            snapshots = events.snapshots
+            if snapshots:
+                for time, name in snapshots.items():
+                    ax.axvline(time*dt, -1, 1, color=self.style.s_ch_color,
+                               linestyle='--')
+                    ax.text(x=time*dt, y=y0, s=r'$🔲$',
+                            fontsize=self.style.icon_font_size,
+                            ha='center', va='center')
+
 
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)

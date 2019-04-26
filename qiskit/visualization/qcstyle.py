@@ -103,8 +103,8 @@ class QCStyle:
 class OPStyleSched:
     def __init__(self, fig_w=None, fig_unit_h_waveform=None, fig_unit_h_table=None,
                  use_table=None, table_columns=None, table_font_size=None, label_font_size=None,
-                 d_ch_color=None, u_ch_color=None, m_ch_color=None, table_color=None,
-                 bg_color=None, num_points=None, dpi=None):
+                 icon_font_size=None, d_ch_color=None, u_ch_color=None, m_ch_color=None,
+                 s_ch_color=None, table_color=None, bg_color=None, num_points=None, dpi=None):
         """Set style sheet for OpenPulse schedule drawer.
 
         Args:
@@ -115,9 +115,11 @@ class OPStyleSched:
             table_columns (int): number of table columns.
             table_font_size (float): font size of table.
             label_font_size (float): font size of labels.
+            icon_font_size (float): font size of labels.
             d_ch_color (list[str]): colors for real and imaginary part of waveform at d channels.
             u_ch_color (list[str]): colors for real and imaginary part of waveform at u channels.
             m_ch_color (list[str]): colors for real and imaginary part of waveform at m channels.
+            s_ch_color (str): color for snapshot channel line.
             table_color(list[str]): colors for table columns.
             bg_color(str): color for figure background.
             num_points (int): number of points for interpolation.
@@ -130,9 +132,11 @@ class OPStyleSched:
         self.table_columns = table_columns or 2
         self.table_font_size = table_font_size or 10
         self.label_font_size = label_font_size or 18
+        self.icon_font_size = icon_font_size or 18
         self.d_ch_color = d_ch_color or ['#648fff', '#002999']
         self.u_ch_color = u_ch_color or ['#ffb000', '#994A00']
         self.m_ch_color = m_ch_color or ['#dc267f', '#760019']
+        self.s_ch_color = s_ch_color or '#7da781'
         self.table_color = table_color or ['#e0e0e0', '#f6f6f6', '#f6f6f6']
         self.bg_color = bg_color or '#f2f3f4'
         self.num_points = num_points or 1000

@@ -164,14 +164,13 @@ class Schedule(ScheduleComponent):
         for insert_time, child_sched in self.children:
             yield from child_sched.flatten(time + insert_time)
 
-    def draw(self, device: DeviceSpecification, dt: float = 1, style=None,
+    def draw(self, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None, scaling: float = None,
              channels_to_plot: List[Channel] = None, plot_all: bool = False,
              plot_range: Tuple[float] = None, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
-            device: Device information to organize channels.
             dt: Time interval of samples.
             style (OPStyleSched): A style sheet to configure plot appearance.
             filename: Name required to save pulse image.
@@ -190,7 +189,7 @@ class Schedule(ScheduleComponent):
 
         from qiskit.tools import visualization
 
-        return visualization.pulse_drawer(self, device=device, dt=dt, style=style,
+        return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
                                           scaling=scaling, channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
