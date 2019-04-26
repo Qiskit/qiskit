@@ -7,7 +7,7 @@
 
 """Module for Pulses."""
 from .channels import DeviceSpecification
-from .commands import (Acquire, FrameChange, PersistentValue, SamplePulse, Snapshot,
-                       Kernel, Discriminator, functional_pulse)
+from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
+                       SamplePulse, Snapshot, Kernel, Discriminator, functional_pulse)
 from .configuration import LoConfig
 from .schedule import Schedule
