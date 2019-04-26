@@ -34,7 +34,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     """Plot the interpolated envelope of pulse
 
     Args:
-        data (Schedule or SamplePulse): Data to plot.
+        data (ScheduleComponent or SamplePulse): Data to plot.
         dt (float): Time interval of samples.
         style (OPStylePulse or OPStyleSched): A style sheet to configure plot appearance.
         filename (str): Name required to save pulse image.
@@ -244,10 +244,10 @@ class SamplePulseDrawer:
         """
         self.style = style or OPStylePulse()
 
-    def draw(self, pulse_obj, dt, interp_method, scaling):
+    def draw(self, pulse, dt, interp_method, scaling):
         """Draw figure.
         Args:
-            pulse_obj (SamplePulse): SamplePulse to draw.
+            pulse (SamplePulse): SamplePulse to draw.
             dt (float): time interval.
             interp_method (Callable): interpolation function.
             scaling (float): scaling of waveform amplitude.
@@ -263,7 +263,7 @@ class SamplePulseDrawer:
         ax = figure.add_subplot(111)
         ax.set_facecolor(self.style.bg_color)
 
-        samples = pulse_obj.samples
+        samples = pulse.samples
         time = np.arange(0, len(samples) + 1, dtype=float) * dt
 
         time, re, im = interp_method(time, samples, self.style.num_points)
@@ -278,7 +278,7 @@ class SamplePulseDrawer:
                         edgecolor=self.style.wave_color[1], linewidth=1.5,
                         label='imaginary part')
 
-        ax.set_xlim(0, pulse_obj.duration * dt)
+        ax.set_xlim(0, pulse.duration * dt)
         if scaling:
             ax.set_ylim(-scaling, scaling)
         else:
@@ -299,11 +299,11 @@ class ScheduleDrawer:
         """
         self.style = style or OPStyleSched()
 
-    def draw(self, pulse_obj, dt, interp_method, scaling,
+    def draw(self, schedule, dt, interp_method, scaling,
              plot_range, channels_to_plot, plot_all):
         """Draw figure.
         Args:
-            pulse_obj (Schedule): Schedule to draw.
+            schedule (ScheduleComponent): Schedule to draw.
             dt (float): time interval.
             interp_method (Callable): interpolation function.
             scaling (float): scaling of waveform amplitude.
@@ -329,7 +329,7 @@ class ScheduleDrawer:
             tf = int(np.floor(plot_range[1]/dt))
         else:
             t0 = 0
-            tf = pulse_obj.stop_time
+            tf = schedule.stop_time
 
         # prepare waveform channels
         drive_channels = OrderedDict()
@@ -338,7 +338,7 @@ class ScheduleDrawer:
         acquire_channels = OrderedDict()
         snapshot_channels = OrderedDict()
 
-        for chan in pulse_obj.channels:
+        for chan in schedule.channels:
             if isinstance(chan, DriveChannel):
                 try:
                     drive_channels[chan] = EventsOutputChannels(t0, tf)
@@ -373,7 +373,7 @@ class ScheduleDrawer:
         channels = OrderedDict(sorted(channels.items(),
                                       key=lambda x: (x[0].index, x[0].name)))
 
-        for start_time, instruction in pulse_obj.flatten():
+        for start_time, instruction in schedule.flatten():
             for channel in instruction.channels:
                 if channel in output_channels:
                     output_channels[channel].add_instruction(start_time, instruction)
@@ -515,7 +515,6 @@ class ScheduleDrawer:
                     ax.text(x=time*dt, y=y0, s=r'$🔲$',
                             fontsize=self.style.icon_font_size,
                             ha='center', va='center')
-
 
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)
