@@ -21,6 +21,7 @@ from qiskit.circuit.decorators import _convert_to_bits
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
+from qiskit.circuit.reset import Reset
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -72,8 +73,8 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         q = QuantumRegister(self.num_qubits, 'q')
         initialize_circuit = QuantumCircuit(q, name='init_def')
-        # TODO: make initialize an Instruction, and insert reset
-        # TODO: avoid explicit reset if compiler determines a |0> state
+        for qubit in q:
+            initialize_circuit.append(Reset(), [qubit])
         initialize_circuit.append(initialize_gate, q[:])
 
         self.definition = initialize_circuit.data
