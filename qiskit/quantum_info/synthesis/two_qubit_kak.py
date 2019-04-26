@@ -28,7 +28,7 @@ from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.extensions.standard import IdGate, U1Gate, U2Gate, U3Gate, CnotGate
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 _CUTOFF_PRECISION = 1e-10
 
@@ -136,15 +136,22 @@ def two_qubit_kak(unitary):
     Raises:
         QiskitError: input not a unitary, or error in KAK decomposition.
     """
-    # Convert to operator and check input is unitary
-    if not isinstance(unitary, Operator):
-        unitary = Operator(unitary)
-    if not unitary.is_unitary():
-        raise QiskitError("Input operator is not unitary.")
-    # Check input is 2-qubit unitary
-    unitary_matrix = unitary.data
+    if hasattr(unitary, 'to_operator'):
+        # If input is a BaseOperator subclass this attempts to convert
+        # the object to an Operator so that we can extract the underlying
+        # numpy matrix from `Operator.data`.
+        unitary = unitary.to_operator().data
+    if hasattr(unitary, 'to_matrix'):
+        # If input is Gate subclass or some other class object that has
+        # a to_matrix method this will call that method.
+        unitary = unitary.to_matrix()
+    # Convert to numpy array incase not already an array
+    unitary_matrix = np.array(unitary, dtype=complex)
+    # Check input is a 2-qubit unitary
     if unitary_matrix.shape != (4, 4):
         raise QiskitError("two_qubit_kak: Expected 4x4 matrix")
+    if not is_unitary_matrix(unitary_matrix):
+        raise QiskitError("Input matrix is not unitary.")
     phase = la.det(unitary_matrix)**(-1.0/4.0)
     # Make it in SU(4), correct phase at the end
     U = phase * unitary_matrix

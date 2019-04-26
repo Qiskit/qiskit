@@ -10,6 +10,7 @@
 """
 Pauli Z (phase-flip) gate.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -39,6 +40,11 @@ class ZGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return ZGate()  # self-inverse
+
+    def to_matrix(self):
+        """Return a Numpy.array for the X gate."""
+        return numpy.array([[1, 0],
+                            [0, -1]], dtype=complex)
 
 
 @_to_bits(1)

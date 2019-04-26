@@ -10,6 +10,8 @@
 """
 Hadamard gate.
 """
+import numpy
+
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -42,6 +44,11 @@ class HGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return HGate()  # self-inverse
+
+    def to_matrix(self):
+        """Return a Numpy.array for the H gate."""
+        return numpy.array([[1, 1],
+                            [1, -1]], dtype=complex) / numpy.sqrt(2)
 
 
 @_to_bits(1)

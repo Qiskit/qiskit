@@ -6,10 +6,10 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=invalid-name
-
 """
 One-pulse single-qubit gate.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -29,9 +29,7 @@ class U2Gate(Gate):
     def _define(self):
         definition = []
         q = QuantumRegister(1, "q")
-        rule = [
-            (U3Gate(pi/2, self.params[0], self.params[1]), [q[0]], [])
-        ]
+        rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
         for inst in rule:
             definition.append(inst)
         self.definition = definition
@@ -42,6 +40,17 @@ class U2Gate(Gate):
         u2(phi,lamb)^dagger = u2(-lamb-pi,-phi+pi)
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
+
+    def to_matrix(self):
+        """Return a Numpy.array for the U3 gate."""
+        isqrt2 = 1 / numpy.sqrt(2)
+        phi, lam = self.params
+        return numpy.array([[isqrt2, -numpy.exp(1j * lam) * isqrt2],
+                            [
+                                numpy.exp(1j * phi) * isqrt2,
+                                numpy.exp(1j * (phi + lam)) * isqrt2
+                            ]],
+                           dtype=complex)
 
 
 @_to_bits(1)
