@@ -34,7 +34,7 @@ class QuantumInstance:
     """Quantum Backend including execution setting."""
 
     BACKEND_CONFIG = ['basis_gates', 'coupling_map']
-    COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_mapper']
+    COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_transpiler']
     RUN_CONFIG = ['shots', 'max_credits', 'memory', 'seed']
     QJOB_CONFIG = ['timeout', 'wait']
     NOISE_CONFIG = ['noise_model']
@@ -47,7 +47,7 @@ class QuantumInstance:
 
     def __init__(self, backend, shots=1024, seed=None, max_credits=10,
                  basis_gates=None, coupling_map=None,
-                 initial_layout=None, pass_manager=None, seed_mapper=None,
+                 initial_layout=None, pass_manager=None, seed_transpiler=None,
                  backend_options=None, noise_model=None, timeout=None, wait=5,
                  circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True, skip_qobj_validation=True):
         """Constructor.
@@ -62,7 +62,7 @@ class QuantumInstance:
             coupling_map (list[list]): coupling map (perhaps custom) to target in mapping
             initial_layout (dict, optional): initial layout of qubits in mapping
             pass_manager (PassManager, optional): pass manager to handle how to compile the circuits
-            seed_mapper (int, optional): the random seed for circuit mapper
+            seed_transpiler (int, optional): the random seed for circuit mapper
             backend_options (dict, optional): all running options for backend, please refer to the provider.
             noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel, optional): noise model for simulator
             timeout (float, optional): seconds to wait for job. If None, wait indefinitely.
@@ -115,7 +115,7 @@ class QuantumInstance:
         self._compile_config = {
             'pass_manager': pass_manager,
             'initial_layout': initial_layout,
-            'seed_mapper': seed_mapper
+            'seed_transpiler': seed_transpiler
         }
 
         # setup job config
