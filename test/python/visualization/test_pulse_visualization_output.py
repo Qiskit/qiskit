@@ -75,30 +75,33 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_pulse_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_matplot.png')
+        filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
         pulse = self.sample_pulse()
-        pulse_drawer(pulse, filename=filename, output='mpl')
+        pulse_drawer(pulse, filename=filename)
         self.assertImagesAreEqual(filename, self.pulse_matplotlib_reference)
         os.remove(filename)
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_instruction_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_matplot.png')
+        filename = self._get_resource_path('current_instruction_matplotlib_ref.png')
         pulse_instruction = self.sample_instruction()
-        pulse_drawer(pulse_instruction, filename=filename, output='mpl')
-        self.assertImagesAreEqual(filename, self.pulse_matplotlib_reference)
+        pulse_drawer(pulse_instruction, filename=filename)
+        self.assertImagesAreEqual(filename, self.instruction_matplotlib_reference)
         os.remove(filename)
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_schedule_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_matplot.png')
+        filename = self._get_resource_path('current_pulse_schedule_matplotlib_ref.png')
         schedule = self.sample_schedule()
-        pulse_drawer(schedule, filename=filename, output='mpl')
+        pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
         os.remove(filename)
 
