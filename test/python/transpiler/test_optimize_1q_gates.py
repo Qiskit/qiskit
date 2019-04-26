@@ -80,8 +80,8 @@ class TestOptimize1qGates(QiskitTestCase):
         num_u1_gates_remaining = len(simplified_dag.named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 0)
 
-    def test_optimize_1q_gates_symbolic(self):
-        """optimizes single qubit gate sequences with symbolic params.
+    def test_optimize_1q_gates_sympy_expressions(self):
+        """optimizes single qubit gate sequences with sympy expressions.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/172
         """

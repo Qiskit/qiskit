@@ -13,8 +13,7 @@ import numpy as np
 
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.compiler import transpile, TranspileConfig
-from qiskit.compiler import assemble_circuits, RunConfig
+from qiskit.compiler import transpile, assemble
 from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import Path
 from qiskit.test import providers
@@ -32,8 +31,8 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         transpiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
         transpiled_circuit.name = 'test'
-        transpiled_circuit = transpile(transpiled_circuit, TranspileConfig(backend=self.backend))
-        self.qobj = assemble_circuits(transpiled_circuit, RunConfig(shots=1000))
+        transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
+        self.qobj = assemble(transpiled_circuit, shots=1000)
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
@@ -79,7 +78,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
         job = execute([circuit_if_true, circuit_if_false],
-                      backend=self.backend, shots=shots, seed=self.seed)
+                      backend=self.backend, shots=shots, seed_simulator=self.seed)
 
         result = job.result()
         counts_if_true = result.get_counts(circuit_if_true)
@@ -108,7 +107,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.z(qr[2]).c_if(cr0, 1)
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
-        job = execute(circuit, backend=self.backend, shots=shots, seed=self.seed)
+        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
         results = job.result()
         data = results.get_counts('teleport')
         alice = {
@@ -121,7 +120,6 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             '0': data['0 0 0'] + data['0 1 0'] + data['0 0 1'] + data['0 1 1'],
             '1': data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
         }
-        self.log.info('test_teleport: circuit:')
         self.log.info('test_teleport: circuit:')
         self.log.info(circuit.qasm())
         self.log.info('test_teleport: data %s', data)

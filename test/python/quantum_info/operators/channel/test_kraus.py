@@ -52,6 +52,18 @@ class TestKraus(ChannelTestCase):
         self.assertRaises(
             QiskitError, Kraus, kraus, input_dims=4, output_dims=4)
 
+    def test_circuit_init(self):
+        """Test initialization from a circuit."""
+        circuit, target = self.simple_circuit_no_measure()
+        op = Kraus(circuit)
+        target = Kraus(target)
+        self.assertEqual(op, target)
+
+    def test_circuit_init_except(self):
+        """Test initialization from circuit with measure raises exception."""
+        circuit = self.simple_circuit_with_measure()
+        self.assertRaises(QiskitError, Kraus, circuit)
+
     def test_equal(self):
         """Test __eq__ method"""
         kraus = [self.rand_matrix(2, 2) for _ in range(2)]

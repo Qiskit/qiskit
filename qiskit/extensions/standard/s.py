@@ -10,6 +10,7 @@
 """
 S=diag(1,i) Clifford phase gate or its inverse.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -43,6 +44,11 @@ class SGate(Gate):
         """Invert this gate."""
         return SdgGate()
 
+    def to_matrix(self):
+        """Return a Numpy.array for the S gate."""
+        return numpy.array([[1, 0],
+                            [0, 1j]], dtype=complex)
+
 
 class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoint phase gate."""
@@ -67,6 +73,11 @@ class SdgGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return SGate()
+
+    def to_matrix(self):
+        """Return a Numpy.array for the Sdg gate."""
+        return numpy.array([[1, 0],
+                            [0, -1j]], dtype=complex)
 
 
 @_to_bits(1)

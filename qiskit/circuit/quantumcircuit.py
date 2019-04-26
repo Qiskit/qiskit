@@ -5,16 +5,17 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=cyclic-import
 """Quantum circuit object."""
 
 from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
-import sympy
 
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 from .variabletable import VariableTable
@@ -271,16 +272,13 @@ class QuantumCircuit:
 
         # track variable parameters in instruction
         for param_index, param in enumerate(instruction.params):
-            if isinstance(param, sympy.Expr):
-                current_symbols = set(self._variable_table.keys())
-                these_symbols = set(param.free_symbols)
-                new_symbols = these_symbols - current_symbols
-                common_symbols = these_symbols & current_symbols
+            if isinstance(param, Parameter):
+                current_symbols = self.variables
 
-                for symbol in new_symbols:
-                    self._variable_table[symbol] = [(instruction, param_index)]
-                for symbol in common_symbols:
-                    self._variable_table[symbol].append((instruction, param_index))
+                if param in current_symbols:
+                    self._variable_table[param].append((instruction, param_index))
+                else:
+                    self._variable_table[param] = [(instruction, param_index)]
 
         return instruction
 
@@ -713,14 +711,6 @@ class QuantumCircuit:
         for variable in value_dict:
             del new_circuit.variable_table[variable]
         return new_circuit
-
-    @property
-    def unassigned_variables(self):
-        """Returns a set containing any variables which have not yet been assigned."""
-        return {variable
-                for variable, parameterized_instructions in self.variable_table.items()
-                if any(instruction.params[parameter_index].free_symbols
-                       for instruction, parameter_index in parameterized_instructions)}
 
 
 def _circuit_from_qasm(qasm):
