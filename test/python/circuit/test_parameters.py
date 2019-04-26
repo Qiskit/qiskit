@@ -36,8 +36,7 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         backend = BasicAer.get_backend('qasm_simulator')
         qc_aer = transpile(qc, backend)
-        qobj = assemble(qc_aer)
-        self.assertIn(theta, qobj.experiments[0].instructions[0].params)
+        self.assertIn(theta, qc_aer.parameters)
 
     def test_get_parameters(self):
         """Test instantiating gate with variable parmeters"""
