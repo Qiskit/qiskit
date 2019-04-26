@@ -20,11 +20,11 @@ class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
 
     def run(self, dag):
         """Return a new circuit that has been optimized."""
-        DiagonalGates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
+        diagonal_gates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
 
         measures = dag.op_nodes(Measure)
         for measure in measures:
             for predecessor in dag.predecessors(measure):
-                if predecessor.type == 'op' and isinstance(predecessor.op, DiagonalGates):
+                if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_gates):
                     dag.remove_op_node(predecessor)
         return dag
