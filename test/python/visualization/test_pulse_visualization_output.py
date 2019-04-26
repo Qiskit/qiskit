@@ -26,16 +26,16 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
     pulse_matplotlib_reference = path_to_diagram_reference('pulse_matplotlib_ref.png')
-    instruction_matplotlib_reference = path_to_diagram_reference('instruction_matplotlib_ref.png')
+    instr_matplotlib_reference = path_to_diagram_reference('instruction_matplotlib_ref.png')
     schedule_matplotlib_reference = path_to_diagram_reference('pulse_schedule_matplotlib_ref.png')
 
     def setUp(self):
         self.schedule = Schedule()
         self.qubits = [Qubit(0, drive_channels=[DriveChannel(0, 1.2)],
-                       control_channels=[ControlChannel(0)],
-                       measure_channels=[MeasureChannel(0, 2.0)]),
+                             control_channels=[ControlChannel(0)],
+                             measure_channels=[MeasureChannel(0, 2.0)]),
                        Qubit(1, drive_channels=[DriveChannel(1, 3.4)],
-                       acquire_channels=[AcquireChannel(1)])]
+                             acquire_channels=[AcquireChannel(1)])]
         self.registers = [RegisterSlot(i) for i in range(2)]
         self.mem_slots = [MemorySlot(i) for i in range(2)]
         self.device = DeviceSpecification(self.qubits, self.registers, self.mem_slots)
@@ -53,7 +53,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
            pulse schedules."""
         gp0 = pulse_lib.gaussian(duration=20, amp=1.0, sigma=1.0)
         gp1 = pulse_lib.gaussian(duration=20, amp=-1.0, sigma=2.0)
-        gs0 = pulse_lib.gaussian_square(duration=20, amp=-1.0, sigma=2.0, risefall=3 )
+        gs0 = pulse_lib.gaussian_square(duration=20, amp=-1.0, sigma=2.0, risefall=3)
 
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
@@ -91,7 +91,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         filename = self._get_resource_path('current_instruction_matplotlib_ref.png')
         pulse_instruction = self.sample_instruction()
         pulse_drawer(pulse_instruction, filename=filename)
-        self.assertImagesAreEqual(filename, self.instruction_matplotlib_reference)
+        self.assertImagesAreEqual(filename, self.instr_matplotlib_reference)
         os.remove(filename)
 
     # TODO: Enable for refactoring purposes and enable by default when we can

@@ -8,7 +8,7 @@
 # pylint: disable=invalid-name
 
 """
-mpl pulse visualization.
+matplotlib pulse visualization.
 """
 
 import logging
@@ -37,23 +37,23 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     """Plot the interpolated envelope of pulse
 
     Args:
-        data (ScheduleComponent or SamplePulse): Data to plot.
-        dt (float): Time interval of samples.
-        style (OPStylePulse or OPStyleSched): A style sheet to configure plot appearance.
-        filename (str): Name required to save pulse image.
-        interp_method (Callable): interpolation function.
-            See `qiskit.visualization.interpolation` for more information.
-        scaling (float): scaling of waveform amplitude.
-        channels_to_plot (list): A list of channel names to plot.
-        plot_all (bool): Plot empty channels.
-        plot_range (tuple): A tuple of time range to plot.
+        data (ScheduleComponent or SamplePulse): Data to plot
+        dt (float): Time interval of samples
+        style (OPStylePulse or OPStyleSched): A style sheet to configure plot appearance
+        filename (str): Name required to save pulse image
+        interp_method (Callable): interpolation function
+            See `qiskit.visualization.interpolation` for more information
+        scaling (float): scaling of waveform amplitude
+        channels_to_plot (list): A list of channel names to plot
+        plot_all (bool): Plot empty channels
+        plot_range (tuple): A tuple of time range to plot
         interactive (bool): When set true show the circuit in a new window
-            (this depends on the matplotlib backend being used supporting this).
-        legend (bool): Legend for supported instructions.
+            (this depends on the matplotlib backend being used supporting this)
+        legend (bool): Legend for supported instructions
     Returns:
-        matplotlib.figure: A matplotlib figure object for the pulse envelope.
+        matplotlib.figure: A matplotlib figure object for the pulse envelope
     Raises:
-        VisualizationError: when invalid data is given or lack of information.
+        VisualizationError: when invalid data is given or lack of information
     """
     if isinstance(data, SamplePulse):
         drawer = SamplePulseDrawer(style=style)
@@ -85,8 +85,8 @@ class EventsOutputChannels:
         """Create new channel dataset.
 
         Args:
-            t0 (int): starting time of plot.
-            tf (int): ending time of plot.
+            t0 (int): starting time of plot
+            tf (int): ending time of plot
         """
         self.pulses = {}
         self.t0 = t0
@@ -102,8 +102,8 @@ class EventsOutputChannels:
         """Add new pulse instruction to channel.
 
         Args:
-            start_time (int): Starting time of instruction.
-            pulse (Instruction): Instruction object to be added.
+            start_time (int): Starting time of instruction
+            pulse (Instruction): Instruction object to be added
         """
 
         if start_time in self.pulses.keys():
@@ -113,8 +113,7 @@ class EventsOutputChannels:
 
     @property
     def waveform(self):
-        """Get waveform.
-        """
+        """Get waveform."""
         if self._waveform is None:
             self._build_waveform()
 
@@ -122,8 +121,7 @@ class EventsOutputChannels:
 
     @property
     def framechanges(self):
-        """Get frame changes.
-        """
+        """Get frame changes."""
         if self._framechanges is None:
             self._build_waveform()
 
@@ -131,8 +129,7 @@ class EventsOutputChannels:
 
     @property
     def conditionals(self):
-        """Get conditionals.
-        """
+        """Get conditionals."""
         if self._conditionals is None:
             self._build_waveform()
 
@@ -140,8 +137,7 @@ class EventsOutputChannels:
 
     @property
     def snapshots(self):
-        """Get snapshots.
-        """
+        """Get snapshots."""
         if self._snapshots is None:
             self._build_waveform()
 
@@ -151,7 +147,7 @@ class EventsOutputChannels:
         """Return if pulse is empty.
 
         Returns:
-            bool: if the channel has nothing to plot.
+            bool: if the channel has nothing to plot
         """
         if any(self.waveform) or self.framechanges or self.conditionals or self.snapshots:
             return False
@@ -162,10 +158,10 @@ class EventsOutputChannels:
         """Get table contains.
 
         Args:
-            name (str): name of channel.
+            name (str): name of channel
 
         Returns:
-            dict: dictionary of events in the channel.
+            dict: dictionary of events in the channel
         """
         time_event = []
 
@@ -227,10 +223,10 @@ class EventsOutputChannels:
         """Return events during given `time_range`.
 
         Args:
-            events (dict): time and operation of events.
+            events (dict): time and operation of events
 
         Returns:
-            dict: dictionary of events within the time.
+            dict: dictionary of events within the time
         """
         events_in_time_range = {}
 
@@ -248,21 +244,21 @@ class SamplePulseDrawer:
         """Create new figure.
 
         Args:
-            style (OPStylePulse): style sheet.
+            style (OPStylePulse): style sheet
         """
         self.style = style or OPStylePulse()
 
     def draw(self, pulse, dt, interp_method, scaling):
         """Draw figure.
         Args:
-            pulse (SamplePulse): SamplePulse to draw.
-            dt (float): time interval.
-            interp_method (Callable): interpolation function.
-                See `qiskit.visualization.interpolation` for more information.
-            scaling (float): scaling of waveform amplitude.
+            pulse (SamplePulse): SamplePulse to draw
+            dt (float): time interval
+            interp_method (Callable): interpolation function
+                See `qiskit.visualization.interpolation` for more information
+            scaling (float): scaling of waveform amplitude
 
         Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope.
+            matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
         figure = plt.figure()
 
@@ -304,7 +300,7 @@ class ScheduleDrawer:
         """Create new figure.
 
         Args:
-            style (OPStyleSched): style sheet.
+            style (OPStyleSched): style sheet
         """
         self.style = style or OPStyleSched()
 
@@ -420,7 +416,9 @@ class ScheduleDrawer:
             cell_color = [self.style.table_color * ncols for _jj in range(nrows)]
             cell_width = [*([0.2, 0.2, 0.5] * ncols)]
             for ii, data in enumerate(table_data):
+                # pylint: disable=unbalanced-tuple-unpacking
                 r, c = np.unravel_index(ii, (nrows, ncols), order='f')
+                # pylint: enable=unbalanced-tuple-unpacking
                 time, ch_name, data_str = data
                 # item
                 cell_value[r][3 * c + 0] = 't = %s' % time * dt
@@ -444,11 +442,11 @@ class ScheduleDrawer:
 
     def _draw_snapshots(self, ax, snapshot_channels, dt):
         snapshots_present = False
-        for channel, events in snapshot_channels.items():
+        for events in snapshot_channels.values():
             snapshots = events.snapshots
             if snapshots:
                 snapshots_present = True
-                for time, name in snapshots.items():
+                for time in snapshots:
                     ax.axvline(time*dt, -1, 1, color=self.style.s_ch_color,
                                linestyle=self.style.s_ch_linestyle)
         return snapshots_present
@@ -468,78 +466,79 @@ class ScheduleDrawer:
             ax.legend(legend_lines, legend_labels, loc='upper right')
 
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max):
-                y0 = 0
-                framechanges_present = False
+        y0 = 0
+        framechanges_present = False
 
-                for channel, events in output_channels.items():
-                    if events.enable:
-                        # plot waveform
-                        waveform = events.waveform
-                        time = np.arange(t0, tf + 1, dtype=float) * dt
-                        time, re, im = interp_method(time, waveform, self.style.num_points)
-                        # choose color
-                        if isinstance(channel, DriveChannel):
-                            color = self.style.d_ch_color
-                        elif isinstance(channel, ControlChannel):
-                            color = self.style.u_ch_color
-                        elif isinstance(channel, MeasureChannel):
-                            color = self.style.m_ch_color
-                        elif isinstance(channel, AcquireChannel):
-                            color = self.style.a_ch_color
-                        else:
-                            raise VisualizationError('Ch %s cannot be drawn.' % channel.name)
-                        # scaling and offset
-                        re = v_max * re + y0
-                        im = v_max * im + y0
-                        offset = np.zeros_like(time) + y0
-                        # plot
-                        ax.fill_between(x=time, y1=re, y2=offset,
-                                        facecolor=color[0], alpha=0.3,
-                                        edgecolor=color[0], linewidth=1.5,
-                                        label='real part')
-                        ax.fill_between(x=time, y1=im, y2=offset,
-                                        facecolor=color[1], alpha=0.3,
-                                        edgecolor=color[1], linewidth=1.5,
-                                        label='imaginary part')
-                        ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
+        for channel, events in output_channels.items():
+            if events.enable:
+                # plot waveform
+                waveform = events.waveform
+                time = np.arange(t0, tf + 1, dtype=float) * dt
+                time, re, im = interp_method(time, waveform, self.style.num_points)
+                # choose color
+                if isinstance(channel, DriveChannel):
+                    color = self.style.d_ch_color
+                elif isinstance(channel, ControlChannel):
+                    color = self.style.u_ch_color
+                elif isinstance(channel, MeasureChannel):
+                    color = self.style.m_ch_color
+                elif isinstance(channel, AcquireChannel):
+                    color = self.style.a_ch_color
+                else:
+                    raise VisualizationError('Ch %s cannot be drawn.' % channel.name)
+                # scaling and offset
+                re = v_max * re + y0
+                im = v_max * im + y0
+                offset = np.zeros_like(time) + y0
+                # plot
+                ax.fill_between(x=time, y1=re, y2=offset,
+                                facecolor=color[0], alpha=0.3,
+                                edgecolor=color[0], linewidth=1.5,
+                                label='real part')
+                ax.fill_between(x=time, y1=im, y2=offset,
+                                facecolor=color[1], alpha=0.3,
+                                edgecolor=color[1], linewidth=1.5,
+                                label='imaginary part')
+                ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
 
-                        # plot frame changes
-                        fcs = events.framechanges
-                        if fcs:
-                            framechanges_present = True
-                            for time in fcs.keys():
-                                ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
-                                        fontsize=self.style.icon_font_size,
-                                        ha='center', va='center')
+                # plot frame changes
+                fcs = events.framechanges
+                if fcs:
+                    framechanges_present = True
+                    for time in fcs.keys():
+                        ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
+                                fontsize=self.style.icon_font_size,
+                                ha='center', va='center')
 
-                    else:
-                        continue
-                    # plot label
-                    ax.text(x=0, y=y0, s=channel.name,
-                            fontsize=self.style.label_font_size,
-                            ha='right', va='center')
+            else:
+                continue
+            # plot label
+            ax.text(x=0, y=y0, s=channel.name,
+                    fontsize=self.style.label_font_size,
+                    ha='right', va='center')
 
-                    y0 -= 1
-                return y0, framechanges_present
+            y0 -= 1
+        return y0, framechanges_present
 
     def draw(self, schedule, dt, interp_method, scaling,
              plot_range, channels_to_plot, plot_all, legend):
         """Draw figure.
         Args:
-            schedule (ScheduleComponent): Schedule to draw.
-            dt (float): time interval.
-            interp_method (Callable): interpolation function.
-                See `qiskit.visualization.interpolation` for more information.
-            scaling (float): scaling of waveform amplitude.
-            plot_range (tuple[float]): plot range.
-            channels_to_plot (list[OutputChannel]): channels to draw.
-            plot_all (bool): if plot all channels even it is empty.
+            schedule (ScheduleComponent): Schedule to draw
+            dt (float): time interval
+            interp_method (Callable): interpolation function
+                See `qiskit.visualization.interpolation` for more information
+            scaling (float): scaling of waveform amplitude
+            plot_range (tuple[float]): plot range
+            channels_to_plot (list[OutputChannel]): channels to draw
+            plot_all (bool): if plot all channels even it is empty
+            legend (bool): Plot legend
 
         Returns:
-            matplotlib.figure: A matplotlib figure object for the pulse schedule.
+            matplotlib.figure: A matplotlib figure object for the pulse schedule
 
         Raises:
-            VisualizationError: when schedule cannot be drawn.
+            VisualizationError: when schedule cannot be drawn
         """
         figure = plt.figure()
 

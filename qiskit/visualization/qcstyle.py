@@ -121,6 +121,7 @@ class OPStyleSched:
             u_ch_color (list[str]): colors for real and imaginary part of waveform at u channels.
             m_ch_color (list[str]): colors for real and imaginary part of waveform at m channels.
             s_ch_color (str): color for snapshot channel line.
+            s_ch_linestyle (str): Linestyle for snapshot line.
             table_color(list[str]): colors for table columns.
             bg_color(str): color for figure background.
             num_points (int): number of points for interpolation.
