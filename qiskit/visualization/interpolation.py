@@ -10,19 +10,21 @@
 """
 interpolation module for pulse visualization.
 """
+from functools import partial
 
-from scipy.interpolate import CubicSpline
+from scipy import interpolate
 import numpy as np
 
 
-def cubic_spline(time, samples, nop):
-    """Cubic spline interpolation.
+def interp1d(time, samples, nop, kind='linear'):
+    """Scipy interpolation wrapper.
 
     Args:
         time (ndarray): time.
         samples (ndarray): complex pulse envelope.
         nop (int): data points for interpolation.
-
+        kind (str): Scipy interpolation type. See `scipy.interpolate.interp1d` documentation
+            for more information.
     Returns:
         ndarray: interpolated waveform.
     """
@@ -32,33 +34,16 @@ def cubic_spline(time, samples, nop):
     dt = time[1] - time[0]
 
     time += 0.5 * dt
-    cs_ry = CubicSpline(time[:-1], re_y)
-    cs_iy = CubicSpline(time[:-1], im_y)
+    cs_ry = interpolate.interp1d(time[:-1], re_y, kind=kind, bounds_error=False)
+    cs_iy = interpolate.interp1d(time[:-1], im_y, kind=kind, bounds_error=False)
 
     time_ = np.linspace(time[0], time[-1] * dt, nop)
 
     return time_, cs_ry(time_), cs_iy(time_)
 
 
-def step_wise(time, samples, nop):
-    """Step-wise interpolation.
+linear = partial(interp1d, kind='linear')
 
-    Args:
-        time (ndarray): time.
-        samples (ndarray): complex pulse envelope.
-        nop (int): data points for interpolation.
+cubic_spline = partial(interp1d, kind='cubic')
 
-    Returns:
-        ndarray: interpolated waveform.
-    """
-    # pylint: disable=unused-argument
-
-    re_y = np.real(samples)
-    im_y = np.imag(samples)
-
-    re_y = np.repeat(re_y, 2)
-    im_y = np.repeat(im_y, 2)
-
-    time_ = np.r_[time[0], np.repeat(time[1:-1], 2), time[-1]]
-
-    return time_, re_y, im_y
+step_wise = partial(interp1d, kind='nearest')

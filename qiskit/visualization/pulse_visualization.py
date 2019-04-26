@@ -24,7 +24,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
 from qiskit.pulse.exceptions import PulseError
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.interpolation import cubic_spline
+from qiskit.visualization import interpolation
 from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         dt (float): Time interval of samples.
         style (OPStylePulse or OPStyleSched): A style sheet to configure plot appearance.
         filename (str): Name required to save pulse image.
-        interp_method (Callable): A function for interpolation.
+        interp_method (Callable): interpolation function.
+            See `qiskit.visualization.interpolation` for more information.
         scaling (float): scaling of waveform amplitude.
         channels_to_plot (list): A list of channel names to plot.
         plot_all (bool): Plot empty channels.
@@ -257,6 +258,7 @@ class SamplePulseDrawer:
             pulse (SamplePulse): SamplePulse to draw.
             dt (float): time interval.
             interp_method (Callable): interpolation function.
+                See `qiskit.visualization.interpolation` for more information.
             scaling (float): scaling of waveform amplitude.
 
         Returns:
@@ -264,7 +266,7 @@ class SamplePulseDrawer:
         """
         figure = plt.figure()
 
-        interp_method = interp_method or cubic_spline
+        interp_method = interp_method or interpolation.step_wise
 
         figure.set_size_inches(self.style.fig_w, self.style.fig_h)
         ax = figure.add_subplot(111)
@@ -527,6 +529,7 @@ class ScheduleDrawer:
             schedule (ScheduleComponent): Schedule to draw.
             dt (float): time interval.
             interp_method (Callable): interpolation function.
+                See `qiskit.visualization.interpolation` for more information.
             scaling (float): scaling of waveform amplitude.
             plot_range (tuple[float]): plot range.
             channels_to_plot (list[OutputChannel]): channels to draw.
@@ -542,7 +545,7 @@ class ScheduleDrawer:
 
         if not channels_to_plot:
             channels_to_plot = []
-        interp_method = interp_method or cubic_spline
+        interp_method = interp_method or interpolation.step_wise
 
         # setup plot range
         if plot_range:
