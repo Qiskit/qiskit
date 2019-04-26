@@ -29,9 +29,9 @@ class VariableTable(MutableMapping):
         """set the value of variable
 
         Args:
-            key (sympy.Symbol): the variable to set
+            key (Parameter): the variable to set
             value (Number or dict): numeric constant or dictionary of
-                (Symbol:value) pairs
+                (Parameter) pairs
         """
         if key not in self._table:
             for instruction, param_index in value:
@@ -42,8 +42,8 @@ class VariableTable(MutableMapping):
             for (instr, param_index) in self._table[key]:
                 params = instr.params
                 if isinstance(value, dict):
-                    for param, this_value in value.items():
-                        params[param_index] = params[param_index].subs(param, this_value)
+                    for _, this_value in value.items():
+                        params[param_index] = this_value
                 else:
                     params[param_index] = value
                 instr.params = params

@@ -84,7 +84,7 @@ class TestCompiler(QiskitTestCase):
 
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(3, 'cr')
-        qc = QuantumCircuit(qr, cr)
+        qc = QuantumCircuit(qr, cr, name='qccccccc')
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
         qc.cx(qr[0], qr[2])

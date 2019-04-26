@@ -17,7 +17,6 @@ import numpy as np
 from scipy import sparse
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.operator import Operator
 
 
 def _make_np_bool(arr):
@@ -297,6 +296,8 @@ class Pauli:
 
     def to_operator(self):
         """Convert to Operator object."""
+        # Place import here to avoid cyclic import from circuit visualization
+        from qiskit.quantum_info.operators.operator import Operator
         return Operator(self.to_matrix())
 
     def update_z(self, z, indices=None):

@@ -10,6 +10,7 @@
 
 import numpy as np
 
+from qiskit.quantum_info.operators.channel import SuperOp
 from ..test_operator import OperatorTestCase
 
 
@@ -46,6 +47,12 @@ class ChannelTestCase(OperatorTestCase):
     ptmY = np.diag([1, -1, 1, -1])
     ptmZ = np.diag([1, -1, -1, 1])
     ptmH = np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, -1, 0], [0, 1, 0, 0]])
+
+    def simple_circuit_no_measure(self):
+        """Return a unitary circuit and the corresponding unitary array."""
+        # Override OperatorTestCase to return a SuperOp
+        circ, target = super().simple_circuit_no_measure()
+        return circ, SuperOp(target)
 
     # Depolarizing channels
     def depol_kraus(self, p):
