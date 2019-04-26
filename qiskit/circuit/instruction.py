@@ -27,7 +27,7 @@ Instructions are identified by the following:
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
-from copy import deepcopy
+import copy
 import sympy
 import numpy
 
@@ -208,17 +208,17 @@ class Instruction:
 
     def copy(self, name=None):
         """
-        deepcopy of the instruction.
+        shallow copy of the instruction.
 
         Args:
           name (str): name to be given to the copied circuit,
             if None then the name stays the same
 
         Returns:
-          Instruction: a deepcopy of the current instruction, with the name
+          Instruction: a shallow copy of the current instruction, with the name
             updated if it was provided
         """
-        cpy = deepcopy(self)
+        cpy = copy.copy(self)
         if name:
             cpy.name = name
         return cpy

@@ -18,7 +18,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
-from .variabletable import VariableTable
+from .parametertable import ParameterTable
 
 
 class QuantumCircuit:
@@ -74,8 +74,8 @@ class QuantumCircuit:
         self.cregs = []
         self.add_register(*regs)
 
-        # Variable table tracks instructions with variable parameters.
-        self._variable_table = VariableTable()
+        # Parameter table tracks instructions with variable parameters.
+        self._parameter_table = ParameterTable()
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -273,12 +273,12 @@ class QuantumCircuit:
         # track variable parameters in instruction
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, Parameter):
-                current_symbols = self.variables
+                current_symbols = self.parameters
 
                 if param in current_symbols:
-                    self._variable_table[param].append((instruction, param_index))
+                    self._parameter_table[param].append((instruction, param_index))
                 else:
-                    self._variable_table[param] = [(instruction, param_index)]
+                    self._parameter_table[param] = [(instruction, param_index)]
 
         return instruction
 
@@ -686,30 +686,25 @@ class QuantumCircuit:
         return _circuit_from_qasm(qasm)
 
     @property
-    def variable_table(self):
-        """get the circuit variable table"""
-        return self._variable_table
+    def parameters(self):
+        """convenience function to get the parameters defined in the parameter table"""
+        return set(self._parameter_table.keys())
 
-    @property
-    def variables(self):
-        """convenience function to get the variables defined in the variable table"""
-        return set(self._variable_table.keys())
-
-    def assign_variables(self, value_dict):
-        """Assign variables to values yielding a new circuit.
+    def bind_parameters(self, value_dict):
+        """Assign parameters to values yielding a new circuit.
 
         Args:
-            value_dict (dict): {variable: value, ...}
+            value_dict (dict): {parameter: value, ...}
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
         new_circuit = self.copy()
-        for variable in value_dict:
-            new_circuit.variable_table[variable] = value_dict
+        for parameter in value_dict:
+            new_circuit._parameter_table[parameter] = value_dict
         # clear evaluated expressions
-        for variable in value_dict:
-            del new_circuit.variable_table[variable]
+        for parameter in value_dict:
+            del new_circuit._parameter_table[parameter]
         return new_circuit
 
 

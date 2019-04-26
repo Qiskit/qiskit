@@ -160,6 +160,7 @@ Changed
 - Not specifying a basis in ``execute()`` or ``transpile()`` no longer defaults to unrolling
   to the ['u1', 'u2', 'u3', 'cx'] basis. Instead the default behavior is to not unroll,
   unless specifically requested (#2166).
+- Instruction.copy() is now a shallow copy instead of deep (#2214)
 
 Deprecated
 ----------
@@ -297,6 +298,7 @@ Added
 Changed
 -------
 
+- Schedules and underlying classes are now immutable. (#2186)
 - Evolved pass-based transpiler to support advanced functionality (#1060)
 - `.retrieve_job()` and `.jobs()` no longer returns results by default,
   instead the result must be accessed by the `result()` method on the job
