@@ -22,7 +22,7 @@ class RemoveRZandZbeforeMeasure(TransformationPass):
         """Return a new circuit that has been optimized."""
         measures = dag.op_nodes(Measure)
         for measure in measures:
-            predecessor = next(dag.predecessors(measure))
-            if predecessor.type == 'op' and isinstance(predecessor.op, (RZGate, ZGate)):
-                dag.remove_op_node(predecessor)
+            for predecessor in dag.predecessors(measure):
+                if predecessor.type == 'op' and isinstance(predecessor.op, (RZGate, ZGate)):
+                    dag.remove_op_node(predecessor)
         return dag
