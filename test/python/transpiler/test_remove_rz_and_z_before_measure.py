@@ -90,6 +90,7 @@ class TestRemoveRZandZbeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+
 class TestRemoveRZandZbeforeMeasureFixedPoint(QiskitTestCase):
     """ Test remove_rz_and_z_before_measure optimizations in a transpiler, using fixed point. """
 
