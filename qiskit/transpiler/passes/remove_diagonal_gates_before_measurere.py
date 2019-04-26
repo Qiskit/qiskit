@@ -12,7 +12,8 @@ a measurement. Including diagonal control gates.
 """
 
 from qiskit.circuit import Measure
-from qiskit.extensions.standard import RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate, CzGate
+from qiskit.extensions.standard import RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate,\
+    CzGate, CrzGate, Cu1Gate, RZZGate
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -23,7 +24,7 @@ class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
     def run(self, dag):
         """Return a new circuit that has been optimized."""
         diagonal_gates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
-        diagonal_control_gates = (CzGate)
+        diagonal_control_gates = (CzGate, CrzGate, Cu1Gate, RZZGate)
 
         nodes_to_remove = set()
         for measure in dag.op_nodes(Measure):
