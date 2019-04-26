@@ -11,7 +11,6 @@ A module for drawing circuits in ascii art or some other text representation
 
 from shutil import get_terminal_size
 import sys
-import numpy
 import sympy
 
 from .exceptions import VisualizationError
@@ -26,56 +25,52 @@ class DrawElement():
         self.top_format = self.mid_format = self.bot_format = "%s"
         self.top_connect = self.bot_connect = " "
         self.top_pad = self._mid_padding = self.bot_pad = " "
+        self.mid_bck = self.top_bck = self.bot_bck = " "
         self.bot_connector = {}
         self.top_connector = {}
-        self.right_fill = self.left_fill = 0
+        self.right_fill = self.left_fill = self.layer_width = 0
         self.wire_label = ""
 
     @property
     def top(self):
         """ Constructs the top line of the element"""
         ret = self.top_format % self.top_connect.center(
-            self.width - self.left_fill - self.right_fill, self.top_pad)
+            self.width, self.top_pad)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self.top_pad)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self.top_pad)
-
+        ret = ret.center(self.layer_width, self.top_bck)
         return ret
 
     @property
     def mid(self):
         """ Constructs the middle line of the element"""
         ret = self.mid_format % self.mid_content.center(
-            self.width - self.left_fill - self.right_fill, self._mid_padding)
+            self.width, self._mid_padding)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self._mid_padding)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self._mid_padding)
+        ret = ret.center(self.layer_width, self.mid_bck)
         return ret
 
     @property
     def bot(self):
         """ Constructs the bottom line of the element"""
         ret = self.bot_format % self.bot_connect.center(
-            self.width - self.left_fill - self.right_fill, self.bot_pad)
+            self.width, self.bot_pad)
         if self.right_fill:
             ret = ret.ljust(self.right_fill, self.bot_pad)
         if self.left_fill:
             ret = ret.rjust(self.left_fill, self.bot_pad)
-
+        ret = ret.center(self.layer_width, self.bot_bck)
         return ret
 
     @property
     def length(self):
         """ Returns the length of the element, including the box around."""
         return max(len(self.top), len(self.mid), len(self.bot))
-
-    @length.setter
-    def length(self, value):
-        """ Adjusts width so the length fits."""
-        self.width = value - max(
-            [len(getattr(self, i) % '') for i in ["bot_format", "mid_format", "top_format"]])
 
     @property
     def width(self):
@@ -109,9 +104,9 @@ class DrawElement():
 
 class BoxOnClWire(DrawElement):
     """ Draws a box on the classical wire
-        top: ┌───┐ ┌───────┐
-        mid: ╡ A ╞ ╡   A   ╞
-        bot: └───┘ └───────┘
+        top: ┌───┐   ┌───┐
+        mid: ╡ A ╞ ══╡ A ╞══
+        bot: └───┘   └───┘
     """
 
     def __init__(self, label="", top_connect='─', bot_connect='─'):
@@ -120,6 +115,7 @@ class BoxOnClWire(DrawElement):
         self.mid_format = "╡ %s ╞"
         self.bot_format = "└─%s─┘"
         self.top_pad = self.bot_pad = '─'
+        self.mid_bck = '═'
         self.top_connect = top_connect
         self.bot_connect = bot_connect
         self.mid_content = label
@@ -127,9 +123,9 @@ class BoxOnClWire(DrawElement):
 
 class BoxOnQuWire(DrawElement):
     """ Draws a box on the quantum wire
-        top: ┌───┐ ┌───────┐
-        mid: ┤ A ├ ┤   A   ├
-        bot: └───┘ └───────┘
+        top: ┌───┐   ┌───┐
+        mid: ┤ A ├ ──┤ A ├──
+        bot: └───┘   └───┘
     """
 
     def __init__(self, label="", top_connect='─', bot_connect='─'):
@@ -137,7 +133,7 @@ class BoxOnQuWire(DrawElement):
         self.top_format = "┌─%s─┐"
         self.mid_format = "┤ %s ├"
         self.bot_format = "└─%s─┘"
-        self.top_pad = self.bot_pad = '─'
+        self.top_pad = self.bot_pad = self.mid_bck = '─'
         self.top_connect = top_connect
         self.bot_connect = bot_connect
         self.mid_content = label
@@ -157,7 +153,7 @@ class MeasureTo(DrawElement):
         self.top_connect = " ║ "
         self.mid_content = "═╩═"
         self.bot_connect = "   "
-        self._mid_padding = "═"
+        self.mid_bck = "═"
 
 
 class MeasureFrom(BoxOnQuWire):
@@ -199,6 +195,13 @@ class MultiBox(DrawElement):
             else:
                 self.bot_connect = self.label
 
+    @property
+    def width(self):
+        """ Returns the width of the label, including padding"""
+        if self._width:
+            return self._width
+        return len(self.label)
+
 
 class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
     """ Draws the top part of a box that affects more than one quantum wire"""
@@ -208,9 +211,10 @@ class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
         self.wire_label = wire_label
         self.bot_connect = self.bot_pad = " "
         self.mid_content = ""  # The label will be put by some other part of the box.
-        self.top_format = "┌{}─%s─┐".format(self.top_pad * len(self.wire_label))
+        self.left_fill = len(self.wire_label)
+        self.top_format = "┌{}─%s─┐".format(self.top_pad * self.left_fill)
         self.mid_format = "┤{} %s ├".format(self.wire_label)
-        self.bot_format = "│{} %s │".format(self.bot_pad * len(self.wire_label))
+        self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
         self.top_connect = top_connect if top_connect else '─'
 
 
@@ -221,9 +225,10 @@ class BoxOnQuWireMid(MultiBox, BoxOnQuWire):
         super().__init__(label)
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
-        self.top_format = "│{} %s │".format(self.top_pad * len(self.wire_label))
+        self.left_fill = len(self.wire_label)
+        self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "┤{} %s ├".format(self.wire_label)
-        self.bot_format = "│{} %s │".format(self.bot_pad * len(self.wire_label))
+        self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
         self.top_connect = self.bot_connect = self.mid_content = ''
         self.center_label(input_length, order)
 
@@ -235,9 +240,10 @@ class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
         super().__init__(label)
         self.wire_label = wire_label
         self.top_pad = " "
-        self.top_format = "│{} %s │".format(self.top_pad * len(self.wire_label))
+        self.left_fill = len(self.wire_label)
+        self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "┤{} %s ├".format(self.wire_label)
-        self.bot_format = "└{}─%s─┘".format(self.bot_pad * len(self.wire_label))
+        self.bot_format = "└{}─%s─┘".format(self.bot_pad * self.left_fill)
         self.bot_connect = bot_connect
 
         self.mid_content = self.top_connect = ""
@@ -346,6 +352,7 @@ class Bullet(DirectOnQuWire):
         super().__init__('■')
         self.top_connect = top_connect
         self.bot_connect = bot_connect
+        self.mid_bck = '─'
 
 
 class EmptyWire(DrawElement):
@@ -353,7 +360,7 @@ class EmptyWire(DrawElement):
 
     def __init__(self, wire):
         super().__init__(wire)
-        self._mid_padding = wire
+        self._mid_padding = self.mid_bck = wire
 
     @staticmethod
     def fillup_layer(layer, first_clbit):
@@ -425,13 +432,14 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None):
+                 line_length=None, vertically_compressed=True):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
+        self.vertically_compressed = vertically_compressed
 
     def __str__(self):
         return self.single_string()
@@ -535,7 +543,7 @@ class TextDrawing():
         lines = []
         for layer_group in layer_groups:
             wires = [i for i in zip(*layer_group)]
-            lines += TextDrawing.draw_wires(wires)
+            lines += TextDrawing.draw_wires(wires, self.vertically_compressed)
 
         return lines
 
@@ -562,12 +570,13 @@ class TextDrawing():
         return qubit_labels + clbit_labels
 
     @staticmethod
-    def draw_wires(wires):
+    def draw_wires(wires, vertically_compressed=True):
         """
         Given a list of wires, creates a list of lines with the text drawing.
         Args:
             wires (list): A list of wires with instructions.
-
+            vertically_compressed (bool): Default is `True`. It merges the lines
+                                     so the drawing will take less vertical room.
         Returns:
             list: A list of lines with the text drawing.
         """
@@ -582,16 +591,19 @@ class TextDrawing():
             if bot_line is None:
                 lines.append(top_line)
             else:
-                lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
+                if vertically_compressed:
+                    lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
+                else:
+                    lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
 
             # MID
-            mid_line = ""
+            mid_line = ''
             for instruction in wire:
                 mid_line += instruction.mid
             lines.append(TextDrawing.merge_lines(lines[-1], mid_line, icod="bot"))
 
             # BOT
-            bot_line = ""
+            bot_line = ''
             for instruction in wire:
                 bot_line += instruction.bot
             lines.append(TextDrawing.merge_lines(lines[-1], bot_line, icod="bot"))
@@ -606,10 +618,15 @@ class TextDrawing():
     @staticmethod
     def params_for_label(instruction):
         """Get the params and format them to add them to a label. None if there are no params."""
-        if hasattr(instruction.op, 'params'):
-            return ['%.5g' % i for i in instruction.op.params
-                    if not isinstance(i, (numpy.ndarray, sympy.Matrix))]
-        return None
+        if not hasattr(instruction.op, 'params'):
+            return None
+        ret = []
+        for param in instruction.op.params:
+            if isinstance(param, (sympy.Number, float)):
+                ret.append('%.5g' % param)
+            else:
+                ret.append('%s' % param)
+        return ret
 
     @staticmethod
     def label_for_box(instruction):
@@ -639,13 +656,17 @@ class TextDrawing():
                 ret += "│"
             elif topc == " ":
                 ret += botc
-            elif topc in '┬╥' and botc in " ║│":
+            elif topc in '┬╥' and botc in " ║│" and icod == "top":
                 ret += topc
+            elif topc in '┬' and botc == " " and icod == "bot":
+                ret += '│'
+            elif topc in '╥' and botc == " " and icod == "bot":
+                ret += '║'
             elif topc in '┬│' and botc == "═":
                 ret += '╪'
             elif topc in '┬│' and botc == "─":
                 ret += '┼'
-            elif topc in '└┘║│░' and botc == " ":
+            elif topc in '└┘║│░' and botc == " " and icod == "top":
                 ret += topc
             elif topc in '─═' and botc == " " and icod == "top":
                 ret += topc
@@ -661,8 +682,10 @@ class TextDrawing():
                 ret += "├"
             elif topc == '┘' and botc == "┐":
                 ret += "┤"
-            elif botc in "┐┌":
+            elif botc in "┐┌" and icod == 'top':
                 ret += "┬"
+            elif topc in "┘└" and botc in "─" and icod == 'top':
+                ret += "┴"
             else:
                 ret += botc
         return ret
@@ -677,7 +700,7 @@ class TextDrawing():
         instructions = [instruction for instruction in filter(lambda x: x is not None, layer)]
         longest = max([instruction.length for instruction in instructions])
         for instruction in instructions:
-            instruction.length = longest
+            instruction.layer_width = longest
 
     def _instruction_to_gate(self, instruction, layer):
         """ Convert an instruction into its corresponding Gate object, and establish
@@ -899,7 +922,7 @@ class Layer:
                     wire_label = qargs.pop(0)
                 else:
                     named_bit = (self.qregs + self.cregs)[bit_i]
-                    wire_label = ''
+                    wire_label = ' ' * len(qargs[0])
                 set_bit(named_bit, BoxOnWireMid(label, box_height, order, wire_label=wire_label))
             set_bit(bits.pop(0), BoxOnWireBot(label, box_height, wire_label=qargs.pop(0)))
 

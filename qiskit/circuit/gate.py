@@ -8,6 +8,8 @@
 """
 Unitary gate.
 """
+
+from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
@@ -22,3 +24,13 @@ class Gate(Instruction):
         params = list of parameters
         """
         super().__init__(name, num_qubits, 0, params)
+
+    def to_matrix(self):
+        """Return a Numpy.array for the gate unitary matrix.
+
+        Additional Information
+        ----------------------
+        If a Gate subclass does not implement this method an exception
+        will be raised when this base class method is called.
+        """
+        raise QiskitError("to_matrix not defined for this {}".format(type(self)))

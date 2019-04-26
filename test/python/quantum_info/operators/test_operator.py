@@ -13,8 +13,11 @@ import numpy as np
 import scipy.linalg as la
 
 from qiskit import QiskitError
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.extensions.standard import HGate, CHGate, CnotGate
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
 class OperatorTestCase(QiskitTestCase):
@@ -43,6 +46,25 @@ class OperatorTestCase(QiskitTestCase):
         if real:
             return np.random.rand(rows, cols)
         return np.random.rand(rows, cols) + 1j * np.random.rand(rows, cols)
+
+    def simple_circuit_no_measure(self):
+        """Return a unitary circuit and the corresponding unitary array."""
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.h(qr[0])
+        circ.x(qr[1])
+        target = Operator(np.kron(self.UX, self.UH))
+        return circ, target
+
+    def simple_circuit_with_measure(self):
+        """Return a unitary circuit with measurement."""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        circ = QuantumCircuit(qr, cr)
+        circ.h(qr[0])
+        circ.x(qr[1])
+        circ.measure(qr, cr)
+        return circ
 
     def assertAllClose(self,
                        obj1,
@@ -108,6 +130,34 @@ class TestOperator(OperatorTestCase):
         op2 = Operator(op1)
         self.assertEqual(op1, op2)
 
+    def test_circuit_init(self):
+        """Test initialization from a circuit."""
+        circuit, target = self.simple_circuit_no_measure()
+        op = Operator(circuit)
+        target = Operator(target)
+        self.assertEqual(op, target)
+
+    def test_instruction_init(self):
+        """Test initialization from a circuit."""
+        gate = CnotGate()
+        op = Operator(gate).data
+        target = gate.to_matrix()
+        global_phase_equivalent = matrix_equal(op, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+        gate = CHGate()
+        op = Operator(gate).data
+        had = HGate().to_matrix()
+        target = np.kron(had, np.diag([0, 1])) + np.kron(
+            np.eye(2), np.diag([1, 0]))
+        global_phase_equivalent = matrix_equal(op, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_circuit_init_except(self):
+        """Test initialization from circuit with measure raises exception."""
+        circuit = self.simple_circuit_with_measure()
+        self.assertRaises(QiskitError, Operator, circuit)
+
     def test_equal(self):
         """Test __eq__ method"""
         mat = self.rand_matrix(2, 2, real=True)
@@ -140,24 +190,24 @@ class TestOperator(OperatorTestCase):
         op = Operator(self.rand_matrix(2 * 3 * 4, 4 * 5),
                       input_dims=[4, 5], output_dims=[2, 3, 4])
         self.assertEqual(op.input_dims(), (4, 5))
-        self.assertEqual(op.input_dims(qubits=[0, 1]), (4, 5))
-        self.assertEqual(op.input_dims(qubits=[1, 0]), (5, 4))
-        self.assertEqual(op.input_dims(qubits=[0]), (4,))
-        self.assertEqual(op.input_dims(qubits=[1]), (5,))
+        self.assertEqual(op.input_dims(qargs=[0, 1]), (4, 5))
+        self.assertEqual(op.input_dims(qargs=[1, 0]), (5, 4))
+        self.assertEqual(op.input_dims(qargs=[0]), (4,))
+        self.assertEqual(op.input_dims(qargs=[1]), (5,))
 
     def test_output_dims(self):
         """Test Operator output_dims method."""
         op = Operator(self.rand_matrix(2 * 3 * 4, 4 * 5),
                       input_dims=[4, 5], output_dims=[2, 3, 4])
         self.assertEqual(op.output_dims(), (2, 3, 4))
-        self.assertEqual(op.output_dims(qubits=[0, 1, 2]), (2, 3, 4))
-        self.assertEqual(op.output_dims(qubits=[2, 1, 0]), (4, 3, 2))
-        self.assertEqual(op.output_dims(qubits=[2, 0, 1]), (4, 2, 3))
-        self.assertEqual(op.output_dims(qubits=[0]), (2,))
-        self.assertEqual(op.output_dims(qubits=[1]), (3,))
-        self.assertEqual(op.output_dims(qubits=[2]), (4,))
-        self.assertEqual(op.output_dims(qubits=[0, 2]), (2, 4))
-        self.assertEqual(op.output_dims(qubits=[2, 0]), (4, 2))
+        self.assertEqual(op.output_dims(qargs=[0, 1, 2]), (2, 3, 4))
+        self.assertEqual(op.output_dims(qargs=[2, 1, 0]), (4, 3, 2))
+        self.assertEqual(op.output_dims(qargs=[2, 0, 1]), (4, 2, 3))
+        self.assertEqual(op.output_dims(qargs=[0]), (2,))
+        self.assertEqual(op.output_dims(qargs=[1]), (3,))
+        self.assertEqual(op.output_dims(qargs=[2]), (4,))
+        self.assertEqual(op.output_dims(qargs=[0, 2]), (2, 4))
+        self.assertEqual(op.output_dims(qargs=[2, 0]), (4, 2))
 
     def test_reshape(self):
         """Test Operator _reshape method."""
@@ -220,23 +270,23 @@ class TestOperator(OperatorTestCase):
         # Evolve on qubit 0
         mat0 = np.kron(np.eye(4), mat)
         psi0_targ = np.dot(mat0, psi)
-        self.assertAllClose(op._evolve(psi, qubits=[0]), psi0_targ)
+        self.assertAllClose(op._evolve(psi, qargs=[0]), psi0_targ)
         rho0_targ = np.dot(np.dot(mat0, rho), np.conj(mat0.T))
-        self.assertAllClose(op._evolve(rho, qubits=[0]), rho0_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[0]), rho0_targ)
 
         # Evolve on qubit 1
         mat1 = np.kron(np.kron(np.eye(2), mat), np.eye(2))
         psi1_targ = np.dot(mat1, psi)
-        self.assertAllClose(op._evolve(psi, qubits=[1]), psi1_targ)
+        self.assertAllClose(op._evolve(psi, qargs=[1]), psi1_targ)
         rho1_targ = np.dot(np.dot(mat1, rho), np.conj(mat1.T))
-        self.assertAllClose(op._evolve(rho, qubits=[1]), rho1_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[1]), rho1_targ)
 
         # Evolve on qubit 2
         mat2 = np.kron(mat, np.eye(4))
         psi2_targ = np.dot(mat2, psi)
-        self.assertAllClose(op._evolve(psi, qubits=[2]), psi2_targ)
+        self.assertAllClose(op._evolve(psi, qargs=[2]), psi2_targ)
         rho2_targ = np.dot(np.dot(mat2, rho), np.conj(mat2.T))
-        self.assertAllClose(op._evolve(rho, qubits=[2]), rho2_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[2]), rho2_targ)
 
         # Test 2-qubit evolution
         mat_a = self.rand_matrix(2, 2)
@@ -248,16 +298,16 @@ class TestOperator(OperatorTestCase):
         # Evolve on qubits [0, 2]
         mat02 = np.kron(mat_b, np.kron(np.eye(2), mat_a))
         psi02_targ = np.dot(mat02, psi)
-        self.assertAllClose(op._evolve(psi, qubits=[0, 2]), psi02_targ)
+        self.assertAllClose(op._evolve(psi, qargs=[0, 2]), psi02_targ)
         rho02_targ = np.dot(np.dot(mat02, rho), np.conj(mat02.T))
-        self.assertAllClose(op._evolve(rho, qubits=[0, 2]), rho02_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[0, 2]), rho02_targ)
 
         # Evolve on qubits [2, 0]
         mat20 = np.kron(mat_a, np.kron(np.eye(2), mat_b))
         psi20_targ = np.dot(mat20, psi)
-        self.assertAllClose(op._evolve(psi, qubits=[2, 0]), psi20_targ)
+        self.assertAllClose(op._evolve(psi, qargs=[2, 0]), psi20_targ)
         rho20_targ = np.dot(np.dot(mat20, rho), np.conj(mat20.T))
-        self.assertAllClose(op._evolve(rho, qubits=[2, 0]), rho20_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[2, 0]), rho20_targ)
 
         # Test evolve on 3-qubits
         mat_a = self.rand_matrix(2, 2)
@@ -270,16 +320,16 @@ class TestOperator(OperatorTestCase):
         # Evolve on qubits [0, 1, 2]
         mat012 = np.kron(mat_c, np.kron(mat_b, mat_a))
         psi012_targ = np.dot(mat012, psi)
-        self.assertAllClose(op._evolve(psi, qubits=[0, 1, 2]), psi012_targ)
+        self.assertAllClose(op._evolve(psi, qargs=[0, 1, 2]), psi012_targ)
         rho012_targ = np.dot(np.dot(mat012, rho), np.conj(mat012.T))
-        self.assertAllClose(op._evolve(rho, qubits=[0, 1, 2]), rho012_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[0, 1, 2]), rho012_targ)
 
         # Evolve on qubits [2, 1, 0]
         mat210 = np.kron(mat_a, np.kron(mat_b, mat_c))
         psi210_targ = np.dot(mat210, psi)
-        self.assertAllClose(op._evolve(psi, qubits=[2, 1, 0]), psi210_targ)
+        self.assertAllClose(op._evolve(psi, qargs=[2, 1, 0]), psi210_targ)
         rho210_targ = np.dot(np.dot(mat210, rho), np.conj(mat210.T))
-        self.assertAllClose(op._evolve(rho, qubits=[2, 1, 0]), rho210_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[2, 1, 0]), rho210_targ)
 
     def test_evolve_rand(self):
         """Test evolve method on random state."""
@@ -357,31 +407,31 @@ class TestOperator(OperatorTestCase):
         op2 = Operator(np.kron(mat_b, mat_a))
         op3 = Operator(np.kron(mat_c, np.kron(mat_b, mat_a)))
 
-        # op3 qubits=[0, 1, 2]
+        # op3 qargs=[0, 1, 2]
         targ = np.dot(np.kron(mat_c, np.kron(mat_b, mat_a)), mat)
-        self.assertEqual(op.compose(op3, qubits=[0, 1, 2]), Operator(targ))
-        # op3 qubits=[2, 1, 0]
+        self.assertEqual(op.compose(op3, qargs=[0, 1, 2]), Operator(targ))
+        # op3 qargs=[2, 1, 0]
         targ = np.dot(np.kron(mat_a, np.kron(mat_b, mat_c)), mat)
-        self.assertEqual(op.compose(op3, qubits=[2, 1, 0]), Operator(targ))
+        self.assertEqual(op.compose(op3, qargs=[2, 1, 0]), Operator(targ))
 
-        # op2 qubits=[0, 1]
+        # op2 qargs=[0, 1]
         targ = np.dot(np.kron(np.eye(2), np.kron(mat_b, mat_a)), mat)
-        self.assertEqual(op.compose(op2, qubits=[0, 1]), Operator(targ))
-        # op2 qubits=[2, 0]
+        self.assertEqual(op.compose(op2, qargs=[0, 1]), Operator(targ))
+        # op2 qargs=[2, 0]
         targ = np.dot(np.kron(mat_a, np.kron(np.eye(2), mat_b)), mat)
-        self.assertEqual(op.compose(op2, qubits=[2, 0]), Operator(targ))
+        self.assertEqual(op.compose(op2, qargs=[2, 0]), Operator(targ))
 
-        # op1 qubits=[0]
+        # op1 qargs=[0]
         targ = np.dot(np.kron(np.eye(4), mat_a), mat)
-        self.assertEqual(op.compose(op1, qubits=[0]), Operator(targ))
+        self.assertEqual(op.compose(op1, qargs=[0]), Operator(targ))
 
-        # op1 qubits=[1]
+        # op1 qargs=[1]
         targ = np.dot(np.kron(np.eye(2), np.kron(mat_a, np.eye(2))), mat)
-        self.assertEqual(op.compose(op1, qubits=[1]), Operator(targ))
+        self.assertEqual(op.compose(op1, qargs=[1]), Operator(targ))
 
-        # op1 qubits=[2]
+        # op1 qargs=[2]
         targ = np.dot(np.kron(mat_a, np.eye(4)), mat)
-        self.assertEqual(op.compose(op1, qubits=[2]), Operator(targ))
+        self.assertEqual(op.compose(op1, qargs=[2]), Operator(targ))
 
     def test_compose_front_subsystem(self):
         """Test subsystem front compose method."""
@@ -395,31 +445,31 @@ class TestOperator(OperatorTestCase):
         op2 = Operator(np.kron(mat_b, mat_a))
         op3 = Operator(np.kron(mat_c, np.kron(mat_b, mat_a)))
 
-        # op3 qubits=[0, 1, 2]
+        # op3 qargs=[0, 1, 2]
         targ = np.dot(mat, np.kron(mat_c, np.kron(mat_b, mat_a)))
-        self.assertEqual(op.compose(op3, qubits=[0, 1, 2], front=True), Operator(targ))
-        # op3 qubits=[2, 1, 0]
+        self.assertEqual(op.compose(op3, qargs=[0, 1, 2], front=True), Operator(targ))
+        # op3 qargs=[2, 1, 0]
         targ = np.dot(mat, np.kron(mat_a, np.kron(mat_b, mat_c)))
-        self.assertEqual(op.compose(op3, qubits=[2, 1, 0], front=True), Operator(targ))
+        self.assertEqual(op.compose(op3, qargs=[2, 1, 0], front=True), Operator(targ))
 
-        # op2 qubits=[0, 1]
+        # op2 qargs=[0, 1]
         targ = np.dot(mat, np.kron(np.eye(2), np.kron(mat_b, mat_a)))
-        self.assertEqual(op.compose(op2, qubits=[0, 1], front=True), Operator(targ))
-        # op2 qubits=[2, 0]
+        self.assertEqual(op.compose(op2, qargs=[0, 1], front=True), Operator(targ))
+        # op2 qargs=[2, 0]
         targ = np.dot(mat, np.kron(mat_a, np.kron(np.eye(2), mat_b)))
-        self.assertEqual(op.compose(op2, qubits=[2, 0], front=True), Operator(targ))
+        self.assertEqual(op.compose(op2, qargs=[2, 0], front=True), Operator(targ))
 
-        # op1 qubits=[0]
+        # op1 qargs=[0]
         targ = np.dot(mat, np.kron(np.eye(4), mat_a))
-        self.assertEqual(op.compose(op1, qubits=[0], front=True), Operator(targ))
+        self.assertEqual(op.compose(op1, qargs=[0], front=True), Operator(targ))
 
-        # op1 qubits=[1]
+        # op1 qargs=[1]
         targ = np.dot(mat, np.kron(np.eye(2), np.kron(mat_a, np.eye(2))))
-        self.assertEqual(op.compose(op1, qubits=[1], front=True), Operator(targ))
+        self.assertEqual(op.compose(op1, qargs=[1], front=True), Operator(targ))
 
-        # op1 qubits=[2]
+        # op1 qargs=[2]
         targ = np.dot(mat, np.kron(mat_a, np.eye(4)))
-        self.assertEqual(op.compose(op1, qubits=[2], front=True), Operator(targ))
+        self.assertEqual(op.compose(op1, qargs=[2], front=True), Operator(targ))
 
     def test_power(self):
         """Test power method."""

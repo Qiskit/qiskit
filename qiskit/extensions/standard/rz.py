@@ -14,7 +14,7 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.u1 import U1Gate
 
 
@@ -46,6 +46,7 @@ class RZGate(Gate):
         return RZGate(-self.params[0])
 
 
+@_to_bits(1)
 @_op_expand(1)
 def rz(self, phi, q):
     """Apply Rz to q."""

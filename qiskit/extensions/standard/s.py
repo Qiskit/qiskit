@@ -10,11 +10,12 @@
 """
 S=diag(1,i) Clifford phase gate or its inverse.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.qasm import pi
 from qiskit.extensions.standard.u1 import U1Gate
 
@@ -43,6 +44,11 @@ class SGate(Gate):
         """Invert this gate."""
         return SdgGate()
 
+    def to_matrix(self):
+        """Return a Numpy.array for the S gate."""
+        return numpy.array([[1, 0],
+                            [0, 1j]], dtype=complex)
+
 
 class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoint phase gate."""
@@ -68,13 +74,20 @@ class SdgGate(Gate):
         """Invert this gate."""
         return SGate()
 
+    def to_matrix(self):
+        """Return a Numpy.array for the Sdg gate."""
+        return numpy.array([[1, 0],
+                            [0, -1j]], dtype=complex)
 
+
+@_to_bits(1)
 @_op_expand(1)
 def s(self, q):
     """Apply S to q."""
     return self.append(SGate(), [q], [])
 
 
+@_to_bits(1)
 @_op_expand(1)
 def sdg(self, q):
     """Apply Sdg to q."""

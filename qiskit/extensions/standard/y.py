@@ -10,11 +10,12 @@
 """
 Pauli Y (bit-phase-flip) gate.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.qasm import pi
 from qiskit.extensions.standard.u3 import U3Gate
 
@@ -40,7 +41,13 @@ class YGate(Gate):
         """Invert this gate."""
         return YGate()  # self-inverse
 
+    def to_matrix(self):
+        """Return a Numpy.array for the Y gate."""
+        return numpy.array([[0, -1j],
+                            [1j, 0]], dtype=complex)
 
+
+@_to_bits(1)
 @_op_expand(1)
 def y(self, q):
     """Apply Y to q."""

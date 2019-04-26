@@ -15,7 +15,7 @@ import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler import assemble
 from qiskit.converters import qobj_to_circuits
 
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QobjHeader
@@ -38,7 +38,7 @@ class TestQobjToCircuits(QiskitTestCase):
 
     def test_qobj_to_circuits_single(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
-        qobj_in = assemble_circuits(self.circuit)
+        qobj_in = assemble(self.circuit)
         out_circuit = qobj_to_circuits(qobj_in)
         self.assertEqual(circuit_to_dag(out_circuit[0]), self.dag)
 
@@ -53,7 +53,7 @@ class TestQobjToCircuits(QiskitTestCase):
         circuit_b.h(qreg2)
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
-        qobj = assemble_circuits([self.circuit, circuit_b])
+        qobj = assemble([self.circuit, circuit_b])
         dag_list = [circuit_to_dag(x) for x in qobj_to_circuits(qobj)]
         self.assertEqual(dag_list, [self.dag, circuit_to_dag(circuit_b)])
 
@@ -69,7 +69,7 @@ class TestQobjToCircuits(QiskitTestCase):
         circuit_b.u2(0.2, 0.57, qreg2[1])
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
-        qobj = assemble_circuits(circuit_b)
+        qobj = assemble(circuit_b)
         out_circuit = qobj_to_circuits(qobj)
         self.assertEqual(circuit_to_dag(out_circuit[0]),
                          circuit_to_dag(circuit_b))
@@ -83,7 +83,7 @@ class TestQobjToCircuits(QiskitTestCase):
         circuit.snapshot(1)
         circuit.measure(qr, cr)
         dag = circuit_to_dag(circuit)
-        qobj_in = assemble_circuits(circuit)
+        qobj_in = assemble(circuit)
         out_circuit = qobj_to_circuits(qobj_in)
         self.assertEqual(circuit_to_dag(out_circuit[0]), dag)
 
@@ -97,7 +97,7 @@ class TestQobjToCircuits(QiskitTestCase):
 
     def test_qobj_to_circuits_single_no_qasm(self):
         """Check that qobj_to_circuits's result matches the qobj ini."""
-        qobj_in = assemble_circuits(self.circuit)
+        qobj_in = assemble(self.circuit)
         out_circuit = qobj_to_circuits(qobj_in)
         self.assertEqual(circuit_to_dag(out_circuit[0]), self.dag)
 
@@ -112,7 +112,7 @@ class TestQobjToCircuits(QiskitTestCase):
         circuit_b.h(qreg2)
         circuit_b.measure(qreg1, creg1)
         circuit_b.measure(qreg2[0], creg2[1])
-        qobj = assemble_circuits([self.circuit, circuit_b])
+        qobj = assemble([self.circuit, circuit_b])
 
         dag_list = [circuit_to_dag(x) for x in qobj_to_circuits(qobj)]
         self.assertEqual(dag_list, [self.dag, circuit_to_dag(circuit_b)])
@@ -123,7 +123,7 @@ class TestQobjToCircuits(QiskitTestCase):
         circ = QuantumCircuit(q, name='circ')
         circ.initialize([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], q[:])
         dag = circuit_to_dag(circ)
-        qobj = assemble_circuits(circ)
+        qobj = assemble(circ)
         out_circuit = qobj_to_circuits(qobj)[0]
         self.assertEqual(circuit_to_dag(out_circuit), dag)
 

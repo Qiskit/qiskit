@@ -10,11 +10,12 @@
 """
 T=sqrt(S) phase gate or its inverse.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.qasm import pi
 from qiskit.extensions.standard.u1 import U1Gate
 
@@ -43,6 +44,11 @@ class TGate(Gate):
         """Invert this gate."""
         return TdgGate()
 
+    def to_matrix(self):
+        """Return a Numpy.array for the S gate."""
+        return numpy.array([[1, 0],
+                            [0, (1+1j) / numpy.sqrt(2)]], dtype=complex)
+
 
 class TdgGate(Gate):
     """T Gate: -pi/4 rotation around Z axis."""
@@ -68,13 +74,20 @@ class TdgGate(Gate):
         """Invert this gate."""
         return TGate()
 
+    def to_matrix(self):
+        """Return a Numpy.array for the S gate."""
+        return numpy.array([[1, 0],
+                            [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
 
+
+@_to_bits(1)
 @_op_expand(1)
 def t(self, q):
     """Apply T to q."""
     return self.append(TGate(), [q], [])
 
 
+@_to_bits(1)
 @_op_expand(1)
 def tdg(self, q):
     """Apply Tdg to q."""
