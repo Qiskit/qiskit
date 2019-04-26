@@ -24,10 +24,10 @@ import uuid
 
 import numpy as np
 from qiskit import transpiler
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler.assembler import assemble_circuits
 from qiskit.providers import BaseBackend, JobStatus, JobError
 from qiskit.providers.basicaer import BasicAerJob
-
+from qiskit.qobj import QobjHeader
 from qiskit.aqua.aqua_error import AquaError
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
@@ -158,7 +158,10 @@ def _maybe_add_aer_expectation_instruction(qobj, options):
 
 def _compile_wrapper(circuits, backend, backend_config, compile_config, run_config):
     transpiled_circuits = transpiler.transpile(circuits, backend, **backend_config, **compile_config)
-    qobj = assemble_circuits(transpiled_circuits, run_config=run_config)
+    if not isinstance(transpiled_circuits, list):
+        transpiled_circuits = [transpiled_circuits]
+
+    qobj = assemble_circuits(transpiled_circuits, qobj_id=str(uuid.uuid4()), qobj_header=QobjHeader(), run_config=run_config)
     return qobj, transpiled_circuits
 
 
