@@ -9,7 +9,6 @@
 
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
-from qiskit.extensions.quantum_initializer.initializer import InitializeGate
 
 from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.transpiler.passes.unroll_3q_or_more import Unroll3qOrMore
