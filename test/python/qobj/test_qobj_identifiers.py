@@ -12,7 +12,7 @@
 import unittest
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
 
 
@@ -30,19 +30,19 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.circuits = [qc]
 
     def test_builtin_qasm_simulator_py(self):
-        qobj = assemble_circuits(self.circuits)
+        qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
 
     def test_builtin_qasm_simulator(self):
-        qobj = assemble_circuits(self.circuits)
+        qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
 
     def test_builtin_unitary_simulator_py(self):
-        qobj = assemble_circuits(self.circuits)
+        qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
