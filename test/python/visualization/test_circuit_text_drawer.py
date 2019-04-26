@@ -995,6 +995,8 @@ class TestTextDrawerParams(QiskitTestCase):
 
 
 class TestTextDrawerVerticallyExtended(QiskitTestCase):
+    """Test vertically_compressed=False"""
+
     def test_text_conditional_1(self):
         """ Conditional drawing with 1-bit-length regs."""
         qasm_string = """
