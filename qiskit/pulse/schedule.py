@@ -19,7 +19,6 @@ from .channels import Channel
 from .interfaces import ScheduleComponent
 from .timeslots import TimeslotCollection
 from .exceptions import PulseError
-from .channels import DeviceSpecification
 
 logger = logging.getLogger(__name__)
 
