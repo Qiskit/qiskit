@@ -259,19 +259,20 @@ class TestInitialize(QiskitTestCase):
 
     def test_combiner(self):
         """Combining two circuits containing initialize."""
-        desired_vector = [0, 1]
+        desired_vector_1 = [1.0 / math.sqrt(2), 1.0 / math.sqrt(2)]
+        desired_vector_2 = [1.0 / math.sqrt(2), -1.0 / math.sqrt(2)]
         qr = QuantumRegister(1, "qr")
         cr = ClassicalRegister(1, "cr")
         qc1 = QuantumCircuit(qr, cr)
-        qc1.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
+        qc1.initialize(desired_vector_1, [qr[0]])
 
         qc2 = QuantumCircuit(qr, cr)
-        qc2.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
+        qc2.initialize(desired_vector_2, [qr[0]])
 
         job = execute(qc1 + qc2, BasicAer.get_backend('statevector_simulator'))
         result = job.result()
         quantum_state = result.get_statevector()
-        fidelity = state_fidelity(quantum_state, desired_vector)
+        fidelity = state_fidelity(quantum_state, desired_vector_2)
         self.assertGreater(
             fidelity, self._desired_fidelity,
             "Initializer has low fidelity {0:.2g}.".format(fidelity))
