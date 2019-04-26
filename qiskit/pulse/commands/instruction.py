@@ -161,6 +161,37 @@ class Instruction(ScheduleComponent):
         """
         yield (time, self)
 
+    def draw(self, dt: float = 1, style=None,
+             filename: str = None, interp_method: Callable = None, scaling: float = None,
+             channels_to_plot: List[Channel] = None, plot_all: bool = False,
+             plot_range: Tuple[float] = None, interactive: bool = False):
+        """Plot the interpolated envelope of pulse.
+
+        Args:
+            dt: Time interval of samples.
+            style (OPStyleSched): A style sheet to configure plot appearance.
+            filename: Name required to save pulse image.
+            interp_method: A function for interpolation.
+            scaling: scaling of waveform amplitude.
+            channels_to_plot: A list of channel names to plot.
+            plot_all: Plot empty channels.
+            plot_range: A tuple of time range to plot.
+            interactive: When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this).
+
+        Returns:
+            matplotlib.figure: A matplotlib figure object of the pulse schedule.
+        """
+        # pylint: disable=invalid-name, cyclic-import
+
+        from qiskit.tools import visualization
+
+        return visualization.pulse_drawer(self, dt=dt, style=style,
+                                          filename=filename, interp_method=interp_method,
+                                          scaling=scaling, channels_to_plot=channels_to_plot,
+                                          plot_all=plot_all, plot_range=plot_range,
+                                          interactive=interactive)
+
     def __add__(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
         return self.append(schedule)
