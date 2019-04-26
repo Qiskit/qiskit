@@ -90,7 +90,7 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
 
     def test_optimize_1s_1measure(self):
         """ Remove a single SGate
-            qr0:--T--m--       qr0:--m-
+            qr0:--S--m--       qr0:--m-
                      |               |
             qr1:-----|--  ==>  qr1:--|-
                      |               |
@@ -99,7 +99,7 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
-        circuit.t(qr[0])
+        circuit.s(qr[0])
         circuit.measure(qr[0], cr[0])
         dag = circuit_to_dag(circuit)
 
@@ -112,8 +112,8 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_optimize_1tdg_1measure(self):
-        """ Remove a single TdgGate, SdgGate, U1Gate
-            qr0:--T--m--       qr0:--m-
+        """ Remove a single TdgGate
+            qr0:-Tdg-m--       qr0:--m-
                      |               |
             qr1:-----|--  ==>  qr1:--|-
                      |               |
@@ -136,11 +136,11 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
 
     def test_optimize_1sdg_1measure(self):
         """ Remove a single SdgGate
-            qr0:--T--m--       qr0:--m-
-                     |               |
-            qr1:-----|--  ==>  qr1:--|-
-                     |               |
-            cr0:-----.--       cr0:--.-
+            qr0:-Sdg--m--       qr0:--m-
+                      |               |
+            qr1:------|--  ==>  qr1:--|-
+                      |               |
+            cr0:------.--       cr0:--.-
         """
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
@@ -159,7 +159,7 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
 
     def test_optimize_1u1_1measure(self):
         """ Remove a single U1Gate
-            qr0:--T--m--       qr0:--m-
+            qr0:--U1-m--       qr0:--m-
                      |               |
             qr1:-----|--  ==>  qr1:--|-
                      |               |
