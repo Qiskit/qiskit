@@ -15,7 +15,7 @@
 # limitations under the License.
 # =============================================================================
 import numpy as np
-from qiskit import transpiler, BasicAer, QuantumRegister
+from qiskit import compiler, BasicAer, QuantumRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Unroller
@@ -25,7 +25,7 @@ def convert_to_basis_gates(circuit):
     # unroll the circuit using the basis u1, u2, u3, cx, and id gates
     unroller = Unroller(basis=['u1', 'u2', 'u3', 'cx', 'id'])
     pm = PassManager(passes=[unroller])
-    qc = transpiler.transpile(circuit, BasicAer.get_backend('qasm_simulator'), pass_manager=pm)
+    qc = compiler.transpile(circuit, BasicAer.get_backend('qasm_simulator'), pass_manager=pm)
     return qc
 
 
