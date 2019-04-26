@@ -511,6 +511,6 @@ class TestTranspile(QiskitTestCase):
         expected.u_base(1.5708, 0, 0, qr[0])
         expected.u_base(0, 0, 3.1416, qr[0])
 
-        after = transpile(qc, basis_gates=['U'])
+        after = transpile(qc, basis_gates=['reset', 'U'])
 
         self.assertEqual(after, expected)

@@ -101,8 +101,10 @@ def default_pass_manager_simulator(basis_gates):
     """
     pass_manager = PassManager()
 
-    pass_manager.append(Decompose(InitializeGate))
-    pass_manager.append(RemoveResetInZeroState())
     pass_manager.append(Unroller(basis_gates))
+
+    if 'reset' in basis_gates:
+        pass_manager.append([RemoveResetInZeroState(), Depth(), FixedPoint('depth')],
+                            do_while=lambda property_set: not property_set['depth_fixed_point'])
 
     return pass_manager
