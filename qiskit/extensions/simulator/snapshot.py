@@ -84,7 +84,11 @@ class Snapshot(Instruction):
             raise TypeError('label expects a string')
 
 
-def snapshot(self, label):
+def snapshot(self,
+             label,
+             snapshot_type='statevector',
+             qubits=None,
+             params=None):
     """Take a statevector snapshot of the internal simulator representation.
     Works on all qubits, and prevents reordering (like barrier).
 
@@ -92,6 +96,9 @@ def snapshot(self, label):
 
     Args:
         label (str): a snapshot label to report the result
+        snapshot_type (str): the type of the snapshot.
+        qubits (list or None): the qubits to apply snapshot to [Default: None].
+        params (list or None): the parameters for snapshot_type [Default: None].
 
     Returns:
         QuantumCircuit: with attached command
@@ -101,26 +108,34 @@ def snapshot(self, label):
     """
     # Convert label to string for backwards compatibility
     if not isinstance(label, str):
-        warnings.warn("Snapshot label should be a string, "
-                      "implicit conversion is depreciated.", DeprecationWarning)
+        warnings.warn(
+            "Snapshot label should be a string, "
+            "implicit conversion is depreciated.", DeprecationWarning)
         label = str(label)
-    tuples = []
-    if isinstance(self, QuantumCircuit):
-        for register in self.qregs:
-            tuples.append(register)
-    if not tuples:
-        raise ExtensionError('no qubits for snapshot')
-    if label is None:
-        raise ExtensionError('no snapshot label passed')
-    qubits = []
-    for tuple_element in tuples:
-        if isinstance(tuple_element, QuantumRegister):
-            for j in range(tuple_element.size):
-                qubits.append((tuple_element, j))
-        else:
-            qubits.append(tuple_element)
+    # If no qubits are specified we add all qubits so it acts as a barrier
+    # This is needed for full register snapshots like statevector
+    if isinstance(qubits, QuantumRegister):
+        qubits = qubits[:]
+    if not qubits:
+        tuples = []
+        if isinstance(self, QuantumCircuit):
+            for register in self.qregs:
+                tuples.append(register)
+        if not tuples:
+            raise ExtensionError('no qubits for snapshot')
+        qubits = []
+        for tuple_element in tuples:
+            if isinstance(tuple_element, QuantumRegister):
+                for j in range(tuple_element.size):
+                    qubits.append((tuple_element, j))
+            else:
+                qubits.append(tuple_element)
     return self.append(
-        Snapshot(label, snapshot_type='statevector', num_qubits=len(qubits)), qubits)
+        Snapshot(
+            label,
+            snapshot_type=snapshot_type,
+            num_qubits=len(qubits),
+            params=params), qubits)
 
 
 # Add to QuantumCircuit and CompositeGate classes

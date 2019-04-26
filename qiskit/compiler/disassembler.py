@@ -64,11 +64,11 @@ def _experiments_to_circuits(qobj):
                 except Exception:  # pylint: disable=broad-except
                     pass
                 if i.name in ['snapshot']:
-                    # TODO: This method only works for statevector snapshots
-                    # any other kind of snapshots which aren't handled by
-                    # the monkey patched circuit.snapshot method will be
-                    # converted into a statevector snapshot.
-                    instr_method(i.label)
+                    instr_method(
+                        i.label,
+                        snapshot_type=i.snapshot_type,
+                        qubits=qubits,
+                        params=params)
                 elif i.name == 'initialize':
                     instr_method(params, qubits)
                 else:
