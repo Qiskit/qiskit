@@ -6,9 +6,8 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper function for converting a circuit to a dag"""
+import copy
 
-from qiskit.circuit import gate
-from qiskit.circuit import instruction as inst_mod
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
@@ -35,37 +34,8 @@ def circuit_to_dag(circuit):
         else:
             control = (instruction.control[0], instruction.control[1])
 
-        def duplicate_instruction(inst):
-            """Create a fresh instruction from an input instruction."""
-            if issubclass(inst.__class__,
-                          inst_mod.Instruction) and inst.__class__ not in [
-                              inst_mod.Instruction, gate.Gate]:
-                if inst.name == 'barrier':
-                    new_inst = inst.__class__(inst.num_qubits)
-                elif inst.name == 'initialize':
-                    params = getattr(inst, 'params', [])
-                    new_inst = inst.__class__(params)
-                elif inst.name == 'snapshot':
-                    label = inst.params[0]
-                    snap_type = inst.params[1]
-                    new_inst = inst.__class__(inst.num_qubits, inst.num_clbits,
-                                              label, snap_type)
-                else:
-                    params = getattr(inst, 'params', [])
-                    new_inst = inst.__class__(*params)
-            else:
-                if isinstance(inst, gate.Gate):
-                    new_inst = gate.Gate(inst.name, inst.num_qubits,
-                                         inst.params)
-                else:
-                    new_inst = inst_mod.Instruction(name=inst.name,
-                                                    num_qubits=inst.num_qubits,
-                                                    num_clbits=inst.num_clbits,
-                                                    params=inst.params)
-                new_inst.definition = inst.definition
-            return new_inst
-
-        dagcircuit.apply_operation_back(duplicate_instruction(instruction),
+        
+        dagcircuit.apply_operation_back(instruction.copy(),
                                         qargs, cargs, control)
 
     return dagcircuit
