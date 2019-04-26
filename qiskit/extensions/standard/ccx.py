@@ -8,6 +8,9 @@
 """
 Toffoli gate. Controlled-Controlled-X.
 """
+
+import numpy
+
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -61,6 +64,17 @@ class ToffoliGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return ToffoliGate()  # self-inverse
+
+    def to_matrix(self):
+        """Return a Numpy.array for the Toffoli gate."""
+        return numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 1, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 1],
+                            [0, 0, 0, 0, 1, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 1, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 1, 0],
+                            [0, 0, 0, 1, 0, 0, 0, 0]], dtype=complex)
 
 
 @_to_bits(3)
