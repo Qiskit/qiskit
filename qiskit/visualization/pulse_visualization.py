@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 def pulse_drawer(data, dt=1, style=None, filename=None,
                  interp_method=None, scaling=None, channels_to_plot=None,
                  plot_all=False, plot_range=None, interactive=False,
-                 legend=True):
+                 legend=True, table=True):
     """Plot the interpolated envelope of pulse
 
     Args:
@@ -49,7 +49,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         plot_range (tuple): A tuple of time range to plot
         interactive (bool): When set true show the circuit in a new window
             (this depends on the matplotlib backend being used supporting this)
-        legend (bool): Legend for supported instructions
+        legend (bool): Draw Legend for supported commands
+        table (bool): Draw event table for supported commands
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope
     Raises:
@@ -64,7 +65,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         image = drawer.draw(data, dt=dt,
                             interp_method=interp_method, scaling=scaling,
                             plot_range=plot_range, channels_to_plot=channels_to_plot,
-                            plot_all=plot_all, legend=legend)
+                            plot_all=plot_all, legend=legend, table=table)
     else:
         raise VisualizationError('This data cannot be visualized.')
 
@@ -433,11 +434,8 @@ class ScheduleDrawer:
             table.auto_set_font_size(False)
             table.set_fontsize = self.style.table_font_size
         else:
-            fig_h = n_valid_waveform * self.style.fig_unit_h_waveform
             ax = figure.add_subplot(111)
 
-        figure.set_size_inches(self.style.fig_w, fig_h)
-        ax.set_facecolor(self.style.bg_color)
         return ax
 
     def _draw_snapshots(self, ax, snapshot_channels, dt):
@@ -521,7 +519,8 @@ class ScheduleDrawer:
         return y0, framechanges_present
 
     def draw(self, schedule, dt, interp_method, scaling,
-             plot_range, channels_to_plot, plot_all, legend):
+             plot_range, channels_to_plot=None, plot_all=True, legend=True,
+             table=True):
         """Draw figure.
         Args:
             schedule (ScheduleComponent): Schedule to draw
@@ -532,7 +531,8 @@ class ScheduleDrawer:
             plot_range (tuple[float]): plot range
             channels_to_plot (list[OutputChannel]): channels to draw
             plot_all (bool): if plot all channels even it is empty
-            legend (bool): Plot legend
+            legend (bool): Draw legend
+            table (bool): Draw event table
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
@@ -563,7 +563,15 @@ class ScheduleDrawer:
                                                               channels_to_plot=channels_to_plot,
                                                               plot_all=plot_all)
 
-        ax = self._draw_table(figure, channels, dt, n_valid_waveform)
+        if table:
+            ax = self._draw_table(figure, channels, dt, n_valid_waveform)
+
+        else:
+            ax = figure.add_subplot(111)
+
+        fig_h = n_valid_waveform * self.style.fig_unit_h_waveform
+        figure.set_size_inches(self.style.fig_w, fig_h)
+        ax.set_facecolor(self.style.bg_color)
 
         y0, framechanges_present = self._draw_channels(ax, output_channels, interp_method,
                                                        t0, tf, dt, v_max)

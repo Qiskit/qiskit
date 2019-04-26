@@ -164,8 +164,9 @@ class Instruction(ScheduleComponent):
     def draw(self, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None, scaling: float = None,
              channels_to_plot: List[Channel] = None, plot_all: bool = False,
-             plot_range: Tuple[float] = None, interactive: bool = False):
-        """Plot the interpolated envelope of pulse.
+             plot_range: Tuple[float] = None, interactive: bool = False,
+             legend: bool = True, table: bool = True):
+        """Plot the instruction.
 
         Args:
             dt: Time interval of samples.
@@ -178,6 +179,8 @@ class Instruction(ScheduleComponent):
             plot_range: A tuple of time range to plot.
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this).
+            legend: Draw Legend for supported commands
+            table: Draw event table for supported commands
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
@@ -190,7 +193,7 @@ class Instruction(ScheduleComponent):
                                           filename=filename, interp_method=interp_method,
                                           scaling=scaling, channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive)
+                                          interactive=interactive, legend=legend, table=table)
 
     def __add__(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
