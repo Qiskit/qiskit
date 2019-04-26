@@ -15,9 +15,10 @@ import logging
 from collections import OrderedDict
 
 import numpy as np
-from matplotlib import pyplot as plt, gridspec
+from matplotlib import pyplot as plt, gridspec, lines, text
 
 from qiskit.pulse import SamplePulse, FrameChange, PersistentValue, Schedule, Snapshot
+from qiskit.pulse.commands import Instruction
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
 from qiskit.pulse.exceptions import PulseError
@@ -30,7 +31,8 @@ logger = logging.getLogger(__name__)
 
 def pulse_drawer(data, dt=1, style=None, filename=None,
                  interp_method=None, scaling=None, channels_to_plot=None,
-                 plot_all=False, plot_range=None, interactive=False):
+                 plot_all=False, plot_range=None, interactive=False,
+                 legend=True):
     """Plot the interpolated envelope of pulse
 
     Args:
@@ -45,6 +47,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         plot_range (tuple): A tuple of time range to plot.
         interactive (bool): When set true show the circuit in a new window
             (this depends on the matplotlib backend being used supporting this).
+        legend (bool): Legend for supported instructions.
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope.
     Raises:
@@ -52,14 +55,14 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     """
     if isinstance(data, SamplePulse):
         drawer = SamplePulseDrawer(style=style)
-        image = drawer.draw(pulse_obj=data, dt=dt,
+        image = drawer.draw(data, dt=dt,
                             interp_method=interp_method, scaling=scaling)
-    elif isinstance(data, Schedule):
+    elif isinstance(data, (Schedule, Instruction)):
         drawer = ScheduleDrawer(style=style)
-        image = drawer.draw(pulse_obj=data, dt=dt,
+        image = drawer.draw(data, dt=dt,
                             interp_method=interp_method, scaling=scaling,
                             plot_range=plot_range, channels_to_plot=channels_to_plot,
-                            plot_all=plot_all)
+                            plot_all=plot_all, legend=legend)
     else:
         raise VisualizationError('This data cannot be visualized.')
 
@@ -300,7 +303,7 @@ class ScheduleDrawer:
         self.style = style or OPStyleSched()
 
     def draw(self, schedule, dt, interp_method, scaling,
-             plot_range, channels_to_plot, plot_all):
+             plot_range, channels_to_plot, plot_all, legend):
         """Draw figure.
         Args:
             schedule (ScheduleComponent): Schedule to draw.
@@ -459,6 +462,7 @@ class ScheduleDrawer:
         ax.set_facecolor = self.style.bg_color
 
         y0 = 0
+        framechanges_present = False
         for channel, events in output_channels.items():
             if events.enable:
                 # plot waveform
@@ -492,6 +496,7 @@ class ScheduleDrawer:
                 # plot frame changes
                 fcs = events.framechanges
                 if fcs:
+                    framechanges_present = True
                     for time in fcs.keys():
                         ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
                                 fontsize=self.style.icon_font_size,
@@ -506,15 +511,28 @@ class ScheduleDrawer:
 
             y0 -= 1
 
+        snapshots_present = False
         for channel, events in snapshot_channels.items():
             snapshots = events.snapshots
             if snapshots:
+                snapshots_present = True
                 for time, name in snapshots.items():
                     ax.axvline(time*dt, -1, 1, color=self.style.s_ch_color,
-                               linestyle='--')
-                    ax.text(x=time*dt, y=y0, s=r'$🔲$',
-                            fontsize=self.style.icon_font_size,
-                            ha='center', va='center')
+                               linestyle=self.style.s_ch_linestyle)
+
+        if legend:
+            legend_labels = []
+            legend_lines = []
+            if framechanges_present:
+                legend_labels.append('framechange')
+                legend_lines.append(lines.Line2D([0], [0], marker=r'$\circlearrowleft$',
+                                                 color='black', markersize=self.style.icon_font_size-6))
+            if snapshots_present:
+                legend_labels.append('snapshot')
+                legend_lines.append(lines.Line2D([0], [0], color=self.style.s_ch_color,
+                                                 linestyle=self.style.s_ch_linestyle))
+            if legend_labels:
+                ax.legend(legend_lines, legend_labels, loc='upper right')
 
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)

@@ -9,7 +9,7 @@
 Instruction = Leaf node of schedule.
 """
 import logging
-from typing import Tuple, List, Iterable
+from typing import Tuple, List, Iterable, Callable
 
 from qiskit.pulse import ops
 from qiskit.pulse.channels import Channel

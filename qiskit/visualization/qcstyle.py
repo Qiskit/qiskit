@@ -104,7 +104,8 @@ class OPStyleSched:
     def __init__(self, fig_w=None, fig_unit_h_waveform=None, fig_unit_h_table=None,
                  use_table=None, table_columns=None, table_font_size=None, label_font_size=None,
                  icon_font_size=None, d_ch_color=None, u_ch_color=None, m_ch_color=None,
-                 s_ch_color=None, table_color=None, bg_color=None, num_points=None, dpi=None):
+                 s_ch_color=None, s_ch_linestyle=None,
+                 table_color=None, bg_color=None, num_points=None, dpi=None):
         """Set style sheet for OpenPulse schedule drawer.
 
         Args:
@@ -137,6 +138,7 @@ class OPStyleSched:
         self.u_ch_color = u_ch_color or ['#ffb000', '#994A00']
         self.m_ch_color = m_ch_color or ['#dc267f', '#760019']
         self.s_ch_color = s_ch_color or '#7da781'
+        self.s_ch_linestyle = s_ch_linestyle or '--'
         self.table_color = table_color or ['#e0e0e0', '#f6f6f6', '#f6f6f6']
         self.bg_color = bg_color or '#f2f3f4'
         self.num_points = num_points or 1000
