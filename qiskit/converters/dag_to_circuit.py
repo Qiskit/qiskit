@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper function for converting a dag to a circuit"""
-import copy
 import collections
 
 from qiskit.circuit import QuantumCircuit
