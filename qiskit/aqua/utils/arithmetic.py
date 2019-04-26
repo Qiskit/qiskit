@@ -81,3 +81,18 @@ def is_power(num, return_decomposition=False):
         return False, num, 1
     else:
         return False
+
+
+def next_power_of_2_base(n):
+    """
+    Return the base of the smallest power of 2 no less than the input number
+    """
+    base = 0
+    if n and not (n & (n - 1)):
+        return log2(n)
+
+    while n != 0:
+        n >>= 1
+        base += 1
+
+    return base
