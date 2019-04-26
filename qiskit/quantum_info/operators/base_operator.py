@@ -130,17 +130,17 @@ class BaseOperator(ABC):
             self._output_dims = tuple(output_dims)
         return self
 
-    def input_dims(self, qubits=None):
+    def input_dims(self, qargs=None):
         """Return tuple of input dimension for specified subsystems."""
-        if qubits is None:
+        if qargs is None:
             return self._input_dims
-        return tuple(self._input_dims[i] for i in qubits)
+        return tuple(self._input_dims[i] for i in qargs)
 
-    def output_dims(self, qubits=None):
+    def output_dims(self, qargs=None):
         """Return tuple of output dimension for specified subsystems."""
-        if qubits is None:
+        if qargs is None:
             return self._output_dims
-        return tuple(self._output_dims[i] for i in qubits)
+        return tuple(self._output_dims[i] for i in qargs)
 
     def copy(self):
         """Make a copy of current operator."""
@@ -153,7 +153,7 @@ class BaseOperator(ABC):
         return self.conjugate().transpose()
 
     @abstractmethod
-    def is_unitary(self):
+    def is_unitary(self, atol=None, rtol=None):
         """Return True if operator is a unitary matrix."""
         pass
 
@@ -173,12 +173,12 @@ class BaseOperator(ABC):
         pass
 
     @abstractmethod
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (BaseOperator): an operator object.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -294,12 +294,12 @@ class BaseOperator(ABC):
         pass
 
     @abstractmethod
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the operator.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:

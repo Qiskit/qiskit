@@ -38,6 +38,18 @@ class TestSuperOp(ChannelTestCase):
         self.assertRaises(
             QiskitError, SuperOp, mat, input_dims=[4], output_dims=[4])
 
+    def test_circuit_init(self):
+        """Test initialization from a circuit."""
+        circuit, target = self.simple_circuit_no_measure()
+        op = SuperOp(circuit)
+        target = SuperOp(target)
+        self.assertEqual(op, target)
+
+    def test_circuit_init_except(self):
+        """Test initialization from circuit with measure raises exception."""
+        circuit = self.simple_circuit_with_measure()
+        self.assertRaises(QiskitError, SuperOp, circuit)
+
     def test_equal(self):
         """Test __eq__ method"""
         mat = self.rand_matrix(4, 4)
@@ -97,17 +109,17 @@ class TestSuperOp(ChannelTestCase):
         # Evolve on qubit 0
         full_op = id2.tensor(op_a)
         rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qubits=[0]), rho_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[0]), rho_targ)
 
         # Evolve on qubit 1
         full_op = id1.tensor(op_a).tensor(id1)
         rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qubits=[1]), rho_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[1]), rho_targ)
 
         # Evolve on qubit 2
         full_op = op_a.tensor(id2)
         rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qubits=[2]), rho_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[2]), rho_targ)
 
         # Test 2-qubit evolution
         op = op_b.tensor(op_a)
@@ -115,12 +127,12 @@ class TestSuperOp(ChannelTestCase):
         # Evolve on qubits [0, 2]
         full_op = op_b.tensor(id1).tensor(op_a)
         rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qubits=[0, 2]), rho_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[0, 2]), rho_targ)
 
         # Evolve on qubits [2, 0]
         full_op = op_a.tensor(id1).tensor(op_b)
         rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qubits=[2, 0]), rho_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[2, 0]), rho_targ)
 
         # Test 3-qubit evolution
         op = op_c.tensor(op_b).tensor(op_a)
@@ -128,12 +140,12 @@ class TestSuperOp(ChannelTestCase):
         # Evolve on qubits [0, 1, 2]
         full_op = op
         rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qubits=[0, 1, 2]), rho_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[0, 1, 2]), rho_targ)
 
         # Evolve on qubits [2, 1, 0]
         full_op = op_a.tensor(op_b).tensor(op_c)
         rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qubits=[2, 1, 0]), rho_targ)
+        self.assertAllClose(op._evolve(rho, qargs=[2, 1, 0]), rho_targ)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -250,38 +262,38 @@ class TestSuperOp(ChannelTestCase):
         op1 = SuperOp(mat_a)
         op2 = SuperOp(mat_b).tensor(SuperOp(mat_a))
         op3 = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
-        # op3 qubits=[0, 1, 2]
+        # op3 qargs=[0, 1, 2]
         full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
-        self.assertEqual(op.compose(op3, qubits=[0, 1, 2]), SuperOp(targ))
-        # op3 qubits=[2, 1, 0]
+        self.assertEqual(op.compose(op3, qargs=[0, 1, 2]), SuperOp(targ))
+        # op3 qargs=[2, 1, 0]
         full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
         targ = np.dot(full_op.data, mat)
-        self.assertEqual(op.compose(op3, qubits=[2, 1, 0]), SuperOp(targ))
+        self.assertEqual(op.compose(op3, qargs=[2, 1, 0]), SuperOp(targ))
 
-        # op2 qubits=[0, 1]
+        # op2 qargs=[0, 1]
         full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
-        self.assertEqual(op.compose(op2, qubits=[0, 1]), SuperOp(targ))
-        # op2 qubits=[2, 0]
+        self.assertEqual(op.compose(op2, qargs=[0, 1]), SuperOp(targ))
+        # op2 qargs=[2, 0]
         full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
         targ = np.dot(full_op.data, mat)
-        self.assertEqual(op.compose(op2, qubits=[2, 0]), SuperOp(targ))
+        self.assertEqual(op.compose(op2, qargs=[2, 0]), SuperOp(targ))
 
-        # op1 qubits=[0]
+        # op1 qargs=[0]
         full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
         targ = np.dot(full_op.data, mat)
-        self.assertEqual(op.compose(op1, qubits=[0]), SuperOp(targ))
+        self.assertEqual(op.compose(op1, qargs=[0]), SuperOp(targ))
 
-        # op1 qubits=[1]
+        # op1 qargs=[1]
         full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
         targ = np.dot(full_op.data, mat)
-        self.assertEqual(op.compose(op1, qubits=[1]), SuperOp(targ))
+        self.assertEqual(op.compose(op1, qargs=[1]), SuperOp(targ))
 
-        # op1 qubits=[2]
+        # op1 qargs=[2]
         full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
         targ = np.dot(full_op.data, mat)
-        self.assertEqual(op.compose(op1, qubits=[2]), SuperOp(targ))
+        self.assertEqual(op.compose(op1, qargs=[2]), SuperOp(targ))
 
     def test_compose_front_subsystem(self):
         """Test subsystem front compose method."""
@@ -296,45 +308,45 @@ class TestSuperOp(ChannelTestCase):
         op2 = SuperOp(mat_b).tensor(SuperOp(mat_a))
         op3 = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
 
-        # op3 qubits=[0, 1, 2]
+        # op3 qargs=[0, 1, 2]
         full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(
-            op.compose(op3, qubits=[0, 1, 2], front=True), SuperOp(targ))
-        # op3 qubits=[2, 1, 0]
+            op.compose(op3, qargs=[0, 1, 2], front=True), SuperOp(targ))
+        # op3 qargs=[2, 1, 0]
         full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(
-            op.compose(op3, qubits=[2, 1, 0], front=True), SuperOp(targ))
+            op.compose(op3, qargs=[2, 1, 0], front=True), SuperOp(targ))
 
-        # op2 qubits=[0, 1]
+        # op2 qargs=[0, 1]
         full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(
-            op.compose(op2, qubits=[0, 1], front=True), SuperOp(targ))
-        # op2 qubits=[2, 0]
+            op.compose(op2, qargs=[0, 1], front=True), SuperOp(targ))
+        # op2 qargs=[2, 0]
         full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(
-            op.compose(op2, qubits=[2, 0], front=True), SuperOp(targ))
+            op.compose(op2, qargs=[2, 0], front=True), SuperOp(targ))
 
-        # op1 qubits=[0]
+        # op1 qargs=[0]
         full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(
-            op.compose(op1, qubits=[0], front=True), SuperOp(targ))
+            op.compose(op1, qargs=[0], front=True), SuperOp(targ))
 
-        # op1 qubits=[1]
+        # op1 qargs=[1]
         full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
         targ = np.dot(mat, full_op.data)
         self.assertEqual(
-            op.compose(op1, qubits=[1], front=True), SuperOp(targ))
+            op.compose(op1, qargs=[1], front=True), SuperOp(targ))
 
-        # op1 qubits=[2]
+        # op1 qargs=[2]
         full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
         targ = np.dot(mat, full_op.data)
         self.assertEqual(
-            op.compose(op1, qubits=[2], front=True), SuperOp(targ))
+            op.compose(op1, qargs=[2], front=True), SuperOp(targ))
 
     def test_expand(self):
         """Test expand method."""

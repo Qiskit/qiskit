@@ -13,7 +13,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Parameter
 from qiskit.transpiler import transpile
-from qiskit.compiler import assemble_circuits
+from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
 
 
@@ -35,7 +35,7 @@ class TestVariableParameters(QiskitTestCase):
         qc.rx(theta, qr)
         backend = BasicAer.get_backend('qasm_simulator')
         qc_aer = transpile(qc, backend)
-        qobj = assemble_circuits(qc_aer)
+        qobj = assemble(qc_aer)
         self.assertIn(theta, qobj.experiments[0].instructions[0].params)
 
     def test_get_variables(self):
@@ -89,7 +89,7 @@ class TestVariableParameters(QiskitTestCase):
         theta_list = numpy.linspace(0, numpy.pi, 20)
         for theta_i in theta_list:
             circs.append(qc_aer.assign_variables({theta: theta_i}))
-        qobj = assemble_circuits(circs)
+        qobj = assemble(circs)
         for index, theta_i in enumerate(theta_list):
             self.assertEqual(qobj.experiments[index].instructions[0].params[0],
                              theta_i)

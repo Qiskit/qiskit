@@ -28,7 +28,7 @@ Added
 - Builtin library of continuous pulses and builtin library of discrete pulses which are obtained
   by sampling continuous pulses with default sampling strategy.
 - Sampler decorator and standard sampler library for conversion of continuous pulses
-  to discrete `SamplePulse`s (#2042).
+  to discrete ``SamplePulse`` (#2042).
 - Core StochasticSwap routine implimented in Cython (#1789).
 - Added QuantumChannel classes SuperOp, Choi, Kraus, Stinespring, PTM, Chi to
   quantum_info for manipulating quantum channels and CPTP maps.
@@ -54,13 +54,12 @@ Added
   circuits (e.g. basis_gates, coupling_map, initial_layout) (#1856)
 - Added a ``qiskit.compiler`` namespace for all functions that transpile, schedule
   and assemble circuits and pulses (#1856)
+- Added support for passing a list of ``basis_gates``, ``coupling_map`` etc. to the
+  ``qiskit.compiler.transpile()`` function, each corresponding to one of the circuits (#2163)
 - Added a ``qiskit.compiler.assemble_circuits()`` function to generate qobj from some
   circuits and a RunConfig (#1856)
-- Added an ``execute_circuits()`` function that takes a list of circuits along with a
-  TranspileConfig and RunConfig. The ``execute()`` function remains as a wrapper of this,
-  and later as a wrapper of ``execute_pulses()``.
-- ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
-  QobjHeader to add extra information to the qobj (and thus result).
+- ``execute()`` and ``assemble()`` allow setting a qobj_header, of type
+  QobjHeader or dict, to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
 - Added new resource estimation passes: ``Depth``, ``Width``, ``Size``, ``CountOps``, and
   ``NumTensorFactors``, all grouped in the ``ResourceEstimation`` analysis pass.
@@ -160,6 +159,9 @@ Changed
   (#1878)
 - Layout object can now only be constructed from a dictionary, and must be bijective (#2157).
 - ``transpile()`` accepts ``initial_layout`` in the form of dict, list or Layout (#2157).
+- Not specifying a basis in ``execute()`` or ``transpile()`` no longer defaults to unrolling
+  to the ['u1', 'u2', 'u3', 'cx'] basis. Instead the default behavior is to not unroll,
+  unless specifically requested (#2166).
 
 Deprecated
 ----------
@@ -173,12 +175,18 @@ Deprecated
 - The ``qiskit.tools.qcvv`` package is deprecated in favor of Qiskit Ignis (#1884).
 - The ``qiskit.compile()`` function is now deprecated in favor of explicitly
   using the ``qiskit.compiler.transpile()`` function to transform a circuit followed
-  by ``qiskit.compiler.assemble_circuits()`` to make a qobj out of it.
+  by ``qiskit.compiler.assemble()`` to make a qobj out of it.
 - ``qiskit.converters.qobj_to_circuits()`` has been deprecated and will be
   removed in a future release. Instead
   ``qiskit.compiler.disassemble_circuits()`` should be used to extract
   ``QuantumCircuit`` objects from a compiled qobj. (#2137)
-
+- The ``qiskit.transpiler.transpile()`` function is deprecated in favor of
+  ``qiskit.compiler.transpile()`` (#2166).
+- The ``seed_mapper`` argument in ``transpile()`` and ``execute()`` is deprecated in favor of
+  ``seed_transpile()``, which sets the seed for all stochastic stages of the transpiler (#2166).
+- The ``seed`` argument is ``execute()`` is deprecated in favor of ``seed_simulator`` (#2166).
+- The ``pass_manager`` argument in ``transpile()`` is deprecated. Instead, the
+  ``pass_manager.run()`` methdod can be used directly to transform the circuit (#2166).
 
 Fixed
 -----
