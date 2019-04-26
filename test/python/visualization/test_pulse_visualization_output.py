@@ -27,7 +27,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
 
     pulse_matplotlib_reference = path_to_diagram_reference('pulse_matplotlib_ref.png')
     instr_matplotlib_reference = path_to_diagram_reference('instruction_matplotlib_ref.png')
-    schedule_matplotlib_reference = path_to_diagram_reference('pulse_schedule_matplotlib_ref.png')
+    schedule_matplotlib_reference = path_to_diagram_reference('schedule_matplotlib_ref.png')
 
     def setUp(self):
         self.schedule = Schedule()
@@ -99,7 +99,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_schedule_matplotlib_drawer(self):
-        filename = self._get_resource_path('current_pulse_schedule_matplotlib_ref.png')
+        filename = self._get_resource_path('current_schedule_matplotlib_ref.png')
         schedule = self.sample_schedule()
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)

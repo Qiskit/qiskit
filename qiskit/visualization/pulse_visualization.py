@@ -437,7 +437,7 @@ class ScheduleDrawer:
             ax = figure.add_subplot(111)
 
         figure.set_size_inches(self.style.fig_w, fig_h)
-        ax.set_facecolor = self.style.bg_color
+        ax.set_facecolor(self.style.bg_color)
         return ax
 
     def _draw_snapshots(self, ax, snapshot_channels, dt):
