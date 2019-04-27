@@ -9,7 +9,6 @@
 import warnings
 import uuid
 import logging
-import sympy
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -89,52 +88,35 @@ def assemble_circuits(circuits, qobj_id=None, qobj_header=None, run_config=None)
 
         instructions = []
         for op_context in circuit.data:
-            op = op_context[0]
+            instruction = op_context[0].assemble()
+
+            # Add register attributes to the instruction
             qargs = op_context[1]
             cargs = op_context[2]
-            current_instruction = QasmQobjInstruction(name=op.name)
             if qargs:
                 qubit_indices = [qubit_labels.index([qubit[0].name, qubit[1]])
                                  for qubit in qargs]
-                current_instruction.qubits = qubit_indices
+                instruction.qubits = qubit_indices
             if cargs:
                 clbit_indices = [clbit_labels.index([clbit[0].name, clbit[1]])
                                  for clbit in cargs]
-                current_instruction.memory = clbit_indices
-
+                instruction.memory = clbit_indices
                 # If the experiment has conditional instructions, assume every
                 # measurement result may be needed for a conditional gate.
-                if op.name == "measure" and is_conditional_experiment:
-                    current_instruction.register = clbit_indices
+                if instruction.name == "measure" and is_conditional_experiment:
+                    instruction.register = clbit_indices
 
-            if op.params:
-                # Evalute Sympy parameters
-                params = [
-                    x.evalf() if hasattr(x, 'evalf') else x for x in op.params
-                ]
-                params = [sympy.matrix2numpy(x, dtype=complex)
-                          if isinstance(x, sympy.Matrix) else x for x in params]
-
-                current_instruction.params = params
-            # TODO: I really dont like this for snapshot. I also think we should change
-            # type to snap_type
-            if op.name == 'snapshot':
-                current_instruction.label = str(op.params[0])
-                current_instruction.snapshot_type = str(op.params[1])
-            if op.name == 'unitary':
-                if op._label:
-                    current_instruction.label = op._label
-            if op.control:
-                # To convert to a qobj-style conditional, insert a bfunc prior
-                # to the conditional instruction to map the creg ?= val condition
-                # onto a gating register bit.
+            # To convert to a qobj-style conditional, insert a bfunc prior
+            # to the conditional instruction to map the creg ?= val condition
+            # onto a gating register bit.
+            if hasattr(instruction, '_control'):
+                ctrl_reg, ctrl_val = instruction._control
                 mask = 0
                 val = 0
-
                 for clbit in clbit_labels:
-                    if clbit[0] == op.control[0].name:
+                    if clbit[0] == ctrl_reg.name:
                         mask |= (1 << clbit_labels.index(clbit))
-                        val |= (((op.control[1] >> clbit[1]) & 1) << clbit_labels.index(clbit))
+                        val |= (((ctrl_val >> clbit[1]) & 1) << clbit_labels.index(clbit))
 
                 conditional_reg_idx = memory_slots + max_conditional_idx
                 conversion_bfunc = QasmQobjInstruction(name='bfunc',
@@ -143,11 +125,13 @@ def assemble_circuits(circuits, qobj_id=None, qobj_header=None, run_config=None)
                                                        val="0x%X" % val,
                                                        register=conditional_reg_idx)
                 instructions.append(conversion_bfunc)
-
-                current_instruction.conditional = conditional_reg_idx
+                instruction.conditional = conditional_reg_idx
                 max_conditional_idx += 1
+                # Delete control attribute now that we have replaced it with
+                # the conditional and bfuc
+                del instruction._control
 
-            instructions.append(current_instruction)
+            instructions.append(instruction)
 
         experiments.append(QasmQobjExperiment(instructions=instructions, header=experimentheader,
                                               config=experimentconfig))
@@ -167,16 +151,13 @@ def assemble_circuits(circuits, qobj_id=None, qobj_header=None, run_config=None)
 
 def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=None):
     """Assembles a list of schedules into a qobj which can be run on the backend.
-
     Args:
         schedules (list[Schedule]): schedules to assemble
         qobj_id (int): identifier for the generated qobj
         qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): configuration of the runtime environment
-
     Returns:
         PulseQobj: the Qobj to be run on the backends
-
     Raises:
         QiskitError: when invalid schedules or configs are provided
     """
@@ -196,9 +177,10 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
     for idx, schedule in enumerate(schedules):
         # instructions
         qobj_instructions = []
-        for instruction in schedule.flat_instruction_sequence():
+        # Instructions are returned as tuple of shifted time and instruction
+        for shift, instruction in list(schedule.flatten()):
             # TODO: support conditional gate
-            qobj_instructions.append(instruction_converter(instruction))
+            qobj_instructions.append(instruction_converter(shift, instruction))
             if isinstance(instruction, PulseInstruction):
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)
@@ -323,8 +305,8 @@ def assemble(experiments,
         default_meas_los (list):
             List of default meas lo frequencies
 
-        schedule_los (None or list[Union[Dict[OutputChannel, float], LoConfig]] or
-                      Union[Dict[OutputChannel, float], LoConfig]):
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
+                      Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
         meas_level (int):

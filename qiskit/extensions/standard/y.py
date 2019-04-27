@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class YGate(Gate):
     """Pauli Y (bit-phase-flip) gate."""
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new Y gate."""
-        super().__init__("y", 1, [])
+        super().__init__("y", 1, [], label=label)
 
     def _define(self):
         definition = []

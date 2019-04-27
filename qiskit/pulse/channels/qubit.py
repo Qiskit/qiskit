@@ -39,12 +39,12 @@ class Qubit:
             bool: are self and other equal.
         """
         # pylint: disable=too-many-boolean-expressions
-        if type(self) is type(other) and \
-                self._index == other._index and \
-                self._drives == other._drives and \
-                self._controls == other._controls and \
-                self._measures == other._measures and \
-                self._acquires == other._acquires:
+        if (type(self) is type(other) and
+                self._index == other._index and
+                self._drives == other._drives and
+                self._controls == other._controls and
+                self._measures == other._measures and
+                self._acquires == other._acquires):
             return True
         return False
 

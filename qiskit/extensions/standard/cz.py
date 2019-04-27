@@ -25,9 +25,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class CzGate(Gate):
     """controlled-Z gate."""
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new CZ gate."""
-        super().__init__("cz", 2, [])
+        super().__init__("cz", 2, [], label=label)
 
     def _define(self):
         """

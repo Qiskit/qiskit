@@ -10,7 +10,6 @@ Persistent value.
 """
 
 from qiskit.pulse.channels import PulseChannel
-from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .command import Command
@@ -33,7 +32,12 @@ class PersistentValue(Command):
         if abs(value) > 1:
             raise PulseError("Absolute value of PV amplitude exceeds 1.")
 
-        self.value = complex(value)
+        self._value = complex(value)
+
+    @property
+    def value(self):
+        """Persistent value amplitude."""
+        return self._value
 
     def __eq__(self, other):
         """Two PersistentValues are the same if they are of the same type
@@ -53,27 +57,14 @@ class PersistentValue(Command):
     def __repr__(self):
         return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
 
-    def __call__(self, channel: PulseChannel) -> 'PersistentValueInstruction':
-        return PersistentValueInstruction(self, channel)
+    # pylint: disable=arguments-differ
+    def to_instruction(self, channel: PulseChannel, name=None) -> 'PersistentValueInstruction':
+        return PersistentValueInstruction(self, channel, name=name)
+    # pylint: enable=arguments-differ
 
 
 class PersistentValueInstruction(Instruction):
     """Instruction to keep persistent value. """
 
-    def __init__(self, command: PersistentValue, channel: PulseChannel, start_time: int = 0):
-        slots = [Timeslot(Interval(start_time, start_time), channel)]
-        super().__init__(command, start_time, TimeslotCollection(slots))
-        self._channel = channel
-
-    @property
-    def command(self) -> PersistentValue:
-        """PersistentValue command. """
-        return self._command
-
-    @property
-    def channel(self) -> PulseChannel:
-        """Instruction's channel. """
-        return self._channel
-
-    def __repr__(self):
-        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)
+    def __init__(self, command: PersistentValue, channel: PulseChannel, name=None):
+        super().__init__(command, channel, name=name)

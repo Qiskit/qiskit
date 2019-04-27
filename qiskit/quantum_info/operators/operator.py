@@ -98,6 +98,11 @@ class Operator(BaseOperator):
         """Convert operator to matrix operator class"""
         return self
 
+    def to_instruction(self):
+        """Convert to a UnitaryGate instruction."""
+        from qiskit.extensions.unitary import UnitaryGate
+        return UnitaryGate(self.data)
+
     def conjugate(self):
         """Return the conjugate of the operator."""
         return Operator(
