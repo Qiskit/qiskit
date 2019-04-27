@@ -14,7 +14,7 @@ The blocks are collected by a previous pass, such as Collect2qBlocks.
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.quantum_info.operators import Operator, Unitary
+from qiskit.quantum_info.operators import Operator
 from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.transpiler.basepasses import TransformationPass
 
@@ -72,7 +72,7 @@ class ConsolidateBlocks(TransformationPass):
                 for nd in block:
                     nodes_seen.add(nd)
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
-                unitary = Unitary(Operator(subcirc))  # simulates the circuit
+                unitary = Operator(subcirc)  # simulates the circuit
                 new_dag.apply_operation_back(
                     unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
                 del blocks[0]
