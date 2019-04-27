@@ -9,13 +9,13 @@
 Persistent value.
 """
 
-from qiskit.pulse.channels import OutputChannel
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
-from .pulse_command import PulseCommand
+from .command import Command
 
 
-class PersistentValue(PulseCommand):
+class PersistentValue(Command):
     """Persistent value."""
 
     def __init__(self, value):
@@ -58,7 +58,7 @@ class PersistentValue(PulseCommand):
         return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
 
     # pylint: disable=arguments-differ
-    def to_instruction(self, channel: OutputChannel, name=None) -> 'PersistentValueInstruction':
+    def to_instruction(self, channel: PulseChannel, name=None) -> 'PersistentValueInstruction':
         return PersistentValueInstruction(self, channel, name=name)
     # pylint: enable=arguments-differ
 
@@ -66,5 +66,5 @@ class PersistentValue(PulseCommand):
 class PersistentValueInstruction(Instruction):
     """Instruction to keep persistent value. """
 
-    def __init__(self, command: PersistentValue, channel: OutputChannel, name=None):
+    def __init__(self, command: PersistentValue, channel: PulseChannel, name=None):
         super().__init__(command, channel, name=name)

@@ -11,10 +11,10 @@ Snapshot.
 
 from qiskit.pulse.channels import SnapshotChannel
 from .instruction import Instruction
-from .pulse_command import PulseCommand
+from .command import Command
 
 
-class Snapshot(PulseCommand, Instruction):
+class Snapshot(Command, Instruction):
     """Snapshot."""
 
     def __init__(self, name: str, snap_type: str):
@@ -28,7 +28,7 @@ class Snapshot(PulseCommand, Instruction):
         """
         self._type = snap_type
         self._channel = SnapshotChannel()
-        PulseCommand.__init__(self, duration=0, name=name)
+        Command.__init__(self, duration=0, name=name)
         Instruction.__init__(self, self, self._channel, name=name)
 
     @property
