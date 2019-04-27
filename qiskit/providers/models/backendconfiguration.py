@@ -60,47 +60,46 @@ class PulseHamiltonianSchema(BaseSchema):
 
 class BackendConfigurationSchema(BaseSchema):
     """Schema for BackendConfiguration."""
-
-    # Required properties.
-    backend_name = String(required=True)
-    backend_version = String(required=True,
-                             validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
-    n_qubits = Integer(required=True, validate=Range(min=1))
-    basis_gates = List(String(), required=True,
+        # Required properties.
+        backend_name = String(required=True)
+        backend_version = String(required=True,
+                                 validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
+        n_qubits = Integer(required=True, validate=Range(min=1))
+        basis_gates = List(String(), required=True,
+                           validate=Length(min=1))
+        gates = Nested(GateConfigSchema, required=True, many=True,
                        validate=Length(min=1))
-    gates = Nested(GateConfigSchema, required=True, many=True,
-                   validate=Length(min=1))
-    local = Boolean(required=True)
-    simulator = Boolean(required=True)
-    conditional = Boolean(required=True)
-    open_pulse = Boolean(required=True)
-    memory = Boolean(required=True)
-    max_shots = Integer(required=True, validate=Range(min=1))
+        local = Boolean(required=True)
+        simulator = Boolean(required=True)
+        conditional = Boolean(required=True)
+        open_pulse = Boolean(required=True)
+        memory = Boolean(required=True)
+        max_shots = Integer(required=True, validate=Range(min=1))
 
-    # Optional properties.
-    max_experiments = Integer(validate=Range(min=1))
-    sample_name = String()
-    coupling_map = List(List(Integer(),
-                             validate=Length(min=1)),
-                        validate=Length(min=1), allow_none=True)
-    n_registers = Integer(validate=Range(min=1))
-    register_map = List(List(Integer(validate=OneOf([0, 1])),
-                             validate=Length(min=1)),
-                        validate=Length(min=1))
-    configurable = Boolean()
-    credits_required = Boolean()
-    online_date = DateTime()
-    display_name = String()
-    description = String()
-    tags = List(String())
+        # Optional properties.
+        max_experiments = Integer(validate=Range(min=1))
+        sample_name = String()
+        coupling_map = List(List(Integer(),
+                                 validate=Length(min=1)),
+                            validate=Length(min=1), allow_none=True)
+        n_registers = Integer(validate=Range(min=1))
+        register_map = List(List(Integer(validate=OneOf([0, 1])),
+                                 validate=Length(min=1)),
+                            validate=Length(min=1))
+        configurable = Boolean()
+        credits_required = Boolean()
+        online_date = DateTime()
+        display_name = String()
+        description = String()
+        tags = List(String())
 
 
-class QASMBackendConfiguration(BackendConfigurationSchema):
+class QASMBackendConfigurationSchema(BackendConfigurationSchema):
     """Schema for QASM backend."""
     pass
 
 
-class PulseBackendConfigurationSchema(BackendConfigurationSchema):
+class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
     """Schema for pulse backend"""
     # Required properties.
     open_pulse = Boolean(required=True, validate=OneOf([True]))
@@ -181,5 +180,107 @@ class BackendConfiguration(BaseModel):
         self.open_pulse = open_pulse
         self.memory = memory
         self.max_shots = max_shots
+
+        super().__init__(**kwargs)
+
+
+@bind_schema(QASMBackendConfigurationSchema)
+class QASMBackendConfiguration(BaseModel):
+    """Model for QASMBackendConfiguration.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``QASMBackendConfigurationSchema``.
+    Attributes:
+        backend_name (str): backend name.
+        backend_version (str): backend version in the form X.Y.Z.
+        n_qubits (int): number of qubits.
+        basis_gates (list[str]): list of basis gates names on the backend.
+        gates (GateConfig): list of basis gates on the backend.
+        local (bool): backend is local or remote.
+        simulator (bool): backend is a simulator.
+        conditional (bool): backend supports conditional operations.
+        open_pulse (bool): backend supports open pulse.
+        memory (bool): backend supports memory.
+        max_shots (int): maximum number of shots supported.
+        **kwargs: Optional fields.
+    """
+
+    def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
+                 gates, local, simulator, conditional, open_pulse, memory,
+                 max_shots, **kwargs):
+        self.backend_name = backend_name
+        self.backend_version = backend_version
+        self.n_qubits = n_qubits
+        self.basis_gates = basis_gates
+        self.gates = gates
+        self.local = local
+        self.simulator = simulator
+        self.conditional = conditional
+        self.open_pulse = open_pulse
+        self.memory = memory
+        self.max_shots = max_shots
+
+        super().__init__(**kwargs)
+
+
+@bind_schema(PulseBackendConfigurationSchema)
+class PulseBackendConfiguration(BaseModel):
+    """Model for PulseBackendConfiguration.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``PulseBackendConfigurationSchema``.
+    Attributes:
+        backend_name (str): backend name.
+        backend_version (str): backend version in the form X.Y.Z.
+        n_qubits (int): number of qubits.
+        basis_gates (list[str]): list of basis gates names on the backend.
+        gates (GateConfig): list of basis gates on the backend.
+        local (bool): backend is local or remote.
+        simulator (bool): backend is a simulator.
+        conditional (bool): backend supports conditional operations.
+        open_pulse (bool): backend supports open pulse.
+        memory (bool): backend supports memory.
+        max_shots (int): maximum number of shots supported.
+        n_uchannels (int): Number of u-channels.
+        u_channel_lo (list[UchannelLO]): U-channel relationship on device los.
+        meas_levels (list[int]): Supported measurement levels.
+        qubit_lo_range (list[list[float]]): Qubit lo ranges for each qubit
+            with form (min, max) in GHz.
+        meas_lo_range (list[list[float]]): Measurement lo ranges for each qubit
+            with form (min, max) in GHz.
+        dt (float): Qubit drive channel timestep in nanoseconds.
+        dtm (float): Measurement drive channel timestep in nanoseconds.
+        rep_times (list[float]): Supported repition times for device in microseconds.
+        meas_kernels (list[str]): Supported measurement kernels.
+        discriminators: Supported discriminators.
+        **kwargs: Optional fields.
+    """
+
+    def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
+                 gates, local, simulator, conditional, open_pulse, memory,
+                 max_shots, n_uchannels, u_channel_lo, meas_levels,
+                 qubit_lo_range, meas_lo_range, dt, dtm, rep_times, meas_kernels,
+                 discriminators, **kwargs):
+        self.backend_name = backend_name
+        self.backend_version = backend_version
+        self.n_qubits = n_qubits
+        self.basis_gates = basis_gates
+        self.gates = gates
+        self.local = local
+        self.simulator = simulator
+        self.conditional = conditional
+        self.open_pulse = open_pulse
+        self.memory = memory
+        self.max_shots = max_shots
+        self.n_uchannels = n_uchannels
+        self.u_channel_lo = u_channel_lo
+        self.meas_levels = meas_levels
+        self.qubit_lo_range = qubit_lo_range
+        self.meas_lo_range = meas_lo_range
+        self.dt = dt
+        self.dtm = dtm
+        self.rep_times = rep_times
+        self.meas_kernels = meas_kernels
+        self.discriminators = discriminators
 
         super().__init__(**kwargs)
