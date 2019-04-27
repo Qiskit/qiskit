@@ -12,7 +12,7 @@ from abc import ABCMeta, abstractmethod
 
 
 class Channel(metaclass=ABCMeta):
-    """Pulse channel."""
+    """Base class of channels."""
 
     prefix = None
 
@@ -37,7 +37,7 @@ class Channel(metaclass=ABCMeta):
         """Two channels are the same if they are of the same type, and have the same index.
 
         Args:
-            other (Channel): other PulseChannel
+            other (Channel): other Channel
 
         Returns:
             bool: are self and other equal.
@@ -76,7 +76,7 @@ class SnapshotChannel(Channel):
 
 
 class MemorySlot(Channel):
-    """Memory slot."""
+    """Memory slot channel."""
 
     prefix = 'm'
 

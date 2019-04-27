@@ -12,7 +12,7 @@ from .acquire import Acquire, AcquireInstruction
 from .frame_change import FrameChange, FrameChangeInstruction
 from .meas_opts import Discriminator, Kernel
 from .persistent_value import PersistentValue, PersistentValueInstruction
-from .pulse_command import PulseCommand
+from .command import Command
 from .pulse_decorators import functional_pulse
-from .sample_pulse import SamplePulse, DriveInstruction
+from .sample_pulse import SamplePulse, PulseInstruction
 from .snapshot import Snapshot
