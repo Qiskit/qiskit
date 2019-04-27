@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 def pulse_drawer(data, dt=1, style=None, filename=None, output='mpl',
                  interp_method=None, scaling=None, channels_to_plot=None,
                  plot_all=False, plot_range=None, interactive=False,
-                 legend=True, table=True, label=False):
+                 legend=True, table=True, label=False, framechange=True):
     """Plot the interpolated envelope of pulse
 
     Args:
@@ -44,6 +44,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None, output='mpl',
         legend (bool): Draw Legend for supported commands
         table (bool): Draw event table for supported commands
         label (bool): Label individual instructions
+        framechange (bool): Add framechange indicators
     Returns:
         matplotlib.figure: A matplotlib figure object for the pulse envelope
     Raises:

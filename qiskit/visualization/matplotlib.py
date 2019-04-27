@@ -974,6 +974,7 @@ class EventsOutputChannels:
         fc = 0
         pv = np.zeros(self.tf + 1, dtype=np.complex128)
         wf = np.zeros(self.tf + 1, dtype=np.complex128)
+        last_pv = None
         for time, commands in sorted(self.pulses.items()):
             if time > self.tf:
                 break
@@ -990,18 +991,24 @@ class EventsOutputChannels:
             for command in commands:
                 if isinstance(command, PersistentValue):
                     pv[time:] = np.exp(1j*fc) * command.value
+                    last_pv = (time, command)
                     break
+
             for command in commands:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
                 if isinstance(command, SamplePulse):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
-                    self._labels[(time+tf)//2] = command.name
+                    self._labels[time] = (tf, command.name)
+                    if last_pv is not None:
+                        pv_cmd = last_pv[1]
+                        self._labels[last_pv[0]] = (time, pv_cmd.name if pv_cmd.name else 'pv')
+                        last_pv = None
 
                 elif isinstance(command, Acquire):
                     wf[time:tf] = np.ones(command.duration)
-
+                    self._labels[time] = (tf, command.name if command.name else 'acquire')
         self._waveform = wf + pv
 
     def _trim(self, events):
@@ -1250,8 +1257,26 @@ class ScheduleDrawer:
         if legend_labels:
             ax.legend(legend_lines, legend_labels, loc='upper right')
 
+    def _draw_framechanges(self, ax, fcs, dt, y0):
+        framechanges_present = True
+        for time in fcs.keys():
+            ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
+                    fontsize=self.style.icon_font_size,
+                    ha='center', va='center')
+        return framechanges_present
+
+    def _draw_labels(self, ax, labels, dt, y0, color='black'):
+        for t0, (tf, label) in labels.items():
+            ax.text(x=(t0+tf)//2*dt, y=y0+0.45,
+                    s=r'%s' % label,
+                    fontsize=self.style.label_font_size,
+                    ha='center', va='center')
+            ax.annotate(s='', xy=(tf*dt, y0+0.5), xytext=(t0*dt, y0+0.5),
+                        arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0),
+                        alpha=0.2)
+
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
-                       label=False):
+                       label=False, framechange=True):
         y0 = 0
         framechanges_present = False
 
@@ -1288,21 +1313,15 @@ class ScheduleDrawer:
                 ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
 
                 # plot frame changes
+                framechanges_present = False
                 fcs = events.framechanges
-                if fcs:
+                if fcs and framechange:
                     framechanges_present = True
-                    for time in fcs.keys():
-                        ax.text(x=time*dt, y=y0, s=r'$\circlearrowleft$',
-                                fontsize=self.style.icon_font_size,
-                                ha='center', va='center')
+                    self._draw_framechanges(ax, fcs, dt, y0)
                 # plot labels
                 labels = events.labels
-                if labels:
-                    for time, label in labels.items():
-                        ax.text(x=time*dt, y=y0+0.5,
-                                s=r'%s' % label,
-                                fontsize=self.style.label_font_size,
-                                ha='center', va='center')
+                if labels and label:
+                    self._draw_labels(ax, labels, dt, y0)
 
             else:
                 continue
@@ -1316,7 +1335,7 @@ class ScheduleDrawer:
 
     def draw(self, schedule, dt, interp_method, scaling,
              plot_range, channels_to_plot=None, plot_all=True, legend=True,
-             table=True, label=False):
+             table=True, label=False, framechange=True):
         """Draw figure.
         Args:
             schedule (ScheduleComponent): Schedule to draw
@@ -1330,6 +1349,7 @@ class ScheduleDrawer:
             legend (bool): Draw legend
             table (bool): Draw event table
             label (bool): Label individual instructions
+            framechange (bool): Add framechange indicators
 
         Returns:
             matplotlib.figure: A matplotlib figure object for the pulse schedule
@@ -1371,7 +1391,8 @@ class ScheduleDrawer:
         ax.set_facecolor(self.style.bg_color)
 
         y0, framechanges_present = self._draw_channels(ax, output_channels, interp_method,
-                                                       t0, tf, dt, v_max, label=label)
+                                                       t0, tf, dt, v_max, label=label,
+                                                       framechange=framechange)
 
         snapshots_present = self._draw_snapshots(ax, snapshot_channels, dt)
 

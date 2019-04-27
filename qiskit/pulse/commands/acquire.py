@@ -20,6 +20,8 @@ from .pulse_command import PulseCommand
 class Acquire(PulseCommand):
     """Acquire."""
 
+    ALIAS = 'acquire'
+
     def __init__(self, duration, discriminator=None, kernel=None):
         """Create new acquire command.
 

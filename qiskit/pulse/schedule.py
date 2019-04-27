@@ -167,7 +167,8 @@ class Schedule(ScheduleComponent):
              filename: str = None, interp_method: Callable = None, scaling: float = None,
              channels_to_plot: List[Channel] = None, plot_all: bool = False,
              plot_range: Tuple[float] = None, interactive: bool = False,
-             legend: bool = True, table: bool = True, label: bool = False):
+             legend: bool = True, table: bool = True, label: bool = False,
+             framechange: bool = True):
         """Plot the schedule.
 
         Args:
@@ -183,7 +184,8 @@ class Schedule(ScheduleComponent):
                 (this depends on the matplotlib backend being used supporting this).
             legend: Draw Legend for supported commands
             table: Draw event table for supported commands
-            label (bool): Label individual instructions
+            label: Label individual instructions
+            framechange: Add framechange indicators
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse schedule.
