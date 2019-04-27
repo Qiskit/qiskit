@@ -28,15 +28,15 @@ class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
 
         nodes_to_remove = set()
         for measure in dag.op_nodes(Measure):
-            for predecessor in dag.predecessors(measure):
+            predecessor = dag.quantum_predecessors(measure)[0]
 
-                if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_1q_gates):
+            if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_1q_gates):
+                nodes_to_remove.add(predecessor)
+
+            if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_2q_gates):
+                successors = dag.quantum_successors(predecessor)
+                if all([s.type == 'op' and isinstance(s.op, Measure) for s in successors]):
                     nodes_to_remove.add(predecessor)
-
-                if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_2q_gates):
-                    successors = dag.successors(predecessor)
-                    if all([s.type == 'op' and isinstance(s.op, Measure) for s in successors]):
-                        nodes_to_remove.add(predecessor)
 
         for node_to_remove in nodes_to_remove:
             dag.remove_op_node(node_to_remove)
