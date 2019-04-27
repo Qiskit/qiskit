@@ -8,7 +8,7 @@
 
 """
 Transpiler pass to remove diagonal gates (like RZ, T, Z, etc) before
-a measurement. Including diagonal control gates.
+a measurement. Including diagonal 2Q gates.
 """
 
 from qiskit.circuit import Measure
@@ -19,21 +19,21 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
     """Remove diagonal gates (like RZ, T, Z, etc) before a measurement.
-    Including diagonal control gates."""
+    Including diagonal 2Q gates."""
 
     def run(self, dag):
         """Return a new circuit that has been optimized."""
-        diagonal_gates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
-        diagonal_control_gates = (CzGate, CrzGate, Cu1Gate, RZZGate)
+        diagonal_1q_gates = (RZGate, ZGate, TGate, SGate, TdgGate, SdgGate, U1Gate)
+        diagonal_2q_gates = (CzGate, CrzGate, Cu1Gate, RZZGate)
 
         nodes_to_remove = set()
         for measure in dag.op_nodes(Measure):
             for predecessor in dag.predecessors(measure):
 
-                if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_gates):
+                if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_1q_gates):
                     nodes_to_remove.add(predecessor)
 
-                if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_control_gates):
+                if predecessor.type == 'op' and isinstance(predecessor.op, diagonal_2q_gates):
                     successors = dag.successors(predecessor)
                     if all([s.type == 'op' and isinstance(s.op, Measure) for s in successors]):
                         nodes_to_remove.add(predecessor)
