@@ -7,7 +7,7 @@
 
 """Container fields that represent nested/collections of schemas or types."""
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from marshmallow import fields as _fields
 from marshmallow.exceptions import ValidationError
@@ -74,3 +74,10 @@ class List(_fields.List, ModelTypeValidator):
             raise ValidationError(errors)
 
         return value
+
+
+class Dict(_fields.Dict, ModelTypeValidator):
+    # pylint: disable=missing-docstring
+    __doc__ = _fields.Dict.__doc__
+
+    valid_types = (Mapping, )
