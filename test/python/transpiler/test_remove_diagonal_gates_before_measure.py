@@ -288,11 +288,11 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
 
     def test_optimize_1rzz_2measure(self):
         """ Remove a single RZZGate
-            qr0:-RZZ-m---       qr0:--m---
-                  |  |                |
-            qr1:--.--|-m-  ==>  qr1:--|-m-
-                     | |              | |
-            cr0:-----.-.-       cr0:--.-.-
+            qr0:--.----m---       qr0:--m---
+                  |zz  |                |
+            qr1:--.----|-m-  ==>  qr1:--|-m-
+                       | |              | |
+            cr0:-------.-.-       cr0:--.-.-
         """
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
