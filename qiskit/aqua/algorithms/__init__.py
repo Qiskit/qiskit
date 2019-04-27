@@ -18,7 +18,7 @@
 from .quantum_algorithm import QuantumAlgorithm
 from .adaptive import VQE, QAOA, VQC
 from .classical import ExactEigensolver, ExactLSsolver, SVM_Classical
-from .many_sample import EOH, QSVMKernel
+from .many_sample import EOH, QSVM
 from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, Simon, \
     DeutschJozsa, BernsteinVazirani, HHL, Shor
 
@@ -32,7 +32,7 @@ __all__ = [
     'ExactLSsolver',
     'SVM_Classical',
     'EOH',
-    'QSVMKernel',
+    'QSVM',
     'Grover',
     'IQPE',
     'QPE',
