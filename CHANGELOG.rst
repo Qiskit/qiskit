@@ -85,6 +85,8 @@ Added
   wires instead of named bits.
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
   are followed by a measurement instruction, moving the latter to the proper wire. (#1890)
+- Added a ``RemoveDiagonalGatesBeforeMeasure`` pass that removes the diagonal gates when they
+  are followed by a measurement instruction. (#2208)
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
   rotations about the Z axis, leveraging previously-found gate commutation relations. (#2012)
 - Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
