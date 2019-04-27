@@ -11,7 +11,8 @@ from marshmallow.validate import Length, OneOf, Range, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import (Boolean, DateTime, Integer, List, Nested, String,
-                                      Complex, Float, Dict, PatternProperties, InstructionParameter)
+                                      Complex, Float, Dict, InstructionParameter)
+from qiskit.validation.validate import PatternProperties
 
 
 class GateConfigSchema(BaseSchema):
@@ -60,38 +61,38 @@ class PulseHamiltonianSchema(BaseSchema):
 
 class BackendConfigurationSchema(BaseSchema):
     """Schema for BackendConfiguration."""
-        # Required properties.
-        backend_name = String(required=True)
-        backend_version = String(required=True,
-                                 validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
-        n_qubits = Integer(required=True, validate=Range(min=1))
-        basis_gates = List(String(), required=True,
-                           validate=Length(min=1))
-        gates = Nested(GateConfigSchema, required=True, many=True,
+    # Required properties.
+    backend_name = String(required=True)
+    backend_version = String(required=True,
+                             validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
+    n_qubits = Integer(required=True, validate=Range(min=1))
+    basis_gates = List(String(), required=True,
                        validate=Length(min=1))
-        local = Boolean(required=True)
-        simulator = Boolean(required=True)
-        conditional = Boolean(required=True)
-        open_pulse = Boolean(required=True)
-        memory = Boolean(required=True)
-        max_shots = Integer(required=True, validate=Range(min=1))
+    gates = Nested(GateConfigSchema, required=True, many=True,
+                   validate=Length(min=1))
+    local = Boolean(required=True)
+    simulator = Boolean(required=True)
+    conditional = Boolean(required=True)
+    open_pulse = Boolean(required=True)
+    memory = Boolean(required=True)
+    max_shots = Integer(required=True, validate=Range(min=1))
 
-        # Optional properties.
-        max_experiments = Integer(validate=Range(min=1))
-        sample_name = String()
-        coupling_map = List(List(Integer(),
-                                 validate=Length(min=1)),
-                            validate=Length(min=1), allow_none=True)
-        n_registers = Integer(validate=Range(min=1))
-        register_map = List(List(Integer(validate=OneOf([0, 1])),
-                                 validate=Length(min=1)),
-                            validate=Length(min=1))
-        configurable = Boolean()
-        credits_required = Boolean()
-        online_date = DateTime()
-        display_name = String()
-        description = String()
-        tags = List(String())
+    # Optional properties.
+    max_experiments = Integer(validate=Range(min=1))
+    sample_name = String()
+    coupling_map = List(List(Integer(),
+                             validate=Length(min=1)),
+                        validate=Length(min=1), allow_none=True)
+    n_registers = Integer(validate=Range(min=1))
+    register_map = List(List(Integer(validate=OneOf([0, 1])),
+                             validate=Length(min=1)),
+                        validate=Length(min=1))
+    configurable = Boolean()
+    credits_required = Boolean()
+    online_date = DateTime()
+    display_name = String()
+    description = String()
+    tags = List(String())
 
 
 class QASMBackendConfigurationSchema(BackendConfigurationSchema):
@@ -104,7 +105,7 @@ class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
     # Required properties.
     open_pulse = Boolean(required=True, validate=OneOf([True]))
     n_uchannels = Integer(required=True, validate=Range(min=0))
-    u_channel_lo = List(List(UchannelLO, validate=Length(min=1)), required=True)
+    u_channel_lo = List(Nested(UchannelLO, validate=Length(min=1)), required=True)
     meas_levels = List(Integer(), validate=Length(min=1), required=True)
     qubit_lo_range = List(List(Float(validate=Range(min=0)),
                                validate=Length(equal=2)), required=True)
@@ -118,10 +119,10 @@ class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
 
     # Optional properties.
     meas_map = List(List(Integer(), validate=Length(min=1)), validate=Range(min=1))
-    channel_bandwidth = List(List(validate=Length(equal=2)))
+    channel_bandwidth = List(List(Float(validate=Range(min=0)), validate=Length(equal=2)))
     acquisition_latency = List(List(Float()))
     conditional_latency = List(List(Float()))
-    hamiltonian = PulseHamiltonianSchema
+    hamiltonian = PulseHamiltonianSchema()
 
 
 @bind_schema(GateConfigSchema)
@@ -183,9 +184,25 @@ class BackendConfiguration(BaseModel):
 
         super().__init__(**kwargs)
 
+    @classmethod
+    def from_dict(cls, dict_):
+        """Deserialize a dict of simple types into an instance of either QASMBackendConfiguration,
+            PulseBackendConfiguration or BackendConfiguration depending on `open_pulse` field.
+
+        Returns:
+            BackendConfiguration or QASMBackendConfiguration or PulseBackendConfiguration
+        """
+        if 'open_pulse' in dict_:
+            if dict_['open_pulse']:
+                return PulseBackendConfiguration.from_dict(dict_)
+            else:
+                return QASMBackendConfiguration.from_dict(dict_)
+
+        return super(BackendConfiguration, cls).from_dict(dict_)
+
 
 @bind_schema(QASMBackendConfigurationSchema)
-class QASMBackendConfiguration(BaseModel):
+class QASMBackendConfiguration(BackendConfiguration):
     """Model for QASMBackendConfiguration.
 
     Please note that this class only describes the required fields. For the
@@ -208,23 +225,25 @@ class QASMBackendConfiguration(BaseModel):
     def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
                  gates, local, simulator, conditional, open_pulse, memory,
                  max_shots, **kwargs):
-        self.backend_name = backend_name
-        self.backend_version = backend_version
-        self.n_qubits = n_qubits
-        self.basis_gates = basis_gates
-        self.gates = gates
-        self.local = local
-        self.simulator = simulator
-        self.conditional = conditional
-        self.open_pulse = open_pulse
-        self.memory = memory
-        self.max_shots = max_shots
 
-        super().__init__(**kwargs)
+        super().__init__(backend_name=backend_name, backend_version=backend_version,
+                         n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
+                         local=local, simulator=simulator, conditional=conditional,
+                         open_pulse=open_pulse, memory=memory, max_shots=max_shots,
+                         **kwargs)
+
+    @classmethod
+    def from_dict(cls, dict_):
+        """Deserialize a dict of simple types into an instance of QASMBackendConfiguration .
+
+        Returns:
+            QASMBackendConfiguration
+        """
+        return super(BackendConfiguration, cls).from_dict(dict_)
 
 
 @bind_schema(PulseBackendConfigurationSchema)
-class PulseBackendConfiguration(BaseModel):
+class PulseBackendConfiguration(BackendConfiguration):
     """Model for PulseBackendConfiguration.
 
     Please note that this class only describes the required fields. For the
@@ -261,17 +280,6 @@ class PulseBackendConfiguration(BaseModel):
                  max_shots, n_uchannels, u_channel_lo, meas_levels,
                  qubit_lo_range, meas_lo_range, dt, dtm, rep_times, meas_kernels,
                  discriminators, **kwargs):
-        self.backend_name = backend_name
-        self.backend_version = backend_version
-        self.n_qubits = n_qubits
-        self.basis_gates = basis_gates
-        self.gates = gates
-        self.local = local
-        self.simulator = simulator
-        self.conditional = conditional
-        self.open_pulse = open_pulse
-        self.memory = memory
-        self.max_shots = max_shots
         self.n_uchannels = n_uchannels
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
@@ -283,4 +291,17 @@ class PulseBackendConfiguration(BaseModel):
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
 
-        super().__init__(**kwargs)
+        super().__init__(backend_name=backend_name, backend_version=backend_version,
+                         n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
+                         local=local, simulator=simulator, conditional=conditional,
+                         open_pulse=open_pulse, memory=memory, max_shots=max_shots,
+                         **kwargs)
+
+    @classmethod
+    def from_dict(cls, dict_):
+        """Deserialize a dict of simple types into an instance of PulseBackendConfiguration .
+
+        Returns:
+            PulseBackendConfiguration
+        """
+        return super(BackendConfiguration, cls).from_dict(dict_)
