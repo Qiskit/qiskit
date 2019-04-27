@@ -311,6 +311,7 @@ class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+
 class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
     """ Test situations where remove_diagonal_gates_before_measure should not optimize """
 
@@ -364,6 +365,7 @@ class TestRemoveDiagonalGatesBeforeMeasureOveroptimizations(QiskitTestCase):
         after = pass_.run(dag)
 
         self.assertEqual(expected, after)
+
 
 class TestRemoveDiagonalGatesBeforeMeasureFixedPoint(QiskitTestCase):
     """ Test remove_diagonal_gates_before_measure optimizations in
