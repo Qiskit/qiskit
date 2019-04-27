@@ -39,7 +39,7 @@ class UchannelLO(BaseSchema):
 
     # Required properties.
     q = Integer(required=True, validate=Range(min=0))
-    scale = List(Complex(), required=True)
+    scale = Complex(required=True)
 
     # Optional properties.
 
@@ -105,7 +105,8 @@ class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
     # Required properties.
     open_pulse = Boolean(required=True, validate=OneOf([True]))
     n_uchannels = Integer(required=True, validate=Range(min=0))
-    u_channel_lo = List(Nested(UchannelLO, validate=Length(min=1)), required=True)
+    u_channel_lo = List(Nested(UchannelLO, validate=Length(min=1),
+                        required=True, many=True))
     meas_levels = List(Integer(), validate=Length(min=1), required=True)
     qubit_lo_range = List(List(Float(validate=Range(min=0)),
                                validate=Length(equal=2)), required=True)
@@ -118,8 +119,8 @@ class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
     discriminators = List(String(), required=True)
 
     # Optional properties.
-    meas_map = List(List(Integer(), validate=Length(min=1)), validate=Range(min=1))
-    channel_bandwidth = List(List(Float(validate=Range(min=0)), validate=Length(equal=2)))
+    meas_map = List(List(Integer(), validate=Length(min=1)), validate=Length(min=1))
+    channel_bandwidth = List(List(Float(), validate=Length(equal=2)))
     acquisition_latency = List(List(Float()))
     conditional_latency = List(List(Float()))
     hamiltonian = PulseHamiltonianSchema()
@@ -170,6 +171,7 @@ class BackendConfiguration(BaseModel):
     def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
                  gates, local, simulator, conditional, open_pulse, memory,
                  max_shots, **kwargs):
+
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.n_qubits = n_qubits
@@ -280,6 +282,7 @@ class PulseBackendConfiguration(BackendConfiguration):
                  max_shots, n_uchannels, u_channel_lo, meas_levels,
                  qubit_lo_range, meas_lo_range, dt, dtm, rep_times, meas_kernels,
                  discriminators, **kwargs):
+
         self.n_uchannels = n_uchannels
         self.u_channel_lo = u_channel_lo
         self.meas_levels = meas_levels
@@ -295,7 +298,11 @@ class PulseBackendConfiguration(BackendConfiguration):
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
-                         **kwargs)
+                         n_uchannels=n_uchannels, u_channel_lo=u_channel_lo,
+                         meas_levels=meas_levels, qubit_lo_range=qubit_lo_range,
+                         meas_lo_range=meas_lo_range, dt=dt, dtm=dtm,
+                         rep_times=rep_times, meas_kernels=meas_kernels,
+                         discriminators=discriminators, **kwargs)
 
     @classmethod
     def from_dict(cls, dict_):
