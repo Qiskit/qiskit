@@ -6,16 +6,19 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """
-Timeslot occupancy for each channels.
+Timeslots for channels.
 """
-import logging
 from collections import defaultdict
-from typing import List, Optional
+import itertools
+import logging
+from typing import List, Tuple
 
-from qiskit.pulse.channels import Channel
-from qiskit.pulse.exceptions import PulseError
+from .channels import Channel
+from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=missing-return-doc
 
 
 class Interval:
@@ -66,7 +69,7 @@ class Interval:
             return True
         return False
 
-    def shifted(self, time: int) -> 'Interval':
+    def shift(self, time: int) -> 'Interval':
         """Return a new interval shifted by `time` from self
 
         Args:
@@ -108,27 +111,21 @@ class Timeslot:
         """Channel of this time slot."""
         return self._channel
 
-    def shifted(self, time: int) -> 'Timeslot':
+    def shift(self, time: int) -> 'Timeslot':
         """Return a new Timeslot shifted by `time`.
 
         Args:
             time: time to be shifted
-
-        Returns:
-            A new Timeslot object shifted by `time`.
         """
-        return Timeslot(self._interval.shifted(time), self._channel)
+        return Timeslot(self.interval.shift(time), self.channel)
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """Two time-slots are the same if they have the same interval and channel.
 
         Args:
             other (Timeslot): other Timeslot
-
-        Returns:
-            bool: are self and other equal.
         """
-        if self._interval == other._interval and self._channel == other._channel:
+        if self.interval == other.interval and self.channel == other.channel:
             return True
         return False
 
@@ -136,93 +133,118 @@ class Timeslot:
 class TimeslotCollection:
     """Collection of `Timeslot`s."""
 
-    def __init__(self, timeslots: List[Timeslot]):
+    def __init__(self, *timeslots: List[Timeslot]):
         """Create a new time-slot collection.
 
         Args:
-            timeslots: list of time slots
+            *timeslots: list of time slots
         Raises:
             PulseError: when overlapped time slots are specified
         """
-        self._timeslots = tuple(timeslots)
         self._table = defaultdict(list)
+
         for slot in timeslots:
             for interval in self._table[slot.channel]:
                 if slot.interval.has_overlap(interval):
                     raise PulseError("Cannot create TimeslotCollection from overlapped timeslots")
             self._table[slot.channel].append(slot.interval)
 
-    def is_mergeable_with(self, occupancy: 'TimeslotCollection') -> bool:
-        """Return if self is mergeable with a specified `occupancy` or not.
+        self._timeslots = tuple(timeslots)
+
+    @property
+    def timeslots(self) -> Tuple[Timeslot]:
+        """`Timeslot`s in collection."""
+        return self._timeslots
+
+    @property
+    def channels(self) -> Tuple[Timeslot]:
+        """Channels within the timeslot collection."""
+        return tuple(self._table.keys())
+
+    @property
+    def start_time(self) -> int:
+        """Return earliest start time in this collection."""
+        return self.ch_start_time(*self.channels)
+
+    @property
+    def stop_time(self) -> int:
+        """Return maximum time of timeslots over all channels."""
+        return self.ch_stop_time(*self.channels)
+
+    @property
+    def duration(self) -> int:
+        """Return maximum duration of timeslots over all channels."""
+        return self.stop_time
+
+    def ch_start_time(self, *channels: List[Channel]) -> int:
+        """Return earliest start time in this collection.
 
         Args:
-            occupancy: TimeslotCollection to be checked
-
-        Returns:
-            True if self is mergeable with `occupancy`, otherwise False.
+            *channels: Channels over which to obtain start_time.
         """
-        for slot in occupancy._timeslots:
+        intervals = list(itertools.chain(*(self._table[chan] for chan in channels
+                                           if chan in self._table)))
+        if intervals:
+            return min((interval.begin for interval in intervals))
+        return 0
+
+    def ch_stop_time(self, *channels: List[Channel]) -> int:
+        """Return maximum time of timeslots over all channels.
+
+        Args:
+            *channels: Channels over which to obtain stop time.
+        """
+        intervals = list(itertools.chain(*(self._table[chan] for chan in channels
+                                           if chan in self._table)))
+        if intervals:
+            return max((interval.end for interval in intervals))
+        return 0
+
+    def ch_duration(self, *channels: List[Channel]) -> int:
+        """Return maximum duration of timeslots over all channels.
+
+        Args:
+            *channels: Channels over which to obtain the duration.
+        """
+        return self.ch_stop_time(*channels)
+
+    def is_mergeable_with(self, timeslots: 'TimeslotCollection') -> bool:
+        """Return if self is mergeable with `timeslots`.
+
+        Args:
+            timeslots: TimeslotCollection to be checked
+        """
+        for slot in timeslots.timeslots:
             for interval in self._table[slot.channel]:
                 if slot.interval.has_overlap(interval):
                     return False
         return True
 
-    def merged(self, occupancy: 'TimeslotCollection') -> Optional['TimeslotCollection']:
-        """Return a new TimeslotCollection merged with a specified `occupancy`
+    def merged(self, timeslots: 'TimeslotCollection') -> 'TimeslotCollection':
+        """Return a new TimeslotCollection merged with a specified `timeslots`
 
         Args:
-            occupancy: TimeslotCollection to be merged
-
-        Returns:
-            A new TimeslotCollection object merged with a specified `occupancy`.
+            timeslots: TimeslotCollection to be merged
         """
-        slots = [Timeslot(slot.interval, slot.channel) for slot in self._timeslots]
-        slots.extend([Timeslot(slot.interval, slot.channel) for slot in occupancy._timeslots])
-        return TimeslotCollection(slots)
+        slots = [Timeslot(slot.interval, slot.channel) for slot in self.timeslots]
+        slots.extend([Timeslot(slot.interval, slot.channel) for slot in timeslots.timeslots])
+        return TimeslotCollection(*slots)
 
-    def shifted(self, time: int) -> 'TimeslotCollection':
+    def shift(self, time: int) -> 'TimeslotCollection':
         """Return a new TimeslotCollection shifted by `time`.
 
         Args:
-            time: time to be shifted
-
-        Returns:
-            A new TimeslotCollection object shifted by `time`.
+            time: time to be shifted by
         """
-        slots = [Timeslot(slot.interval.shifted(time), slot.channel) for slot in self._timeslots]
-        return TimeslotCollection(slots)
+        slots = [Timeslot(slot.interval.shift(time), slot.channel) for slot in self.timeslots]
+        return TimeslotCollection(*slots)
 
-    def start_time(self, default: int = None) -> int:
-        """Return earliest start time in this collection.
-
-        Args:
-            default(int, optional): default value used when this collection is empty
-
-        Returns:
-            The earliest start time in this collection.
-        """
-        return min([slot.interval.begin for slot in self._timeslots], default=default)
-
-    def stop_time(self, default: int = None) -> int:
-        """Return latest stop time in this collection.
-
-        Args:
-            default(int, optional): default value used when this collection is empty
-
-        Returns:
-            The latest stop time in this collection.
-        """
-        return max([slot.interval.end for slot in self._timeslots], default=default)
-
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         """Two time-slot collections are the same if they have the same time-slots.
 
         Args:
             other (TimeslotCollection): other TimeslotCollection
-
-        Returns:
-            bool: are self and other equal.
         """
-        if self._timeslots == other._timeslots:
+        if self.timeslots == other.timeslots:
             return True
         return False

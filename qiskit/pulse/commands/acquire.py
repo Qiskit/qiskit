@@ -10,8 +10,7 @@ Acquire.
 """
 from typing import Union, List
 
-from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
+from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
@@ -39,19 +38,29 @@ class Acquire(PulseCommand):
 
         if discriminator:
             if isinstance(discriminator, Discriminator):
-                self.discriminator = discriminator
+                self._discriminator = discriminator
             else:
                 raise PulseError('Invalid discriminator object is specified.')
         else:
-            self.discriminator = None
+            self._discriminator = None
 
         if kernel:
             if isinstance(kernel, Kernel):
-                self.kernel = kernel
+                self._kernel = kernel
             else:
                 raise PulseError('Invalid kernel object is specified.')
         else:
-            self.kernel = None
+            self._kernel = None
+
+    @property
+    def kernel(self):
+        """Return kernel settings."""
+        return self._kernel
+
+    @property
+    def discriminator(self):
+        """Return discrimination settings."""
+        return self._discriminator
 
     def __eq__(self, other):
         """Two Acquires are the same if they are of the same type
@@ -74,11 +83,14 @@ class Acquire(PulseCommand):
                (self.__class__.__name__, self.name, self.duration,
                 self.kernel, self.discriminator)
 
-    def __call__(self,
-                 qubits: Union[Qubit, List[Qubit]],
-                 mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None) -> 'AcquireInstruction':
-        return AcquireInstruction(self, qubits, mem_slots, reg_slots)
+    # pylint: disable=arguments-differ
+    def to_instruction(self,
+                       qubits: Union[Qubit, List[Qubit]],
+                       mem_slots: Union[MemorySlot, List[MemorySlot]] = None,
+                       reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
+                       name=None) -> 'AcquireInstruction':
+        return AcquireInstruction(self, qubits, mem_slots, reg_slots, name=name)
+    # pylint: enable=arguments-differ
 
 
 class AcquireInstruction(Instruction):
@@ -86,17 +98,23 @@ class AcquireInstruction(Instruction):
 
     def __init__(self,
                  command: Acquire,
-                 qubits: Union[Qubit, List[Qubit]],
+                 qubits: Union[Qubit, AcquireChannel, List[Qubit], List[AcquireChannel]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
                  reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
-                 start_time: int = 0):
-        if isinstance(qubits, Qubit):
+                 name=None):
+
+        if isinstance(qubits, (Qubit, AcquireChannel)):
             qubits = [qubits]
+
+        if not (mem_slots or reg_slots):
+            raise PulseError('Neither memoryslots or registers were supplied')
+
         if mem_slots:
             if isinstance(mem_slots, MemorySlot):
                 mem_slots = [mem_slots]
             elif len(qubits) != len(mem_slots):
                 raise PulseError("#mem_slots must be equals to #qubits")
+
         if reg_slots:
             if isinstance(reg_slots, RegisterSlot):
                 reg_slots = [reg_slots]
@@ -105,26 +123,23 @@ class AcquireInstruction(Instruction):
         else:
             reg_slots = []
 
-        # TODO: more precise time-slots when we have `acquisition_latency`
-        stop_time = start_time+command.duration
-        slots = [Timeslot(Interval(start_time, stop_time), q.acquire) for q in qubits]
-        slots.extend([Timeslot(Interval(start_time, stop_time), mem) for mem in mem_slots])
+        # extract acquire channels
+        acquires = []
+        for q in qubits:
+            if isinstance(q, Qubit):
+                q = q.acquire
+            acquires.append(q)
 
-        super().__init__(command, start_time, TimeslotCollection(slots))
+        super().__init__(command, *acquires, *mem_slots, *reg_slots, name=name)
 
-        self._qubits = qubits
+        self._acquires = acquires
         self._mem_slots = mem_slots
         self._reg_slots = reg_slots
 
     @property
-    def command(self) -> Acquire:
-        """Acquire command. """
-        return self._command
-
-    @property
-    def qubits(self):
-        """Qubits to be acquired. """
-        return self._qubits
+    def acquires(self):
+        """Acquire channels to be acquired on. """
+        return self._acquires
 
     @property
     def mem_slots(self):
@@ -135,6 +150,3 @@ class AcquireInstruction(Instruction):
     def reg_slots(self):
         """RegisterSlots. """
         return self._reg_slots
-
-    def __repr__(self):
-        return '%4d: %s -> q%s' % (self._start_time, self._command, [q.index for q in self._qubits])
