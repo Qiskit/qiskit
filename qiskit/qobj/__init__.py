@@ -10,9 +10,6 @@
 from .models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
                           QobjExperiment, QobjConfig, QobjHeader)
 
-from .models.pulse_simulator import (PulseSimulatorSpec, PulseHamiltonian,
-                                     PulseOdeOption, PulseNoiseModel)
-
 from .models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
                            PulseQobjExperiment, PulseQobjConfig,
                            QobjMeasurementOption, QobjPulseLibrary)

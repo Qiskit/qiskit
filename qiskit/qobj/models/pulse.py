@@ -15,7 +15,6 @@ from qiskit.validation.fields import Integer, String, Number, Complex, List, Nes
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
-from .pulse_simulator import PulseSimulatorSpecSchema
 
 
 class QobjMeasurementOptionSchema(BaseSchema):
@@ -91,7 +90,6 @@ class PulseQobjConfigSchema(QobjConfigSchema):
     # Optional properties.
     memory_slot_size = Integer(validate=Range(min=1))
     rep_time = Integer(validate=Range(min=0))
-    simulator_spec = Nested(PulseSimulatorSpecSchema)
 
 
 @bind_schema(QobjMeasurementOptionSchema)
