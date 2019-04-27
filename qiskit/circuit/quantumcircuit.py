@@ -13,6 +13,7 @@ import itertools
 import sys
 import multiprocessing as mp
 
+from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.parameter import Parameter
@@ -253,6 +254,12 @@ class QuantumCircuit:
         """
         qargs = qargs or []
         cargs = cargs or []
+
+        # Convert input to instruction
+        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+            instruction = instruction.to_instruction()
+        if not isinstance(instruction, Instruction):
+            raise QiskitError('object is not an Instruction.')
 
         # do some compatibility checks
         self._check_dups(qargs)

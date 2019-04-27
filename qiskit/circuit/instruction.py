@@ -6,7 +6,6 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 # pylint: disable=too-many-boolean-expressions
-
 """
 A generic quantum instruction.
 
@@ -35,6 +34,7 @@ from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.parameter import Parameter
+from qiskit.qobj.models.qasm import QasmQobjInstruction
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -55,8 +55,9 @@ class Instruction:
         if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
             raise QiskitError("num_qubits and num_clbits must be integer.")
         if num_qubits < 0 or num_clbits < 0:
-            raise QiskitError("bad instruction dimensions: %d qubits, %d clbits." %
-                              num_qubits, num_clbits)
+            raise QiskitError(
+                "bad instruction dimensions: %d qubits, %d clbits." %
+                num_qubits, num_clbits)
         self.name = name
         self.num_qubits = num_qubits
         self.num_clbits = num_clbits
@@ -124,7 +125,8 @@ class Instruction:
                 self._params.append(sympy.Number(single_param))
             # example: Initialize([complex(0,1), complex(0,0)])
             elif isinstance(single_param, complex):
-                self._params.append(single_param.real + single_param.imag * sympy.I)
+                self._params.append(single_param.real +
+                                    single_param.imag * sympy.I)
             # example: snapshot('label')
             elif isinstance(single_param, str):
                 self._params.append(sympy.Symbol(single_param))
@@ -154,6 +156,31 @@ class Instruction:
         """Set matrix representation"""
         self._definition = array
 
+    def assemble(self):
+        """Assemble a QasmQobjInstruction"""
+        instruction = QasmQobjInstruction(name=self.name)
+        # Evaluate parameters
+        if self.params:
+            params = [
+                x.evalf() if hasattr(x, 'evalf') else x for x in self.params
+            ]
+            params = [
+                sympy.matrix2numpy(x, dtype=complex) if isinstance(
+                    x, sympy.Matrix) else x for x in params
+            ]
+            instruction.params = params
+        # Add placeholder for qarg and carg params
+        if self.num_qubits:
+            instruction.qubits = list(range(self.num_qubits))
+        if self.num_clbits:
+            instruction.memory = list(range(self.num_clbits))
+        # Add control parameters for assembler. This is needed to convert
+        # to a qobj conditional instruction at assemble time and after
+        # conversion will be deleted by the assembler.
+        if self.control:
+            instruction._control = self.control
+        return instruction
+
     def mirror(self):
         """For a composite instruction, reverse the order of sub-gates.
 
@@ -166,7 +193,7 @@ class Instruction:
         if not self._definition:
             return self.copy()
 
-        reverse_inst = self.copy(name=self.name+'_mirror')
+        reverse_inst = self.copy(name=self.name + '_mirror')
         reverse_inst.definition = []
         for inst, qargs, cargs in reversed(self._definition):
             reverse_inst._definition.append((inst.mirror(), qargs, cargs))
@@ -189,9 +216,8 @@ class Instruction:
                 and an inverse has not been implemented for it.
         """
         if not self.definition:
-            raise QiskitError("inverse() not implemented for %s." %
-                              self.name)
-        inverse_gate = self.copy(name=self.name+'_dg')
+            raise QiskitError("inverse() not implemented for %s." % self.name)
+        inverse_gate = self.copy(name=self.name + '_dg')
         inverse_gate._definition = []
         for inst, qargs, cargs in reversed(self._definition):
             inverse_gate._definition.append((inst.inverse(), qargs, cargs))
@@ -237,7 +263,7 @@ class Instruction:
         """
         name_param = self.name
         if self.params:
-            name_param = "%s(%s)" % (name_param,
-                                     ",".join([str(i) for i in self.params]))
+            name_param = "%s(%s)" % (name_param, ",".join(
+                [str(i) for i in self.params]))
 
         return self._qasmif(name_param)

@@ -24,9 +24,9 @@ from qiskit.extensions.standard.u2 import U2Gate
 class HGate(Gate):
     """Hadamard gate."""
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new Hadamard gate."""
-        super().__init__("h", 1, [])
+        super().__init__("h", 1, [], label=label)
 
     def _define(self):
         """
