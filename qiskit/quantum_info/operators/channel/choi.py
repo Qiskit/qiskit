@@ -26,8 +26,9 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
@@ -38,19 +39,34 @@ class Choi(QuantumChannel):
     """Choi-matrix representation of a quantum channel"""
 
     def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a Choi quantum channel operator."""
-        if issubclass(data.__class__, BaseOperator):
-            # If not a channel we use `to_operator` method to get
-            # the unitary-representation matrix for input
-            if not issubclass(data.__class__, QuantumChannel):
-                data = data.to_operator()
-            input_dim, output_dim = data.dim
-            choi_mat = _to_choi(data.rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        elif isinstance(data, (list, np.ndarray)):
+        """Initialize a quantum channel Choi matrix operator.
+
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+
+        Raises:
+            QiskitError: if input data cannot be initialized as a
+            Choi matrix.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. If the input data is
+        a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
+        the input operator is not an N-qubit operator, it will assign a
+        single subsystem with dimension specifed by the shape of the input.
+        """
+        # If the input is a raw list or matrix we assume that it is
+        # already a Choi matrix.
+        if isinstance(data, (list, np.ndarray)):
+            # Initialize from raw numpy or list matrix.
             choi_mat = np.array(data, dtype=complex)
             # Determine input and output dimensions
             dim_l, dim_r = choi_mat.shape
@@ -71,7 +87,23 @@ class Choi(QuantumChannel):
             if input_dim * output_dim != dim_l:
                 raise QiskitError("Invalid shape for input Choi-matrix.")
         else:
-            raise QiskitError("Invalid input data format for Choi")
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a Choi object
+            choi_mat = _to_choi(data.rep, data._data, input_dim, output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
         output_dims = self._automatic_dims(output_dims, output_dim)
@@ -99,12 +131,12 @@ class Choi(QuantumChannel):
         return Choi(
             data, input_dims=self.output_dims(), output_dims=self.input_dims())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -116,9 +148,10 @@ class Choi(QuantumChannel):
             QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if qubits is not None:
-            # TODO
-            raise QiskitError("NOT IMPLEMENTED: subsystem composition.")
+        if qargs is not None:
+            return Choi(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
+
         # Convert to Choi matrix
         if not isinstance(other, Choi):
             other = Choi(other)
@@ -252,12 +285,12 @@ class Choi(QuantumChannel):
             raise QiskitError("other is not a number")
         return Choi(other * self._data, self._input_dims, self._output_dims)
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -268,8 +301,8 @@ class Choi(QuantumChannel):
             specified QuantumState subsystem dimensions.
         """
         # If subsystem evolution we use the SuperOp representation
-        if qubits is not None:
-            return SuperOp(self)._evolve(state, qubits)
+        if qargs is not None:
+            return SuperOp(self)._evolve(state, qargs)
         # Otherwise we compute full evolution directly
         state = self._format_state(state, density_matrix=True)
         if state.shape[0] != self._input_dim:

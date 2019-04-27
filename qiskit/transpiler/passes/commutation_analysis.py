@@ -21,6 +21,7 @@ A rule-based analysis would be potentially faster, but more limited.
 
 from collections import defaultdict
 import numpy as np
+from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
@@ -30,11 +31,9 @@ _CUTOFF_PRECISION = 1E-10
 class CommutationAnalysis(AnalysisPass):
     """An analysis pass to find commutation relations between DAG nodes."""
 
-    def __init__(self, max_depth=100):
+    def __init__(self):
         super().__init__()
-        self.max_depth = max_depth
-        self.wire_op = {}
-        self.node_commute_group = {}
+        self.gates_on_wire = {}
 
     def run(self, dag):
         """
@@ -47,49 +46,37 @@ class CommutationAnalysis(AnalysisPass):
         # Build a dictionary to keep track of the gates on each qubit
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
-            self.wire_op[wire_name] = []
             self.property_set['commutation_set'][wire_name] = []
 
         # Add edges to the dictionary for each qubit
-        for node in dag.nodes_in_topological_order():
-            for (start_node, end_node, edge_data) in dag.multi_graph.edges([node], data=True):
+        for node in dag.topological_op_nodes():
+            for (_, _, edge_data) in dag.edges(node):
 
                 edge_name = edge_data['name']
-
-                if start_node == node:
-                    self.wire_op[edge_name].append(start_node)
-
-                    self.property_set['commutation_set'][(node, edge_name)] = -1
-
-                if end_node.type == "out":
-                    self.wire_op[edge_name].append(end_node)
+                self.property_set['commutation_set'][(node, edge_name)] = -1
 
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
 
-            for node in self.wire_op[wire_name]:
+            for current_gate in dag.nodes_on_wire(wire):
 
-                if not self.property_set['commutation_set'][wire_name]:
-                    self.property_set['commutation_set'][wire_name].append([node])
+                current_comm_set = self.property_set['commutation_set'][wire_name]
+                if not current_comm_set:
+                    current_comm_set.append([current_gate])
 
-                # must be the exact same objects whereas == is True
-                # for semantically equivalent objects
-                id_for_nodes = [id(x) for x in self.property_set['commutation_set'][wire_name][-1]]
-
-                if id(node) not in id_for_nodes:
-                    test_node = self.property_set['commutation_set'][wire_name][-1][-1]
-                    if _commute(node, test_node):
-                        self.property_set['commutation_set'][wire_name][-1].append(node)
+                if current_gate not in current_comm_set[-1]:
+                    prev_gate = current_comm_set[-1][-1]
+                    if _commute(current_gate, prev_gate):
+                        current_comm_set[-1].append(current_gate)
 
                     else:
-                        self.property_set['commutation_set'][wire_name].append([node])
+                        current_comm_set.append([current_gate])
 
-                temp_len = len(self.property_set['commutation_set'][wire_name])
-                self.property_set['commutation_set'][(node, wire_name)] = temp_len - 1
+                temp_len = len(current_comm_set)
+                self.property_set['commutation_set'][(current_gate, wire_name)] = temp_len - 1
 
 
-def _gate_master_def(name, para=None):
-
+def _gate_master_def(name, params=None):
     # pylint: disable=too-many-return-statements
 
     if name == 'h':
@@ -132,28 +119,28 @@ def _gate_master_def(name, para=None):
         return np.array([[1.0, 0.0],
                          [0.0, -np.exp(1j * np.pi / 4.0)]], dtype=np.complex)
     if name in ('rz', 'u1'):
-        return np.array([[np.exp(-1j * float(para[0]) / 2), 0],
-                         [0, np.exp(1j * float(para[0]) / 2)]], dtype=np.complex)
+        return np.array([[np.exp(-1j * float(params[0]) / 2), 0],
+                         [0, np.exp(1j * float(params[0]) / 2)]], dtype=np.complex)
     if name == 'rx':
-        return np.array([[np.cos(float(para[0]) / 2), -1j * np.sin(float(para[0]) / 2)],
-                         [-1j * np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]],
+        return np.array([[np.cos(float(params[0]) / 2), -1j * np.sin(float(params[0]) / 2)],
+                         [-1j * np.sin(float(params[0]) / 2), np.cos(float(params[0]) / 2)]],
                         dtype=np.complex)
     if name == 'ry':
-        return np.array([[np.cos(float(para[0]) / 2), - np.sin(float(para[0]) / 2)],
-                         [np.sin(float(para[0]) / 2), np.cos(float(para[0]) / 2)]],
+        return np.array([[np.cos(float(params[0]) / 2), - np.sin(float(params[0]) / 2)],
+                         [np.sin(float(params[0]) / 2), np.cos(float(params[0]) / 2)]],
                         dtype=np.complex)
     if name == 'u2':
         return 1. / np.sqrt(2) * np.array(
-            [[1, -np.exp(1j * float(para[1]))],
-             [np.exp(1j * float(para[0])), np.exp(1j * (float(para[0]) + float(para[1])))]],
+            [[1, -np.exp(1j * float(params[1]))],
+             [np.exp(1j * float(params[0])), np.exp(1j * (float(params[0]) + float(params[1])))]],
             dtype=np.complex)
 
     if name == 'u3':
         return 1./np.sqrt(2) * np.array(
-            [[np.cos(float(para[0]) / 2.),
-              -np.exp(1j * float(para[2])) * np.sin(float(para[0]) / 2.)],
-             [np.exp(1j * float(para[1])) * np.sin(float(para[0]) / 2.),
-              np.cos(float(para[0]) / 2.) * np.exp(1j * (float(para[2]) + float(para[1])))]],
+            [[np.cos(float(params[0]) / 2.),
+              -np.exp(1j * float(params[2])) * np.sin(float(params[0]) / 2.)],
+             [np.exp(1j * float(params[1])) * np.sin(float(params[0]) / 2.),
+              np.cos(float(params[0]) / 2.) * np.exp(1j * (float(params[2]) + float(params[1])))]],
             dtype=np.complex)
 
     if name == 'P0':
@@ -165,7 +152,7 @@ def _gate_master_def(name, para=None):
     if name == 'Id':
         return np.identity(2)
 
-    return None
+    raise TranspilerError("The gate %s isn't supported" % name)
 
 
 def _calc_product(node1, node2):
@@ -202,7 +189,7 @@ def _calc_product(node1, node2):
 
         else:
 
-            mat = _gate_master_def(name=node.name, para=node.op.params)
+            mat = _gate_master_def(name=node.name, params=node.op.params)
             node_num = "{0}[{1}]".format(str(node.qargs[0][0].name),
                                          str(node.qargs[0][1]))
             qstate_list[wires.index(node_num)] = mat

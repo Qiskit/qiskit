@@ -10,11 +10,14 @@
 """
 controlled-NOT gate.
 """
+
+import numpy
+
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.cxbase import CXBase
 
 
@@ -42,7 +45,15 @@ class CnotGate(Gate):
         """Invert this gate."""
         return CnotGate()  # self-inverse
 
+    def to_matrix(self):
+        """Return a Numpy.array for the Cx gate."""
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 0, 0, 1],
+                            [0, 0, 1, 0],
+                            [0, 1, 0, 0]], dtype=complex)
 
+
+@_to_bits(2)
 @_op_expand(2)
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""

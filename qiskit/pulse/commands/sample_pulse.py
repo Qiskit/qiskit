@@ -11,7 +11,6 @@ Sample pulse.
 import numpy as np
 
 from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .pulse_command import PulseCommand
@@ -29,8 +28,6 @@ class SamplePulse(PulseCommand):
         Raises:
             PulseError: when pulse envelope amplitude exceeds 1.
         """
-        name = name or str('pulse_object_%s' % id(self))
-
         super().__init__(duration=len(samples), name=name)
 
         if np.any(np.abs(samples) > 1):
@@ -82,27 +79,14 @@ class SamplePulse(PulseCommand):
     def __repr__(self):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
 
-    def __call__(self, channel: OutputChannel) -> 'DriveInstruction':
-        return DriveInstruction(self, channel)
+    # pylint: disable=arguments-differ
+    def to_instruction(self, channel: OutputChannel, name=None) -> 'DriveInstruction':
+        return DriveInstruction(self, channel, name=name)
+    # pylint: enable=arguments-differ
 
 
 class DriveInstruction(Instruction):
     """Instruction to drive a pulse to an `OutputChannel`. """
 
-    def __init__(self, command: SamplePulse, channel: OutputChannel, start_time: int = 0):
-        slots = [Timeslot(Interval(start_time, start_time + command.duration), channel)]
-        super().__init__(command, start_time, TimeslotCollection(slots))
-        self._channel = channel
-
-    @property
-    def command(self) -> SamplePulse:
-        """SamplePulse command. """
-        return self._command
-
-    @property
-    def channel(self) -> OutputChannel:
-        """OutputChannel command. """
-        return self._channel
-
-    def __repr__(self):
-        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)
+    def __init__(self, command: SamplePulse, channel: OutputChannel, name=None):
+        super().__init__(command, channel, name=name)

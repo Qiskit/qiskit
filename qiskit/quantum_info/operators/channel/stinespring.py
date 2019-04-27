@@ -28,8 +28,9 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.kraus import Kraus
@@ -42,20 +43,33 @@ class Stinespring(QuantumChannel):
     """Stinespring representation of a quantum channel"""
 
     def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a Stinespring quantum channel operator."""
-        if issubclass(data.__class__, BaseOperator):
-            # If not a channel we use `to_operator` method to get
-            # the unitary-representation matrix for input
-            if not issubclass(data.__class__, QuantumChannel):
-                data = data.to_operator()
-            input_dim, output_dim = data.dim
-            stine = _to_stinespring(data.rep, data._data, input_dim,
-                                    output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        elif isinstance(data, (list, tuple, np.ndarray)):
+        """Initialize a quantum channel Stinespring operator.
+
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+
+        Raises:
+            QiskitError: if input data cannot be initialized as a
+            a list of Kraus matrices.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. This can fail for the
+        Stinespring operator if the output dimension cannot be automatically
+        determined.
+        """
+        # If the input is a list or tuple we assume it is a pair of general
+        # Stinespring matrices. If it is a numpy array we assume that it is
+        # a single stinespring matrix.
+        if isinstance(data, (list, tuple, np.ndarray)):
             if not isinstance(data, tuple):
                 # Convert single Stinespring set to length 1 tuple
                 stine = (np.array(data, dtype=complex), None)
@@ -79,7 +93,26 @@ class Stinespring(QuantumChannel):
             if dim_left % output_dim != 0:
                 raise QiskitError("Invalid output_dim")
         else:
-            raise QiskitError("Invalid input data format for Stinespring")
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
+            data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a
+            # Stinespring operator
+            stine = _to_stinespring(data.rep, data._data, input_dim,
+                                    output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
 
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
@@ -107,8 +140,12 @@ class Stinespring(QuantumChannel):
         else:
             return self._data
 
-    def is_cptp(self):
+    def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving."""
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
         if self._data[1] is not None:
             return False
         check = np.dot(np.transpose(np.conj(self._data[0])), self._data[0])
@@ -139,12 +176,12 @@ class Stinespring(QuantumChannel):
             input_dims=self.output_dims(),
             output_dims=self.input_dims())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -156,9 +193,9 @@ class Stinespring(QuantumChannel):
             QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if qubits is not None:
-            # TODO
-            raise QiskitError("NOT IMPLEMENTED: subsystem composition.")
+        if qargs is not None:
+            return Stinespring(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
 
         # Convert other to Kraus
         if not isinstance(other, Kraus):
@@ -290,12 +327,12 @@ class Stinespring(QuantumChannel):
         return Stinespring((stine_l, stine_r), self.input_dims(),
                            self.output_dims())
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -306,8 +343,8 @@ class Stinespring(QuantumChannel):
             specified QuantumState subsystem dimensions.
         """
         # If subsystem evolution we use the SuperOp representation
-        if qubits is not None:
-            return SuperOp(self)._evolve(state, qubits)
+        if qargs is not None:
+            return SuperOp(self)._evolve(state, qargs)
 
         # Otherwise we compute full evolution directly
         state = self._format_state(state)

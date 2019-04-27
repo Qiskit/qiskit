@@ -9,45 +9,91 @@
 Channels support signal output.
 """
 from abc import abstractmethod
+from typing import Tuple
 
+from qiskit.pulse.exceptions import PulseError
 from .pulse_channel import Channel
+
+
+class LoRange:
+    """Range of LO frequency."""
+
+    def __init__(self, lower_bound: float, upper_bound: float):
+        self._lb = lower_bound
+        self._ub = upper_bound
+
+    def includes(self, lo_freq: float) -> bool:
+        """Whether `lo_freq` is within the `LoRange`.
+
+        Args:
+            lo_freq: LO frequency to be checked
+
+        Returns:
+            bool: True if lo_freq is included in this range, otherwise False
+        """
+        if self._lb <= lo_freq <= self._ub:
+            return True
+        return False
+
+    @property
+    def lower_bound(self) -> float:
+        """Lower bound of the LO range"""
+        return self._lb
+
+    @property
+    def upper_bound(self) -> float:
+        """Upper bound of the LO range"""
+        return self._ub
+
+    def __repr__(self):
+        return "%s(%f, %f)" % (self.__class__.__name__, self._lb, self._ub)
+
+    def __eq__(self, other):
+        """Two LO ranges are the same if they are of the same type, and
+        have the same frequency range
+
+        Args:
+            other (LoRange): other LoRange
+
+        Returns:
+            bool: are self and other equal.
+        """
+        if (type(self) is type(other) and
+                self._ub == other._ub and
+                self._lb == other._lb):
+            return True
+        return False
 
 
 class OutputChannel(Channel):
     """Output Channel."""
 
     @abstractmethod
-    def __init__(self, index: int = None, lo_frequency: float = None):
+    def __init__(self,
+                 index: int,
+                 lo_freq: float = None,
+                 lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         super().__init__(index)
-        self._lo_frequency = lo_frequency
+        self._lo_freq = lo_freq
+
+        if (not isinstance(lo_freq_range, tuple)) or len(lo_freq_range) != 2:
+            raise PulseError("Invalid form of lo_freq_range is specified.")
+        self._lo_freq_range = LoRange(*lo_freq_range)
+
+        if self._lo_freq:
+            if not self._lo_freq_range.includes(self._lo_freq):
+                raise PulseError("lo_freq %f must be within lo_freq_range %s" %
+                                 (self._lo_freq, self._lo_freq_range))
 
     @property
-    def lo_frequency(self) -> float:
-        """Get the frequency of local oscillator of this channel."""
-        return self._lo_frequency
+    def lo_freq(self) -> float:
+        """Get the default lo frequency."""
+        return self._lo_freq
 
-    def set_lo_frequency(self, lo_frequency: float):
-        """Set the frequency of local oscillator of this channel."""
-        self._lo_frequency = lo_frequency
-
-    def __eq__(self, other):
-        """Two output channels are the same if they are of the same type, and
-        have the same index and lo_frequency.
-
-        Args:
-            other (OutputChannel): other OutputChannel
-
-        Returns:
-            bool: are self and other equal.
-        """
-        if type(self) is type(other) and \
-                self._index == other._index and \
-                self._lo_frequency == other._lo_frequency:
-            return True
-        return False
-
-    def __hash__(self):
-        return hash((super().__hash__(), self._lo_frequency))
+    @property
+    def lo_freq_range(self) -> LoRange:
+        """Get the acceptable LO range."""
+        return self._lo_freq_range
 
 
 class DriveChannel(OutputChannel):
@@ -55,14 +101,17 @@ class DriveChannel(OutputChannel):
 
     prefix = 'd'
 
-    def __init__(self, index: int, lo_frequency: float = None):
+    def __init__(self, index: int,
+                 lo_freq: float = None,
+                 lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new drive (d) channel.
 
         Args:
             index (int): index of the channel
-            lo_frequency (float): frequency of local oscillator
+            lo_freq (float): default frequency of LO (local oscillator)
+            lo_freq_range (tuple): feasible range of LO frequency
         """
-        super().__init__(index, lo_frequency)
+        super().__init__(index, lo_freq, lo_freq_range)
 
 
 class ControlChannel(OutputChannel):
@@ -70,14 +119,17 @@ class ControlChannel(OutputChannel):
 
     prefix = 'u'
 
-    def __init__(self, index, lo_frequency: float = None):
+    def __init__(self, index: int,
+                 lo_freq: float = None,
+                 lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new control (u) channel.
 
         Args:
             index (int): index of the channel
-            lo_frequency (float): frequency of local oscillator
+            lo_freq (float): default frequency of LO (local oscillator)
+            lo_freq_range (tuple): feasible range of LO frequency
         """
-        super().__init__(index, lo_frequency)
+        super().__init__(index, lo_freq, lo_freq_range)
 
 
 class MeasureChannel(OutputChannel):
@@ -85,11 +137,14 @@ class MeasureChannel(OutputChannel):
 
     prefix = 'm'
 
-    def __init__(self, index, lo_frequency: float = None):
+    def __init__(self, index: int,
+                 lo_freq: float = None,
+                 lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new measurement (m) channel.
 
         Args:
             index (int): index of the channel
-            lo_frequency (float): frequency of local oscillator
+            lo_freq (float): default frequency of LO (local oscillator)
+            lo_freq_range (tuple): feasible range of LO frequency
         """
-        super().__init__(index, lo_frequency)
+        super().__init__(index, lo_freq, lo_freq_range)

@@ -10,10 +10,11 @@
 """
 Element of SU(2).
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.decorators import _op_expand
+from qiskit.circuit.decorators import _op_expand, _to_bits
 
 
 class UBase(Gate):  # pylint: disable=abstract-method
@@ -29,7 +30,22 @@ class UBase(Gate):  # pylint: disable=abstract-method
         """
         return UBase(-self.params[0], -self.params[2], -self.params[1])
 
+    def to_matrix(self):
+        """Return a Numpy.array for the U3 gate."""
+        theta, phi, lam = self.params
+        return numpy.array(
+            [[
+                numpy.cos(theta / 2),
+                -numpy.exp(1j * lam) * numpy.sin(theta / 2)
+            ],
+             [
+                 numpy.exp(1j * phi) * numpy.sin(theta / 2),
+                 numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
+             ]],
+            dtype=complex)
 
+
+@_to_bits(1)
 @_op_expand(1)
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""

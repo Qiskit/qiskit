@@ -17,10 +17,10 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Gate
+from qiskit.circuit.decorators import _convert_to_bits
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -32,6 +32,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
     flexible collection of qubit registers (assuming the qubits are in the
     zero state).
     """
+
     def __init__(self, params):
         """Create new initialize composite gate.
 
@@ -69,8 +70,8 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         # the qubits are in the zero state)
         initialize_gate = disentangling_circuit.to_instruction().inverse()
 
-        q = QuantumRegister(self.num_qubits)
-        initialize_circuit = QuantumCircuit(q)
+        q = QuantumRegister(self.num_qubits, 'q')
+        initialize_circuit = QuantumCircuit(q, name='init_def')
         # TODO: make initialize an Instruction, and insert reset
         # TODO: avoid explicit reset if compiler determines a |0> state
         initialize_circuit.append(initialize_gate, q[:])
@@ -86,7 +87,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             QuantumCircuit: circuit to take self.params vector to |00..0>
         """
         q = QuantumRegister(self.num_qubits)
-        circuit = QuantumCircuit(q)
+        circuit = QuantumCircuit(q, name='disentangler')
 
         # kick start the peeling loop, and disentangle one-by-one from LSB to MSB
         remaining_param = self.params
@@ -134,8 +135,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             # multiplexor being in state |i>)
             (remains,
              add_theta,
-             add_phi) = InitializeGate._bloch_angles(
-                 local_param[2*i: 2*(i + 1)])
+             add_phi) = InitializeGate._bloch_angles(local_param[2 * i: 2 * (i + 1)])
 
             remaining_vector.append(remains)
 
@@ -170,7 +170,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
             final_t = a_arg + b_arg
             phi = b_arg - a_arg
 
-        return final_r * np.exp(1.J * final_t/2), theta, phi
+        return final_r * np.exp(1.J * final_t / 2), theta, phi
 
     def _multiplex(self, target_gate, list_of_angles):
         """
@@ -192,8 +192,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
         local_num_qubits = int(math.log2(list_len)) + 1
 
         q = QuantumRegister(local_num_qubits)
-        circuit = QuantumCircuit(q)
-        circuit.name = "multiplex" + local_num_qubits.__str__()
+        circuit = QuantumCircuit(q, name="multiplex" + local_num_qubits.__str__())
 
         lsb = q[0]
         msb = q[local_num_qubits - 1]
@@ -239,6 +238,8 @@ def initialize(self, params, qubits):
     # TODO: avoid explicit reset if compiler determines a |0> state
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
+    else:
+        qubits = _convert_to_bits([qubits], [qbit for qreg in self.qregs for qbit in qreg])[0]
     return self.append(InitializeGate(params), qubits, [])
 
 

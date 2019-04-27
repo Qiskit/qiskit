@@ -575,12 +575,12 @@ def create_tomography_circuits(circuit, qreg, creg, tomoset):
             prep = QuantumCircuit(qreg, creg, name='tmp_prep')
             for qubit, op in conf['prep'].items():
                 tomoset['prep_basis'].prep_gate(prep, qreg[qubit], op)
-                prep.barrier(qreg[qubit])  # pylint: disable=no-member
+                prep.barrier(qreg[qubit])
             tmp = prep + tmp
         # Add measurement circuits
         meas = QuantumCircuit(qreg, creg, name='tmp_meas')
         for qubit, op in conf['meas'].items():
-            meas.barrier(qreg[qubit])  # pylint: disable=no-member
+            meas.barrier(qreg[qubit])
             tomoset['meas_basis'].meas_gate(meas, qreg[qubit], op)
             meas.measure(qreg[qubit], creg[qubit])
         tmp = tmp + meas
@@ -952,7 +952,7 @@ def build_wigner_circuits(circuit, phis, thetas, qubits,
         label += str(point)
         tmp_circ = QuantumCircuit(qreg, creg, name=label)
         for qubit, _ in enumerate(qubits):
-            tmp_circ.u3(thetas[qubit][point], 0,  # pylint: disable=no-member
+            tmp_circ.u3(thetas[qubit][point], 0,
                         phis[qubit][point], qreg[qubits[qubit]])
             tmp_circ.measure(qreg[qubits[qubit]], creg[qubits[qubit]])
         # Add to original circuit

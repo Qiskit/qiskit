@@ -31,33 +31,42 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 from qiskit.quantum_info.operators.channel.transformations import _to_ptm
 
 
 class PTM(QuantumChannel):
-    """Pauli transfer matrix (PTM) representation of a quantum channel.
+    """Initialize a quantum channel Pauli-Transfer Matrix operator.
 
-    The PTM is the Pauli-basis representation of the PTM.
-    """
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
 
+        Raises:
+            QiskitError: if input data is not an N-qubit channel or
+            cannot be initialized as a PTM.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. The PTM
+        representation is only valid for N-qubit channels.
+        """
     def __init__(self, data, input_dims=None, output_dims=None):
         """Initialize a PTM quantum channel operator."""
-        if issubclass(data.__class__, BaseOperator):
-            # If not a channel we use `to_operator` method to get
-            # the unitary-representation matrix for input
-            if not issubclass(data.__class__, QuantumChannel):
-                data = data.to_operator()
-            input_dim, output_dim = data.dim
-            ptm = _to_ptm(data.rep, data._data, input_dim, output_dim)
-            if input_dims is None:
-                input_dims = data.input_dims()
-            if output_dims is None:
-                output_dims = data.output_dims()
-        elif isinstance(data, (list, np.ndarray)):
+        # If the input is a raw list or matrix we assume that it is
+        # already a Chi matrix.
+        if isinstance(data, (list, np.ndarray)):
             # Should we force this to be real?
             ptm = np.array(data, dtype=complex)
             # Determine input and output dimensions
@@ -73,10 +82,26 @@ class PTM(QuantumChannel):
             if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
                 raise QiskitError("Invalid shape for PTM matrix.")
         else:
-            raise QiskitError("Invalid input data format for PTM")
-
-        nqubits = int(np.log2(input_dim))
-        if 2**nqubits != input_dim:
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
+            input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a PTM object
+            ptm = _to_ptm(data.rep, data._data, input_dim, output_dim)
+            if input_dims is None:
+                input_dims = data.input_dims()
+            if output_dims is None:
+                output_dims = data.output_dims()
+        # Check input is N-qubit channel
+        n_qubits = int(np.log2(input_dim))
+        if 2**n_qubits != input_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         # Check and format input and output dimensions
         input_dims = self._automatic_dims(input_dims, input_dim)
@@ -103,12 +128,12 @@ class PTM(QuantumChannel):
         # conjugate channel
         return PTM(SuperOp(self).transpose())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (QuantumChannel): a quantum channel.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -120,9 +145,9 @@ class PTM(QuantumChannel):
             QiskitError: if other cannot be converted to a channel or
             has incompatible dimensions.
         """
-        if qubits is not None:
-            # TODO
-            raise QiskitError("NOT IMPLEMENTED: subsystem composition.")
+        if qargs is not None:
+            return PTM(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
 
         # Convert other to PTM
         if not isinstance(other, PTM):
@@ -245,18 +270,18 @@ class PTM(QuantumChannel):
             raise QiskitError("other is not a number")
         return PTM(other * self._data, self._input_dims, self._output_dims)
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
             DensityMatrix: the output quantum state as a density matrix.
         """
-        return SuperOp(self)._evolve(state, qubits)
+        return SuperOp(self)._evolve(state, qargs)
 
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.

@@ -7,8 +7,6 @@
 
 """Helper function for converting a circuit to a dag"""
 
-import copy
-
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
@@ -35,7 +33,7 @@ def circuit_to_dag(circuit):
         else:
             control = (instruction.control[0], instruction.control[1])
 
-        instruction = copy.deepcopy(instruction)
-        dagcircuit.apply_operation_back(instruction, qargs, cargs, control)
+        dagcircuit.apply_operation_back(instruction.copy(),
+                                        qargs, cargs, control)
 
     return dagcircuit

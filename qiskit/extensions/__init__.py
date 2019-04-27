@@ -6,3 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Extensions to quantum circuits."""
+
+from .standard import *
+from .initializer import InitializeGate
+from .unitary import UnitaryGate

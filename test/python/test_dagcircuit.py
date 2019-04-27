@@ -109,8 +109,8 @@ class TestDagOperations(QiskitTestCase):
         self.dag.apply_operation_back(XGate(), [self.qubit1], [], condition=self.condition)
         self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [], condition=None)
         self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [], condition=None)
-        self.assertEqual(len(self.dag.multi_graph.nodes), 16)
-        self.assertEqual(len(self.dag.multi_graph.edges), 17)
+        self.assertEqual(len(list(self.dag.nodes())), 16)
+        self.assertEqual(len(list(self.dag.edges())), 17)
 
     def test_apply_operation_front(self):
         """The apply_operation_front() method"""
@@ -168,6 +168,24 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(successor_cnot[0].type, 'out')
         self.assertIsInstance(successor_cnot[1].op, Reset)
 
+    def test_quantum_predecessors(self):
+        """The method dag.quantum_predecessors() returns predecessors connected by quantum edges"""
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        predecessor_measure = self.dag.quantum_predecessors(
+            self.dag.named_nodes('measure').pop())
+        self.assertEqual(len(predecessor_measure), 1)
+        cnot_node = predecessor_measure[0]
+
+        self.assertIsInstance(cnot_node.op, CnotGate)
+
+        predecessor_cnot = self.dag.quantum_predecessors(cnot_node)
+        self.assertEqual(len(predecessor_cnot), 2)
+        self.assertEqual(predecessor_cnot[1].type, 'in')
+        self.assertIsInstance(predecessor_cnot[0].op, Reset)
+
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
@@ -218,15 +236,15 @@ class TestDagOperations(QiskitTestCase):
             (self.qubit0, self.qubit2)}
         self.assertEqual(expected_qargs, node_qargs)
 
-    def test_nodes_in_topological_order(self):
-        """The node_nums_in_topological_order() method"""
+    def test_topological_nodes(self):
+        """The topological_nodes() method"""
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2], [])
         self.dag.apply_operation_back(HGate(), [self.qubit2], [])
 
-        named_nodes = self.dag.nodes_in_topological_order()
+        named_nodes = self.dag.topological_nodes()
 
         expected = [('qr[0]', []),
                     ('qr[1]', []),
@@ -245,7 +263,24 @@ class TestDagOperations(QiskitTestCase):
                     ('cr[1]', [])]
         self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
-    def test_dag_ops_on_wire(self):
+    def test_topological_op_nodes(self):
+        """The topological_op_nodes() method"""
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit2], [])
+
+        named_nodes = self.dag.topological_op_nodes()
+
+        expected = [('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
+                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
+                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
+                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
+                    ('h', [(QuantumRegister(3, 'qr'), 2)])]
+        self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
+
+    def test_dag_nodes_on_wire(self):
         """Test that listing the gates on a qubit/classical bit gets the correct gates"""
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
@@ -263,8 +298,29 @@ class TestDagOperations(QiskitTestCase):
         with self.assertRaises(DAGCircuitError):
             next(self.dag.nodes_on_wire((reg, 7)))
 
+    def test_dag_nodes_on_wire_multiple_successors(self):
+        """
+        Test that if a DAGNode has multiple successors in the DAG along one wire, they are all
+        retrieved in order. This could be the case for a circuit such as
+
+                q0_0: |0>──■─────────■──
+                         ┌─┴─┐┌───┐┌─┴─┐
+                q0_1: |0>┤ X ├┤ H ├┤ X ├
+                         └───┘└───┘└───┘
+        Both the 2nd CX gate and the H gate follow the first CX gate in the DAG, so they
+        both must be returned but in the correct order.
+        """
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(HGate(), [self.qubit1], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+
+        nodes = self.dag.nodes_on_wire(self.dag.qubits()[1], only_ops=True)
+        node_names = [nd.name for nd in nodes]
+
+        self.assertEqual(node_names, ['cx', 'h', 'cx'])
+
     def test_remove_op_node(self):
-        """ Test remove_op_node method."""
+        """Test remove_op_node method."""
         self.dag.apply_operation_back(HGate(), [self.qubit0])
 
         op_nodes = self.dag.gate_nodes()
@@ -274,38 +330,28 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(len(self.dag.gate_nodes()), 0)
 
     def test_remove_op_node_longer(self):
-        """ Test remove_op_node method in a "longer" dag"""
+        """Test remove_op_node method in a "longer" dag"""
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1])
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(CnotGate(), [self.qubit2, self.qubit1])
         self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit2])
         self.dag.apply_operation_back(HGate(), [self.qubit2])
 
-        named_nodes = [node for node in self.dag.nodes_in_topological_order()]
-        self.dag.remove_op_node(named_nodes[2])
+        op_nodes = [node for node in self.dag.topological_op_nodes()]
+        self.dag.remove_op_node(op_nodes[0])
 
-        expected = [('qr[0]', []),
-                    ('h', [self.qubit0]),
-                    ('qr[1]', []),
-                    ('qr[2]', []),
+        expected = [('h', [self.qubit0]),
                     ('cx', [self.qubit2, self.qubit1]),
                     ('cx', [self.qubit0, self.qubit2]),
-                    ('h', [self.qubit2]),
-                    ('qr[0]', []),
-                    ('qr[1]', []),
-                    ('qr[2]', []),
-                    ('cr[0]', []),
-                    ('cr[0]', []),
-                    ('cr[1]', []),
-                    ('cr[1]', [])]
+                    ('h', [self.qubit2])]
         self.assertEqual(expected,
-                         [(i.name, i.qargs) for i in self.dag.nodes_in_topological_order()])
+                         [(i.name, i.qargs) for i in self.dag.topological_op_nodes()])
 
     def test_remove_non_op_node(self):
-        """ Try to remove a non-op node with remove_op_node method."""
+        """Try to remove a non-op node with remove_op_node method."""
         self.dag.apply_operation_back(HGate(), [self.qubit0])
 
-        in_node = next(self.dag.nodes_in_topological_order())
+        in_node = next(self.dag.topological_nodes())
         self.assertRaises(DAGCircuitError, self.dag.remove_op_node, in_node)
 
 
@@ -336,7 +382,7 @@ class TestDagLayers(QiskitTestCase):
 
         name_layers = [
             [node.op.name
-             for node in layer["graph"].multi_graph.nodes()
+             for node in layer["graph"].nodes()
              if node.type == "op"] for layer in layers]
 
         self.assertEqual([
