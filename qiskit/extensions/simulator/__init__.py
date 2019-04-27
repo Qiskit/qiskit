@@ -7,4 +7,4 @@
 
 """Instructions usable by simulator backends."""
 
-from .snapshot import snapshot
+from .snapshot import Snapshot

@@ -83,7 +83,7 @@ class Instruction(ScheduleComponent):
 
     @property
     def duration(self) -> int:
-        """Duration of this instruction. """
+        """Duration of this instruction."""
         return self.timeslots.duration
 
     @property
