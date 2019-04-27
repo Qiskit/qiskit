@@ -11,8 +11,8 @@ Physical qubit.
 from typing import List
 
 from qiskit.pulse.exceptions import PulseError
-from .output_channel import DriveChannel, ControlChannel, MeasureChannel
-from .pulse_channel import AcquireChannel
+from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
+from .channels import AcquireChannel
 
 
 class Qubit:

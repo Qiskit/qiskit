@@ -14,10 +14,10 @@ from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChanne
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
-from .pulse_command import PulseCommand
+from .command import Command
 
 
-class Acquire(PulseCommand):
+class Acquire(Command):
     """Acquire."""
 
     ALIAS = 'acquire'

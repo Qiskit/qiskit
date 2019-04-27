@@ -140,8 +140,8 @@ def execute(experiments, backend,
         default_meas_los (list):
             List of default meas lo frequencies
 
-        schedule_los (None or list[Union[Dict[OutputChannel, float], LoConfig]] or
-                      Union[Dict[OutputChannel, float], LoConfig]):
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
+                      Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
         meas_level (int):

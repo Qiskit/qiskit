@@ -12,13 +12,13 @@ from typing import Callable
 
 import numpy as np
 
-from qiskit.pulse.channels import OutputChannel
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
-from .pulse_command import PulseCommand
+from .command import Command
 
 
-class SamplePulse(PulseCommand):
+class SamplePulse(Command):
     """Container for functional pulse."""
 
     def __init__(self, samples, name=None):
@@ -89,13 +89,13 @@ class SamplePulse(PulseCommand):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
 
     # pylint: disable=arguments-differ
-    def to_instruction(self, channel: OutputChannel, name=None) -> 'DriveInstruction':
-        return DriveInstruction(self, channel, name=name)
+    def to_instruction(self, channel: PulseChannel, name=None) -> 'PulseInstruction':
+        return PulseInstruction(self, channel, name=name)
     # pylint: enable=arguments-differ
 
 
-class DriveInstruction(Instruction):
-    """Instruction to drive a pulse to an `OutputChannel`. """
+class PulseInstruction(Instruction):
+    """Instruction to drive a pulse to an `PulseChannel`. """
 
-    def __init__(self, command: SamplePulse, channel: OutputChannel, name=None):
+    def __init__(self, command: SamplePulse, channel: PulseChannel, name=None):
         super().__init__(command, channel, name=name)
