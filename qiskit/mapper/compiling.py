@@ -13,7 +13,6 @@ Methods to assist with compiling tasks.
 """
 import warnings
 
-from qiskit.quantum_info import Unitary
 from qiskit.quantum_info import synthesis
 
 
@@ -30,4 +29,4 @@ def two_qubit_kak(unitary_matrix, verify_gate_sequence=False):
     """
     warnings.warn("two_qubit_kak function is now accessible under "
                   "qiskit.quantum_info.synthesis", DeprecationWarning)
-    return synthesis.two_qubit_kak(Unitary(unitary_matrix))
+    return synthesis.two_qubit_kak(unitary_matrix)

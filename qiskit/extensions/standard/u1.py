@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class U1Gate(Gate):
     """Diagonal single-qubit gate."""
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None):
         """Create new diagonal single-qubit gate."""
-        super().__init__("u1", 1, [theta])
+        super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
         definition = []

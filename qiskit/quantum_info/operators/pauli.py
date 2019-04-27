@@ -300,6 +300,19 @@ class Pauli:
         from qiskit.quantum_info.operators.operator import Operator
         return Operator(self.to_matrix())
 
+    def to_instruction(self):
+        """Convert to Pauli circuit instruction."""
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate
+        gates = {'I': IdGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
+        label = self.to_label()
+        n_qubits = self.numberofqubits
+        qreg = QuantumRegister(n_qubits)
+        circuit = QuantumCircuit(qreg, name='Pauli:{}'.format(label))
+        for i, pauli in enumerate(reversed(label)):
+            circuit.append(gates[pauli], [qreg[i]])
+        return circuit.to_instruction()
+
     def update_z(self, z, indices=None):
         """
         Update partial or entire z.
