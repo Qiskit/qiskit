@@ -10,7 +10,8 @@
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
-from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, String
+from qiskit.validation.fields import (Boolean, DateTime, Integer, List, Nested, String,
+                                      Complex, Float, Dict, PatternProperties, InstructionParameter)
 
 
 class GateConfigSchema(BaseSchema):
@@ -30,6 +31,31 @@ class GateConfigSchema(BaseSchema):
                        validate=Length(min=1))
     conditional = Boolean()
     description = String()
+
+
+class UchannelLO(BaseSchema):
+    """Schema for uchannel LO."""
+
+    # Required properties.
+    q = Integer(required=True, validate=Range(min=0))
+    scale = List(Complex(), required=True)
+
+    # Optional properties.
+
+
+class PulseHamiltonianSchema(BaseSchema):
+    """Schema for PulseHamiltonian."""
+    # pylint: disable=redefined-builtin
+
+    # Required properties.
+    h_str = List(String(), validate=Length(min=1), required=True)
+    dim_osc = List(Integer(validate=Range(min=1)), required=True)
+    dim_qub = List(Integer(validate=Range(min=2)), required=True)
+    vars = Dict(validate=PatternProperties({
+        Regexp('^([a-z0-9])+$'): InstructionParameter()
+    }), required=True)
+
+    # Optional properties.
 
 
 class BackendConfigurationSchema(BaseSchema):
@@ -67,6 +93,36 @@ class BackendConfigurationSchema(BaseSchema):
     display_name = String()
     description = String()
     tags = List(String())
+
+
+class QASMBackendConfiguration(BackendConfigurationSchema):
+    """Schema for QASM backend."""
+    pass
+
+
+class PulseBackendConfigurationSchema(BackendConfigurationSchema):
+    """Schema for pulse backend"""
+    # Required properties.
+    open_pulse = Boolean(required=True, validate=OneOf([True]))
+    n_uchannels = Integer(required=True, validate=Range(min=0))
+    u_channel_lo = List(List(UchannelLO, validate=Length(min=1)), required=True)
+    meas_levels = List(Integer(), validate=Length(min=1), required=True)
+    qubit_lo_range = List(List(Float(validate=Range(min=0)),
+                               validate=Length(equal=2)), required=True)
+    meas_lo_range = List(List(Float(validate=Range(min=0)),
+                              validate=Length(equal=2)), required=True)
+    dt = Float(required=True)
+    dtm = Float(required=True)
+    rep_times = List(Float(validate=Range(min=0)), required=True)
+    meas_kernels = List(String(), required=True)
+    discriminators = List(String(), required=True)
+
+    # Optional properties.
+    meas_map = List(List(Integer(), validate=Length(min=1)), validate=Range(min=1))
+    channel_bandwidth = List(List(validate=Length(equal=2)))
+    acquisition_latency = List(List(Float()))
+    conditional_latency = List(List(Float()))
+    hamiltonian = PulseHamiltonianSchema
 
 
 @bind_schema(GateConfigSchema)
