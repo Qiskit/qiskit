@@ -9,12 +9,12 @@
 Frame change pulse.
 """
 
-from qiskit.pulse.channels import OutputChannel
+from qiskit.pulse.channels import PulseChannel
 from .instruction import Instruction
-from .pulse_command import PulseCommand
+from .command import Command
 
 
-class FrameChange(PulseCommand):
+class FrameChange(Command):
     """Frame change pulse."""
 
     def __init__(self, phase):
@@ -51,13 +51,13 @@ class FrameChange(PulseCommand):
         return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)
 
     # pylint: disable=arguments-differ
-    def to_instruction(self, channel: OutputChannel, name=None) -> 'FrameChangeInstruction':
+    def to_instruction(self, channel: PulseChannel, name=None) -> 'FrameChangeInstruction':
         return FrameChangeInstruction(self, channel, name=name)
     # pylint: enable=arguments-differ
 
 
 class FrameChangeInstruction(Instruction):
-    """Instruction to change frame of an `OutputChannel`. """
+    """Instruction to change frame of an `PulseChannel`. """
 
-    def __init__(self, command: FrameChange, channel: OutputChannel, name=None):
+    def __init__(self, command: FrameChange, channel: PulseChannel, name=None):
         super().__init__(command, channel, name=name)

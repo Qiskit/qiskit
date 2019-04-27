@@ -17,7 +17,6 @@ from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
 
-
 logger = logging.getLogger(__name__)
 
 # pylint: disable=missing-return-doc
@@ -29,7 +28,7 @@ class Instruction(ScheduleComponent):
     def __init__(self, command, *channels: List[Channel],
                  timeslots: TimeslotCollection = None, name=None):
         """
-        command (PulseCommand): Pulse command to schedule
+        command (Command): Pulse command to schedule
         *channels: List of pulse channels to schedule with command
         timeslots: Optional list of timeslots. If channels are supplied timeslots
             cannot also be given
@@ -57,7 +56,7 @@ class Instruction(ScheduleComponent):
     def command(self):
         """Acquire command.
 
-        Returns: PulseCommand
+        Returns: Command
         """
         return self._command
 
