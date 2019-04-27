@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class TGate(Gate):
     """T Gate: pi/4 rotation around Z axis."""
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new T gate."""
-        super().__init__("t", 1, [])
+        super().__init__("t", 1, [], label=label)
 
     def _define(self):
         """
@@ -53,9 +53,9 @@ class TGate(Gate):
 class TdgGate(Gate):
     """T Gate: -pi/4 rotation around Z axis."""
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new Tdg gate."""
-        super().__init__("tdg", 1, [])
+        super().__init__("tdg", 1, [], label=label)
 
     def _define(self):
         """
