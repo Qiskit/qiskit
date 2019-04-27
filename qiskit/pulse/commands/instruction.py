@@ -198,7 +198,7 @@ class Instruction(ScheduleComponent):
                                           scaling=scaling, channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
                                           interactive=interactive, legend=legend, table=table,
-                                          label=label)
+                                          label=label, framechange=framechange)
 
     def __add__(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""

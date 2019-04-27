@@ -871,6 +871,7 @@ class EventsOutputChannels:
         self._framechanges = None
         self._conditionals = None
         self._snapshots = None
+        self._labels = None
         self.enable = False
 
     def add_instruction(self, start_time, pulse):
@@ -1265,7 +1266,7 @@ class ScheduleDrawer:
                     ha='center', va='center')
         return framechanges_present
 
-    def _draw_labels(self, ax, labels, dt, y0, color='black'):
+    def _draw_labels(self, ax, labels, dt, y0):
         for t0, (tf, label) in labels.items():
             ax.text(x=(t0+tf)//2*dt, y=y0+0.45,
                     s=r'%s' % label,

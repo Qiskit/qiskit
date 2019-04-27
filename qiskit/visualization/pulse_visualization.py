@@ -58,7 +58,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None, output='mpl',
             drawer = _matplotlib.ScheduleDrawer(style=style)
             image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling,
                                 plot_range=plot_range, channels_to_plot=channels_to_plot,
-                                plot_all=plot_all, legend=legend, table=table, label=label)
+                                plot_all=plot_all, legend=legend, table=table, label=label,
+                                framechange=framechange)
         else:
             raise VisualizationError('This data cannot be visualized.')
     else:
