@@ -6,8 +6,9 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Module for Pulses."""
-from .channels import DeviceSpecification
+from .channels import (DeviceSpecification, DriveChannel, MeasureChannel, AcquireChannel,
+                       ControlChannel, RegisterSlot, MemorySlot)
 from .commands import (Acquire, FrameChange, PersistentValue, SamplePulse, Snapshot,
                        Kernel, Discriminator, functional_pulse)
-from .configuration import LoConfig
+from .configuration import LoConfig, LoRange
 from .schedule import Schedule

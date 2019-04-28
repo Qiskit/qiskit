@@ -141,7 +141,7 @@ class TestDeviceSpecification(QiskitTestCase):
 
         device = DeviceSpecification.create_from(backend)
 
-        self.assertEqual(device.q[0].drive, DriveChannel(0, (4.5, 5.5)))
+        self.assertEqual(device.q[0].drive, DriveChannel(0))
 
 
 if __name__ == '__main__':

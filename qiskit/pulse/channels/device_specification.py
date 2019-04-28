@@ -11,7 +11,6 @@ Specification of the device.
 import logging
 from typing import List
 
-from qiskit.pulse.exceptions import PulseError
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
@@ -53,22 +52,10 @@ class DeviceSpecification:
         n_registers = backend_config.n_registers
         n_uchannels = backend_config.n_uchannels
 
-        if n_uchannels > 0 and n_uchannels != n_qubits:
-            raise PulseError("This version assumes no U-channels or #U-cannels==#qubits.")
-
-        # frequency information
-        qubit_lo_ranges = backend_config.qubit_lo_range
-        meas_lo_ranges = backend_config.meas_lo_range
-
         # generate channels with assuming their numberings are aligned with qubits
-        drives = [
-            DriveChannel(i, tuple(qubit_lo_ranges[i]))
-            for i in range(n_qubits)
-        ]
-        measures = [
-            MeasureChannel(i, tuple(meas_lo_ranges[i]))
-            for i in range(n_qubits)
-        ]
+        drives = [DriveChannel(i) for i in range(n_qubits)]
+
+        measures = [MeasureChannel(i) for i in range(n_qubits)]
 
         controls = [ControlChannel(i) for i in range(n_uchannels)]
 
