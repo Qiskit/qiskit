@@ -41,6 +41,7 @@ class VariationalForm(Pluggable):
     def __init__(self):
         super().__init__()
         self._num_parameters = 0
+        self._num_qubits = 0
         self._bounds = list()
         pass
 
@@ -78,6 +79,15 @@ class VariationalForm(Pluggable):
             An integer indicating the number of parameters.
         """
         return self._num_parameters
+
+    @property
+    def num_qubits(self):
+        """Number of qubits of the variational form.
+
+        Returns:
+            An integer indicating the number of qubits.
+        """
+        return self._num_qubits
 
     @property
     def parameter_bounds(self):
