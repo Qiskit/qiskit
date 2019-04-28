@@ -47,6 +47,7 @@ class FakeProvider(BaseProvider):
     def get_backend(self, name=None, **kwargs):
         backend = self._backends[0]
         if name:
+            # pylint: disable:no-member
             filtered_backends = [backend for backend in self._backends
                                  if backend.name() == name]
             if not filtered_backends:
