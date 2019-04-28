@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# Copyright 2019, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
@@ -17,7 +17,8 @@ onto a device with this coupling.
 """
 import numpy as np
 import networkx as nx
-from .exceptions import CouplingError
+
+from qiskit.transpiler.exceptions import CouplingError
 
 
 class CouplingMap:

@@ -15,8 +15,8 @@ Physical (qu)bits are integers.
 import warnings
 
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.mapper.exceptions import LayoutError
 from qiskit.circuit.register import Register
+from qiskit.transpiler.exceptions import LayoutError
 
 
 class Layout():

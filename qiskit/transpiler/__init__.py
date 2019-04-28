@@ -12,4 +12,6 @@ from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
-from .transpiler import transpile, transpile_dag
+from .coupling import CouplingMap
+from .layout import Layout
+from .transpiler import transpile, transpile_dag  # deprecated
