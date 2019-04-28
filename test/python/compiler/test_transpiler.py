@@ -540,4 +540,3 @@ class TestTranspile(QiskitTestCase):
             is_last_measure = all([after_measure.type == 'out'
                                    for after_measure in out_dag.quantum_successors(meas_node)])
             self.assertTrue(is_last_measure)
-
