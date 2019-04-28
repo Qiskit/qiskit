@@ -12,8 +12,6 @@ import logging
 from typing import List
 
 from qiskit.pulse.exceptions import PulseError
-from qiskit.validation.exceptions import ModelValidationError
-from qiskit.providers.models import UchannelLO
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
@@ -50,18 +48,6 @@ class DeviceSpecification:
         """
         backend_config = backend.configuration()
 
-        # TODO : Remove usage of config.defaults when backend.defaults() is updated.
-        try:
-            backend_default = backend.defaults()
-        except ModelValidationError:
-            from collections import namedtuple
-            BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est'))
-
-            backend_default = BackendDefault(
-                qubit_freq_est=backend_config.defaults['qubit_freq_est'],
-                meas_freq_est=backend_config.defaults['meas_freq_est']
-            )
-
         # system size
         n_qubits = backend_config.n_qubits
         n_registers = backend_config.n_registers
@@ -71,9 +57,7 @@ class DeviceSpecification:
             raise PulseError("This version assumes no U-channels or #U-cannels==#qubits.")
 
         # frequency information
-        qubit_lo_freqs = backend_default.qubit_freq_est
         qubit_lo_ranges = backend_config.qubit_lo_range
-        meas_lo_freqs = backend_default.meas_freq_est
         meas_lo_ranges = backend_config.meas_lo_range
 
         # generate channels with assuming their numberings are aligned with qubits
