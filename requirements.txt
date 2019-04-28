@@ -8,3 +8,4 @@ ply>=3.10
 psutil>=5
 scipy>=0.19
 sympy>=1.3
+qiskit-ibmq-provider>=0.1
