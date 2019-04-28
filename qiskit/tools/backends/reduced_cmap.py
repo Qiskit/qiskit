@@ -13,10 +13,11 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 from qiskit.qiskiterror import QiskitError
 
+
 def reduced_coupling_map(backend, mapping):
     """Returns a reduced coupling map that
-    corresponds to the backend qubits selected
-    in the mapping.
+    corresponds to the subgraph of backend qubits
+    selected in the mapping.
 
     Args:
         backend (BaseBackend): A backend for a physical device.
