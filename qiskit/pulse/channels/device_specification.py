@@ -86,17 +86,17 @@ class DeviceSpecification:
             for i in range(n_qubits)
         ]
 
-        u_channel_los = backend_config.u_channel_los
+        u_channel_los = backend_config.u_channel_lo
         controls = []
 
-        for u_channel_lo in u_channel_los:
+        for i, u_channel_lo in enumerate(u_channel_los):
             u_chan_freq = 0
             for u_chan_component in u_channel_lo:
                 # TODO: After all pulse backends turn on `open_pulse=True`
                 if not isinstance(u_chan_component, UchannelLO):
                     u_chan_component = UchannelLO(**u_chan_component)
                 drive_channel_freq = drives[u_chan_component.q].lo_freq
-                scale = drives[u_chan_component.scale]
+                scale = u_chan_component.scale
                 u_chan_freq += scale*drive_channel_freq
 
             controls.append(ControlChannel(i, u_chan_freq))
@@ -109,11 +109,8 @@ class DeviceSpecification:
         qubits = []
         for i in range(n_qubits):
             # TODO: get qubits <-> channels relationship from backend
-            qubit = Qubit(i,
-                          drive_channels=[drives[i]],
-                          control_channels=None if n_uchannels == 0 else controls[i],
-                          measure_channels=[measures[i]],
-                          acquire_channels=[acquires[i]])
+            qubit = Qubit(i, drives[i], measures[i], acquires[i],
+                          control_channels=[] if not controls else controls)
             qubits.append(qubit)
 
         registers = [RegisterSlot(i) for i in range(n_registers)]

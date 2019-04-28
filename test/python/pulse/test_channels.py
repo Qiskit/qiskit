@@ -107,14 +107,11 @@ class TestQubit(QiskitTestCase):
     def test_default(self):
         """Test default qubit.
         """
-        qubit = Qubit(1,
-                      drive_channels=[DriveChannel(2, 1.2)],
-                      control_channels=[ControlChannel(3)],
-                      measure_channels=[MeasureChannel(4)],
-                      acquire_channels=[AcquireChannel(5)])
+        qubit = Qubit(1, DriveChannel(2, 1.2), MeasureChannel(4), AcquireChannel(5),
+                      control_channels=[ControlChannel(3)])
 
         self.assertEqual(qubit.drive, DriveChannel(2, 1.2))
-        self.assertEqual(qubit.control, ControlChannel(3))
+        self.assertEqual(qubit.controls[0], ControlChannel(3))
         self.assertEqual(qubit.measure, MeasureChannel(4))
         self.assertEqual(qubit.acquire, AcquireChannel(5))
 
@@ -126,8 +123,8 @@ class TestDeviceSpecification(QiskitTestCase):
         """Test default device specification.
         """
         qubits = [
-            Qubit(0, drive_channels=[DriveChannel(0, 1.2)], acquire_channels=[AcquireChannel(0)]),
-            Qubit(1, drive_channels=[DriveChannel(1, 3.4)], acquire_channels=[AcquireChannel(1)])
+            Qubit(0, DriveChannel(0, 1.2), MeasureChannel(0, 1.2), AcquireChannel(0)),
+            Qubit(1, DriveChannel(1, 3.4), MeasureChannel(1, 1.2), AcquireChannel(1))
         ]
         registers = [RegisterSlot(i) for i in range(2)]
         mem_slots = [MemorySlot(i) for i in range(2)]
@@ -146,8 +143,6 @@ class TestDeviceSpecification(QiskitTestCase):
         device = DeviceSpecification.create_from(backend)
 
         self.assertEqual(device.q[0].drive, DriveChannel(0, 4.9, (4.5, 5.5)))
-        with self.assertRaises(PulseError):
-            device.q[0].control()
 
 
 if __name__ == '__main__':
