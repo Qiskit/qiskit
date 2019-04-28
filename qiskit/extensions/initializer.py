@@ -16,7 +16,7 @@ import scipy
 from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit import Gate
+from qiskit.circuit import Instruction
 from qiskit.circuit.decorators import _convert_to_bits
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
@@ -26,7 +26,7 @@ from qiskit.circuit.reset import Reset
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class InitializeGate(Gate):  # pylint: disable=abstract-method
+class InitializeGate(Instruction):  # pylint: disable=abstract-method
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
@@ -52,7 +52,7 @@ class InitializeGate(Gate):  # pylint: disable=abstract-method
 
         num_qubits = int(num_qubits)
 
-        super().__init__("initialize", num_qubits, params)
+        super().__init__("initialize", num_qubits, 0, params)
 
     def _define(self):
         """Calculate a subcircuit that implements this initialization
@@ -241,7 +241,7 @@ def initialize(self, params, qubits):
         qubits = qubits[:]
     else:
         qubits = _convert_to_bits([qubits], [qbit for qreg in self.qregs for qbit in qreg])[0]
-    return self.append(InitializeGate(params), qubits, [])
+    return self.append(InitializeGate(params), qubits)
 
 
 QuantumCircuit.initialize = initialize
