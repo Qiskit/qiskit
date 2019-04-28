@@ -41,85 +41,13 @@ def transpile(circuits, backend=None, basis_gates=None, coupling_map=None,
     Raises:
         TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
-    return_form_is_single = False
-    if isinstance(circuits, QuantumCircuit):
-        circuits = [circuits]
-        return_form_is_single = True
-
-    # pass manager overrides explicit transpile options (basis_gates, coupling_map)
-    # explicit transpile options override options gotten from a backend
-    if not pass_manager and backend:
-        basis_gates = basis_gates or getattr(backend.configuration(), 'basis_gates',
-                                             ['u1', 'u2', 'u3', 'id', 'cx'])
-        # This needs to be removed once Aer 0.2 is out
-        coupling_map = coupling_map or getattr(backend.configuration(), 'coupling_map', None)
-
-    # Accomodate initial_layout in the form of Layout, or dict, or list
-    # TODO: (Ali) allow partial layout specifications
-    if isinstance(initial_layout, list):
-        if all(isinstance(elem, int) for elem in initial_layout):
-            # FIXME: (Ali) must allow a list of initial layouts
-            initial_layout = Layout.from_intlist(initial_layout, *circuits[0].qregs)
-        elif all(elem is None or isinstance(elem, tuple) for elem in initial_layout):
-            initial_layout = Layout.from_tuplelist(initial_layout)
-        else:
-            raise TranspilerError("bad format for initial_layout")
-    elif isinstance(initial_layout, dict):
-        initial_layout = Layout(initial_layout)
-
-    circuits = parallel_map(_transpilation, circuits,
-                            task_kwargs={'basis_gates': basis_gates,
-                                         'coupling_map': coupling_map,
-                                         'initial_layout': initial_layout,
-                                         'seed_mapper': seed_mapper,
-                                         'pass_manager': pass_manager})
-    if return_form_is_single:
-        return circuits[0]
-    return circuits
-
-
-def _transpilation(circuit, basis_gates=None, coupling_map=None,
-                   initial_layout=None, seed_mapper=None,
-                   pass_manager=None):
-    """Perform transpilation of a single circuit.
-
-    Args:
-        circuit (QuantumCircuit): A circuit to transpile.
-        basis_gates (list[str]): list of basis gate names supported by the
-            target. Default: ['u1','u2','u3','cx','id']
-        coupling_map (CouplingMap): coupling map (perhaps custom) to target in mapping
-        initial_layout (Layout): initial layout of qubits in mapping
-        seed_mapper (int): random seed for the swap_mapper
-        pass_manager (PassManager): a pass_manager for the transpiler stage
-
-    Returns:
-        QuantumCircuit: A transpiled circuit.
-
-    Raises:
-        TranspilerError: If the Layout does not matches the circuit
-    """
-    if initial_layout is not None and set(circuit.qregs) != initial_layout.get_registers():
-        raise TranspilerError('The provided initial layout does not match the registers in '
-                              'the circuit "%s"' % circuit.name)
-
-    if pass_manager and not pass_manager.working_list:
-        return circuit
-
-    is_parametric_circuit = bool(circuit.variables)
-
-    dag = circuit_to_dag(circuit)
-    del circuit
-
-    final_dag = _transpile_dag(dag, basis_gates=basis_gates,
-                               coupling_map=coupling_map,
-                               initial_layout=initial_layout,
-                               skip_numeric_passes=is_parametric_circuit,
-                               seed_mapper=seed_mapper,
-                               pass_manager=pass_manager)
-
-    out_circuit = dag_to_circuit(final_dag)
-
-    return out_circuit
+    warnings.warn("qiskit.transpiler.transpile() has been deprecated and will be "
+                  "removed in the 0.9 release. Use qiskit.compiler.transpile() instead.",
+                  DeprecationWarning)
+    return compiler.transpile(circuits=circuits, backend=backend,
+                              basis_gates=basis_gates, coupling_map=coupling_map,
+                              initial_layout=initial_layout, seed_transpiler=seed_mapper,
+                              pass_manager=pass_manager)
 
 
 def transpile_dag(dag, basis_gates=None, coupling_map=None,
