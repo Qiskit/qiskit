@@ -21,7 +21,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.mapper import Layout
+from qiskit.transpiler import Layout
 from qiskit.circuit import Parameter
 
 

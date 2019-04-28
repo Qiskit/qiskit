@@ -23,9 +23,9 @@ from qiskit.extensions.standard.u1 import U1Gate
 class SGate(Gate):
     """S=diag(1,i) Clifford phase gate."""
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new S gate."""
-        super().__init__("s", 1, [])
+        super().__init__("s", 1, [], label=label)
 
     def _define(self):
         """
@@ -53,9 +53,9 @@ class SGate(Gate):
 class SdgGate(Gate):
     """Sdg=diag(1,-i) Clifford adjoint phase gate."""
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new Sdg gate."""
-        super().__init__("sdg", 1, [])
+        super().__init__("sdg", 1, [], label=label)
 
     def _define(self):
         """

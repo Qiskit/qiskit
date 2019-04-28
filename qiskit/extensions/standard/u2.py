@@ -22,9 +22,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class U2Gate(Gate):
     """One-pulse single-qubit gate."""
 
-    def __init__(self, phi, lam):
+    def __init__(self, phi, lam, label=None):
         """Create new one-pulse single-qubit gate."""
-        super().__init__("u2", 1, [phi, lam])
+        super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
         definition = []
@@ -45,6 +45,7 @@ class U2Gate(Gate):
         """Return a Numpy.array for the U3 gate."""
         isqrt2 = 1 / numpy.sqrt(2)
         phi, lam = self.params
+        phi, lam = float(phi), float(lam)
         return numpy.array([[isqrt2, -numpy.exp(1j * lam) * isqrt2],
                             [
                                 numpy.exp(1j * phi) * isqrt2,

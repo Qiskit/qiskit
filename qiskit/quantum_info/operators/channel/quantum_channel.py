@@ -18,6 +18,7 @@ from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.transformations import _to_choi
+from qiskit.quantum_info.operators.channel.transformations import _to_kraus
 from qiskit.quantum_info.operators.channel.transformations import _to_operator
 
 
@@ -52,6 +53,39 @@ class QuantumChannel(BaseOperator):
         """Try to convert channel to a unitary representation Operator."""
         mat = _to_operator(self.rep, self._data, *self.dim)
         return Operator(mat, self.input_dims(), self.output_dims())
+
+    def to_instruction(self):
+        """Convert to a Kraus or UnitaryGate circuit instruction.
+
+        If the channel is unitary it will be added as a unitary gate,
+        otherwise it will be added as a kraus simulator instruction.
+
+        Returns:
+            Instruction: A kraus instruction for the channel.
+
+        Raises:
+            QiskitError: if input data is not an N-qubit CPTP quantum channel.
+        """
+        from qiskit.circuit.instruction import Instruction
+        # Check if input is an N-qubit CPTP channel.
+        n_qubits = int(np.log2(self._input_dim))
+        if self._input_dim != self._output_dim or 2**n_qubits != self._input_dim:
+            raise QiskitError(
+                'Cannot convert QuantumChannel to Instruction: channel is not an N-qubit channel.'
+            )
+        if not self.is_cptp():
+            raise QiskitError(
+                'Cannot convert QuantumChannel to Instruction: channel is not CPTP.'
+            )
+        # Next we convert to the Kraus representation. Since channel is CPTP we know
+        # that there is only a single set of Kraus operators
+        kraus, _ = _to_kraus(self.rep, self._data, *self.dim)
+        # If we only have a single Kraus operator then the channel is
+        # a unitary channel so can be converted to a UnitaryGate. We do this by
+        # converting to an Operator and using its to_instruction method
+        if len(kraus) == 1:
+            return Operator(kraus[0]).to_instruction()
+        return Instruction('kraus', n_qubits, 0, kraus)
 
     def _is_cp_helper(self, choi, atol, rtol):
         """Test if a channel is completely-positive (CP)"""

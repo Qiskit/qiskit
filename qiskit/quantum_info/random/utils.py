@@ -15,7 +15,7 @@ Methods to create random unitaries, states, etc.
 import math
 import numpy as np
 
-from qiskit.quantum_info.operators import Unitary
+from qiskit.quantum_info.operators import Operator
 from qiskit.exceptions import QiskitError
 
 
@@ -46,14 +46,14 @@ def random_state(dim, seed=None):
 
 def random_unitary(dim, seed=None):
     """
-    Return a random dim x dim Unitary from the Haar measure.
+    Return a random dim x dim unitary Operator from the Haar measure.
 
     Args:
         dim (int): the dim of the state space.
         seed (int): Optional. To set a random seed.
 
     Returns:
-        Unitary: (dim, dim) unitary operator.
+        Operator: (dim, dim) unitary operator.
 
     Raises:
         QiskitError: if dim is not a positive power of 2.
@@ -75,7 +75,7 @@ def random_unitary(dim, seed=None):
             i = i - 1
         # normalize
         matrix[:, j] = matrix[:, j] * (1.0 / np.sqrt(np.vdot(matrix[:, j], matrix[:, j])))
-    return Unitary(matrix)
+    return Operator(matrix)
 
 
 # TODO: return a DensityMatrix object.
@@ -154,7 +154,7 @@ def __random_density_bures(N, rank=None, seed=None):
     Returns:
         ndarray: rho (N,N) a density matrix.
     """
-    P = np.eye(N) + random_unitary(N).representation
+    P = np.eye(N) + random_unitary(N).data
     G = P.dot(__ginibre_matrix(N, rank, seed))
     G = G.dot(G.conj().T)
     return G / np.trace(G)

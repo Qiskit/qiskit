@@ -12,19 +12,21 @@ from abc import ABCMeta, abstractmethod
 
 from qiskit.pulse.exceptions import PulseError
 
+from .instruction import Instruction
 
-class PulseCommand(metaclass=ABCMeta):
+
+class Command(metaclass=ABCMeta):
     """Super abstract class of command group."""
 
     pulseIndex = 0
 
     @abstractmethod
     def __init__(self, duration: int = None, name: str = None):
-        """Create new pulse commands.
+        """Create a new command.
 
         Args:
-            duration (int): Duration of pulse.
-            name (str): Name of pulse command.
+            duration (int): Duration of this command.
+            name (str): Name of this command.
         Raises:
             PulseError: when duration is not number of points.
         """
@@ -36,8 +38,8 @@ class PulseCommand(metaclass=ABCMeta):
         if name:
             self._name = name
         else:
-            self._name = 'p%d' % PulseCommand.pulseIndex
-            PulseCommand.pulseIndex += 1
+            self._name = 'p%d' % Command.pulseIndex
+            Command.pulseIndex += 1
 
     @property
     def duration(self) -> int:
@@ -49,12 +51,21 @@ class PulseCommand(metaclass=ABCMeta):
         """Name of this command. """
         return self._name
 
+    @abstractmethod
+    def to_instruction(self, command, *channels, timeslots=None, name=None) -> Instruction:
+        """Create an instruction from command."""
+        pass
+
+    def __call__(self, *args, **kwargs):
+        """Creates an Instruction obtained from call to `to_instruction` wrapped in a Schedule."""
+        return self.to_instruction(*args, **kwargs)
+
     def __eq__(self, other):
-        """Two PulseCommands are the same if they are of the same type
+        """Two Commands are the same if they are of the same type
         and have the same duration and name.
 
         Args:
-            other (PulseCommand): other PulseCommand.
+            other (Command): other Command.
 
         Returns:
             bool: are self and other equal.

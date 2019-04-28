@@ -178,8 +178,7 @@ class TestPulseQobj(QiskitTestCase):
                                          ],
                        'qubit_lo_freq': [4.9],
                        'meas_lo_freq': [6.9],
-                       'rep_time': 1000
-                       },
+                       'rep_time': 1000},
             'experiments': [
                 {'instructions': [
                     {'name': 'pulse0', 't0': 0, 'ch': 'd0'},
@@ -225,7 +224,7 @@ class TestPulseQobj(QiskitTestCase):
                  'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
                  'qubit_lo_freq': [4.9],
                  'meas_lo_freq': [6.9],
-                 'rep_time': 1000}
+                 'rep_time': 1000},
             ),
             QobjPulseLibrary: (
                 QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j]),
