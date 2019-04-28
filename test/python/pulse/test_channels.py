@@ -143,9 +143,6 @@ class TestDeviceSpecification(QiskitTestCase):
         """
         backend = FakeOpenPulse2Q()
 
-        # overwrite n_uchannel
-        backend._configuration.n_uchannels = 0
-
         device = DeviceSpecification.create_from(backend)
 
         self.assertEqual(device.q[0].drive, DriveChannel(0, 4.9, (4.5, 5.5)))

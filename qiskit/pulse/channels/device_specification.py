@@ -13,6 +13,7 @@ from typing import List
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.validation.exceptions import ModelValidationError
+from qiskit.providers.models import UchannelLO
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
@@ -84,8 +85,26 @@ class DeviceSpecification:
             MeasureChannel(i, meas_lo_freqs[i], tuple(meas_lo_ranges[i]))
             for i in range(n_qubits)
         ]
+
+        u_channel_los = backend_config.u_channel_los
+        controls = []
+
+        for u_channel_lo in u_channel_los:
+            u_chan_freq = 0
+            for u_chan_component in u_channel_lo:
+                # TODO: After all pulse backends turn on `open_pulse=True`
+                if not isinstance(u_chan_component, UchannelLO):
+                    u_chan_component = UchannelLO(**u_chan_component)
+                drive_channel_freq = drives[u_chan_component.q].lo_freq
+                scale = drives[u_chan_component.scale]
+                u_chan_freq += scale*drive_channel_freq
+
+            controls.append(ControlChannel(i, u_chan_freq))
+
+        # extend for missing u_channel_los
+        controls = [ControlChannel(i) for i in range(n_uchannels-len(u_channel_los))]
+
         acquires = [AcquireChannel(i) for i in range(n_qubits)]
-        controls = [ControlChannel(i) for i in range(n_uchannels)]
 
         qubits = []
         for i in range(n_qubits):

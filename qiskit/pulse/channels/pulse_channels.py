@@ -22,7 +22,7 @@ class LoRange:
         self._lb = lower_bound
         self._ub = upper_bound
 
-    def includes(self, lo_freq: float) -> bool:
+    def includes(self, lo_freq: complex) -> bool:
         """Whether `lo_freq` is within the `LoRange`.
 
         Args:
@@ -31,7 +31,7 @@ class LoRange:
         Returns:
             bool: True if lo_freq is included in this range, otherwise False
         """
-        if self._lb <= lo_freq <= self._ub:
+        if self._lb <= abs(lo_freq) <= self._ub:
             return True
         return False
 
@@ -71,7 +71,7 @@ class PulseChannel(Channel):
     @abstractmethod
     def __init__(self,
                  index: int,
-                 lo_freq: float = None,
+                 lo_freq: complex = None,
                  lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         super().__init__(index)
         self._lo_freq = lo_freq
@@ -102,14 +102,14 @@ class DriveChannel(PulseChannel):
     prefix = 'd'
 
     def __init__(self, index: int,
-                 lo_freq: float = None,
+                 lo_freq: complex = None,
                  lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new drive (d) channel.
 
         Args:
-            index (int): index of the channel
-            lo_freq (float): default frequency of LO (local oscillator)
-            lo_freq_range (tuple): feasible range of LO frequency
+            index: index of the channel
+            lo_freq: default frequency of LO (local oscillator)
+            lo_freq_range: feasible range of LO frequency
         """
         super().__init__(index, lo_freq, lo_freq_range)
 
@@ -120,14 +120,14 @@ class ControlChannel(PulseChannel):
     prefix = 'u'
 
     def __init__(self, index: int,
-                 lo_freq: float = None,
+                 lo_freq: complex = None,
                  lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new control (u) channel.
 
         Args:
-            index (int): index of the channel
-            lo_freq (float): default frequency of LO (local oscillator)
-            lo_freq_range (tuple): feasible range of LO frequency
+            index: index of the channel
+            lo_freq: default frequency of LO (local oscillator)
+            lo_freq_range: feasible range of LO frequency
         """
         super().__init__(index, lo_freq, lo_freq_range)
 
@@ -138,13 +138,13 @@ class MeasureChannel(PulseChannel):
     prefix = 'm'
 
     def __init__(self, index: int,
-                 lo_freq: float = None,
+                 lo_freq: complex = None,
                  lo_freq_range: Tuple[float, float] = (0, float("inf"))):
         """Create new measurement (m) channel.
 
         Args:
-            index (int): index of the channel
-            lo_freq (float): default frequency of LO (local oscillator)
-            lo_freq_range (tuple): feasible range of LO frequency
+            index: index of the channel
+            lo_freq: default frequency of LO (local oscillator)
+            lo_freq_range: feasible range of LO frequency
         """
         super().__init__(index, lo_freq, lo_freq_range)
