@@ -26,7 +26,7 @@ from qiskit.circuit.reset import Reset
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class InitializeGate(Instruction):  # pylint: disable=abstract-method
+class InitializeGate(Instruction):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
