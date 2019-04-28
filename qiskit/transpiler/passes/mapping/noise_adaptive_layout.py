@@ -40,7 +40,7 @@ being set in `property_set`.
 import math
 import networkx as nx
 
-from qiskit.mapper import Layout
+from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
