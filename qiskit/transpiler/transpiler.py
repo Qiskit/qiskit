@@ -10,7 +10,7 @@
 import warnings
 
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from qiskit.mapper import CouplingMap
+from qiskit.transpiler import CouplingMap
 from qiskit import compiler
 from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
                                                    default_pass_manager)
