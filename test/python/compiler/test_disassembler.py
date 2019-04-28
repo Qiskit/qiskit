@@ -12,9 +12,8 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import assemble_circuits
-from qiskit.compiler import disassemble
-from qiskit.compiler import RunConfig
+from qiskit.compiler import assemble, disassemble
+from qiskit.compiler.run_config import RunConfig
 from qiskit.test import QiskitTestCase
 
 
@@ -31,11 +30,13 @@ class TestAssembler(QiskitTestCase):
         circ.cx(qr[0], qr[1])
         circ.measure(qr, cr)
 
-        run_config = RunConfig(shots=2000, memory=True)
-        qobj = assemble_circuits(circ, run_config=run_config)
+        qobj = assemble(circ, shots=2000, memory=True)
         circuits, run_config_out, headers = disassemble(qobj)
-        self.assertEqual({'shots': 2000, 'memory': True, 'memory_slots': 2,
-                          'n_qubits': 2}, run_config_out)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 2)
+        self.assertEqual(run_config_out.shots, 2000)
+        self.assertEqual(run_config_out.memory, True)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, headers)
@@ -58,11 +59,14 @@ class TestAssembler(QiskitTestCase):
         circ1.cx(qr1[0], qr1[2])
         circ1.measure(qr1, qc1)
 
-        run_config = RunConfig(shots=100, memory=False, seed=6)
-        qobj = assemble_circuits([circ0, circ1], run_config=run_config)
-        circuits, out_run_config, headers = disassemble(qobj)
-        self.assertEqual({'shots': 100, 'memory': False, 'memory_slots': 3,
-                          'n_qubits': 3, 'seed': 6}, out_run_config)
+        qobj = assemble([circ0, circ1], shots=100, memory=False, seed=6)
+        circuits, run_config_out, headers = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 3)
+        self.assertEqual(run_config_out.memory_slots, 3)
+        self.assertEqual(run_config_out.shots, 100)
+        self.assertEqual(run_config_out.memory, False)
+        self.assertEqual(run_config_out.seed, 6)
         self.assertEqual(len(circuits), 2)
         for circuit in circuits:
             self.assertIn(circuit, [circ0, circ1])
@@ -78,9 +82,11 @@ class TestAssembler(QiskitTestCase):
         circ.cx(qr[0], qr[1])
         circ.measure(qr, qc)
 
-        qobj = assemble_circuits(circ)
+        qobj = assemble(circ)
         circuits, run_config_out, headers = disassemble(qobj)
-        self.assertEqual({'memory_slots': 2, 'n_qubits': 2}, run_config_out)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 2)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, headers)
@@ -92,9 +98,11 @@ class TestAssembler(QiskitTestCase):
         circ = QuantumCircuit(q, name='circ')
         circ.initialize([1/np.sqrt(2), 0, 0, 1/np.sqrt(2)], q[:])
 
-        qobj = assemble_circuits(circ)
+        qobj = assemble(circ)
         circuits, run_config_out, header = disassemble(qobj)
-        self.assertEqual({'memory_slots': 0, 'n_qubits': 2}, run_config_out)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 0)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
         self.assertEqual({}, header)

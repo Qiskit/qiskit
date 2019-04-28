@@ -29,7 +29,6 @@ class Unroller(TransformationPass):
     def run(self, dag):
         """Expand all op nodes to the given basis.
 
-
         Args:
             dag(DAGCircuit): input dag
 

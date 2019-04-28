@@ -10,6 +10,9 @@
 """
 controlled-Phase gate.
 """
+
+import numpy
+
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -22,9 +25,9 @@ from qiskit.extensions.standard.cx import CnotGate
 class CzGate(Gate):
     """controlled-Z gate."""
 
-    def __init__(self):
+    def __init__(self, label=None):
         """Create new CZ gate."""
-        super().__init__("cz", 2, [])
+        super().__init__("cz", 2, [], label=label)
 
     def _define(self):
         """
@@ -44,6 +47,13 @@ class CzGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return CzGate()  # self-inverse
+
+    def to_matrix(self):
+        """Return a Numpy.array for the Cz gate."""
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 0, 1, 0],
+                            [0, 0, 0, -1]], dtype=complex)
 
 
 @_to_bits(2)

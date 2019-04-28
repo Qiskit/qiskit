@@ -10,6 +10,7 @@
 """
 Diagonal single qubit gate.
 """
+import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -21,9 +22,9 @@ from qiskit.extensions.standard.u3 import U3Gate
 class U1Gate(Gate):
     """Diagonal single-qubit gate."""
 
-    def __init__(self, theta):
+    def __init__(self, theta, label=None):
         """Create new diagonal single-qubit gate."""
-        super().__init__("u1", 1, [theta])
+        super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
         definition = []
@@ -38,6 +39,12 @@ class U1Gate(Gate):
     def inverse(self):
         """Invert this gate."""
         return U1Gate(-self.params[0])
+
+    def to_matrix(self):
+        """Return a Numpy.array for the U3 gate."""
+        lam = self.params[0]
+        lam = float(lam)
+        return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
 @_to_bits(1)
