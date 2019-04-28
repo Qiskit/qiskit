@@ -75,11 +75,11 @@ class BackendConfigurationSchema(BaseSchema):
     local = Boolean(required=True)
     simulator = Boolean(required=True)
     conditional = Boolean(required=True)
-    open_pulse = Boolean(required=True)
     memory = Boolean(required=True)
     max_shots = Integer(required=True, validate=Range(min=1))
 
     # Optional properties.
+    open_pulse = Boolean()
     max_experiments = Integer(validate=Range(min=1))
     sample_name = String()
     coupling_map = List(List(Integer(),
@@ -99,7 +99,7 @@ class BackendConfigurationSchema(BaseSchema):
 
 class QASMBackendConfigurationSchema(BackendConfigurationSchema):
     """Schema for QASM backend."""
-    pass
+    open_pulse = Boolean(required=True, validate=OneOf([False]))
 
 
 class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
@@ -165,13 +165,12 @@ class BackendConfiguration(BaseModel):
         local (bool): backend is local or remote.
         simulator (bool): backend is a simulator.
         conditional (bool): backend supports conditional operations.
-        open_pulse (bool): backend supports open pulse.
         memory (bool): backend supports memory.
         max_shots (int): maximum number of shots supported.
     """
 
     def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
-                 gates, local, simulator, conditional, open_pulse, memory,
+                 gates, local, simulator, conditional, memory,
                  max_shots, **kwargs):
 
         self.backend_name = backend_name
@@ -182,7 +181,6 @@ class BackendConfiguration(BaseModel):
         self.local = local
         self.simulator = simulator
         self.conditional = conditional
-        self.open_pulse = open_pulse
         self.memory = memory
         self.max_shots = max_shots
 
@@ -225,6 +223,8 @@ class QASMBackendConfiguration(BackendConfiguration):
     def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
                  gates, local, simulator, conditional, open_pulse, memory,
                  max_shots, **kwargs):
+
+        self.open_pulse = open_pulse
 
         super().__init__(backend_name=backend_name, backend_version=backend_version,
                          n_qubits=n_qubits, basis_gates=basis_gates, gates=gates,
