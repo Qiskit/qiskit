@@ -85,6 +85,8 @@ Added
   wires instead of named bits.
 - Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
   are followed by a measurement instruction, moving the latter to the proper wire. (#1890)
+- Added a ``RemoveDiagonalGatesBeforeMeasure`` pass that removes the diagonal gates when they
+  are followed by a measurement instruction. (#2208)
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
   rotations about the Z axis, leveraging previously-found gate commutation relations. (#2012)
 - Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
@@ -161,6 +163,7 @@ Changed
   to the ['u1', 'u2', 'u3', 'cx'] basis. Instead the default behavior is to not unroll,
   unless specifically requested (#2166).
 - Instruction.copy() is now a shallow copy instead of deep (#2214)
+- Layout and CouplingMap classes are now accessible from qiskit.transpiler (#2222).
 
 Deprecated
 ----------

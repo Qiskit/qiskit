@@ -40,8 +40,8 @@ class DiscriminatorSchema(BaseSchema):
     params = Nested(ObjSchema)
 
 
-class PulseCommandSchema(BaseSchema):
-    """Schema for PulseCommand."""
+class CommandSchema(BaseSchema):
+    """Schema for Command."""
 
     # Required properties.
     name = String(required=True)
@@ -60,7 +60,7 @@ class PulseDefaultsSchema(BaseSchema):
     meas_freq_est = List(Number(), required=True, validate=Length(min=1))
     buffer = Integer(required=True, validate=Range(min=0))
     pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
-    cmd_def = Nested(PulseCommandSchema, many=True, required=True)
+    cmd_def = Nested(CommandSchema, many=True, required=True)
 
     # Optional properties.
     meas_kernel = Nested(MeasurementKernelSchema)
@@ -105,12 +105,12 @@ class Discriminator(BaseModel):
     pass
 
 
-@bind_schema(PulseCommandSchema)
-class PulseCommand(BaseModel):
-    """Model for PulseCommand.
+@bind_schema(CommandSchema)
+class Command(BaseModel):
+    """Model for Command.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseCommandSchema``.
+    full description of the model, please check ``CommandSchema``.
 
     Attributes:
         name (str): Pulse command name.
@@ -134,7 +134,7 @@ class PulseDefaults(BaseModel):
             in GHz.
         buffer (int): Default buffer time (in units of dt) between pulses.
         pulse_library (list[PulseLibraryItem]): Backend pulse library.
-        cmd_def (list[PulseCommand]): Backend command definition.
+        cmd_def (list[Command]): Backend command definition.
     """
 
     def __init__(self, qubit_freq_est, meas_freq_est, buffer,
