@@ -163,6 +163,7 @@ Changed
   to the ['u1', 'u2', 'u3', 'cx'] basis. Instead the default behavior is to not unroll,
   unless specifically requested (#2166).
 - Instruction.copy() is now a shallow copy instead of deep (#2214)
+- Layout and CouplingMap classes are now accessible from qiskit.transpiler (#2222).
 
 Deprecated
 ----------

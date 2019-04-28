@@ -47,7 +47,7 @@ from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.mapper import Layout
+from qiskit.transpiler import Layout
 from qiskit.dagcircuit import DAGNode
 
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
