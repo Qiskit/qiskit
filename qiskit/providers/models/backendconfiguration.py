@@ -36,7 +36,7 @@ class GateConfigSchema(BaseSchema):
     description = String()
 
 
-class UchannelLO(BaseSchema):
+class UchannelLOSchema(BaseSchema):
     """Schema for uchannel LO."""
 
     # Required properties.
@@ -107,24 +107,24 @@ class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
     # Required properties.
     open_pulse = Boolean(required=True, validate=OneOf([True]))
     n_uchannels = Integer(required=True, validate=Range(min=0))
-    u_channel_lo = List(Nested(UchannelLO, validate=Length(min=1),
+    u_channel_lo = List(Nested(UchannelLOSchema, validate=Length(min=1),
                                required=True, many=True))
     meas_levels = List(Integer(), validate=Length(min=1), required=True)
     qubit_lo_range = List(List(Float(validate=Range(min=0)),
                                validate=Length(equal=2)), required=True)
     meas_lo_range = List(List(Float(validate=Range(min=0)),
                               validate=Length(equal=2)), required=True)
-    dt = Float(required=True)
-    dtm = Float(required=True)
+    dt = Float(required=True, validate=Range(min=0))
+    dtm = Float(required=True, validate=Range(min=0))
     rep_times = List(Float(validate=Range(min=0)), required=True)
     meas_kernels = List(String(), required=True)
     discriminators = List(String(), required=True)
 
     # Optional properties.
-    meas_map = List(List(Integer(), validate=Length(min=1)), validate=Length(min=1))
+    meas_map = List(List(Integer(), validate=Length(min=1)))
     channel_bandwidth = List(List(Float(), validate=Length(equal=2)))
-    acquisition_latency = List(List(Float()))
-    conditional_latency = List(List(Float()))
+    acquisition_latency = List(List(Integer()))
+    conditional_latency = List(List(Integer()))
     hamiltonian = PulseHamiltonianSchema()
 
 
@@ -148,6 +148,25 @@ class GateConfig(BaseModel):
         self.qasm_def = qasm_def
 
         super().__init__(**kwargs)
+
+
+@bind_schema(UchannelLOSchema)
+class UchannelLO(BaseModel):
+    """Model for GateConfig.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``GateConfigSchema``.
+
+    Attributes:
+        q (int): Qubit that scale corresponds too.
+        scale (complex): Scale factor for qubit frequency.
+    """
+    def __init__(self, q, scale, **kwargs):
+
+        self.q = q
+        self.scale = scale
+
+        super().__init__(q=q, scale=scale, **kwargs)
 
 
 @bind_schema(BackendConfigurationSchema)
