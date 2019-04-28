@@ -25,7 +25,7 @@ class LoRange:
         """Whether `lo_freq` is within the `LoRange`.
 
         Args:
-            lo_freq: LO frequency to be checked
+            lo_freq: LO frequency to be validated
 
         Returns:
             bool: True if lo_freq is included in this range, otherwise False
