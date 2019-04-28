@@ -33,7 +33,7 @@ from qiskit.validation import ModelTypeValidator
 from qiskit.validation.fields.polymorphic import ByAttribute, ByType, TryFrom
 from qiskit.validation.fields.containers import Nested, List, Dict
 
-from .custom import Complex, InstructionParameter, MeasurementParameter
+from .custom import Complex, InstructionParameter, DictParameters
 
 
 class String(_fields.String, ModelTypeValidator):

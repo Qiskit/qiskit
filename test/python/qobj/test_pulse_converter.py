@@ -39,7 +39,7 @@ class TestInstructionConverter(QiskitTestCase):
         )
 
     def test_drive_instruction(self):
-        """Test converted qobj from DriveInstruction."""
+        """Test converted qobj from PulseInstruction."""
         converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
         command = SamplePulse(np.arange(0, 0.01), name='linear')
         instruction = command(self.device.q[0].drive)

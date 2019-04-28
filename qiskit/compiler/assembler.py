@@ -13,7 +13,7 @@ import logging
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.pulse import Schedule, LoConfig
-from qiskit.pulse.commands import DriveInstruction
+from qiskit.pulse.commands import PulseInstruction
 from qiskit.compiler.run_config import RunConfig
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
@@ -151,16 +151,13 @@ def assemble_circuits(circuits, qobj_id=None, qobj_header=None, run_config=None)
 
 def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=None):
     """Assembles a list of schedules into a qobj which can be run on the backend.
-
     Args:
         schedules (list[Schedule]): schedules to assemble
         qobj_id (int): identifier for the generated qobj
         qobj_header (QobjHeader): header to pass to the results
         run_config (RunConfig): configuration of the runtime environment
-
     Returns:
         PulseQobj: the Qobj to be run on the backends
-
     Raises:
         QiskitError: when invalid schedules or configs are provided
     """
@@ -184,7 +181,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         for shift, instruction in list(schedule.flatten()):
             # TODO: support conditional gate
             qobj_instructions.append(instruction_converter(shift, instruction))
-            if isinstance(instruction, DriveInstruction):
+            if isinstance(instruction, PulseInstruction):
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)
         # experiment header
@@ -308,8 +305,8 @@ def assemble(experiments,
         default_meas_los (list):
             List of default meas lo frequencies
 
-        schedule_los (None or list[Union[Dict[OutputChannel, float], LoConfig]] or
-                      Union[Dict[OutputChannel, float], LoConfig]):
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
+                      Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
         meas_level (int):

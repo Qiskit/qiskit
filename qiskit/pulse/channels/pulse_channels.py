@@ -12,7 +12,7 @@ from abc import abstractmethod
 from typing import Tuple
 
 from qiskit.pulse.exceptions import PulseError
-from .pulse_channel import Channel
+from .channels import Channel
 
 
 class LoRange:
@@ -65,8 +65,8 @@ class LoRange:
         return False
 
 
-class OutputChannel(Channel):
-    """Output Channel."""
+class PulseChannel(Channel):
+    """Base class of Channel supporting pulse output."""
 
     @abstractmethod
     def __init__(self,
@@ -96,7 +96,7 @@ class OutputChannel(Channel):
         return self._lo_freq_range
 
 
-class DriveChannel(OutputChannel):
+class DriveChannel(PulseChannel):
     """Drive Channel."""
 
     prefix = 'd'
@@ -114,7 +114,7 @@ class DriveChannel(OutputChannel):
         super().__init__(index, lo_freq, lo_freq_range)
 
 
-class ControlChannel(OutputChannel):
+class ControlChannel(PulseChannel):
     """Control Channel."""
 
     prefix = 'u'
@@ -132,7 +132,7 @@ class ControlChannel(OutputChannel):
         super().__init__(index, lo_freq, lo_freq_range)
 
 
-class MeasureChannel(OutputChannel):
+class MeasureChannel(PulseChannel):
     """Measure Channel."""
 
     prefix = 'm'

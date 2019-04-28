@@ -12,7 +12,7 @@ This pass associates a physical qubit (int) to each virtual qubit
 of the circuit (tuple(QuantumRegister, int)) in increasing order.
 """
 
-from qiskit.mapper import Layout
+from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
