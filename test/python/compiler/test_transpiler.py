@@ -514,3 +514,17 @@ class TestTranspile(QiskitTestCase):
         after = transpile(qc, basis_gates=['reset', 'U'])
 
         self.assertEqual(after, expected)
+
+    def test_initialize_FakeMelbourne(self):
+        """Test that the zero-state resets are remove in a device not supporting them.
+        """
+        desired_vector = [1 / math.sqrt(2), 0, 0, 0, 0, 0, 0, 1 / math.sqrt(2)]
+        qr = QuantumRegister(3, "qr")
+        qc = QuantumCircuit(qr)
+        qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
+
+        out = transpile(qc, backend=FakeMelbourne())
+        out_dag = circuit_to_dag(out)
+        reset_nodes = out_dag.named_nodes('reset')
+
+        self.assertEqual(reset_nodes, [])
