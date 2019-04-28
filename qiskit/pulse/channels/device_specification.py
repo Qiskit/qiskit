@@ -78,31 +78,15 @@ class DeviceSpecification:
 
         # generate channels with assuming their numberings are aligned with qubits
         drives = [
-            DriveChannel(i, qubit_lo_freqs[i], tuple(qubit_lo_ranges[i]))
+            DriveChannel(i, tuple(qubit_lo_ranges[i]))
             for i in range(n_qubits)
         ]
         measures = [
-            MeasureChannel(i, meas_lo_freqs[i], tuple(meas_lo_ranges[i]))
+            MeasureChannel(i, tuple(meas_lo_ranges[i]))
             for i in range(n_qubits)
         ]
 
-        u_channel_los = backend_config.u_channel_lo
-        controls = []
-
-        for i, u_channel_lo in enumerate(u_channel_los):
-            u_chan_freq = 0
-            for u_chan_component in u_channel_lo:
-                # TODO: After all pulse backends turn on `open_pulse=True`
-                if not isinstance(u_chan_component, UchannelLO):
-                    u_chan_component = UchannelLO(**u_chan_component)
-                drive_channel_freq = drives[u_chan_component.q].lo_freq
-                scale = u_chan_component.scale
-                u_chan_freq += scale*drive_channel_freq
-
-            controls.append(ControlChannel(i, u_chan_freq))
-
-        # extend for missing u_channel_los
-        controls = [ControlChannel(i) for i in range(n_uchannels-len(u_channel_los))]
+        controls = [ControlChannel(i) for i in range(n_uchannels)]
 
         acquires = [AcquireChannel(i) for i in range(n_qubits)]
 

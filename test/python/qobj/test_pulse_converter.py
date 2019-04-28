@@ -26,7 +26,7 @@ class TestInstructionConverter(QiskitTestCase):
     def setUp(self):
         self.device = DeviceSpecification(
             qubits=[
-                Qubit(0, DriveChannel(0, 1.2), MeasureChannel(0, 1.2), AcquireChannel(0))
+                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0))
             ],
             registers=[
                 RegisterSlot(0)
@@ -118,7 +118,7 @@ class TestLoConverter(QiskitTestCase):
     def setUp(self):
         self.device = DeviceSpecification(
             qubits=[
-                Qubit(0, DriveChannel(0, 1.2), MeasureChannel(0, 3.4), AcquireChannel(0))
+                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0))
             ],
             registers=[
                 RegisterSlot(0)

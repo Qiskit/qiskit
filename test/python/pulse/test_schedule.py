@@ -32,9 +32,9 @@ class TestSchedule(QiskitTestCase):
 
         self.linear = linear
 
-        qubits = [Qubit(0, DriveChannel(0, 1.2), AcquireChannel(0), MeasureChannel(0),
+        qubits = [Qubit(0, DriveChannel(0), AcquireChannel(0), MeasureChannel(0),
                         control_channels=[ControlChannel(0)]),
-                  Qubit(1, DriveChannel(1, 3.4), MeasureChannel(0), AcquireChannel(1))]
+                  Qubit(1, DriveChannel(1), MeasureChannel(0), AcquireChannel(1))]
         registers = [RegisterSlot(i) for i in range(2)]
         mem_slots = [MemorySlot(i) for i in range(2)]
         self.two_qubit_device = DeviceSpecification(qubits, registers, mem_slots)
