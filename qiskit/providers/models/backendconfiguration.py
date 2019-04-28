@@ -14,6 +14,8 @@ from qiskit.validation.fields import (Boolean, DateTime, Integer, List, Nested, 
                                       Complex, Float, Dict, InstructionParameter)
 from qiskit.validation.validate import PatternProperties
 
+# pylint: disable=invalid-name,bad-super-call
+
 
 class GateConfigSchema(BaseSchema):
     """Schema for GateConfig."""
@@ -106,7 +108,7 @@ class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
     open_pulse = Boolean(required=True, validate=OneOf([True]))
     n_uchannels = Integer(required=True, validate=Range(min=0))
     u_channel_lo = List(Nested(UchannelLO, validate=Length(min=1),
-                        required=True, many=True))
+                               required=True, many=True))
     meas_levels = List(Integer(), validate=Length(min=1), required=True)
     qubit_lo_range = List(List(Float(validate=Range(min=0)),
                                validate=Length(equal=2)), required=True)
@@ -189,11 +191,7 @@ class BackendConfiguration(BaseModel):
     @classmethod
     def from_dict(cls, dict_):
         """Deserialize a dict of simple types into an instance of either QASMBackendConfiguration,
-            PulseBackendConfiguration or BackendConfiguration depending on `open_pulse` field.
-
-        Returns:
-            BackendConfiguration or QASMBackendConfiguration or PulseBackendConfiguration
-        """
+            PulseBackendConfiguration or BackendConfiguration depending on `open_pulse` field."""
         if 'open_pulse' in dict_:
             if dict_['open_pulse']:
                 return PulseBackendConfiguration.from_dict(dict_)
@@ -236,11 +234,7 @@ class QASMBackendConfiguration(BackendConfiguration):
 
     @classmethod
     def from_dict(cls, dict_):
-        """Deserialize a dict of simple types into an instance of QASMBackendConfiguration .
-
-        Returns:
-            QASMBackendConfiguration
-        """
+        """Deserialize a dict of simple types into an instance of QASMBackendConfiguration."""
         return super(BackendConfiguration, cls).from_dict(dict_)
 
 
@@ -306,9 +300,5 @@ class PulseBackendConfiguration(BackendConfiguration):
 
     @classmethod
     def from_dict(cls, dict_):
-        """Deserialize a dict of simple types into an instance of PulseBackendConfiguration .
-
-        Returns:
-            PulseBackendConfiguration
-        """
+        """Deserialize a dict of simple types into an instance of PulseBackendConfiguration."""
         return super(BackendConfiguration, cls).from_dict(dict_)
