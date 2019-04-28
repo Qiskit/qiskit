@@ -8,7 +8,7 @@
 # pylint: disable=missing-docstring
 
 """
-InitializeGate test.
+Initialize test.
 """
 
 import math
@@ -25,7 +25,7 @@ from qiskit.test import QiskitTestCase
 
 
 class TestInitialize(QiskitTestCase):
-    """Qiskit InitializeGate tests."""
+    """Qiskit Initialize tests."""
 
     _desired_fidelity = 0.99
 

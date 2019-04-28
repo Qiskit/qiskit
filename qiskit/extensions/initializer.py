@@ -26,7 +26,7 @@ from qiskit.circuit.reset import Reset
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class InitializeGate(Instruction):
+class Initialize(Instruction):
     """Complex amplitude initialization.
 
     Class that implements the (complex amplitude) initialization of some
@@ -35,7 +35,7 @@ class InitializeGate(Instruction):
     """
 
     def __init__(self, params):
-        """Create new initialize composite gate.
+        """Create new initialize composite.
 
         params (list): vector of complex amplitudes to initialize to
         """
@@ -69,13 +69,13 @@ class InitializeGate(Instruction):
 
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
-        initialize_gate = disentangling_circuit.to_instruction().inverse()
+        initialize_instr = disentangling_circuit.to_instruction().inverse()
 
         q = QuantumRegister(self.num_qubits, 'q')
         initialize_circuit = QuantumCircuit(q, name='init_def')
         for qubit in q:
             initialize_circuit.append(Reset(), [qubit])
-        initialize_circuit.append(initialize_gate, q[:])
+        initialize_circuit.append(initialize_instr, q[:])
 
         self.definition = initialize_circuit.data
 
@@ -98,7 +98,7 @@ class InitializeGate(Instruction):
             # qubit (we peel away one qubit at a time)
             (remaining_param,
              thetas,
-             phis) = InitializeGate._rotations_to_disentangle(remaining_param)
+             phis) = Initialize._rotations_to_disentangle(remaining_param)
 
             # perform the required rotations to decouple the LSB qubit (so that
             # it can be "factored" out, leaving a shorter amplitude vector to peel away)
@@ -136,7 +136,7 @@ class InitializeGate(Instruction):
             # multiplexor being in state |i>)
             (remains,
              add_theta,
-             add_phi) = InitializeGate._bloch_angles(local_param[2 * i: 2 * (i + 1)])
+             add_phi) = Initialize._bloch_angles(local_param[2 * i: 2 * (i + 1)])
 
             remaining_vector.append(remains)
 
@@ -241,7 +241,7 @@ def initialize(self, params, qubits):
         qubits = qubits[:]
     else:
         qubits = _convert_to_bits([qubits], [qbit for qreg in self.qregs for qbit in qreg])[0]
-    return self.append(InitializeGate(params), qubits)
+    return self.append(Initialize(params), qubits)
 
 
 QuantumCircuit.initialize = initialize
