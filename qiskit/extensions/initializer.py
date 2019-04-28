@@ -235,8 +235,6 @@ class Initialize(Instruction):
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
-    # TODO: make initialize an Instruction, and insert reset
-    # TODO: avoid explicit reset if compiler determines a |0> state
     if isinstance(qubits, QuantumRegister):
         qubits = qubits[:]
     else:
