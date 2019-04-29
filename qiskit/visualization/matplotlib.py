@@ -164,7 +164,7 @@ class MatplotlibDrawer:
         else:
             _fc = self._style.gc
         qubit_span = abs(ypos) - abs(ypos_max) + 1
-        height = HIG * (qubit_span + 1)
+        height = HIG + (qubit_span - 1)
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
             width=wid, height=height, fc=_fc, ec=self._style.lc,
