@@ -79,10 +79,7 @@ class ScheduleComponent(metaclass=ABCMeta):
     @property
     @abstractmethod
     def instructions(self) -> Tuple[Tuple[int, 'Instructions']]:
-        """Return iterable for all `Instruction`s in `Schedule` tree
-        Args:
-            time: Initial time of this node
-        """
+        """Return iterable for all `Instruction`s in `Schedule` tree."""
         pass
 
     @abstractmethod

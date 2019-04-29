@@ -292,7 +292,7 @@ class TestSchedule(QiskitTestCase):
         gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
 
         sched = Schedule()
-        for i in range(10):
+        for _ in range(10):
             sched += gp0(chan)
 
         flat_sched = sched.flatten()

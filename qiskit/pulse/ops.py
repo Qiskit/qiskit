@@ -42,11 +42,11 @@ def flatten(schedule: ScheduleComponent, name: str = None) -> Schedule:
     """Create a flattened schedule.
 
     Args:
-        *schedules: Schedules to take the union of
+        schedule: Schedules to flatten
         name: Name of the new schedule. Defaults to first element of `schedules`
     """
     if name is None:
-            name = schedule.name
+        name = schedule.name
 
     return Schedule(*schedule.instructions, name=name)
 
