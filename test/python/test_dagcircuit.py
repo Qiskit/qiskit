@@ -168,6 +168,24 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual(successor_cnot[0].type, 'out')
         self.assertIsInstance(successor_cnot[1].op, Reset)
 
+    def test_quantum_predecessors(self):
+        """The method dag.quantum_predecessors() returns predecessors connected by quantum edges"""
+        self.dag.apply_operation_back(Reset(), [self.qubit0], [])
+        self.dag.apply_operation_back(CnotGate(), [self.qubit0, self.qubit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        predecessor_measure = self.dag.quantum_predecessors(
+            self.dag.named_nodes('measure').pop())
+        self.assertEqual(len(predecessor_measure), 1)
+        cnot_node = predecessor_measure[0]
+
+        self.assertIsInstance(cnot_node.op, CnotGate)
+
+        predecessor_cnot = self.dag.quantum_predecessors(cnot_node)
+        self.assertEqual(len(predecessor_cnot), 2)
+        self.assertEqual(predecessor_cnot[1].type, 'in')
+        self.assertIsInstance(predecessor_cnot[0].op, Reset)
+
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])

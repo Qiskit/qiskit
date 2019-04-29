@@ -11,11 +11,13 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 
 from qiskit.transpiler.passes.unroller import Unroller
+from qiskit.transpiler.passes.unroll_3q_or_more import Unroll3qOrMore
 from qiskit.transpiler.passes.cx_cancellation import CXCancellation
 from qiskit.transpiler.passes.decompose import Decompose
 from qiskit.transpiler.passes.optimize_1q_gates import Optimize1qGates
 from qiskit.transpiler.passes.fixed_point import FixedPoint
 from qiskit.transpiler.passes.depth import Depth
+from qiskit.transpiler.passes.remove_reset_in_zero_state import RemoveResetInZeroState
 from qiskit.transpiler.passes.mapping.check_map import CheckMap
 from qiskit.transpiler.passes.mapping.cx_direction import CXDirection
 from qiskit.transpiler.passes.mapping.dense_layout import DenseLayout
@@ -26,18 +28,16 @@ from qiskit.transpiler.passes.mapping.enlarge_with_ancilla import EnlargeWithAnc
 
 
 def default_pass_manager(basis_gates, coupling_map, initial_layout,
-                         skip_numeric_passes, seed_mapper):
+                         skip_numeric_passes, seed_transpiler):
     """
     The default pass manager that maps to the coupling map.
 
     Args:
-        basis_gates (list[str]): list of basis gate names supported by the
-            target. Default: ['u1','u2','u3','cx','id']
-        initial_layout (Layout or None): If None, trivial layout will be chosen.
+        basis_gates (list[str]): list of basis gate names supported by the target.
+        coupling_map (CouplingMap): coupling map to target in mapping.
+        initial_layout (Layout or None): initial layout of virtual qubits on physical qubits
         skip_numeric_passes (bool): If true, skip passes which require fixed parameter values
-        coupling_map (CouplingMap): coupling map (perhaps custom) to target
-            in mapping.
-        seed_mapper (int or None): random seed for the swap_mapper.
+        seed_transpiler (int or None): random seed for stochastic passes.
 
     Returns:
         PassManager: A pass manager to map and optimize.
@@ -47,7 +47,7 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
 
     pass_manager.append(Unroller(basis_gates))
 
-    # Use the trivial layout if no layouto is found
+    # Use the trivial layout if no layout is found
     pass_manager.append(TrivialLayout(coupling_map),
                         condition=lambda property_set: not property_set['layout'])
 
@@ -61,8 +61,11 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
     pass_manager.append(FullAncillaAllocation(coupling_map))
     pass_manager.append(EnlargeWithAncilla())
 
+    # Circuit must only contain 1- or 2-qubit interactions for swapper to work
+    pass_manager.append(Unroll3qOrMore())
+
     # Swap mapper
-    pass_manager.append(LegacySwap(coupling_map, trials=20, seed=seed_mapper))
+    pass_manager.append(LegacySwap(coupling_map, trials=20, seed=seed_transpiler))
 
     # Expand swaps
     pass_manager.append(Decompose(SwapGate))
@@ -79,6 +82,8 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
     else:
         simplification_passes = [CXCancellation()]
 
+    simplification_passes += [RemoveResetInZeroState()]
+
     pass_manager.append(simplification_passes + [Depth(), FixedPoint('depth')],
                         do_while=lambda property_set: not property_set['depth_fixed_point'])
 
@@ -90,13 +95,16 @@ def default_pass_manager_simulator(basis_gates):
     The default pass manager without a coupling map.
 
     Args:
-        basis_gates (list[str]): list of basis gate names supported by the
-            target. Default: ['u1','u2','u3','cx','id']
+        basis_gates (list[str]): list of basis gate names to unroll to.
 
     Returns:
-        PassManager: A passmanager without any optimization
+        PassManager: A passmanager that just unrolls, without any optimization.
     """
     pass_manager = PassManager()
+
     pass_manager.append(Unroller(basis_gates))
+
+    pass_manager.append([RemoveResetInZeroState(), Depth(), FixedPoint('depth')],
+                        do_while=lambda property_set: not property_set['depth_fixed_point'])
 
     return pass_manager

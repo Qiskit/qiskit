@@ -1089,6 +1089,17 @@ class DAGCircuit:
 
         return self._multi_graph.predecessors(node)
 
+    def quantum_predecessors(self, node):
+        """Returns list of the predecessors of a node that are
+        connected by a quantum edge as DAGNodes."""
+
+        predecessors = []
+        for predecessor in self.predecessors(node):
+            if isinstance(self._multi_graph.get_edge_data(predecessor, node, key=0)['wire'][0],
+                          QuantumRegister):
+                predecessors.append(predecessor)
+        return predecessors
+
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGNodes."""
         if isinstance(node, int):

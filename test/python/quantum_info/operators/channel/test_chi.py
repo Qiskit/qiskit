@@ -38,6 +38,18 @@ class TestChi(ChannelTestCase):
         self.assertRaises(
             QiskitError, Chi, np.eye(6) / 2, input_dims=3, output_dims=2)
 
+    def test_circuit_init(self):
+        """Test initialization from a circuit."""
+        circuit, target = self.simple_circuit_no_measure()
+        op = Chi(circuit)
+        target = Chi(target)
+        self.assertEqual(op, target)
+
+    def test_circuit_init_except(self):
+        """Test initialization from circuit with measure raises exception."""
+        circuit = self.simple_circuit_with_measure()
+        self.assertRaises(QiskitError, Chi, circuit)
+
     def test_equal(self):
         """Test __eq__ method"""
         mat = self.rand_matrix(4, 4, real=True)

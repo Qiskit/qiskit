@@ -10,14 +10,14 @@ Configurations for pulse experiments.
 """
 from typing import Dict
 
-from .channels import OutputChannel, DriveChannel, MeasureChannel
+from .channels import PulseChannel, DriveChannel, MeasureChannel
 from .exceptions import PulseError
 
 
 class LoConfig:
-    """Output channel LO frequency container."""
+    """Pulse channel LO frequency container."""
 
-    def __init__(self, user_lo_dic: Dict[OutputChannel, float] = None):
+    def __init__(self, user_lo_dic: Dict[PulseChannel, float] = None):
         self._q_lo_freq = {}
         self._m_lo_freq = {}
 
