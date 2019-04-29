@@ -1,6 +1,116 @@
 Release history
 ===============
 
+Qiskit 0.9
+----------
+
+Terra 0.8
+~~~~~~~~~
+
+New Features
+^^^^^^^^^^^^
+
+This release includes several new features and many bugs fixes. The major
+features are the introduction of the Pulse library which includes scheduling
+and visualization for using pulse, an improved instruction class and creation
+mechanism which allows for easily creating custom composite gates and
+instructions.
+
+In addition there is also the introduction of the following new features:
+
+* The core stochasticswap routine is implenented in Cython
+* Added Quantum Channel classes for manupulating quantum channels and CPTP
+  maps.
+* Support for parameterized circuits.
+* The Pass Manager interface has been improved and new functions added for
+  easier interaction and usage with custom pass maanagers.
+* Preset PassManagers are now included which offer a predetermined pipeline of
+  transpiler passes.
+* New transpiler passes: ``EnlargeWithAncilla``, ``Unroll2Q``,
+  ``NoiseAdaptiveLayout``, ``OptimizeSwapBeforeMeasure``,
+  ``RemoveDiagonalGatesBeforeMeasure``, ``CommutativeCancellation``,
+  ``Collect2qBlocks``, and ``ConsolidateBlocks``.
+
+Upgrade
+^^^^^^^
+
+Please note that some backwards incompatible changes have been made during this
+release. The following notes contain infomation on how to adapt to these
+changes.
+
+IBMQ Provider
+"""""""""""""
+
+The IBMQ provider was previously included in terra, but it has been split out
+into a separate package ``qiskit-ibmq-provider``. This will need to be
+installed, either via pypi with ``pip install qiskit-ibmq-provider`` or from
+source in order to access ``qiskit.IBMQ`` or ``qiskit.providers.ibmq``.
+
+Legacy Simulators
+"""""""""""""""""
+
+The legacy simulators have been removed from qiskit-terra in the 0.8, instead
+the ``qiskit-aer`` package should be used. This can be install from pypi with
+``pip install qiskit-aer`` or built from source.
+
+Related to this the simulator instructions, ``save``, ``load``, ``wait``, and
+``noise`` have been removed since they are not support by ``qiskit-aer``.
+
+Changes to Visualization
+""""""""""""""""""""""""
+
+The largest change the the visualization module is it has moved from
+``qiskit.tools.visualization`` to ``qiskit.visualization``. This was done to
+indicate that the visualization module is more than just a tool. However, since
+this interface was declared stable in the 0.7 release the public interface off
+of ``qiskit.tools.visualization`` will continue to work. That may change in a
+future release, but it will be deprecated prior to removal if that happens.
+
+The previously deprecated functions, ``plot_circuit()``,
+``latex_circuit_drawer()``, ``generate_latex_source()``, and
+``matplotlib_circuit_drawer()`` from ``qiskit.tools.visualization`` have been
+removed. Instead of these functions just calling
+``qiskit.visualization.circuit_drawer()`` with the appropriate arguments should
+be used.
+
+The previously deprecated keys ``plot_barriers`` and ``reverse_bits`` keys in
+the ``style`` kwarg dict are deprecated, instead the
+``qiskit.visualization.circuit_drawer()`` kwargs ``plot_barriers`` and
+``reverse_bits`` should be used.
+
+The wigner plotting functions ``plot_wigner_function``, ``plot_wigner_curve``,
+``plot_wigner_plaquette``, and ``plot_wigner_data`` previously in the
+``qiskit.tools.visualization._state_visualization`` module have been removed.
+They were never exposed through the public stable interface and not well
+documented. The code to use this can still be accessed through the
+qiskit-tutorials repository.
+
+
+
+Deprecations
+^^^^^^^^^^^^
+As part of the part of the 0.8 release the following things have been
+deprecated and will either be removed or changed in a backwards incompatible
+manner in a future release. While not strictly necessary these are things to
+adjust for before the next release to avoid a breaking change.
+
+* The methods prefixed by `_get` in the DAGCircuit object are being renamed
+  without that prefix. The methods
+* Changed elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists
+* Unroller bases must now be explicit, and violation raises an informative
+  ``QiskitError`` (#1802).
+* The ``qiskit.tools.qcvv`` package is deprecated and will be removed in the in
+  the future. You should migrate to using the Qiskit Ignis which replaces this
+  module.
+* The ``qiskit.compile()`` function is now deprecated in favor of explicitly
+  using the ``qiskit.compiler.transpile()`` function to transform a circuit
+  followed by ``qiskit.compiler.assemble_circuits()`` to make a qobj out of
+  it.
+* ``qiskit.converters.qobj_to_circuits()`` has been deprecated and will be
+  removed in a future release. Instead
+  ``qiskit.compiler.disassemble_circuits()`` should be used to extract
+  ``QuantumCircuit`` objects from a compiled qobj.
+
 Qiskit 0.8
 ----------
 
