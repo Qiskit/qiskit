@@ -64,40 +64,6 @@ class TestCmdDef(QiskitTestCase):
 
         self.assertNotIn('tmp', cmd_def.cmd_types())
 
-    def test_iter(self):
-        """Test iterator."""
-        sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
-        cmd_def = CmdDef()
-        cmd_def.add('tmp', (0,), sched)
-        cmd_def.add('tmp', 1, sched)
-        cmd_def.add('tmp_2', (0, 1), sched)
-
-        for ((cmd_name, qubits), sched) in cmd_def:
-            self.assertTrue(cmd_def.has_cmd(cmd_name, qubits))
-
-        self.assertEqual(list(cmd_def), 3)
-
-    def test_dunder(self):
-        """test __setitem__."""
-        sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
-        cmd_def = CmdDef()
-        cmd_def['tmp', 0, 1] = sched
-        self.assertEqual(sched, cmd_def['tmp', 0, 1])
-
-        self.assertIn(('tmp', 0, 1), cmd_def)
-
-    def test_compare(self):
-        """test compare"""
-        sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
-        cmd_def_1 = CmdDef()
-        cmd_def_2 = CmdDef()
-        cmd_def_1.add('tmp', 0, sched)
-        cmd_def_2.add('tmp', 0, sched)
-        self.assertEqual(cmd_def_1, cmd_def_2)
-
     def test_repr(self):
         """Test repr"""
         sched = Schedule()

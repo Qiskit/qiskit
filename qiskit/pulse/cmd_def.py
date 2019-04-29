@@ -8,8 +8,6 @@
 """
 Command definition module. Relates circuit gates to pulse commands.
 """
-from collections.abc import MutableMapping
-
 import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import PulseLibraryItem
@@ -17,6 +15,7 @@ from qiskit.qobj import PulseLibraryItem
 from .commands import (SamplePulse, PersistentValue, Acquire, FrameChange,
                        PulseInstruction, FrameChangeInstruction, AcquireInstruction,
                        PersistentValueInstruction)
+
 from .exceptions import PulseError
 from .schedule import Schedule
 
@@ -60,7 +59,7 @@ def _to_qubit_tuple(qubit_tuple):
         raise QiskitError("All qubits must be integers.")
 
 
-class CmdDef(MutableMapping):
+class CmdDef:
     """Command definition class.
     Relates `Gate`s to `PulseSchedule`s.
     """
@@ -184,42 +183,5 @@ class CmdDef(MutableMapping):
         """
         return list(self)
 
-    def __iter__(self):
-        """
-        Returns:
-            (str, tuple, PulseSchedule or ParameterizedPulseSchedule): A tuple containing
-                the command name, tuple of qubits the command applies to and the command
-                schedule.
-        """
-        for cmd_name, cmds in self._cmd_dict.items():
-            for qubits, schedule in cmds.items():
-                yield ((cmd_name, qubits), schedule)
-
-    def __setitem__(self, key, item):
-        """
-        Args:
-            key (str, *qubits): Command name followed by qubits command applies to in order.
-        """
-        self.add(key[0], key[1:], item)
-
-    def __getitem__(self, key):
-        """
-        Args:
-            key (str, *qubits): Command name followed by qubits command applies to in order.
-        """
-        return self.get(key[0], key[1:])
-
-    def __contains__(self, key):
-        """
-        Args:
-            key (str, **list[int]): A tuple containing
-                the command name, tuple of qubits the command applies to and the command
-                schedule.
-        """
-        return self.has_cmd(key[0], key[1:])
-
     def __repr__(self):
         return repr(self._cmd_dict)
-
-    def __cmp__(self, cmd_def):
-        return self._cmd_dict.__cmp__(cmd_def)
