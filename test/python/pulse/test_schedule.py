@@ -177,7 +177,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(0, sched.duration)
         self.assertEqual((), sched.children)
         self.assertEqual(TimeslotCollection(), sched.timeslots)
-        self.assertEqual([], list(sched.flatten()))
+        self.assertEqual([], list(sched.instructions))
 
     def test_flat_instruction_sequence_returns_instructions(self):
         """Test if `flat_instruction_sequence` returns `Instruction`s."""
@@ -186,7 +186,7 @@ class TestSchedule(QiskitTestCase):
 
         # empty schedule with empty schedule
         empty = Schedule().append(Schedule())
-        for _, instr in empty.flatten():
+        for _, instr in empty.instructions:
             self.assertIsInstance(instr, Instruction)
 
         # normal schedule
@@ -197,7 +197,7 @@ class TestSchedule(QiskitTestCase):
         sched = Schedule()
         sched = sched.append(lp0(device.q[0].drive))   # child
         sched = sched.append(subsched)
-        for _, instr in sched.flatten():
+        for _, instr in sched.instructions:
             self.assertIsInstance(instr, Instruction)
 
     def test_absolute_start_time_of_grandchild(self):
@@ -213,7 +213,7 @@ class TestSchedule(QiskitTestCase):
         sched = sched.append(lp0(device.q[0].drive))   # child
         sched = sched.append(subsched)
 
-        start_times = sorted([shft+instr.start_time for shft, instr in sched.flatten()])
+        start_times = sorted([shft+instr.start_time for shft, instr in sched.instructions])
         self.assertEqual([0, 30, 40], start_times)
 
     def test_shift_schedule(self):
@@ -231,7 +231,7 @@ class TestSchedule(QiskitTestCase):
 
         shift = sched.shift(100)
 
-        start_times = sorted([shft+instr.start_time for shft, instr in shift.flatten()])
+        start_times = sorted([shft+instr.start_time for shft, instr in shift.instructions])
 
         self.assertEqual([100, 130, 140], start_times)
 
@@ -242,17 +242,17 @@ class TestSchedule(QiskitTestCase):
         acquire = Acquire(10)
         children = (acquire(device.q[1], device.mem[1]).shift(20) +
                     acquire(device.q[1], device.mem[1]))
-        self.assertEqual(2, len(list(children.flatten())))
+        self.assertEqual(2, len(list(children.instructions)))
 
         sched = acquire(device.q[1], device.mem[1]).append(children)
-        self.assertEqual(3, len(list(sched.flatten())))
+        self.assertEqual(3, len(list(sched.instructions)))
 
         # add 2 instructions to children (2 instructions -> 4 instructions)
         children = children.append(acquire(device.q[1], device.mem[1]))
         children = children.insert(100, acquire(device.q[1], device.mem[1]))
-        self.assertEqual(4, len(list(children.flatten())))
+        self.assertEqual(4, len(list(children.instructions)))
         # sched must keep 3 instructions (must not update to 5 instructions)
-        self.assertEqual(3, len(list(sched.flatten())))
+        self.assertEqual(3, len(list(sched.instructions)))
 
     def test_name_inherited(self):
         """Test that schedule keeps name if an instruction is added."""

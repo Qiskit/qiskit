@@ -38,6 +38,19 @@ def union(*schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent
 # pylint: enable=missing-type-doc
 
 
+def flatten(schedule: ScheduleComponent, name: str = None) -> Schedule:
+    """Create a flattened schedule.
+
+    Args:
+        *schedules: Schedules to take the union of
+        name: Name of the new schedule. Defaults to first element of `schedules`
+    """
+    if name is None:
+            name = schedule.name
+
+    return Schedule(*schedule.instructions, name=name)
+
+
 def shift(schedule: ScheduleComponent, time: int, name: str = None) -> Schedule:
     """Return schedule shifted by `time`.
 
