@@ -37,7 +37,8 @@ from qiskit.providers.models import (BackendProperties, BackendConfiguration, Ga
                                      PulseDefaults, Command)
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
-                         QasmQobjExperiment, QasmQobjConfig, PulseLibraryItem)
+                         QasmQobjExperiment, QasmQobjConfig, PulseLibraryItem,
+                         PulseQobjInstruction)
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
@@ -196,16 +197,18 @@ class FakeOpenPulse2Q(FakeBackend):
             pulse_library=[PulseLibraryItem(name='test_pulse_1', samples=[0.j, 0.1j]),
                            PulseLibraryItem(name='test_pulse_2', samples=[0.j, 0.1j, 1j])],
             cmd_def=[Command(name='u1', qubits=[0],
-                             sequence=[Obj(name='fc', ch='d0', t0=0, phase='-P1*np.pi')]),
+                             sequence=[PulseQobjInstruction(name='fc', ch='d0',
+                                                            t0=0, phase='-P1*np.pi')]),
                      Command(name='cx', qubits=[0, 1],
-                             sequence=[Obj(name='test_pulse_1', ch='d0', t0=0),
-                                       Obj(name='test_pulse_2', ch='u0', t0=10),
-                                       Obj(name='pv', ch='d1', t0=0),
-                                       Obj(name='test_pulse_1', ch='d1', t0=20),
-                                       Obj(name='fc', ch='d1', t0=20, phase=2.1)]),
+                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0),
+                                       PulseQobjInstruction(name='test_pulse_2', ch='u0', t0=10),
+                                       PulseQobjInstruction(name='pv', ch='d1', t0=0),
+                                       PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
+                                       PulseQobjInstruction(name='fc', ch='d1',
+                                                            t0=20, phase=2.1+0.j)]),
                      Command(name='measure', qubits=[0],
-                             sequence=[Obj(name='test_pulse_1', ch='m0', t0=0),
-                                       Obj(name='acquire', duration=10, t0=0,
+                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='m0', t0=0),
+                                       PulseQobjInstruction(name='acquire', duration=10, t0=0,
                                            qubits=[0], memory_slot=[0])])]
         )
 
