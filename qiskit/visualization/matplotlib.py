@@ -664,8 +664,12 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        self._gate(q_xy[0], wide=_iswide, text=disp,
-                                   subtext='{}'.format(param))
+                        prm = '{}'.format(param)
+                        if len(prm) < 20:
+                            self._gate(q_xy[0], wide=_iswide, text=disp,
+                                       subtext=prm)
+                        else:
+                            self._gate(q_xy[0], wide=_iswide, text=disp)
                     else:
                         self._gate(q_xy[0], wide=_iswide, text=disp)
                 #
@@ -791,21 +795,26 @@ class MatplotlibDrawer:
 
     @staticmethod
     def param_parse(v, pimode=False):
+
+        # create an empty list to store the parameters in
+        param_parts = [None] * len(v)
         for i, e in enumerate(v):
+
             if pimode:
                 try:
-                    v[i] = MatplotlibDrawer.format_pi(e)
+                    param_parts[i] = MatplotlibDrawer.format_pi(e)
                 except TypeError:
-                    v[i] = str(e)
+                    param_parts[i] = str(e)
             else:
                 try:
-                    v[i] = MatplotlibDrawer.format_numeric(e)
+                    param_parts[i] = MatplotlibDrawer.format_numeric(e)
                 except TypeError:
-                    v[i] = str(e)
-            if v[i].startswith('-'):
-                v[i] = '$-$' + v[i][1:]
-        param = ', '.join(v)
-        return param
+                    param_parts[i] = str(e)
+            if param_parts[i].startswith('-'):
+                param_parts[i] = '$-$' + param_parts[i][1:]
+
+        param_parts = ', '.join(param_parts)
+        return param_parts
 
     @staticmethod
     def format_pi(val):

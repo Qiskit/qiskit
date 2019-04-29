@@ -5,14 +5,14 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-""" Tests the layout object"""
+"""Tests the layout object"""
 
 import copy
 import unittest
 
 from qiskit import QuantumRegister
-from qiskit.mapper.layout import Layout
-from qiskit.mapper.exceptions import LayoutError
+from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.exceptions import LayoutError
 from qiskit.test import QiskitTestCase
 
 

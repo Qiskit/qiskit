@@ -8,7 +8,7 @@
 """Circuit transpile function"""
 import warnings
 
-from qiskit.mapper import Layout, CouplingMap
+from qiskit.transpiler import Layout, CouplingMap
 from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
                                                    default_pass_manager)

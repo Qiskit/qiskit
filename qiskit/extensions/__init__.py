@@ -8,5 +8,5 @@
 """Extensions to quantum circuits."""
 
 from .standard import *
-from .initializer import InitializeGate
+from .initializer import Initialize
 from .unitary import UnitaryGate

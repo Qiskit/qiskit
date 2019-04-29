@@ -163,6 +163,7 @@ Changed
   to the ['u1', 'u2', 'u3', 'cx'] basis. Instead the default behavior is to not unroll,
   unless specifically requested (#2166).
 - Instruction.copy() is now a shallow copy instead of deep (#2214)
+- Layout and CouplingMap classes are now accessible from qiskit.transpiler (#2222).
 
 Deprecated
 ----------
@@ -1069,7 +1070,7 @@ Added
 - Add support for ibmqx_hpc_qasm_simulator backend.
 - Add backend interface to Project Q C++ simulator.
     Requires installation of Project Q.
-- Introduce ``InitializeGate`` class.
+- Introduce ``Initialize`` class.
     Generates circuit which initializes qubits in arbitrary state.
 - Introduce ``local_qiskit_simulator`` a C++ simulator with realistic noise.
     Requires C++ build environment for ``make``-based build.

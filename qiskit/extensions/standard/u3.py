@@ -44,6 +44,7 @@ class U3Gate(Gate):
     def to_matrix(self):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
+        theta, phi, lam = float(theta), float(phi), float(lam)
         return numpy.array(
             [[
                 numpy.cos(theta / 2),
