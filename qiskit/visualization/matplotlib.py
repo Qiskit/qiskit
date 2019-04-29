@@ -785,9 +785,10 @@ class MatplotlibDrawer:
 
     @staticmethod
     def param_parse(v, pimode=False):
+
+        param_parts = v.copy()
         for i, e in enumerate(v):
 
-            param_parts = v.copy()
             if pimode:
                 try:
                     param_parts[i] = MatplotlibDrawer.format_pi(e)
