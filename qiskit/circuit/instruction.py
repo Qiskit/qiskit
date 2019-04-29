@@ -27,6 +27,7 @@ Instructions do not have any context about where they are in a circuit (which qu
 The circuit itself keeps this context.
 """
 import copy
+from itertools import zip_longest
 import sympy
 import numpy
 
@@ -81,18 +82,27 @@ class Instruction:
         Returns:
             bool: are self and other equal.
         """
-        res = False
-        if type(self) is type(other) and \
-                self.name == other.name and \
-                self.num_qubits == other.num_qubits and \
-                self.num_clbits == other.num_clbits and \
-                self.definition == other.definition and \
-                (self.params == other.params or
-                 numpy.allclose([float(p) for p in self.params],
-                                [float(p) for p in other.params],
-                                atol=_CUTOFF_PRECISION)):
-            res = True
-        return res
+        if type(self) is not type(other) or \
+                self.name != other.name or \
+                self.num_qubits != other.num_qubits or \
+                self.num_clbits != other.num_clbits or \
+                self.definition != other.definition:
+            return False
+
+        for self_param, other_param in zip_longest(self.params, other.params):
+            if self_param == other_param:
+                continue
+
+            try:
+                if numpy.isclose(float(self_param), float(other_param),
+                                 atol=_CUTOFF_PRECISION):
+                    continue
+            except TypeError:
+                pass
+
+            return False
+
+        return True
 
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
