@@ -7,9 +7,8 @@
 
 """Module for the Qobj structure."""
 
-from .models.base import (QobjInstruction, QobjExperimentHeader,
-                          QobjExperimentConfig, QobjExperiment,
-                          QobjConfig, QobjHeader)
+from .models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
+                          QobjExperiment, QobjConfig, QobjHeader)
 
 from .models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
                            PulseQobjExperiment, PulseQobjConfig,

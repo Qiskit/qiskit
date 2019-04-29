@@ -26,6 +26,7 @@ from .optimize_swap_before_measure import OptimizeSwapBeforeMeasure
 from .commutative_cancellation import CommutativeCancellation
 from .remove_reset_in_zero_state import RemoveResetInZeroState
 from .collect_2q_blocks import Collect2qBlocks
+from .consolidate_blocks import ConsolidateBlocks
 from .mapping.full_ancilla_allocation import FullAncillaAllocation
 from .mapping.enlarge_with_ancilla import EnlargeWithAncilla
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
@@ -37,5 +38,6 @@ from .mapping.dense_layout import DenseLayout
 from .mapping.noise_adaptive_layout import NoiseAdaptiveLayout
 from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
+from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
 from .mapping.stochastic_swap import StochasticSwap
 from .mapping.legacy_swap import LegacySwap

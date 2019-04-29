@@ -26,7 +26,11 @@ import scipy.linalg as la
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.standard import IdGate, U1Gate, U2Gate, U3Gate, CnotGate
+from qiskit.extensions.standard.iden import IdGate
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.u2 import U2Gate
+from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.cx import CnotGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 

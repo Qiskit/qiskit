@@ -30,8 +30,7 @@ from qiskit.compiler.assembler import assemble
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
-import qiskit.extensions.standard
-import qiskit.extensions.quantum_initializer
+import qiskit.extensions
 import qiskit.circuit.measure
 import qiskit.circuit.reset
 

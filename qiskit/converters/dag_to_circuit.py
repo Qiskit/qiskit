@@ -8,10 +8,8 @@
 """Helper function for converting a dag to a circuit"""
 import collections
 
-from qiskit.circuit import ClassicalRegister
-from qiskit.circuit import Instruction
-from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 
 
@@ -51,38 +49,7 @@ def dag_to_circuit(dag):
         else:
             control = (node.condition[0], node.condition[1])
 
-        def duplicate_instruction(inst):
-            """Create a fresh instruction from an input instruction."""
-            if issubclass(inst.__class__,
-                          Instruction) and inst.__class__ not in [
-                              Instruction, Gate]:
-                if inst.name == 'barrier':
-                    new_inst = inst.__class__(inst.num_qubits)
-                elif inst.name == 'initialize':
-                    params = getattr(inst, 'params', [])
-                    new_inst = inst.__class__(params)
-                elif inst.name == 'snapshot':
-                    label = inst.params[0]
-                    snap_type = inst.params[1]
-                    new_inst = inst.__class__(inst.num_qubits,
-                                              inst.num_clbits,
-                                              label, snap_type)
-                else:
-                    params = getattr(inst, 'params', [])
-                    new_inst = inst.__class__(*params)
-            else:
-                if isinstance(inst, Gate):
-                    new_inst = Gate(inst.name, inst.num_qubits,
-                                    inst.params)
-                else:
-                    new_inst = Instruction(name=inst.name,
-                                           num_qubits=inst.num_qubits,
-                                           num_clbits=inst.num_clbits,
-                                           params=inst.params)
-                new_inst.definition = inst.definition
-            return new_inst
-
-        inst = duplicate_instruction(node.op)
+        inst = node.op.copy()
         inst.control = control
         circuit.append(inst, qubits, clbits)
     return circuit
