@@ -15,6 +15,7 @@ from qiskit.circuit import Gate, Parameter
 from qiskit.transpiler import transpile
 from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
+from qiskit.exceptions import QiskitError
 
 
 class TestParameters(QiskitTestCase):
@@ -35,8 +36,7 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         backend = BasicAer.get_backend('qasm_simulator')
         qc_aer = transpile(qc, backend)
-        qobj = assemble(qc_aer)
-        self.assertIn(theta, qobj.experiments[0].instructions[0].params)
+        self.assertIn(theta, qc_aer.parameters)
 
     def test_get_parameters(self):
         """Test instantiating gate with variable parmeters"""
@@ -58,12 +58,12 @@ class TestParameters(QiskitTestCase):
         qc = QuantumCircuit(qr)
         qc.rx(theta, qr)
         qc.u3(0, theta, 0, qr)
-        qc._parameter_table[theta] = 0.5
-        self.assertEqual(qc._parameter_table[theta][0][0].params[0], 0.5)
-        self.assertEqual(qc._parameter_table[theta][1][0].params[1], 0.5)
-        qc._parameter_table[theta] = 0.6
-        self.assertEqual(qc._parameter_table[theta][0][0].params[0], 0.6)
-        self.assertEqual(qc._parameter_table[theta][1][0].params[1], 0.6)
+        bqc = qc.bind_parameters({theta: 0.5})
+        self.assertEqual(bqc.data[0][0].params[0], 0.5)
+        self.assertEqual(bqc.data[1][0].params[1], 0.5)
+        bqc = qc.bind_parameters({theta: 0.6})
+        self.assertEqual(bqc.data[0][0].params[0], 0.6)
+        self.assertEqual(bqc.data[1][0].params[1], 0.6)
 
     def test_multiple_parameters(self):
         """Test setting multiple parameters"""
@@ -74,6 +74,35 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         qc.u3(0, theta, x, qr)
         self.assertEqual(qc.parameters, {theta, x})
+
+    def test_partial_binding(self):
+        """Test that binding a subset of circuit parameters returns a new parameterized circuit."""
+        theta = Parameter('θ')
+        x = Parameter('x')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        qc.rx(theta, qr)
+        qc.u3(0, theta, x, qr)
+
+        pqc = qc.bind_parameters({theta: 2})
+
+        self.assertEqual(pqc.parameters, {x})
+
+        self.assertEqual(pqc.data[0][0].params[0], 2)
+        self.assertEqual(pqc.data[1][0].params[1], 2)
+
+    def test_raise_if_assigning_params_not_in_circuit(self):
+        """Verify binding parameters which are not present in the circuit raises an error."""
+        x = Parameter('x')
+        y = Parameter('y')
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+
+        qc.u1(0.1, qr[0])
+        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1})
+
+        qc.u1(x, qr[0])
+        self.assertRaises(QiskitError, qc.bind_parameters, {x: 1, y: 2})
 
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
