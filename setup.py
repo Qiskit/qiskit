@@ -22,6 +22,7 @@ REQUIREMENTS = [
     "pillow>=4.2.1",
     "ply>=3.10",
     "psutil>=5",
+    "pylatexenc>=1.4",
     "scipy>=0.19,!=0.19.1",
     "sympy>=1.3"
 ]
