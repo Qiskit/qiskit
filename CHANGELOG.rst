@@ -77,8 +77,8 @@ Added
   have been added to the pass manager, including options and flow controllers.
 - Added a ``PassManager.run()`` that transforms a ``QuantumCircuit`` according to its
   pass schedule and returns a ``QuantumCircuit``.
-- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc.
-- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits.
+- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc (#2119).
+- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits (#2119).
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 - Gates and instructions in a circuit accept integers as parameters to refer to
@@ -1070,7 +1070,7 @@ Added
 - Add support for ibmqx_hpc_qasm_simulator backend.
 - Add backend interface to Project Q C++ simulator.
     Requires installation of Project Q.
-- Introduce ``InitializeGate`` class.
+- Introduce ``Initialize`` class.
     Generates circuit which initializes qubits in arbitrary state.
 - Introduce ``local_qiskit_simulator`` a C++ simulator with realistic noise.
     Requires C++ build environment for ``make``-based build.

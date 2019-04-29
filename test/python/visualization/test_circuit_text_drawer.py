@@ -13,12 +13,15 @@ from codecs import encode
 from math import pi
 import unittest
 import sympy
+import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.operators import SuperOp
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -960,6 +963,56 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circuit.append(my_gate2, [qr[0], qr[3]])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
+
+    def test_unitary_nottogether_across_4(self):
+        """ Unitary that are 2 bits apart"""
+        expected = '\n'.join(["        ┌──────────┐",
+                              "q_0: |0>┤0         ├",
+                              "        │          │",
+                              "q_1: |0>┤          ├",
+                              "        │  unitary │",
+                              "q_2: |0>┤          ├",
+                              "        │          │",
+                              "q_3: |0>┤1         ├",
+                              "        └──────────┘"])
+
+        qr = QuantumRegister(4, 'q')
+        qc = QuantumCircuit(qr)
+
+        qc.append(random_unitary(4, seed=42), [qr[0], qr[3]])
+
+        self.assertEqual(str(_text_circuit_drawer(qc)), expected)
+
+    def test_kraus(self):
+        """ Test Kraus.
+        See https://github.com/Qiskit/qiskit-terra/pull/2238#issuecomment-487630014"""
+        expected = '\n'.join(["        ┌───────┐",
+                              "q_0: |0>┤ Kraus ├",
+                              "        └───────┘"])
+
+        error = SuperOp(0.75 * numpy.eye(4) + 0.25 * numpy.diag([1, -1, -1, 1]))
+        qr = QuantumRegister(1, name='q')
+        qc = QuantumCircuit(qr)
+        qc.append(error, [qr[0]])
+
+        self.assertEqual(str(_text_circuit_drawer(qc)), expected)
+
+    def test_multiplexer(self):
+        """ Test Multiplexer.
+        See https://github.com/Qiskit/qiskit-terra/pull/2238#issuecomment-487630014"""
+        expected = '\n'.join(["        ┌──────────────┐",
+                              "q_0: |0>┤0             ├",
+                              "        │  multiplexer │",
+                              "q_1: |0>┤1             ├",
+                              "        └──────────────┘"])
+
+        cx_multiplexer = Gate('multiplexer', 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+
+        qr = QuantumRegister(2, name='q')
+        qc = QuantumCircuit(qr)
+        qc.append(cx_multiplexer, [qr[0], qr[1]])
+
+        self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
 
 class TestTextDrawerParams(QiskitTestCase):
