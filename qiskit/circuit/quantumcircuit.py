@@ -703,16 +703,29 @@ class QuantumCircuit:
         Args:
             value_dict (dict): {parameter: value, ...}
 
+        Raises:
+            QiskitError: If value_dict contains parameters not present in the circuit
+
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
         new_circuit = self.copy()
-        for parameter in value_dict:
-            new_circuit._parameter_table[parameter] = value_dict
+
+        if value_dict.keys() > self.parameters:
+            raise QiskitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+                [str(p) for p in value_dict.keys() - self.parameters]))
+
+        for parameter, value in value_dict.items():
+            new_circuit._bind_parameter(parameter, value)
         # clear evaluated expressions
         for parameter in value_dict:
             del new_circuit._parameter_table[parameter]
         return new_circuit
+
+    def _bind_parameter(self, parameter, value):
+        """Assigns a parameter value to matching instructions in-place."""
+        for (instr, param_index) in self._parameter_table[parameter]:
+            instr.params[param_index] = value
 
 
 def _circuit_from_qasm(qasm):
