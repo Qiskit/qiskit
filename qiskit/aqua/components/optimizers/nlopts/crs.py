@@ -16,8 +16,8 @@
 # =============================================================================
 
 from qiskit.aqua.components.optimizers import Optimizer
-from ._nloptimizer import minimize
-from ._nloptimizer import check_pluggable_valid as check_nlopt_valid
+from ._nl_optimizer import minimize
+from ._nl_optimizer import check_pluggable_valid as check_nlopt_valid
 import logging
 
 logger = logging.getLogger(__name__)
