@@ -977,8 +977,7 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         qr = QuantumRegister(4, 'q')
         qc = QuantumCircuit(qr)
 
-        U1 = random_unitary(4, seed=42)
-        qc.append(U1, [qr[0], qr[3]])
+        qc.append(random_unitary(4, seed=42), [qr[0], qr[3]])
 
         self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
