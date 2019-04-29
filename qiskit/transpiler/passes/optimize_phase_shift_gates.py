@@ -12,6 +12,10 @@ import qiskit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
 import copy
+import sys
+np.set_printoptions(threshold=sys.maxsize)
+import warnings
+warnings.filterwarnings('ignore')
 
 class OptimizePhaseShiftGates(TransformationPass):
     """merge/cancel phase-shift gates in dag."""
@@ -29,40 +33,35 @@ class OptimizePhaseShiftGates(TransformationPass):
         """
 
         n = dag.width()  # number of qubits in the circuit
-        state_tracker = np.identity(n).astype('int')  # Matrix that keeps track of all the xor's (cnot gates)
-        T_counter = {}  # Counts the cumulative phase of T-gates on every branch (1.0 = one T gate)
-        T_position_counter = {}  # Keeps track of the locations of T-gates (and other phase rotation gates) within every branch, and how many other gates intercepted this branch
-        other_gate_counter = {}  # Keeps track of the locations of other gates, and the corresponding quantum state
-        for i in range(n):
-            vector = np.zeros(n).astype('int')
-            vector[i] = 1
-            other_gate_counter[str(vector)] = 0
-
-        for e in dag.nodes_in_topological_order():
+        T_counter = {}  # Counts the cumulative phase of T-gates and other z-rotation gates
+        T_position_counter = {}  # Keeps track of the locations of T-gates and other z-rot. gates
+        state_tracker = np.zeros((dag.width(), dag.size())).astype('int')
+        for i in range(dag.width()):
+            state_tracker[i][i] = 1 # initial state
+        k = dag.width()  # number of initial variables
+        for e in dag.topological_nodes():
             if e.data_dict['type'] == 'op':
                 if e.data_dict['name'] == 'cx':
-                    state_tracker[e.data_dict['qargs'][1][1]] += state_tracker[e.data_dict['qargs'][0][1]]
-                    state_tracker = state_tracker % 2
-                    if str(state_tracker[e.data_dict['qargs'][1][1]]) not in other_gate_counter:
-                        other_gate_counter[str(state_tracker[e.data_dict['qargs'][1][1]])] = 0
+                    state_tracker[e.data_dict['qargs'][1][1]] ^= state_tracker[e.data_dict['qargs'][0][1]]
                 elif e.data_dict['name'] in ['t', 'tdg', 's', 'sdg', 'z']:
                     phase_T_gate_equivalent = {'t': 1, 'tdg': 7, 's': 2, 'sdg': 6, 'z': 4}[e.data_dict['name']]
-                    if str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])]) in T_counter:
-                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])])] += phase_T_gate_equivalent
-                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])])].append(e._node_id)
+                    if str(state_tracker[e.data_dict['qargs'][0][1]]) in T_counter:
+                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] += phase_T_gate_equivalent
+                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]])].append(e._node_id)
                     else:
-                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])])] = phase_T_gate_equivalent
-                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])])] = [e._node_id]
+                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] = phase_T_gate_equivalent
+                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] = [e._node_id]
                 elif e.data_dict['name'] == 'u1':
-                    if str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])]) in T_counter:
-                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])])] += e.data_dict['op'].params[0] * 4 / np.pi
-                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])])].append(e._node_id)
+                    if str(state_tracker[e.data_dict['qargs'][0][1]]) in T_counter:
+                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] += e.data_dict['op'].params[0] * 4/np.pi
+                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]])].append(e._node_id)
                     else:
-                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])])] = e.data_dict['op'].params[0] * 4 / np.pi
-                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]]) + ' other_count=' + str(other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])])] = [e._node_id]
+                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] = e.data_dict['op'].params[0] * 4/np.pi
+                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] = [e._node_id]
                 else:
-                    other_gate_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] += 1
-
+                    state_tracker[e.data_dict['qargs'][0][1]] = np.zeros(dag.size())
+                    state_tracker[e.data_dict['qargs'][0][1]][k] = 1
+                    k += 1
         circuit_length_min = len(dag.multi_graph.nodes) + 1
         circuit_depth_min = dag.depth() + 1
         for key in T_counter:
