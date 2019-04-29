@@ -241,7 +241,7 @@ class QuantumCircuit:
         the circuit in place.
 
         Args:
-            instruction (Instruction): Instruction instance to append
+            instruction (Instruction or Operator): Instruction instance to append
             qargs (list(tuple)): qubits to attach instruction to
             cargs (list(tuple)): clbits to attach instruction to
 
