@@ -20,6 +20,7 @@ from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 from .parametertable import ParameterTable
+from qiskit.circuit.decorators import _is_bit, _convert_to_bits
 
 
 class QuantumCircuit:
@@ -237,6 +238,29 @@ class QuantumCircuit:
         return self.data[item]
 
     def append(self, instruction, qargs=None, cargs=None):
+        """Append one or more instructions to the end of the circuit, modifying
+        the circuit in place. Expands qargs and cargs.
+
+        Args:
+            instruction (Instruction): Instruction instance to append
+            qargs (list(tuple)): qubits to attach instruction to
+            cargs (list(tuple)): clbits to attach instruction to
+
+        Returns:
+            Instruction: a handle to the instruction that was just added
+        """
+        qargs = _convert_to_bits(qargs or [], [qbit for qreg in self.qregs for qbit in qreg])
+        cargs = _convert_to_bits(cargs or [], [cbit for creg in self.cregs for cbit in creg])
+
+        ret = None
+        if not all([_is_bit(arg) for arg in qargs]):
+            for qargs_ in [item for sublist in qargs for item in sublist]:
+                ret = self._append(instruction, [qargs_], cargs)
+        else:
+            ret = self._append(instruction, qargs, cargs)
+        return ret
+
+    def _append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
 
@@ -252,9 +276,6 @@ class QuantumCircuit:
             QiskitError: if the gate is of a different shape than the wires
                 it is being attached to.
         """
-        qargs = qargs or []
-        cargs = cargs or []
-
         # Convert input to instruction
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
             instruction = instruction.to_instruction()
@@ -265,8 +286,7 @@ class QuantumCircuit:
         self._check_dups(qargs)
         self._check_qargs(qargs)
         self._check_cargs(cargs)
-        if instruction.num_qubits != len(qargs) or \
-                instruction.num_clbits != len(cargs):
+        if instruction.num_qubits != len(qargs) or instruction.num_clbits != len(cargs):
             raise QiskitError("instruction %s with %d qubits and %d clbits "
                               "cannot be appended onto %d qubits and %d clbits." %
                               (instruction.name,
