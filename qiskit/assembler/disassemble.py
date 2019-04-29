@@ -46,7 +46,7 @@ def _experiments_to_circuits(qobj):
                 if i.name == 'id':
                     name = 'iden'
                 qubits = []
-                params = []
+                params = getattr(i, 'params', [])
                 try:
                     for qubit in i.qubits:
                         qubit_label = x.header.qubit_labels[qubit]
@@ -60,10 +60,6 @@ def _experiments_to_circuits(qobj):
                         clbit_label = x.header.clbit_labels[clbit]
                         clbits.append(
                             creg_dict[clbit_label[0]][clbit_label[1]])
-                except Exception:  # pylint: disable=broad-except
-                    pass
-                try:
-                    params = i.params
                 except Exception:  # pylint: disable=broad-except
                     pass
                 if hasattr(circuit, name):
