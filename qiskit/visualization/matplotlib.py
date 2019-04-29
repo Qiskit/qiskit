@@ -658,8 +658,12 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        self._gate(q_xy[0], wide=_iswide, text=disp,
-                                   subtext='{}'.format(param))
+                        prm = '{}'.format(param)
+                        if len(prm) < 20:
+                            self._gate(q_xy[0], wide=_iswide, text=disp,
+                                       subtext=prm)
+                        else:
+                            self._gate(q_xy[0], wide=_iswide, text=disp)
                     else:
                         self._gate(q_xy[0], wide=_iswide, text=disp)
                 #
