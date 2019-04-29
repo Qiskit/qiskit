@@ -13,7 +13,7 @@ from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.base import ObjSchema
 from qiskit.validation.fields import (Complex, Integer, List, Nested, Number,
                                       String)
-from qiskit.qobj import PulseLibraryItem, PulseLibraryItemSchema, PulseQobjInstructionSchema
+from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema
 
 
 class MeasurementKernelSchema(BaseSchema):
