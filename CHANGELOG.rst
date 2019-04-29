@@ -1070,7 +1070,7 @@ Added
 - Add support for ibmqx_hpc_qasm_simulator backend.
 - Add backend interface to Project Q C++ simulator.
     Requires installation of Project Q.
-- Introduce ``InitializeGate`` class.
+- Introduce ``Initialize`` class.
     Generates circuit which initializes qubits in arbitrary state.
 - Introduce ``local_qiskit_simulator`` a C++ simulator with realistic noise.
     Requires C++ build environment for ``make``-based build.

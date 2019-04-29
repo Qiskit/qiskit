@@ -42,7 +42,10 @@ class Unroller(TransformationPass):
         # Walk through the DAG and expand each non-basis node
         for node in dag.op_nodes():
             basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
-            if node.name in basic_insts:  # TODO: this is legacy behavior
+            if node.name in basic_insts:
+                # TODO: this is legacy behavior.Basis_insts should be removed that these
+                #  instructions should be part of the device-reported basis. Currently, no
+                #  backend reports "measure", for example.
                 continue
             if node.name in self.basis:  # If already a base, ignore.
                 continue
