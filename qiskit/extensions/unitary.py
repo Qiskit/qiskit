@@ -17,7 +17,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard import U3Gate
-from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis import euler_angles_1q
@@ -94,7 +93,7 @@ class UnitaryGate(Gate):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:
             q = QuantumRegister(1, "q")
-            angles = euler_angles_1q(Operator(self).data)
+            angles = euler_angles_1q(self.to_matrix())
             self.definition = [(U3Gate(*angles), [q[0]], [])]
         if self.num_qubits == 2:
             self.definition = two_qubit_kak(self.to_matrix())
