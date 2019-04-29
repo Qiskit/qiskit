@@ -93,13 +93,9 @@ class UnitaryGate(Gate):
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
         if self.num_qubits == 1:
-            self.definition = U3Gate
             q = QuantumRegister(1, "q")
-            angles = euler_angles_1q(Operator(self))
-            rule = [(U3Gate(*angles), [q[0]], [])]
-            for inst in rule:
-                definition.append(inst)
-        self.definition = definition
+            angles = euler_angles_1q(Operator(self).data)
+            self.definition = [(U3Gate(*angles), [q[0]], [])]
         if self.num_qubits == 2:
             self.definition = two_qubit_kak(self.to_matrix())
 
