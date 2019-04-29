@@ -145,6 +145,7 @@ class Schedule(ScheduleComponent):
 
         Args:
             *schedules: Schedules to be take the union with the parent `Schedule`.
+            name: Name of the new schedule. Defaults to name of parent
         """
         return ops.union(self, *schedules, name=name)
 
@@ -153,17 +154,21 @@ class Schedule(ScheduleComponent):
 
         Args:
             time: Time to shift by
+            name: Name of the new schedule. Defaults to name of parent
         """
         return ops.shift(self, time, name=name)
 
-    def insert(self, start_time: int, schedule: ScheduleComponent, name: str = None) -> 'Schedule':
+    def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
+               name: str = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
             start_time: time to be inserted
             schedule: schedule to be inserted
+            buffer: Obey buffer when inserting
+            name: Name of the new schedule. Defaults to name of parent
         """
-        return ops.insert(self, start_time, schedule, name=name)
+        return ops.insert(self, start_time, schedule, buffer=buffer, name=name)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = True,
                name: str = None) -> 'Schedule':
@@ -173,6 +178,7 @@ class Schedule(ScheduleComponent):
         Args:
             schedule: schedule to be appended
             buffer: Obey buffer when appending
+            name: Name of the new schedule. Defaults to name of parent
         """
         return ops.append(self, schedule, buffer=buffer, name=name)
 

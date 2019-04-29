@@ -112,12 +112,13 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def insert(self, start_time: int, schedule: 'ScheduleComponent',
+    def insert(self, start_time: int, schedule: 'ScheduleComponent', buffer: bool = False,
                name: str = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at `start_time` of `self`.
         Args:
             start_time: time to be inserted
             schedule: schedule to be inserted
+            buffer: Obey buffer when appending
             name: Name of the new schedule. Defaults to name of parent
         """
         pass
