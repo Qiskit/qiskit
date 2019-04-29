@@ -55,7 +55,7 @@ class DeviceSpecification:
             buffer = backend_default.buffer
         except ModelValidationError:
             try:
-                buffer = backend_config.get('buffer', 0)
+                buffer = backend_config.defaults.get('buffer', 0)
             except AttributeError:
                 buffer = 0
 
