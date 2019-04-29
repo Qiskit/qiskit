@@ -30,14 +30,14 @@ from concurrent import futures
 import time
 
 from qiskit.result import Result
-from qiskit.validation.base import ObjSchema
+from qiskit.validation.base import Obj
 from qiskit.providers import BaseBackend, BaseJob
-from qiskit.providers.models import (BackendProperties, PulseDefaults, UchannelLO,
-                                     QasmBackendConfiguration, PulseBackendConfiguration)
-from qiskit.providers.models.backendconfiguration import GateConfig
+from qiskit.providers.models import (BackendProperties, BackendConfiguration, GateConfig,
+                                     QasmBackendConfiguration, PulseBackendConfiguration,
+                                     PulseDefaults, Command)
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
-                         QasmQobjExperiment, QasmQobjConfig, QobjPulseLibrary)
+                         QasmQobjExperiment, QasmQobjConfig, PulseLibraryItem)
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
@@ -74,7 +74,7 @@ class FakeProvider(BaseProvider):
                           FakeMelbourne(),
                           FakeRueschlikon(),
                           FakeTokyo(),
-                          FakeOpenPulse2Q()],
+                          FakeOpenPulse2Q()]
         super().__init__()
 
 
@@ -193,20 +193,20 @@ class FakeOpenPulse2Q(FakeBackend):
             qubit_freq_est=[4.9, 5.0],
             meas_freq_est=[6.5, 6.6],
             buffer=10,
-            pulse_library=[QobjPulseLibrary(name='test_pulse_1', samples=[0.j, 0.1j]),
-                           QobjPulseLibrary(name='test_pulse_2', samples=[0.j, 0.1j, 1j])],
+            pulse_library=[PulseLibraryItem(name='test_pulse_1', samples=[0.j, 0.1j]),
+                           PulseLibraryItem(name='test_pulse_2', samples=[0.j, 0.1j, 1j])],
             cmd_def=[Command(name='u1', qubits=[0],
-                             sequence=[ObjSchema(name='fc', ch='d0', t0=0, phase='-P1*np.pi')]),
+                             sequence=[Obj(name='fc', ch='d0', t0=0, phase='-P1*np.pi')]),
                      Command(name='cx', qubits=[0, 1],
-                             sequence=[ObjSchema(name='test_pulse_1', ch='d0', t0=0),
-                                       ObjSchema(name='test_pulse_2', ch='u0', t0=10),
-                                       ObjSchema(name='pv', ch='d1', t0=0),
-                                       ObjSchema(name='test_pulse_1', ch='d1', t0=20),
-                                       ObjSchema(name='fc', ch='d1', t0=20, phase=2.1)]),
+                             sequence=[Obj(name='test_pulse_1', ch='d0', t0=0),
+                                       Obj(name='test_pulse_2', ch='u0', t0=10),
+                                       Obj(name='pv', ch='d1', t0=0),
+                                       Obj(name='test_pulse_1', ch='d1', t0=20),
+                                       Obj(name='fc', ch='d1', t0=20, phase=2.1)]),
                      Command(name='measure', qubits=[0],
-                             sequence=[ObjSchema(name='test_pulse_1', ch='m0', t0=0),
-                                       ObjSchema(name='acquire', duration=10, t0=0,
-                                                 qubits=[0], memory_slot=[0])])]
+                             sequence=[Obj(name='test_pulse_1', ch='m0', t0=0),
+                                       Obj(name='acquire', duration=10, t0=0,
+                                           qubits=[0], memory_slot=[0])])]
         )
 
         super().__init__(configuration)

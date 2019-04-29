@@ -10,26 +10,31 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.pulse import (CmdDef, SamplePulse, Schedule)
+from qiskit.test.mock import FakeProvider
+from qiskit.pulse import (CmdDef, SamplePulse, Schedule, DeviceSpecification)
 
 
 class TestCmdDef(QiskitTestCase):
     """Test CmdDef methods."""
 
     def setUp(self):
-        self.channel_store = ChannelStore()
-        self.channel_store.register(DriveChannelRegister(2))
+        self.provider = FakeProvider()
+        self.backend = self.provider.get_backend('fake_openpulse_2q')
+        self.device = DeviceSpecification.create_from(self.backend)
+
+    def test_get_backend(self):
+        """Test that backend is fetchable with cmd def present."""
 
     def test_init(self):
         """Test `init`, `has_cmd`."""
-        sched = PulseSchedule(self.channel_store)
+        sched = Schedule(self.channel_store)
         sched.drive[0].add(SamplePulse(np.ones(5.)))
         cmd_def = CmdDef({('tmp', 0): sched})
         self.assertTrue(cmd_def.has_cmd('tmp', 0))
 
     def test_add(self):
         """Test `add`, `has_cmd`, `get`, `cmd_types`."""
-        schedule = PulseSchedule(self.channel_store)
+        schedule = Schedule(self.channel_store)
         schedule.drive[0].add(SamplePulse(np.ones(5.)))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 0, schedule)
@@ -40,14 +45,14 @@ class TestCmdDef(QiskitTestCase):
     def test_default_get(self):
         """Test default get method."""
         cmd_def = CmdDef()
-        sched = PulseSchedule(self.channel_store)
+        sched = Schedule(self.channel_store)
         sched.drive[0].add(SamplePulse(np.ones(5.)))
         get_sched = cmd_def.get('tmp', (0,), sched)
         self.assertEqual(sched, get_sched)
 
     def test_pop(self):
         """Test pop with default."""
-        sched = PulseSchedule(self.channel_store)
+        sched = Schedule(self.channel_store)
         sched.drive[0].add(SamplePulse(np.ones(5.)))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 0, sched)
@@ -61,7 +66,7 @@ class TestCmdDef(QiskitTestCase):
 
     def test_iter(self):
         """Test iterator."""
-        sched = PulseSchedule(self.channel_store)
+        sched = Schedule(self.channel_store)
         sched.drive[0].add(SamplePulse(np.ones(5.)))
         cmd_def = CmdDef()
         cmd_def.add('tmp', (0,), sched)
@@ -75,7 +80,7 @@ class TestCmdDef(QiskitTestCase):
 
     def test_dunder(self):
         """test __setitem__."""
-        schedule = PulseSchedule(self.channel_store)
+        schedule = Schedule(self.channel_store)
         schedule.drive[0].add(SamplePulse(np.ones(5.)))
         cmd_def = CmdDef()
         cmd_def['tmp', 0, 1] = schedule
@@ -85,7 +90,7 @@ class TestCmdDef(QiskitTestCase):
 
     def test_compare(self):
         """test compare"""
-        schedule = PulseSchedule(self.channel_store)
+        schedule = Schedule(self.channel_store)
         schedule.drive[0].add(SamplePulse(np.ones(5.)))
         cmd_def_1 = CmdDef()
         cmd_def_2 = CmdDef()
@@ -95,7 +100,7 @@ class TestCmdDef(QiskitTestCase):
 
     def test_repr(self):
         """Test repr"""
-        sched = PulseSchedule(self.channel_store)
+        sched = Schedule(self.channel_store)
         sched.drive[0].add(SamplePulse(np.ones(5.)))
         cmd_def = CmdDef({('tmp', 0): sched})
         repr(cmd_def)

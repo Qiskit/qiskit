@@ -11,7 +11,7 @@ Command definition module. Relates circuit gates to pulse commands.
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.qobj import QobjPulseLibrary
+from qiskit.qobj import PulseLibraryItem
 
 from .commands import (SamplePulse, PersistentValue, Acquire, FrameChange,
                        PulseInstruction, FrameChangeInstruction, AcquireInstruction,
@@ -21,7 +21,7 @@ from .exceptions import PulseError
 from .schedule import Schedule
 
 
-def _preprocess_pulse_library(self, pulse_library: QobjPulseLibrary):
+def _preprocess_pulse_library(self, pulse_library: PulseLibraryItem):
     """Take pulse library and convert to dictionary of `SamplePulse`s.
 
     Args:
@@ -34,7 +34,7 @@ def _preprocess_pulse_library(self, pulse_library: QobjPulseLibrary):
 
     for pulse in pulse_library:
         if isinstance(pulse, dict):
-            pulse = QobjPulseLibrary(**pulse)
+            pulse = PulseLibraryItem(**pulse)
 
         name = pulse.name
         pulse = SamplePulse(np.asarray(pulse.samples, dtype=np.complex_), name=name)
