@@ -16,33 +16,34 @@
 # =============================================================================
 
 from .quantum_algorithm import QuantumAlgorithm
-from .adaptive import VQE, QAOA, QSVMVariational, QGAN
+from .adaptive import VQE, QAOA, VQC, QGAN
 from .classical import ExactEigensolver, ExactLSsolver, SVM_Classical
-from .many_sample import EOH, QSVMKernel
+from .many_sample import EOH, QSVM
 from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, Simon, \
     DeutschJozsa, BernsteinVazirani, HHL, Shor
 
 
-__all__ = ['QuantumAlgorithm',
-           'VQE',
-           'QAOA',
-           'QSVMVariational',
-           'QGAN',
-           'ExactEigensolver',
-           'ExactLSsolver',
-           'SVM_Classical',
-           'EOH',
-           'QSVMKernel',
-           'Grover',
-           'IQPE',
-           'QPE',
-           'AmplitudeEstimation',
-           'Simon',
-           'DeutschJozsa',
-           'BernsteinVazirani',
-           'HHL',
-           'Shor'
-           ]
+__all__ = [
+    'QuantumAlgorithm',
+    'VQE',
+    'QAOA',
+    'VQC',
+    'QGAN',
+    'ExactEigensolver',
+    'ExactLSsolver',
+    'SVM_Classical',
+    'EOH',
+    'QSVM',
+    'Grover',
+    'IQPE',
+    'QPE',
+    'AmplitudeEstimation',
+    'Simon',
+    'DeutschJozsa',
+    'BernsteinVazirani',
+    'HHL',
+    'Shor',
+]
 
 try:
     from .classical import CPLEX_Ising
