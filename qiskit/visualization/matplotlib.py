@@ -786,7 +786,8 @@ class MatplotlibDrawer:
     @staticmethod
     def param_parse(v, pimode=False):
 
-        param_parts = v.copy()
+        # create an empty list to store the parameters in
+        param_parts = [None] * len(v)
         for i, e in enumerate(v):
 
             if pimode:
