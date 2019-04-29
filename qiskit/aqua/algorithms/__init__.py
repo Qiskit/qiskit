@@ -40,28 +40,9 @@ __all__ = ['QuantumAlgorithm',
            'Simon',
            'DeutschJozsa',
            'BernsteinVazirani',
-           'HHL'
+           'HHL',
+           'Shor'
            ]
-__all__ = [
-    'QuantumAlgorithm',
-    'VQE',
-    'QAOA',
-    'QSVMVariational',
-    'ExactEigensolver',
-    'ExactLSsolver',
-    'SVM_Classical',
-    'EOH',
-    'QSVMKernel',
-    'Grover',
-    'IQPE',
-    'QPE',
-    'AmplitudeEstimation',
-    'Simon',
-    'DeutschJozsa',
-    'BernsteinVazirani',
-    'HHL',
-    'Shor',
-]
 
 try:
     from .classical import CPLEX_Ising
