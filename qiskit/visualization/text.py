@@ -12,6 +12,7 @@ A module for drawing circuits in ascii art or some other text representation
 from shutil import get_terminal_size
 import sys
 import sympy
+from numpy import ndarray
 
 from .exceptions import VisualizationError
 
@@ -617,9 +618,14 @@ class TextDrawing():
 
     @staticmethod
     def params_for_label(instruction):
-        """Get the params and format them to add them to a label. None if there are no params."""
+        """Get the params and format them to add them to a label. None if there
+         are no params of if the params are numpy.ndarrays."""
+
         if not hasattr(instruction.op, 'params'):
             return None
+        if all([isinstance(param, ndarray) for param in instruction.op.params]):
+            return None
+
         ret = []
         for param in instruction.op.params:
             if isinstance(param, (sympy.Number, float)):
@@ -796,9 +802,6 @@ class TextDrawing():
 
             gates = [Bullet(), BoxOnQuWire(label)]
             add_connected_gate(instruction, gates, layer, current_cons)
-
-        elif instruction.name == 'unitary':
-            layer.set_qu_multibox(instruction.qargs, 'unitary')
 
         elif len(instruction.qargs) == 1 and not instruction.cargs:
             # unitary gate
