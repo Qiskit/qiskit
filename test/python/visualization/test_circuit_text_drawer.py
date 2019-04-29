@@ -986,12 +986,12 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
     def test_kraus(self):
         """ Test Kraus.
         See https://github.com/Qiskit/qiskit-terra/pull/2238#issuecomment-487630014"""
-        expected = '\n'.join(["         ┌───────┐",
-                              "q0_0: |0>┤ Kraus ├",
-                              "         └───────┘"])
+        expected = '\n'.join(["        ┌───────┐",
+                              "q_0: |0>┤ Kraus ├",
+                              "        └───────┘"])
 
         error = SuperOp(0.75 * numpy.eye(4) + 0.25 * numpy.diag([1, -1, -1, 1]))
-        qr = QuantumRegister(1)
+        qr = QuantumRegister(1, name='q')
         qc = QuantumCircuit(qr)
         qc.append(error, [qr[0]])
 
@@ -1000,15 +1000,15 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
     def test_multiplexer(self):
         """ Test Multiplexer.
         See https://github.com/Qiskit/qiskit-terra/pull/2238#issuecomment-487630014"""
-        expected = '\n'.join(["         ┌──────────────┐",
-                              "q1_0: |0>┤0             ├",
-                              "         │  multiplexer │",
-                              "q1_1: |0>┤1             ├",
-                              "         └──────────────┘"])
+        expected = '\n'.join(["        ┌──────────────┐",
+                              "q_0: |0>┤0             ├",
+                              "        │  multiplexer │",
+                              "q_1: |0>┤1             ├",
+                              "        └──────────────┘"])
 
         cx_multiplexer = Gate('multiplexer', 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
 
-        qr = QuantumRegister(2)
+        qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
         qc.append(cx_multiplexer, [qr[0], qr[1]])
 
