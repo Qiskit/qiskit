@@ -11,40 +11,34 @@ Command definition module. Relates circuit gates to pulse commands.
 import numpy as np
 
 from qiskit.exceptions import QiskitError
+from qiskit.qobj import QobjPulseLibrary
 
-from .commands import SamplePulse
-from .exceptions import ScheduleError
-from .schedule import PulseSchedule
+from .commands import (SamplePulse, PersistentValue, Acquire, FrameChange,
+                       PulseInstruction, FrameChangeInstruction, AcquireInstruction,
+                       PersistentValueInstruction)
+
+from .exceptions import PulseError
+from .schedule import Schedule
 
 
-def _preprocess_pulse_library(self, pulse_library):
+def _preprocess_pulse_library(self, pulse_library: QobjPulseLibrary):
     """Take pulse library and convert to dictionary of `SamplePulse`s.
 
     Args:
-        pulse_library (dict or list): Unprocessed pulse_library. May be either
-            a (list | dict) of (SamplePulse | np.ndarray).
+        pulse_library: Unprocessed pulse_library.
 
     Returns:
         dict: Pulse library consisting of `SamplePulse`s
     """
     processed_pulse_library = {}
 
-    if isinstance(pulse_library, dict):
-        for name, pulse in pulse_library.items():
-            if isinstance(pulse, SamplePulse):
-                pulse.name = name
-            else:
-                pulse = SamplePulse(len(pulse), pulse, name)
+    for pulse in pulse_library:
+        if isinstance(pulse, dict):
+            pulse = QobjPulseLibrary(**pulse)
 
-            processed_pulse_library[name] = pulse
-    else:
-        for pulse in pulse_library:
-            if not isinstance(pulse, SamplePulse):
-                pulse = SamplePulse(len(pulse), pulse, name)
-
-            name = pulse.name
-
-            processed_pulse_library[name] = pulse
+        name = pulse.name
+        pulse = SamplePulse(np.asarray(pulse.samples, dtype=np.complex_), name=name)
+        processed_pulse_library[name] = pulse
 
     return processed_pulse_library
 
