@@ -285,6 +285,9 @@ class QuantumCircuit:
                 if param in current_symbols:
                     self._parameter_table[param].append((instruction, param_index))
                 else:
+                    if param.name in set(p.name for p in current_symbols):
+                        raise QiskitError(
+                            'Name conflict on adding parameter: {}'.format(param.name))
                     self._parameter_table[param] = [(instruction, param_index)]
 
         return instruction
