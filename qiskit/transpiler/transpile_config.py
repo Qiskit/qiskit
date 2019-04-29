@@ -7,7 +7,7 @@
 
 """Models for TranspileConfig and its related components."""
 
-from qiskit.compiler.models import TranspileConfigSchema
+from qiskit.transpiler.models import TranspileConfigSchema
 from qiskit.validation import BaseModel, bind_schema
 
 

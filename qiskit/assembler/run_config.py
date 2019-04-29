@@ -7,7 +7,7 @@
 
 """Models for RunConfig and its related components."""
 
-from qiskit.compiler.models import RunConfigSchema
+from qiskit.assembler.models import RunConfigSchema
 from qiskit.validation import BaseModel, bind_schema
 
 
