@@ -797,6 +797,9 @@ class TextDrawing():
             gates = [Bullet(), BoxOnQuWire(label)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
+        elif instruction.name == 'unitary':
+            layer.set_qu_multibox(instruction.qargs, 'unitary')
+
         elif len(instruction.qargs) == 1 and not instruction.cargs:
             # unitary gate
             layer.set_qubit(instruction.qargs[0],

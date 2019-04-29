@@ -19,6 +19,7 @@ from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Gate, Parameter
+from qiskit.quantum_info.random import random_unitary
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -960,6 +961,26 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
         circuit.append(my_gate2, [qr[0], qr[3]])
 
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
+
+    def test_unitary_nottogether_across_4(self):
+        """ Unitary that are 2 bits apart"""
+        expected = '\n'.join(["        ┌──────────┐",
+                              "q_0: |0>┤0         ├",
+                              "        │          │",
+                              "q_1: |0>┤          ├",
+                              "        │  unitary │",
+                              "q_2: |0>┤          ├",
+                              "        │          │",
+                              "q_3: |0>┤1         ├",
+                              "        └──────────┘"])
+
+        qr = QuantumRegister(4, 'q')
+        qc = QuantumCircuit(qr)
+
+        U1 = random_unitary(4, seed=42)
+        qc.append(U1, [qr[0], qr[3]])
+
+        self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
 
 class TestTextDrawerParams(QiskitTestCase):
