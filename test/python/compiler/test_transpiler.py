@@ -21,7 +21,7 @@ from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.mapper import Layout
+from qiskit.transpiler import Layout
 from qiskit.circuit import Parameter
 
 
@@ -496,3 +496,35 @@ class TestTranspile(QiskitTestCase):
             is_last_measure = all([after_measure.type == 'out'
                                    for after_measure in out_dag.quantum_successors(meas_node)])
             self.assertTrue(is_last_measure)
+
+    def test_initialize_reset_should_be_removed(self):
+        """The reset in front of initializer should be removed when zero state"""
+        qr = QuantumRegister(1, "qr")
+        qc = QuantumCircuit(qr)
+        qc.initialize([1.0 / math.sqrt(2), 1.0 / math.sqrt(2)], [qr[0]])
+        qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.u_base(1.5708, 0, 0, qr[0])
+        expected.u_base(0, 0, 0, qr[0])
+        expected.reset(qr[0])
+        expected.u_base(1.5708, 0, 0, qr[0])
+        expected.u_base(0, 0, 3.1416, qr[0])
+
+        after = transpile(qc, basis_gates=['reset', 'U'])
+
+        self.assertEqual(after, expected)
+
+    def test_initialize_FakeMelbourne(self):
+        """Test that the zero-state resets are remove in a device not supporting them.
+        """
+        desired_vector = [1 / math.sqrt(2), 0, 0, 0, 0, 0, 0, 1 / math.sqrt(2)]
+        qr = QuantumRegister(3, "qr")
+        qc = QuantumCircuit(qr)
+        qc.initialize(desired_vector, [qr[0], qr[1], qr[2]])
+
+        out = transpile(qc, backend=FakeMelbourne())
+        out_dag = circuit_to_dag(out)
+        reset_nodes = out_dag.named_nodes('reset')
+
+        self.assertEqual(reset_nodes, [])
