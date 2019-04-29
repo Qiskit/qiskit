@@ -164,7 +164,7 @@ class Instruction(ScheduleComponent):
              filename: str = None, interp_method: Callable = None, scaling: float = None,
              channels_to_plot: List[Channel] = None, plot_all: bool = False,
              plot_range: Tuple[float] = None, interactive: bool = False,
-             legend: bool = True, table: bool = True, label: bool = False,
+             table: bool = True, label: bool = False,
              framechange: bool = True):
         """Plot the instruction.
 
@@ -179,7 +179,6 @@ class Instruction(ScheduleComponent):
             plot_range: A tuple of time range to plot.
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this).
-            legend: Draw Legend for supported commands
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
@@ -196,7 +195,7 @@ class Instruction(ScheduleComponent):
                                           filename=filename, interp_method=interp_method,
                                           scaling=scaling, channels_to_plot=channels_to_plot,
                                           plot_all=plot_all, plot_range=plot_range,
-                                          interactive=interactive, legend=legend, table=table,
+                                          interactive=interactive, table=table,
                                           label=label, framechange=framechange)
 
     def __add__(self, schedule: ScheduleComponent) -> 'ScheduleComponent':

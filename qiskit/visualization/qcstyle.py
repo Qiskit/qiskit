@@ -104,9 +104,9 @@ class OPStyleSched:
     def __init__(self, fig_w=10, fig_unit_h_waveform=2.5, fig_unit_h_table=0.4,
                  use_table=True, table_columns=2, table_font_size=10, axis_font_size=18,
                  label_font_size=10, icon_font_size=18, label_ch_linestyle='--',
-                 label_ch_alpha=0.3, d_ch_color=None, u_ch_color=None, m_ch_color=None,
-                 s_ch_color=None, s_ch_linestyle='-', table_color=None, bg_color=None,
-                 num_points=1000, dpi=150):
+                 label_ch_color=None, label_ch_alpha=0.3, d_ch_color=None, u_ch_color=None,
+                 m_ch_color=None, s_ch_color=None, s_ch_linestyle='-', table_color=None,
+                 bg_color=None, num_points=1000, dpi=150):
         """Set style sheet for OpenPulse schedule drawer.
 
         Args:
@@ -120,6 +120,7 @@ class OPStyleSched:
             label_font_size (float): font size of labels
             icon_font_size (float): font size of labels
             label_ch_linestyle (str): Linestyle for labelling output channels
+            label_ch_color (str): Color for channel pulse label line
             label_ch_alpha (float): Alpha for channel labels
             d_ch_color (list[str]): colors for real and imaginary part of waveform at d channels
             u_ch_color (list[str]): colors for real and imaginary part of waveform at u channels
@@ -142,6 +143,7 @@ class OPStyleSched:
         self.icon_font_size = icon_font_size
         self.d_ch_color = d_ch_color or ['#648fff', '#002999']
         self.label_ch_linestyle = label_ch_linestyle
+        self.label_ch_color = label_ch_color or '#222222'
         self.label_ch_alpha = label_ch_alpha
         self.u_ch_color = u_ch_color or ['#ffb000', '#994A00']
         self.m_ch_color = m_ch_color or ['#dc267f', '#760019']

@@ -1241,30 +1241,16 @@ class ScheduleDrawer:
 
         return ax
 
-    def _draw_snapshots(self, ax, snapshot_channels, dt):
+    def _draw_snapshots(self, ax, snapshot_channels, dt, y0):
         snapshots_present = False
         for events in snapshot_channels.values():
             snapshots = events.snapshots
             if snapshots:
                 snapshots_present = True
                 for time in snapshots:
-                    ax.axvline(time*dt, -1, 1, color=self.style.s_ch_color,
-                               linestyle=self.style.s_ch_linestyle)
+                    ax.annotate(s=u"\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0-0.10),
+                                arrowprops={'arrowstyle': 'wedge'}, ha='center')
         return snapshots_present
-
-    def _draw_legend(self, ax, framechanges_present, snapshots_present):
-        legend_labels = []
-        legend_lines = []
-        if framechanges_present:
-            legend_labels.append('framechange')
-            legend_lines.append(lines.Line2D([0], [0], marker=r'$\circlearrowleft$',
-                                             color='black', markersize=self.style.icon_font_size-6))
-        if snapshots_present:
-            legend_labels.append('snapshot')
-            legend_lines.append(lines.Line2D([0], [0], color=self.style.s_ch_color,
-                                             linestyle=self.style.s_ch_linestyle))
-        if legend_labels:
-            ax.legend(legend_lines, legend_labels, loc='upper right')
 
     def _draw_framechanges(self, ax, fcs, dt, y0):
         framechanges_present = True
@@ -1288,7 +1274,14 @@ class ScheduleDrawer:
             color = 'black'
         return color
 
-    def _draw_labels(self, ax, channel, labels, dt, y0):
+    def _prev_label_at_time(self, prev_labels, time):
+        for i, labels in enumerate(prev_labels):
+            for t0, (tf, cmd) in labels.items():
+                if t0 == time or tf == time:
+                    return True
+        return False
+
+    def _draw_labels(self, ax, channel, labels, prev_labels, dt, y0):
         for t0, (tf, cmd) in labels.items():
             if isinstance(cmd, PersistentValue):
                 name = cmd.name if cmd.name else 'pv'
@@ -1297,27 +1290,28 @@ class ScheduleDrawer:
             else:
                 name = cmd.name
 
-            ax.text(x=(t0+tf)//2*dt, y=y0+0.45,
-                    s=r'%s' % name,
-                    fontsize=self.style.label_font_size,
-                    ha='center', va='center')
+            ax.annotate(r'%s' % name,
+                        xy=((t0+tf)//2*dt, y0),
+                        xytext=((t0+tf)//2*dt, y0-0.07),
+                        fontsize=self.style.label_font_size,
+                        ha='center', va='center')
 
             linestyle = self.style.label_ch_linestyle
             alpha = self.style.label_ch_alpha
-            color = self._get_channel_color(channel)
-            if isinstance(color, (tuple, list)):
-                color = color[0]
+            color = self.style.label_ch_color
 
-            ax.axvline(t0*dt, -1, 1, color=color,
-                       linestyle=linestyle, alpha=alpha)
-            ax.axvline(tf*dt, -1, 1, color=color,
-                       linestyle=linestyle, alpha=alpha)
+            if not self._prev_label_at_time(prev_labels, t0):
+                ax.axvline(t0*dt, -1, 1, color=color,
+                           linestyle=linestyle, alpha=alpha)
+            if not (self._prev_label_at_time(prev_labels, tf) or tf in labels):
+                ax.axvline(tf*dt, -1, 1, color=color,
+                           linestyle=linestyle, alpha=alpha)
 
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
                        label=False, framechange=True):
         y0 = 0
         framechanges_present = False
-
+        prev_labels = []
         for channel, events in output_channels.items():
             if events.enable:
                 # plot waveform
@@ -1349,7 +1343,8 @@ class ScheduleDrawer:
                 # plot labels
                 labels = events.labels
                 if labels and label:
-                    self._draw_labels(ax, channel, labels, dt, y0)
+                    self._draw_labels(ax, channel, labels, prev_labels, dt, y0)
+                prev_labels.append(labels)
 
             else:
                 continue
@@ -1362,7 +1357,7 @@ class ScheduleDrawer:
         return y0, framechanges_present
 
     def draw(self, schedule, dt, interp_method, scaling,
-             plot_range, channels_to_plot=None, plot_all=True, legend=True,
+             plot_range, channels_to_plot=None, plot_all=True,
              table=True, label=False, framechange=True):
         """Draw figure.
         Args:
@@ -1374,7 +1369,6 @@ class ScheduleDrawer:
             plot_range (tuple[float]): plot range
             channels_to_plot (list[OutputChannel]): channels to draw
             plot_all (bool): if plot all channels even it is empty
-            legend (bool): Draw legend
             table (bool): Draw event table
             label (bool): Label individual instructions
             framechange (bool): Add framechange indicators
@@ -1422,10 +1416,7 @@ class ScheduleDrawer:
                                                        t0, tf, dt, v_max, label=label,
                                                        framechange=framechange)
 
-        snapshots_present = self._draw_snapshots(ax, snapshot_channels, dt)
-
-        if legend:
-            self._draw_legend(ax, framechanges_present, snapshots_present)
+        snapshots_present = self._draw_snapshots(ax, snapshot_channels, dt, y0)
 
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)
