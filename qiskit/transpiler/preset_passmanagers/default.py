@@ -27,8 +27,7 @@ from qiskit.transpiler.passes.mapping.full_ancilla_allocation import FullAncilla
 from qiskit.transpiler.passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
 
 
-def default_pass_manager(basis_gates, coupling_map, initial_layout,
-                         skip_numeric_passes, seed_transpiler):
+def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpiler):
     """
     The default pass manager that maps to the coupling map.
 
@@ -36,7 +35,6 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
         basis_gates (list[str]): list of basis gate names supported by the target.
         coupling_map (CouplingMap): coupling map to target in mapping.
         initial_layout (Layout or None): initial layout of virtual qubits on physical qubits
-        skip_numeric_passes (bool): If true, skip passes which require fixed parameter values
         seed_transpiler (int or None): random seed for stochastic passes.
 
     Returns:
@@ -73,13 +71,11 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout,
     # Change CX directions
     pass_manager.append(CXDirection(coupling_map))
 
-    simplification_passes = [RemoveResetInZeroState()]
+    # simplifications and optimizations
+    simplification_passes = [RemoveResetInZeroState(), CXCancellation()]
     if set(basis_gates).issubset(set(['u1', 'u2', 'u3', 'id', 'cx', 'U', 'CX'])):
-        if not skip_numeric_passes:
-            # Simplify single qubit gates and CXs
-            simplification_passes += [Optimize1qGates(), CXCancellation()]
-        else:
-            simplification_passes += [CXCancellation()]
+        # Simplify single qubit gates
+        simplification_passes += [Optimize1qGates()]
     pass_manager.append(simplification_passes + [Depth(), FixedPoint('depth')],
                         do_while=lambda property_set: not property_set['depth_fixed_point'])
 
