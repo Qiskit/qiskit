@@ -57,6 +57,7 @@ class Schedule(ScheduleComponent):
 
             self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
             self._children = tuple(children)
+            self._buffer = max([child.buffer for _, child in children]) if children else 0
 
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
@@ -84,6 +85,10 @@ class Schedule(ScheduleComponent):
         return self.timeslots.stop_time
 
     @property
+    def buffer(self) -> int:
+        return self._buffer
+
+    @property
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
         return self.timeslots.channels
@@ -98,7 +103,7 @@ class Schedule(ScheduleComponent):
         return tuple(self._instructions())
 
     def ch_duration(self, *channels: List[Channel]) -> int:
-        """Return duration of supplied channels.
+        """Return duration of schedule over supplied channels.
 
         Args:
             *channels: Supplied channels
@@ -106,7 +111,7 @@ class Schedule(ScheduleComponent):
         return self.timeslots.ch_duration(*channels)
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
-        """Return minimum start time for supplied channels.
+        """Return minimum start time over supplied channels.
 
         Args:
             *channels: Supplied channels
@@ -114,10 +119,11 @@ class Schedule(ScheduleComponent):
         return self.timeslots.ch_start_time(*channels)
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
-        """Return maximum start time for supplied channels.
+        """Return maximum start time over supplied channels.
 
         Args:
             *channels: Supplied channels
+            buffer: Include channel buffers in channel stop time
         """
         return self.timeslots.ch_stop_time(*channels)
 
@@ -134,39 +140,41 @@ class Schedule(ScheduleComponent):
         for insert_time, child_sched in self.children:
             yield from child_sched._instructions(time + insert_time)
 
-    def union(self, *schedules: List[ScheduleComponent]) -> 'Schedule':
+    def union(self, *schedules: List[ScheduleComponent], name: str = None) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
             *schedules: Schedules to be take the union with the parent `Schedule`.
         """
-        return ops.union(self, *schedules)
+        return ops.union(self, *schedules, name=name)
 
-    def shift(self: ScheduleComponent, time: int) -> 'Schedule':
+    def shift(self: ScheduleComponent, time: int, name: str = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
 
         Args:
             time: Time to shift by
         """
-        return ops.shift(self, time)
+        return ops.shift(self, time, name=name)
 
-    def insert(self, start_time: int, schedule: ScheduleComponent) -> 'Schedule':
+    def insert(self, start_time: int, schedule: ScheduleComponent, name: str = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
             start_time: time to be inserted
             schedule: schedule to be inserted
         """
-        return ops.insert(self, start_time, schedule)
+        return ops.insert(self, start_time, schedule, name=name)
 
-    def append(self, schedule: ScheduleComponent) -> 'Schedule':
+    def append(self, schedule: ScheduleComponent, buffer: bool = True,
+               name: str = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 
         Args:
             schedule: schedule to be appended
+            buffer: Obey buffer when appending
         """
-        return ops.append(self, schedule)
+        return ops.append(self, schedule, buffer=buffer, name=name)
 
     def flatten(self) -> 'ScheduleComponent':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
