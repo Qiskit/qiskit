@@ -21,7 +21,7 @@ import numpy as np
 try:
     from matplotlib import patches
     from matplotlib import pyplot as plt
-    from matplotlib import pyplot as plt, gridspec, lines
+    from matplotlib import pyplot as plt, gridspec
     HAS_MATPLOTLIB = True
 except ImportError:
     HAS_MATPLOTLIB = False
@@ -1242,15 +1242,12 @@ class ScheduleDrawer:
         return ax
 
     def _draw_snapshots(self, ax, snapshot_channels, dt, y0):
-        snapshots_present = False
         for events in snapshot_channels.values():
             snapshots = events.snapshots
             if snapshots:
-                snapshots_present = True
                 for time in snapshots:
                     ax.annotate(s=u"\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0-0.10),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
-        return snapshots_present
 
     def _draw_framechanges(self, ax, fcs, dt, y0):
         framechanges_present = True
@@ -1275,13 +1272,13 @@ class ScheduleDrawer:
         return color
 
     def _prev_label_at_time(self, prev_labels, time):
-        for i, labels in enumerate(prev_labels):
-            for t0, (tf, cmd) in labels.items():
-                if t0 == time or tf == time:
+        for _, labels in enumerate(prev_labels):
+            for t0, (tf, _) in labels.items():
+                if time in (t0, tf):
                     return True
         return False
 
-    def _draw_labels(self, ax, channel, labels, prev_labels, dt, y0):
+    def _draw_labels(self, ax, labels, prev_labels, dt, y0):
         for t0, (tf, cmd) in labels.items():
             if isinstance(cmd, PersistentValue):
                 name = cmd.name if cmd.name else 'pv'
@@ -1310,7 +1307,6 @@ class ScheduleDrawer:
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
                        label=False, framechange=True):
         y0 = 0
-        framechanges_present = False
         prev_labels = []
         for channel, events in output_channels.items():
             if events.enable:
@@ -1335,15 +1331,13 @@ class ScheduleDrawer:
                 ax.plot((t0, tf), (y0, y0), color='#000000', linewidth=1.0)
 
                 # plot frame changes
-                framechanges_present = False
                 fcs = events.framechanges
                 if fcs and framechange:
-                    framechanges_present = True
                     self._draw_framechanges(ax, fcs, dt, y0)
                 # plot labels
                 labels = events.labels
                 if labels and label:
-                    self._draw_labels(ax, channel, labels, prev_labels, dt, y0)
+                    self._draw_labels(ax, labels, prev_labels, dt, y0)
                 prev_labels.append(labels)
 
             else:
@@ -1354,7 +1348,7 @@ class ScheduleDrawer:
                     ha='right', va='center')
 
             y0 -= 1
-        return y0, framechanges_present
+        return y0
 
     def draw(self, schedule, dt, interp_method, scaling,
              plot_range, channels_to_plot=None, plot_all=True,
@@ -1412,11 +1406,11 @@ class ScheduleDrawer:
 
         ax.set_facecolor(self.style.bg_color)
 
-        y0, framechanges_present = self._draw_channels(ax, output_channels, interp_method,
-                                                       t0, tf, dt, v_max, label=label,
-                                                       framechange=framechange)
+        y0 = self._draw_channels(ax, output_channels, interp_method,
+                                 t0, tf, dt, v_max, label=label,
+                                 framechange=framechange)
 
-        snapshots_present = self._draw_snapshots(ax, snapshot_channels, dt, y0)
+        self._draw_snapshots(ax, snapshot_channels, dt, y0)
 
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)
