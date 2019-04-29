@@ -34,7 +34,6 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                           PulseError)
-from qiskit.visualization.exceptions import VisualizationError
 
 logger = logging.getLogger(__name__)
 
@@ -1001,15 +1000,15 @@ class EventsOutputChannels:
                 if isinstance(command, SamplePulse):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0
-                    self._labels[time] = (tf, command.name)
+                    self._labels[time] = (tf, command)
                     if last_pv is not None:
                         pv_cmd = last_pv[1]
-                        self._labels[last_pv[0]] = (time, pv_cmd.name if pv_cmd.name else 'pv')
+                        self._labels[last_pv[0]] = (time, pv_cmd)
                         last_pv = None
 
                 elif isinstance(command, Acquire):
                     wf[time:tf] = np.ones(command.duration)
-                    self._labels[time] = (tf, command.name if command.name else 'acquire')
+                    self._labels[time] = (tf, command)
         self._waveform = wf + pv
 
     def _trim(self, events):
@@ -1266,15 +1265,44 @@ class ScheduleDrawer:
                     ha='center', va='center')
         return framechanges_present
 
-    def _draw_labels(self, ax, labels, dt, y0):
-        for t0, (tf, label) in labels.items():
+    def _get_channel_color(self, channel):
+        # choose color
+        if isinstance(channel, DriveChannel):
+            color = self.style.d_ch_color
+        elif isinstance(channel, ControlChannel):
+            color = self.style.u_ch_color
+        elif isinstance(channel, MeasureChannel):
+            color = self.style.m_ch_color
+        elif isinstance(channel, AcquireChannel):
+            color = self.style.a_ch_color
+        else:
+            color = 'black'
+        return color
+
+    def _draw_labels(self, ax, channel, labels, dt, y0):
+        for t0, (tf, cmd) in labels.items():
+            if isinstance(cmd, PersistentValue):
+                name = cmd.name if cmd.name else 'pv'
+            elif isinstance(cmd, Acquire):
+                name = cmd.name if cmd.name else 'acquire'
+            else:
+                name = cmd.name
+
             ax.text(x=(t0+tf)//2*dt, y=y0+0.45,
-                    s=r'%s' % label,
+                    s=r'%s' % name,
                     fontsize=self.style.label_font_size,
                     ha='center', va='center')
-            ax.annotate(s='', xy=(tf*dt, y0+0.5), xytext=(t0*dt, y0+0.5),
-                        arrowprops=dict(arrowstyle='<->', shrinkA=0, shrinkB=0),
-                        alpha=0.2)
+
+            linestyle = self.style.label_ch_linestyle
+            alpha = self.style.label_ch_alpha
+            color = self._get_channel_color(channel)
+            if isinstance(color, (tuple, list)):
+                color = color[0]
+
+            ax.axvline(t0*dt, -1, 1, color=color,
+                       linestyle=linestyle, alpha=alpha)
+            ax.axvline(tf*dt, -1, 1, color=color,
+                       linestyle=linestyle, alpha=alpha)
 
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
                        label=False, framechange=True):
@@ -1287,17 +1315,7 @@ class ScheduleDrawer:
                 waveform = events.waveform
                 time = np.arange(t0, tf + 1, dtype=float) * dt
                 time, re, im = interp_method(time, waveform, self.style.num_points)
-                # choose color
-                if isinstance(channel, DriveChannel):
-                    color = self.style.d_ch_color
-                elif isinstance(channel, ControlChannel):
-                    color = self.style.u_ch_color
-                elif isinstance(channel, MeasureChannel):
-                    color = self.style.m_ch_color
-                elif isinstance(channel, AcquireChannel):
-                    color = self.style.a_ch_color
-                else:
-                    raise VisualizationError('Ch %s cannot be drawn.' % channel.name)
+                color = self._get_channel_color(channel)
                 # scaling and offset
                 re = v_max * re + y0
                 im = v_max * im + y0
@@ -1322,7 +1340,7 @@ class ScheduleDrawer:
                 # plot labels
                 labels = events.labels
                 if labels and label:
-                    self._draw_labels(ax, labels, dt, y0)
+                    self._draw_labels(ax, channel, labels, dt, y0)
 
             else:
                 continue
