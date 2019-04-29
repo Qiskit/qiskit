@@ -19,7 +19,7 @@ from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=missing-return-doc
+# pylint: disable=missing-return-doc,missing-type-doc
 
 
 class Instruction(ScheduleComponent):

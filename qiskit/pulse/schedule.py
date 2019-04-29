@@ -62,8 +62,6 @@ class Schedule(ScheduleComponent):
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
 
-    # pylint: enable=missing-type-doc
-
     @property
     def name(self) -> str:
         return self._name
@@ -123,7 +121,6 @@ class Schedule(ScheduleComponent):
 
         Args:
             *channels: Supplied channels
-            buffer: Include channel buffers in channel stop time
         """
         return self.timeslots.ch_stop_time(*channels)
 

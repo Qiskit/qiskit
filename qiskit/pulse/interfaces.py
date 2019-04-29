@@ -15,6 +15,8 @@ from qiskit.pulse.channels import Channel
 
 from .timeslots import TimeslotCollection
 
+# pylint: disable=missing-type-doc
+
 
 class ScheduleComponent(metaclass=ABCMeta):
     """Common interface for components of schedule. """
@@ -93,9 +95,9 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def union(self, *schedules: List['ScheduleComponent'],
-              name: str = None) -> 'ScheduleComponent':
+    def union(self, *schedules: List['ScheduleComponent'], name: str = None) -> 'ScheduleComponent':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
+
         Args:
             schedules: Schedules to be take the union with the parent `Schedule`.
             name: Name of the new schedule. Defaults to name of parent
@@ -115,6 +117,7 @@ class ScheduleComponent(metaclass=ABCMeta):
     def insert(self, start_time: int, schedule: 'ScheduleComponent', buffer: bool = False,
                name: str = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at `start_time` of `self`.
+
         Args:
             start_time: time to be inserted
             schedule: schedule to be inserted
@@ -128,6 +131,7 @@ class ScheduleComponent(metaclass=ABCMeta):
                name: str = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
+
         Args:
             schedule: schedule to be appended
             buffer: Obey buffer when appending
