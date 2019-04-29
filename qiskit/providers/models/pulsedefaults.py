@@ -13,7 +13,7 @@ from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.base import ObjSchema
 from qiskit.validation.fields import (Complex, Integer, List, Nested, Number,
                                       String)
-from qiskit.qobj import PulseLibraryItem, PulseLibraryItemSchema
+from qiskit.qobj import PulseLibraryItem, PulseLibraryItemSchema, PulseQobjInstructionSchema
 
 
 class MeasurementKernelSchema(BaseSchema):
@@ -41,7 +41,7 @@ class CommandSchema(BaseSchema):
     # Optional properties.
     qubits = List(Integer(validate=Range(min=0)),
                   validate=Length(min=1))
-    sequence = Nested(ObjSchema, many=True)
+    sequence = Nested(PulseQobjInstructionSchema, many=True)
 
 
 class PulseDefaultsSchema(BaseSchema):
