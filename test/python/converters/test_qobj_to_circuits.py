@@ -133,7 +133,7 @@ class TestQobjToCircuits(QiskitTestCase):
         circ = QuantumCircuit(q, name='circ')
         circ.iden(q)
         dag = circuit_to_dag(circ)
-        qobj = assemble_circuits(circ)
+        qobj = assemble(circ)
         out_circuit = qobj_to_circuits(qobj)[0]
         self.assertEqual(circuit_to_dag(out_circuit), dag)
 
@@ -146,7 +146,7 @@ class TestQobjToCircuits(QiskitTestCase):
         circ = QuantumCircuit(q, c, name='circ')
         circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
         dag = circuit_to_dag(circ)
-        qobj = assemble_circuits(circ)
+        qobj = assemble(circ)
         out_circuit = qobj_to_circuits(qobj)[0]
         self.assertEqual(circuit_to_dag(out_circuit), dag)
 
