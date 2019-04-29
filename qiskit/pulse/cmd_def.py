@@ -8,15 +8,15 @@
 """
 Command definition module. Relates circuit gates to pulse commands.
 """
-import numpy as np
+from collections.abc import MutableMapping
 
+import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import PulseLibraryItem
 
 from .commands import (SamplePulse, PersistentValue, Acquire, FrameChange,
                        PulseInstruction, FrameChangeInstruction, AcquireInstruction,
                        PersistentValueInstruction)
-
 from .exceptions import PulseError
 from .schedule import Schedule
 
@@ -43,17 +43,6 @@ def _preprocess_pulse_library(self, pulse_library: PulseLibraryItem):
     return processed_pulse_library
 
 
-def cmd_def_from_defaults(flat_cmd_def, pulse_library):
-    """Create command definition from backend defaults output.
-    Args:
-        flat_cmd_def (list): Command definition list returned by backend
-        pulse_library (list): dict or list of pulse library entries
-    Returns:
-        CmdDef
-    """
-    _pulse_library = self._preprocess_pulse_library(pulse_library)
-
-
 def _to_qubit_tuple(qubit_tuple):
     """Convert argument to tuple.
     Args:
@@ -71,7 +60,7 @@ def _to_qubit_tuple(qubit_tuple):
         raise QiskitError("All qubits must be integers.")
 
 
-class CmdDef:
+class CmdDef(MutableMapping):
     """Command definition class.
     Relates `Gate`s to `PulseSchedule`s.
     """
@@ -87,6 +76,17 @@ class CmdDef:
         if schedules:
             for key, schedule in schedules.items():
                 self.add(key[0], key[1:], schedule)
+
+    @classmethod
+    def cmd_def_from_defaults(cls, flat_cmd_def, pulse_library):
+        """Create command definition from backend defaults output.
+        Args:
+            flat_cmd_def (list): Command definition list returned by backend
+            pulse_library (list): dict or list of pulse library entries
+        Returns:
+            CmdDef
+        """
+        pulse_library = _preprocess_pulse_library(pulse_library)
 
     def add(self, cmd_name, qubits, schedule):
         """Add a command to the `CommandDefinition`
@@ -135,8 +135,8 @@ class CmdDef:
         elif default:
                 return default
         else:
-            raise ScheduleError('Command {name} for qubits {qubits} is not present'
-                                'in CmdDef'.format(cmd_name, qubits))
+            raise PulseError('Command {name} for qubits {qubits} is not present'
+                             'in CmdDef'.format(cmd_name, qubits))
 
     def pop(self, cmd_name, qubits, default=None):
         """Pop command from command definition.
@@ -162,8 +162,8 @@ class CmdDef:
         elif default:
             return default
         else:
-            raise ScheduleError('Command {name} for qubits {qubits} is not present'
-                                'in CmdDef'.format(cmd_name, qubits))
+            raise PulseError('Command {name} for qubits {qubits} is not present'
+                             'in CmdDef'.format(cmd_name, qubits))
 
     def cmd_types(self):
         """Return all command names available in CmdDef.
