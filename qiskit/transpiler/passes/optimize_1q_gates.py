@@ -11,6 +11,8 @@ Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining
 a single gate.
 """
 
+from itertools import groupby
+
 import numpy as np
 
 from qiskit.transpiler.exceptions import TranspilerError
@@ -22,7 +24,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, Parameter
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -37,6 +39,7 @@ class Optimize1qGates(TransformationPass):
     def run(self, dag):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
+        runs = _split_runs_on_parameters(runs)
         for run in runs:
             right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
@@ -230,3 +233,22 @@ class Optimize1qGates(TransformationPass):
         out_angles = tuple(0 if np.abs(angle) < _CHOP_THRESHOLD else angle
                            for angle in out_angles)
         return out_angles
+
+
+def _split_runs_on_parameters(runs):
+    """Finds runs containing parameterized gates and splits them into sequential
+    runs excluding the parameterized gates.
+    """
+
+    def _is_dagnode_parameterized(node):
+        return any(isinstance(param, Parameter) for param in node.op.params)
+
+    out = []
+    for run in runs:
+        groups = groupby(run, _is_dagnode_parameterized)
+
+        for group_is_parameterized, gates in groups:
+            if not group_is_parameterized:
+                out.append(list(gates))
+
+    return out
