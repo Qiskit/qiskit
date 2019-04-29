@@ -284,6 +284,23 @@ class TestSchedule(QiskitTestCase):
         sched_snapshot = snapshot | sched1
         self.assertEqual(sched_snapshot.name, 'snapshot_label')
 
+    def test_flatten(self):
+        """Test schedule flattening."""
+
+        device = self.two_qubit_device
+        chan = device.q[0].drive
+        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
+
+        sched = Schedule()
+        for i in range(10):
+            sched += gp0(chan)
+
+        flat_sched = sched.flatten()
+
+        self.assertEqual(len(flat_sched.children), 10)
+
+        self.assertEqual(flat_sched.instructions, sched.instructions)
+
 
 if __name__ == '__main__':
     unittest.main()
