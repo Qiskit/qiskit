@@ -19,4 +19,4 @@ from .backendconfiguration import (BackendConfiguration, PulseBackendConfigurati
 from .backendproperties import BackendProperties
 from .backendstatus import BackendStatus
 from .jobstatus import JobStatus
-from .pulsedefaults import PulseDefaults
+from .pulsedefaults import PulseDefaults, Command

@@ -19,3 +19,4 @@ from .commands import (Acquire, FrameChange, PersistentValue, SamplePulse, Snaps
                        Kernel, Discriminator, functional_pulse)
 from .configuration import LoConfig, LoRange
 from .schedule import Schedule
+from .cmd_def import CmdDef

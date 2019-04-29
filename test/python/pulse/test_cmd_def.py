@@ -10,8 +10,7 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.pulse import (CmdDef, SamplePulse, PulseSchedule, ChannelStore,
-                          DriveChannelRegister)
+from qiskit.pulse import (CmdDef, SamplePulse, Schedule)
 
 
 class TestCmdDef(QiskitTestCase):
