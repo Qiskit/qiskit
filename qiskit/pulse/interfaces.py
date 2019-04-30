@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, Union, Iterable
+from typing import Tuple, List, Union
 
 from qiskit.pulse.channels import Channel
 
@@ -76,12 +83,15 @@ class ScheduleComponent(metaclass=ABCMeta):
         """Child nodes of this schedule component. """
         pass
 
+    @property
     @abstractmethod
-    def flatten(self, time: int = 0) -> Iterable[Tuple[int, 'ScheduleComponent']]:
-        """Iterable for flattening Schedule tree.
-        Args:
-            time: Initial time of this node
-        """
+    def instructions(self) -> Tuple[Tuple[int, 'Instructions']]:
+        """Return iterable for all `Instruction`s in `Schedule` tree."""
+        pass
+
+    @abstractmethod
+    def flatten(self) -> 'ScheduleComponent':
+        """Return a new schedule which is the flattened schedule contained all `instructions`."""
         pass
 
     @abstractmethod
