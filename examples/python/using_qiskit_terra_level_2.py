@@ -30,6 +30,8 @@ from qiskit.transpiler import PassManager
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 
+from qiskit.transpiler.passes import BasicSwap
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passes.unroller import Unroller
 
 
@@ -77,8 +79,12 @@ try:
 
     print("Running on current least busy device: ", least_busy_device)
 
+
+    # making a pass manager to compile the circuits
     pm = PassManager()
     pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
+    coupling_map = CouplingMap(least_busy_device.configuration().coupling_map)
+    pm.appaend(BasicSwap(coupling_map))
     qc1_new = pm.run(qc1)
     qc2_new = pm.run(qc2)
 
