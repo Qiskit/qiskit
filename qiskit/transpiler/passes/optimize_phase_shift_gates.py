@@ -11,10 +11,13 @@ import numpy as np
 import qiskit
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.cx_cancellation import CXCancellation
 import copy
 import sys
-np.set_printoptions(threshold=sys.maxsize)
 import warnings
+
+
+np.set_printoptions(threshold=sys.maxsize)
 warnings.filterwarnings('ignore')
 
 class OptimizePhaseShiftGates(TransformationPass):
@@ -31,47 +34,46 @@ class OptimizePhaseShiftGates(TransformationPass):
         Returns:
             DAGCircuit: Transformed DAG.
         """
-
         n = dag.width()  # number of qubits in the circuit
         T_counter = {}  # Counts the cumulative phase of T-gates and other z-rotation gates
         T_position_counter = {}  # Keeps track of the locations of T-gates and other z-rot. gates
         state_tracker = np.zeros((dag.width(), dag.size())).astype('int')
         for i in range(dag.width()):
-            state_tracker[i][i] = 1 # initial state
+            state_tracker[i][i] = 1  # initial state
         k = dag.width()  # number of initial variables
         for e in dag.topological_nodes():
-            if e.data_dict['type'] == 'op':
-                if e.data_dict['name'] == 'cx':
-                    state_tracker[e.data_dict['qargs'][1][1]] ^= state_tracker[e.data_dict['qargs'][0][1]]
-                elif e.data_dict['name'] in ['t', 'tdg', 's', 'sdg', 'z']:
-                    phase_T_gate_equivalent = {'t': 1, 'tdg': 7, 's': 2, 'sdg': 6, 'z': 4}[e.data_dict['name']]
-                    if str(state_tracker[e.data_dict['qargs'][0][1]]) in T_counter:
-                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] += phase_T_gate_equivalent
-                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]])].append(e._node_id)
+            if e.type == 'op':
+                if e.name == 'cx':
+                    state_tracker[e.qargs[1][1]] ^= state_tracker[e.qargs[0][1]]
+                elif e.name in ['t', 'tdg', 's', 'sdg', 'z']:
+                    phase_T_gate_equivalent = {'t': 1, 'tdg': 7, 's': 2, 'sdg': 6, 'z': 4}[e.name]
+                    if str(state_tracker[e.qargs[0][1]]) in T_counter:
+                        T_counter[str(state_tracker[e.qargs[0][1]])] += phase_T_gate_equivalent
+                        T_position_counter[str(state_tracker[e.qargs[0][1]])].append(e)
                     else:
-                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] = phase_T_gate_equivalent
-                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] = [e._node_id]
-                elif e.data_dict['name'] == 'u1':
-                    if str(state_tracker[e.data_dict['qargs'][0][1]]) in T_counter:
-                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] += e.data_dict['op'].params[0] * 4/np.pi
-                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]])].append(e._node_id)
+                        T_counter[str(state_tracker[e.qargs[0][1]])] = phase_T_gate_equivalent
+                        T_position_counter[str(state_tracker[e.qargs[0][1]])] = [e]
+                elif e.name == 'u1':
+                    if str(state_tracker[e.qargs[0][1]]) in T_counter:
+                        T_counter[str(state_tracker[e.qargs[0][1]])] += e.op.params[0] * 4 / np.pi
+                        T_position_counter[str(state_tracker[e.qargs[0][1]])].append(e)
                     else:
-                        T_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] = e.data_dict['op'].params[0] * 4/np.pi
-                        T_position_counter[str(state_tracker[e.data_dict['qargs'][0][1]])] = [e._node_id]
+                        T_counter[str(state_tracker[e.qargs[0][1]])] = e.op.params[0] * 4 / np.pi
+                        T_position_counter[str(state_tracker[e.qargs[0][1]])] = [e]
                 else:
-                    state_tracker[e.data_dict['qargs'][0][1]] = np.zeros(dag.size())
-                    state_tracker[e.data_dict['qargs'][0][1]][k] = 1
+                    state_tracker[e.qargs[0][1]] = np.zeros(dag.size())
+                    state_tracker[e.qargs[0][1]][k] = 1
                     k += 1
         circuit_length_min = len(dag.multi_graph.nodes) + 1
         circuit_depth_min = dag.depth() + 1
+        cx_cancel_pass = CXCancellation()
         for key in T_counter:
             if T_counter[key] % 8 == 0:
                 for i in T_position_counter[key]:
-                    dag.remove_op_node(i)  # Remove all the nodes that cancelled out
+                    dag.remove_op_node(i._node_id)  # Remove all the nodes that cancelled out
             else:
-                original_dag = copy.deepcopy(dag)
                 for final_gate_position in range(len(T_position_counter[key])):
-                    dag = copy.deepcopy(original_dag)
+                    dag_copy = copy.deepcopy(dag)
                     k = 0
                     for i in T_position_counter[key]:
                         if k == final_gate_position:
@@ -90,16 +92,18 @@ class OptimizePhaseShiftGates(TransformationPass):
                             else:
                                 repl.u1((T_counter[key] % 8) * np.pi / 4, p[0])
                             dag_repl = qiskit.converters.circuit_to_dag(repl)
-                            dag.substitute_node_with_dag(dag._id_to_node[i], dag_repl)
+                            dag_copy.substitute_node_with_dag(dag_copy._id_to_node[i._node_id],
+                                                              dag_repl)
                         else:
-                            dag.remove_op_node(i)
+                            dag_copy.remove_op_node(i._node_id)
                         k += 1
-                    circuit_length = len(dag.multi_graph.nodes)
-                    circuit_depth = dag.depth()
-                    dag = qiskit.transpiler.passes.cx_cancellation.CXCancellation.run(dag, dag)
-                    if (circuit_length < circuit_length_min) or (circuit_length == circuit_length_min and circuit_depth < circuit_depth_min):
+                    circuit_length = len(dag_copy.multi_graph.nodes)
+                    circuit_depth = dag_copy.depth()
+                    dag_copy = cx_cancel_pass.run(dag_copy)
+                    if (circuit_length < circuit_length_min) or (
+                            circuit_length == circuit_length_min and circuit_depth < circuit_depth_min):
                         circuit_length_min = circuit_length
                         circuit_depth_min = circuit_depth
-                        optimal_dag = copy.deepcopy(dag)
+                        optimal_dag = copy.deepcopy(dag_copy)
                 dag = optimal_dag
         return dag

@@ -13,12 +13,13 @@ from qiskit import QuantumCircuit, QuantumRegister
 import copy
 from qiskit import BasicAer, execute
 from qiskit.quantum_info import Pauli, state_fidelity, basis_state, process_fidelity
+from qiskit.test import QiskitTestCase
 
 
-class TestOptimizePhaseShiftGates():
+class TestOptimizePhaseShiftGates(QiskitTestCase):
     """Test the TestOptimizePhaseShiftGates pass."""
 
-    def test_pass_optimize_phase_shift_gates():
+    def test_pass_optimize_phase_shift_gates(self):
         """Test the cx TestOptimizePhaseShiftGates pass.
 
         It should merge/cancel phase-shift gates and perform cnot cancellation.
@@ -57,9 +58,4 @@ class TestOptimizePhaseShiftGates():
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result_optimized = execute(circ_new, backend_sim).result()
         unitary_optimized = result_optimized.get_unitary(circ_new)
-        if np.sum(np.abs(unitary_optimized-unitary_original)) > 0.001:
-            print("Function doesn't work!")
-        else:
-            print("OK!")
-
-
+        self.assertTrue(np.allclose(unitary_optimized, unitary_original))
