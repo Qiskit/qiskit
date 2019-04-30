@@ -6,8 +6,9 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
+import re
 
-from qiskit.pulse import commands
+from qiskit.pulse import commands, channels, Schedule
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjMeasurementOption
 
@@ -45,22 +46,19 @@ class ConversionMethodBinder:
             raise PulseError('Bound method for %s is not found.' % bound)
 
 
-class PulseToQobjConverter:
-    """
-    This class exists for separating entity of pulse instructions and qobj instruction,
-    and provides some alleviation of the complexity of the assembler.
+class InstructionToQobjConverter:
+    """Converts pulse Instructions to Qobj models.
 
-    Converter is constructed with qobj model and some experimental configuration,
+    Converter is constructed with qobj model and experimental configuration,
     and returns proper qobj instruction to each backend.
 
-    Pulse instruction and its qobj are strongly depends on the design of backend,
-    and third party providers can be easily add their custom pulse instruction by
-    providing custom converter inherit from this.
+    Third party providers can be add their own custom pulse instructions by
+    providing custom converter methods.
 
 
-    To create custom converter for custom instruction
+    To create a custom converter for custom instruction
     ```
-    class CustomConverter(PulseToQobjConverter):
+    class CustomConverter(InstructionToQobjConverter):
 
         @bind_instruction(CustomInstruction)
         def convert_custom_command(self, shift, instruction):
@@ -213,167 +211,158 @@ class PulseToQobjConverter:
 
 
 class QobjToInstructionConverter:
-    """
-    This class exists for separating entity of pulse instructions and qobj instruction,
-    and provides some alleviation of the complexity of the assembler.
-
-    Converter is constructed with qobj model and some experimental configuration,
-    and returns proper qobj instruction to each backend.
-
-    Pulse instruction and its qobj are strongly depends on the design of backend,
-    and third party providers can be easily add their custom pulse instruction by
-    providing custom converter inherit from this.
-
-
-    To create custom converter for custom instruction
-    ```
-    class CustomConverter(PulseToQobjConverter):
-
-        @bind_instruction(CustomInstruction)
-        def convert_custom_command(self, shift, instruction):
-            command_dict = {
-                'name': 'custom_command',
-                't0': shift+instruction.start_time,
-                'param1': instruction.param1,
-                'param2': instruction.param2
-            }
-            if self._run_config('option1', True):
-                command_dict.update({
-                    'param3': instruction.param3
-                })
-            return self.qobj_model(**command_dict)
-    ```
+    """Converts Qobj models to pulse Instructions
     """
     # class level tracking of conversion methods
-    bind_instruction = ConversionMethodBinder()
+    bind_name = ConversionMethodBinder()
+    chan_regex = re.compile(r'([a-zA-Z]+)(\d+)')
 
-    def __init__(self, qobj_model, **run_config):
+    def __init__(self, pulse_library, buffer, **run_config):
         """Create new converter.
 
         Args:
-             qobj_model (QobjInstruction): marshmallow model to serialize to object.
+             pulse_library (Dict): Pulse library of sample pulses.
              run_config (dict): experimental configuration.
         """
-        self._qobj_model = qobj_model
+        self._pulse_library = pulse_library
+        self._buffer = buffer
         self._run_config = run_config
+
+        # bind pulses to conversion methods
+        for pulse in pulse_library.values():
+            self.bind_pulse(pulse)
 
     def __call__(self, shift, instruction):
 
         method = self.bind_instruction.get_bound_method(type(instruction))
         return method(self, shift, instruction)
 
-    @bind_instruction(commands.AcquireInstruction)
-    def convert_acquire(self, shift, instruction):
+    def get_channel(self, channel):
+        """Parse and retrieve channel from ch string.
+
+        Args:
+            channel (str): Channel to match
+
+        Returns:
+            (Channel, int): Matched channel
+
+        Raises:
+            PulseError: Is raised if valid channel is not matched
+        """
+        match = self.chan_regex.match(channel)
+        if match:
+            prefix, index = match.group(1), int(match.group(2))
+
+            if prefix == channels.DriveChannel.prefix:
+                return channels.DriveChannel(index)
+            elif prefix == channels.MeasureChannel.prefix:
+                return channels.MeasureChannel(index)
+            elif prefix == channels.ControlChannel.prefix:
+                return channels.ControlChannel(index)
+
+        raise PulseError('Channel %s is not valid' % channel)
+
+    @bind_name('acquire')
+    def convert_acquire(self, instruction):
         """Return converted `AcquireInstruction`.
 
         Args:
-            shift(int): Offset time.
-            instruction (AcquireInstruction): acquire instruction.
+            instruction (PulseQobjInstruction): acquire qobj
         Returns:
-            dict: Dictionary of required parameters.
+            Schedule: Converted and scheduled Instruction
         """
-        meas_level = self._run_config.get('meas_level', 2)
+        t0 = instruction.t0
+        duration = instruction.duration
+        qubits = instruction.qubits
+        discriminators = (instruction.discriminators
+                          if hasattr(instruction, 'discriminator') else None)
 
-        command_dict = {
-            'name': 'acquire',
-            't0': shift+instruction.start_time,
-            'duration': instruction.duration,
-            'qubits': [q.index for q in instruction.acquires],
-            'memory_slot': [m.index for m in instruction.mem_slots]
-        }
-        if meas_level == 2:
-            # setup discriminators
-            if instruction.command.discriminator:
-                command_dict.update({
-                    'discriminators': [
-                        QobjMeasurementOption(
-                            name=instruction.command.discriminator.name,
-                            params=instruction.command.discriminator.params)
-                    ]
-                })
-            # setup register_slots
-            command_dict.update({
-                'register_slot': [regs.index for regs in instruction.reg_slots]
-            })
-        if meas_level >= 1:
-            # setup kernels
-            if instruction.command.kernel:
-                command_dict.update({
-                    'kernels': [
-                        QobjMeasurementOption(
-                            name=instruction.command.kernel.name,
-                            params=instruction.command.kernel.params)
-                    ]
-                })
-        return self._qobj_model(**command_dict)
+        kernels = (instruction.kernels
+                   if hasattr(instruction, 'kernel') else None)
 
-    @bind_instruction(commands.FrameChangeInstruction)
-    def convert_frame_change(self, shift, instruction):
+        mem_slots = instruction.memory_slot
+        reg_slots = (instruction.register_slot
+                     if hasattr(instruction, 'memory_slot') else None)
+
+        if not isinstance(discriminators, list):
+            discriminators = [discriminators for _ in range(qubits)]
+
+        if not isinstance(kernels, list):
+            discriminators = [discriminators for _ in range(qubits)]
+
+        schedule = Schedule()
+
+        for i, (qubit, discriminator, kernel) in enumerate(qubits):
+            kernel = kernels[i]
+            discriminator = discriminators[i]
+            channel = channels.AcquireChannel(qubit)
+            if reg_slots:
+                register_slot = channels.RegisterSlot(reg_slots[i])
+            else:
+                register_slot = None
+            memory_slot = mem_slots[i]
+
+            cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
+            schedule += commands.AcquireInstruction(cmd, channel, memory_slot, register_slot) << t0
+
+        return schedule
+
+    @bind_name('fc')
+    def convert_frame_change(self, instruction):
         """Return converted `FrameChangeInstruction`.
 
         Args:
-            shift(int): Offset time.
-            instruction (FrameChangeInstruction): frame change instruction.
+            instruction (PulseQobjInstruction): frame change qobj
         Returns:
-            dict: Dictionary of required parameters.
+            Schedule: Converted and scheduled Instruction
         """
-        command_dict = {
-            'name': 'fc',
-            't0': shift+instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'phase': instruction.command.phase
-        }
-        return self._qobj_model(**command_dict)
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        phase = instruction.phase
+        return commands.FrameChange(phase)(channel) << t0
 
-    @bind_instruction(commands.PersistentValueInstruction)
-    def convert_persistent_value(self, shift, instruction):
+    @bind_name('pv')
+    def convert_persistent_value(self, instruction):
         """Return converted `PersistentValueInstruction`.
 
         Args:
-            shift(int): Offset time.
-            instruction (PersistentValueInstruction): persistent value instruction.
+            instruction (PulseQobjInstruction): persistent value qobj
         Returns:
-            dict: Dictionary of required parameters.
+            Schedule: Converted and scheduled Instruction
         """
-        command_dict = {
-            'name': 'pv',
-            't0': shift+instruction.start_time,
-            'ch': instruction.channels[0].name,
-            'val': instruction.command.value
-        }
-        return self._qobj_model(**command_dict)
+        t0 = instruction.t0
+        channel = self.get_channel(instruction.ch)
+        value = instruction.value
+        return commands.FrameChange(value)(channel) << t0
 
-    @bind_instruction(commands.PulseInstruction)
-    def convert_drive(self, shift, instruction):
-        """Return converted `PulseInstruction`.
+    def bind_pulse(self, pulse):
+        """Bind the supplied pulse to a converter method by pulse name.
 
         Args:
-            shift(int): Offset time.
-            instruction (PulseInstruction): drive instruction.
-        Returns:
-            dict: Dictionary of required parameters.
+            pulse (SamplePulse): Pulse to bind.
         """
-        command_dict = {
-            'name': instruction.command.name,
-            't0': shift+instruction.start_time,
-            'ch': instruction.channels[0].name
-        }
-        return self._qobj_model(**command_dict)
 
-    @bind_instruction(commands.Snapshot)
-    def convert_snapshot(self, shift, instruction):
+        @self.bind_name(pulse.name)
+        def convert_named_drive(self, instruction):
+            """Return converted `PulseInstruction`.
+
+            Args:
+                instruction (PulseQobjInstruction): pulse qobj
+            Returns:
+                Schedule: Converted and scheduled pulse
+            """
+            t0 = instruction.t0
+            channel = self.get_channel(instruction.ch)
+            return pulse(channel) << t0
+
+    @bind_name('snapshot')
+    def convert_snapshot(self, instruction):
         """Return converted `Snapshot`.
 
         Args:
-            shift(int): Offset time.
-            instruction (Snapshot): snapshot instruction.
+            instruction (PulseQobjInstruction): snapshot qobj
         Returns:
-            dict: Dictionary of required parameters.
+            Schedule: Converted and scheduled Snapshot
         """
-        command_dict = {
-            'name': 'snapshot',
-            't0': shift+instruction.start_time,
-            'label': instruction.name,
-            'type': instruction.type
-        }
-        return self._qobj_model(**command_dict)
+        t0 = instruction.t0
+        return commands.Snapshot(instruction.label, instruction.type) << t0
