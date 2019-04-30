@@ -192,6 +192,8 @@ Deprecated
 - The ``seed`` argument is ``execute()`` is deprecated in favor of ``seed_simulator`` (#2166).
 - The ``pass_manager`` argument in ``transpile()`` is deprecated. Instead, the
   ``pass_manager.run()`` methdod can be used directly to transform the circuit (#2166).
+- The ``qiskit._util`` module is deprecated and replaced by ``qiskit.util``.
+  ``qiskit._util`` will be removed in the 0.9 release. (#2154)
 
 Fixed
 -----
