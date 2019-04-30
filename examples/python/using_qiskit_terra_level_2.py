@@ -25,17 +25,20 @@ import pprint, time
 from qiskit import IBMQ, BasicAer
 from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.extensions import SwapGate
 from qiskit.compiler import assemble
-from qiskit.transpiler import PassManager
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 
-from qiskit.transpiler.passes import BasicSwap
-from qiskit.transpiler.coupling import CouplingMap
-from qiskit.transpiler.passes.unroller import Unroller
-from qiskit.transpiler.passes.mapping.full_ancilla_allocation import FullAncillaAllocation
-from qiskit.transpiler.passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
-from qiskit.transpiler.passes.mapping.trivial_layout import TrivialLayout
+from qiskit.transpiler import PassManager
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import FullAncillaAllocation
+from qiskit.transpiler.passes import EnlargeWithAncilla
+from qiskit.transpiler.passes import TrivialLayout
+from qiskit.transpiler.passes import Decompose
+from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import LookaheadSwap
 
 
 try:
@@ -46,19 +49,21 @@ except:
              For now, there's only access to local simulator backends...""")
 
 try:
-    # Create a Quantum and Classical Register and give them names.
-    qubit_reg = QuantumRegister(2, name='q')
-    clbit_reg = ClassicalRegister(2, name='c')
+    qubit_reg = QuantumRegister(4, name='q')
+    clbit_reg = ClassicalRegister(4, name='c')
 
-    # Making first circuit: bell state
+    # Making first circuit: superpositions
     qc1 = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
     qc1.h(qubit_reg[0])
     qc1.cx(qubit_reg[0], qubit_reg[1])
     qc1.measure(qubit_reg, clbit_reg)
 
-    # Making another circuit: superpositions
+    # Making another circuit: GHZ State
     qc2 = QuantumCircuit(qubit_reg, clbit_reg, name="superposition")
     qc2.h(qubit_reg)
+    qc2.cx(qubit_reg[0], qubit_reg[1])
+    qc2.cx(qubit_reg[0], qubit_reg[2])
+    qc2.cx(qubit_reg[0], qubit_reg[3])
     qc2.measure(qubit_reg, clbit_reg)
 
     # Setting up the backend
@@ -84,13 +89,17 @@ try:
 
 
     # making a pass manager to compile the circuits
-    pm = PassManager()
-    pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
     coupling_map = CouplingMap(least_busy_device.configuration().coupling_map)
+    print("coupling map: ", coupling_map)
+
+    pm = PassManager()
     pm.append(TrivialLayout(coupling_map))
     pm.append(FullAncillaAllocation(coupling_map))
     pm.append(EnlargeWithAncilla())
-    pm.append(BasicSwap(coupling_map))
+    pm.append(LookaheadSwap(coupling_map))
+    pm.append(Decompose(SwapGate))
+    pm.append(CXDirection(coupling_map))
+    pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
     qc1_new = pm.run(qc1)
     qc2_new = pm.run(qc2)
 
@@ -107,6 +116,7 @@ try:
     qobj = assemble([qc1_new, qc2_new], shots=1000)
 
     # Running qobj on the simulator
+    print("Running on simulator:")
     sim_job = qasm_simulator.run(qobj)
 
     # Getting the result
@@ -117,6 +127,7 @@ try:
     print(sim_result.get_counts(qc2))
 
     # Running the job.
+    print("Running on device:")
     exp_job = least_busy_device.run(qobj)
 
     job_monitor(exp_job)
