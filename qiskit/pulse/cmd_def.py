@@ -61,6 +61,7 @@ def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]):
     if not all(isinstance(i, int) for i in qubit_tuple):
         raise QiskitError("All qubits must be integers.")
 
+    return qubit_tuple
 
 class CmdDef:
     """Command definition class.
@@ -99,7 +100,7 @@ class CmdDef:
             schedule: Schedule to be added
         """
         qubits = _to_qubit_tuple(qubits)
-        cmd_dict = self._cmd_dict.setdefault(schedule, {})
+        cmd_dict = self._cmd_dict.setdefault(cmd_name, {})
         cmd_dict[qubits] = schedule
 
     def has(self, cmd_name: str, qubits: Union[int, Iterable[int]]) -> bool:
@@ -129,7 +130,7 @@ class CmdDef:
             PulseError
         """
         qubits = _to_qubit_tuple(qubits)
-        if self.has_cmd(cmd_name, qubits):
+        if self.has(cmd_name, qubits):
             schedule = self._cmd_dict[cmd_name][qubits]
 
             if isinstance(schedule, ParameterizedSchedule):
@@ -151,7 +152,7 @@ class CmdDef:
             **params: Command parameters to be used to generate schedule
         """
         qubits = _to_qubit_tuple(qubits)
-        if self.has_cmd(cmd_name, qubits):
+        if self.has(cmd_name, qubits):
             cmd_dict = self._cmd_dict[cmd_name]
             schedule = cmd_dict.pop(qubits)
 
@@ -162,7 +163,7 @@ class CmdDef:
 
         else:
             raise PulseError('Command {name} for qubits {qubits} is not present'
-                             'in CmdDef'.format(cmd_name, qubits))
+                             'in CmdDef'.format(name=cmd_name, qubits=qubits))
 
     def cmd_types(self) -> List[str]:
         """Return all command names available in CmdDef."""

@@ -11,7 +11,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
-from qiskit.pulse import (CmdDef, SamplePulse, Schedule, DeviceSpecification)
+from qiskit.pulse import (CmdDef, SamplePulse, Schedule, DeviceSpecification, PulseError)
 
 
 class TestCmdDef(QiskitTestCase):
@@ -42,14 +42,6 @@ class TestCmdDef(QiskitTestCase):
 
         self.assertIn('tmp', cmd_def.cmd_types())
 
-    def test_default_get(self):
-        """Test default get method."""
-        cmd_def = CmdDef()
-        sched = Schedule()
-        sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
-        get_sched = cmd_def.get('tmp', (0,), sched)
-        self.assertEqual(sched, get_sched)
-
     def test_pop(self):
         """Test pop with default."""
         sched = Schedule()
@@ -59,10 +51,8 @@ class TestCmdDef(QiskitTestCase):
         popped_sched = cmd_def.pop('tmp', 0)
         self.assertFalse(cmd_def.has('tmp', 0))
 
-        default_sched = cmd_def.pop('not_there', (0,), sched)
-        self.assertEqual(popped_sched, default_sched)
-
-        self.assertNotIn('tmp', cmd_def.cmd_types())
+        with self.assertRaises(PulseError):
+            default_sched = cmd_def.pop('not_there', (0,))
 
     def test_repr(self):
         """Test repr"""
