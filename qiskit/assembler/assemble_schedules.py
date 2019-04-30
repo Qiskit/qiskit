@@ -75,8 +75,8 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         })
 
     # setup pulse_library
-    qobj_config.pulse_library = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
-                                for pulse in user_pulselib]
+    qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
+                                    for pulse in user_pulselib]
 
     # create qob experiment field
     experiments = []
