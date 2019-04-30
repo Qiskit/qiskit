@@ -15,3 +15,4 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
 from .transpiler import transpile, transpile_dag  # deprecated
+from .transpile_circuit import transpile_circuit
