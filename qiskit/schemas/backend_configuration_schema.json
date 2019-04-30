@@ -305,7 +305,7 @@
     {
     "required": ["open_pulse"],
     "properties": {
-                "open_pulse": {"enum": [ false ]}
+                "open_pulse": {"type": "boolean"}
                 }}]}
                 ]
 }
