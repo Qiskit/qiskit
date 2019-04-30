@@ -23,7 +23,7 @@ class SamplePulse(Command):
         """Create new sample pulse command.
 
         Args:
-            samples (ndarray): Complex array of pulse envelope.
+            samples (Union[np.ndarray, List[Complex]]): Complex array of pulse envelope.
             name (str): Unique name to identify the pulse.
         Raises:
             PulseError: when pulse envelope amplitude exceeds 1.
@@ -33,7 +33,7 @@ class SamplePulse(Command):
         if np.any(np.abs(samples) > 1):
             raise PulseError('Absolute value of pulse envelope amplitude exceeds 1.')
 
-        self._samples = samples
+        self._samples = np.asarray(samples, dtype=np.complex_)
 
     @property
     def samples(self):

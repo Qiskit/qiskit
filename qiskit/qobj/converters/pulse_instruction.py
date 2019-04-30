@@ -217,25 +217,25 @@ class QobjToInstructionConverter:
     bind_name = ConversionMethodBinder()
     chan_regex = re.compile(r'([a-zA-Z]+)(\d+)')
 
-    def __init__(self, pulse_library, buffer, **run_config):
+    def __init__(self, pulse_library, buffer=0, **run_config):
         """Create new converter.
 
         Args:
-             pulse_library (Dict): Pulse library of sample pulses.
+             pulse_library (List[PulseLibraryItem]): Pulse library to be used in conversion
+             buffer (int): Channel buffer
              run_config (dict): experimental configuration.
         """
-        self._pulse_library = pulse_library
-        self._buffer = buffer
+        self.buffer = buffer
         self._run_config = run_config
 
         # bind pulses to conversion methods
-        for pulse in pulse_library.values():
+        for pulse in pulse_library:
             self.bind_pulse(pulse)
 
-    def __call__(self, shift, instruction):
+    def __call__(self, instruction):
 
-        method = self.bind_instruction.get_bound_method(type(instruction))
-        return method(self, shift, instruction)
+        method = self.bind_instruction.get_bound_method(instruction.name)
+        return method(self, instruction)
 
     def get_channel(self, channel):
         """Parse and retrieve channel from ch string.
@@ -254,11 +254,11 @@ class QobjToInstructionConverter:
             prefix, index = match.group(1), int(match.group(2))
 
             if prefix == channels.DriveChannel.prefix:
-                return channels.DriveChannel(index)
+                return channels.DriveChannel(index, buffer=self.buffer)
             elif prefix == channels.MeasureChannel.prefix:
-                return channels.MeasureChannel(index)
+                return channels.MeasureChannel(index, buffer=self.buffer)
             elif prefix == channels.ControlChannel.prefix:
-                return channels.ControlChannel(index)
+                return channels.ControlChannel(index, buffer=self.buffer)
 
         raise PulseError('Channel %s is not valid' % channel)
 
@@ -295,7 +295,7 @@ class QobjToInstructionConverter:
         for i, (qubit, discriminator, kernel) in enumerate(qubits):
             kernel = kernels[i]
             discriminator = discriminators[i]
-            channel = channels.AcquireChannel(qubit)
+            channel = channels.AcquireChannel(qubit, buffer=self.buffer)
             if reg_slots:
                 register_slot = channels.RegisterSlot(reg_slots[i])
             else:
@@ -303,7 +303,7 @@ class QobjToInstructionConverter:
             memory_slot = mem_slots[i]
 
             cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
-            schedule += commands.AcquireInstruction(cmd, channel, memory_slot, register_slot) << t0
+            schedule |= commands.AcquireInstruction(cmd, channel, memory_slot, register_slot) << t0
 
         return schedule
 
@@ -339,8 +339,9 @@ class QobjToInstructionConverter:
         """Bind the supplied pulse to a converter method by pulse name.
 
         Args:
-            pulse (SamplePulse): Pulse to bind.
+            pulse (PulseLibraryItem): Pulse to bind
         """
+        pulse = commands.SamplePulse(pulse.samples, pulse.name)
 
         @self.bind_name(pulse.name)
         def convert_named_drive(self, instruction):
