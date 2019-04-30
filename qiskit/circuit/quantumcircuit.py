@@ -269,8 +269,8 @@ class QuantumCircuit:
             Instruction: a handle to the instruction that was just added
         """
         ret = None
-        expanded_qargs = [i for i in map(self.qbit_argument_expansion, qargs)]
-        expanded_cargs = [i for i in map(self.cbit_argument_expansion, cargs)]
+        expanded_qargs = [i for i in map(self.qbit_argument_expansion, qargs or [])]
+        expanded_cargs = [i for i in map(self.cbit_argument_expansion, cargs or [])]
 
         for (qarg, carg) in instruction.argument_expansion(expanded_qargs, expanded_cargs):
             ret = self._append(instruction, qarg, carg)
