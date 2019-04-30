@@ -15,7 +15,7 @@
 import logging
 
 from qiskit import __version__ as terra_version
-from qiskit.compiler.run_config import RunConfig
+from qiskit.assembler.run_config import RunConfig
 from qiskit.mapper import Layout
 from .utils import compile_and_run_circuits, CircuitCache
 from .utils.backend_utils import (is_aer_provider,
