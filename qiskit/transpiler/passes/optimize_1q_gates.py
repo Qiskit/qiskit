@@ -1,15 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 
 """
 Transpiler pass to optimize chains of single-qubit u1, u2, u3 gates by combining them into
 a single gate.
 """
+
+from itertools import groupby
 
 import numpy as np
 
@@ -22,7 +31,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit import QuantumRegister, Parameter
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -37,6 +46,7 @@ class Optimize1qGates(TransformationPass):
     def run(self, dag):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
+        runs = _split_runs_on_parameters(runs)
         for run in runs:
             right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
@@ -230,3 +240,22 @@ class Optimize1qGates(TransformationPass):
         out_angles = tuple(0 if np.abs(angle) < _CHOP_THRESHOLD else angle
                            for angle in out_angles)
         return out_angles
+
+
+def _split_runs_on_parameters(runs):
+    """Finds runs containing parameterized gates and splits them into sequential
+    runs excluding the parameterized gates.
+    """
+
+    def _is_dagnode_parameterized(node):
+        return any(isinstance(param, Parameter) for param in node.op.params)
+
+    out = []
+    for run in runs:
+        groups = groupby(run, _is_dagnode_parameterized)
+
+        for group_is_parameterized, gates in groups:
+            if not group_is_parameterized:
+                out.append(list(gates))
+
+    return out

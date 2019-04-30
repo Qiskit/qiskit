@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # TODO: Remove after 0.7 and the deprecated methods are removed
 # pylint: disable=unused-argument
@@ -24,6 +31,7 @@ import tempfile
 
 from PIL import Image
 
+from qiskit import user_config
 from qiskit.visualization import exceptions
 from qiskit.visualization import latex as _latex
 from qiskit.visualization import text as _text
@@ -37,7 +45,7 @@ def circuit_drawer(circuit,
                    scale=0.7,
                    filename=None,
                    style=None,
-                   output='text',
+                   output=None,
                    interactive=False,
                    line_length=None,
                    plot_barriers=True,
@@ -57,11 +65,11 @@ def circuit_drawer(circuit,
             output types. If a str is passed in that is the path to a json
             file which contains that will be open, parsed, and then used just
             as the input dict.
-        output (TextDrawing): Select the output method to use for drawing the circuit.
-            Valid choices are `text`, `latex`, `latex_source`, `mpl`. Note if
-            one is not specified it will use latex and if that fails fallback
-            to mpl. However this behavior is deprecated and in a future release
-            the default will change.
+        output (str): Select the output method to use for drawing the circuit.
+            Valid choices are `text`, `latex`, `latex_source`, `mpl`. By
+            default the 'text' drawer is used unless a user config file has
+            an alternative backend set as the default. If the output is passed
+            in that backend will always be used.
         interactive (bool): when set true show the circuit in a new window
             (for `mpl` this depends on the matplotlib backend being used
             supporting this). Note when used with either the `text` or the
@@ -169,6 +177,13 @@ def circuit_drawer(circuit,
             `linestyle` kwarg value. Defaults to `doublet`(`mpl` only)
     """
     image = None
+    config = user_config.get_config()
+    # Get default from config file else use text
+    default_output = 'text'
+    if config:
+        default_output = config.get('circuit_drawer', 'text')
+    if output is None:
+        output = default_output
 
     if output == 'text':
         return _text_circuit_drawer(circuit, filename=filename,

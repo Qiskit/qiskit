@@ -77,8 +77,8 @@ Added
   have been added to the pass manager, including options and flow controllers.
 - Added a ``PassManager.run()`` that transforms a ``QuantumCircuit`` according to its
   pass schedule and returns a ``QuantumCircuit``.
-- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc.
-- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits.
+- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc (#2119).
+- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits (#2119).
 - Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
   qubit layout. (#2089)
 - Gates and instructions in a circuit accept integers as parameters to refer to
@@ -89,6 +89,9 @@ Added
   are followed by a measurement instruction. (#2208)
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
   rotations about the Z axis, leveraging previously-found gate commutation relations. (#2012)
+- Add an option for using a user config file to enable changing default
+  settings for various functions in qiskit. Right now it only supports setting
+  the default circuit drawing backend. (#2122)
 - Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
   of gates (blocks) acting on 2 qubits. (#2134)
 - Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
@@ -189,6 +192,8 @@ Deprecated
 - The ``seed`` argument is ``execute()`` is deprecated in favor of ``seed_simulator`` (#2166).
 - The ``pass_manager`` argument in ``transpile()`` is deprecated. Instead, the
   ``pass_manager.run()`` methdod can be used directly to transform the circuit (#2166).
+- The ``qiskit._util`` module is deprecated and replaced by ``qiskit.util``.
+  ``qiskit._util`` will be removed in the 0.9 release. (#2154)
 
 Fixed
 -----
