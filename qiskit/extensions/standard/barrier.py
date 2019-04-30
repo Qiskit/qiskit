@@ -19,7 +19,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.circuit.decorators import _convert_to_bits
 
 
 class Barrier(Instruction):
@@ -33,6 +32,10 @@ class Barrier(Instruction):
         """Special case. Return self."""
         return Barrier(self.num_qubits)
 
+    def argument_expansion(self, qargs, cargs):
+        for qarg in zip(*qargs):
+            yield list(qarg), []
+
 
 def barrier(self, *qargs):
     """Apply barrier to circuit.
@@ -40,8 +43,6 @@ def barrier(self, *qargs):
     Args is a list of QuantumRegister or single qubits.
     For QuantumRegister, applies barrier to all the qubits in that register."""
     qubits = []
-
-    qargs = _convert_to_bits(qargs, [qbit for qreg in self.qregs for qbit in qreg])
 
     if not qargs:  # None
         for qreg in self.qregs:
