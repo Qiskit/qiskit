@@ -299,7 +299,6 @@ class QCircuitImage:
         the current qubits in the circuit to new qubit names.
         We will deduce the register names and sizes from aliases.
         """
-        columns = 1
 
         # Rename qregs if necessary
         if aliases:
@@ -378,7 +377,7 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
                                     op.op.params[0])
                             else:
-                                self._latex[pos_1][columns] = (
+                                self._latex[pos_1][column] = (
                                     "\\gate{%s}" % utf8tolatex(nm))
 
                             gap = pos_2 - pos_1
@@ -438,7 +437,7 @@ class QCircuitImage:
                                     "\\push{\\rule{.6em}{0em}\\ket{0}\\"
                                     "rule{.2em}{0em}} \\qw")
                             else:
-                                self._latex[pos_1][columns] = (
+                                self._latex[pos_1][column] = (
                                     "\\gate{%s}" % utf8tolatex(nm))
 
                     elif len(qarglist) == 2:
@@ -549,16 +548,16 @@ class QCircuitImage:
                                 stop_pos = max([pos_1, pos_2])
                                 if stop_pos - start_pos >= 2:
                                     delta = stop_pos - start_pos
-                                    self._latex[start_pos][columns] = (
+                                    self._latex[start_pos][column] = (
                                         "\\multigate{%s}{%s}" % (
                                             delta, utf8tolatex(nm)))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][columns] = (
+                                        self._latex[i_pos][column] = (
                                             "\\ghost{%s}" % utf8tolatex(nm))
                                 else:
-                                    self._latex[start_pos][columns] = (
+                                    self._latex[start_pos][column] = (
                                         "\\multigate{1}{%s}" % utf8tolatex(nm))
-                                    self._latex[stop_pos][columns] = (
+                                    self._latex[stop_pos][column] = (
                                         "\\ghost{%s}" % utf8tolatex(nm))
 
                     elif len(qarglist) == 3:
@@ -641,19 +640,20 @@ class QCircuitImage:
                                 stop_pos = max([pos_1, pos_2, pos_3])
                                 if stop_pos - start_pos >= 3:
                                     delta = stop_pos - start_pos
-                                    self._latex[start_pos][columns] = (
+                                    self._latex[start_pos][column] = (
                                         "\\multigate{%s}{%s}" % (
                                             delta, utf8tolatex(nm)))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][columns] = (
+                                        self._latex[i_pos][column] = (
                                             "\\ghost{%s}" % utf8tolatex(nm))
                                 else:
-                                    self._latex[pos_1][columns] = (
+                                    self._latex[pos_1][column] = (
                                         "\\multigate{2}{%s}" % utf8tolatex(nm))
-                                    self._latex[pos_2][columns] = (
+                                    self._latex[pos_2][column] = (
                                         "\\ghost{%s}" % utf8tolatex(nm))
-                                    self._latex[pos_3][columns] = (
+                                    self._latex[pos_3][column] = (
                                         "\\ghost{%s}" % utf8tolatex(nm))
+
 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
@@ -665,12 +665,13 @@ class QCircuitImage:
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
                         delta = pos_stop - pos_start
-                        self._latex[pos_start][columns] = (
+                        self._latex[pos_start][column] = (
                             "\\multigate{%s}{%s}" % (
                                 nbits - 1, utf8tolatex(nm)))
                         for pos in range(pos_start + 1, pos_stop + 1):
-                            self._latex[pos][columns] = (
+                            self._latex[pos][column] = (
                                 "\\ghost{%s}" % utf8tolatex(nm))
+
 
                 elif op.name == "measure":
                     if (len(op.cargs) != 1
