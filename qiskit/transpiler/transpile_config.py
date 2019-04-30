@@ -7,7 +7,7 @@
 
 """Models for TranspileConfig and its related components."""
 
-from qiskit.compiler.models import TranspileConfigSchema
+from qiskit.transpiler.models import TranspileConfigSchema
 from qiskit.validation import BaseModel, bind_schema
 
 
@@ -22,10 +22,7 @@ class TranspileConfig(BaseModel):
         optimization_level (int): a non-negative integer indicating the
             optimization level. 0 means no transformation on the circuit. Higher
             levels may produce more optimized circuits, but may take longer.
-        skip_numeric_passes (bool): if True, do not apply passes containing
-            numerical optimization.
     """
-    def __init__(self, optimization_level, skip_numeric_passes, **kwargs):
+    def __init__(self, optimization_level, **kwargs):
         self.optimization_level = optimization_level
-        self.skip_numeric_passes = skip_numeric_passes
         super().__init__(**kwargs)
