@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=cyclic-import
 """Quantum circuit object."""
@@ -285,6 +292,9 @@ class QuantumCircuit:
                 if param in current_symbols:
                     self._parameter_table[param].append((instruction, param_index))
                 else:
+                    if param.name in set(p.name for p in current_symbols):
+                        raise QiskitError(
+                            'Name conflict on adding parameter: {}'.format(param.name))
                     self._parameter_table[param] = [(instruction, param_index)]
 
         return instruction
@@ -405,7 +415,7 @@ class QuantumCircuit:
                                                        for j in qargs + cargs]))
         return string_temp
 
-    def draw(self, scale=0.7, filename=None, style=None, output='text',
+    def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None):
         """Draw the quantum circuit
@@ -426,7 +436,9 @@ class QuantumCircuit:
                 on the contents.
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are `text`, `latex`, `latex_source`,
-                `mpl`.
+                `mpl`. By default the 'text' drawer is used unless a user
+                config file has an alternative backend set as the default. If
+                the output is passed in that backend will always be used.
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
