@@ -179,7 +179,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         # instructions
         qobj_instructions = []
         # Instructions are returned as tuple of shifted time and instruction
-        for shift, instruction in list(schedule.flatten()):
+        for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
             qobj_instructions.append(instruction_converter(shift, instruction))
             if isinstance(instruction, PulseInstruction):
