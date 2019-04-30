@@ -10,6 +10,7 @@
 import unittest
 
 from qiskit.circuit import Gate
+from qiskit.circuit import Parameter
 from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, ClassicalRegister
@@ -23,8 +24,7 @@ class TestInstructions(QiskitTestCase):
     """Instructions tests."""
 
     def test_instructions_equal(self):
-        """Test equality of two instructions.
-        """
+        """Test equality of two instructions."""
         hop1 = Instruction('h', 1, 0, [])
         hop2 = Instruction('s', 1, 0, [])
         hop3 = Instruction('h', 1, 0, [])
@@ -41,6 +41,27 @@ class TestInstructions(QiskitTestCase):
         self.assertTrue(HGate() == HGate())
         self.assertFalse(HGate() == CnotGate())
         self.assertFalse(hop1 == HGate())
+
+    def test_instructions_equal_with_parameters(self):
+        """Test equality of instructions for cases with Parameters."""
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        # Verify we can check params including parameters
+        self.assertEqual(Instruction('u', 1, 0, [theta, phi, 0.4]),
+                         Instruction('u', 1, 0, [theta, phi, 0.4]))
+
+        # Verify we can test for correct parameter order
+        self.assertNotEqual(Instruction('u', 1, 0, [theta, phi, 0]),
+                            Instruction('u', 1, 0, [phi, theta, 0]))
+
+        # Verify we can still find a wrong fixed param if we use parameters
+        self.assertNotEqual(Instruction('u', 1, 0, [theta, phi, 0.4]),
+                            Instruction('u', 1, 0, [theta, phi, 0.5]))
+
+        # Verify we can find cases when param != float
+        self.assertNotEqual(Instruction('u', 1, 0, [0.3, phi, 0.4]),
+                            Instruction('u', 1, 0, [theta, phi, 0.5]))
 
     def circuit_instruction_circuit_roundtrip(self):
         """test converting between circuit and instruction and back

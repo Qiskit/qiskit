@@ -9,6 +9,7 @@
 import warnings
 import uuid
 import logging
+import copy
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -178,7 +179,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         # instructions
         qobj_instructions = []
         # Instructions are returned as tuple of shifted time and instruction
-        for shift, instruction in list(schedule.flatten()):
+        for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
             qobj_instructions.append(instruction_converter(shift, instruction))
             if isinstance(instruction, PulseInstruction):
@@ -257,7 +258,7 @@ def assemble(experiments,
              shots=1024, memory=False, max_credits=None, seed_simulator=None,
              default_qubit_los=None, default_meas_los=None,  # schedule run options
              schedule_los=None, meas_level=2, meas_return='avg',
-             memory_slots=None, memory_slot_size=100, rep_time=None,
+             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
              config=None, seed=None,  # deprecated
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
@@ -328,6 +329,14 @@ def assemble(experiments,
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
+        parameter_binds (list[dict{Parameter: Value}]):
+            List of Parameter bindings over which the set of experiments will be
+            executed. Each list element (bind) should be of the form
+            {Parameter1: value1, Parameter2: value2, ...}. All binds will be
+            executed across all experiments, e.g. if parameter_binds is a
+            length-n list, and there are m experiments, a total of m x n
+            experiments will be run (one for each experiment/bind pair).
+
         seed (int):
             DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
 
@@ -361,11 +370,14 @@ def assemble(experiments,
                                                        default_qubit_los, default_meas_los,
                                                        schedule_los, meas_level, meas_return,
                                                        memory_slots, memory_slot_size, rep_time,
-                                                       **run_config)
+                                                       parameter_binds, **run_config)
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
-        return assemble_circuits(circuits=experiments, qobj_id=qobj_id,
+        # If circuits are parameterized, bind parameters and remove from run_config
+        bound_experiments, run_config = _expand_parameters(circuits=experiments,
+                                                           run_config=run_config)
+        return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
                                  qobj_header=qobj_header, run_config=run_config)
 
     elif all(isinstance(exp, Schedule) for exp in experiments):
@@ -383,7 +395,7 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                     default_qubit_los, default_meas_los,
                     schedule_los, meas_level, meas_return,
                     memory_slots, memory_slot_size, rep_time,
-                    **run_config):
+                    parameter_binds, **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
     what types of inputs are allowed.
@@ -417,6 +429,8 @@ def _parse_run_args(backend, qobj_id, qobj_header,
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
     if isinstance(rep_time, list):
         rep_time = rep_time[-1]
+
+    parameter_binds = parameter_binds or []
 
     # add default empty lo config
     schedule_los = schedule_los or []
@@ -458,7 +472,60 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                            memory_slots=memory_slots,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
+                           parameter_binds=parameter_binds,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
     return qobj_id, qobj_header, run_config
+
+
+def _expand_parameters(circuits, run_config):
+    """Verifies that there is a single common set of parameters shared between
+    all circuits and all parameter binds in the run_config. Returns an expanded
+    list of circuits (if parameterized) with all parameters bound, and a copy of
+    the run_config with parameter_binds cleared.
+
+    If neither the circuits nor the run_config specify parameters, the two are
+    returned unmodified.
+
+    Raises:
+        QiskitError: if run_config parameters are not compatible with circuit parameters
+
+    Returns:
+        Tuple(List[QuantumCircuit], RunConfig):
+          - List of input circuits expanded and with parameters bound
+          - RunConfig with parameter_binds removed
+    """
+
+    parameter_binds = run_config.parameter_binds
+    if parameter_binds or \
+       any(circuit.parameters for circuit in circuits):
+
+        all_bind_parameters = [bind.keys()
+                               for bind in parameter_binds]
+        all_circuit_parameters = [circuit.parameters for circuit in circuits]
+
+        # Collect set of all unique parameters across all circuits and binds
+        unique_parameters = set(param
+                                for param_list in all_bind_parameters + all_circuit_parameters
+                                for param in param_list)
+
+        # Check that all parameters are common to all circuits and binds
+        if not all_bind_parameters \
+           or not all_circuit_parameters \
+           or any(unique_parameters != bind_params for bind_params in all_bind_parameters) \
+           or any(unique_parameters != parameters for parameters in all_circuit_parameters):
+            raise QiskitError(
+                ('Mismatch between run_config.parameter_binds and all circuit parameters. ' +
+                 'Parameter binds: {} ' +
+                 'Circuit parameters: {}').format(all_bind_parameters, all_circuit_parameters))
+
+        circuits = [circuit.bind_parameters(binds)
+                    for circuit in circuits
+                    for binds in parameter_binds]
+
+        # All parameters have been expanded and bound, so remove from run_config
+        run_config = copy.deepcopy(run_config)
+        run_config.parameter_binds = []
+
+    return circuits, run_config
