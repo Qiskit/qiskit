@@ -20,6 +20,7 @@ import warnings
 np.set_printoptions(threshold=sys.maxsize)
 warnings.filterwarnings('ignore')
 
+
 class OptimizePhaseShiftGates(TransformationPass):
     """merge/cancel phase-shift gates in dag."""
 
@@ -101,7 +102,8 @@ class OptimizePhaseShiftGates(TransformationPass):
                     circuit_depth = dag_copy.depth()
                     dag_copy = cx_cancel_pass.run(dag_copy)
                     if (circuit_length < circuit_length_min) or (
-                            circuit_length == circuit_length_min and circuit_depth < circuit_depth_min):
+                            (circuit_length == circuit_length_min) and (circuit_depth <
+                             circuit_depth_min)):
                         circuit_length_min = circuit_length
                         circuit_depth_min = circuit_depth
                         optimal_dag = copy.deepcopy(dag_copy)

@@ -50,7 +50,7 @@ class TestOptimizePhaseShiftGates(QiskitTestCase):
                 y = np.random.randint(n-1)
                 circ.cx(q[y+1], q[y])
         circ_dag = qiskit.converters.circuit_to_dag(circ)
-        circ_dag = qiskit.transpiler.passes.OptimizePhaseShiftGates.run(circ_dag,circ_dag)
+        circ_dag = qiskit.transpiler.passes.OptimizePhaseShiftGates.run(circ_dag, circ_dag)
         circ_new = qiskit.converters.dag_to_circuit(circ_dag)
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result_original = execute(circ, backend_sim).result()
