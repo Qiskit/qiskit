@@ -92,6 +92,11 @@ class Schedule(ScheduleComponent):
     def children(self) -> Tuple[ScheduleComponent]:
         return self._children
 
+    @property
+    def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
+        """Iterable for getting instructions from Schedule tree."""
+        return tuple(self._instructions())
+
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return duration of supplied channels.
 
@@ -115,6 +120,19 @@ class Schedule(ScheduleComponent):
             *channels: Supplied channels
         """
         return self.timeslots.ch_stop_time(*channels)
+
+    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
+        """Iterable for flattening Schedule tree.
+
+        Args:
+            time: Shifted time due to parent
+
+        Yields:
+            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
+                at and the flattened `ScheduleComponent`.
+        """
+        for insert_time, child_sched in self.children:
+            yield from child_sched._instructions(time + insert_time)
 
     def union(self, *schedules: List[ScheduleComponent]) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `schedule`.
@@ -150,18 +168,9 @@ class Schedule(ScheduleComponent):
         """
         return ops.append(self, schedule)
 
-    def flatten(self, time: int = 0) -> Iterable[Tuple[int, ScheduleComponent]]:
-        """Iterable for flattening Schedule tree.
-
-        Args:
-            time: Shifted time due to parent
-
-        Yields:
-            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
-                at and the flattened `ScheduleComponent`.
-        """
-        for insert_time, child_sched in self.children:
-            yield from child_sched.flatten(time + insert_time)
+    def flatten(self) -> 'ScheduleComponent':
+        """Return a new schedule which is the flattened schedule contained all `instructions`."""
+        return ops.flatten(self)
 
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
@@ -178,7 +187,7 @@ class Schedule(ScheduleComponent):
     def __repr__(self):
         res = 'Schedule("name=%s", ' % self._name if self._name else 'Schedule('
         res += '%d, ' % self.start_time
-        instructions = [repr(child) for child in self.flatten()]
+        instructions = [repr(instr) for instr in self.instructions]
         res += ', '.join([str(i) for i in instructions[:50]])
         if len(instructions) > 50:
             return res + ', ...)'
