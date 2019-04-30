@@ -84,7 +84,7 @@ try:
     pm = PassManager()
     pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
     coupling_map = CouplingMap(least_busy_device.configuration().coupling_map)
-    pm.appaend(BasicSwap(coupling_map))
+    pm.append(BasicSwap(coupling_map))
     qc1_new = pm.run(qc1)
     qc2_new = pm.run(qc2)
 
