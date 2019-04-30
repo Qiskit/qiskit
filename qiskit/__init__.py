@@ -25,8 +25,6 @@ from qiskit.circuit import QuantumCircuit
 # pylint: disable=redefined-builtin
 from qiskit.tools.compiler import compile  # TODO remove after 0.8
 from qiskit.execute import execute
-from qiskit.compiler.transpiler import transpile
-from qiskit.compiler.assembler import assemble
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
