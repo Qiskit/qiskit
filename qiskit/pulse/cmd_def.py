@@ -8,7 +8,10 @@
 """
 Command definition module. Relates circuit gates to pulse commands.
 """
+from typing import List
+
 import numpy as np
+
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import PulseLibraryItem
 
@@ -20,7 +23,7 @@ from .exceptions import PulseError
 from .schedule import Schedule
 
 
-def _preprocess_pulse_library(self, pulse_library: PulseLibraryItem):
+def build_pulse_library(self, pulse_library: List[PulseLibraryItem]):
     """Take pulse library and convert to dictionary of `SamplePulse`s.
 
     Args:
@@ -77,7 +80,7 @@ class CmdDef:
                 self.add(key[0], key[1:], schedule)
 
     @classmethod
-    def cmd_def_from_defaults(cls, flat_cmd_def, pulse_library):
+    def from_defaults(cls, flat_cmd_def, pulse_library):
         """Create command definition from backend defaults output.
         Args:
             flat_cmd_def (list): Command definition list returned by backend
@@ -85,7 +88,7 @@ class CmdDef:
         Returns:
             CmdDef
         """
-        pulse_library = _preprocess_pulse_library(pulse_library)
+        pulse_library = build_pulse_library(pulse_library)
 
     def add(self, cmd_name, qubits, schedule):
         """Add a command to the `CommandDefinition`
