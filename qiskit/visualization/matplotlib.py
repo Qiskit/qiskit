@@ -1149,7 +1149,7 @@ class ScheduleDrawer:
         channels = collections.OrderedDict(sorted(channels.items(),
                                                   key=lambda x: (x[0].index, x[0].name)))
 
-        for start_time, instruction in schedule.flatten():
+        for start_time, instruction in schedule.instructions:
             for channel in instruction.channels:
                 if channel in output_channels:
                     output_channels[channel].add_instruction(start_time, instruction)
