@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=unused-import
 
@@ -69,7 +76,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qr2 = QuantumRegister(2, "q2")
         qc = QuantumCircuit(qr2, cr1, qr1)
 
-        qubtis = qc.qubits()
+        qubtis = qc.qubits
 
         self.assertEqual(qubtis[0], qr2[0])
         self.assertEqual(qubtis[1], qr2[1])
@@ -84,7 +91,7 @@ class TestCircuitRegisters(QiskitTestCase):
         cr2 = ClassicalRegister(1, "c2")
         qc = QuantumCircuit(qr2, cr2, qr1, cr1)
 
-        clbtis = qc.clbits()
+        clbtis = qc.clbits
 
         self.assertEqual(clbtis[0], cr2[0])
         self.assertEqual(clbtis[1], cr1[0])
