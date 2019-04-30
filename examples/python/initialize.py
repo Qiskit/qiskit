@@ -55,7 +55,7 @@ circuit.measure(qr[1], cr[1])
 circuit.measure(qr[2], cr[2])
 circuit.measure(qr[3], cr[3])
 
-print(circuit.qasm())
+print(circuit.draw())
 
 ###############################################################
 # Execute on a simulator backend.
