@@ -59,7 +59,9 @@ qc.measure(q[2], c2[0])
 ###############################################################
 
 # First version: not mapped
-initial_layout = [q[0], q[1], q[2]]
+initial_layout = {q[0]: 0,
+                  q[1]: 1,
+                  q[2]: 2}
 job = execute(qc, backend=backend, coupling_map=None, shots=1024, initial_layout=initial_layout)
 
 result = job.result()

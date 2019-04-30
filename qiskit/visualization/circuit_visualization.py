@@ -290,7 +290,7 @@ def qx_color_scheme():
 
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
-                         plotbarriers=True, justify=None):
+                         plotbarriers=True, justify=None, vertically_compressed=True):
     """
     Draws a circuit using ascii art.
     Args:
@@ -305,6 +305,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
         plotbarriers (bool): Draws the barriers when they are there.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
                         the circuit should be justified.
+        vertically_compressed (bool): Default is `True`. It merges the lines so the
+                                      drawing will take less vertical room.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
@@ -314,6 +316,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
+    text_drawing.vertically_compressed = vertically_compressed
 
     if filename:
         text_drawing.dump(filename)

@@ -271,7 +271,6 @@ class TestUseCases(SchedulerTestCase):
         """ Analysis passes are not allowed to modified the DAG. """
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
-        # pylint: disable=no-member
         circ.cx(qr[0], qr[1])
         circ.cx(qr[0], qr[1])
         circ.cx(qr[1], qr[0])

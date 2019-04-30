@@ -19,5 +19,10 @@ class TranspileConfig(BaseModel):
     full description of the model, please check ``TranspileConfigSchema``.
 
     Attributes:
-
+        optimization_level (int): a non-negative integer indicating the
+            optimization level. 0 means no transformation on the circuit. Higher
+            levels may produce more optimized circuits, but may take longer.
     """
+    def __init__(self, optimization_level, **kwargs):
+        self.optimization_level = optimization_level
+        super().__init__(**kwargs)

@@ -13,9 +13,8 @@ import uuid
 
 import jsonschema
 
-from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import assemble_circuits, RunConfig
+from qiskit.compiler import assemble
 from qiskit.providers.basicaer import basicaerjob
 
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
@@ -120,8 +119,7 @@ class TestQASMQobj(QiskitTestCase):
         qc1.measure(qr, cr)
         qc2.measure(qr, cr)
         circuits = [qc1, qc2]
-        backend = BasicAer.get_backend('qasm_simulator')
-        qobj1 = assemble_circuits(circuits, RunConfig(backend=backend, shots=1024, seed=88))
+        qobj1 = assemble(circuits, shots=1024, seed=88)
         qobj1.experiments[0].config.shots = 50
         qobj1.experiments[1].config.shots = 1
         self.assertTrue(qobj1.experiments[0].config.shots == 50)
@@ -180,8 +178,7 @@ class TestPulseQobj(QiskitTestCase):
                                          ],
                        'qubit_lo_freq': [4.9],
                        'meas_lo_freq': [6.9],
-                       'rep_time': 1000
-                       },
+                       'rep_time': 1000},
             'experiments': [
                 {'instructions': [
                     {'name': 'pulse0', 't0': 0, 'ch': 'd0'},
@@ -227,7 +224,7 @@ class TestPulseQobj(QiskitTestCase):
                  'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
                  'qubit_lo_freq': [4.9],
                  'meas_lo_freq': [6.9],
-                 'rep_time': 1000}
+                 'rep_time': 1000},
             ),
             QobjPulseLibrary: (
                 QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j]),

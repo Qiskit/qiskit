@@ -17,6 +17,7 @@ from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
+from qiskit.circuit import Parameter
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -80,8 +81,8 @@ class TestOptimize1qGates(QiskitTestCase):
         num_u1_gates_remaining = len(simplified_dag.named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 0)
 
-    def test_optimize_1q_gates_symbolic(self):
-        """optimizes single qubit gate sequences with symbolic params.
+    def test_optimize_1q_gates_sympy_expressions(self):
+        """optimizes single qubit gate sequences with sympy expressions.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/172
         """
@@ -162,6 +163,56 @@ class TestOptimize1qGates(QiskitTestCase):
 
         pass_ = Optimize1qGates()
         after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_single_parameterized_circuit(self):
+        """Parameters should be treated as opaque gates."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        theta = Parameter('theta')
+
+        qc.u1(0.3, qr)
+        qc.u1(0.4, qr)
+        qc.u1(theta, qr)
+        qc.u1(0.1, qr)
+        qc.u1(0.2, qr)
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(qr)
+        expected.u1(0.7, qr)
+        expected.u1(theta, qr)
+        expected.u1(0.3, qr)
+
+        after = Optimize1qGates().run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_parameterized_circuits(self):
+        """Parameters should be treated as opaque gates."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        theta = Parameter('theta')
+
+        qc.u1(0.3, qr)
+        qc.u1(0.4, qr)
+        qc.u1(theta, qr)
+        qc.u1(0.1, qr)
+        qc.u1(0.2, qr)
+        qc.u1(theta, qr)
+        qc.u1(0.3, qr)
+        qc.u1(0.2, qr)
+
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(qr)
+        expected.u1(0.7, qr)
+        expected.u1(theta, qr)
+        expected.u1(0.3, qr)
+        expected.u1(theta, qr)
+        expected.u1(0.5, qr)
+
+        after = Optimize1qGates().run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
 

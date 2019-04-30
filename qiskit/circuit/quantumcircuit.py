@@ -5,19 +5,21 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=cyclic-import
 """Quantum circuit object."""
 
 from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
-import sympy
 
+from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
-from .variabletable import VariableTable
+from .parametertable import ParameterTable
 
 
 class QuantumCircuit:
@@ -73,8 +75,8 @@ class QuantumCircuit:
         self.cregs = []
         self.add_register(*regs)
 
-        # Variable table tracks instructions with variable parameters.
-        self._variable_table = VariableTable()
+        # Parameter table tracks instructions with variable parameters.
+        self._parameter_table = ParameterTable()
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -239,7 +241,7 @@ class QuantumCircuit:
         the circuit in place.
 
         Args:
-            instruction (Instruction): Instruction instance to append
+            instruction (Instruction or Operator): Instruction instance to append
             qargs (list(tuple)): qubits to attach instruction to
             cargs (list(tuple)): clbits to attach instruction to
 
@@ -252,6 +254,12 @@ class QuantumCircuit:
         """
         qargs = qargs or []
         cargs = cargs or []
+
+        # Convert input to instruction
+        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+            instruction = instruction.to_instruction()
+        if not isinstance(instruction, Instruction):
+            raise QiskitError('object is not an Instruction.')
 
         # do some compatibility checks
         self._check_dups(qargs)
@@ -271,16 +279,13 @@ class QuantumCircuit:
 
         # track variable parameters in instruction
         for param_index, param in enumerate(instruction.params):
-            if isinstance(param, sympy.Expr):
-                current_symbols = set(self._variable_table.keys())
-                these_symbols = set(param.free_symbols)
-                new_symbols = these_symbols - current_symbols
-                common_symbols = these_symbols & current_symbols
+            if isinstance(param, Parameter):
+                current_symbols = self.parameters
 
-                for symbol in new_symbols:
-                    self._variable_table[symbol] = [(instruction, param_index)]
-                for symbol in common_symbols:
-                    self._variable_table[symbol].append((instruction, param_index))
+                if param in current_symbols:
+                    self._parameter_table[param].append((instruction, param_index))
+                else:
+                    self._parameter_table[param] = [(instruction, param_index)]
 
         return instruction
 
@@ -690,39 +695,39 @@ class QuantumCircuit:
         return _circuit_from_qasm(qasm)
 
     @property
-    def variable_table(self):
-        """get the circuit variable table"""
-        return self._variable_table
+    def parameters(self):
+        """convenience function to get the parameters defined in the parameter table"""
+        return set(self._parameter_table.keys())
 
-    @property
-    def variables(self):
-        """convenience function to get the variables defined in the variable table"""
-        return set(self._variable_table.keys())
-
-    def assign_variables(self, value_dict):
-        """Assign variables to values yielding a new circuit.
+    def bind_parameters(self, value_dict):
+        """Assign parameters to values yielding a new circuit.
 
         Args:
-            value_dict (dict): {variable: value, ...}
+            value_dict (dict): {parameter: value, ...}
+
+        Raises:
+            QiskitError: If value_dict contains parameters not present in the circuit
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
         new_circuit = self.copy()
-        for variable in value_dict:
-            new_circuit.variable_table[variable] = value_dict
+
+        if value_dict.keys() > self.parameters:
+            raise QiskitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+                [str(p) for p in value_dict.keys() - self.parameters]))
+
+        for parameter, value in value_dict.items():
+            new_circuit._bind_parameter(parameter, value)
         # clear evaluated expressions
-        for variable in value_dict:
-            del new_circuit.variable_table[variable]
+        for parameter in value_dict:
+            del new_circuit._parameter_table[parameter]
         return new_circuit
 
-    @property
-    def unassigned_variables(self):
-        """Returns a set containing any variables which have not yet been assigned."""
-        return {variable
-                for variable, parameterized_instructions in self.variable_table.items()
-                if any(instruction.params[parameter_index].free_symbols
-                       for instruction, parameter_index in parameterized_instructions)}
+    def _bind_parameter(self, parameter, value):
+        """Assigns a parameter value to matching instructions in-place."""
+        for (instr, param_index) in self._parameter_table[parameter]:
+            instr.params[param_index] = value
 
 
 def _circuit_from_qasm(qasm):

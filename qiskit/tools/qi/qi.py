@@ -341,7 +341,7 @@ def random_unitary_matrix(dim, seed=None):
                   'deprecated and will be removed in the future. Instead use '
                   'the function in qiskit.quantum_info.random',
                   DeprecationWarning)
-    return random.random_unitary(dim, seed).representation
+    return random.random_unitary(dim, seed).data
 
 
 def random_density_matrix(length, rank=None, method='Hilbert-Schmidt', seed=None):

@@ -13,8 +13,8 @@ from typing import List
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.validation.exceptions import ModelValidationError
-from .output_channel import DriveChannel, ControlChannel, MeasureChannel
-from .pulse_channel import AcquireChannel, MemorySlot, RegisterSlot
+from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
+from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
 
 logger = logging.getLogger(__name__)

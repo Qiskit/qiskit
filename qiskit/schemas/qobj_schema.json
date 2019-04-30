@@ -618,28 +618,32 @@
                             "type": "string"
                         },
                         "memory": {
-			    "type": "array",
-                            "maxItems": 0
+			                "type": "array"
                         },
                         "name": {
                             "enum": [
                                 "snapshot"
                             ]
                         },
+                        "params": {
+                            "type": "array"
+                        },
+                        "qubits": {
+                            "type": "array"
+                        },
                         "register": {
-			    "type": "array",
-                            "maxItems": 0
+			                "type": "array"
+                        },
+                        "snapshot_type": {
+                            "type": "string"
                         },
                         "texparams": {
                             "maxItems": 0
-                        },
-                        "type": {
-                            "type": "string"
                         }
                     },
                     "required": [
                         "label",
-                        "type"
+                        "snapshot_type"
                     ],
                     "title": "snapshot"
                 },
@@ -716,7 +720,7 @@
                             "description": "Total number of qubits used in this experiment.",
                             "minimum": 1,
                             "type": "integer"
-                        }                        
+                        }
                     },
                     "title": "Experiment level configuration",
                     "type": "object"
@@ -732,10 +736,10 @@
                             "description": "Total number of (slow) measurement slots used in this experiment.",
                             "minimum": 0,
                             "type": "integer"
-                        },                        
+                        },
                         "n_qubits": {
                             "description": "Total number of qubits used in this experiment.",
-                            "minimum": 1,                            
+                            "minimum": 1,
                             "type": "integer"
                         },
                         "qreg_sizes": {
@@ -891,7 +895,7 @@
                             "description": "The number of qubits requested on the backend, equivalent to the max of n_qubits requested by individual experiments.",
                             "minimum": 1,
                             "type": "integer"
-                        },                        
+                        },
                         "seed": {
                             "default": 1,
                             "type": "integer"
@@ -900,7 +904,7 @@
                             "description": "Number of repetitions of each experiment",
                             "minimum": 1,
                             "type": "integer"
-                        }                        
+                        }
                     },
                     "title": "Qobj-level configuration",
                     "type": "object"
@@ -1003,12 +1007,10 @@
                     },
                     "required": [
                         "meas_level",
-                        "pulse_library",
-                        "memory_slot_size",
-                        "meas_return",
-                        "qubit_lo_freq",
                         "meas_lo_freq",
-                        "rep_time"
+                        "meas_return",
+                        "pulse_library",
+                        "qubit_lo_freq"
                     ]
                 },
                 "experiments": {
