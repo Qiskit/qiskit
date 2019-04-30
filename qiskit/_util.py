@@ -18,8 +18,15 @@
 
 import warnings
 
-from qiskit.util import *
+from qiskit import util
 
-warnings.warn('The qiskit._util module is deprecated and has been renamed '
-              'qiskit.util. Please update your imports as qiskit._util will be'
-              'removed in Qiskit Terra 0.9.', DeprecationWarning)
+def __getattr__(name):
+    warnings.warn('The qiskit._util module is deprecated and has been renamed '
+                  'qiskit.util. Please update your imports as qiskit._util '
+                  'will be removed in Qiskit Terra 0.9.', DeprecationWarning)
+    res = getattr(util, name, None)
+    if res is None:
+        raise AttributeError("module: 'qiskit._util' has no attribute: '%s'"
+                             % name)
+    return res
+
