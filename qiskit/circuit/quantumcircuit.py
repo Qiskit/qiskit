@@ -208,12 +208,14 @@ class QuantumCircuit:
             self.append(*instruction_context)
         return self
 
+    @property
     def qubits(self):
         """
         Returns a list of quantum bits in the order that the registers had been added.
         """
         return [qbit for qreg in self.qregs for qbit in qreg]
 
+    @property
     def clbits(self):
         """
         Returns a list of classical bits in the order that the registers had been added.

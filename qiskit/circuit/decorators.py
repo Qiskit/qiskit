@@ -58,8 +58,8 @@ def _to_bits(nqbits, ncbits=0, func=None):
 
     @functools.wraps(func)
     def wrapper(self, *args):
-        qbits = self.qubits()
-        cbits = self.clbits()
+        qbits = self.qubits
+        cbits = self.clbits
 
         nparams = len(args) - nqbits - ncbits
         params = args[:nparams]

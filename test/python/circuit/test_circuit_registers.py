@@ -69,7 +69,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qr2 = QuantumRegister(2, "q2")
         qc = QuantumCircuit(qr2, cr1, qr1)
 
-        qubtis = qc.qubits()
+        qubtis = qc.qubits
 
         self.assertEqual(qubtis[0], qr2[0])
         self.assertEqual(qubtis[1], qr2[1])
@@ -84,7 +84,7 @@ class TestCircuitRegisters(QiskitTestCase):
         cr2 = ClassicalRegister(1, "c2")
         qc = QuantumCircuit(qr2, cr2, qr1, cr1)
 
-        clbtis = qc.clbits()
+        clbtis = qc.clbits
 
         self.assertEqual(clbtis[0], cr2[0])
         self.assertEqual(clbtis[1], cr1[0])
