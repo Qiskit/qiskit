@@ -73,7 +73,7 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
 
     # simplifications and optimizations
     simplification_passes = [RemoveResetInZeroState(), CXCancellation()]
-    if set(basis_gates).issubset(set(['u1', 'u2', 'u3', 'id', 'cx', 'U', 'CX'])):
+    if set(basis_gates).issubset(set(['u1', 'u2', 'u3', 'id', 'cx'])):
         # Simplify single qubit gates
         simplification_passes += [Optimize1qGates()]
     pass_manager.append(simplification_passes + [Depth(), FixedPoint('depth')],
