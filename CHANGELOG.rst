@@ -20,6 +20,12 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Fixed
+-----
+
+- A potential issue where the backend configuration schema validation would
+  improperly reject valid responses from the API (#2258)
+
 `0.7.1`_ - 2019-03-04
 =====================
 

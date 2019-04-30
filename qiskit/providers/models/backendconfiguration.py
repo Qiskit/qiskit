@@ -7,7 +7,7 @@
 
 """Model and schema for backend configuration."""
 
-from marshmallow.validate import Equal, Length, OneOf, Range, Regexp
+from marshmallow.validate import Length, OneOf, Range, Regexp
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import Boolean, DateTime, Integer, List, Nested, String
@@ -47,7 +47,7 @@ class BackendConfigurationSchema(BaseSchema):
     local = Boolean(required=True)
     simulator = Boolean(required=True)
     conditional = Boolean(required=True)
-    open_pulse = Boolean(required=True, validate=Equal(False))
+    open_pulse = Boolean(required=True)
     memory = Boolean(required=True)
     max_shots = Integer(required=True, validate=Range(min=1))
 
@@ -56,7 +56,7 @@ class BackendConfigurationSchema(BaseSchema):
     sample_name = String()
     coupling_map = List(List(Integer(),
                              validate=Length(min=1)),
-                        validate=Length(min=1))
+                        validate=Length(min=1), allow_none=True)
     n_registers = Integer(validate=Range(min=1))
     register_map = List(List(Integer(validate=OneOf([0, 1])),
                              validate=Length(min=1)),
