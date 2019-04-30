@@ -188,7 +188,7 @@ class CouplingMap:
 
     def reduce(self, mapping):
         """Returns a reduced coupling map that
-        corresponds to the subgraph of backend qubits
+        corresponds to the subgraph of qubits
         selected in the mapping.
 
         Args:
