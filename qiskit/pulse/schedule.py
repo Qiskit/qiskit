@@ -19,7 +19,7 @@ Schedule.
 """
 import itertools
 import logging
-from typing import List, Tuple, Iterable, Union
+from typing import List, Tuple, Iterable, Union, Dict
 
 from qiskit.pulse import ops
 from .channels import Channel
@@ -210,3 +210,32 @@ class Schedule(ScheduleComponent):
         if len(instructions) > 50:
             return res + ', ...)'
         return res + ')'
+
+
+class ParameterizedSchedule:
+    """Temporary parameterized schedule class.
+
+    This should not be returned to users as it is currently only a helper class.
+
+    This class is takes an input command definition that accepts
+    a set of parameters. Calling `bind` on the class will return a `Schedule`.
+
+    # TODO: In the near future this will be replaced with proper incorporation of parameters
+        into the `Schedule` class.
+    """
+
+    def __init__(commands):
+        pass
+
+    @property
+    def paramaters(self) -> Tuple[str]:
+        """Schedule parameters."""
+        pass
+
+    def bind_parameters(**params: Dict[str, Union[float, complex]]) -> Schedule:
+        """Generate the Schedule from params to evaluate command expressions
+
+        Args:
+            *params:
+        """
+        pass

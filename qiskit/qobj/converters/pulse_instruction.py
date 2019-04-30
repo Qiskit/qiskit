@@ -7,58 +7,42 @@
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
-import functools
-
 from qiskit.pulse import commands
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjMeasurementOption
 
 
 class ConversionMethodBinder:
-    """Instruction conversion method registrar."""
+    """Conversion method registrar."""
     def __init__(self):
-        """Acts as method registration decorator and tracker for instruction conversion methods."""
+        """Acts as method registration decorator and tracker for conversion methods."""
         self._bound_instructions = {}
 
-    def __call__(self, type_instruction):
+    def __call__(self, bound):
         """ Converter decorator method.
 
-        Pulse instruction converter is defined for each instruction type,
-        and this decorator binds converter function to valid instruction type.
+        Converter is defined for object to be converted matched on hash
 
         Args:
-            type_instruction (Instruction): valid pulse instruction class to the converter.
+            bound (Hashable): Hashable object to bind to the converter.
 
         """
         # pylint: disable=missing-return-doc, missing-return-type-doc
 
         def _apply_converter(converter):
             """Return decorated converter function."""
-
-            @functools.wraps(converter)
-            def _call_valid_converter(self, shift, instruction):
-                """Return a dictionary for to be used to construct a qobj
-                if the given instruction matches the
-                bound instruction type supplied to the function,
-                otherwise return None."""
-                if isinstance(instruction, type_instruction):
-                    return converter(self, shift, instruction)
-                else:
-                    raise PulseError('Supplied instruction {0} '
-                                     'is not of type {1}.'.format(instruction, type_instruction))
-
             # Track conversion methods for class.
-            self._bound_instructions[type_instruction] = _call_valid_converter
-            return _call_valid_converter
+            self._bound_instructions[bound] = converter
+            return converter
 
         return _apply_converter
 
-    def get_bound_method(self, instruction):
-        """Get conversion method for instruction."""
+    def get_bound_method(self, bound):
+        """Get conversion method for bound object."""
         try:
-            return self._bound_instructions[type(instruction)]
+            return self._bound_instructions[bound]
         except KeyError:
-            raise PulseError('Qobj conversion method for %s is not found.' % instruction)
+            raise PulseError('Bound method for %s is not found.' % bound)
 
 
 class PulseQobjConverter:
@@ -108,7 +92,7 @@ class PulseQobjConverter:
 
     def __call__(self, shift, instruction):
 
-        method = self.bind_instruction.get_bound_method(instruction)
+        method = self.bind_instruction.get_bound_method(type(instruction))
         return method(self, shift, instruction)
 
     @bind_instruction(commands.AcquireInstruction)

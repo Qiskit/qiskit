@@ -13,14 +13,14 @@ from typing import List, Tuple, Iterable, Union, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.qobj import PulseLibraryItem
+from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
 
 from .commands import (SamplePulse, PersistentValue, Acquire, FrameChange,
                        PulseInstruction, FrameChangeInstruction, AcquireInstruction,
                        PersistentValueInstruction)
 
 from .exceptions import PulseError
-from .schedule import Schedule
+from .schedule import Schedule, ParameterizedSchedule
 
 
 def build_pulse_library(self, pulse_library: List[PulseLibraryItem]):
@@ -62,41 +62,12 @@ def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]):
         raise QiskitError("All qubits must be integers.")
 
 
-class ParameterizedSchedule:
-    """Temporary parameterized schedule class.
-
-    This should not be returned to users as it is currently only a helper class.
-
-    This class is takes an input command definition that accepts
-    a set of parameters. Calling `bind` on the class will return a `Schedule`.
-
-    # TODO: In the near future this will be replaced with proper incorporation of parameters
-        into the `Schedule` class.
-    """
-
-    def __init__(commands):
-        pass
-
-    @property
-    def paramaters(self) -> Tuple[str]:
-        """Schedule parameters."""
-        pass
-
-    def bind_parameters(**params: Iterable[str, Union[float, complex]]) -> Schedule:
-        """Generate the Schedule from params to evaluate command expressions
-
-        Args:
-            *params:
-        """
-        pass
-
-
 class CmdDef:
     """Command definition class.
     Relates `Gate`s to `PulseSchedule`s.
     """
 
-    def __init__(self, schedules=None):
+    def __init__(self, schedules: Dict = None):
         """Create command definition from backend.
 
         Args:
@@ -114,7 +85,7 @@ class CmdDef:
         """Create command definition from backend defaults output.
         Args:
             flat_cmd_def: Command definition list returned by backend
-            pulse_library: Dictionary of SamplePulses.
+            pulse_library: Dictionary of `SamplePulse`s
         """
         pulse_library = build_pulse_library(pulse_library)
 
@@ -140,12 +111,14 @@ class CmdDef:
         """
         qubits = _to_qubit_tuple(qubits)
         if cmd_name in self._cmd_dict:
+
             if qubits in self._cmd_dict[cmd_name]:
                 return True
+
         return False
 
     def get(self, cmd_name: str, qubits: Union[int, Iterable[int]],
-            **params: Iterable[str, Union[float, complex]]) -> Schedule:
+            **params: Dict[str, Union[float, complex]]) -> Schedule:
         """Get command from command definition.
         Args:
             cmd_name: Name of the command
@@ -157,13 +130,19 @@ class CmdDef:
         """
         qubits = _to_qubit_tuple(qubits)
         if self.has_cmd(cmd_name, qubits):
-            return self._cmd_dict[cmd_name][qubits]
+            schedule = self._cmd_dict[cmd_name][qubits]
+
+            if isinstance(schedule, ParameterizedSchedule):
+                return schedule.bind_parameters(**params)
+
+            return schedule
+
         else:
             raise PulseError('Command {name} for qubits {qubits} is not present'
                              'in CmdDef'.format(cmd_name, qubits))
 
     def pop(self, cmd_name: str, qubits: Union[int, Iterable[int]],
-            **params: Iterable[str, Union[float, complex]]) -> Schedule:
+            **params: Dict[str, Union[float, complex]]) -> Schedule:
         """Pop command from command definition.
 
         Args:
@@ -174,10 +153,13 @@ class CmdDef:
         qubits = _to_qubit_tuple(qubits)
         if self.has_cmd(cmd_name, qubits):
             cmd_dict = self._cmd_dict[cmd_name]
-            cmd = cmd_dict.pop(qubits)
-            if not cmd_dict:
-                self._cmd_dict.pop(cmd_name)
-            return cmd.bind(**params)
+            schedule = cmd_dict.pop(qubits)
+
+            if isinstance(schedule, ParameterizedSchedule):
+                return schedule.bind_parameters(**params)
+
+            return schedule
+
         else:
             raise PulseError('Command {name} for qubits {qubits} is not present'
                              'in CmdDef'.format(cmd_name, qubits))
@@ -191,6 +173,7 @@ class CmdDef:
         """Get all qubit orderings this command exists for."""
         if cmd_name in self._cmd_dict:
             return list(self._cmd_dict.keys())
+
         raise PulseError('Command %s does not exist in CmdDef.' % cmd_name)
 
     def __repr__(self):
