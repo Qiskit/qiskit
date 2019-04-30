@@ -224,7 +224,7 @@ class ParameterizedSchedule:
         into the `Schedule` class.
     """
 
-    def __init__(commands):
+    def __init__(self, commands):
         pass
 
     @property
@@ -232,7 +232,7 @@ class ParameterizedSchedule:
         """Schedule parameters."""
         pass
 
-    def bind_parameters(**params: Dict[str, Union[float, complex]]) -> Schedule:
+    def bind_parameters(self, **params: Dict[str, Union[float, complex]]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions
 
         Args:
