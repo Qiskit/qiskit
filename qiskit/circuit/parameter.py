@@ -12,13 +12,21 @@ Parameter Class for variable parameters.
 class Parameter():
     """Parameter Class for variable parameters"""
     def __init__(self, name):
-        self.name = name
+        self._name = name
+
+    @property
+    def name(self):
+        """Returns the name of the Parameter."""
+        return self._name
 
     def __str__(self):
         return self.name
 
-    def __eq__(self, other):
-        return self.name == other.name
+    def __copy__(self):
+        return self
 
-    def __hash__(self):
-        return hash(self.name)
+    def __deepcopy__(self, memo=None):
+        return self
+
+    def __repr__(self):
+        return '{}({})'.format(self.__class__.__name__, self.name)
