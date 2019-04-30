@@ -97,12 +97,12 @@ class BackendConfigurationSchema(BaseSchema):
     tags = List(String())
 
 
-class QASMBackendConfigurationSchema(BackendConfigurationSchema):
-    """Schema for QASM backend."""
+class QasmBackendConfigurationSchema(BackendConfigurationSchema):
+    """Schema for Qasm backend."""
     open_pulse = Boolean(required=True, validate=OneOf([False]))
 
 
-class PulseBackendConfigurationSchema(QASMBackendConfigurationSchema):
+class PulseBackendConfigurationSchema(QasmBackendConfigurationSchema):
     """Schema for pulse backend"""
     # Required properties.
     open_pulse = Boolean(required=True, validate=OneOf([True]))
@@ -136,9 +136,9 @@ class GateConfig(BaseModel):
     full description of the model, please check ``GateConfigSchema``.
 
     Attributes:
-        name (str): the gate name as it will be referred to in QASM.
+        name (str): the gate name as it will be referred to in Qasm.
         parameters (list[str]): variable names for the gate parameters (if any).
-        qasm_def (str): definition of this gate in terms of QASM primitives U
+        qasm_def (str): definition of this gate in terms of Qasm primitives U
             and CX.
     """
 
@@ -207,23 +207,23 @@ class BackendConfiguration(BaseModel):
 
     @classmethod
     def from_dict(cls, dict_):
-        """Deserialize a dict of simple types into an instance of either QASMBackendConfiguration,
+        """Deserialize a dict of simple types into an instance of either QasmBackendConfiguration,
             PulseBackendConfiguration or BackendConfiguration depending on `open_pulse` field."""
         if 'open_pulse' in dict_:
             if dict_['open_pulse']:
                 return PulseBackendConfiguration.from_dict(dict_)
             else:
-                return QASMBackendConfiguration.from_dict(dict_)
+                return QasmBackendConfiguration.from_dict(dict_)
 
         return super(BackendConfiguration, cls).from_dict(dict_)
 
 
-@bind_schema(QASMBackendConfigurationSchema)
-class QASMBackendConfiguration(BackendConfiguration):
-    """Model for QASMBackendConfiguration.
+@bind_schema(QasmBackendConfigurationSchema)
+class QasmBackendConfiguration(BackendConfiguration):
+    """Model for QasmBackendConfiguration.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QASMBackendConfigurationSchema``.
+    full description of the model, please check ``QasmBackendConfigurationSchema``.
     Attributes:
         backend_name (str): backend name.
         backend_version (str): backend version in the form X.Y.Z.
@@ -253,7 +253,7 @@ class QASMBackendConfiguration(BackendConfiguration):
 
     @classmethod
     def from_dict(cls, dict_):
-        """Deserialize a dict of simple types into an instance of QASMBackendConfiguration."""
+        """Deserialize a dict of simple types into an instance of QasmBackendConfiguration."""
         return super(BackendConfiguration, cls).from_dict(dict_)
 
 
