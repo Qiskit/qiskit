@@ -61,8 +61,9 @@ class FakeProvider(BaseProvider):
             # pylint: enable=no-member
             if not filtered_backends:
                 raise QiskitBackendNotFoundError()
-            else:
-                backend = filtered_backends[0]
+
+            backend = filtered_backends[0]
+
         return backend
 
     def backends(self, name=None, **kwargs):
@@ -208,7 +209,7 @@ class FakeOpenPulse2Q(FakeBackend):
                      Command(name='measure', qubits=[0],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='m0', t0=0),
                                        PulseQobjInstruction(name='acquire', duration=10, t0=0,
-                                           qubits=[0], memory_slot=[0])])]
+                                                            qubits=[0], memory_slot=[0])])]
         )
 
         super().__init__(configuration)
