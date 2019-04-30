@@ -13,7 +13,7 @@ from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.base import ObjSchema
 from qiskit.validation.fields import (Integer, List, Nested, Number, String)
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema
-from qiskit.pulse import cmd_def as pulse_cmd_def
+from qiskit.pulse import CmdDef
 
 
 class MeasurementKernelSchema(BaseSchema):
@@ -127,4 +127,4 @@ class PulseDefaults(BaseModel):
         Returns:
             CmdDef: `CmdDef` instance generated from defaults
         """
-        return pulse_cmd_def.from_defaults(self.cmd_def, self.pulse_library)
+        return CmdDef.from_defaults(self.cmd_def, self.pulse_library)
