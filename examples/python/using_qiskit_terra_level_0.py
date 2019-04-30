@@ -9,9 +9,9 @@
 Example showing how to use Qiskit-Terra at level 0 (novice).
 
 This example shows the most basic way to user Terra. It builds some circuits
-and runs them on both the Aer (local Qiskit provider) or IBMQ (remote IBMQ provider).
+and runs them on both the BasicAer (local Qiskit provider) or IBMQ (remote IBMQ provider).
 
-To control the compile parameters we have provided a compile function which can be used 
+To control the compile parameters we have provided a transpile function which can be used 
 as a level 1 user.
 
 """
@@ -49,7 +49,7 @@ try:
     qc2.measure(qubit_reg, clbit_reg)
 
     # setting up the backend
-    print("(AER Backends)")
+    print("(BasicAER Backends)")
     print(BasicAer.backends())
 
     # running the job

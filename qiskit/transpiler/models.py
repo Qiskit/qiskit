@@ -16,12 +16,3 @@ class TranspileConfigSchema(BaseSchema):
     # Required properties.
 
     # Optional properties.
-
-
-class RunConfigSchema(BaseSchema):
-    """Schema for RunConfig."""
-
-    # Required properties.
-    # None
-
-    # Optional properties.
