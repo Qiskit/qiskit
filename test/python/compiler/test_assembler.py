@@ -14,7 +14,7 @@ import numpy as np
 import qiskit.pulse as pulse
 from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler.assembler import assemble
+from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase
