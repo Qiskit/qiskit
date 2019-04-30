@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,4 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Qiskit quantum information operators tests."""
+# pylint: disable=wildcard-import,unused-wildcard-import
+
+"""Compat shim for backwards compatability with qiskit.util."""
+
+import warnings
+
+from qiskit.util import *
+
+warnings.warn('The qiskit._util module is deprecated and has been renamed '
+              'qiskit.util. Please update your imports as qiskit._util will be'
+              'removed in Qiskit Terra 0.9.', DeprecationWarning)
