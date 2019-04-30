@@ -71,7 +71,7 @@ class DeviceSpecification:
 
         controls = [ControlChannel(i, buffer=buffer) for i in range(n_uchannels)]
 
-        acquires = [AcquireChannel(i) for i in range(n_qubits)]
+        acquires = [AcquireChannel(i, buffer=buffer) for i in range(n_qubits)]
 
         qubits = []
         for i in range(n_qubits):
