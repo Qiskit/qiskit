@@ -513,7 +513,10 @@ class TextDrawing():
         layers = self.build_layers()
 
         if not line_length:
-            line_length = self.line_length
+            if self.line_length:
+                line_length = self.line_length
+            else:
+                line_length, _ = get_terminal_size()
 
         layer_groups = [[]]
         rest_of_the_line = line_length
