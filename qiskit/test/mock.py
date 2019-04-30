@@ -30,11 +30,10 @@ from concurrent import futures
 import time
 
 from qiskit.result import Result
-from qiskit.validation.base import Obj
 from qiskit.providers import BaseBackend, BaseJob
-from qiskit.providers.models import (BackendProperties, BackendConfiguration, GateConfig,
+from qiskit.providers.models import (BackendProperties, GateConfig,
                                      QasmBackendConfiguration, PulseBackendConfiguration,
-                                     PulseDefaults, Command)
+                                     PulseDefaults, Command, UchannelLO)
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
                          QasmQobjExperiment, QasmQobjConfig, PulseLibraryItem,

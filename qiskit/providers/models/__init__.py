@@ -15,7 +15,7 @@
 """Qiskit schema-conformant objects used by the backends and providers."""
 
 from .backendconfiguration import (BackendConfiguration, PulseBackendConfiguration,
-                                   QasmBackendConfiguration, UchannelLO)
+                                   QasmBackendConfiguration, UchannelLO, GateConfig)
 from .backendproperties import BackendProperties
 from .backendstatus import BackendStatus
 from .jobstatus import JobStatus
