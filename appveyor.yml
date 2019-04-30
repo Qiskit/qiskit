@@ -26,22 +26,22 @@ environment:
     TRAVIS_PULL_REQUEST_SLUG: invalid
     TRAVIS_REPO_SLUG: invalid-but-different
 
-#for:
-#-
-#  # non-tagged scenario
-#  matrix:
-#    only:
-#      - TAG_SCENARIO: false
-#
-#  skip_tags: true
-#
-#-
-#  # tagged scenario
-#  matrix:
-#    only:
-#      - TAG_SCENARIO: true
-#
-#  skip_non_tags: true
+for:
+-
+  # non-tagged scenario
+  matrix:
+    only:
+      - TAG_SCENARIO: false
+
+  skip_tags: true
+
+-
+  # tagged scenario
+  matrix:
+    only:
+      - TAG_SCENARIO: true
+
+  skip_non_tags: true
 
 
 build: false
@@ -54,7 +54,7 @@ skip_branch_with_pr: true
 build_script:
   - if defined WHEEL (pip install cibuildwheel==0.10.1)
   - if defined WHEEL (cibuildwheel --output-dir wheelhouse)
-#  - if defined WHEEL {twine upload wheelhouse\*}
+  - if defined WHEEL {twine upload wheelhouse\*}
 artifacts:
   - path: "wheelhouse\\*.whl"
     name: Wheels
