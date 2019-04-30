@@ -203,18 +203,6 @@ class BackendConfiguration(BaseModel):
 
         super().__init__(**kwargs)
 
-    @classmethod
-    def from_dict(cls, dict_):
-        """Deserialize a dict of simple types into an instance of either QasmBackendConfiguration,
-            PulseBackendConfiguration or BackendConfiguration depending on `open_pulse` field."""
-        if 'open_pulse' in dict_:
-            if dict_['open_pulse']:
-                return PulseBackendConfiguration.from_dict(dict_)
-            else:
-                return QasmBackendConfiguration.from_dict(dict_)
-
-        return super(BackendConfiguration, cls).from_dict(dict_)
-
 
 @bind_schema(QasmBackendConfigurationSchema)
 class QasmBackendConfiguration(BackendConfiguration):
@@ -248,11 +236,6 @@ class QasmBackendConfiguration(BackendConfiguration):
                          local=local, simulator=simulator, conditional=conditional,
                          open_pulse=open_pulse, memory=memory, max_shots=max_shots,
                          **kwargs)
-
-    @classmethod
-    def from_dict(cls, dict_):
-        """Deserialize a dict of simple types into an instance of QasmBackendConfiguration."""
-        return super(BackendConfiguration, cls).from_dict(dict_)
 
 
 @bind_schema(PulseBackendConfigurationSchema)
@@ -314,8 +297,3 @@ class PulseBackendConfiguration(BackendConfiguration):
                          meas_lo_range=meas_lo_range, dt=dt, dtm=dtm,
                          rep_times=rep_times, meas_kernels=meas_kernels,
                          discriminators=discriminators, **kwargs)
-
-    @classmethod
-    def from_dict(cls, dict_):
-        """Deserialize a dict of simple types into an instance of PulseBackendConfiguration."""
-        return super(BackendConfiguration, cls).from_dict(dict_)
