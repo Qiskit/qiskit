@@ -654,7 +654,6 @@ class QCircuitImage:
                                     self._latex[pos_3][column] = (
                                         "\\ghost{%s}" % utf8tolatex(nm))
 
-
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
                         pos_array = [self.img_regs[(qarglist[0][0],
@@ -671,7 +670,6 @@ class QCircuitImage:
                         for pos in range(pos_start + 1, pos_stop + 1):
                             self._latex[pos][column] = (
                                 "\\ghost{%s}" % utf8tolatex(nm))
-
 
                 elif op.name == "measure":
                     if (len(op.cargs) != 1
