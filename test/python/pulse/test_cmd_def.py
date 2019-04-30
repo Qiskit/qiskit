@@ -26,14 +26,14 @@ class TestCmdDef(QiskitTestCase):
         """Test that backend is fetchable with cmd def present."""
 
     def test_init(self):
-        """Test `init`, `has_cmd`."""
+        """Test `init`, `has`."""
         sched = Schedule()
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         cmd_def = CmdDef({('tmp', 0): sched})
-        self.assertTrue(cmd_def.has_cmd('tmp', 0))
+        self.assertTrue(cmd_def.has('tmp', 0))
 
     def test_add(self):
-        """Test `add`, `has_cmd`, `get`, `cmd_types`."""
+        """Test `add`, `has`, `get`, `cmd_types`."""
         sched = Schedule()
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         cmd_def = CmdDef()
@@ -57,7 +57,7 @@ class TestCmdDef(QiskitTestCase):
         cmd_def = CmdDef()
         cmd_def.add('tmp', 0, sched)
         popped_sched = cmd_def.pop('tmp', 0)
-        self.assertFalse(cmd_def.has_cmd('tmp', 0))
+        self.assertFalse(cmd_def.has('tmp', 0))
 
         default_sched = cmd_def.pop('not_there', (0,), sched)
         self.assertEqual(popped_sched, default_sched)

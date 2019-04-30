@@ -12,15 +12,18 @@
 import numpy as np
 
 from qiskit.test import QiskitTestCase
-from qiskit.qobj import PulseQobjInstruction, PulseQobjExperimentConfig
-from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
-from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire
+from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseLibraryItem,
+                         QobjMeasurementOption)
+from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
+                                    LoConfigConverter)
+from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
+                                   Discriminator, Kernel)
 from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
-                                   MeasureChannel, RegisterSlot, MemorySlot)
+                                   ControlChannel, MeasureChannel, RegisterSlot, MemorySlot,)
 from qiskit.pulse import LoConfig
 
 
-class TestInstructionConverter(QiskitTestCase):
+class TestInstructionToQobjConverter(QiskitTestCase):
     """Pulse converter tests."""
 
     def setUp(self):
@@ -110,6 +113,90 @@ class TestInstructionConverter(QiskitTestCase):
         )
 
         self.assertEqual(converter(0, instruction), valid_qobj)
+
+
+class TestQobjToInstructionConverter(QiskitTestCase):
+    """Pulse converter tests."""
+
+    def setUp(self):
+        self.linear = SamplePulse(np.arange(0, 0.01), name='linear')
+        self.pulse_library = [PulseLibraryItem(name=self.linear.name,
+                                               samples=self.linear.samples.tolist())]
+
+        self.converter = QobjToInstructionConverter(self.pulse_library, buffer=0)
+
+        self.device = DeviceSpecification(
+            qubits=[
+                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0))
+            ],
+            registers=[
+                RegisterSlot(0)
+            ],
+            mem_slots=[
+                MemorySlot(0)
+            ]
+        )
+
+    def test_drive_instruction(self):
+        """Test converted qobj from PulseInstruction."""
+        cmd = self.linear
+        instruction = cmd(DriveChannel(0)) << 10
+
+        qobj = PulseQobjInstruction(name='linear', ch='d0', t0=10)
+        converted_instruction = self.converter(qobj)
+
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+
+    def test_frame_change(self):
+        """Test converted qobj from FrameChangeInstruction."""
+        cmd = FrameChange(phase=0.1)
+        instruction = cmd(MeasureChannel(0))
+
+        qobj = PulseQobjInstruction(name='fc', ch='m0', t0=0, phase=0.1)
+        converted_instruction = self.converter(qobj)
+
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+
+    def test_persistent_value(self):
+        """Test converted qobj from PersistentValueInstruction."""
+        cmd = PersistentValue(value=0.1j)
+        instruction = cmd(ControlChannel(1))
+
+        qobj = PulseQobjInstruction(name='pv', ch='u1', t0=0, val=0.1j)
+        converted_instruction = self.converter(qobj)
+
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+
+    def test_acquire(self):
+        """Test converted qobj from AcquireInstruction."""
+        cmd = Acquire(10, Discriminator(name='test_disc', params={'test_params': 1.0}),
+                      Kernel(name='test_kern', params={'test_params': 'test'}))
+        instruction = cmd(self.device.q, self.device.mem, self.device.c)
+
+        qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0],
+                                    memory_slot=[0], register_slot=[0],
+                                    kernels=[QobjMeasurementOption(
+                                        name='test_kern', params={'test_params': 'test'})],
+                                    discriminators=[QobjMeasurementOption(
+                                        name='test_disc', params={'test_params': 1.0})])
+        converted_instruction = self.converter(qobj)
+
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1].command, cmd)
+
+    def test_snapshot(self):
+        """Test converted qobj from SnapShot."""
+        cmd = Snapshot(name='label', snap_type='type')
+        instruction = cmd << 10
+
+        qobj = PulseQobjInstruction(name='snapshot', t0=10, label='label', type='type')
+        converted_instruction = self.converter(qobj)
+
+        self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(converted_instruction.instructions[0][-1], cmd)
 
 
 class TestLoConverter(QiskitTestCase):

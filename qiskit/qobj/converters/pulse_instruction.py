@@ -234,7 +234,7 @@ class QobjToInstructionConverter:
 
     def __call__(self, instruction):
 
-        method = self.bind_instruction.get_bound_method(instruction.name)
+        method = self.bind_name.get_bound_method(instruction.name)
         return method(self, instruction)
 
     def get_channel(self, channel):
@@ -275,32 +275,40 @@ class QobjToInstructionConverter:
         duration = instruction.duration
         qubits = instruction.qubits
         discriminators = (instruction.discriminators
-                          if hasattr(instruction, 'discriminator') else None)
+                          if hasattr(instruction, 'discriminators') else None)
 
         kernels = (instruction.kernels
-                   if hasattr(instruction, 'kernel') else None)
+                   if hasattr(instruction, 'kernels') else None)
 
         mem_slots = instruction.memory_slot
         reg_slots = (instruction.register_slot
                      if hasattr(instruction, 'memory_slot') else None)
 
         if not isinstance(discriminators, list):
-            discriminators = [discriminators for _ in range(qubits)]
+            discriminators = [discriminators for _ in range(len(qubits))]
 
         if not isinstance(kernels, list):
-            discriminators = [discriminators for _ in range(qubits)]
+            kernels = [kernels for _ in range(len(qubits))]
 
         schedule = Schedule()
 
-        for i, (qubit, discriminator, kernel) in enumerate(qubits):
+        for i, qubit in enumerate(qubits):
             kernel = kernels[i]
+            if kernel:
+                kernel = commands.Kernel(name=kernel.name,
+                                         params=kernel.params)
+
             discriminator = discriminators[i]
+            if discriminator:
+                discriminator = commands.Discriminator(name=discriminator.name,
+                                                       params=discriminator.params)
+
             channel = channels.AcquireChannel(qubit, buffer=self.buffer)
             if reg_slots:
                 register_slot = channels.RegisterSlot(reg_slots[i])
             else:
                 register_slot = None
-            memory_slot = mem_slots[i]
+            memory_slot = channels.MemorySlot(mem_slots[i])
 
             cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
             schedule |= commands.AcquireInstruction(cmd, channel, memory_slot, register_slot) << t0
@@ -332,8 +340,8 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        value = instruction.value
-        return commands.FrameChange(value)(channel) << t0
+        value = instruction.val
+        return commands.PersistentValue(value)(channel) << t0
 
     def bind_pulse(self, pulse):
         """Bind the supplied pulse to a converter method by pulse name.

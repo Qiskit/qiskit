@@ -40,7 +40,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
     if hasattr(run_config, 'instruction_converter'):
         instruction_converter = run_config.instruction_converter
     else:
-        instruction_converter = PulseQobjConverter
+        instruction_converter = InstructionToQobjConverter
 
     qobj_config = run_config.to_dict()
     qubit_lo_range = qobj_config.pop('qubit_lo_range')

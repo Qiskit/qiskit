@@ -204,7 +204,7 @@ class FakeOpenPulse2Q(FakeBackend):
                                        PulseQobjInstruction(name='pv', ch='d1', t0=0),
                                        PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
                                        PulseQobjInstruction(name='fc', ch='d1',
-                                                            t0=20, phase=2.1+0.j)]),
+                                                            t0=20, phase=2.1)]),
                      Command(name='measure', qubits=[0],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='m0', t0=0),
                                        PulseQobjInstruction(name='acquire', duration=10, t0=0,
