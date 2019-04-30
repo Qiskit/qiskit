@@ -9,7 +9,7 @@
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, Union, Iterable
+from typing import Tuple, List, Union
 
 from qiskit.pulse.channels import Channel
 
@@ -76,12 +76,15 @@ class ScheduleComponent(metaclass=ABCMeta):
         """Child nodes of this schedule component. """
         pass
 
+    @property
     @abstractmethod
-    def flatten(self, time: int = 0) -> Iterable[Tuple[int, 'ScheduleComponent']]:
-        """Iterable for flattening Schedule tree.
-        Args:
-            time: Initial time of this node
-        """
+    def instructions(self) -> Tuple[Tuple[int, 'Instructions']]:
+        """Return iterable for all `Instruction`s in `Schedule` tree."""
+        pass
+
+    @abstractmethod
+    def flatten(self) -> 'ScheduleComponent':
+        """Return a new schedule which is the flattened schedule contained all `instructions`."""
         pass
 
     @abstractmethod

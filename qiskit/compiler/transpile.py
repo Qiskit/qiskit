@@ -10,9 +10,8 @@ import warnings
 
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.tools.parallel import parallel_map
-from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
-                                                   default_pass_manager)
-from qiskit.compiler.transpile_config import TranspileConfig
+from qiskit.transpiler.transpile_config import TranspileConfig
+from qiskit.transpiler.transpile_circuit import transpile_circuit
 from qiskit.pulse import Schedule
 
 
@@ -147,9 +146,7 @@ def transpile(circuits,
     return circuits
 
 
-# FIXME: (Ali) This function should really be public and have the
-# signature (circuit, transpile_config). It is currently written like this
-# because our parallel tool can only parallelize functions over one variable.
+# FIXME: This is a helper function because of parallel tools.
 def _transpile_circuit(circuit_config_tuple):
     """Select a PassManager and run a single circuit through it.
 
@@ -163,20 +160,7 @@ def _transpile_circuit(circuit_config_tuple):
     """
     circuit, transpile_config = circuit_config_tuple
 
-    # if the pass manager is not already selected, choose an appropriate one.
-    if transpile_config.pass_manager:
-        pass_manager = transpile_config.pass_manager
-
-    elif transpile_config.coupling_map:
-        pass_manager = default_pass_manager(transpile_config.basis_gates,
-                                            transpile_config.coupling_map,
-                                            transpile_config.initial_layout,
-                                            transpile_config.skip_numeric_passes,
-                                            transpile_config.seed_transpiler)
-    else:
-        pass_manager = default_pass_manager_simulator(transpile_config.basis_gates)
-
-    return pass_manager.run(circuit)
+    return transpile_circuit(circuit, transpile_config)
 
 
 def _parse_transpile_args(circuits, backend,
@@ -211,22 +195,18 @@ def _parse_transpile_args(circuits, backend,
 
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
 
-    is_parametric_circuit = [bool(circuit.parameters) for circuit in circuits]
-
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
 
     transpile_configs = []
     for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
-                    seed_transpiler, optimization_level, is_parametric_circuit,
-                    pass_manager):
+                    seed_transpiler, optimization_level, pass_manager):
         transpile_config = TranspileConfig(basis_gates=args[0],
                                            coupling_map=args[1],
                                            backend_properties=args[2],
                                            initial_layout=args[3],
                                            seed_transpiler=args[4],
                                            optimization_level=args[5],
-                                           skip_numeric_passes=args[6],
-                                           pass_manager=args[7])
+                                           pass_manager=args[6])
         transpile_configs.append(transpile_config)
 
     return transpile_configs

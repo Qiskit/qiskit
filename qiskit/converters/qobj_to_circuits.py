@@ -9,7 +9,7 @@
 
 import warnings
 
-from qiskit.compiler import disassembler
+from qiskit.assembler import disassemble
 
 
 def qobj_to_circuits(qobj):
@@ -25,4 +25,6 @@ def qobj_to_circuits(qobj):
                   'be removed in Qiskit Terra 0.9. Please use '
                   'qiskit.compiler.disassemble_circuits() to convert a qobj '
                   'to list of circuits.', DeprecationWarning)
-    return disassembler._experiments_to_circuits(qobj)
+
+    variables = disassemble(qobj)
+    return variables[0]
