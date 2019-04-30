@@ -108,8 +108,8 @@ class QasmSimulatorPy(BaseBackend):
     SHOW_FINAL_STATE = False
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(configuration or
-                                        QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(configuration=(
+            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         # Define attributes in __init__.

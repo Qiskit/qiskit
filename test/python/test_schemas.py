@@ -28,9 +28,9 @@ class TestSchemaExamples(QiskitTestCase):
     """
     _json_examples_per_schema = {
         "qasm_backend_configuration": (
-             'backend_configuration',
-             ["backend_configuration_openqasm_example.json",
-              "backend_configuration_openqasm_simulator_example.json"]),
+            'backend_configuration',
+            ["backend_configuration_openqasm_example.json",
+             "backend_configuration_openqasm_simulator_example.json"]),
         "pulse_backend_configuration": (
             'backend_configuration',
             ["backend_configuration_openpulse_example.json"]),
