@@ -14,8 +14,6 @@ from qiskit.validation.fields import (Boolean, DateTime, Integer, List, Nested, 
                                       Complex, Float, Dict, InstructionParameter)
 from qiskit.validation.validate import PatternProperties
 
-# pylint: disable=invalid-name,bad-super-call
-
 
 class GateConfigSchema(BaseSchema):
     """Schema for GateConfig."""
@@ -301,7 +299,7 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_levels = meas_levels
         self.qubit_lo_range = qubit_lo_range
         self.meas_lo_range = meas_lo_range
-        self.dt = dt
+        self.dt = dt  # pylint: disable=invalid-name
         self.dtm = dtm
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
