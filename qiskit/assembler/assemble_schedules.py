@@ -20,7 +20,7 @@ from qiskit.pulse.commands import PulseInstruction
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
-from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
+from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 
 logger = logging.getLogger(__name__)
 

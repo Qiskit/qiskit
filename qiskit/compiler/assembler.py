@@ -19,7 +19,7 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig, PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
-from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
+from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 from qiskit.validation.exceptions import ModelValidationError
 
 logger = logging.getLogger(__name__)
@@ -166,7 +166,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         qobj_config = QasmQobjConfig(**run_config.to_dict())
 
     # Get appropriate convertors
-    instruction_converter = PulseQobjConverter
+    instruction_converter = InstructionToQobjConverter
     instruction_converter = instruction_converter(PulseQobjInstruction, **run_config.to_dict())
     lo_converter = LoConfigConverter(PulseQobjExperimentConfig, run_config.qubit_lo_freq,
                                      run_config.meas_lo_freq, **run_config.to_dict())

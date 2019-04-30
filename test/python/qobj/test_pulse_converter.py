@@ -13,7 +13,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.qobj import PulseQobjInstruction, PulseQobjExperimentConfig
-from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
+from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 from qiskit.pulse.commands import SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire
 from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
                                    MeasureChannel, RegisterSlot, MemorySlot)
@@ -38,7 +38,7 @@ class TestInstructionConverter(QiskitTestCase):
 
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
-        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = SamplePulse(np.arange(0, 0.01), name='linear')
         instruction = command(self.device.q[0].drive)
 
@@ -52,7 +52,7 @@ class TestInstructionConverter(QiskitTestCase):
 
     def test_frame_change(self):
         """Test converted qobj from FrameChangeInstruction."""
-        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = FrameChange(phase=0.1)
         instruction = command(self.device.q[0].drive)
 
@@ -67,7 +67,7 @@ class TestInstructionConverter(QiskitTestCase):
 
     def test_persistent_value(self):
         """Test converted qobj from PersistentValueInstruction."""
-        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = PersistentValue(value=0.1j)
         instruction = command(self.device.q[0].drive)
 
@@ -82,7 +82,7 @@ class TestInstructionConverter(QiskitTestCase):
 
     def test_acquire(self):
         """Test converted qobj from AcquireInstruction."""
-        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = Acquire(duration=10)
         instruction = command(self.device.q, self.device.mem, self.device.c)
 
@@ -99,7 +99,7 @@ class TestInstructionConverter(QiskitTestCase):
 
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
-        converter = PulseQobjConverter(PulseQobjInstruction, meas_level=2)
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         instruction = Snapshot(name='label', snap_type='type')
 
         valid_qobj = PulseQobjInstruction(
