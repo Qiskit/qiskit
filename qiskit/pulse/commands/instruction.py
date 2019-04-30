@@ -90,6 +90,11 @@ class Instruction(ScheduleComponent):
         """Instruction has no child nodes. """
         return ()
 
+    @property
+    def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
+        """Iterable for getting instructions from Schedule tree."""
+        return tuple(self._instructions())
+
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return duration of the supplied channels in this Instruction.
 
@@ -113,6 +118,22 @@ class Instruction(ScheduleComponent):
             *channels: Supplied channels
         """
         return self.timeslots.ch_stop_time(*channels)
+
+    def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
+        """Iterable for flattening Schedule tree.
+
+        Args:
+            time: Shifted time of this node due to parent
+
+        Yields:
+            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
+                at and the flattened `ScheduleComponent`.
+        """
+        yield (time, self)
+
+    def flatten(self) -> 'Instruction':
+        """Return itself as already single instruction."""
+        return self
 
     def union(self, *schedules: List[ScheduleComponent]) -> 'ScheduleComponent':
         """Return a new schedule which is the union of `self` and `schedule`.
@@ -147,18 +168,6 @@ class Instruction(ScheduleComponent):
             schedule: schedule to be appended
         """
         return ops.append(self, schedule)
-
-    def flatten(self, time: int = 0) -> Iterable[Tuple[int, ScheduleComponent]]:
-        """Iterable for flattening Schedule tree.
-
-        Args:
-            time: Shifted time of this node due to parent
-
-        Yields:
-            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
-                at and the flattened `ScheduleComponent`.
-        """
-        yield (time, self)
 
     def draw(self, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None, scaling: float = None,
