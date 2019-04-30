@@ -12,8 +12,9 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import assemble, disassemble
-from qiskit.compiler.run_config import RunConfig
+from qiskit.compiler.assemble import assemble
+from qiskit.assembler.disassemble import disassemble
+from qiskit.assembler.run_config import RunConfig
 from qiskit.test import QiskitTestCase
 
 

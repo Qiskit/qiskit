@@ -59,7 +59,7 @@ def random_unitary(dim, seed=None):
         QiskitError: if dim is not a positive power of 2.
     """
     if dim == 0 or not math.log2(dim).is_integer():
-        raise QiskitError("Desired statevector length not a positive power of 2.")
+        raise QiskitError("Desired unitary dimension not a positive power of 2.")
     matrix = np.zeros([dim, dim], dtype=complex)
     for j in range(dim):
         if j == 0:
