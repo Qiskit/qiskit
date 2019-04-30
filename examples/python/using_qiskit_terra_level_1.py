@@ -84,8 +84,8 @@ try:
     print("Running on current least busy device: ", least_busy_device)
 
     # Transpile the circuits to make them compatible with the experimental backend
-    [qc1_new, qc2_new] = transpile(circuits=[qc1, qc2],
-                                   transpile_config=TranspileConfig(backend=least_busy_device))
+    [qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
+
     print("Bell circuit before transpile:")
     print(qc1.draw())
     print("Bell circuit after transpile:")
