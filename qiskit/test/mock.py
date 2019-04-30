@@ -25,7 +25,7 @@ import time
 from qiskit.result import Result
 from qiskit.providers import BaseBackend, BaseJob
 from qiskit.providers.models import (BackendProperties, PulseDefaults, UchannelLO,
-                                     QASMBackendConfiguration, PulseBackendConfiguration)
+                                     QasmBackendConfiguration, PulseBackendConfiguration)
 from qiskit.providers.models.backendconfiguration import GateConfig
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
@@ -118,7 +118,7 @@ class FakeQasmSimulator(FakeBackend):
     """A fake simulator backend."""
 
     def __init__(self):
-        configuration = QASMBackendConfiguration(
+        configuration = QasmBackendConfiguration(
             backend_name='fake_qasm_simulator',
             backend_version='0.0.0',
             n_qubits=5,
@@ -208,7 +208,7 @@ class FakeTenerife(FakeBackend):
         """
         cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
 
-        configuration = QASMBackendConfiguration(
+        configuration = QasmBackendConfiguration(
             backend_name='fake_tenerife',
             backend_version='0.0.0',
             n_qubits=5,
@@ -241,7 +241,7 @@ class FakeMelbourne(FakeBackend):
                 [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
                 [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]]
 
-        configuration = QASMBackendConfiguration(
+        configuration = QasmBackendConfiguration(
             backend_name='fake_melbourne',
             backend_version='0.0.0',
             n_qubits=14,
@@ -275,7 +275,7 @@ class FakeRueschlikon(FakeBackend):
                 [11, 10], [12, 5], [12, 11], [12, 13], [13, 4],
                 [13, 14], [15, 0], [15, 2], [15, 14]]
 
-        configuration = QASMBackendConfiguration(
+        configuration = QasmBackendConfiguration(
             backend_name='fake_rueschlikon',
             backend_version='0.0.0',
             n_qubits=16,
@@ -325,7 +325,7 @@ class FakeTokyo(FakeBackend):
                 [16, 15], [16, 17], [17, 11], [17, 16], [18, 13], [18, 14],
                 [19, 13], [19, 14]]
 
-        configuration = QASMBackendConfiguration(
+        configuration = QasmBackendConfiguration(
             backend_name='fake_tokyo',
             backend_version='0.0.0',
             n_qubits=16,

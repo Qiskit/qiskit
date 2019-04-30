@@ -24,7 +24,7 @@ import logging
 from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.providers.basicaer.exceptions import BasicAerError
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from .qasm_simulator import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
 
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(configuration or
-                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+                                        QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
     def run(self, qobj, backend_options=None):
