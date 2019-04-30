@@ -187,7 +187,7 @@ class BackendConfiguration(BaseModel):
     """
 
     def __init__(self, backend_name, backend_version, n_qubits, basis_gates,
-                 gates, local, simulator, conditional, memory,
+                 gates, local, simulator, conditional, memory, open_pulse,
                  max_shots, **kwargs):
 
         self.backend_name = backend_name
@@ -199,6 +199,7 @@ class BackendConfiguration(BaseModel):
         self.simulator = simulator
         self.conditional = conditional
         self.memory = memory
+        self.open_pulse = open_pulse
         self.max_shots = max_shots
 
         super().__init__(**kwargs)
