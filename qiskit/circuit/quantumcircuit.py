@@ -237,27 +237,29 @@ class QuantumCircuit:
         """Return indexed operation."""
         return self.data[item]
 
+    def qbit_argument_expansion(self, bit_representation):
+        return self.qubits[bit_representation]
+
+    def cbit_argument_expansion(self, bit_representation):
+        return self.cubits[bit_representation]
+
     def append(self, instruction, qargs=None, cargs=None):
         """Append one or more instructions to the end of the circuit, modifying
         the circuit in place. Expands qargs and cargs.
 
         Args:
             instruction (Instruction): Instruction instance to append
-            qargs (list(tuple)): qubits to attach instruction to
-            cargs (list(tuple)): clbits to attach instruction to
+            qargs (list(argument)): qubits to attach instruction to
+            cargs (list(argument)): clbits to attach instruction to
 
         Returns:
             Instruction: a handle to the instruction that was just added
         """
-        qargs = _convert_to_bits(qargs or [], [qbit for qreg in self.qregs for qbit in qreg])
-        cargs = _convert_to_bits(cargs or [], [cbit for creg in self.cregs for cbit in creg])
-
         ret = None
-        if not all([_is_bit(arg) for arg in qargs]):
-            for qargs_ in [item for sublist in qargs for item in sublist]:
-                ret = self._append(instruction, [qargs_], cargs)
-        else:
-            ret = self._append(instruction, qargs, cargs)
+        expanded_qargs = map(self.qbit_argument_expansion, qargs)
+        expanded_cargs = map(self.cbit_argument_expansion, cargs)
+        for (qarg, carg) in instruction.argument_expansion(expanded_qargs, expanded_cargs):
+            ret = self._append(instruction, qarg, carg)
         return ret
 
     def _append(self, instruction, qargs, cargs):

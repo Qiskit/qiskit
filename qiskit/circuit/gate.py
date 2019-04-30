@@ -64,3 +64,10 @@ class Gate(Instruction):
             self._label = name
         else:
             raise TypeError('label expects a string or None')
+
+    def argument_expansion(self, qargs, cargs):
+        # Validation and expantion of the qargs and cargs for the gate
+        # if len(qargs) == 0:
+        #     raise QiskitError("")
+        for qarg in qargs:
+            yield qarg, []
