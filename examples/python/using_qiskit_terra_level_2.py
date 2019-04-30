@@ -33,6 +33,9 @@ from qiskit.tools.monitor import job_monitor
 from qiskit.transpiler.passes import BasicSwap
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passes.unroller import Unroller
+from qiskit.transpiler.passes.mapping.full_ancilla_allocation import FullAncillaAllocation
+from qiskit.transpiler.passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
+from qiskit.transpiler.passes.mapping.trivial_layout import TrivialLayout
 
 
 try:
@@ -84,6 +87,9 @@ try:
     pm = PassManager()
     pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
     coupling_map = CouplingMap(least_busy_device.configuration().coupling_map)
+    pm.append(TrivialLayout(coupling_map))
+    pm.append(FullAncillaAllocation(coupling_map))
+    pm.append(EnlargeWithAncilla())
     pm.append(BasicSwap(coupling_map))
     qc1_new = pm.run(qc1)
     qc2_new = pm.run(qc2)
