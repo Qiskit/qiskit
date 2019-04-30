@@ -35,8 +35,6 @@ circ.measure(qr[0], cr[0])
 circ.measure(qr[1], cr[1])
 circ.measure(ar[0], cr[2])
 circ.measure(ar[1], cr[3])
-# Print the input circuit to compare to the output
-print(circ)
 dag = circuit_to_dag(circ)
 #                                             ┌─┐┌───┐        ┌─┐
 # q_0: |0>─────────────────■──────────────────┤M├┤ H ├──■─────┤M├
@@ -105,7 +103,5 @@ layout = Layout({qr[0]: 0, qr[1]: 1, ar[0]: 2, ar[1]: 3})
 # Run the pass on the dag from the input circuit
 pass_ = StochasticSwap(coupling, layout, 20, 13)
 after = pass_.run(dag)
-# Print the output circuit
-print(dag_to_circuit(after))
 # Verify the output of the pass matches our expectation
 assert expected_dag == after
