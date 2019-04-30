@@ -89,6 +89,9 @@ Added
   are followed by a measurement instruction. (#2208)
 - Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
   rotations about the Z axis, leveraging previously-found gate commutation relations. (#2012)
+- Add an option for using a user config file to enable changing default
+  settings for various functions in qiskit. Right now it only supports setting
+  the default circuit drawing backend. (#2122)
 - Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
   of gates (blocks) acting on 2 qubits. (#2134)
 - Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
