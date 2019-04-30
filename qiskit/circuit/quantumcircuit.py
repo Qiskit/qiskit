@@ -247,9 +247,13 @@ class QuantumCircuit:
         return self.data[item]
 
     def qbit_argument_expansion(self, bit_representation):
-        return self.qubits[bit_representation]
+        if _is_bit(bit_representation):
+            return [bit_representation]
+        return [self.qubits[bit_representation]]
 
     def cbit_argument_expansion(self, bit_representation):
+        if _is_bit(bit_representation):
+            return [bit_representation]
         return self.cubits[bit_representation]
 
     def append(self, instruction, qargs=None, cargs=None):
@@ -265,8 +269,9 @@ class QuantumCircuit:
             Instruction: a handle to the instruction that was just added
         """
         ret = None
-        expanded_qargs = map(self.qbit_argument_expansion, qargs)
-        expanded_cargs = map(self.cbit_argument_expansion, cargs)
+        expanded_qargs = [i for i in map(self.qbit_argument_expansion, qargs)]
+        expanded_cargs = [i for i in map(self.cbit_argument_expansion, cargs)]
+
         for (qarg, carg) in instruction.argument_expansion(expanded_qargs, expanded_cargs):
             ret = self._append(instruction, qarg, carg)
         return ret

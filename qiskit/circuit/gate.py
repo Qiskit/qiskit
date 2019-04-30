@@ -74,7 +74,7 @@ class Gate(Instruction):
 
     def argument_expansion(self, qargs, cargs):
         # Validation and expantion of the qargs and cargs for the gate
-        # if len(qargs) == 0:
+        # if len(cargs) == 0:
         #     raise QiskitError("")
-        for qarg in qargs:
-            yield qarg, []
+        for qarg in zip(*qargs):
+            yield list(qarg), []

@@ -293,6 +293,6 @@ class Instruction:
             raise QiskitError("")
 
         if len(cargs) == len(qargs):
-            for qarg,carg in zip(qargs, cargs):
-                yield args
+            for qarg, carg in zip(qargs, cargs):
+                yield qarg, carg
 
