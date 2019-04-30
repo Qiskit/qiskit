@@ -40,7 +40,7 @@ from collections import Counter
 import numpy as np
 
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
 from qiskit.providers import BaseBackend
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
@@ -115,8 +115,8 @@ class QasmSimulatorPy(BaseBackend):
     SHOW_FINAL_STATE = False
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(configuration or
-                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(configuration=(
+            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         # Define attributes in __init__.
