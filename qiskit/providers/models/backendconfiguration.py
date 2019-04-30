@@ -183,6 +183,7 @@ class BackendConfiguration(BaseModel):
         simulator (bool): backend is a simulator.
         conditional (bool): backend supports conditional operations.
         memory (bool): backend supports memory.
+        open_pulse (bool): backend supports open pulse.
         max_shots (int): maximum number of shots supported.
     """
 
