@@ -119,7 +119,7 @@ class CmdDef:
         pulse_library = build_pulse_library(pulse_library)
 
     def add(self, cmd_name: str, qubits: Union[int, Iterable[int]],
-            cmd: Union[ParameterizedSchedule, Schedule]):
+            schedule: Union[ParameterizedSchedule, Schedule]):
         """Add a command to the `CommandDefinition`
 
         Args:
@@ -128,7 +128,7 @@ class CmdDef:
             schedule: Schedule to be added
         """
         qubits = _to_qubit_tuple(qubits)
-        cmd_dict = self._cmd_dict.setdefault('cmd', {})
+        cmd_dict = self._cmd_dict.setdefault(schedule, {})
         cmd_dict[qubits] = schedule
 
     def has(self, cmd_name: str, qubits: Union[int, Iterable[int]]) -> bool:
@@ -148,14 +148,12 @@ class CmdDef:
             **params: Iterable[str, Union[float, complex]]) -> Schedule:
         """Get command from command definition.
         Args:
-            cmd_name (str): Name of the command
-            qubits (int, list or tuple): Ordered list of qubits command applies to
+            cmd_name: Name of the command
+            qubits: Ordered list of qubits command applies to
             **params: Command parameters to be used to generate schedule
-        Returns:
-            PulseSchedule or ParameterizedPulseSchedule
 
         Raises:
-            ScheduleError
+            PulseError
         """
         qubits = _to_qubit_tuple(qubits)
         if self.has_cmd(cmd_name, qubits):
@@ -164,18 +162,14 @@ class CmdDef:
             raise PulseError('Command {name} for qubits {qubits} is not present'
                              'in CmdDef'.format(cmd_name, qubits))
 
-    def pop(self, cmd_name, qubits, **params):
+    def pop(self, cmd_name: str, qubits: Union[int, Iterable[int]],
+            **params: Iterable[str, Union[float, complex]]) -> Schedule:
         """Pop command from command definition.
 
         Args:
             cmd_name (str): Name of the command
             qubits (int, list or tuple): Ordered list of qubits command applies to
             **params: Command parameters to be used to generate schedule
-        Returns:
-            PulseSchedule or ParameterizedPulseSchedule
-
-        Raises:
-            ScheduleError
         """
         qubits = _to_qubit_tuple(qubits)
         if self.has_cmd(cmd_name, qubits):
@@ -183,31 +177,21 @@ class CmdDef:
             cmd = cmd_dict.pop(qubits)
             if not cmd_dict:
                 self._cmd_dict.pop(cmd_name)
-            return cmd
-        elif default:
-            return default
+            return cmd.bind(**params)
         else:
             raise PulseError('Command {name} for qubits {qubits} is not present'
                              'in CmdDef'.format(cmd_name, qubits))
 
-    def cmd_types(self):
-        """Return all command names available in CmdDef.
-
-        Returns:
-            list
-        """
+    def cmd_types(self) -> List[str]:
+        """Return all command names available in CmdDef."""
 
         return list(self._cmd_dict.keys())
 
-    def cmds(self):
-        """Returns list of all commands.
-
-        Returns:
-            (str, tuple, PulseSchedule or ParameterizedPulseSchedule): A tuple containing
-                the command name, tuple of qubits the command applies to and the command
-                schedule.
-        """
-        return list(self)
+    def cmd_qubits(self, cmd_name: str) -> List[Tuple[int]]:
+        """Get all qubit orderings this command exists for."""
+        if cmd_name in self._cmd_dict:
+            return list(self._cmd_dict.keys())
+        raise PulseError('Command %s does not exist in CmdDef.' % cmd_name)
 
     def __repr__(self):
         return repr(self._cmd_dict)
