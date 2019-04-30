@@ -14,7 +14,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout
+from qiskit.transpiler import Layout
 from qiskit.extensions.standard import HGate
 
 

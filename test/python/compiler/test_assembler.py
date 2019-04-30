@@ -12,18 +12,16 @@ import unittest
 import numpy as np
 
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction
+from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler import RunConfig
-from qiskit.compiler import assemble_circuits
-from qiskit.compiler import assemble_schedules
+from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
 
-class TestAssembler(QiskitTestCase):
+class TestCircuitAssembler(QiskitTestCase):
     """Tests for assembling circuits to qobj."""
 
     def test_assemble_single_circuit(self):
@@ -36,8 +34,7 @@ class TestAssembler(QiskitTestCase):
         circ.cx(qr[0], qr[1])
         circ.measure(qr, cr)
 
-        run_config = RunConfig(shots=2000, memory=True)
-        qobj = assemble_circuits(circ, run_config=run_config)
+        qobj = assemble(circ, shots=2000, memory=True)
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.shots, 2000)
         self.assertEqual(qobj.config.memory, True)
@@ -62,10 +59,9 @@ class TestAssembler(QiskitTestCase):
         circ1.cx(qr1[0], qr1[2])
         circ1.measure(qr1, qc1)
 
-        run_config = RunConfig(shots=100, memory=False, seed=6)
-        qobj = assemble_circuits([circ0, circ1], run_config=run_config)
+        qobj = assemble([circ0, circ1], shots=100, memory=False, seed=6)
         self.assertIsInstance(qobj, QasmQobj)
-        self.assertEqual(qobj.config.seed, 6)
+        self.assertEqual(qobj.config.seed_simulator, 6)
         self.assertEqual(len(qobj.experiments), 2)
         self.assertEqual(qobj.experiments[1].config.n_qubits, 3)
         self.assertEqual(len(qobj.experiments), 2)
@@ -81,9 +77,9 @@ class TestAssembler(QiskitTestCase):
         circ.cx(qr[0], qr[1])
         circ.measure(qr, qc)
 
-        qobj = assemble_circuits(circ)
+        qobj = assemble(circ)
         self.assertIsInstance(qobj, QasmQobj)
-        self.assertIsNone(getattr(qobj.config, 'shots', None))
+        self.assertEqual(qobj.config.shots, 1024)
 
     def test_assemble_initialize(self):
         """Test assembling a circuit with an initialize.
@@ -92,7 +88,7 @@ class TestAssembler(QiskitTestCase):
         circ = QuantumCircuit(q, name='circ')
         circ.initialize([1/np.sqrt(2), 0, 0, 1/np.sqrt(2)], q[:])
 
-        qobj = assemble_circuits(circ)
+        qobj = assemble(circ)
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'initialize')
         np.testing.assert_almost_equal(qobj.experiments[0].instructions[0].params,
@@ -106,7 +102,7 @@ class TestAssembler(QiskitTestCase):
         c = ClassicalRegister(4, name='c')
         circ = QuantumCircuit(q, c, name='circ')
         circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
-        qobj = assemble_circuits(circ)
+        qobj = assemble(circ)
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(len(qobj.experiments[0].instructions), 1)
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'my_inst')
@@ -126,7 +122,7 @@ class TestAssembler(QiskitTestCase):
         qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
         qc.h(qr[1]).c_if(cr2, 3)
 
-        qobj = assemble_circuits(qc)
+        qobj = assemble(qc)
 
         first_measure, second_measure = [op for op in qobj.experiments[0].instructions
                                          if op.name == 'measure']
@@ -144,7 +140,7 @@ class TestAssembler(QiskitTestCase):
 
         qc.h(qr[0]).c_if(cr, 1)
 
-        qobj = assemble_circuits(qc)
+        qobj = assemble(qc)
 
         bfunc_op, h_op = qobj.experiments[0].instructions
 
@@ -167,7 +163,7 @@ class TestAssembler(QiskitTestCase):
 
         qc.h(qr[0]).c_if(cr2, 2)
 
-        qobj = assemble_circuits(qc)
+        qobj = assemble(qc)
 
         bfunc_op, h_op = qobj.experiments[0].instructions
 
@@ -178,6 +174,80 @@ class TestAssembler(QiskitTestCase):
 
         self.assertTrue(hasattr(h_op, 'conditional'))
         self.assertEqual(bfunc_op.register, h_op.conditional)
+
+    def test_assemble_circuits_raises_for_bind_circuit_mismatch(self):
+        """Verify assemble_circuits raise error for parametized circuits without matching binds."""
+        qr = QuantumRegister(2)
+        x = Parameter('x')
+        y = Parameter('y')
+
+        full_bound_circ = QuantumCircuit(qr)
+        full_param_circ = QuantumCircuit(qr)
+        partial_param_circ = QuantumCircuit(qr)
+
+        partial_param_circ.u1(x, qr[0])
+
+        full_param_circ.u1(x, qr[0])
+        full_param_circ.u1(y, qr[1])
+
+        partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
+        full_bind_args = {'parameter_binds': [{x: 1, y: 1}, {x: 0, y: 0}]}
+        inconsistent_bind_args = {'parameter_binds': [{x: 1}, {x: 0, y: 0}]}
+
+        # Raise when parameters passed for non-parametric circuit
+        self.assertRaises(QiskitError, assemble,
+                          full_bound_circ, **partial_bind_args)
+
+        # Raise when no parameters passed for parametric circuit
+        self.assertRaises(QiskitError, assemble, partial_param_circ)
+        self.assertRaises(QiskitError, assemble, full_param_circ)
+
+        # Raise when circuit has more parameters than run_config
+        self.assertRaises(QiskitError, assemble,
+                          full_param_circ, **partial_bind_args)
+
+        # Raise when not all circuits have all parameters
+        self.assertRaises(QiskitError, assemble,
+                          [full_param_circ, partial_param_circ], **full_bind_args)
+
+        # Raise when not all binds have all circuit params
+        self.assertRaises(QiskitError, assemble,
+                          full_param_circ, **inconsistent_bind_args)
+
+    def test_assemble_circuits_binds_parameters(self):
+        """Verify assemble_circuits applies parameter bindings and output circuits are bound."""
+        qr = QuantumRegister(1)
+        qc1 = QuantumCircuit(qr)
+        qc2 = QuantumCircuit(qr)
+
+        x = Parameter('x')
+        y = Parameter('y')
+
+        qc1.u2(x, y, qr[0])
+
+        qc2.rz(x, qr[0])
+        qc2.rz(y, qr[0])
+
+        bind_args = {'parameter_binds': [{x: 0, y: 0},
+                                         {x: 1, y: 0},
+                                         {x: 1, y: 1}]}
+
+        qobj = assemble([qc1, qc2], **bind_args)
+
+        self.assertEqual(len(qobj.experiments), 6)
+        self.assertEqual([len(expt.instructions) for expt in qobj.experiments],
+                         [1, 1, 1, 2, 2, 2])
+
+        self.assertEqual(qobj.experiments[0].instructions[0].params, [0, 0])
+        self.assertEqual(qobj.experiments[1].instructions[0].params, [1, 0])
+        self.assertEqual(qobj.experiments[2].instructions[0].params, [1, 1])
+
+        self.assertEqual(qobj.experiments[3].instructions[0].params, [0])
+        self.assertEqual(qobj.experiments[3].instructions[1].params, [0])
+        self.assertEqual(qobj.experiments[4].instructions[0].params, [1])
+        self.assertEqual(qobj.experiments[4].instructions[1].params, [0])
+        self.assertEqual(qobj.experiments[5].instructions[0].params, [1])
+        self.assertEqual(qobj.experiments[5].instructions[1].params, [1])
 
 
 class TestPulseAssembler(QiskitTestCase):
@@ -216,12 +286,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_without_lo_config(self):
         """Test assembling a single schedule, no lo config."""
-        qobj = assemble_schedules(self.schedule,
-                                  self.default_qubit_lo_freq,
-                                  self.default_meas_lo_freq,
-                                  schedule_los=[],
-                                  dict_header=self.header,
-                                  **self.config)
+        qobj = assemble(self.schedule,
+                        qobj_header=self.header,
+                        default_qubit_los=self.default_qubit_lo_freq,
+                        default_meas_los=self.default_meas_lo_freq,
+                        schedule_los=[],
+                        **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
@@ -230,11 +300,11 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_multi_schedules_without_lo_config(self):
         """Test assembling schedules, no lo config."""
-        qobj = assemble_schedules([self.schedule, self.schedule],
-                                  self.default_qubit_lo_freq,
-                                  self.default_meas_lo_freq,
-                                  dict_header=self.header,
-                                  **self.config)
+        qobj = assemble([self.schedule, self.schedule],
+                        qobj_header=self.header,
+                        default_qubit_los=self.default_qubit_lo_freq,
+                        default_meas_los=self.default_meas_lo_freq,
+                        **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
@@ -243,12 +313,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_lo_config(self):
         """Test assembling a single schedule, with a single lo config."""
-        qobj = assemble_schedules(self.schedule,
-                                  self.default_qubit_lo_freq,
-                                  self.default_meas_lo_freq,
-                                  schedule_los=self.user_lo_config,
-                                  dict_header=self.header,
-                                  **self.config)
+        qobj = assemble(self.schedule,
+                        qobj_header=self.header,
+                        default_qubit_los=self.default_qubit_lo_freq,
+                        default_meas_los=self.default_meas_lo_freq,
+                        schedule_los=self.user_lo_config,
+                        **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
@@ -257,12 +327,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_lo_config_dict(self):
         """Test assembling a single schedule, with a single lo config supplied as dictionary."""
-        qobj = assemble_schedules(self.schedule,
-                                  self.default_qubit_lo_freq,
-                                  self.default_meas_lo_freq,
-                                  schedule_los=self.user_lo_config_dict,
-                                  dict_header=self.header,
-                                  **self.config)
+        qobj = assemble(self.schedule,
+                        qobj_header=self.header,
+                        default_qubit_los=self.default_qubit_lo_freq,
+                        default_meas_los=self.default_meas_lo_freq,
+                        schedule_los=self.user_lo_config_dict,
+                        **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.91, 5.0])
@@ -271,12 +341,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_single_schedule_with_multi_lo_configs(self):
         """Test assembling a single schedule, with lo configs (frequency sweep)."""
-        qobj = assemble_schedules(self.schedule,
-                                  self.default_qubit_lo_freq,
-                                  self.default_meas_lo_freq,
-                                  schedule_los=[self.user_lo_config, self.user_lo_config],
-                                  dict_header=self.header,
-                                  **self.config)
+        qobj = assemble(self.schedule,
+                        qobj_header=self.header,
+                        default_qubit_los=self.default_qubit_lo_freq,
+                        default_meas_los=self.default_meas_lo_freq,
+                        schedule_los=[self.user_lo_config, self.user_lo_config],
+                        **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
@@ -287,12 +357,12 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_multi_schedules_with_multi_lo_configs(self):
         """Test assembling schedules, with the same number of lo configs (n:n setup)."""
-        qobj = assemble_schedules([self.schedule, self.schedule],
-                                  self.default_qubit_lo_freq,
-                                  self.default_meas_lo_freq,
-                                  schedule_los=[self.user_lo_config, self.user_lo_config],
-                                  dict_header=self.header,
-                                  **self.config)
+        qobj = assemble([self.schedule, self.schedule],
+                        qobj_header=self.header,
+                        default_qubit_los=self.default_qubit_lo_freq,
+                        default_meas_los=self.default_meas_lo_freq,
+                        schedule_los=[self.user_lo_config, self.user_lo_config],
+                        **self.config)
         test_dict = qobj.to_dict()
 
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
@@ -304,12 +374,12 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_multi_schedules_with_wrong_number_of_multi_lo_configs(self):
         """Test assembling schedules, with a different number of lo configs (n:m setup)."""
         with self.assertRaises(QiskitError):
-            assemble_schedules([self.schedule, self.schedule, self.schedule],
-                               self.default_qubit_lo_freq,
-                               self.default_meas_lo_freq,
-                               schedule_los=[self.user_lo_config, self.user_lo_config],
-                               dict_header=self.header,
-                               **self.config)
+            assemble([self.schedule, self.schedule, self.schedule],
+                     qobj_header=self.header,
+                     default_qubit_los=self.default_qubit_lo_freq,
+                     default_meas_los=self.default_meas_lo_freq,
+                     schedule_los=[self.user_lo_config, self.user_lo_config],
+                     **self.config)
 
 
 if __name__ == '__main__':

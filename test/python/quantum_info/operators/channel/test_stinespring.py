@@ -46,6 +46,18 @@ class TestStinespring(ChannelTestCase):
         self.assertRaises(
             QiskitError, Stinespring, stine_l, input_dims=4, output_dims=4)
 
+    def test_circuit_init(self):
+        """Test initialization from a circuit."""
+        circuit, target = self.simple_circuit_no_measure()
+        op = Stinespring(circuit)
+        target = Stinespring(target)
+        self.assertEqual(op, target)
+
+    def test_circuit_init_except(self):
+        """Test initialization from circuit with measure raises exception."""
+        circuit = self.simple_circuit_with_measure()
+        self.assertRaises(QiskitError, Stinespring, circuit)
+
     def test_equal(self):
         """Test __eq__ method"""
         stine = tuple(self.rand_matrix(4, 2) for _ in range(2))

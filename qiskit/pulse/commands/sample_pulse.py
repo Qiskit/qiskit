@@ -10,14 +10,13 @@ Sample pulse.
 """
 import numpy as np
 
-from qiskit.pulse.channels import OutputChannel
-from qiskit.pulse.common.timeslots import Interval, Timeslot, TimeslotCollection
+from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
-from .pulse_command import PulseCommand
+from .command import Command
 
 
-class SamplePulse(PulseCommand):
+class SamplePulse(Command):
     """Container for functional pulse."""
 
     def __init__(self, samples, name=None):
@@ -80,27 +79,14 @@ class SamplePulse(PulseCommand):
     def __repr__(self):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
 
-    def __call__(self, channel: OutputChannel) -> 'DriveInstruction':
-        return DriveInstruction(self, channel)
+    # pylint: disable=arguments-differ
+    def to_instruction(self, channel: PulseChannel, name=None) -> 'PulseInstruction':
+        return PulseInstruction(self, channel, name=name)
+    # pylint: enable=arguments-differ
 
 
-class DriveInstruction(Instruction):
-    """Instruction to drive a pulse to an `OutputChannel`. """
+class PulseInstruction(Instruction):
+    """Instruction to drive a pulse to an `PulseChannel`. """
 
-    def __init__(self, command: SamplePulse, channel: OutputChannel, start_time: int = 0):
-        slots = [Timeslot(Interval(start_time, start_time + command.duration), channel)]
-        super().__init__(command, start_time, TimeslotCollection(slots))
-        self._channel = channel
-
-    @property
-    def command(self) -> SamplePulse:
-        """SamplePulse command. """
-        return self._command
-
-    @property
-    def channel(self) -> OutputChannel:
-        """OutputChannel command. """
-        return self._channel
-
-    def __repr__(self):
-        return '%4d: %s -> %s' % (self._start_time, self._command, self._channel)
+    def __init__(self, command: SamplePulse, channel: PulseChannel, name=None):
+        super().__init__(command, channel, name=name)

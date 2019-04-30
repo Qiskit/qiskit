@@ -5,19 +5,21 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
+# pylint: disable=cyclic-import
 """Quantum circuit object."""
 
 from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
-import sympy
 
+from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
-from .variabletable import VariableTable
+from .parametertable import ParameterTable
 
 
 class QuantumCircuit:
@@ -73,8 +75,8 @@ class QuantumCircuit:
         self.cregs = []
         self.add_register(*regs)
 
-        # Variable table tracks instructions with variable parameters.
-        self._variable_table = VariableTable()
+        # Parameter table tracks instructions with variable parameters.
+        self._parameter_table = ParameterTable()
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -239,7 +241,7 @@ class QuantumCircuit:
         the circuit in place.
 
         Args:
-            instruction (Instruction): Instruction instance to append
+            instruction (Instruction or Operator): Instruction instance to append
             qargs (list(tuple)): qubits to attach instruction to
             cargs (list(tuple)): clbits to attach instruction to
 
@@ -252,6 +254,12 @@ class QuantumCircuit:
         """
         qargs = qargs or []
         cargs = cargs or []
+
+        # Convert input to instruction
+        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+            instruction = instruction.to_instruction()
+        if not isinstance(instruction, Instruction):
+            raise QiskitError('object is not an Instruction.')
 
         # do some compatibility checks
         self._check_dups(qargs)
@@ -271,16 +279,16 @@ class QuantumCircuit:
 
         # track variable parameters in instruction
         for param_index, param in enumerate(instruction.params):
-            if isinstance(param, sympy.Expr):
-                current_symbols = set(self._variable_table.keys())
-                these_symbols = set(param.free_symbols)
-                new_symbols = these_symbols - current_symbols
-                common_symbols = these_symbols & current_symbols
+            if isinstance(param, Parameter):
+                current_symbols = self.parameters
 
-                for symbol in new_symbols:
-                    self._variable_table[symbol] = [(instruction, param_index)]
-                for symbol in common_symbols:
-                    self._variable_table[symbol].append((instruction, param_index))
+                if param in current_symbols:
+                    self._parameter_table[param].append((instruction, param_index))
+                else:
+                    if param.name in set(p.name for p in current_symbols):
+                        raise QiskitError(
+                            'Name conflict on adding parameter: {}'.format(param.name))
+                    self._parameter_table[param] = [(instruction, param_index)]
 
         return instruction
 
@@ -400,7 +408,7 @@ class QuantumCircuit:
                                                        for j in qargs + cargs]))
         return string_temp
 
-    def draw(self, scale=0.7, filename=None, style=None, output='text',
+    def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None):
         """Draw the quantum circuit
@@ -421,7 +429,9 @@ class QuantumCircuit:
                 on the contents.
             output (str): Select the output method to use for drawing the
                 circuit. Valid choices are `text`, `latex`, `latex_source`,
-                `mpl`.
+                `mpl`. By default the 'text' drawer is used unless a user
+                config file has an alternative backend set as the default. If
+                the output is passed in that backend will always be used.
             interactive (bool): when set true show the circuit in a new window
                 (for `mpl` this depends on the matplotlib backend being used
                 supporting this). Note when used with either the `text` or the
@@ -468,8 +478,8 @@ class QuantumCircuit:
             int: Total number of gate operations.
         """
         gate_ops = 0
-        for item in self.data:
-            if item.name not in ['barrier', 'snapshot']:
+        for instr, _, _ in self.data:
+            if instr.name not in ['barrier', 'snapshot']:
                 gate_ops += 1
         return gate_ops
 
@@ -507,20 +517,20 @@ class QuantumCircuit:
         # We do not consider barriers or snapshots as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        for op in self.data:
-            if op[0].name not in ['barrier', 'snapshot']:
+        for instr, qargs, cargs in self.data:
+            if instr.name not in ['barrier', 'snapshot']:
                 levels = []
                 reg_ints = []
-                for ind, reg in enumerate(op[1]+op[2]):
+                for ind, reg in enumerate(qargs+cargs):
                     # Add to the stacks of the qubits and
                     # cbits used in the gate.
                     reg_ints.append(reg_map[reg[0].name]+reg[1])
                     levels.append(op_stack[reg_ints[ind]] + 1)
-                if op[0].control:
+                if instr.control:
                     # Controls operate over all bits in the
                     # classical register they use.
-                    cint = reg_map[op[0].control[0].name]
-                    for off in range(op[0].control[0].size):
+                    cint = reg_map[instr.control[0].name]
+                    for off in range(instr.control[0].size):
                         if cint+off not in reg_ints:
                             reg_ints.append(cint+off)
                             levels.append(op_stack[cint+off]+1)
@@ -546,11 +556,11 @@ class QuantumCircuit:
             dict: a breakdown of how many operations of each kind.
         """
         count_ops = {}
-        for op in self.data:
-            if op[0].name in count_ops.keys():
-                count_ops[op[0].name] += 1
+        for instr, _, _ in self.data:
+            if instr.name in count_ops.keys():
+                count_ops[instr.name] += 1
             else:
-                count_ops[op[0].name] = 1
+                count_ops[instr.name] = 1
         return count_ops
 
     def num_connected_components(self, unitary_only=False):
@@ -581,21 +591,21 @@ class QuantumCircuit:
 
         # Here we are traversing the gates and looking to see
         # which of the sub_graphs the gate joins together.
-        for op in self.data:
+        for instr, qargs, cargs in self.data:
             if unitary_only:
-                args = op[1]
+                args = qargs
                 num_qargs = len(args)
             else:
-                args = op[1]+op[2]
-                num_qargs = len(args) + (1 if op[0].control else 0)
+                args = qargs+cargs
+                num_qargs = len(args) + (1 if instr.control else 0)
 
-            if num_qargs >= 2 and op[0].name not in ['barrier', 'snapshot']:
+            if num_qargs >= 2 and instr.name not in ['barrier', 'snapshot']:
                 graphs_touched = []
                 num_touched = 0
                 # Controls necessarily join all the cbits in the
                 # register that they use.
-                if op[0].control and not unitary_only:
-                    creg = op[0].control[0]
+                if instr.control and not unitary_only:
+                    creg = instr.control[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
                         temp_int = creg_int+coff
@@ -688,39 +698,39 @@ class QuantumCircuit:
         return _circuit_from_qasm(qasm)
 
     @property
-    def variable_table(self):
-        """get the circuit variable table"""
-        return self._variable_table
+    def parameters(self):
+        """convenience function to get the parameters defined in the parameter table"""
+        return set(self._parameter_table.keys())
 
-    @property
-    def variables(self):
-        """convenience function to get the variables defined in the variable table"""
-        return set(self._variable_table.keys())
-
-    def assign_variables(self, value_dict):
-        """Assign variables to values yielding a new circuit.
+    def bind_parameters(self, value_dict):
+        """Assign parameters to values yielding a new circuit.
 
         Args:
-            value_dict (dict): {variable: value, ...}
+            value_dict (dict): {parameter: value, ...}
+
+        Raises:
+            QiskitError: If value_dict contains parameters not present in the circuit
 
         Returns:
             QuantumCircuit: copy of self with assignment substitution.
         """
         new_circuit = self.copy()
-        for variable in value_dict:
-            new_circuit.variable_table[variable] = value_dict
+
+        if value_dict.keys() > self.parameters:
+            raise QiskitError('Cannot bind parameters ({}) not present in the circuit.'.format(
+                [str(p) for p in value_dict.keys() - self.parameters]))
+
+        for parameter, value in value_dict.items():
+            new_circuit._bind_parameter(parameter, value)
         # clear evaluated expressions
-        for variable in value_dict:
-            del new_circuit.variable_table[variable]
+        for parameter in value_dict:
+            del new_circuit._parameter_table[parameter]
         return new_circuit
 
-    @property
-    def unassigned_variables(self):
-        """Returns a set containing any variables which have not yet been assigned."""
-        return {variable
-                for variable, parameterized_instructions in self.variable_table.items()
-                if any(instruction.params[parameter_index].free_symbols
-                       for instruction, parameter_index in parameterized_instructions)}
+    def _bind_parameter(self, parameter, value):
+        """Assigns a parameter value to matching instructions in-place."""
+        for (instr, param_index) in self._parameter_table[parameter]:
+            instr.params[param_index] = value
 
 
 def _circuit_from_qasm(qasm):

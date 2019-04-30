@@ -8,16 +8,56 @@ version: 1.0.{build}
 environment:
     matrix:
         - PYTHON: C:\Python35
+          TAG_SCENARIO: false
         - PYTHON: C:\Python36
+          TAG_SCENARIO: false
         - PYTHON: C:\Python37
+          TAG_SCENARIO: false
+        - WHEEL: 1
+          PYTHON: C:\Python35
+          CIBW_BEFORE_BUILD: pip install -U Cython
+          CIBW_SKIP: cp27-* cp34-*
+          TWINE_USERNAME: qiskit
+          TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
+          CIBW_TEST_COMMAND: python {project}\examples\python\teleport.py
+          TAG_SCENARIO: true
+
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid
     TRAVIS_REPO_SLUG: invalid-but-different
 
+for:
+-
+  # non-tagged scenario
+  matrix:
+    only:
+      - TAG_SCENARIO: false
+
+  skip_tags: true
+
+-
+  # tagged scenario
+  matrix:
+    only:
+      - TAG_SCENARIO: true
+
+  skip_non_tags: true
+
+
 build: false
 deploy: false
+#      on:
+#        APPVEYOR_REPO_TAG: true
+
 skip_branch_with_pr: true
 
+build_script:
+  - if defined WHEEL (pip install cibuildwheel==0.10.1)
+  - if defined WHEEL (cibuildwheel --output-dir wheelhouse)
+  - if defined WHEEL {twine upload wheelhouse\*}
+artifacts:
+  - path: "wheelhouse\\*.whl"
+    name: Wheels
 install:
     # If there is a newer build queued for the same PR, cancel this one.
     # The AppVeyor 'rollout builds' option is supposed to serve the same

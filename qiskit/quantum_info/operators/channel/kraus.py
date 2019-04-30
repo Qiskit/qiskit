@@ -30,6 +30,8 @@ from numbers import Number
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.instruction import Instruction
 from qiskit.qiskiterror import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -42,7 +44,33 @@ class Kraus(QuantumChannel):
     """Kraus representation of a quantum channel."""
 
     def __init__(self, data, input_dims=None, output_dims=None):
-        """Initialize a Kraus quantum channel operator."""
+        """Initialize a quantum channel Kraus operator.
+
+        Args:
+            data (QuantumCircuit or
+                  Instruction or
+                  BaseOperator or
+                  matrix): data to initialize superoperator.
+            input_dims (tuple): the input subsystem dimensions.
+                                [Default: None]
+            output_dims (tuple): the output subsystem dimensions.
+                                 [Default: None]
+
+        Raises:
+            QiskitError: if input data cannot be initialized as a
+            a list of Kraus matrices.
+
+        Additional Information
+        ----------------------
+        If the input or output dimensions are None, they will be
+        automatically determined from the input data. If the input data is
+        a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be used. If
+        the input does not correspond to an N-qubit channel, it will assign a
+        single subsystem with dimension specifed by the shape of the input.
+        """
+        # If the input is a list or tuple we assume it is a list of Kraus
+        # matrices, if it is a numpy array we assume that it is a single Kraus
+        # operator
         if isinstance(data, (list, tuple, np.ndarray)):
             # Check if it is a single unitary matrix A for channel:
             # E(rho) = A * rho * A^\dagger
@@ -93,9 +121,18 @@ class Kraus(QuantumChannel):
             else:
                 raise QiskitError("Invalid input for Kraus channel.")
         else:
-            # Initialize from Qiskit objects
-            data = self._init_transformer(data)
+            # Otherwise we initialize by conversion from another Qiskit
+            # object into the QuantumChannel.
+            if isinstance(data, (QuantumCircuit, Instruction)):
+                # If the input is a Terra QuantumCircuit or Instruction we
+                # convert it to a SuperOp
+                data = SuperOp._instruction_to_superop(data)
+            else:
+                # We use the QuantumChannel init transform to intialize
+                # other objects into a QuantumChannel or Operator object.
+                data = self._init_transformer(data)
             input_dim, output_dim = data.dim
+            # Now that the input is an operator we convert it to a Kraus
             kraus = _to_kraus(data.rep, data._data, input_dim, output_dim)
             if input_dims is None:
                 input_dims = data.input_dims()
@@ -126,14 +163,18 @@ class Kraus(QuantumChannel):
             # Otherwise return the tuple of both kraus sets
             return self._data
 
-    def is_cptp(self):
+    def is_cptp(self, atol=None, rtol=None):
         """Return True if completely-positive trace-preserving."""
         if self._data[1] is not None:
             return False
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
         accum = 0j
         for op in self._data[0]:
             accum += np.dot(np.transpose(np.conj(op)), op)
-        return is_identity_matrix(accum, rtol=self._rtol, atol=self._atol)
+        return is_identity_matrix(accum, rtol=rtol, atol=atol)
 
     def conjugate(self):
         """Return the conjugate of the QuantumChannel."""
@@ -153,12 +194,12 @@ class Kraus(QuantumChannel):
                      input_dims=self.output_dims(),
                      output_dims=self.input_dims())
 
-    def compose(self, other, qubits=None, front=False):
+    def compose(self, other, qargs=None, front=False):
         """Return the composition channel self∘other.
 
         Args:
             other (QuantumChannel): a quantum channel subclass.
-            qubits (list): a list of subsystem positions to compose other on.
+            qargs (list): a list of subsystem positions to compose other on.
             front (bool): If False compose in standard order other(self(input))
                           otherwise compose in reverse order self(other(input))
                           [default: False]
@@ -170,9 +211,9 @@ class Kraus(QuantumChannel):
             QiskitError: if other cannot be converted to a channel, or
             has incompatible dimensions.
         """
-        if qubits is not None:
-            # TODO
-            raise QiskitError("NOT IMPLEMENTED: subsystem composition.")
+        if qargs is not None:
+            return Kraus(
+                SuperOp(self).compose(other, qargs=qargs, front=front))
 
         if not isinstance(other, Kraus):
             other = Kraus(other)
@@ -317,12 +358,12 @@ class Kraus(QuantumChannel):
             kraus_r = [val * k for k in self._data[1]]
         return Kraus((kraus_l, kraus_r), self._input_dim, self._output_dim)
 
-    def _evolve(self, state, qubits=None):
+    def _evolve(self, state, qargs=None):
         """Evolve a quantum state by the QuantumChannel.
 
         Args:
             state (QuantumState): The input statevector or density matrix.
-            qubits (list): a list of QuantumState subsystem positions to apply
+            qargs (list): a list of QuantumState subsystem positions to apply
                            the operator on.
 
         Returns:
@@ -333,8 +374,8 @@ class Kraus(QuantumChannel):
             specified QuantumState subsystem dimensions.
         """
         # If subsystem evolution we use the SuperOp representation
-        if qubits is not None:
-            return SuperOp(self)._evolve(state, qubits)
+        if qargs is not None:
+            return SuperOp(self)._evolve(state, qargs)
 
         # Otherwise we compute full evolution directly
         state = self._format_state(state)
