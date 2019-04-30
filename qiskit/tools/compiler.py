@@ -9,8 +9,8 @@
 import warnings
 import logging
 
-from qiskit.compiler.transpiler import transpile
-from qiskit.compiler.assembler import assemble
+from qiskit.compiler.transpile import transpile
+from qiskit.compiler.assemble import assemble
 
 logger = logging.getLogger(__name__)
 

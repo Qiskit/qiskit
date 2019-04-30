@@ -9,6 +9,5 @@
 
 """
 
-from .assembler import assemble
-from .disassembler import disassemble
-from .transpiler import transpile
+from .assemble import assemble
+from .transpile import transpile
