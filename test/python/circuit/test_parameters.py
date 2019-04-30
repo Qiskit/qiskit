@@ -158,3 +158,15 @@ class TestParameters(QiskitTestCase):
         qc2.h(qr2)
         qc2.append(gate, qargs=[qr2[1]])
         self.assertEqual(qc2.parameters, {theta, phi})
+
+    def test_parameter_name_conflicts_raises(self):
+        """Verify attempting to add different parameters with matching names raises an error."""
+        theta1 = Parameter('theta')
+        theta2 = Parameter('theta')
+
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+
+        qc.u1(theta1, 0)
+
+        self.assertRaises(QiskitError, qc.u1, theta2, 0)
