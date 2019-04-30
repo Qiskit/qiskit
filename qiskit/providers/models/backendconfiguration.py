@@ -75,9 +75,9 @@ class BackendConfigurationSchema(BaseSchema):
     conditional = Boolean(required=True)
     memory = Boolean(required=True)
     max_shots = Integer(required=True, validate=Range(min=1))
+    open_pulse = Boolean(required=True)
 
     # Optional properties.
-    open_pulse = Boolean()
     max_experiments = Integer(validate=Range(min=1))
     sample_name = String()
     coupling_map = List(List(Integer(),
