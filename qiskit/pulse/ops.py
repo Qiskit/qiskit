@@ -71,7 +71,7 @@ def shift(schedule: ScheduleComponent, time: int, name: str = None) -> Schedule:
     return union((time, schedule), name=name)
 
 
-def insert(parent: ScheduleComponent, time: int, child: ScheduleComponent,
+def insert(parent: ScheduleComponent, time: int, child: ScheduleComponent, buffer: bool = False,
            name: str = None) -> Schedule:
     """Return a new schedule with the `child` schedule inserted into the `parent` at `start_time`.
 
@@ -79,12 +79,15 @@ def insert(parent: ScheduleComponent, time: int, child: ScheduleComponent,
         parent: Schedule to be inserted into
         time: Time to be inserted defined with respect to `parent`
         child: Schedule to insert
+        buffer: Obey buffer when inserting
         name: Name of the new schedule. Defaults to name of parent
     """
+    if buffer and child.buffer:
+        time += parent.buffer
     return union(parent, (time, child), name=name)
 
 
-def append(parent: ScheduleComponent, child: ScheduleComponent,
+def append(parent: ScheduleComponent, child: ScheduleComponent, buffer: bool = True,
            name: str = None) -> Schedule:
     r"""Return a new schedule with by appending `child` to `parent` at
        the last time of the `parent` schedule's channels
@@ -95,8 +98,12 @@ def append(parent: ScheduleComponent, child: ScheduleComponent,
     Args:
         parent: The schedule to be inserted into
         child: The schedule to insert
+        buffer: Obey buffer when appending
         name: Name of the new schedule. Defaults to name of parent
     """
     common_channels = set(parent.channels) & set(child.channels)
-    insertion_time = parent.ch_stop_time(*common_channels)
-    return insert(parent, insertion_time, child, name=name)
+    time = parent.ch_stop_time(*common_channels)
+    if buffer and child.buffer:
+        time += parent.buffer
+
+    return insert(parent, time, child, name=name)
