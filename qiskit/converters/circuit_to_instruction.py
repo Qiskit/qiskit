@@ -37,7 +37,7 @@ def circuit_to_instruction(circuit):
     instruction = Instruction(name=circuit.name,
                               num_qubits=sum([qreg.size for qreg in circuit.qregs]),
                               num_clbits=sum([creg.size for creg in circuit.cregs]),
-                              params=[])
+                              params=sorted(circuit.parameters, key=lambda p: p.name))
     instruction.control = None
 
     def find_bit_position(bit):

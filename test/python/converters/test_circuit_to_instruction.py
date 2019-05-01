@@ -11,6 +11,7 @@ import unittest
 
 from qiskit.converters import circuit_to_instruction
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Parameter
 from qiskit.test import QiskitTestCase
 
 
@@ -35,6 +36,25 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[0][1], [q[1], q[6]])
         self.assertEqual(inst.definition[1][1], [q[7]])
         self.assertEqual(inst.definition[1][2], [c[4]])
+
+    def test_flatten_parameters(self):
+        """Verify parameters from circuit are moved to instruction.params"""
+        qr = QuantumRegister(3, 'qr')
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        qc.rz(theta, qr[0])
+        qc.rz(phi, qr[1])
+        qc.u2(theta, phi, qr[2])
+
+        inst = circuit_to_instruction(qc)
+
+        self.assertEqual(inst.params, [phi, theta])
+        self.assertEqual(inst.definition[0][0].params, [theta])
+        self.assertEqual(inst.definition[1][0].params, [phi])
+        self.assertEqual(inst.definition[2][0].params, [theta, phi])
 
 
 if __name__ == '__main__':
