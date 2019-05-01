@@ -31,12 +31,13 @@ import time
 
 from qiskit.result import Result
 from qiskit.providers import BaseBackend, BaseJob
-from qiskit.providers.models import (BackendProperties, PulseDefaults, UchannelLO,
-                                     QasmBackendConfiguration, PulseBackendConfiguration)
-from qiskit.providers.models.backendconfiguration import GateConfig
+from qiskit.providers.models import (BackendProperties, GateConfig,
+                                     QasmBackendConfiguration, PulseBackendConfiguration,
+                                     PulseDefaults, Command, UchannelLO)
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
-                         QasmQobjExperiment, QasmQobjConfig)
+                         QasmQobjExperiment, QasmQobjConfig, PulseLibraryItem,
+                         PulseQobjInstruction)
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
@@ -60,8 +61,9 @@ class FakeProvider(BaseProvider):
             # pylint: enable=no-member
             if not filtered_backends:
                 raise QiskitBackendNotFoundError()
-            else:
-                backend = filtered_backends[0]
+
+            backend = filtered_backends[0]
+
         return backend
 
     def backends(self, name=None, **kwargs):
@@ -73,7 +75,7 @@ class FakeProvider(BaseProvider):
                           FakeMelbourne(),
                           FakeRueschlikon(),
                           FakeTokyo(),
-                          FakeOpenPulse2Q()],
+                          FakeOpenPulse2Q()]
         super().__init__()
 
 
@@ -192,8 +194,23 @@ class FakeOpenPulse2Q(FakeBackend):
             qubit_freq_est=[4.9, 5.0],
             meas_freq_est=[6.5, 6.6],
             buffer=10,
-            pulse_library=[],
-            cmd_def=[]
+            pulse_library=[PulseLibraryItem(name='test_pulse_1', samples=[0.j, 0.1j]),
+                           PulseLibraryItem(name='test_pulse_2', samples=[0.j, 0.1j, 1j])],
+            cmd_def=[Command(name='u1', qubits=[0],
+                             sequence=[PulseQobjInstruction(name='fc', ch='d0',
+                                                            t0=0, phase='-P1*np.pi')]),
+                     Command(name='cx', qubits=[0, 1],
+                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0),
+                                       PulseQobjInstruction(name='test_pulse_2', ch='u0', t0=10),
+                                       PulseQobjInstruction(name='pv', ch='d1',
+                                                            t0=2, val='cos(P2)'),
+                                       PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
+                                       PulseQobjInstruction(name='fc', ch='d1',
+                                                            t0=20, phase=2.1)]),
+                     Command(name='measure', qubits=[0],
+                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='m0', t0=0),
+                                       PulseQobjInstruction(name='acquire', duration=10, t0=0,
+                                                            qubits=[0], memory_slot=[0])])]
         )
 
         super().__init__(configuration)
