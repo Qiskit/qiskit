@@ -95,38 +95,27 @@ def plot_gate_map(backend, figsize=None,
 
     mpl_data = {}
 
-    mpl_data['ibmq_20_tokyo'] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-                                 [1, 0], [1, 1], [1, 2], [1, 3], [1, 4],
-                                 [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
-                                 [3, 0], [3, 1], [3, 2], [3, 3], [3, 4]]
+    mpl_data[20] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
+                    [1, 0], [1, 1], [1, 2], [1, 3], [1, 4],
+                    [2, 0], [2, 1], [2, 2], [2, 3], [2, 4],
+                    [3, 0], [3, 1], [3, 2], [3, 3], [3, 4]]
 
-    mpl_data['ibmq_poughkeepsie'] = mpl_data['ibmq_20_tokyo']
+    mpl_data[14] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
+                    [0, 5], [0, 6], [1, 7], [1, 6], [1, 5],
+                    [1, 4], [1, 3], [1, 2], [1, 1]]
 
-    mpl_data['ibmq_16_melbourne'] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
-                                     [0, 5], [0, 6], [1, 7], [1, 6], [1, 5],
-                                     [1, 4], [1, 3], [1, 2], [1, 1]]
+    mpl_data[16] = [[1, 0], [0, 0], [0, 1], [0, 2], [0, 3],
+                    [0, 4], [0, 5], [0, 6], [0, 7], [1, 7],
+                    [1, 6], [1, 5], [1, 4], [1, 3], [1, 2], [1, 1]]
 
-    mpl_data['ibmq_16_rueschlikon'] = [[1, 0], [0, 0], [0, 1], [0, 2], [0, 3],
-                                       [0, 4], [0, 5], [0, 6], [0, 7], [1, 7],
-                                       [1, 6], [1, 5], [1, 4], [1, 3], [1, 2], [1, 1]]
-
-    mpl_data['ibmq_5_tenerife'] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
-
-    mpl_data['ibmq_5_yorktown'] = mpl_data['ibmq_5_tenerife']
+    mpl_data[5] = [[1, 0], [0, 1], [1, 1], [1, 2], [2, 1]]
 
     config = backend.configuration()
-    name = config.backend_name
+    n_qubits = config.n_qubits
     cmap = config.coupling_map
 
-    dep_names = {'ibmqx5': 'ibmq_16_rueschlikon',
-                 'ibmqx4': 'ibmq_5_tenerife',
-                 'ibmqx2': 'ibmq_5_yorktown'}
-
-    if name in dep_names.keys():
-        name = dep_names[name]
-
-    if name in mpl_data.keys():
-        grid_data = mpl_data[name]
+    if n_qubits in mpl_data.keys():
+        grid_data = mpl_data[n_qubits]
     else:
         fig, ax = plt.subplots(figsize=(5, 5))  # pylint: disable=invalid-name
         ax.axis('off')
