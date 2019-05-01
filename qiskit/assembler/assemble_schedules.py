@@ -16,7 +16,7 @@
 import logging
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands import PulseInstruction
+from qiskit.pulse.commands import PulseInstruction, AcquireInstruction
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, QobjPulseLibrary)
@@ -53,6 +53,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
 
     # Pack everything into the Qobj
     qobj_schedules = []
+    acquires = []
     user_pulselib = set()
     for idx, schedule in enumerate(schedules):
         # instructions
@@ -64,6 +65,9 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
             if isinstance(instruction, PulseInstruction):
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)
+            if isinstance(instruction, AcquireInstruction):
+                acquires.add(instruction)
+
         # experiment header
         qobj_experiment_header = QobjExperimentHeader(
             name=schedule.name or 'Experiment-%d' % idx
