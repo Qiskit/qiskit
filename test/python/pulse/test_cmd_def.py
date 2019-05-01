@@ -11,7 +11,8 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
-from qiskit.pulse import (CmdDef, SamplePulse, Schedule, DeviceSpecification, PulseError)
+from qiskit.pulse import (CmdDef, SamplePulse, Schedule, DeviceSpecification,
+                          PulseError, PersistentValue)
 
 
 class TestCmdDef(QiskitTestCase):
@@ -61,8 +62,20 @@ class TestCmdDef(QiskitTestCase):
         cmd_def = CmdDef({('tmp', 0): sched})
         repr(cmd_def)
 
-
     def test_build_cmd_def(self):
         """Test building of parameterized cmd_def"""
         defaults = self.backend.defaults()
         cmd_def = defaults.build_cmd_def()
+
+        cx_pv = cmd_def.get('cx', (0, 1), P2=0)
+        pv_found = False
+        for _, instr in cx_pv.instructions:
+            cmd = instr.command
+            if isinstance(cmd, PersistentValue):
+                self.assertEqual(cmd.value, 1)
+                pv_found = True
+        self.assertTrue(pv_found)
+
+        u1_minus_pi = cmd_def.get('u1', 0, P1=1)
+        fc_cmd = u1_minus_pi.instructions[0][-1].command
+        self.assertEqual(fc_cmd.phase, np.pi)
