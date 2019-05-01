@@ -17,7 +17,7 @@ Quantum measurement in the computational basis.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-
+from qiskit.exceptions import QiskitError
 
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
@@ -33,6 +33,8 @@ class Measure(Instruction):
         if len(carg) == len(qarg):
             for qarg, carg in zip(qarg, carg):
                 yield [qarg], [carg]
+        else:
+            raise QiskitError('register size error')
 
 def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
