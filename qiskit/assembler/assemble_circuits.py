@@ -65,12 +65,12 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
         # TODO: why do we need creq_sizes and qreg_sizes in header
         # TODO: we need to rethink memory_slots as they are tied to classical bit
         header = QobjExperimentHeader(qubit_labels=qubit_labels,
-                                                n_qubits=n_qubits,
-                                                qreg_sizes=qreg_sizes,
-                                                clbit_labels=clbit_labels,
-                                                memory_slots=memory_slots,
-                                                creg_sizes=creg_sizes,
-                                                name=circuit.name)
+                                      n_qubits=n_qubits,
+                                      qreg_sizes=qreg_sizes,
+                                      clbit_labels=clbit_labels,
+                                      memory_slots=memory_slots,
+                                      creg_sizes=creg_sizes,
+                                      name=circuit.name)
         # TODO: why do we need n_qubits and memory_slots in both the header and the config
         config = QasmQobjExperimentConfig(n_qubits=n_qubits, memory_slots=memory_slots)
 
