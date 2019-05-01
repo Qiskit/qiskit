@@ -233,7 +233,7 @@ class ParameterizedSchedule:
         for schedule in schedules:
                 if isinstance(schedule, ParameterizedSchedule):
                     parameterized.append(schedule)
-                    parameters.append(schedule.parameters)
+                    parameters += schedule.parameters
                 elif callable(schedule):
                     parameterized.append(schedule)
                 elif isinstance(schedule, Schedule):
