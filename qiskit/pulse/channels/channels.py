@@ -8,7 +8,7 @@
 """
 Channels.
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 
 class Channel(metaclass=ABCMeta):
@@ -16,7 +16,6 @@ class Channel(metaclass=ABCMeta):
 
     prefix = None
 
-    @abstractmethod
     def __init__(self, index: int = None):
         self._index = index
 
