@@ -48,7 +48,7 @@ class TestCmdDef(QiskitTestCase):
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 0, sched)
-
+        cmd_def.pop('tmp', 0)
         self.assertFalse(cmd_def.has('tmp', 0))
 
         with self.assertRaises(PulseError):
