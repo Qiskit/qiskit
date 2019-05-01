@@ -237,7 +237,7 @@ _valid_sub_expr = re.compile(_param_regex+'|'+_math_ops_regex)
 
 
 def _is_math_expr_safe(expr):
-    """Verify mathematical expression is sanitized.
+    r"""Verify mathematical expression is sanitized.
 
     Only allow strings of form 'P\d+' and operations from `math`.
     Allowed chars are [a-zA-Z]. Allowed math operators are '+*/().'
