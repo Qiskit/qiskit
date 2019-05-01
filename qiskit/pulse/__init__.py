@@ -20,4 +20,5 @@ from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
                        SamplePulse, Snapshot, Kernel, Discriminator, functional_pulse)
 from .configuration import LoConfig, LoRange
 from .schedule import Schedule
+from .cmd_def import CmdDef
 from .exceptions import PulseError

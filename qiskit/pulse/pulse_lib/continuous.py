@@ -121,7 +121,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
     gaussian_samples -= zero_offset
     amp_scale_factor = 1.
     if rescale_amp:
-        amp_scale_factor = amp/(amp-zero_offset)
+        amp_scale_factor = amp/(amp-zero_offset) if amp-zero_offset != 0 else 1.
         gaussian_samples *= amp_scale_factor
 
     if ret_scale_factor:

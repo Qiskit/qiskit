@@ -14,12 +14,13 @@
 
 """Helper function for converting a circuit to an instruction"""
 
+from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 
 
-def circuit_to_instruction(circuit):
+def circuit_to_instruction(circuit, parameter_map=None):
     """Build an ``Instruction`` object from a ``QuantumCircuit``.
 
     The instruction is anonymous (not tied to a named quantum register),
@@ -28,16 +29,32 @@ def circuit_to_instruction(circuit):
 
     Args:
         circuit (QuantumCircuit): the input circuit.
+        parameter_map (dict): For parameterized circuits, a mapping from
+           parameters in the circuit to parameters to be used in the instruction.
+           If None, existing circuit parameters will also parameterize the
+           instruction.
+
+    Raises:
+        QiskitError: if parameter_map is not compatible with circuit
 
     Return:
         Instruction: an instruction equivalent to the action of the
             input circuit. Upon decomposition, this instruction will
             yield the components comprising the original circuit.
     """
+
+    if parameter_map is None:
+        parameter_map = {p: p for p in circuit.parameters}
+
+    if parameter_map.keys() != circuit.parameters:
+        raise QiskitError(('parameter_map should map all circuit parameters. '
+                           'Circuit parameters: {}, parameter_map: {}').format(
+                               circuit.parameters, parameter_map))
+
     instruction = Instruction(name=circuit.name,
                               num_qubits=sum([qreg.size for qreg in circuit.qregs]),
                               num_clbits=sum([creg.size for creg in circuit.cregs]),
-                              params=[])
+                              params=sorted(parameter_map.values(), key=lambda p: p.name))
     instruction.control = None
 
     def find_bit_position(bit):
@@ -51,7 +68,10 @@ def circuit_to_instruction(circuit):
         reg_index = ordered_regs.index(bit[0])
         return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit[1]
 
-    definition = circuit.data.copy()
+    target = circuit.copy()
+    target._substitute_parameters(parameter_map)
+
+    definition = target.data
 
     if instruction.num_qubits > 0:
         q = QuantumRegister(instruction.num_qubits, 'q')
