@@ -37,7 +37,8 @@ class TestSynthesis(QiskitTestCase):
                     unitary.data,
                     decomp_unitary.data,
                     ignore_phase=True,
-                    atol=1e-7)
+                    atol=1e-13,
+                    rtol=0)
                 self.assertTrue(equal_up_to_phase)
 
     def test_two_qubit_kak(self):
