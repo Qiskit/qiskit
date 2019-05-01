@@ -388,3 +388,8 @@ class BaseOperator(ABC):
 
     def __neg__(self):
         return self.multiply(-1)
+
+    def argument_expansion(self, qargs, cargs):
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+        flat_cargs = [carg for sublist in cargs for carg in sublist]
+        yield flat_qargs, flat_cargs
