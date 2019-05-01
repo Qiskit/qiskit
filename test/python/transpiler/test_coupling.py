@@ -97,4 +97,4 @@ class CouplingTest(QiskitTestCase):
         cmap = fake.configuration().coupling_map
         coupling_map = CouplingMap(cmap)
         with self.assertRaises(CouplingError):
-            coupling_map.reduce([12, 11, 10, 9])
+            coupling_map.reduce([12, 11, 10, 3])
