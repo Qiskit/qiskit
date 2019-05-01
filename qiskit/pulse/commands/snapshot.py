@@ -30,6 +30,7 @@ class Snapshot(Command, Instruction):
         self._channel = SnapshotChannel()
         Command.__init__(self, duration=0, name=name)
         Instruction.__init__(self, self, self._channel, name=name)
+        self._buffer = 0
 
     @property
     def type(self) -> str:

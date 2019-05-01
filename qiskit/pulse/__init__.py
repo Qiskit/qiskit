@@ -13,8 +13,11 @@
 # that they have been altered from the originals.
 
 """Module for Pulses."""
-from .channels import DeviceSpecification
+from .channels import (DeviceSpecification, DriveChannel, MeasureChannel, AcquireChannel,
+                       ControlChannel, RegisterSlot, MemorySlot)
 from .commands import (Acquire, FrameChange, PersistentValue, SamplePulse, Snapshot,
                        Kernel, Discriminator, functional_pulse)
-from .configuration import LoConfig
+from .configuration import LoConfig, LoRange
 from .schedule import Schedule
+from .cmd_def import CmdDef
+from .exceptions import PulseError

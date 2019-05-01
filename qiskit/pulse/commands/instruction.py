@@ -19,7 +19,7 @@ from qiskit.pulse.exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=missing-return-doc
+# pylint: disable=missing-return-doc,missing-type-doc
 
 
 class Instruction(ScheduleComponent):
@@ -46,6 +46,10 @@ class Instruction(ScheduleComponent):
                                                    for channel in channels))
         else:
             self._timeslots = timeslots
+
+        channels = self.channels
+
+        self._buffer = max(chan.buffer for chan in channels) if channels else 0
 
     @property
     def name(self) -> str:
@@ -84,6 +88,11 @@ class Instruction(ScheduleComponent):
     def duration(self) -> int:
         """Duration of this instruction. """
         return self.timeslots.duration
+
+    @property
+    def buffer(self) -> int:
+        """Buffer for schedule. To be used when appending"""
+        return self._buffer
 
     @property
     def _children(self) -> Tuple[ScheduleComponent]:
@@ -135,39 +144,47 @@ class Instruction(ScheduleComponent):
         """Return itself as already single instruction."""
         return self
 
-    def union(self, *schedules: List[ScheduleComponent]) -> 'ScheduleComponent':
+    def union(self, *schedules: List[ScheduleComponent], name: str = None) -> 'ScheduleComponent':
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
             *schedules: Schedules to be take the union with the parent `Schedule`.
+            name: Name of the new schedule. Defaults to name of parent
         """
-        return ops.union(self, *schedules)
+        return ops.union(self, *schedules, name=name)
 
-    def shift(self: ScheduleComponent, time: int) -> 'ScheduleComponent':
+    def shift(self: ScheduleComponent, time: int, name: str = None) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
 
         Args:
             time: Time to shift by
+            name: Name of the new schedule. Defaults to name of parent
         """
-        return ops.shift(self, time)
+        return ops.shift(self, time, name=name)
 
-    def insert(self, start_time: int, schedule: ScheduleComponent) -> 'ScheduleComponent':
+    def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
+               name: str = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
             start_time: time to be inserted
             schedule: schedule to be inserted
+            buffer: Obey buffer when inserting
+            name: Name of the new schedule. Defaults to name of parent
         """
-        return ops.insert(self, start_time, schedule)
+        return ops.insert(self, start_time, schedule, buffer=buffer, name=name)
 
-    def append(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
+    def append(self, schedule: ScheduleComponent, buffer: bool = True,
+               name: str = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 
         Args:
             schedule: schedule to be appended
+            buffer: Obey buffer when appending
+            name: Name of the new schedule. Defaults to name of parent
         """
-        return ops.append(self, schedule)
+        return ops.append(self, schedule, buffer=buffer, name=name)
 
     def __add__(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
