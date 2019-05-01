@@ -10,12 +10,14 @@ import re
 
 from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
                                         implicit_multiplication_application,
-                                        function_exponentiation, auto_symbol)
+                                        function_exponentiation)
 from sympy import Symbol
 
 from qiskit.pulse import commands, channels, Schedule
+from qikit.pulse.schedule import ParameterizedSchedule
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjMeasurementOption
+from qiskit import QiskitError
 
 
 class ConversionMethodBinder:
@@ -269,7 +271,7 @@ def _parse_string_expr(self, expr):
     if not _is_math_expr_safe(expr):
         raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
     params = re.findall(param_regex, expr)
-    local_dict = {param: Symbol(param) for param in symbols}
+    local_dict = {param: Symbol(param) for param in params}
     symbols = list(local_dict.keys())
     transformations = (standard_transformations + (implicit_multiplication_application,) +
                        (function_exponentiation,))
@@ -283,9 +285,9 @@ def _parse_string_expr(self, expr):
         elif kwargs:
             subs.update({local_dict[key]: value for key, value in kwargs.items()})
 
-        if not set(subs.keys()) == set(params):
-            raise QiskitError('Supplied params do not match '
-                              '{params}'.format(params=params))
+        if not set(subs.keys()).issuperset(set(params)):
+            raise PulseError('Supplied params do not match '
+                             '{params}'.format(params=params))
         return complex(parsed_expr.evalf(subs=subs))
     return parsed_fun, params
 
@@ -411,6 +413,13 @@ class QobjToInstructionConverter:
 
         # This is parameterized
         if isinstance(phase, str):
+            phase_expr, params = _parse_string_expr(phase)
+
+            def gen_fc_sched(*args, **kwargs):
+                phase = float(phase_expr(*args, **kwargs))
+                return commands.FrameChange(phase)(channel) << t0
+
+            return ParameterizedSchedule(gen_fc_sched, parameters=params)
 
         return commands.FrameChange(phase)(channel) << t0
 
@@ -425,8 +434,19 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        value = instruction.val
-        return commands.PersistentValue(value)(channel) << t0
+        val = instruction.val
+
+        # This is parameterized
+        if isinstance(val, str):
+            val_expr, params = _parse_string_expr(val)
+
+            def gen_fc_sched(*args, **kwargs):
+                val = complex(val_expr(*args, **kwargs))
+                return commands.PersistentValue(val)(channel) << t0
+
+            return ParameterizedSchedule(gen_fc_sched, parameters=params)
+
+        return commands.PersistentValue(val)(channel) << t0
 
     def bind_pulse(self, pulse):
         """Bind the supplied pulse to a converter method by pulse name.

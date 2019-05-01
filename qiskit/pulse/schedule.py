@@ -224,18 +224,43 @@ class ParameterizedSchedule:
         into the `Schedule` class.
     """
 
-    def __init__(self, commands):
-        pass
+    def __init__(self, *schedules, parameters=None, name=None):
+        schedules = []
+        parameterized = []
+        parameters = parameters or []
+        self.name = name or ''
+        # partition schedules into callable and schedules
+        for schedule in schedules:
+                if isinstance(schedule, ParameterizedSchedule):
+                    parameterized.append(schedule)
+                    parameters.append(schedule.parameters)
+                elif callable(schedule):
+                    parameterized.append(schedule)
+                elif isinstance(schedule, Schedule):
+                    schedules.append(schedule)
+                else:
+                    raise PulseError('Input type: {0} not supported'.format(type(schedule)))
+
+        self._parameterized = tuple(parameterized)
+        self._schedules = tuple(schedules)
+        self._parameters = tuple(parameters)
 
     @property
     def paramaters(self) -> Tuple[str]:
         """Schedule parameters."""
-        pass
+        self._parameters
 
-    def bind_parameters(self, **params: Dict[str, Union[float, complex]]) -> Schedule:
-        """Generate the Schedule from params to evaluate command expressions
+    def bind_parameters(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+        """Generate the Schedule from params to evaluate command expressions"""
+        bound_schedule = Schedule(name=self.name)
+        schedules = list(self._schedules)
+        for param_sched in self._parameterized:
+            # recursively call until based callable is reached
+            schedules.append(param_sched(*args, **kwargs))
+        for sched in schedules:
+            bound_schedule |= sched
 
-        Args:
-            *params:
-        """
-        pass
+        return bound_schedule
+
+    def __call__(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+        return self.bind_parameters(*args, **kwargs)
