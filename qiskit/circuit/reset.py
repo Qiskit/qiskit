@@ -27,8 +27,13 @@ class Reset(Instruction):
         """Create new reset instruction."""
         super().__init__("reset", 1, 0, [])
 
+    def argument_expansion(self, qargs, cargs):
+        # Validation and expantion of the qargs and cargs for the gate
+        # if len(cargs) == 0:
+        #     raise QiskitError("")
+        for qarg in qargs:
+            yield qarg, []
 
-@_op_expand(1)
 def reset(self, qubit):
     """Reset q."""
     return self.append(Reset(), [qubit], [])
