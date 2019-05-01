@@ -37,5 +37,5 @@ def euler_angles_1q(unitary_matrix):
 def two_qubit_kak(unitary_matrix, verify_gate_sequence=False):
     """Moved and API changed after 0.8
     """
-    raise QiskitError("two_qubit_kak functionality is now available in "
-                      "qiskit.quantum_info.synthesis.cnot_decompose")
+    raise QiskitError("two_qubit_kak() functionality is now available in "
+                      "qiskit.quantum_info.synthesis.two_qubit_cnot_decompose()")

@@ -76,7 +76,8 @@ def euler_angles_1q(unitary_matrix):
                          [0, np.exp(1j*lamb/2.0)]], dtype=complex)
     V = np.dot(Rzphi, np.dot(Rytheta, Rzlambda))
     if la.norm(V - U) > _CUTOFF_PRECISION:
-        raise QiskitError(f"compiling.euler_angles_1q incorrect result norm(V-U)={la.norm(V-U)}")
+        raise QiskitError("compiling.euler_angles_1q incorrect result norm(V-U)={}".
+                          format(la.norm(V-U)))
     return theta, phi, lamb
 
 
@@ -106,8 +107,8 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     temp = np.kron(L, R)
     deviation = np.abs(np.abs(temp.conj(temp).T.dot(special_unitary_matrix).trace()) - 4)
     if deviation > 1.E-13:
-        raise QiskitError(f"decompose_two_qubit_product_gate: decomposition failed: "
-                          f"deviation too large: {deviation}")
+        raise QiskitError("decompose_two_qubit_product_gate: decomposition failed: "
+                          "deviation too large: {}".format(deviation))
 
     return L, R
 
@@ -229,11 +230,12 @@ class TwoQubitWeylDecomposition:
 
     def __repr__(self):
         # FIXME: this is worth making prettier since it's very useful for debugging
-        return (f"{np.array_str(self.K1l)}\n"
-                f"{np.array_str(self.K1r)}\n"
-                f"Ud({self.a}, {self.b}, {self.c})\n"
-                f"{np.array_str(self.K2l)}\n"
-                f"{np.array_str(self.K2r)}")
+        return ("{}\n{}\nUd({}, {}, {})\n{}\n{}\n".format(
+            np.array_str(self.K1l),
+            np.array_str(self.K1r),
+            self.a, self.b, self.c,
+            np.array_str(self.K2l),
+            np.array_str(self.K2r)))
 
 
 def Ud(a, b, c):
@@ -327,8 +329,8 @@ class TwoQubitBasisDecomposer():
         # Decomposition into different number of gates
         # In the future could use different decomposition functions for different basis classes, etc
         if not self.is_supercontrolled:
-            warnings.warn(f"Only know how to decompose properly for supercontrolled basis gate. "
-                          f"This gate is ~Ud({basis.a},{basis.b},{basis.c})")
+            warnings.warn("Only know how to decompose properly for supercontrolled basis gate. "
+                          "This gate is ~Ud({}, {}, {})".format(basis.a, basis.b, basis.c))
         self.decomposition_fns = [self.decomp0,
                                   self.decomp1,
                                   self.decomp2_supercontrolled,
@@ -450,4 +452,4 @@ class TwoQubitBasisDecomposer():
         return return_circuit
 
 
-cnot_decompose = TwoQubitBasisDecomposer(CnotGate())
+two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CnotGate())

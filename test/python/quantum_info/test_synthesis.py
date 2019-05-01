@@ -18,7 +18,7 @@ from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, U3Gate,
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis import (cnot_decompose, euler_angles_1q,
+from qiskit.quantum_info.synthesis import (two_qubit_cnot_decompose, euler_angles_1q,
                                            TwoQubitBasisDecomposer)
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecomposition,
                                                                Ud)
@@ -82,7 +82,7 @@ class TestEulerAngles1Q(QiskitTestCase):
             maxdist = np.max(np.abs(target_unitary - decomp_unitary))
             if maxdist > 0.1:
                 maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-            self.assertTrue(np.abs(maxdist) < tolerance, f"Worst distance {maxdist}")
+            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
     def test_one_qubit_euler_angles_clifford(self):
         """Verify euler_angles_1q produces correct Euler angles for all Cliffords.
@@ -127,7 +127,7 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
             maxdists = [np.max(np.abs(target_unitary + phase*decomp_unitary))
                         for phase in [1, 1j, -1, -1j]]
             maxdist = np.min(maxdists)
-            self.assertTrue(np.abs(maxdist) < tolerance, f"Worst distance {maxdist}")
+            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
     def test_two_qubit_weyl_decomposition_cnot(self):
         """Verify Weyl KAK decomposition for U~CNOT"""
@@ -284,21 +284,21 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
             maxdists = [np.max(np.abs(target_unitary + phase*decomp_unitary))
                         for phase in [1, 1j, -1, -1j]]
             maxdist = np.min(maxdists)
-            self.assertTrue(np.abs(maxdist) < tolerance, f"Worst distance {maxdist}")
+            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
-    def test_exact_cnot_decompose_random(self, nsamples=100):
+    def test_exact_two_qubit_cnot_decompose_random(self, nsamples=100):
         """Verify exact CNOT decomposition for random Haar 4x4 unitaries.
         """
         for _ in range(nsamples):
             unitary = random_unitary(4)
-            self.check_exact_decomposition(unitary.data, cnot_decompose)
+            self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
-    def test_exact_cnot_decompose_paulis(self):
+    def test_exact_two_qubit_cnot_decompose_paulis(self):
         """Verify exact CNOT decomposition for Paulis
         """
         pauli_xz = Pauli(label='XZ')
         unitary = Operator(pauli_xz)
-        self.check_exact_decomposition(unitary.data, cnot_decompose)
+        self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
     # FIXME: this should not be failing but I ran out of time to debug it
     @unittest.expectedFailure

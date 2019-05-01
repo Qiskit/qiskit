@@ -27,7 +27,7 @@ from qiskit.extensions.standard import U3Gate
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis import euler_angles_1q
-from qiskit.quantum_info.synthesis import cnot_decompose
+from qiskit.quantum_info.synthesis import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
 
 
@@ -103,10 +103,10 @@ class UnitaryGate(Gate):
             angles = euler_angles_1q(self.to_matrix())
             self.definition = [(U3Gate(*angles), [q[0]], [])]
         elif self.num_qubits == 2:
-            self.definition = cnot_decompose(self.to_matrix())
+            self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
-            raise NotImplementedError(f"Not able to generate a subcircuit for "
-                                      f"a {self.num_qubits}-qubit unitary")
+            raise NotImplementedError("Not able to generate a subcircuit for "
+                                      "a {}-qubit unitary".format(self.num_qubits))
 
 
 def unitary(self, obj, qubits, label=None):
