@@ -38,7 +38,7 @@ class TestCmdDef(QiskitTestCase):
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 0, sched)
-        self.assertEqual(sched, cmd_def.get('tmp', (0,)))
+        self.assertEqual(sched.instructions, cmd_def.get('tmp', (0,)).instructions)
 
         self.assertIn('tmp', cmd_def.cmd_types())
 
@@ -60,3 +60,9 @@ class TestCmdDef(QiskitTestCase):
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         cmd_def = CmdDef({('tmp', 0): sched})
         repr(cmd_def)
+
+
+    def test_build_cmd_def(self):
+        """Test building of parameterized cmd_def"""
+        defaults = self.backend.defaults()
+        cmd_def = defaults.build_cmd_def()

@@ -371,7 +371,7 @@ class QobjToInstructionConverter:
 
         mem_slots = instruction.memory_slot
         reg_slots = (instruction.register_slot
-                     if hasattr(instruction, 'memory_slot') else None)
+                     if hasattr(instruction, 'register_slot') else None)
 
         if not isinstance(discriminators, list):
             discriminators = [discriminators for _ in range(len(qubits))]

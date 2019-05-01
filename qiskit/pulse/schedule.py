@@ -246,7 +246,7 @@ class ParameterizedSchedule:
         self._parameters = tuple(parameters)
 
     @property
-    def paramaters(self) -> Tuple[str]:
+    def parameters(self) -> Tuple[str]:
         """Schedule parameters."""
         self._parameters
 

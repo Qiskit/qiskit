@@ -10,39 +10,14 @@ Command definition module. Relates circuit gates to pulse commands.
 """
 from typing import List, Tuple, Iterable, Union, Dict
 
-import numpy as np
-
 from qiskit.exceptions import QiskitError
-from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
+from qiskit.qobj import PulseQobjInstruction
+from qiskit.qobj.converters import QobjToInstructionConverter
 
-from .commands import (SamplePulse, PersistentValue, Acquire, FrameChange,
-                       PulseInstruction, FrameChangeInstruction, AcquireInstruction,
-                       PersistentValueInstruction)
+from .commands import SamplePulse
 
 from .exceptions import PulseError
 from .schedule import Schedule, ParameterizedSchedule
-
-
-def build_pulse_library(self, pulse_library: List[PulseLibraryItem]):
-    """Take pulse library and convert to dictionary of `SamplePulse`s.
-
-    Args:
-        pulse_library: Unprocessed pulse_library.
-
-    Returns:
-        dict: Pulse library consisting of `SamplePulse`s
-    """
-    processed_pulse_library = {}
-
-    for pulse in pulse_library:
-        if isinstance(pulse, dict):
-            pulse = PulseLibraryItem(**pulse)
-
-        name = pulse.name
-        pulse = SamplePulse(np.asarray(pulse.samples, dtype=np.complex_), name=name)
-        processed_pulse_library[name] = pulse
-
-    return processed_pulse_library
 
 
 def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]):
@@ -63,6 +38,7 @@ def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]):
 
     return qubit_tuple
 
+
 class CmdDef:
     """Command definition class.
     Relates `Gate`s to `PulseSchedule`s.
@@ -72,7 +48,8 @@ class CmdDef:
         """Create command definition from backend.
 
         Args:
-            dict: Keys are tuples of (cmd_name, *qubits) and values are `PulseSchedule`
+            dict: Keys are tuples of (cmd_name, *qubits) and values are
+                `Schedule` or `ParameterizedSchedule`
         """
         self._cmd_dict = {}
 
@@ -88,7 +65,19 @@ class CmdDef:
             flat_cmd_def: Command definition list returned by backend
             pulse_library: Dictionary of `SamplePulse`s
         """
-        pulse_library = build_pulse_library(pulse_library)
+        converter = QobjToInstructionConverter(pulse_library, buffer=0)
+        cmd_def = cls()
+
+        for cmd in flat_cmd_def:
+            qubits = cmd.qubits
+            name = cmd.name
+            instructions = []
+            for instr in cmd.sequence:
+                instructions.append(converter(instr))
+
+            cmd_def.add(name, qubits, ParameterizedSchedule(*instructions, name=name))
+
+        return cmd_def
 
     def add(self, cmd_name: str, qubits: Union[int, Iterable[int]],
             schedule: Union[ParameterizedSchedule, Schedule]):
@@ -101,6 +90,8 @@ class CmdDef:
         """
         qubits = _to_qubit_tuple(qubits)
         cmd_dict = self._cmd_dict.setdefault(cmd_name, {})
+        if isinstance(schedule, Schedule):
+            schedule = ParameterizedSchedule(schedule, name=schedule.name)
         cmd_dict[qubits] = schedule
 
     def has(self, cmd_name: str, qubits: Union[int, Iterable[int]]) -> bool:
@@ -136,7 +127,7 @@ class CmdDef:
             if isinstance(schedule, ParameterizedSchedule):
                 return schedule.bind_parameters(**params)
 
-            return schedule
+            return schedule.flatten()
 
         else:
             raise PulseError('Command {name} for qubits {qubits} is not present'
