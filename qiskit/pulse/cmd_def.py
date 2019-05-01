@@ -174,7 +174,7 @@ class CmdDef:
             raise PulseError('Command {name} for qubits {qubits} is not present'
                              'in CmdDef'.format(name=cmd_name, qubits=qubits))
 
-    def cmd_types(self) -> List[str]:
+    def cmds(self) -> List[str]:
         """Return all command names available in CmdDef."""
 
         return list(self._cmd_dict.keys())

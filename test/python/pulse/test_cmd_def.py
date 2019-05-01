@@ -36,14 +36,14 @@ class TestCmdDef(QiskitTestCase):
         self.assertTrue(cmd_def.has('tmp', 0))
 
     def test_add(self):
-        """Test `add`, `has`, `get`, `cmd_types`."""
+        """Test `add`, `has`, `get`, `cmdss`."""
         sched = Schedule()
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         cmd_def = CmdDef()
         cmd_def.add('tmp', 0, sched)
         self.assertEqual(sched.instructions, cmd_def.get('tmp', (0,)).instructions)
 
-        self.assertIn('tmp', cmd_def.cmd_types())
+        self.assertIn('tmp', cmd_def.cmds())
 
     def test_pop(self):
         """Test pop with default."""
