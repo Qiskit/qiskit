@@ -28,11 +28,8 @@ class Reset(Instruction):
         super().__init__("reset", 1, 0, [])
 
     def argument_expansion(self, qargs, cargs):
-        # Validation and expantion of the qargs and cargs for the gate
-        # if len(cargs) == 0:
-        #     raise QiskitError("")
-        for qarg in qargs:
-            yield qarg, []
+        for qarg in qargs[0]:
+            yield [qarg], []
 
 def reset(self, qubit):
     """Reset q."""
