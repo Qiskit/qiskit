@@ -256,6 +256,18 @@ class MatplotlibDrawer:
                      clip_on=True,
                      zorder=PORDER_TEXT)
 
+    def _sidetext(self, xy, text):
+        xpos, ypos = xy
+
+        # 0.15 = the initial gap, each char means it needs to move
+        # another 0.0375 over
+        xp = xpos + 0.15 + (0.0375 * len(text))
+        self.ax.text(xp, ypos+HIG, text, ha='center', va='top',
+                     fontsize=self._style.sfs,
+                     color=self._style.tc,
+                     clip_on=True,
+                     zorder=PORDER_TEXT)
+
     def _line(self, xy0, xy1, lc=None, ls=None):
         x0, y0 = xy0
         x1, y1 = xy1
@@ -705,16 +717,20 @@ class MatplotlibDrawer:
                             self._gate(q_xy[1], wide=_iswide, text=disp)
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t)
-                    # cu1 for latexmode
+                    # cu1
                     elif op.name == 'cu1':
-                        disp = op.name.replace('c', '')
                         self._ctrl_qubit(q_xy[0])
-                        if self._style.latexmode:
-                            self._ctrl_qubit(q_xy[1])
-                            self._subtext(qreg_b, param)
-                        else:
-                            self._gate(q_xy[1], wide=_iswide, text=disp,
-                                       subtext='{}'.format(param))
+                        self._ctrl_qubit(q_xy[1])
+                        self._sidetext(qreg_b, param)
+
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
+                    # rzz gate
+                    elif op.name == 'rzz':
+                        self._ctrl_qubit(q_xy[0])
+                        self._ctrl_qubit(q_xy[1])
+                        self._sidetext(qreg_b, text='zz({})'.format(param))
+
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t)
                     # swap gate
