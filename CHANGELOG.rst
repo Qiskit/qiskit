@@ -20,11 +20,17 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+
+`0.7.2`_ - 2019-05-01
+=====================
+
+
 Fixed
 -----
 
 - A potential issue where the backend configuration schema validation would
   improperly reject valid responses from the API (#2258)
+
 
 `0.7.1`_ - 2019-03-04
 =====================
@@ -889,7 +895,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...HEAD
+.. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
 .. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
 .. _0.7.0: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...0.7.0
 .. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
