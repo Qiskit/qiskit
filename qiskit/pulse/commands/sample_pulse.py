@@ -44,17 +44,17 @@ class SamplePulse(Command):
 
     def draw(self, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None,
-             scaling: float = None, interactive: bool = False):
+             scaling: float = 1, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
             dt: Time interval of samples.
-            style (OPStylePulse): A style sheet to configure plot appearance.
-            filename: Name required to save pulse image.
-            interp_method: A function for interpolation.
-            scaling: scaling of waveform amplitude.
+            style (OPStylePulse): A style sheet to configure plot appearance
+            filename: Name required to save pulse image
+            interp_method: A function for interpolation
+            scaling (float): Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this).
+                (this depends on the matplotlib backend being used supporting this)
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope.

@@ -1072,14 +1072,14 @@ class SamplePulseDrawer:
         """
         self.style = style or OPStylePulse()
 
-    def draw(self, pulse, dt, interp_method, scaling):
+    def draw(self, pulse, dt, interp_method, scaling=1):
         """Draw figure.
         Args:
             pulse (SamplePulse): SamplePulse to draw
             dt (float): time interval
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
-            scaling (float): scaling of waveform amplitude
+            scaling (float): Relative visual scaling of waveform amplitudes
 
         Returns:
             matplotlib.figure: A matplotlib figure object of the pulse envelope
@@ -1203,7 +1203,7 @@ class ScheduleDrawer:
                     n_valid_waveform += 1
                     events.enable = True
         if scaling:
-            v_max = 0.5 / scaling
+            v_max = 0.5 * scaling
         else:
             v_max = 0.5 / (1.2 * v_max)
 
@@ -1371,8 +1371,8 @@ class ScheduleDrawer:
             y0 -= 1
         return y0
 
-    def draw(self, schedule, dt, interp_method, scaling,
-             plot_range, channels_to_plot=None, plot_all=True,
+    def draw(self, schedule, dt, interp_method, plot_range,
+             scaling=1, channels_to_plot=None, plot_all=True,
              table=True, label=False, framechange=True):
         """Draw figure.
         Args:
@@ -1380,8 +1380,8 @@ class ScheduleDrawer:
             dt (float): time interval
             interp_method (Callable): interpolation function
                 See `qiskit.visualization.interpolation` for more information
-            scaling (float): scaling of waveform amplitude
             plot_range (tuple[float]): plot range
+            scaling (float): Relative visual scaling of waveform amplitudes
             channels_to_plot (list[OutputChannel]): channels to draw
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table

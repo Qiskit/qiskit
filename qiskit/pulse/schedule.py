@@ -180,7 +180,7 @@ class Schedule(ScheduleComponent):
         return ops.flatten(self)
 
     def draw(self, dt: float = 1, style=None,
-             filename: str = None, interp_method: Callable = None, scaling: float = None,
+             filename: str = None, interp_method: Callable = None, scaling: float = 1,
              channels_to_plot: List[Channel] = None, plot_all: bool = False,
              plot_range: Tuple[float] = None, interactive: bool = False,
              table: bool = True, label: bool = False,
@@ -188,16 +188,16 @@ class Schedule(ScheduleComponent):
         """Plot the schedule.
 
         Args:
-            dt: Time interval of samples.
-            style (OPStyleSched): A style sheet to configure plot appearance.
-            filename: Name required to save pulse image.
-            interp_method: A function for interpolation.
-            scaling: scaling of waveform amplitude.
-            channels_to_plot: A list of channel names to plot.
-            plot_all: Plot empty channels.
-            plot_range: A tuple of time range to plot.
+            dt: Time interval of samples
+            style (OPStyleSched): A style sheet to configure plot appearance
+            filename: Name required to save pulse image
+            interp_method: A function for interpolation
+            scaling (float): Relative visual scaling of waveform amplitudes
+            channels_to_plot: A list of channel names to plot
+            plot_all: Plot empty channels
+            plot_range: A tuple of time range to plot
             interactive: When set true show the circuit in a new window
-                (this depends on the matplotlib backend being used supporting this).
+                (this depends on the matplotlib backend being used supporting this)
             table: Draw event table for supported commands
             label: Label individual instructions
             framechange: Add framechange indicators
