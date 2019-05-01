@@ -53,6 +53,13 @@ def make_hard_thetas_oneq(smallest=1e-18, factor=3.2, steps=22, phi=0.7, lam=0.9
 
 HARD_THETA_ONEQS = make_hard_thetas_oneq()
 
+# It's too slow to use all 24**4 Clifford combos. If we can make it faster, use a larger set
+K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORDS[21]),
+         (ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[6], ONEQ_CLIFFORDS[9], ONEQ_CLIFFORDS[7]),
+         (ONEQ_CLIFFORDS[2], ONEQ_CLIFFORDS[1], ONEQ_CLIFFORDS[0], ONEQ_CLIFFORDS[4]),
+         [Operator(U3Gate(x, y, z)) for x, y, z in
+          [(0.2, 0.3, 0.1), (0.7, 0.15, 0.22), (0.001, 0.97, 2.2), (3.14, 2.1, 0.9)]]]
+
 class TestSynthesis(QiskitTestCase):
     """Test synthesis methods."""
 
@@ -111,23 +118,147 @@ class TestSynthesis(QiskitTestCase):
             # FIXME: should be possible to set this tolerance tighter after improving the function
             self.assertTrue(np.abs(maxdist) < 1e-7, f"Worst distance {maxdist}")
 
+    def test_two_qubit_weyl_decomposition_cnot(self):
+        """Verify Weyl decomposition for U~CNOT"""
+        for k1l, k1r, k2l, k2r in K1K2S:
+            k1 = np.kron(k1l.data, k1r.data)
+            k2 = np.kron(k2l.data, k2r.data)
+            a = Ud(np.pi/4, 0, 0)
+            self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_iswap(self):
+        """Verify Weyl decomposition for U~iswap"""
+        for k1l, k1r, k2l, k2r in K1K2S:
+            k1 = np.kron(k1l.data, k1r.data)
+            k2 = np.kron(k2l.data, k2r.data)
+            a = Ud(np.pi/4, np.pi/4, 0)
+            self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_swap(self):
+        """Verify Weyl decomposition for U~swap"""
+        for k1l, k1r, k2l, k2r in K1K2S:
+            k1 = np.kron(k1l.data, k1r.data)
+            k2 = np.kron(k2l.data, k2r.data)
+            a = Ud(np.pi/4, np.pi/4, np.pi/4)
+            self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_bgate(self):
+        """Verify Weyl decomposition for U~B"""
+        for k1l, k1r, k2l, k2r in K1K2S:
+            k1 = np.kron(k1l.data, k1r.data)
+            k2 = np.kron(k2l.data, k2r.data)
+            a = Ud(np.pi/4, np.pi/8, 0)
+            self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
     def test_two_qubit_weyl_decomposition_a00(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,0,0)"""
         for aaa in ([smallest * factor**i for i in range(steps)] +
                     [np.pi/4  - smallest * factor**i for i in range(steps)] +
                     [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
-            for k1l in ONEQ_CLIFFORDS[:3]:
-                for k1r in ONEQ_CLIFFORDS[:3]:
-                    for k2l in ONEQ_CLIFFORDS[:3]:
-                        for k2r in ONEQ_CLIFFORDS[:3]:
-                            k1 = np.kron(k1l.data, k1r.data)
-                            k2 = np.kron(k2l.data, k2r.data)
-                            a = Ud(aaa, 0, 0)
-                            self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+            for k1l, k1r, k2l, k2r in K1K2S:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                a = Ud(aaa, 0, 0)
+                self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
 
-    def test_two_qubit_kak(self):
-        """Verify KAK decomposition for random Haar 4x4 unitaries.
+    def test_two_qubit_weyl_decomposition_aa0(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,a,0)"""
+        for aaa in ([smallest * factor**i for i in range(steps)] +
+                    [np.pi/4  - smallest * factor**i for i in range(steps)] +
+                    [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
+            for k1l, k1r, k2l, k2r in K1K2S:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                a = Ud(aaa, aaa, 0)
+                self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_aaa(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,a,a)"""
+        for aaa in ([smallest * factor**i for i in range(steps)] +
+                    [np.pi/4  - smallest * factor**i for i in range(steps)] +
+                    [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
+            for k1l, k1r, k2l, k2r in K1K2S:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                a = Ud(aaa, aaa, aaa)
+                self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_aama(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,a,-a)"""
+        for aaa in ([smallest * factor**i for i in range(steps)] +
+                    [np.pi/4  - smallest * factor**i for i in range(steps)] +
+                    [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
+            for k1l, k1r, k2l, k2r in K1K2S:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                a = Ud(aaa, aaa, -aaa)
+                self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_ab0(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,b,0)"""
+        for aaa in ([smallest * factor**i for i in range(steps)] +
+                    [np.pi/4  - smallest * factor**i for i in range(steps)] +
+                    [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
+            for bbb in np.linspace(0, aaa, 10):
+                for k1l, k1r, k2l, k2r in K1K2S:
+                    k1 = np.kron(k1l.data, k1r.data)
+                    k2 = np.kron(k2l.data, k2r.data)
+                    a = Ud(aaa, bbb, 0)
+                    self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_abb(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,b,b)"""
+        for aaa in ([smallest * factor**i for i in range(steps)] +
+                    [np.pi/4  - smallest * factor**i for i in range(steps)] +
+                    [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
+            for bbb in np.linspace(0, aaa, 6):
+                for k1l, k1r, k2l, k2r in K1K2S:
+                    k1 = np.kron(k1l.data, k1r.data)
+                    k2 = np.kron(k2l.data, k2r.data)
+                    a = Ud(aaa, bbb, bbb)
+                    self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_abmb(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,b,-b)"""
+        for aaa in ([smallest * factor**i for i in range(steps)] +
+                    [np.pi/4  - smallest * factor**i for i in range(steps)] +
+                    [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
+            for bbb in np.linspace(0, aaa, 6):
+                for k1l, k1r, k2l, k2r in K1K2S:
+                    k1 = np.kron(k1l.data, k1r.data)
+                    k2 = np.kron(k2l.data, k2r.data)
+                    a = Ud(aaa, bbb, -bbb)
+                    self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_aac(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,a,c)"""
+        for aaa in ([smallest * factor**i for i in range(steps)] +
+                    [np.pi/4  - smallest * factor**i for i in range(steps)] +
+                    [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
+            for ccc in np.linspace(-aaa, aaa, 6):
+                for k1l, k1r, k2l, k2r in K1K2S:
+                    k1 = np.kron(k1l.data, k1r.data)
+                    k2 = np.kron(k2l.data, k2r.data)
+                    a = Ud(aaa, aaa, ccc)
+                    self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_two_qubit_weyl_decomposition_abc(self, smallest=1e-18, factor=9.8, steps=11):
+        """Verify Weyl decomposition for U~Ud(a,a,b)"""
+        for aaa in ([smallest * factor**i for i in range(steps)] +
+                    [np.pi/4  - smallest * factor**i for i in range(steps)] +
+                    [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
+            for bbb in np.linspace(0, aaa, 4):
+                for ccc in np.linspace(-bbb, bbb, 4):
+                    for k1l, k1r, k2l, k2r in K1K2S:
+                        k1 = np.kron(k1l.data, k1r.data)
+                        k2 = np.kron(k2l.data, k2r.data)
+                        a = Ud(aaa, aaa, ccc)
+                        self.check_two_qubit_weyl_decomposition(k1 @ a @ k2)
+
+    def test_exact_cnot_decompose_random(self, nsamples=100):
+        """Verify exact CNOT decomposition for random Haar 4x4 unitaries.
         """
-        for _ in range(100):
+        for _ in range(nsamples):
             unitary = random_unitary(4)
             with self.subTest(unitary=unitary):
                 decomp_circuit = cnot_decompose(unitary)
@@ -140,7 +271,7 @@ class TestSynthesis(QiskitTestCase):
                     atol=1e-7)
                 self.assertTrue(equal_up_to_phase)
 
-    def test_two_qubit_kak_from_paulis(self):
+    def test_exact_cnot_decompose_paulis(self):
         """Verify decomposing Paulis with KAK
         """
         pauli_xz = Pauli(label='XZ')
