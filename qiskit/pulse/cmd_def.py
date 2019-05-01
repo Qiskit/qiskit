@@ -130,7 +130,7 @@ class CmdDef:
             return schedule.flatten()
 
         else:
-            raise PulseError('Command {name} for qubits {qubits} is not present'
+            raise PulseError('Command {0} for qubits {1} is not present'
                              'in CmdDef'.format(cmd_name, qubits))
 
     def get_parameters(self, cmd_name: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
@@ -148,7 +148,7 @@ class CmdDef:
             return schedule.parameters
 
         else:
-            raise PulseError('Command {name} for qubits {qubits} is not present'
+            raise PulseError('Command {0} for qubits {1} is not present'
                              'in CmdDef'.format(cmd_name, qubits))
 
     def pop(self, cmd_name: str, qubits: Union[int, Iterable[int]],
@@ -171,7 +171,7 @@ class CmdDef:
             return schedule
 
         else:
-            raise PulseError('Command {name} for qubits {qubits} is not present'
+            raise PulseError('Command {0} for qubits {1} is not present'
                              'in CmdDef'.format(name=cmd_name, qubits=qubits))
 
     def cmds(self) -> List[str]:
