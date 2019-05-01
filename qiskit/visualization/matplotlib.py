@@ -1209,7 +1209,7 @@ class ScheduleDrawer:
 
         return n_valid_waveform, v_max
 
-    def _draw_table(self, figure, channels, dt, n_valid_waveform):
+    def _draw_table(self, figure, channels, dt, n_valid_waveform): # pylint: disable=unused-argument
         # create table
         table_data = []
         if self.style.use_table:
