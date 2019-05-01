@@ -226,7 +226,7 @@ _math_ops = [math_op for math_op in math.__dict__ if not math_op.startswith('__'
 _math_ops_regex = r"(" + ")|(".join(_math_ops) + ")"
 # match consecutive alphanumeric, and single consecutive math ops +-/.()
 # and multiple * for exponentiation
-_allowedchars = re.compile(r'([+\/\-\(\).])?([\sa-zA-Z\d]+[+\/\-\(\).]?\*{0,2})*')
+_allowedchars = re.compile(r'([+\/\-\(\)\.])?([\sa-zA-Z\d]+[+\/\-\(\)\.]?\*{0,2})*')
 # match any sequence of chars and numbers
 _expr_regex = r'([a-zA-Z]+\d*)'
 # and valid params
