@@ -118,14 +118,7 @@ class Instruction:
     @property
     def params(self):
         """return instruction params"""
-        # if params already defined don't attempt to get them from definition
-        if self._definition and not self._params:
-            self._params = []
-            for sub_instr, _, _ in self._definition:
-                self._params.extend(sub_instr.params)  # recursive call
-            return self._params
-        else:
-            return self._params
+        return self._params
 
     @params.setter
     def params(self, parameters):

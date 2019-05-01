@@ -389,15 +389,21 @@ class QuantumCircuit:
         for clbit in cargs:
             clbit[0].check_range(clbit[1])
 
-    def to_instruction(self):
+    def to_instruction(self, parameter_map=None):
         """Create an Instruction out of this circuit.
+
+        Args:
+            parameter_map(dict): For parameterized circuits, a mapping from
+               parameters in the circuit to parameters to be used in the
+               instruction. If None, existing circuit parameters will also
+               parameterize the instruction.
 
         Returns:
             Instruction: a composite instruction encapsulating this circuit
                 (can be decomposed back)
         """
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
-        return circuit_to_instruction(self)
+        return circuit_to_instruction(self, parameter_map)
 
     def decompose(self):
         """Call a decomposition pass on this circuit,
@@ -767,6 +773,15 @@ class QuantumCircuit:
         """Assigns a parameter value to matching instructions in-place."""
         for (instr, param_index) in self._parameter_table[parameter]:
             instr.params[param_index] = value
+
+    def _substitute_parameters(self, parameter_map):
+        """For every {existing_parameter: replacement_parameter} pair in
+        parameter_map, substitute replacement for existing in all
+        circuit instructions and the parameter table.
+        """
+        for old_parameter, new_parameter in parameter_map.items():
+            self._bind_parameter(old_parameter, new_parameter)
+            self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
 
 
 def _circuit_from_qasm(qasm):
