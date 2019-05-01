@@ -102,6 +102,7 @@ class TestEulerAngles1Q(QiskitTestCase):
             unitary = random_unitary(2)
             self.check_one_qubit_euler_angles(unitary)
 
+
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(QiskitTestCase):
     """Test TwoQubitWeylDecomposition()
