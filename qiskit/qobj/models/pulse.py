@@ -11,7 +11,8 @@ from marshmallow.validate import Range, Regexp, Length, OneOf
 
 from qiskit.qobj.utils import MeasReturnType
 from qiskit.validation import BaseSchema, bind_schema, BaseModel
-from qiskit.validation.fields import Integer, String, Number, Complex, List, Nested, DictParameters
+from qiskit.validation.fields import (Integer, String, Number, Complex, List,
+                                      Nested, DictParameters, ByType)
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
@@ -26,8 +27,8 @@ class QobjMeasurementOptionSchema(BaseSchema):
                             required=True)
 
 
-class QobjPulseLibrarySchema(BaseSchema):
-    """Schema for QobjPulseLibrary."""
+class PulseLibraryItemSchema(BaseSchema):
+    """Schema for PulseLibraryItem."""
 
     # Required properties.
     name = String(required=True)
@@ -44,8 +45,8 @@ class PulseQobjInstructionSchema(QobjInstructionSchema):
     # Optional properties.
     ch = String(validate=Regexp('[dum]([0-9])+'))
     conditional = Integer(validate=Range(min=0))
-    phase = Number()
-    val = Complex()
+    val = ByType([Complex(), String()])
+    phase = ByType([String(), Number()])
     duration = Integer(validate=Range(min=1))
     qubits = List(Integer(validate=Range(min=0)), validate=Length(min=1))
     memory_slot = List(Integer(validate=Range(min=0)), validate=Length(min=1))
@@ -83,7 +84,7 @@ class PulseQobjConfigSchema(QobjConfigSchema):
     meas_level = Integer(required=True, validate=Range(min=0, max=2))
     meas_return = String(required=True, validate=OneOf(choices=(MeasReturnType.AVERAGE,
                                                                 MeasReturnType.SINGLE)))
-    pulse_library = Nested(QobjPulseLibrarySchema, required=True, many=True)
+    pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
     qubit_lo_freq = List(Number(validate=Range(min=0)), required=True)
     meas_lo_freq = List(Number(validate=Range(min=0)), required=True)
 
@@ -110,12 +111,12 @@ class QobjMeasurementOption(BaseModel):
         super().__init__(**kwargs)
 
 
-@bind_schema(QobjPulseLibrarySchema)
-class QobjPulseLibrary(BaseModel):
-    """Model for QobjPulseLibrary.
+@bind_schema(PulseLibraryItemSchema)
+class PulseLibraryItem(BaseModel):
+    """Model for PulseLibraryItem.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QobjPulseLibrarySchema``.
+    full description of the model, please check ``PulseLibraryItemSchema``.
 
     Attributes:
         name (str): name of pulse
@@ -186,7 +187,7 @@ class PulseQobjConfig(QobjConfig):
         meas_level (int): a value represents the level of measurement.
         meas_lo_freq (list[float]): local oscillator frequency of measurement pulse.
         meas_return (str): a level of measurement information.
-        pulse_library (list[qiskit.qobj.QobjPulseLibrary]): a pulse library.
+        pulse_library (list[qiskit.qobj.PulseLibraryItem]): a pulse library.
         qubit_lo_freq (list[float]): local oscillator frequency of driving pulse.
     """
     def __init__(self, meas_level, meas_return, pulse_library,
