@@ -1408,7 +1408,6 @@ class ScheduleDrawer:
         else:
             t0 = 0
             tf = schedule.stop_time
-
         # prepare waveform channels
         (channels, output_channels,
          snapshot_channels) = self._build_channels(schedule, t0, tf)

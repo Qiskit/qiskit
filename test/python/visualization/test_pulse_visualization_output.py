@@ -38,11 +38,13 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
 
     def setUp(self):
         self.schedule = Schedule()
-        self.qubits = [Qubit(0, drive_channels=[DriveChannel(0, 1.2)],
+        self.qubits = [Qubit(0, drive_channel=DriveChannel(0),
                              control_channels=[ControlChannel(0)],
-                             measure_channels=[MeasureChannel(0, 2.0)]),
-                       Qubit(1, drive_channels=[DriveChannel(1, 3.4)],
-                             acquire_channels=[AcquireChannel(1)])]
+                             measure_channel=MeasureChannel(0),
+                             acquire_channel=AcquireChannel(0)),
+                       Qubit(1, drive_channel=DriveChannel(1),
+                             acquire_channel=AcquireChannel(1),
+                             measure_channel=MeasureChannel(1))]
         self.registers = [RegisterSlot(i) for i in range(2)]
         self.mem_slots = [MemorySlot(i) for i in range(2)]
         self.device = DeviceSpecification(self.qubits, self.registers, self.mem_slots)
@@ -66,14 +68,13 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         acquire = Acquire(10)
         sched = Schedule()
         sched = sched.append(gp0(self.device.q[0].drive))
-        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.device.q[0].control))
+        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.device.q[0].controls[0]))
         sched = sched.insert(60, FrameChange(phase=-1.57)(self.device.q[0].drive))
         sched = sched.insert(30, gp1(self.device.q[1].drive))
-        sched = sched.insert(60, gp0(self.device.q[0].control))
+        sched = sched.insert(60, gp0(self.device.q[0].controls[0]))
         sched = sched.insert(60, gs0(self.device.q[0].measure))
         sched = sched.insert(90, fc_pi_2(self.device.q[0].drive))
         sched = sched.insert(90, acquire(self.device.q[1], self.device.mem[1], self.device.c[1]))
-
         sched = sched + sched
         sched |= Snapshot("snapshot_1", "snap_type") << 60
         sched |= Snapshot("snapshot_2", "snap_type") << 120
