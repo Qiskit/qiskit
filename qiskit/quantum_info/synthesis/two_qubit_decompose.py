@@ -32,7 +32,7 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
-_CUTOFF_PRECISION = 1e-10
+_CUTOFF_PRECISION = 1e-12
 
 
 def euler_angles_1q(unitary_matrix):
@@ -60,24 +60,13 @@ def euler_angles_1q(unitary_matrix):
     # U[1, 0] = exp(i(phi-lambda)/2) * sin(theta/2)
     # U[1, 1] = exp(i(phi+lambda)/2) * cos(theta/2)
     theta = 2 * math.atan2(abs(U[1, 0]), abs(U[0, 0]))
+
     # Find phi and lambda
-    phase11 = 0.0
-    phase10 = 0.0
-    if abs(math.cos(theta/2.0)) > _CUTOFF_PRECISION:
-        phase11 = U[1, 1] / math.cos(theta/2.0)
-    if abs(math.sin(theta/2.0)) > _CUTOFF_PRECISION:
-        phase10 = U[1, 0] / math.sin(theta/2.0)
-    phiplambda = 2 * math.atan2(np.imag(phase11), np.real(phase11))
-    phimlambda = 2 * math.atan2(np.imag(phase10), np.real(phase10))
-    phi = 0.0
-    if abs(U[0, 0]) > _CUTOFF_PRECISION and abs(U[1, 0]) > _CUTOFF_PRECISION:
-        phi = (phiplambda + phimlambda) / 2.0
-        lamb = (phiplambda - phimlambda) / 2.0
-    else:
-        if abs(U[0, 0]) < _CUTOFF_PRECISION:
-            lamb = -phimlambda
-        else:
-            lamb = phiplambda
+    phiplambda = 2 * np.angle(U[1, 1])
+    phimlambda = 2 * np.angle(U[1, 0])
+    phi = (phiplambda + phimlambda) / 2.0
+    lamb = (phiplambda - phimlambda) / 2.0
+
     # Check the solution
     Rzphi = np.array([[np.exp(-1j*phi/2.0), 0],
                       [0, np.exp(1j*phi/2.0)]], dtype=complex)
@@ -93,7 +82,7 @@ def euler_angles_1q(unitary_matrix):
 
 def decompose_two_qubit_product_gate(special_unitary_matrix):
     """Decompose U = Ul⊗Ur where U in SU(4), and Ul, Ur in SU(2).
-    Throws QiskitError if this isn't possible. FIXME: a better exception to throw
+    Throws QiskitError if this isn't possible.
     """
     # extract the right component
     R = special_unitary_matrix[:2, :2].copy()
