@@ -28,6 +28,9 @@ from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 from .parametertable import ParameterTable
 from qiskit.circuit.decorators import _is_bit, _convert_to_bits
+from .register import Register
+from qiskit.circuit.decorators import _is_bit
+
 
 
 class QuantumCircuit:
@@ -246,15 +249,22 @@ class QuantumCircuit:
         """Return indexed operation."""
         return self.data[item]
 
-    def qbit_argument_expansion(self, bit_representation):
+    @staticmethod
+    def _bit_argument_expansion(bit_representation, in_array):
         if _is_bit(bit_representation):
             return [bit_representation]
-        return [self.qubits[bit_representation]]
+        elif isinstance(bit_representation, Register):
+            return bit_representation[:]
+        elif isinstance(bit_representation, int):
+            return [in_array[bit_representation]]
+        else:
+            raise QiskitError(str(type(bit_representation)))
+
+    def qbit_argument_expansion(self, bit_representation):
+        return QuantumCircuit._bit_argument_expansion(bit_representation, self.qubits)
 
     def cbit_argument_expansion(self, bit_representation):
-        if _is_bit(bit_representation):
-            return [bit_representation]
-        return self.cubits[bit_representation]
+        return QuantumCircuit._bit_argument_expansion(bit_representation, self.clbits)
 
     def append(self, instruction, qargs=None, cargs=None):
         """Append one or more instructions to the end of the circuit, modifying
@@ -273,6 +283,7 @@ class QuantumCircuit:
         expanded_cargs = [i for i in map(self.cbit_argument_expansion, cargs or [])]
 
         for (qarg, carg) in instruction.argument_expansion(expanded_qargs, expanded_cargs):
+            print("%s (%s %s)" % (instruction.name, qarg, carg))
             ret = self._append(instruction, qarg, carg)
         return ret
 

@@ -288,4 +288,7 @@ class Instruction:
         if len(cargs) == len(qargs):
             for qarg, carg in zip(qargs, cargs):
                 yield qarg, carg
+        elif not cargs and len(qargs) == 1:
+            for qarg in qargs[0]:
+                yield [qarg],[]
 
