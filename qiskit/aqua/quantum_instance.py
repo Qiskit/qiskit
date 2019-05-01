@@ -144,7 +144,12 @@ class QuantumInstance:
                                            cache_file=cache_file) if circuit_caching else None
         self._skip_qobj_validation = skip_qobj_validation
 
-        self._measurement_error_mitigation_cls = measurement_error_mitigation_cls
+        if self.is_statevector:
+            if measurement_error_mitigation_cls is not None:
+                logger.info("Measurement error mitigation does not work with statevector simulation, disable it.")
+                self._measurement_error_mitigation_cls = None
+        else:
+            self._measurement_error_mitigation_cls = measurement_error_mitigation_cls
         self._measurement_error_mitigation_fitter = None
         self._measurement_error_mitigation_method = 'least_squares'
         self._cals_matrix_refresh_period = cals_matrix_refresh_period
