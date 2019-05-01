@@ -19,8 +19,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import PulseInstruction
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
-                         PulseQobjExperiment, PulseQobjConfig, QobjPulseLibrary)
-from qiskit.qobj.converters import PulseQobjConverter, LoConfigConverter
+                         PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
+from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
     if hasattr(run_config, 'instruction_converter'):
         instruction_converter = run_config.instruction_converter
     else:
-        instruction_converter = PulseQobjConverter
+        instruction_converter = InstructionToQobjConverter
 
     qobj_config = run_config.to_dict()
     qubit_lo_range = qobj_config.pop('qubit_lo_range')
@@ -75,7 +75,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         })
 
     # setup pulse_library
-    qobj_config['pulse_library'] = [QobjPulseLibrary(name=pulse.name, samples=pulse.samples)
+    qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
                                     for pulse in user_pulselib]
 
     # create qob experiment field
