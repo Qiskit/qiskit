@@ -122,8 +122,8 @@ class PassManager():
         self.working_list.append(
             FlowController.controller_factory(passes, options, **flow_controller_conditions))
 
-
     def reset(self):
+        """ "Resets the pass manager instance """
         self.valid_passes = set()
         self.property_set.clear()
 
@@ -138,16 +138,15 @@ class PassManager():
         """
         name = circuit.name
         dag = circuit_to_dag(circuit)
-        self.reset() # Reset property set before starting
-        circuit = dag_to_circuit(self._run_dag_on_working_list(dag))
-        circuit.name = name
-        return circuit
+        self.reset() # Reset passmanager instance before starting
 
-    def _run_dag_on_working_list(self, dag):
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
-        return dag
+
+        circuit = dag_to_circuit(dag)
+        circuit.name = name
+        return circuit
 
     def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".

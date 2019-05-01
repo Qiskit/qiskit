@@ -78,7 +78,7 @@ import os
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.transpiler import PassManager, transpile
-from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, LegacySwap
+from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, LegacySwap, SetLayout
 from qiskit.mapper import CouplingMap, Layout
 
 from qiskit.test import QiskitTestCase
@@ -100,15 +100,15 @@ class CommonUtilitiesMixin:
     seed = 42
     seed_mapper = 42
     additional_args = {}
-    pass_class = None
+    pass_class = lambda *args: None
 
     def create_passmanager(self, coupling_map, initial_layout=None):
         """Returns a PassManager using self.pass_class(coupling_map, initial_layout)"""
-        passmanager = PassManager(
-            self.pass_class(CouplingMap(coupling_map),  # pylint: disable=not-callable
-                            **self.additional_args))
+        passmanager = PassManager()
         if initial_layout:
-            passmanager.property_set['layout'] = Layout(initial_layout)
+            passmanager.append(SetLayout(Layout(initial_layout)))
+
+        passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
         return passmanager
 
     def create_backend(self):
