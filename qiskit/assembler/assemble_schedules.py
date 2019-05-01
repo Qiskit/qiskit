@@ -14,7 +14,6 @@
 
 """Assemble function for converting a list of circuits into a qobj"""
 import logging
-import functools
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import PulseInstruction, AcquireInstruction
@@ -143,9 +142,9 @@ def _validate_meas_map(acquire, meas_map):
     measured_qubits = set(acq_ch.index for acq_ch in acquire.acquires)
     tied_qubits = set()
     for meas_qubit in measured_qubits:
-        for meas_map in meas_map_set:
-            if meas_qubit in meas_map:
-                tied_qubits |= meas_map
+        for map_inst in meas_map_set:
+            if meas_qubit in map_inst:
+                tied_qubits |= map_inst
 
     if measured_qubits != tied_qubits:
         raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
