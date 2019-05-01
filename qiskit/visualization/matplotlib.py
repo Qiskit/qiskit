@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
 
@@ -164,7 +171,7 @@ class MatplotlibDrawer:
         else:
             _fc = self._style.gc
         qubit_span = abs(ypos) - abs(ypos_max) + 1
-        height = HIG * (qubit_span + 1)
+        height = HIG + (qubit_span - 1)
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
             width=wid, height=height, fc=_fc, ec=self._style.lc,
@@ -244,6 +251,18 @@ class MatplotlibDrawer:
         xpos, ypos = xy
 
         self.ax.text(xpos, ypos - 0.3 * HIG, text, ha='center', va='top',
+                     fontsize=self._style.sfs,
+                     color=self._style.tc,
+                     clip_on=True,
+                     zorder=PORDER_TEXT)
+
+    def _sidetext(self, xy, text):
+        xpos, ypos = xy
+
+        # 0.15 = the initial gap, each char means it needs to move
+        # another 0.0375 over
+        xp = xpos + 0.15 + (0.0375 * len(text))
+        self.ax.text(xp, ypos+HIG, text, ha='center', va='top',
                      fontsize=self._style.sfs,
                      color=self._style.tc,
                      clip_on=True,
@@ -669,8 +688,12 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        self._gate(q_xy[0], wide=_iswide, text=disp,
-                                   subtext='{}'.format(param))
+                        prm = '{}'.format(param)
+                        if len(prm) < 20:
+                            self._gate(q_xy[0], wide=_iswide, text=disp,
+                                       subtext=prm)
+                        else:
+                            self._gate(q_xy[0], wide=_iswide, text=disp)
                     else:
                         self._gate(q_xy[0], wide=_iswide, text=disp)
                 #
@@ -705,16 +728,20 @@ class MatplotlibDrawer:
                             self._gate(q_xy[1], wide=_iswide, text=disp)
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t)
-                    # cu1 for latexmode
+                    # cu1
                     elif op.name == 'cu1':
-                        disp = op.name.replace('c', '')
                         self._ctrl_qubit(q_xy[0])
-                        if self._style.latexmode:
-                            self._ctrl_qubit(q_xy[1])
-                            self._subtext(qreg_b, param)
-                        else:
-                            self._gate(q_xy[1], wide=_iswide, text=disp,
-                                       subtext='{}'.format(param))
+                        self._ctrl_qubit(q_xy[1])
+                        self._sidetext(qreg_b, param)
+
+                        # add qubit-qubit wiring
+                        self._line(qreg_b, qreg_t)
+                    # rzz gate
+                    elif op.name == 'rzz':
+                        self._ctrl_qubit(q_xy[0])
+                        self._ctrl_qubit(q_xy[1])
+                        self._sidetext(qreg_b, text='zz({})'.format(param))
+
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t)
                     # swap gate
@@ -796,21 +823,26 @@ class MatplotlibDrawer:
 
     @staticmethod
     def param_parse(v, pimode=False):
+
+        # create an empty list to store the parameters in
+        param_parts = [None] * len(v)
         for i, e in enumerate(v):
+
             if pimode:
                 try:
-                    v[i] = MatplotlibDrawer.format_pi(e)
+                    param_parts[i] = MatplotlibDrawer.format_pi(e)
                 except TypeError:
-                    v[i] = str(e)
+                    param_parts[i] = str(e)
             else:
                 try:
-                    v[i] = MatplotlibDrawer.format_numeric(e)
+                    param_parts[i] = MatplotlibDrawer.format_numeric(e)
                 except TypeError:
-                    v[i] = str(e)
-            if v[i].startswith('-'):
-                v[i] = '$-$' + v[i][1:]
-        param = ', '.join(v)
-        return param
+                    param_parts[i] = str(e)
+            if param_parts[i].startswith('-'):
+                param_parts[i] = '$-$' + param_parts[i][1:]
+
+        param_parts = ', '.join(param_parts)
+        return param_parts
 
     @staticmethod
     def format_pi(val):

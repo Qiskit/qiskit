@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Helper module for simplified Qiskit usage.
@@ -27,7 +34,7 @@ def execute(experiments, backend,
             memory=False, max_credits=10, seed_simulator=None,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=2, meas_return='avg',
-            memory_slots=None, memory_slot_size=100, rep_time=None,
+            memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
             seed=None, seed_mapper=None,  # deprecated
             config=None, circuits=None,
             **run_config):
@@ -163,6 +170,14 @@ def execute(experiments, backend,
             The delay between experiments will be rep_time.
             Must be from the list provided by the device.
 
+        parameter_binds (list[dict{Parameter: Value}]):
+            List of Parameter bindings over which the set of experiments will be
+            executed. Each list element (bind) should be of the form
+            {Parameter1: value1, Parameter2: value2, ...}. All binds will be
+            executed across all experiments, e.g. if parameter_binds is a
+            length-n list, and there are m experiments, a total of m x n
+            experiments will be run (one for each experiment/bind pair).
+
         seed (int):
             DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
 
@@ -222,6 +237,7 @@ def execute(experiments, backend,
                     memory_slots=memory_slots,
                     memory_slot_size=memory_slot_size,
                     rep_time=rep_time,
+                    parameter_binds=parameter_binds,
                     backend=backend,
                     config=config,  # deprecated
                     seed=seed,  # deprecated

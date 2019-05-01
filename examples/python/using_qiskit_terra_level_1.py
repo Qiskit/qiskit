@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Example showing how to use Qiskit at level 1 (intermediate).
@@ -28,8 +35,7 @@ import pprint, time
 from qiskit import IBMQ, BasicAer
 from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.compiler import transpile, assemble_circuits
-from qiskit.compiler import TranspileConfig, RunConfig
+from qiskit.compiler import transpile, assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 
@@ -61,10 +67,6 @@ try:
     for backend in BasicAer.backends():
         print(backend.status())
     qasm_simulator = BasicAer.get_backend('qasm_simulator')
-    print("(QASM Simulator configuration) ")
-    pprint.pprint(qasm_simulator.configuration())
-    print("(QASM Simulator properties) ")
-    pprint.pprint(qasm_simulator.properties())
 
 
     # Compile and run the circuit on a real device backend
@@ -80,25 +82,21 @@ try:
         print("All devices are currently unavailable.")
 
     print("Running on current least busy device: ", least_busy_device)
-    print("(with configuration) ")
-    pprint.pprint(least_busy_device.configuration())
-    print("(with properties) ")
-    pprint.pprint(least_busy_device.properties())
 
     # Transpile the circuits to make them compatible with the experimental backend
-    [qc1_new, qc2_new] = transpile(circuits=[qc1, qc2],
-                                   transpile_config=TranspileConfig(backend=least_busy_device))
+    [qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
+
     print("Bell circuit before transpile:")
-    print(qc1)
+    print(qc1.draw())
     print("Bell circuit after transpile:")
-    print(qc1_new)
+    print(qc1_new.draw())
     print("Superposition circuit before transpile:")
-    print(qc2)
+    print(qc2.draw())
     print("Superposition circuit after transpile:")
-    print(qc2_new)
+    print(qc2_new.draw())
 
     # Assemble the two circuits into a runnable qobj
-    qobj = assemble_circuits([qc1_new, qc2_new], run_config=RunConfig(shots=1000))
+    qobj = assemble([qc1_new, qc2_new], shots=1000)
 
     # Running qobj on the simulator
     sim_job = qasm_simulator.run(qobj)

@@ -1,15 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Pass for unrolling a circuit to a given basis."""
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import Parameter
 
 
 class Unroller(TransformationPass):
@@ -51,7 +59,15 @@ class Unroller(TransformationPass):
                 continue
 
             # TODO: allow choosing other possible decompositions
-            rule = node.op.definition
+            try:
+                rule = node.op.definition
+            except TypeError as err:
+                if any(isinstance(p, Parameter) for p in node.op.params):
+                    raise QiskitError('Unrolling gates parameterized by expressions '
+                                      'is currently unsupported.')
+                else:
+                    raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
+
             if not rule:
                 raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
                                   "No rule to expand instruction %s." %

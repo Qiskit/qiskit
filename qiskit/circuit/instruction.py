@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=too-many-boolean-expressions
 """
@@ -27,6 +34,7 @@ Instructions do not have any context about where they are in a circuit (which qu
 The circuit itself keeps this context.
 """
 import copy
+from itertools import zip_longest
 import sympy
 import numpy
 
@@ -81,18 +89,27 @@ class Instruction:
         Returns:
             bool: are self and other equal.
         """
-        res = False
-        if type(self) is type(other) and \
-                self.name == other.name and \
-                self.num_qubits == other.num_qubits and \
-                self.num_clbits == other.num_clbits and \
-                self.definition == other.definition and \
-                (self.params == other.params or
-                 numpy.allclose([float(p) for p in self.params],
-                                [float(p) for p in other.params],
-                                atol=_CUTOFF_PRECISION)):
-            res = True
-        return res
+        if type(self) is not type(other) or \
+                self.name != other.name or \
+                self.num_qubits != other.num_qubits or \
+                self.num_clbits != other.num_clbits or \
+                self.definition != other.definition:
+            return False
+
+        for self_param, other_param in zip_longest(self.params, other.params):
+            if self_param == other_param:
+                continue
+
+            try:
+                if numpy.isclose(float(self_param), float(other_param),
+                                 atol=_CUTOFF_PRECISION):
+                    continue
+            except TypeError:
+                pass
+
+            return False
+
+        return True
 
     def _define(self):
         """Populates self.definition with a decomposition of this gate."""
