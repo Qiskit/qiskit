@@ -47,8 +47,8 @@ def get_measured_qubits(transpiled_circuits):
         if qubit_mapping is None:
             qubit_mapping = measured_qubits
         elif qubit_mapping != measured_qubits:
-                raise AquaError("The qubit mapping of circuits are different."
-                                "Currently, we only support single mapping.")
+            raise AquaError("The qubit mapping of circuits are different."
+                            "Currently, we only support single mapping.")
 
     return qubit_mapping
 
@@ -82,10 +82,10 @@ def get_measured_qubits_from_qobj(qobjs):
     return qubit_mapping
 
 
-def build_measurement_mitigation_fitter(qubits, fitter_cls, backend,
-                                        backend_config=None, compile_config=None,
-                                        run_config=None, qjob_config=None, backend_options=None,
-                                        noise_config=None):
+def build_measurement_error_mitigation_fitter(qubits, fitter_cls, backend,
+                                              backend_config=None, compile_config=None,
+                                              run_config=None, qjob_config=None, backend_options=None,
+                                              noise_config=None):
     """
 
     Args:

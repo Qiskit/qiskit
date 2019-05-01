@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 import logging
+import time
 
 from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
@@ -20,7 +21,7 @@ from qiskit.transpiler import Layout
 
 from .utils import (run_qobjs, compile_cirucits, CircuitCache,
                     get_measured_qubits_from_qobj,
-                    build_measurement_mitigation_fitter,
+                    build_measurement_error_mitigation_fitter,
                     mitigate_measurement_error)
 from .utils.backend_utils import (is_aer_provider,
                                   is_ibmq_provider,
@@ -51,7 +52,8 @@ class QuantumInstance:
                  initial_layout=None, pass_manager=None, seed_transpiler=None,
                  backend_options=None, noise_model=None, timeout=None, wait=5,
                  circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True,
-                 skip_qobj_validation=True, measurement_mitigation_cls=None):
+                 skip_qobj_validation=True, measurement_error_mitigation_cls=None,
+                 cals_matrix_refresh_period=30):
         """Constructor.
 
         Args:
@@ -73,8 +75,10 @@ class QuantumInstance:
             cache_file(str, optional): filename into which to store the cache as a pickle file
             skip_qobj_deepcopy (bool, optional): Reuses the same qobj object over and over to avoid deepcopying
             skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
-            measurement_mitigation_cls (callable, optional): the approach to mitigate measurement error,
+            measurement_error_mitigation_cls (callable, optional): the approach to mitigate measurement error,
                                                                 CompleteMeasFitter or TensoredMeasFitter
+            cals_matrix_refresh_period (int): how long to refresh the calibration matrix in measurement mitigation,
+                                                  unit in minutes
         """
         self._backend = backend
         # setup run config
@@ -140,9 +144,11 @@ class QuantumInstance:
                                            cache_file=cache_file) if circuit_caching else None
         self._skip_qobj_validation = skip_qobj_validation
 
-        self._measurement_mitigation_cls = measurement_mitigation_cls
-        self._measurement_mitigation_fitter = None
-        self._measurement_mitigation_method = 'least_squares'
+        self._measurement_error_mitigation_cls = measurement_error_mitigation_cls
+        self._measurement_error_mitigation_fitter = None
+        self._measurement_error_mitigation_method = 'least_squares'
+        self._cals_matrix_refresh_period = cals_matrix_refresh_period
+        self._prev_timestamp = 0
 
         logger.info(self)
 
@@ -156,6 +162,7 @@ class QuantumInstance:
         info += "Backend: '{} ({})', with following setting:\n{}\n{}\n{}\n{}\n{}\n{}".format(
             self.backend_name, self._backend.provider(), self._backend_config, self._compile_config,
             self._run_config, self._qjob_config, self._backend_options, self._noise_config)
+        info += "\nMeasurement mitigation: {}".format(self._measurement_error_mitigation_cls)
         return info
 
     def execute(self, circuits, **kwargs):
@@ -172,24 +179,26 @@ class QuantumInstance:
                                  show_circuit_summary=self._circuit_summary, circuit_cache=self._circuit_cache,
                                  **kwargs)
 
-        if self._measurement_mitigation_cls is not None:
-            qubit_list = get_measured_qubits_from_qobj(qobjs)
-            self._measurement_mitigation_fitter = build_measurement_mitigation_fitter(qubit_list,
-                                                                                      self._measurement_mitigation_cls,
-                                                                                      self._backend,
-                                                                                      self._backend_config,
-                                                                                      self._compile_config,
-                                                                                      self._run_config,
-                                                                                      self._qjob_config,
-                                                                                      self._backend_options,
-                                                                                      self._noise_config)
+        if self._measurement_error_mitigation_cls is not None:
+            if self.maybe_refresh_cals_matrix():
+                logger.info("Building calibration matrix for measurement error mitigation.")
+                qubit_list = get_measured_qubits_from_qobj(qobjs)
+                self._measurement_error_mitigation_fitter = build_measurement_error_mitigation_fitter(qubit_list,
+                                                                                          self._measurement_error_mitigation_cls,
+                                                                                          self._backend,
+                                                                                          self._backend_config,
+                                                                                          self._compile_config,
+                                                                                          self._run_config,
+                                                                                          self._qjob_config,
+                                                                                          self._backend_options,
+                                                                                          self._noise_config)
 
         result = run_qobjs(qobjs, self._backend, self._qjob_config, self._backend_options, self._noise_config,
                            self._skip_qobj_validation)
 
-        if self._measurement_mitigation_fitter is not None:
-            result = mitigate_measurement_error(result, self._measurement_mitigation_fitter,
-                                                self._measurement_mitigation_method)
+        if self._measurement_error_mitigation_fitter is not None:
+            result = mitigate_measurement_error(result, self._measurement_error_mitigation_fitter,
+                                                self._measurement_error_mitigation_method)
 
         if self._circuit_summary:
             self._circuit_summary = False
@@ -311,3 +320,19 @@ class QuantumInstance:
     @skip_qobj_validation.setter
     def skip_qobj_validation(self, new_value):
         self._skip_qobj_validation = new_value
+
+    def maybe_refresh_cals_matrix(self):
+        """
+        Calculate the time difference from the query of last time.
+
+        Returns:
+            bool: whether or not refresh the cals_matrix
+        """
+        ret = False
+        curr_timestamp = time.time_ns()
+        difference = (curr_timestamp - self._prev_timestamp) // 1e9 / 60.0
+        if difference > self._cals_matrix_refresh_period:
+            self._prev_timestamp = curr_timestamp
+            ret = True
+
+        return ret
