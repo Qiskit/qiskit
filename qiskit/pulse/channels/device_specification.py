@@ -11,8 +11,8 @@ Specification of the device.
 import logging
 from typing import List
 
-from qiskit.pulse.exceptions import PulseError
 from qiskit.validation.exceptions import ModelValidationError
+
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
@@ -52,49 +52,32 @@ class DeviceSpecification:
         # TODO : Remove usage of config.defaults when backend.defaults() is updated.
         try:
             backend_default = backend.defaults()
+            buffer = backend_default.buffer
         except ModelValidationError:
-            from collections import namedtuple
-            BackendDefault = namedtuple('BackendDefault', ('qubit_freq_est', 'meas_freq_est'))
-
-            backend_default = BackendDefault(
-                qubit_freq_est=backend_config.defaults['qubit_freq_est'],
-                meas_freq_est=backend_config.defaults['meas_freq_est']
-            )
+            try:
+                buffer = backend_config.defaults.get('buffer', 0)
+            except AttributeError:
+                buffer = 0
 
         # system size
         n_qubits = backend_config.n_qubits
         n_registers = backend_config.n_registers
         n_uchannels = backend_config.n_uchannels
 
-        if n_uchannels > 0 and n_uchannels != n_qubits:
-            raise PulseError("This version assumes no U-channels or #U-cannels==#qubits.")
-
-        # frequency information
-        qubit_lo_freqs = backend_default.qubit_freq_est
-        qubit_lo_ranges = backend_config.qubit_lo_range
-        meas_lo_freqs = backend_default.meas_freq_est
-        meas_lo_ranges = backend_config.meas_lo_range
-
         # generate channels with assuming their numberings are aligned with qubits
-        drives = [
-            DriveChannel(i, qubit_lo_freqs[i], tuple(qubit_lo_ranges[i]))
-            for i in range(n_qubits)
-        ]
-        measures = [
-            MeasureChannel(i, meas_lo_freqs[i], tuple(meas_lo_ranges[i]))
-            for i in range(n_qubits)
-        ]
-        acquires = [AcquireChannel(i) for i in range(n_qubits)]
-        controls = [ControlChannel(i) for i in range(n_uchannels)]
+        drives = [DriveChannel(i, buffer=buffer) for i in range(n_qubits)]
+
+        measures = [MeasureChannel(i, buffer=buffer) for i in range(n_qubits)]
+
+        controls = [ControlChannel(i, buffer=buffer) for i in range(n_uchannels)]
+
+        acquires = [AcquireChannel(i, buffer=buffer) for i in range(n_qubits)]
 
         qubits = []
         for i in range(n_qubits):
             # TODO: get qubits <-> channels relationship from backend
-            qubit = Qubit(i,
-                          drive_channels=[drives[i]],
-                          control_channels=None if n_uchannels == 0 else controls[i],
-                          measure_channels=[measures[i]],
-                          acquire_channels=[acquires[i]])
+            qubit = Qubit(i, drives[i], measures[i], acquires[i],
+                          control_channels=[] if not controls else controls)
             qubits.append(qubit)
 
         registers = [RegisterSlot(i) for i in range(n_registers)]

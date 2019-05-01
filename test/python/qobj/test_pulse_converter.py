@@ -26,9 +26,7 @@ class TestInstructionConverter(QiskitTestCase):
     def setUp(self):
         self.device = DeviceSpecification(
             qubits=[
-                Qubit(0,
-                      drive_channels=[DriveChannel(0, 1.2)],
-                      acquire_channels=[AcquireChannel(0)])
+                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0))
             ],
             registers=[
                 RegisterSlot(0)
@@ -120,10 +118,7 @@ class TestLoConverter(QiskitTestCase):
     def setUp(self):
         self.device = DeviceSpecification(
             qubits=[
-                Qubit(0,
-                      drive_channels=[DriveChannel(0, 1.2)],
-                      measure_channels=[MeasureChannel(0, 3.4)],
-                      acquire_channels=[AcquireChannel(0)])
+                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0))
             ],
             registers=[
                 RegisterSlot(0)
@@ -137,11 +132,9 @@ class TestLoConverter(QiskitTestCase):
         """Test qubit channel configuration."""
         user_lo_config = LoConfig({self.device.q[0].drive: 1.3})
         converter = LoConfigConverter(PulseQobjExperimentConfig,
-                                      [1.2], [3.4])
+                                      [1.2], [3.4], [(0., 5.)], [(0., 5.)])
 
-        valid_qobj = PulseQobjExperimentConfig(
-            qubit_lo_freq=[1.3]
-        )
+        valid_qobj = PulseQobjExperimentConfig(qubit_lo_freq=[1.3])
 
         self.assertEqual(converter(user_lo_config), valid_qobj)
 
@@ -149,10 +142,8 @@ class TestLoConverter(QiskitTestCase):
         """Test measurement channel configuration."""
         user_lo_config = LoConfig({self.device.q[0].measure: 3.5})
         converter = LoConfigConverter(PulseQobjExperimentConfig,
-                                      [1.2], [3.4])
+                                      [1.2], [3.4], [(0., 5.)], [(0., 5.)])
 
-        valid_qobj = PulseQobjExperimentConfig(
-            meas_lo_freq=[3.5]
-        )
+        valid_qobj = PulseQobjExperimentConfig(meas_lo_freq=[3.5])
 
         self.assertEqual(converter(user_lo_config), valid_qobj)

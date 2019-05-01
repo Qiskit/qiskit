@@ -8,7 +8,7 @@
 """
 Channels.
 """
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 
 
 class Channel(metaclass=ABCMeta):
@@ -16,14 +16,26 @@ class Channel(metaclass=ABCMeta):
 
     prefix = None
 
-    @abstractmethod
-    def __init__(self, index: int = None):
+    def __init__(self, index: int = None, buffer: int = 0):
+        """Channel class.
+
+        Args:
+            index: Index of channel
+            buffer: Buffer that should be placed between instructions on channel
+        """
+
         self._index = index
+        self._buffer = buffer
 
     @property
     def index(self) -> int:
         """Return the index of this channel."""
         return self._index
+
+    @property
+    def buffer(self) -> int:
+        """Return the buffer for this channel."""
+        return self._buffer
 
     @property
     def name(self) -> str:
@@ -56,14 +68,6 @@ class AcquireChannel(Channel):
 
     prefix = 'a'
 
-    def __init__(self, index):
-        """Create new acquire channel.
-
-        Args:
-            index (int): Index of the channel.
-        """
-        super().__init__(index)
-
 
 class SnapshotChannel(Channel):
     """Snapshot channel."""
@@ -80,24 +84,8 @@ class MemorySlot(Channel):
 
     prefix = 'm'
 
-    def __init__(self, index):
-        """Create new memory slot.
-
-        Args:
-            index (int): Index of the channel.
-        """
-        super().__init__(index)
-
 
 class RegisterSlot(Channel):
     """Classical resister slot channel."""
 
     prefix = 'c'
-
-    def __init__(self, index):
-        """Create new register slot.
-
-        Args:
-            index (int): Index of the channel.
-        """
-        super().__init__(index)

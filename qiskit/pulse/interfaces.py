@@ -22,6 +22,8 @@ from qiskit.pulse.channels import Channel
 
 from .timeslots import TimeslotCollection
 
+# pylint: disable=missing-type-doc
+
 
 class ScheduleComponent(metaclass=ABCMeta):
     """Common interface for components of schedule. """
@@ -41,24 +43,29 @@ class ScheduleComponent(metaclass=ABCMeta):
     @property
     @abstractmethod
     def duration(self) -> int:
-        """Duration of this schedule component. """
+        """Duration of this schedule component."""
         pass
 
     @property
     @abstractmethod
     def start_time(self) -> int:
-        """Starting time of this schedule component. """
+        """Starting time of this schedule component."""
+        pass
+
+    @property
+    def buffer(self) -> int:
+        """Buffer for schedule. To be used when appending"""
         pass
 
     @property
     @abstractmethod
     def stop_time(self) -> int:
-        """Stopping time of this schedule component. """
+        """Stopping time of this schedule component."""
         pass
 
     @abstractmethod
     def ch_duration(self, *channels: List[Channel]) -> int:
-        """Duration of the `channels` in schedule component. """
+        """Duration of the `channels` in schedule component."""
         pass
 
     @abstractmethod
@@ -68,19 +75,19 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @abstractmethod
     def ch_stop_time(self, *channels: List[Channel]) -> int:
-        """Stopping of the `channels` in schedule component. """
+        """Stopping of the `channels` in schedule component."""
         pass
 
     @property
     @abstractmethod
     def timeslots(self) -> TimeslotCollection:
-        """Occupied time slots by this schedule component. """
+        """Occupied time slots by this schedule component."""
         pass
 
     @property
     @abstractmethod
     def children(self) -> Tuple[Union[int, 'ScheduleComponent']]:
-        """Child nodes of this schedule component. """
+        """Child nodes of this schedule component."""
         pass
 
     @property
@@ -95,36 +102,47 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def union(self, *schedules: List['ScheduleComponent']) -> 'ScheduleComponent':
+    def union(self, *schedules: List['ScheduleComponent'], name: str = None) -> 'ScheduleComponent':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
+
         Args:
             schedules: Schedules to be take the union with the parent `Schedule`.
+            name: Name of the new schedule. Defaults to name of parent
         """
         pass
 
     @abstractmethod
-    def shift(self: 'ScheduleComponent', time: int) -> 'ScheduleComponent':
+    def shift(self: 'ScheduleComponent', time: int, name: str = None) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
         Args:
             time: Time to shift by
+            name: Name of the new schedule. Defaults to name of parent
         """
         pass
 
     @abstractmethod
-    def insert(self, start_time: int, schedule: 'ScheduleComponent') -> 'ScheduleComponent':
+    def insert(self, start_time: int, schedule: 'ScheduleComponent', buffer: bool = False,
+               name: str = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at `start_time` of `self`.
+
         Args:
             start_time: time to be inserted
             schedule: schedule to be inserted
+            buffer: Obey buffer when appending
+            name: Name of the new schedule. Defaults to name of parent
         """
         pass
 
     @abstractmethod
-    def append(self, schedule: 'ScheduleComponent') -> 'ScheduleComponent':
+    def append(self, schedule: 'ScheduleComponent', buffer: bool = True,
+               name: str = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
+
         Args:
             schedule: schedule to be appended
+            buffer: Obey buffer when appending
+            name: Name of the new schedule. Defaults to name of parent
         """
         pass
 
