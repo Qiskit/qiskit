@@ -40,10 +40,12 @@ class TestCmdDef(QiskitTestCase):
         sched = Schedule()
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         cmd_def = CmdDef()
+        cmd_def.add('tmp', 1, sched)
         cmd_def.add('tmp', 0, sched)
         self.assertEqual(sched.instructions, cmd_def.get('tmp', (0,)).instructions)
 
         self.assertIn('tmp', cmd_def.cmds())
+        self.assertEqual(cmd_def.cmd_qubits('tmp'), [(0,), (1,)])
 
     def test_pop(self):
         """Test pop with default."""

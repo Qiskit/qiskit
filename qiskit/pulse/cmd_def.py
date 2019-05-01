@@ -172,7 +172,7 @@ class CmdDef:
 
         else:
             raise PulseError('Command {0} for qubits {1} is not present '
-                             'in CmdDef'.format(name=cmd_name, qubits=qubits))
+                             'in CmdDef'.format(cmd_name, qubits))
 
     def cmds(self) -> List[str]:
         """Return all command names available in CmdDef."""
@@ -182,7 +182,7 @@ class CmdDef:
     def cmd_qubits(self, cmd_name: str) -> List[Tuple[int]]:
         """Get all qubit orderings this command exists for."""
         if cmd_name in self._cmd_dict:
-            return list(self._cmd_dict.keys())
+            return list(sorted(self._cmd_dict[cmd_name].keys()))
 
         raise PulseError('Command %s does not exist in CmdDef.' % cmd_name)
 
