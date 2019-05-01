@@ -21,10 +21,3 @@ from .configuration import LoConfig, LoRange
 from .schedule import Schedule
 from .cmd_def import CmdDef
 from .exceptions import PulseError
-
-# standard library pulse modules
-from . import pulse_lib
-from . import channels
-from . import commands
-from . import ops
-from . import samplers
