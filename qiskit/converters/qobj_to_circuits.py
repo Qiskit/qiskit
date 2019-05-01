@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Helper function for converting qobj to a list of circuits"""
 
 import warnings
 
-from qiskit.compiler import disassembler
+from qiskit.assembler import disassemble
 
 
 def qobj_to_circuits(qobj):
@@ -25,4 +32,6 @@ def qobj_to_circuits(qobj):
                   'be removed in Qiskit Terra 0.9. Please use '
                   'qiskit.compiler.disassemble_circuits() to convert a qobj '
                   'to list of circuits.', DeprecationWarning)
-    return disassembler._experiments_to_circuits(qobj)
+
+    variables = disassemble(qobj)
+    return variables[0]

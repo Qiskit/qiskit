@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name
 # pylint: disable=arguments-differ
@@ -24,7 +31,7 @@ import logging
 from math import log2
 from qiskit.util import local_hardware_info
 from qiskit.providers.basicaer.exceptions import BasicAerError
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from .qasm_simulator import QasmSimulatorPy
 
 logger = logging.getLogger(__name__)
@@ -87,8 +94,8 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
     SHOW_FINAL_STATE = True
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(configuration or
-                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(configuration=(
+            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
     def run(self, qobj, backend_options=None):

@@ -12,9 +12,9 @@ import unittest
 import numpy as np
 
 import qiskit.pulse as pulse
-from qiskit.circuit import Instruction
+from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.compiler.assembler import assemble
+from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
 from qiskit.qobj import QasmQobj
 from qiskit.test import QiskitTestCase
@@ -174,6 +174,80 @@ class TestCircuitAssembler(QiskitTestCase):
 
         self.assertTrue(hasattr(h_op, 'conditional'))
         self.assertEqual(bfunc_op.register, h_op.conditional)
+
+    def test_assemble_circuits_raises_for_bind_circuit_mismatch(self):
+        """Verify assemble_circuits raise error for parametized circuits without matching binds."""
+        qr = QuantumRegister(2)
+        x = Parameter('x')
+        y = Parameter('y')
+
+        full_bound_circ = QuantumCircuit(qr)
+        full_param_circ = QuantumCircuit(qr)
+        partial_param_circ = QuantumCircuit(qr)
+
+        partial_param_circ.u1(x, qr[0])
+
+        full_param_circ.u1(x, qr[0])
+        full_param_circ.u1(y, qr[1])
+
+        partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
+        full_bind_args = {'parameter_binds': [{x: 1, y: 1}, {x: 0, y: 0}]}
+        inconsistent_bind_args = {'parameter_binds': [{x: 1}, {x: 0, y: 0}]}
+
+        # Raise when parameters passed for non-parametric circuit
+        self.assertRaises(QiskitError, assemble,
+                          full_bound_circ, **partial_bind_args)
+
+        # Raise when no parameters passed for parametric circuit
+        self.assertRaises(QiskitError, assemble, partial_param_circ)
+        self.assertRaises(QiskitError, assemble, full_param_circ)
+
+        # Raise when circuit has more parameters than run_config
+        self.assertRaises(QiskitError, assemble,
+                          full_param_circ, **partial_bind_args)
+
+        # Raise when not all circuits have all parameters
+        self.assertRaises(QiskitError, assemble,
+                          [full_param_circ, partial_param_circ], **full_bind_args)
+
+        # Raise when not all binds have all circuit params
+        self.assertRaises(QiskitError, assemble,
+                          full_param_circ, **inconsistent_bind_args)
+
+    def test_assemble_circuits_binds_parameters(self):
+        """Verify assemble_circuits applies parameter bindings and output circuits are bound."""
+        qr = QuantumRegister(1)
+        qc1 = QuantumCircuit(qr)
+        qc2 = QuantumCircuit(qr)
+
+        x = Parameter('x')
+        y = Parameter('y')
+
+        qc1.u2(x, y, qr[0])
+
+        qc2.rz(x, qr[0])
+        qc2.rz(y, qr[0])
+
+        bind_args = {'parameter_binds': [{x: 0, y: 0},
+                                         {x: 1, y: 0},
+                                         {x: 1, y: 1}]}
+
+        qobj = assemble([qc1, qc2], **bind_args)
+
+        self.assertEqual(len(qobj.experiments), 6)
+        self.assertEqual([len(expt.instructions) for expt in qobj.experiments],
+                         [1, 1, 1, 2, 2, 2])
+
+        self.assertEqual(qobj.experiments[0].instructions[0].params, [0, 0])
+        self.assertEqual(qobj.experiments[1].instructions[0].params, [1, 0])
+        self.assertEqual(qobj.experiments[2].instructions[0].params, [1, 1])
+
+        self.assertEqual(qobj.experiments[3].instructions[0].params, [0])
+        self.assertEqual(qobj.experiments[3].instructions[1].params, [0])
+        self.assertEqual(qobj.experiments[4].instructions[0].params, [1])
+        self.assertEqual(qobj.experiments[4].instructions[1].params, [0])
+        self.assertEqual(qobj.experiments[5].instructions[0].params, [1])
+        self.assertEqual(qobj.experiments[5].instructions[1].params, [1])
 
 
 class TestPulseAssembler(QiskitTestCase):

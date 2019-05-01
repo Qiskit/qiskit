@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=unused-import
 
@@ -17,6 +24,7 @@ from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import Parameter
 
 
 class TestUnroller(QiskitTestCase):
@@ -229,3 +237,34 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.measure(qr, cr)
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
+
+    def test_unroll_parameterized_without_expressions(self):
+        """Verify unrolling parameterized gates without expressions."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+
+        qc.rz(theta, qr[0])
+        dag = circuit_to_dag(qc)
+
+        unrolled_dag = Unroller(['u1', 'cx']).run(dag)
+
+        expected = QuantumCircuit(qr)
+        expected.u1(theta, qr[0])
+
+        self.assertEqual(circuit_to_dag(expected), unrolled_dag)
+
+    def test_unroll_parameterized_with_expressions(self):
+        """Verify that unrolling parameterized gates with expressions raises."""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+
+        qc.cu1(theta, qr[0], qr[1])
+        dag = circuit_to_dag(qc)
+
+        with self.assertRaisesRegex(QiskitError, 'unsupported'):
+            Unroller(['u1', 'cx']).run(dag)
+            raise QiskitError('unsupported')
