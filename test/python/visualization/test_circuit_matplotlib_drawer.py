@@ -20,6 +20,7 @@ if visualization.HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
     from matplotlib.testing import compare
     import matplotlib
+    import sys
 
 
 def _path_to_reference(filename):
@@ -69,8 +70,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         # Use a different backend as the default backend causes the test to fail.
         # This is because it adds less whitespace around the image than is present
-        # in the refernce image
-        matplotlib.use('TKAgg')
+        # in the reference image, but only on MacOS
+        if sys.platform == 'darwin':
+            matplotlib.use('agg')
 
         # generate a circuit with barriers and other barrier like instructions in
         q = QuantumRegister(2, 'q')
