@@ -175,7 +175,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(0, sched.start_time)
         self.assertEqual(0, sched.stop_time)
         self.assertEqual(0, sched.duration)
-        self.assertEqual((), sched.children)
+        self.assertEqual((), sched._children)
         self.assertEqual(TimeslotCollection(), sched.timeslots)
         self.assertEqual([], list(sched.instructions))
 
@@ -236,21 +236,21 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual([100, 130, 140], start_times)
 
     def test_keep_original_schedule_after_attached_to_another_schedule(self):
-        """Test if a schedule keeps its children after attached to another schedule."""
+        """Test if a schedule keeps its _children after attached to another schedule."""
         device = self.two_qubit_device
 
         acquire = Acquire(10)
-        children = (acquire(device.q[1], device.mem[1]).shift(20) +
-                    acquire(device.q[1], device.mem[1]))
-        self.assertEqual(2, len(list(children.instructions)))
+        _children = (acquire(device.q[1], device.mem[1]).shift(20) +
+                     acquire(device.q[1], device.mem[1]))
+        self.assertEqual(2, len(list(_children.instructions)))
 
-        sched = acquire(device.q[1], device.mem[1]).append(children)
+        sched = acquire(device.q[1], device.mem[1]).append(_children)
         self.assertEqual(3, len(list(sched.instructions)))
 
-        # add 2 instructions to children (2 instructions -> 4 instructions)
-        children = children.append(acquire(device.q[1], device.mem[1]))
-        children = children.insert(100, acquire(device.q[1], device.mem[1]))
-        self.assertEqual(4, len(list(children.instructions)))
+        # add 2 instructions to _children (2 instructions -> 4 instructions)
+        _children = _children.append(acquire(device.q[1], device.mem[1]))
+        _children = _children.insert(100, acquire(device.q[1], device.mem[1]))
+        self.assertEqual(4, len(list(_children.instructions)))
         # sched must keep 3 instructions (must not update to 5 instructions)
         self.assertEqual(3, len(list(sched.instructions)))
 
@@ -297,7 +297,7 @@ class TestSchedule(QiskitTestCase):
 
         flat_sched = sched.flatten()
 
-        self.assertEqual(len(flat_sched.children), 10)
+        self.assertEqual(len(flat_sched._children), 10)
 
         self.assertEqual(flat_sched.instructions, sched.instructions)
 

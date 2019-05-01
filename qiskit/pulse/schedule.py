@@ -48,7 +48,7 @@ class Schedule(ScheduleComponent):
         self._name = name
         try:
             timeslots = []
-            children = []
+            _children = []
             for sched_pair in schedules:
                 # recreate as sequence starting at 0.
                 if not isinstance(sched_pair, (list, tuple)):
@@ -60,10 +60,10 @@ class Schedule(ScheduleComponent):
                 if insert_time:
                     sched_timeslots = sched_timeslots.shift(insert_time)
                 timeslots.append(sched_timeslots.timeslots)
-                children.append(sched_pair)
+                _children.append(sched_pair)
 
             self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
-            self._children = tuple(children)
+            self.__children = tuple(_children)
 
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
@@ -96,8 +96,8 @@ class Schedule(ScheduleComponent):
         return self.timeslots.channels
 
     @property
-    def children(self) -> Tuple[ScheduleComponent]:
-        return self._children
+    def _children(self) -> Tuple[ScheduleComponent]:
+        return self.__children
 
     @property
     def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
@@ -138,7 +138,7 @@ class Schedule(ScheduleComponent):
             Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
                 at and the flattened `ScheduleComponent`.
         """
-        for insert_time, child_sched in self.children:
+        for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
     def union(self, *schedules: List[ScheduleComponent]) -> 'Schedule':
