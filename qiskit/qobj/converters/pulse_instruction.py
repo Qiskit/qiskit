@@ -7,6 +7,7 @@
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 import re
+import math
 
 from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
                                         implicit_multiplication_application,
@@ -14,7 +15,7 @@ from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
 from sympy import Symbol
 
 from qiskit.pulse import commands, channels, Schedule
-from qikit.pulse.schedule import ParameterizedSchedule
+from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjMeasurementOption
 from qiskit import QiskitError
@@ -251,7 +252,7 @@ def _is_math_expr_safe(expr):
     return True
 
 
-def _parse_string_expr(self, expr):
+def _parse_string_expr(expr):
     """Parse a mathematical string expression and extract free parameters.
 
     Args:
@@ -267,7 +268,7 @@ def _parse_string_expr(self, expr):
     # these are effectively reserved keywords
     subs = [('numpy.', ''), ('np.', ''), ('math.', '')]
     for match, sub in subs:
-        expr = expr.sub(match, sub)
+        expr = expr.replace(match, sub)
     if not _is_math_expr_safe(expr):
         raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
     params = re.findall(param_regex, expr)
@@ -280,14 +281,19 @@ def _parse_string_expr(self, expr):
 
     def parsed_fun(*args, **kwargs):
         subs = {}
+        matched_params = []
         if args:
             subs.update({symbols[i]: arg for i, arg in enumerate(args)})
+            matched_params += list(params[i] for i, _ in range(len(args)))
         elif kwargs:
-            subs.update({local_dict[key]: value for key, value in kwargs.items()})
+            subs.update({local_dict[key]: value for key, value in kwargs.items()
+                         if key in local_dict})
+            matched_params += list(key for key in kwargs if key in params)
 
-        if not set(subs.keys()).issuperset(set(params)):
-            raise PulseError('Supplied params do not match '
-                             '{params}'.format(params=params))
+        if not set(matched_params).issuperset(set(params)):
+            raise PulseError('Supplied params ({args}, {kwargs}) do not match '
+                             '{params}'.format(args=args, kwargs=kwargs, params=params))
+
         return complex(parsed_expr.evalf(subs=subs))
     return parsed_fun, params
 
@@ -416,7 +422,7 @@ class QobjToInstructionConverter:
             phase_expr, params = _parse_string_expr(phase)
 
             def gen_fc_sched(*args, **kwargs):
-                phase = float(phase_expr(*args, **kwargs))
+                phase = abs(phase_expr(*args, **kwargs))
                 return commands.FrameChange(phase)(channel) << t0
 
             return ParameterizedSchedule(gen_fc_sched, parameters=params)

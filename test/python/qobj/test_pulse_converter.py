@@ -20,6 +20,7 @@ from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Sn
                                    Discriminator, Kernel)
 from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
                                    ControlChannel, MeasureChannel, RegisterSlot, MemorySlot,)
+from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.pulse import LoConfig
 
 
@@ -197,6 +198,36 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         self.assertEqual(converted_instruction.timeslots, instruction.timeslots)
         self.assertEqual(converted_instruction.instructions[0][-1], cmd)
+
+    def test_parameterized_frame_change(self):
+        """Test converted qobj from FrameChangeInstruction."""
+        cmd = FrameChange(phase=4.)
+        instruction = cmd(MeasureChannel(0)) << 10
+
+        qobj = PulseQobjInstruction(name='fc', ch='m0', t0=10, phase='P1**2')
+        converted_instruction = self.converter(qobj)
+
+        self.assertIsInstance(converted_instruction, ParameterizedSchedule)
+
+        evaluated_instruction = converted_instruction.bind_parameters(P1=2.)
+
+        self.assertEqual(evaluated_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(evaluated_instruction.instructions[0][-1].command, cmd)
+
+    def test_parameterized_persistent_value(self):
+        """Test converted qobj from PersistentValueInstruction."""
+        cmd = PersistentValue(value=0.5+0.j)
+        instruction = cmd(ControlChannel(1)) << 10
+
+        qobj = PulseQobjInstruction(name='pv', ch='u1', t0=10, val='P1*cos(np.pi*P2)')
+        converted_instruction = self.converter(qobj)
+
+        self.assertIsInstance(converted_instruction, ParameterizedSchedule)
+
+        evaluated_instruction = converted_instruction.bind_parameters(P1=0.5, P2=0.)
+
+        self.assertEqual(evaluated_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(evaluated_instruction.instructions[0][-1].command, cmd)
 
 
 class TestLoConverter(QiskitTestCase):

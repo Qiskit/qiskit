@@ -225,7 +225,7 @@ class ParameterizedSchedule:
     """
 
     def __init__(self, *schedules, parameters=None, name=None):
-        schedules = []
+        full_schedules = []
         parameterized = []
         parameters = parameters or []
         self.name = name or ''
@@ -237,12 +237,12 @@ class ParameterizedSchedule:
                 elif callable(schedule):
                     parameterized.append(schedule)
                 elif isinstance(schedule, Schedule):
-                    schedules.append(schedule)
+                    full_schedules.append(schedule)
                 else:
                     raise PulseError('Input type: {0} not supported'.format(type(schedule)))
 
         self._parameterized = tuple(parameterized)
-        self._schedules = tuple(schedules)
+        self._schedules = tuple(full_schedules)
         self._parameters = tuple(parameters)
 
     @property
@@ -257,6 +257,8 @@ class ParameterizedSchedule:
         for param_sched in self._parameterized:
             # recursively call until based callable is reached
             schedules.append(param_sched(*args, **kwargs))
+
+        # construct evaluated schedules
         for sched in schedules:
             bound_schedule |= sched
 
