@@ -77,7 +77,7 @@ class OptimizePhaseShiftGates(TransformationPass):
                 for final_gate_position in range(len(t_position_counter[key])):
                     dag_copy = copy.deepcopy(dag)
                     k = 0
-                    for _ in t_position_counter[key]:
+                    for i in t_position_counter[key]:
                         if k == final_gate_position:
                             p_reg = QuantumRegister(1, 'p')
                             repl = QuantumCircuit(p_reg)
