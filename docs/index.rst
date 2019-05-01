@@ -20,7 +20,6 @@ Welcome to Qiskit's documentation!
   Community Extensions <community>
   License <license>
 
-
 Indices and tables
 ==================
 
