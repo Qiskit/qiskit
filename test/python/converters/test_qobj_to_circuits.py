@@ -22,9 +22,9 @@ import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
+from qiskit.circuit import Instruction
 from qiskit.compiler import assemble
 from qiskit.converters import qobj_to_circuits
-
 from qiskit.qobj import QasmQobj, QasmQobjConfig, QobjHeader
 from qiskit.transpiler import PassManager
 from qiskit.converters import circuit_to_dag
@@ -129,6 +129,29 @@ class TestQobjToCircuits(QiskitTestCase):
         q = QuantumRegister(2, name='q')
         circ = QuantumCircuit(q, name='circ')
         circ.initialize([1 / np.sqrt(2), 0, 0, 1 / np.sqrt(2)], q[:])
+        dag = circuit_to_dag(circ)
+        qobj = assemble(circ)
+        out_circuit = qobj_to_circuits(qobj)[0]
+        self.assertEqual(circuit_to_dag(out_circuit), dag)
+
+    def test_qobj_to_circuits_with_identity(self):
+        """Check qobj_to_circuit's result with initialize."""
+        q = QuantumRegister(2, name='q')
+        circ = QuantumCircuit(q, name='circ')
+        circ.iden(q)
+        dag = circuit_to_dag(circ)
+        qobj = assemble(circ)
+        out_circuit = qobj_to_circuits(qobj)[0]
+        self.assertEqual(circuit_to_dag(out_circuit), dag)
+
+    def test_qobj_to_circuits_with_opaque(self):
+        """Check qobj_to_circuit's result with an opaque instruction."""
+        opaque_inst = Instruction(name='my_inst', num_qubits=4,
+                                  num_clbits=2, params=[0.5, 0.4])
+        q = QuantumRegister(6, name='q')
+        c = ClassicalRegister(4, name='c')
+        circ = QuantumCircuit(q, c, name='circ')
+        circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
         dag = circuit_to_dag(circ)
         qobj = assemble(circ)
         out_circuit = qobj_to_circuits(qobj)[0]
