@@ -239,13 +239,15 @@ class Initialize(Instruction):
 
         return circuit
 
+    def argument_expansion(self, qargs, cargs):
+        # Validation and expantion of the qargs and cargs for the gate
+        # if len(cargs) == 0:
+        #     raise QiskitError("")
+        for qarg in zip(*qargs):
+            yield list(qarg), []
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
-    if isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-    else:
-        qubits = _convert_to_bits([qubits], [qbit for qreg in self.qregs for qbit in qreg])[0]
     return self.append(Initialize(params), qubits)
 
 

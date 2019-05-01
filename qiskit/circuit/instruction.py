@@ -284,3 +284,18 @@ class Instruction:
                 [str(i) for i in self.params]))
 
         return self._qasmif(name_param)
+
+    def argument_expansion(self, qargs, cargs):
+        # Validation and expantion of the qargs and cargs for the gate
+        if len(qargs) != self.num_qubits:
+            raise QiskitError("")
+        if len(cargs) != self.num_clbits:
+            raise QiskitError("")
+
+        if len(cargs) == len(qargs):
+            for qarg, carg in zip(qargs, cargs):
+                yield qarg, carg
+        elif not cargs and len(qargs) == 1:
+            for qarg in qargs[0]:
+                yield [qarg],[]
+
