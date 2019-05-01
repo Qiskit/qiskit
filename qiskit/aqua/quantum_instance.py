@@ -19,7 +19,7 @@ from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
 from qiskit.transpiler import Layout
 
-from .utils import (run_qobjs, compile_cirucits, CircuitCache,
+from .utils import (run_qobjs, compile_circuits, CircuitCache,
                     get_measured_qubits_from_qobj,
                     build_measurement_error_mitigation_fitter,
                     mitigate_measurement_error)
@@ -155,12 +155,20 @@ class QuantumInstance:
         self._cals_matrix_refresh_period = cals_matrix_refresh_period
         self._prev_timestamp = 0
 
+        if self._measurement_error_mitigation_cls is not None:
+            logger.info("The measurement error mitigation is enable. "
+                        "It will automatically submit an additional job to help calibrate the result of other jobs. "
+                        "The current approach will submit a job with 2^N circuits to build the calibration matrix, "
+                        "where N is the number of measured qubits. "
+                        "Furthermore, Aqua will re-use the calibration matrix for {} minutes "
+                        "and re-build it after that.".format(self._cals_matrix_refresh_period))
+
         logger.info(self)
 
     def __str__(self):
         """Overload string.
 
-        Retruns:
+        Returns:
             str: the info of the object.
         """
         info = "\nQiskit Terra version: {}\n".format(terra_version)
@@ -168,6 +176,7 @@ class QuantumInstance:
             self.backend_name, self._backend.provider(), self._backend_config, self._compile_config,
             self._run_config, self._qjob_config, self._backend_options, self._noise_config)
         info += "\nMeasurement mitigation: {}".format(self._measurement_error_mitigation_cls)
+
         return info
 
     def execute(self, circuits, **kwargs):
@@ -180,7 +189,7 @@ class QuantumInstance:
         Returns:
             Result: Result object
         """
-        qobjs = compile_cirucits(circuits, self._backend, self._backend_config, self._compile_config, self._run_config,
+        qobjs = compile_circuits(circuits, self._backend, self._backend_config, self._compile_config, self._run_config,
                                  show_circuit_summary=self._circuit_summary, circuit_cache=self._circuit_cache,
                                  **kwargs)
 

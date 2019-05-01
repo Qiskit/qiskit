@@ -125,7 +125,7 @@ def _compile_wrapper(circuits, backend, backend_config, compile_config, run_conf
     return qobj, transpiled_circuits
 
 
-def compile_cirucits(circuits, backend, backend_config=None, compile_config=None, run_config=None,
+def compile_circuits(circuits, backend, backend_config=None, compile_config=None, run_config=None,
                      show_circuit_summary=False, circuit_cache=None, **kwargs):
     """
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
@@ -400,7 +400,7 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
     Raises:
         AquaError: Any error except for JobError raised by Qiskit Terra
     """
-    qobjs = compile_cirucits(circuits, backend, backend_config, compile_config, run_config,
+    qobjs = compile_circuits(circuits, backend, backend_config, compile_config, run_config,
                              show_circuit_summary, circuit_cache, **kwargs)
     result = run_qobjs(qobjs, backend, qjob_config, backend_options, noise_config, skip_qobj_validation)
     return result

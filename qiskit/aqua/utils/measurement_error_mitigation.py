@@ -20,7 +20,7 @@ import logging
 from qiskit.ignis.mitigation.measurement import (complete_meas_cal, tensored_meas_cal,
                                                  CompleteMeasFitter, TensoredMeasFitter)
 
-from .run_circuits import run_qobjs, compile_cirucits
+from .run_circuits import run_qobjs, compile_circuits
 from ..aqua_error import AquaError
 
 logger = logging.getLogger(__name__)
@@ -101,6 +101,9 @@ def build_measurement_error_mitigation_fitter(qubits, fitter_cls, backend,
 
     Returns:
         CompleteMeasFitter or TensoredMeasFitter: the measurement fitter
+
+    Raises:
+        AquaError: when the fitter_cls is not recognizable.
     """
 
     if len(qubits) == 0:
@@ -112,12 +115,13 @@ def build_measurement_error_mitigation_fitter(qubits, fitter_cls, backend,
         meas_calibs_circuits, state_labels = complete_meas_cal(qubit_list=qubits, circlabel=circlabel)
     elif fitter_cls == TensoredMeasFitter:
         # TODO support different calibration
-        meas_calibs_circuits, state_labels = tensored_meas_cal()
+        raise AquaError("Does not support TensoredMeasFitter yet.")
+        # meas_calibs_circuits, state_labels = tensored_meas_cal()
     else:
         raise AquaError("Unknown fitter {}".format(fitter_cls))
 
     # compile
-    qobjs = compile_cirucits(meas_calibs_circuits, backend, backend_config, compile_config, run_config)
+    qobjs = compile_circuits(meas_calibs_circuits, backend, backend_config, compile_config, run_config)
     cal_results = run_qobjs(qobjs, backend, qjob_config, backend_options, noise_config,
                             skip_qobj_validation=False)
     meas_fitter = fitter_cls(cal_results, state_labels, circlabel=circlabel)
