@@ -13,6 +13,7 @@ from qiskit.converters import circuit_to_instruction
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.test import QiskitTestCase
+from qiskit.exceptions import QiskitError
 
 
 class TestCircuitToInstruction(QiskitTestCase):
@@ -55,6 +56,48 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[0][0].params, [theta])
         self.assertEqual(inst.definition[1][0].params, [phi])
         self.assertEqual(inst.definition[2][0].params, [theta, phi])
+
+    def test_underspecified_parameter_map_raises(self):
+        """Verify we raise if not all circuit parameters are present in parameter_map."""
+        qr = QuantumRegister(3, 'qr')
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        gamma = Parameter('gamma')
+
+        qc.rz(theta, qr[0])
+        qc.rz(phi, qr[1])
+        qc.u2(theta, phi, qr[2])
+
+        self.assertRaises(QiskitError, circuit_to_instruction, qc, {theta: gamma})
+
+        # Raise if provided more parameters than present in the circuit
+        delta = Parameter('delta')
+        self.assertRaises(QiskitError, circuit_to_instruction, qc,
+                          {theta: gamma, phi: phi, delta: delta})
+
+    def test_parameter_map(self):
+        """Verify alternate parameter specification"""
+        qr = QuantumRegister(3, 'qr')
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        gamma = Parameter('gamma')
+
+        qc.rz(theta, qr[0])
+        qc.rz(phi, qr[1])
+        qc.u2(theta, phi, qr[2])
+
+        inst = circuit_to_instruction(qc, {theta: gamma, phi: phi})
+
+        self.assertEqual(inst.params, [gamma, phi])
+        self.assertEqual(inst.definition[0][0].params, [gamma])
+        self.assertEqual(inst.definition[1][0].params, [phi])
+        self.assertEqual(inst.definition[2][0].params, [gamma, phi])
 
 
 if __name__ == '__main__':
