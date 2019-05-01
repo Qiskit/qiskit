@@ -271,7 +271,7 @@ def _parse_string_expr(expr):
         expr = expr.replace(match, sub)
     if not _is_math_expr_safe(expr):
         raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
-    params = re.findall(param_regex, expr)
+    params = sorted(re.findall(param_regex, expr))
     local_dict = {param: Symbol(param) for param in params}
     symbols = list(local_dict.keys())
     transformations = (standard_transformations + (implicit_multiplication_application,) +

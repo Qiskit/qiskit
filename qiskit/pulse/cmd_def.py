@@ -133,6 +133,24 @@ class CmdDef:
             raise PulseError('Command {name} for qubits {qubits} is not present'
                              'in CmdDef'.format(cmd_name, qubits))
 
+    def get_parameters(self, cmd_name: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
+        """Get command parameters from command definition.
+        Args:
+            cmd_name: Name of the command
+            qubits: Ordered list of qubits command applies to
+
+        Raises:
+            PulseError
+        """
+        qubits = _to_qubit_tuple(qubits)
+        if self.has(cmd_name, qubits):
+            schedule = self._cmd_dict[cmd_name][qubits]
+            return schedule.parameters
+
+        else:
+            raise PulseError('Command {name} for qubits {qubits} is not present'
+                             'in CmdDef'.format(cmd_name, qubits))
+
     def pop(self, cmd_name: str, qubits: Union[int, Iterable[int]],
             **params: Dict[str, Union[float, complex]]) -> Schedule:
         """Pop command from command definition.

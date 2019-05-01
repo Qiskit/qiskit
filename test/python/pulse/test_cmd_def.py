@@ -11,6 +11,8 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
+from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.qobj import PulseQobjInstruction
 from qiskit.pulse import (CmdDef, SamplePulse, Schedule, DeviceSpecification,
                           PulseError, PersistentValue)
 
@@ -56,14 +58,27 @@ class TestCmdDef(QiskitTestCase):
             cmd_def.pop('not_there', (0,))
 
     def test_repr(self):
-        """Test repr"""
+        """Test repr."""
         sched = Schedule()
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         cmd_def = CmdDef({('tmp', 0): sched})
         repr(cmd_def)
 
+    def test_parameterized_schedule(self):
+        """Test building parameterized schedule."""
+        cmd_def = CmdDef()
+        converter = QobjToInstructionConverter([], buffer=0)
+        qobj = PulseQobjInstruction(name='pv', ch='u1', t0=10, val='P2*cos(np.pi*P1)')
+        converted_instruction = converter(qobj)
+
+        cmd_def.add('pv_test', 0, converted_instruction)
+        self.assertEqual(cmd_def.get_parameters('pv_test', 0), ('P1', 'P2'))
+
+        sched = cmd_def.get('pv_test', 0, P1='0', P2=-1)
+        self.assertEqual(sched.instructions[0][-1].command.value, -1)
+
     def test_build_cmd_def(self):
-        """Test building of parameterized cmd_def"""
+        """Test building of parameterized cmd_def from defaults."""
         defaults = self.backend.defaults()
         cmd_def = defaults.build_cmd_def()
 

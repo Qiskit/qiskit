@@ -243,12 +243,12 @@ class ParameterizedSchedule:
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
-        self._parameters = tuple(parameters)
+        self._parameters = tuple(sorted(parameters))
 
     @property
     def parameters(self) -> Tuple[str]:
         """Schedule parameters."""
-        self._parameters
+        return self._parameters
 
     def bind_parameters(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
