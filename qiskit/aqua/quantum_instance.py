@@ -343,10 +343,17 @@ class QuantumInstance:
             bool: whether or not refresh the cals_matrix
         """
         ret = False
-        curr_timestamp = time.time_ns()
-        difference = (curr_timestamp - self._prev_timestamp) // 1e9 / 60.0
+        curr_timestamp = time.time()
+        difference = int(curr_timestamp - self._prev_timestamp) / 60.0
         if difference > self._cals_matrix_refresh_period:
             self._prev_timestamp = curr_timestamp
             ret = True
 
         return ret
+
+    @property
+    def cals_matrix(self):
+        cals_matrix = None
+        if self._measurement_error_mitigation_fitter is not None:
+            cals_matrix = self._measurement_error_mitigation_fitter.cal_matrix
+        return cals_matrix
