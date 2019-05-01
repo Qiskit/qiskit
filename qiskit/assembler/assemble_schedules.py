@@ -14,6 +14,7 @@
 
 """Assemble function for converting a list of circuits into a qobj"""
 import logging
+import functools
 
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import PulseInstruction, AcquireInstruction
@@ -45,7 +46,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
     qobj_config = run_config.to_dict()
     qubit_lo_range = qobj_config.pop('qubit_lo_range')
     meas_lo_range = qobj_config.pop('meas_lo_range')
-
+    meas_map = qobj_config.pop('meas_map', None)
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
     lo_converter = LoConfigConverter(PulseQobjExperimentConfig, qubit_lo_range=qubit_lo_range,
@@ -53,7 +54,6 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
 
     # Pack everything into the Qobj
     qobj_schedules = []
-    acquires = []
     user_pulselib = set()
     for idx, schedule in enumerate(schedules):
         # instructions
@@ -66,7 +66,9 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
                 # add samples to pulse library
                 user_pulselib.add(instruction.command)
             if isinstance(instruction, AcquireInstruction):
-                acquires.add(instruction)
+                if meas_map:
+                    # verify all acquires satisfy meas_map
+                    _validate_meas_map(instruction, meas_map)
 
         # experiment header
         qobj_experiment_header = QobjExperimentHeader(
@@ -132,3 +134,20 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
                      config=qobj_config,
                      experiments=experiments,
                      header=qobj_header)
+
+
+def _validate_meas_map(acquire, meas_map):
+    """Validate all qubits tied in meas_map are to be acquired."""
+    meas_map_set = [set(m) for m in meas_map]
+    # Verify that each qubit is listed once in measurement map
+    measured_qubits = set(acq_ch.index for acq_ch in acquire.acquires)
+    tied_qubits = set()
+    for meas_qubit in measured_qubits:
+        for meas_map in meas_map_set:
+            if meas_qubit in meas_map:
+                tied_qubits.add(meas_map)
+
+    if measured_qubits != tied_qubits:
+        raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '
+                          'in measurement map: {1}'.format(measured_qubits, tied_qubits))
+    return True

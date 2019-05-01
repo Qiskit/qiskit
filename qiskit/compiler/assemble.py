@@ -185,7 +185,7 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                     qubit_lo_freq, meas_lo_freq,
                     qubit_lo_range, meas_lo_range,
                     schedule_los, meas_level, meas_return,
-                    meas_map, memory_slots, memory_slots,
+                    meas_map, memory_slots,
                     memory_slot_size, rep_time,
                     parameter_binds, **run_config):
     """Resolve the various types of args allowed to the assemble() function through
@@ -217,6 +217,7 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                 meas_freq_est=backend_config_defaults.get('meas_freq_est')
             )
 
+    meas_map = meas_map or getattr(backend_config, 'meas_map', None)
     memory_slots = memory_slots or getattr(backend_config, 'memory_slots', None)
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
     if isinstance(rep_time, list):
