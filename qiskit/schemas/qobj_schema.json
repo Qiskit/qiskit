@@ -115,13 +115,15 @@
                             ]
                         },
                         "val": {
-                            "items": {
+                            "OneOf": [
+                            {"items": {
                                 "type": "number"
                             },
                             "maxItems": 2,
                             "minItems": 2,
-                            "type": "array"
-                        }
+                            "type": "array"},
+                            {"type": "string"}
+                        ]}
                     },
                     "required": [
                         "val",
@@ -138,7 +140,9 @@
                             ]
                         },
                         "phase": {
-                            "type": "number"
+                            "OneOf":[
+                            {"type": "number"},
+                            {"type": "string"}]
                         }
                     },
                     "required": [
