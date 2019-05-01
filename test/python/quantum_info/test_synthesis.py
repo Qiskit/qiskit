@@ -111,14 +111,14 @@ class TestSynthesis(QiskitTestCase):
             # FIXME: should be possible to set this tolerance tighter after improving the function
             self.assertTrue(np.abs(maxdist) < 1e-7, f"Worst distance {maxdist}")
 
-    def test_two_qubit_weyl_decomposition_a00(self, smallest=1e-18, factor=3.2, steps=22):
+    def test_two_qubit_weyl_decomposition_a00(self, smallest=1e-18, factor=9.8, steps=11):
         for aaa in ([smallest * factor**i for i in range(steps)] +
                     [np.pi/4  - smallest * factor**i for i in range(steps)] +
                     [np.pi/8, 0.113*np.pi, 0.1972*np.pi]):
-            for k1l in ONEQ_CLIFFORDS[:2]:
-                for k1r in ONEQ_CLIFFORDS[:2]:
-                    for k2l in ONEQ_CLIFFORDS[:2]:
-                        for k2r in ONEQ_CLIFFORDS[:2]:
+            for k1l in ONEQ_CLIFFORDS[:3]:
+                for k1r in ONEQ_CLIFFORDS[:3]:
+                    for k2l in ONEQ_CLIFFORDS[:3]:
+                        for k2r in ONEQ_CLIFFORDS[:3]:
                             k1 = np.kron(k1l.data, k1r.data)
                             k2 = np.kron(k2l.data, k2r.data)
                             a = Ud(aaa, 0, 0)
