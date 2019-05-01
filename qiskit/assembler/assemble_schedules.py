@@ -145,7 +145,7 @@ def _validate_meas_map(acquire, meas_map):
     for meas_qubit in measured_qubits:
         for meas_map in meas_map_set:
             if meas_qubit in meas_map:
-                tied_qubits.add(meas_map)
+                tied_qubits |= meas_map
 
     if measured_qubits != tied_qubits:
         raise QiskitError('Qubits to be acquired: {0} do not satisfy required qubits '

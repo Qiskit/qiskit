@@ -20,7 +20,7 @@ import copy
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule, LoConfig
+from qiskit.pulse import ScheduleComponent, LoConfig
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
@@ -170,7 +170,7 @@ def assemble(experiments,
         return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
                                  qobj_header=qobj_header, run_config=run_config)
 
-    elif all(isinstance(exp, Schedule) for exp in experiments):
+    elif all(isinstance(exp, ScheduleComponent) for exp in experiments):
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
                                   qobj_header=qobj_header, run_config=run_config)
 

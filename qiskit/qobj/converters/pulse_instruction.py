@@ -141,9 +141,10 @@ class PulseQobjConverter:
                     ]
                 })
             # setup register_slots
-            command_dict.update({
-                'register_slot': [regs.index for regs in instruction.reg_slots]
-            })
+            if instruction.reg_slots:
+                command_dict.update({
+                    'register_slot': [regs.index for regs in instruction.reg_slots]
+                })
         if meas_level >= 1:
             # setup kernels
             if instruction.command.kernel:

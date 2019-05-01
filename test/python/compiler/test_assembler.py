@@ -381,6 +381,15 @@ class TestPulseAssembler(QiskitTestCase):
                      schedule_los=[self.user_lo_config, self.user_lo_config],
                      **self.config)
 
+    def test_assemble_meas_map(self):
+        """Test assembling a single schedule, no lo config."""
+        acquire = pulse.Acquire(5)
+        schedule = acquire(self.device.q, mem_slots=self.device.mem)
+        assemble(schedule, meas_map=[[0], [1]])
+
+        with self.assertRaises(QiskitError):
+            assemble(schedule, meas_map=[[0, 1, 2]])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
