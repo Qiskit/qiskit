@@ -10,9 +10,7 @@
 import numpy as np
 import qiskit
 from qiskit import QuantumCircuit, QuantumRegister
-import copy
 from qiskit import BasicAer, execute
-from qiskit.quantum_info import Pauli, state_fidelity, basis_state, process_fidelity
 from qiskit.test import QiskitTestCase
 
 
@@ -27,7 +25,9 @@ class TestOptimizePhaseShiftGates(QiskitTestCase):
         n = 6
         q = QuantumRegister(n, 'q')
         circ = QuantumCircuit(q)
-        for i in range(150):
+        i = 0
+        while i < 150:
+            i += 1
             x = np.random.randint(9)
             if x == 0:
                 circ.t(q[np.random.randint(n)])
