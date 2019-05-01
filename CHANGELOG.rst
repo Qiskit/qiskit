@@ -23,6 +23,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+- Added exact and approximate decomposition of SU(4) to arbitrary supercontrolled basis
 - Introduced schedule lo configuration. (#2115)
 - Introduced pulse schedule assembler. (#2115)
 - Builtin library of continuous pulses and builtin library of discrete pulses which are obtained
