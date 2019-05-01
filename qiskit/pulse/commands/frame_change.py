@@ -61,3 +61,4 @@ class FrameChangeInstruction(Instruction):
 
     def __init__(self, command: FrameChange, channel: PulseChannel, name=None):
         super().__init__(command, channel, name=name)
+        self._buffer = 0
