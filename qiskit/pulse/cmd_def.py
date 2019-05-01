@@ -10,7 +10,6 @@ Command definition module. Relates circuit gates to pulse commands.
 """
 from typing import List, Tuple, Iterable, Union, Dict
 
-from qiskit.exceptions import QiskitError
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 
@@ -19,14 +18,16 @@ from .commands import SamplePulse
 from .exceptions import PulseError
 from .schedule import Schedule, ParameterizedSchedule
 
+# pylint: disable=missing-return-doc
 
-def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]):
+
+def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]) -> Tuple[int]:
     """Convert argument to tuple.
     Args:
         qubit_tuple: Qubits to enforce as tuple.
 
-    Returns:
-        tuple
+    Raises:
+        PulseError: If qubits are not integers
     """
     try:
         qubit_tuple = tuple(qubit_tuple)
@@ -34,21 +35,19 @@ def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]):
         qubit_tuple = (qubit_tuple,)
 
     if not all(isinstance(i, int) for i in qubit_tuple):
-        raise QiskitError("All qubits must be integers.")
+        raise PulseError("All qubits must be integers.")
 
     return qubit_tuple
 
 
 class CmdDef:
-    """Command definition class.
-    Relates `Gate`s to `PulseSchedule`s.
-    """
+    """Command definition class. Relates `Gate`s to `Schedule`s."""
 
     def __init__(self, schedules: Dict = None):
         """Create command definition from backend.
 
         Args:
-            dict: Keys are tuples of (cmd_name, *qubits) and values are
+            schedules: Keys are tuples of (cmd_name, *qubits) and values are
                 `Schedule` or `ParameterizedSchedule`
         """
         self._cmd_dict = {}
@@ -118,7 +117,7 @@ class CmdDef:
             **params: Command parameters to be used to generate schedule
 
         Raises:
-            PulseError
+            PulseError: If command for qubits is not available
         """
         qubits = _to_qubit_tuple(qubits)
         if self.has(cmd_name, qubits):
@@ -140,7 +139,7 @@ class CmdDef:
             qubits: Ordered list of qubits command applies to
 
         Raises:
-            PulseError
+            PulseError: If command for qubits is not available
         """
         qubits = _to_qubit_tuple(qubits)
         if self.has(cmd_name, qubits):
@@ -156,9 +155,12 @@ class CmdDef:
         """Pop command from command definition.
 
         Args:
-            cmd_name (str): Name of the command
-            qubits (int, list or tuple): Ordered list of qubits command applies to
+            cmd_name: Name of the command
+            qubits: Ordered list of qubits command applies to
             **params: Command parameters to be used to generate schedule
+
+        Raises:
+            PulseError: If command for qubits is not available
         """
         qubits = _to_qubit_tuple(qubits)
         if self.has(cmd_name, qubits):

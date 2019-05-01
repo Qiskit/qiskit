@@ -209,7 +209,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         self.assertIsInstance(converted_instruction, ParameterizedSchedule)
 
-        evaluated_instruction = converted_instruction.bind_parameters(P1=2.)
+        evaluated_instruction = converted_instruction.bind_parameters(2.)
 
         self.assertEqual(evaluated_instruction.timeslots, instruction.timeslots)
         self.assertEqual(evaluated_instruction.instructions[0][-1].command, cmd)

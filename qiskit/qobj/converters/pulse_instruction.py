@@ -218,16 +218,20 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
 
-math_ops = [math_op for math_op in math.__dict__.keys() if not math_op.startswith('__')]
+# pylint: disable=invalid-name
+
+# get math operations valid in python. Presumably these are valid in sympy
+_math_ops = [math_op for math_op in math.__dict__ if not math_op.startswith('__')]
 # only allow valid math ops
-math_ops_regex = r"(" + ")|(".join(math_ops) + ")"
-allowedchars = re.compile(r'[\sa-zA-Z+*\/-><\(\).]*')
+_math_ops_regex = r"(" + ")|(".join(_math_ops) + ")"
+_allowedchars = re.compile(r'[\sa-zA-Z+*\/-><\(\).]*')
 # match any sequence of chars and numbers
-expr_regex = r'([a-zA-Z]+\d*)'
+_expr_regex = r'([a-zA-Z]+\d*)'
 # and valid params
-param_regex = r'(P\d+)'
+_param_regex = r'(P\d+)'
 # only valid sequences are P# for parameters and valid math operations above
-valid_sub_expr = re.compile(param_regex+'|'+math_ops_regex)
+_valid_sub_expr = re.compile(_param_regex+'|'+_math_ops_regex)
+# pylint: enable=invalid-name
 
 
 def _is_math_expr_safe(expr):
@@ -237,29 +241,29 @@ def _is_math_expr_safe(expr):
         expr (str): Expression to sanitize
 
     Returns:
-        str
+        bool: Whether the string is safe to parse math from
 
     Raise:
         QiskitError: If math expression is not sanitized
     """
 
-    only_allowed_chars = allowedchars.match(expr)
+    only_allowed_chars = _allowedchars.match(expr)
     if not only_allowed_chars:
         return False
-    sub_expressions = re.findall(expr_regex, expr)
-    if not all([valid_sub_expr.match(sub_exp) for sub_exp in sub_expressions]):
+    sub_expressions = re.findall(_expr_regex, expr)
+    if not all([_valid_sub_expr.match(sub_exp) for sub_exp in sub_expressions]):
         return False
     return True
 
 
-def _parse_string_expr(expr):
+def _parse_string_expr(expr):  # pylint: disable=missing-return-type-doc
     """Parse a mathematical string expression and extract free parameters.
 
     Args:
         expr (str): String expression to parse
 
     Returns:
-        Callable, Tuple[str]: Returns a callable function and tuple of string symbols
+        (Callable, Tuple[str]): Returns a callable function and tuple of string symbols
 
     Raises:
         QiskitError: If expression is not safe
@@ -271,7 +275,7 @@ def _parse_string_expr(expr):
         expr = expr.replace(match, sub)
     if not _is_math_expr_safe(expr):
         raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
-    params = sorted(re.findall(param_regex, expr))
+    params = sorted(re.findall(_param_regex, expr))
     local_dict = {param: Symbol(param) for param in params}
     symbols = list(local_dict.keys())
     transformations = (standard_transformations + (implicit_multiplication_application,) +
@@ -284,7 +288,7 @@ def _parse_string_expr(expr):
         matched_params = []
         if args:
             subs.update({symbols[i]: arg for i, arg in enumerate(args)})
-            matched_params += list(params[i] for i, _ in range(len(args)))
+            matched_params += list(params[i] for i in range(len(args)))
         elif kwargs:
             subs.update({local_dict[key]: value for key, value in kwargs.items()
                          if key in local_dict})

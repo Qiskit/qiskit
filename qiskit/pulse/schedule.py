@@ -11,9 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-# pylint: disable=missing-return-doc,cyclic-import
-
 """
 Schedule.
 """
@@ -28,6 +25,8 @@ from .timeslots import TimeslotCollection
 from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=missing-return-doc,cyclic-import
 
 
 class Schedule(ScheduleComponent):
@@ -231,15 +230,15 @@ class ParameterizedSchedule:
         self.name = name or ''
         # partition schedules into callable and schedules
         for schedule in schedules:
-                if isinstance(schedule, ParameterizedSchedule):
-                    parameterized.append(schedule)
-                    parameters += schedule.parameters
-                elif callable(schedule):
-                    parameterized.append(schedule)
-                elif isinstance(schedule, Schedule):
-                    full_schedules.append(schedule)
-                else:
-                    raise PulseError('Input type: {0} not supported'.format(type(schedule)))
+            if isinstance(schedule, ParameterizedSchedule):
+                parameterized.append(schedule)
+                parameters += schedule.parameters
+            elif callable(schedule):
+                parameterized.append(schedule)
+            elif isinstance(schedule, Schedule):
+                full_schedules.append(schedule)
+            else:
+                raise PulseError('Input type: {0} not supported'.format(type(schedule)))
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
