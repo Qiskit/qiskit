@@ -11,15 +11,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-# pylint: disable=missing-return-doc,cyclic-import
-
 """
 Schedule.
 """
 import itertools
 import logging
-from typing import List, Tuple, Iterable, Union
+from typing import List, Tuple, Iterable, Union, Dict
 
 from qiskit.pulse import ops
 from .channels import Channel
@@ -28,6 +25,8 @@ from .timeslots import TimeslotCollection
 from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=missing-return-doc,cyclic-import
 
 
 class Schedule(ScheduleComponent):
@@ -210,3 +209,59 @@ class Schedule(ScheduleComponent):
         if len(instructions) > 50:
             return res + ', ...)'
         return res + ')'
+
+
+class ParameterizedSchedule:
+    """Temporary parameterized schedule class.
+
+    This should not be returned to users as it is currently only a helper class.
+
+    This class is takes an input command definition that accepts
+    a set of parameters. Calling `bind` on the class will return a `Schedule`.
+
+    # TODO: In the near future this will be replaced with proper incorporation of parameters
+        into the `Schedule` class.
+    """
+
+    def __init__(self, *schedules, parameters=None, name=None):
+        full_schedules = []
+        parameterized = []
+        parameters = parameters or []
+        self.name = name or ''
+        # partition schedules into callable and schedules
+        for schedule in schedules:
+            if isinstance(schedule, ParameterizedSchedule):
+                parameterized.append(schedule)
+                parameters += schedule.parameters
+            elif callable(schedule):
+                parameterized.append(schedule)
+            elif isinstance(schedule, Schedule):
+                full_schedules.append(schedule)
+            else:
+                raise PulseError('Input type: {0} not supported'.format(type(schedule)))
+
+        self._parameterized = tuple(parameterized)
+        self._schedules = tuple(full_schedules)
+        self._parameters = tuple(sorted(parameters))
+
+    @property
+    def parameters(self) -> Tuple[str]:
+        """Schedule parameters."""
+        return self._parameters
+
+    def bind_parameters(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+        """Generate the Schedule from params to evaluate command expressions"""
+        bound_schedule = Schedule(name=self.name)
+        schedules = list(self._schedules)
+        for param_sched in self._parameterized:
+            # recursively call until based callable is reached
+            schedules.append(param_sched(*args, **kwargs))
+
+        # construct evaluated schedules
+        for sched in schedules:
+            bound_schedule |= sched
+
+        return bound_schedule
+
+    def __call__(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+        return self.bind_parameters(*args, **kwargs)
