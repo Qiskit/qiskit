@@ -41,6 +41,7 @@ from .mapping.check_map import CheckMap
 from .mapping.check_cnot_direction import CheckCnotDirection
 from .mapping.cx_direction import CXDirection
 from .mapping.trivial_layout import TrivialLayout
+from .mapping.set_layout import SetLayout
 from .mapping.dense_layout import DenseLayout
 from .mapping.noise_adaptive_layout import NoiseAdaptiveLayout
 from .mapping.basic_swap import BasicSwap
