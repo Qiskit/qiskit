@@ -8,38 +8,58 @@
 
 import unittest
 
-from qiskit.circuit import QuantumCircuit
+import numpy as np
 from qiskit import execute
-from qiskit.quantum_info.synthesis import cnot_decompose, euler_angles_1q
-from qiskit.quantum_info.operators import Pauli, Operator
-from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.circuit import QuantumCircuit
+from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, XGate,
+                                        YGate, ZGate, U3Gate)
 from qiskit.providers.basicaer import UnitarySimulatorPy
+from qiskit.quantum_info.operators import Operator, Pauli
+from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info.synthesis import cnot_decompose, euler_angles_1q
 from qiskit.test import QiskitTestCase
 
+def make_oneq_cliffords():
+    ixyz_list = [g().to_matrix() for g in (IdGate, XGate, YGate, ZGate)]
+    ih_list = [g().to_matrix() for g in (IdGate, HGate)]
+    irs_list = [IdGate().to_matrix(),
+                SdgGate().to_matrix() @ HGate().to_matrix(),
+                HGate().to_matrix() @ SGate().to_matrix()]
+    oneq_cliffords = [Operator(ixyz @ ih @ irs) for ixyz in ixyz_list
+                      for ih in ih_list
+                      for irs in irs_list]
+    return oneq_cliffords
+
+ONEQ_CLIFFORDS = make_oneq_cliffords()
 
 class TestSynthesis(QiskitTestCase):
     """Test synthesis methods."""
 
-    def test_one_qubit_euler_angles(self):
-        """Verify euler_angles_1q produces correct Euler angles for
-        a single-qubit unitary.
+    def check_one_qubit_euler_angles(self, operator):
+        """Check euler_angles_1q works for the given unitary
         """
-        for _ in range(100):
+        with self.subTest(operator=operator):
+            angles = euler_angles_1q(operator.data)
+            decomp_circuit = QuantumCircuit(1)
+            decomp_circuit.u3(*angles, 0)
+            result = execute(decomp_circuit, UnitarySimulatorPy()).result()
+            decomp_operator = Operator(result.get_unitary())
+            tracedist = np.abs(np.trace(operator.data.T.conj() @ decomp_operator.data))-2
+            self.assertTrue(np.abs(tracedist) < 1e-15, f"tr(target^dag.U)-2 = {tracedist}")
+
+    def test_one_qubit_euler_angles_clifford(self):
+        """Verify euler_angles_1q produces correct Euler angles for all Cliffords.
+        """
+        for clifford in ONEQ_CLIFFORDS:
+            self.check_one_qubit_euler_angles(clifford)
+
+    def test_one_qubit_euler_angles_random(self, nsamples=100):
+        """Verify euler_angles_1q produces correct Euler angles for random  unitaries.
+        """
+        for _ in range(nsamples):
             unitary = random_unitary(2)
-            with self.subTest(unitary=unitary):
-                angles = euler_angles_1q(unitary.data)
-                decomp_circuit = QuantumCircuit(1)
-                decomp_circuit.u3(*angles, 0)
-                result = execute(decomp_circuit, UnitarySimulatorPy()).result()
-                decomp_unitary = Operator(result.get_unitary())
-                equal_up_to_phase = matrix_equal(
-                    unitary.data,
-                    decomp_unitary.data,
-                    ignore_phase=True,
-                    atol=1e-13,
-                    rtol=0)
-                self.assertTrue(equal_up_to_phase)
+            self.check_one_qubit_euler_angles(unitary)
 
     def test_two_qubit_kak(self):
         """Verify KAK decomposition for random Haar 4x4 unitaries.
