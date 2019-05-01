@@ -88,7 +88,7 @@ class CouplingTest(QiskitTestCase):
         coupling_map = CouplingMap(cmap)
         out = coupling_map.reduce([12, 11, 10, 9]).get_edges()
         ans = [(1, 2), (3, 2), (0, 1)]
-        self.assertEqual(out, ans)
+        self.assertEqual(set(out), set(ans))
 
     def test_failed_reduced_map(self):
         """Generate a bad disconnected reduced map
