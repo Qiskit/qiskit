@@ -100,7 +100,7 @@ class CommonUtilitiesMixin:
     seed = 42
     seed_mapper = 42
     additional_args = {}
-    pass_class = lambda *args: None
+    pass_class = None
 
     def create_passmanager(self, coupling_map, initial_layout=None):
         """Returns a PassManager using self.pass_class(coupling_map, initial_layout)"""
@@ -108,6 +108,7 @@ class CommonUtilitiesMixin:
         if initial_layout:
             passmanager.append(SetLayout(Layout(initial_layout)))
 
+        # pylint: disable=not-callable
         passmanager.append(self.pass_class(CouplingMap(coupling_map), **self.additional_args))
         return passmanager
 

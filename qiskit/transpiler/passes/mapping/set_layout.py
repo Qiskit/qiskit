@@ -21,8 +21,10 @@ of the circuit (tuple(QuantumRegister, int)) in increasing order.
 
 from qiskit.transpiler.basepasses import AnalysisPass
 
+
 class SetLayout(AnalysisPass):
     """Sets property_set['layout'] to layout."""
+
     def __init__(self, layout):
         """
         Sets property_set['layout'] to layout.

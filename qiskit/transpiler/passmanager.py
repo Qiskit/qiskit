@@ -139,7 +139,7 @@ class PassManager():
         name = circuit.name
         dag = circuit_to_dag(circuit)
         del circuit
-        self.reset() # Reset passmanager instance before starting
+        self.reset()  # Reset passmanager instance before starting
 
         for passset in self.working_list:
             for pass_ in passset:
