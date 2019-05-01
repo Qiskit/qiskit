@@ -101,7 +101,7 @@ class QCStyle:
 
 
 class OPStyleSched:
-    def __init__(self, fig_w=10, fig_unit_h_waveform=2.5, fig_unit_h_table=0.4,
+    def __init__(self, figsize=(10, 12), fig_unit_h_table=0.4,
                  use_table=True, table_columns=2, table_font_size=10, axis_font_size=18,
                  label_font_size=10, icon_font_size=18, label_ch_linestyle='--',
                  label_ch_color=None, label_ch_alpha=0.3, d_ch_color=None, u_ch_color=None,
@@ -110,8 +110,7 @@ class OPStyleSched:
         """Set style sheet for OpenPulse schedule drawer.
 
         Args:
-            fig_w (float): width of figure
-            fig_unit_h_waveform (float): height of single waveform plot
+            figsize (tuple): Size of figure.
             fig_unit_h_table (float): height of table row
             use_table (bool): use table
             table_columns (int): number of table columns
@@ -132,8 +131,7 @@ class OPStyleSched:
             num_points (int): number of points for interpolation
             dpi (int): dpi to save image
         """
-        self.fig_w = fig_w
-        self.fig_unit_h_waveform = fig_unit_h_waveform
+        self.figsize = figsize
         self.fig_unit_h_table = fig_unit_h_table
         self.use_table = use_table
         self.table_columns = table_columns
@@ -157,20 +155,18 @@ class OPStyleSched:
 
 
 class OPStylePulse:
-    def __init__(self, fig_w=None, fig_h=None, wave_color=None,
+    def __init__(self, figsize=(7, 5), wave_color=None,
                  bg_color=None, num_points=None, dpi=None):
         """Set style sheet for OpenPulse sample pulse drawer.
 
         Args:
-            fig_w (float): width of figure.
-            fig_h (float): hight of figure.
+            figsize (tuple): Size of figure.
             wave_color (list[str]): colors for real and imaginary part of waveform.
             bg_color(str): color for figure background.
             num_points (int): number of points for interpolation.
             dpi (int): dpi to save image.
         """
-        self.fig_w = fig_w or 6
-        self.fig_h = fig_h or 5
+        self.figsize = figsize
         self.wave_color = wave_color or ['#ff0000', '#0000ff']
         self.bg_color = bg_color or '#f2f3f4'
         self.num_points = num_points or 1000

@@ -1088,7 +1088,7 @@ class SamplePulseDrawer:
 
         interp_method = interp_method or interpolation.step_wise
 
-        figure.set_size_inches(self.style.fig_w, self.style.fig_h)
+        figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
         ax = figure.add_subplot(111)
         ax.set_facecolor(self.style.bg_color)
 
@@ -1226,8 +1226,7 @@ class ScheduleDrawer:
 
             # fig size
             h_table = nrows * self.style.fig_unit_h_table
-            h_waves = n_valid_waveform * self.style.fig_unit_h_waveform
-            fig_h = h_table + h_waves
+            h_waves = (self.style.figsize[1] - h_table)
 
             # create subplots
             gs = gridspec.GridSpec(2, 1, height_ratios=[h_table, h_waves], hspace=0)
@@ -1258,9 +1257,8 @@ class ScheduleDrawer:
             table.set_fontsize = self.style.table_font_size
         else:
             ax = figure.add_subplot(111)
-            fig_h = n_valid_waveform * self.style.fig_unit_h_waveform
 
-        figure.set_size_inches(self.style.fig_w, fig_h)
+        figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
         return ax
 
@@ -1424,8 +1422,7 @@ class ScheduleDrawer:
 
         else:
             ax = figure.add_subplot(111)
-            fig_h = n_valid_waveform * self.style.fig_unit_h_waveform
-            figure.set_size_inches(self.style.fig_w, fig_h)
+            figure.set_size_inches(self.style.figsize[0], self.style.figsize[1])
 
         ax.set_facecolor(self.style.bg_color)
 
