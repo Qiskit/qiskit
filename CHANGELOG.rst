@@ -896,7 +896,7 @@ Fixed
 - Fix "math domain error" in mapping (#111, #151).
 
 .. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...HEAD
-.. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
+.. _0.7.2: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
 .. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
 .. _0.7.0: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...0.7.0
 .. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
