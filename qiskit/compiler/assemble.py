@@ -34,7 +34,8 @@ def assemble(experiments,
              backend=None,
              qobj_id=None, qobj_header=None,  # common run options
              shots=1024, memory=False, max_credits=None, seed_simulator=None,
-             default_qubit_los=None, default_meas_los=None,  # schedule run options
+             qubit_lo_freq=None, meas_lo_freq=None,  # schedule run options
+             qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=2, meas_return='avg',
              memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
              config=None, seed=None,  # deprecated
@@ -78,11 +79,17 @@ def assemble(experiments,
         seed_simulator (int):
             Random seed to control sampling, for when backend is a simulator
 
-        default_qubit_los (list):
+        qubit_lo_freq (list):
             List of default qubit lo frequencies
 
-        default_meas_los (list):
+        meas_lo_freq (list):
             List of default meas lo frequencies
+
+        qubit_lo_range (list):
+            List of drive lo ranges
+
+        meas_lo_range (list):
+            List of meas lo ranges
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
                       Union[Dict[PulseChannel, float], LoConfig]):
@@ -145,7 +152,8 @@ def assemble(experiments,
     experiments = experiments if isinstance(experiments, list) else [experiments]
     qobj_id, qobj_header, run_config = _parse_run_args(backend, qobj_id, qobj_header,
                                                        shots, memory, max_credits, seed_simulator,
-                                                       default_qubit_los, default_meas_los,
+                                                       qubit_lo_freq, meas_lo_freq,
+                                                       qubit_lo_range, meas_lo_range,
                                                        schedule_los, meas_level, meas_return,
                                                        memory_slots, memory_slot_size, rep_time,
                                                        parameter_binds, **run_config)
@@ -170,7 +178,8 @@ def assemble(experiments,
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
 def _parse_run_args(backend, qobj_id, qobj_header,
                     shots, memory, max_credits, seed_simulator,
-                    default_qubit_los, default_meas_los,
+                    qubit_lo_freq, meas_lo_freq,
+                    qubit_lo_range, meas_lo_range,
                     schedule_los, meas_level, meas_return,
                     memory_slots, memory_slot_size, rep_time,
                     parameter_binds, **run_config):
@@ -219,9 +228,11 @@ def _parse_run_args(backend, qobj_id, qobj_header,
     schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
                     for lo_config in schedule_los]
 
-    qubit_lo_freq = default_qubit_los or getattr(backend_default, 'qubit_freq_est', [])
-    meas_lo_freq = default_meas_los or getattr(backend_default, 'meas_freq_est', [])
+    qubit_lo_freq = qubit_lo_freq or getattr(backend_default, 'qubit_freq_est', [])
+    meas_lo_freq = meas_lo_freq or getattr(backend_default, 'meas_freq_est', [])
 
+    qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', [])
+    meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', [])
     # an identifier for the Qobj
     qobj_id = qobj_id or str(uuid.uuid4())
 
@@ -244,6 +255,8 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                            seed=seed_simulator,  # deprecated
                            qubit_lo_freq=qubit_lo_freq,
                            meas_lo_freq=meas_lo_freq,
+                           qubit_lo_range=qubit_lo_range,
+                           meas_lo_range=meas_lo_range,
                            schedule_los=schedule_los,
                            meas_level=meas_level,
                            meas_return=meas_return,
