@@ -149,7 +149,7 @@ class TestParameters(QiskitTestCase):
         qc1.rz(numpy.pi/2, qr1)
         qc1.ry(theta, qr1)
         gate = qc1.to_instruction()
-        self.assertEqual(gate.params, [theta, numpy.pi/2, theta])
+        self.assertEqual(gate.params, [theta])
 
         phi = Parameter('phi')
         qr2 = QuantumRegister(3, name='qr2')
