@@ -291,4 +291,8 @@ class Instruction:
         elif not cargs and len(qargs) == 1:
             for qarg in qargs[0]:
                 yield [qarg],[]
+        elif not cargs and len(qargs) > 1:
+            yield [item for sublist in qargs for item in sublist], []
+        else:
+            raise QiskitError('')
 

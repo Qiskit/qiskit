@@ -243,8 +243,7 @@ class Initialize(Instruction):
         # Validation and expantion of the qargs and cargs for the gate
         # if len(cargs) == 0:
         #     raise QiskitError("")
-        for qarg in zip(*qargs):
-            yield list(qarg), []
+        yield [item for sublist in qargs for item in sublist],[]
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""

@@ -283,7 +283,6 @@ class QuantumCircuit:
         expanded_cargs = [i for i in map(self.cbit_argument_expansion, cargs or [])]
 
         for (qarg, carg) in instruction.argument_expansion(expanded_qargs, expanded_cargs):
-            print("%s (%s %s)" % (instruction.name, qarg, carg))
             ret = self._append(instruction, qarg, carg)
         return ret
 
