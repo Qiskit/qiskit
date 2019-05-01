@@ -1208,7 +1208,7 @@ class ScheduleDrawer:
             v_max = 0.5 / (1.2 * v_max)
 
         return n_valid_waveform, v_max
-    
+
     # pylint: disable=unused-argument
     def _draw_table(self, figure, channels, dt, n_valid_waveform):
         # create table
