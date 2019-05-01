@@ -8,6 +8,11 @@
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 import re
 
+from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
+                                        implicit_multiplication_application,
+                                        function_exponentiation, auto_symbol)
+from sympy import Symbol
+
 from qiskit.pulse import commands, channels, Schedule
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjMeasurementOption
@@ -210,6 +215,81 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
 
+math_ops = [math_op for math_op in math.__dict__.keys() if not math_op.startswith('__')]
+# only allow valid math ops
+math_ops_regex = r"(" + ")|(".join(math_ops) + ")"
+allowedchars = re.compile(r'[\sa-zA-Z+*\/-><\(\).]*')
+# match any sequence of chars and numbers
+expr_regex = r'([a-zA-Z]+\d*)'
+# and valid params
+param_regex = r'(P\d+)'
+# only valid sequences are P# for parameters and valid math operations above
+valid_sub_expr = re.compile(param_regex+'|'+math_ops_regex)
+
+
+def _is_math_expr_safe(expr):
+    """Verify mathematical expression is sanitized.
+
+    Args:
+        expr (str): Expression to sanitize
+
+    Returns:
+        str
+
+    Raise:
+        QiskitError: If math expression is not sanitized
+    """
+
+    only_allowed_chars = allowedchars.match(expr)
+    if not only_allowed_chars:
+        return False
+    sub_expressions = re.findall(expr_regex, expr)
+    if not all([valid_sub_expr.match(sub_exp) for sub_exp in sub_expressions]):
+        return False
+    return True
+
+
+def _parse_string_expr(self, expr):
+    """Parse a mathematical string expression and extract free parameters.
+
+    Args:
+        expr (str): String expression to parse
+
+    Returns:
+        Callable, Tuple[str]: Returns a callable function and tuple of string symbols
+
+    Raises:
+        QiskitError: If expression is not safe
+    """
+    # remove these strings from expression and hope sympy knows these math expressions
+    # these are effectively reserved keywords
+    subs = [('numpy.', ''), ('np.', ''), ('math.', '')]
+    for match, sub in subs:
+        expr = expr.sub(match, sub)
+    if not _is_math_expr_safe(expr):
+        raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
+    params = re.findall(param_regex, expr)
+    local_dict = {param: Symbol(param) for param in symbols}
+    symbols = list(local_dict.keys())
+    transformations = (standard_transformations + (implicit_multiplication_application,) +
+                       (function_exponentiation,))
+
+    parsed_expr = parse_expr(expr, local_dict=local_dict, transformations=transformations)
+
+    def parsed_fun(*args, **kwargs):
+        subs = {}
+        if args:
+            subs.update({symbols[i]: arg for i, arg in enumerate(args)})
+        elif kwargs:
+            subs.update({local_dict[key]: value for key, value in kwargs.items()})
+
+        if not set(subs.keys()) == set(params):
+            raise QiskitError('Supplied params do not match '
+                              '{params}'.format(params=params))
+        return complex(parsed_expr.evalf(subs=subs))
+    return parsed_fun, params
+
+
 class QobjToInstructionConverter:
     """Converts Qobj models to pulse Instructions
     """
@@ -328,6 +408,10 @@ class QobjToInstructionConverter:
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         phase = instruction.phase
+
+        # This is parameterized
+        if isinstance(phase, str):
+
         return commands.FrameChange(phase)(channel) << t0
 
     @bind_name('pv')
