@@ -50,6 +50,7 @@ The format is based on [Keep a Changelog].
 -   Gray-Synth and Patel–Markov–Hayes algorithms for synthesis of
     CNOT-Phase and CNOT-only (linear) circuits (\#2457)
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
+-   Added pass for optimizing phase-shift gates (#2229)
 
 ### Changed
 -   Set default repetition time to be the first available.
