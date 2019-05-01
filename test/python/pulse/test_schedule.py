@@ -300,6 +300,34 @@ class TestSchedule(QiskitTestCase):
 
         self.assertEqual(flat_sched.instructions, sched.instructions)
 
+    def test_buffering(self):
+        """Test channel buffering."""
+        buffer_chan = DriveChannel(0, buffer=5)
+
+        gp0 = pulse_lib.gaussian(duration=10, amp=0.7, sigma=3)
+        fc_pi_2 = FrameChange(phase=1.57)
+
+        # no initial buffer
+        sched = Schedule()
+        sched += gp0(buffer_chan)
+
+        self.assertEqual(sched.duration, 10)
+
+        # this pulse should be buffered
+        sched += gp0(buffer_chan)
+
+        self.assertEqual(sched.duration, 25)
+
+        # should not be buffered as framechange
+        sched += fc_pi_2(buffer_chan)
+
+        self.assertEqual(sched.duration, 25)
+
+        # use buffer with insert
+        sched = sched.insert(sched.duration, gp0(buffer_chan), buffer=True)
+
+        self.assertEqual(sched.duration, 40)
+
 
 if __name__ == '__main__':
     unittest.main()
