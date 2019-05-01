@@ -16,7 +16,7 @@ Schedule.
 """
 import itertools
 import logging
-from typing import List, Tuple, Iterable, Union, Callable
+from typing import List, Tuple, Iterable, Union, Dict, Callable
 
 from qiskit.pulse import ops
 from .channels import Channel
