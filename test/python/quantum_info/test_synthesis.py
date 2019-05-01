@@ -21,6 +21,7 @@ from qiskit.quantum_info.synthesis import cnot_decompose, euler_angles_1q
 from qiskit.test import QiskitTestCase
 
 def make_oneq_cliffords():
+    """Make as list of 1q Cliffords"""
     ixyz_list = [g().to_matrix() for g in (IdGate, XGate, YGate, ZGate)]
     ih_list = [g().to_matrix() for g in (IdGate, HGate)]
     irs_list = [IdGate().to_matrix(),
@@ -32,6 +33,19 @@ def make_oneq_cliffords():
     return oneq_cliffords
 
 ONEQ_CLIFFORDS = make_oneq_cliffords()
+
+def make_hard_thetas_oneq(smallest=1e-18, factor=3.2, steps=22, phi=0.7, lam=0.9):
+    """Make 1q gates with theta/2 close to 0, pi/2, pi, 3pi/2"""
+    return [U3Gate(smallest * factor**i, phi, lam) for i in range(steps)] +
+           [U3Gate(-smallest * factor**i, phi, lam) for i in range(steps)] +
+           [U3Gate(np.pi/2 + smallest * factor**i, phi, lam) for i in range(steps)] +
+           [U3Gate(np.pi/2 - smallest * factor**i, phi, lam) for i in range(steps)] +
+           [U3Gate(np.pi + smallest * factor**i, phi, lam) for i in range(steps)] +
+           [U3Gate(np.pi - smallest * factor**i, phi, lam) for i in range(steps)] +
+           [U3Gate(3*np.pi/2 + smallest * factor**i, phi, lam) for i in range(steps)] +
+           [U3Gate(3*np.pi/2 - smallest * factor**i, phi, lam) for i in range(steps)]
+
+HARD_THETA_ONEQS = make_hard_thetas_oneq()
 
 class TestSynthesis(QiskitTestCase):
     """Test synthesis methods."""
