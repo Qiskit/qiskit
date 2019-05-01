@@ -16,8 +16,12 @@ import logging
 
 from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
-from qiskit.mapper import Layout
-from .utils import compile_and_run_circuits, CircuitCache
+from qiskit.transpiler import Layout
+
+from .utils import (run_qobjs, compile_cirucits, CircuitCache,
+                    get_measured_qubits_from_qobj,
+                    build_measurement_mitigation_fitter,
+                    mitigate_measurement_error)
 from .utils.backend_utils import (is_aer_provider,
                                   is_ibmq_provider,
                                   is_statevector_backend,
@@ -46,7 +50,8 @@ class QuantumInstance:
                  basis_gates=None, coupling_map=None,
                  initial_layout=None, pass_manager=None, seed_transpiler=None,
                  backend_options=None, noise_model=None, timeout=None, wait=5,
-                 circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True, skip_qobj_validation=True):
+                 circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True,
+                 skip_qobj_validation=True, measurement_mitigation_cls=None):
         """Constructor.
 
         Args:
@@ -68,6 +73,8 @@ class QuantumInstance:
             cache_file(str, optional): filename into which to store the cache as a pickle file
             skip_qobj_deepcopy (bool, optional): Reuses the same qobj object over and over to avoid deepcopying
             skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
+            measurement_mitigation_cls (callable, optional): the approach to mitigate measurement error,
+                                                                CompleteMeasFitter or TensoredMeasFitter
         """
         self._backend = backend
         # setup run config
@@ -129,8 +136,13 @@ class QuantumInstance:
 
         self._shared_circuits = False
         self._circuit_summary = False
-        self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy, cache_file=cache_file) if circuit_caching else None
+        self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
+                                           cache_file=cache_file) if circuit_caching else None
         self._skip_qobj_validation = skip_qobj_validation
+
+        self._measurement_mitigation_cls = measurement_mitigation_cls
+        self._measurement_mitigation_fitter = None
+        self._measurement_mitigation_method = 'least_squares'
 
         logger.info(self)
 
@@ -156,17 +168,29 @@ class QuantumInstance:
         Returns:
             Result: Result object
         """
-        result = compile_and_run_circuits(circuits, self._backend,
-                                          backend_config=self._backend_config,
-                                          compile_config=self._compile_config,
-                                          run_config=self._run_config,
-                                          qjob_config=self._qjob_config,
-                                          backend_options=self._backend_options,
-                                          noise_config=self._noise_config,
-                                          show_circuit_summary=self._circuit_summary,
-                                          has_shared_circuits=self._shared_circuits,
-                                          circuit_cache=self._circuit_cache,
-                                          skip_qobj_validation=self._skip_qobj_validation, **kwargs)
+        qobjs = compile_cirucits(circuits, self._backend, self._backend_config, self._compile_config, self._run_config,
+                                 show_circuit_summary=self._circuit_summary, circuit_cache=self._circuit_cache,
+                                 **kwargs)
+
+        if self._measurement_mitigation_cls is not None:
+            qubit_list = get_measured_qubits_from_qobj(qobjs)
+            self._measurement_mitigation_fitter = build_measurement_mitigation_fitter(qubit_list,
+                                                                                      self._measurement_mitigation_cls,
+                                                                                      self._backend,
+                                                                                      self._backend_config,
+                                                                                      self._compile_config,
+                                                                                      self._run_config,
+                                                                                      self._qjob_config,
+                                                                                      self._backend_options,
+                                                                                      self._noise_config)
+
+        result = run_qobjs(qobjs, self._backend, self._qjob_config, self._backend_options, self._noise_config,
+                           self._skip_qobj_validation)
+
+        if self._measurement_mitigation_fitter is not None:
+            result = mitigate_measurement_error(result, self._measurement_mitigation_fitter,
+                                                self._measurement_mitigation_method)
+
         if self._circuit_summary:
             self._circuit_summary = False
 
