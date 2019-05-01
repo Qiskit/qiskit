@@ -7,8 +7,7 @@
 
 """Helper class used to convert a user lo configuration into a list of frequencies."""
 
-
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse import DriveChannel, MeasureChannel, LoConfig
 
 
 class LoConfigConverter:
@@ -17,19 +16,29 @@ class LoConfigConverter:
     `get_qubit_los` and `get_meas_los` to align with your backend.
     """
 
-    def __init__(self, qobj_model, default_qubit_los, default_meas_los, **run_config):
+    def __init__(self, qobj_model, qubit_lo_freq, meas_lo_freq,
+                 qubit_lo_range, meas_lo_range, **run_config):
         """Create new converter.
 
         Args:
             qobj_model (PulseQobjExperimentConfig): qobj model for experiment config.
-            default_qubit_los (list): List of default qubit lo frequencies.
-            default_meas_los (list): List of default meas lo frequencies.
+            qubit_lo_freq (list): List of default qubit lo frequencies.
+            meas_lo_freq (list): List of default meas lo frequencies.
+            qubit_lo_range (list): List of qubit lo ranges.
+            meas_lo_range (list): List of measurement lo ranges.
             run_config (dict): experimental configuration.
         """
         self.qobj_model = qobj_model
-        self.default_qubit_los = default_qubit_los
-        self.default_meas_los = default_meas_los
+        self.qubit_lo_freq = qubit_lo_freq
+        self.meas_lo_freq = meas_lo_freq
         self.run_config = run_config
+
+        self.default_lo_config = LoConfig()
+
+        for i, lo_range in enumerate(qubit_lo_range):
+            self.default_lo_config.add_lo_range(DriveChannel(i), lo_range)
+        for i, lo_range in enumerate(meas_lo_range):
+            self.default_lo_config.add_lo_range(MeasureChannel(i), lo_range)
 
     def __call__(self, user_lo_config):
         """Return PulseQobjExperimentConfig
@@ -45,6 +54,7 @@ class LoConfigConverter:
         q_los = self.get_qubit_los(user_lo_config)
         if q_los:
             lo_config['qubit_lo_freq'] = q_los
+
         m_los = self.get_meas_los(user_lo_config)
         if m_los:
             lo_config['meas_lo_freq'] = m_los
@@ -64,16 +74,15 @@ class LoConfigConverter:
         Raises:
             PulseError: when LO frequencies are missing.
         """
-        try:
-            _q_los = self.default_qubit_los.copy()
-        except KeyError:
-            raise PulseError('Qubit default frequencies not exist.')
+        _q_los = self.qubit_lo_freq.copy()
 
-        for channel, lo_freq in user_lo_config.qubit_lo_dict().items():
+        for channel, lo_freq in user_lo_config.qubit_los.items():
+            self.default_lo_config.check_lo(channel, lo_freq)
             _q_los[channel.index] = lo_freq
 
-        if _q_los == self.default_qubit_los:
+        if _q_los == self.qubit_lo_freq:
             return None
+
         return _q_los
 
     def get_meas_los(self, user_lo_config):
@@ -89,14 +98,13 @@ class LoConfigConverter:
         Raises:
             PulseError: when LO frequencies are missing.
         """
-        try:
-            _m_los = self.default_meas_los.copy()
-        except KeyError:
-            raise PulseError('Default measurement frequencies not exist.')
+        _m_los = self.meas_lo_freq.copy()
 
-        for channel, lo_freq in user_lo_config.meas_lo_dict().items():
+        for channel, lo_freq in user_lo_config.meas_los.items():
+            self.default_lo_config.check_lo(channel, lo_freq)
             _m_los[channel.index] = lo_freq
 
-        if _m_los == self.default_meas_los:
+        if _m_los == self.meas_lo_freq:
             return None
+
         return _m_los
