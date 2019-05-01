@@ -19,6 +19,7 @@ from qiskit import visualization
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
     from matplotlib.testing import compare
+    import matplotlib
 
 
 def _path_to_reference(filename):
@@ -65,6 +66,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
     def test_plot_barriers(self):
         """Test to see that plotting barriers works - if it is set to False, no
         blank columns are introduced"""
+
+        # Use a different backend as the default backend causes the test to fail.
+        # This is because it adds less whitespace around the image than is present
+        # in the refernce image
+        matplotlib.use('TKAgg')
 
         # generate a circuit with barriers and other barrier like instructions in
         q = QuantumRegister(2, 'q')
