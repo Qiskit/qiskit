@@ -12,7 +12,6 @@ import unittest
 from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
 from qiskit.pulse.channels import DeviceSpecification, Qubit
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
-from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -107,14 +106,11 @@ class TestQubit(QiskitTestCase):
     def test_default(self):
         """Test default qubit.
         """
-        qubit = Qubit(1,
-                      drive_channels=[DriveChannel(2, 1.2)],
-                      control_channels=[ControlChannel(3)],
-                      measure_channels=[MeasureChannel(4)],
-                      acquire_channels=[AcquireChannel(5)])
+        qubit = Qubit(1, DriveChannel(2), MeasureChannel(4), AcquireChannel(5),
+                      control_channels=[ControlChannel(3)])
 
-        self.assertEqual(qubit.drive, DriveChannel(2, 1.2))
-        self.assertEqual(qubit.control, ControlChannel(3))
+        self.assertEqual(qubit.drive, DriveChannel(2))
+        self.assertEqual(qubit.controls[0], ControlChannel(3))
         self.assertEqual(qubit.measure, MeasureChannel(4))
         self.assertEqual(qubit.acquire, AcquireChannel(5))
 
@@ -126,14 +122,14 @@ class TestDeviceSpecification(QiskitTestCase):
         """Test default device specification.
         """
         qubits = [
-            Qubit(0, drive_channels=[DriveChannel(0, 1.2)], acquire_channels=[AcquireChannel(0)]),
-            Qubit(1, drive_channels=[DriveChannel(1, 3.4)], acquire_channels=[AcquireChannel(1)])
+            Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0)),
+            Qubit(1, DriveChannel(1), MeasureChannel(1), AcquireChannel(1))
         ]
         registers = [RegisterSlot(i) for i in range(2)]
         mem_slots = [MemorySlot(i) for i in range(2)]
         spec = DeviceSpecification(qubits, registers, mem_slots)
 
-        self.assertEqual(spec.q[0].drive, DriveChannel(0, 1.2))
+        self.assertEqual(spec.q[0].drive, DriveChannel(0))
         self.assertEqual(spec.q[1].acquire, AcquireChannel(1))
         self.assertEqual(spec.mem[0], MemorySlot(0))
         self.assertEqual(spec.c[1], RegisterSlot(1))
@@ -143,14 +139,9 @@ class TestDeviceSpecification(QiskitTestCase):
         """
         backend = FakeOpenPulse2Q()
 
-        # overwrite n_uchannel
-        backend._configuration.n_uchannels = 0
-
         device = DeviceSpecification.create_from(backend)
 
-        self.assertEqual(device.q[0].drive, DriveChannel(0, 4.9, (4.5, 5.5)))
-        with self.assertRaises(PulseError):
-            device.q[0].control()
+        self.assertEqual(device.q[0].drive, DriveChannel(0))
 
 
 if __name__ == '__main__':
