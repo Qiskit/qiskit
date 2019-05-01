@@ -246,7 +246,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertTrue(_is_math_expr_safe('1+1*2*3.2+8*cos(1)**2'))
         self.assertTrue(_is_math_expr_safe('pi*2'))
         self.assertTrue(_is_math_expr_safe('-P1*cos(P2)'))
-
+        self.assertTrue(_is_math_expr_safe('-P1*P2*P3'))
 
 class TestLoConverter(QiskitTestCase):
     """LO converter tests."""
