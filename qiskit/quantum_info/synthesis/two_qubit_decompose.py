@@ -10,14 +10,14 @@
 
 """
 Expand 2-qubit Unitary operators into an equivalent
-decomposition over SU(2)+CNOT, using the KAK method.
+decomposition over SU(2)+fixed 2q basis gate, using the KAK method.
 
-Computes a sequence of 10 single and two qubit gates, including 3 CNOTs,
-which multiply to U, including global phase. Uses Vatan and Williams
-optimal two-qubit circuit (quant-ph/0308006v3). The decomposition algorithm
-which achieves this is explained well in Drury and Love, 0806.4015.
+May be exact or approximate expansion. In either case uses the minimal
+number of basis applications.
 
-Based on MATLAB implementation by David Gosset.
+Method is described in Appendix B of Cross, A. W., Bishop, L. S., Sheldon, S., Nation, P. D. &
+Gambetta, J. M. Validating quantum computers using randomized model circuits.
+arXiv:1811.12926 [quant-ph] (2018).
 """
 import math
 import warnings
@@ -117,8 +117,8 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
     temp = np.kron(L, R)
     deviation = np.abs(np.abs(temp.conj(temp).T.dot(special_unitary_matrix).trace()) - 4)
     if deviation > 1.E-13:
-        raise QiskitError(f"decompose_two_qubit_product_gate: decomposition failed: " +
-                          "deviation too large: {deviation}")
+        raise QiskitError(f"decompose_two_qubit_product_gate: decomposition failed: "
+                          f"deviation too large: {deviation}")
 
     return L, R
 
@@ -338,8 +338,8 @@ class TwoQubitBasisDecomposer():
         # Decomposition into different number of gates
         # In the future could use different decomposition functions for different basis classes, etc
         if not self.is_supercontrolled:
-            warnings.warn(f"Only know how to decompose properly for supercontrolled basis gate." +
-                          "This gate is ~Ud({basis.a},{basis.b},{basis.c})")
+            warnings.warn(f"Only know how to decompose properly for supercontrolled basis gate. "
+                          f"This gate is ~Ud({basis.a},{basis.b},{basis.c})")
         self.decomposition_fns = [self.decomp0,
                                   self.decomp1,
                                   self.decomp2_supercontrolled,
@@ -461,6 +461,4 @@ class TwoQubitBasisDecomposer():
         return return_circuit
 
 
-cnotdecomposer = TwoQubitBasisDecomposer(CnotGate())
-
-two_qubit_kak = cnotdecomposer
+cnot_decompose = TwoQubitBasisDecomposer(CnotGate())

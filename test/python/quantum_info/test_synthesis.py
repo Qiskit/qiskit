@@ -10,7 +10,7 @@ import unittest
 
 from qiskit.circuit import QuantumCircuit
 from qiskit import execute
-from qiskit.quantum_info.synthesis import two_qubit_kak, euler_angles_1q
+from qiskit.quantum_info.synthesis import cnot_decompose, euler_angles_1q
 from qiskit.quantum_info.operators import Pauli, Operator
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -47,7 +47,7 @@ class TestSynthesis(QiskitTestCase):
         for _ in range(100):
             unitary = random_unitary(4)
             with self.subTest(unitary=unitary):
-                decomp_circuit = two_qubit_kak(unitary)
+                decomp_circuit = cnot_decompose(unitary)
                 result = execute(decomp_circuit, UnitarySimulatorPy()).result()
                 decomp_unitary = Operator(result.get_unitary())
                 equal_up_to_phase = matrix_equal(
@@ -62,7 +62,7 @@ class TestSynthesis(QiskitTestCase):
         """
         pauli_xz = Pauli(label='XZ')
         unitary = Operator(pauli_xz)
-        decomp_circuit = two_qubit_kak(unitary)
+        decomp_circuit = cnot_decompose(unitary)
         result = execute(decomp_circuit, UnitarySimulatorPy()).result()
         decomp_unitary = Operator(result.get_unitary())
         equal_up_to_phase = matrix_equal(
