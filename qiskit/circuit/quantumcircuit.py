@@ -27,7 +27,7 @@ from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 from .parametertable import ParameterTable
-from qiskit.circuit.decorators import _is_bit, _convert_to_bits
+from .instructionset import InstructionSet
 from .register import Register
 from qiskit.circuit.decorators import _is_bit
 
@@ -278,13 +278,13 @@ class QuantumCircuit:
         Returns:
             Instruction: a handle to the instruction that was just added
         """
-        ret = None
         expanded_qargs = [i for i in map(self.qbit_argument_expansion, qargs or [])]
         expanded_cargs = [i for i in map(self.cbit_argument_expansion, cargs or [])]
 
+        instructions = InstructionSet()
         for (qarg, carg) in instruction.argument_expansion(expanded_qargs, expanded_cargs):
-            ret = self._append(instruction, qarg, carg)
-        return ret
+            instructions.add(self._append(instruction, qarg, carg), qarg, carg)
+        return instructions
 
     def _append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
