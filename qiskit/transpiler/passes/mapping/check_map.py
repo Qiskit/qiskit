@@ -35,7 +35,7 @@ class CheckMap(AnalysisPass):
             initial_layout (Layout): The initial layout of the DAG to analyze.
         """
         super().__init__()
-        self.layout = initial_layout
+        self.layout = initial_layout  # TODO: this arg is never used, remove.
         self.coupling_map = coupling_map
 
     def run(self, dag):
