@@ -16,6 +16,7 @@
 The CX direction rearrenges the direction of the cx nodes to make the circuit
 compatible with the coupling_map.
 """
+from math import pi
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -23,7 +24,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import Layout
 from qiskit.extensions.standard import U2Gate
-from math import pi
 
 
 class CXDirection(TransformationPass):

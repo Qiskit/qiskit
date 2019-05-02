@@ -29,19 +29,20 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 
 
-def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpiler):
+def default_pass_manager(transpile_config):
     """
     The default pass manager that maps to the coupling map.
 
     Args:
-        basis_gates (list[str]): list of basis gate names supported by the target.
-        coupling_map (CouplingMap): coupling map to target in mapping.
-        initial_layout (Layout or None): initial layout of virtual qubits on physical qubits
-        seed_transpiler (int or None): random seed for stochastic passes.
+        transpile_config (TranspileConfig)
 
     Returns:
         PassManager: A pass manager to map and optimize.
     """
+    basis_gates = transpile_config.basis_gates
+    coupling_map = transpile_config.coupling_map
+    initial_layout = transpile_config.initial_layout
+    seed_transpiler = transpile_config.seed_transpiler
     pass_manager = PassManager()
     pass_manager.append(SetLayout(initial_layout))
     pass_manager.append(Unroller(basis_gates))
@@ -82,20 +83,20 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
     return pass_manager
 
 
-def default_pass_manager_simulator(basis_gates):
+def default_pass_manager_simulator(transpile_config):
     """
     The default pass manager without a coupling map.
 
     Args:
-        basis_gates (list[str]): list of basis gate names to unroll to.
+        transpile_config (TranspileConfig)
 
     Returns:
         PassManager: A passmanager that just unrolls, without any optimization.
     """
+    basis_gates = transpile_config.basis_gates
+
     pass_manager = PassManager()
-
     pass_manager.append(Unroller(basis_gates))
-
     pass_manager.append([RemoveResetInZeroState(), Depth(), FixedPoint('depth')],
                         do_while=lambda property_set: not property_set['depth_fixed_point'])
 

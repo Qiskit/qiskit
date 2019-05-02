@@ -21,7 +21,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit import QuantumRegister
 
 from qiskit.extensions.standard import SwapGate
-from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 
 class LegacySwap(TransformationPass):

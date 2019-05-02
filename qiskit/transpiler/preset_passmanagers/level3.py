@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=unused-variable
 
 """
 Level 3 pass manager:
@@ -11,13 +20,10 @@ noise adaptive mapping in addition to heavy optimization based on unitary synthe
 """
 
 from qiskit.transpiler.passmanager import PassManager
-from qiskit.extensions.standard import SwapGate
 
 from qiskit.transpiler.passes import Unroller
 from qiskit.transpiler.passes import Unroll3qOrMore
-from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import DenseLayout
@@ -37,8 +43,7 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 
 
-def level_3_pass_manager(basis_gates, coupling_map, initial_layout,
-                         seed_transpiler, backend_properties):
+def level_3_pass_manager(transpile_config):
     """
     Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
     gate cancellation using commutativity rules and unitary synthesis.
@@ -55,60 +60,61 @@ def level_3_pass_manager(basis_gates, coupling_map, initial_layout,
     stages are done.
 
     Args:
-        basis_gates (list[str]): list of basis gate names supported by the target.
-        coupling_map (CouplingMap): coupling map to target in mapping.
-        initial_layout (Layout or None): initial layout of virtual qubits on physical qubits
-        seed_transpiler (int or None): random seed for stochastic passes.
-        backend_properties (BackendProperties): properties of backend containing calibration info
+        transpile_config (TranspileConfig)
 
     Returns:
         PassManager: a level 2 pass manager.
     """
+    basis_gates = transpile_config.basis_gates
+    coupling_map = transpile_config.coupling_map
+    initial_layout = transpile_config.initial_layout
+    seed_transpiler = transpile_config.seed_transpiler
+    backend_properties = transpile_config.backend_properties
+
     # 1. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
+
+    def _choose_layout_condition(property_set):
+        return not property_set['layout']
     _choose_layout = DenseLayout(coupling_map)
     if backend_properties:
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
-    _choose_layout_condition = lambda property_set: not property_set['layout']
 
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
 
     # 3. Unroll to 1q or 2q gates, swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
+
+    def _swap_condition(property_set):
+        return not property_set['is_swap_mapped']
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
-             LegacySwap(coupling_map),
-             Decompose(SwapGate)]
-    _swap_condition = lambda property_set: not property_set['is_swap_mapped']
+             LegacySwap(coupling_map)]
 
     # 4. Unroll to the basis
     _unroll = Unroller(basis_gates)
 
-    # 5. Fix any bad CX directions
-    # _direction_check = CheckCXDirection(coupling_map)  # TODO
-    _direction = [CXDirection(coupling_map)]
-    _direction_condition = lambda property_set: not property_set['is_direction_mapped']
-
-    # 6. 1q rotation merge and commutative cancellation iteratively until no more change in depth
+    # 5. 1q rotation merge and commutative cancellation iteratively until no more change in depth
     _depth_check = [Depth(), FixedPoint('depth')]
+
+    def _opt_control(property_set):
+        return not property_set['depth_fixed_point']
     _opt = [RemoveResetInZeroState(),
             Collect2qBlocks(), ConsolidateBlocks(),
+            Unroller(basis_gates), CXDirection(coupling_map),  # unroll unitaries and match coupling
             Optimize1qGates(), CommutativeCancellation(),
             OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
-    _opt_control = lambda property_set: not property_set['depth_fixed_point']
 
     pm3 = PassManager()
     if coupling_map:
         pm3.append(_given_layout)
         pm3.append(_choose_layout, condition=_choose_layout_condition)
         pm3.append(_embed)
-        pm3.append(_swap_check)
-        pm3.append(_swap, condition=_swap_condition)
     pm3.append(_unroll)
     if coupling_map:
-        # pm3.append(_direction_check)
-        pm3.append(_direction, condition=_direction_condition)
+        pm3.append(_swap_check)
+        pm3.append(_swap, condition=_swap_condition)
     pm3.append(_depth_check + _opt, do_while=_opt_control)
 
     return pm3

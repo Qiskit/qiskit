@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=unused-variable
 
 """
 Level 0 pass manager:
@@ -14,10 +23,8 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 
 from qiskit.transpiler.passes import Unroller
-from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
@@ -28,7 +35,7 @@ from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
 
 
-def level_0_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpiler):
+def level_0_pass_manager(transpile_config):
     """
     Level 0 pass manager: no explicit optimization other than mapping to backend.
 
@@ -41,19 +48,22 @@ def level_0_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
     stages are done.
 
     Args:
-        basis_gates (list[str]): list of basis gate names supported by the target.
-        coupling_map (CouplingMap): coupling map to target in mapping.
-        initial_layout (Layout or None): initial layout of virtual qubits on physical qubits
-        seed_transpiler (int or None): random seed for stochastic passes.
+        transpile_config (TranspileConfig)
 
     Returns:
         PassManager: a level 0 pass manager.
     """
+    basis_gates = transpile_config.basis_gates
+    coupling_map = transpile_config.coupling_map
+    initial_layout = transpile_config.initial_layout
+    seed_transpiler = transpile_config.seed_transpiler
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
+
+    def _choose_layout_condition(property_set):
+        return not property_set['layout']
     _choose_layout = TrivialLayout(coupling_map)
-    _choose_layout_condition = lambda property_set: not property_set['layout']
 
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
@@ -63,15 +73,18 @@ def level_0_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
+
+    def _swap_condition(property_set):
+        return not property_set['is_swap_mapped']
     _swap = [BarrierBeforeFinalMeasurements(),
              LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
-    _swap_condition = lambda property_set: not property_set['is_swap_mapped']
 
     # 5. Fix any bad CX directions
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
+    def _direction_condition(property_set):
+        return not property_set['is_direction_mapped']
     _direction = [CXDirection(coupling_map)]
-    _direction_condition = lambda property_set: not property_set['is_direction_mapped']
 
     # 6. Remove zero-state reset
     _reset = RemoveResetInZeroState()
@@ -88,5 +101,6 @@ def level_0_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
         # pm0.append(_direction_check)
         pm0.append(_direction, condition=_direction_condition)
     pm0.append(_reset)
+    pm0.append(_direction)
 
     return pm0

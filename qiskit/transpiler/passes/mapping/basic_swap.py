@@ -25,7 +25,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import Layout
 from qiskit.extensions.standard import SwapGate
-from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 
 class BasicSwap(TransformationPass):

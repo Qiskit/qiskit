@@ -57,7 +57,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Layout
 from qiskit.dagcircuit import DAGNode
 
-from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4

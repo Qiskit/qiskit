@@ -23,7 +23,6 @@ from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.extensions import UnitaryGate
-from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.transpiler.basepasses import TransformationPass
 
 
