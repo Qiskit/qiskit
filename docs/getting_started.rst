@@ -85,6 +85,7 @@ which plots circuit in the form found in many textbooks.
 
 
 .. image:: images/figures/getting_started_with_qiskit_circuit_0.png
+  :alt: Quantum circuit with an H gate and two controlled nots.
 
 
 
@@ -198,6 +199,7 @@ components of the state vector.
     plot_state_city(outputstate)
 
 .. image:: images/figures/getting_started_with_qiskit_21_0.png
+  :alt: 3D bar charts of the real and imaginary parts of the state vector.
 
 
 
@@ -296,6 +298,7 @@ backend.
     qc.draw(output='mpl')
 
 .. image:: images/figures/getting_started_with_qiskit_circuit_1.png
+  :alt: Circuit diagram of an H gate and two controlled nots with measurements.
 
 
 
@@ -351,6 +354,8 @@ outcomes.
 
 
 .. image:: images/figures/getting_started_with_qiskit_33_0.png
+  :alt: Histogram showing nearly equal probablities of measuring 000 and 111
+    states.
 
 
 
@@ -458,6 +463,8 @@ Like before, the counts from the execution can be obtained using
 
 
 .. image:: images/figures/getting_started_with_qiskit_49_0.png
+  :alt: Histogram of simulated and real device results for the 3 qubit GHZ
+    state
 
 
 
@@ -493,6 +500,7 @@ backends.
 
 
 .. image:: images/figures/getting_started_with_qiskit_54_0.png
+  :alt: Histogram showing nearly equal probabilities of the 000 and 111 states.
 
 
 
