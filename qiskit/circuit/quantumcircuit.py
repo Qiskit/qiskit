@@ -310,13 +310,17 @@ class QuantumCircuit:
         the circuit in place. Expands qargs and cargs.
 
         Args:
-            instruction (Instruction): Instruction instance to append
+            instruction (Instruction or Operation): Instruction instance to append
             qargs (list(argument)): qubits to attach instruction to
             cargs (list(argument)): clbits to attach instruction to
 
         Returns:
             Instruction: a handle to the instruction that was just added
         """
+        # Convert input to instruction
+        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+            instruction = instruction.to_instruction()
+
         expanded_qargs = [self.qbit_argument_expansion(qarg) for qarg in qargs or []]
         expanded_cargs = [self.cbit_argument_expansion(carg) for carg in cargs or []]
 
@@ -341,9 +345,6 @@ class QuantumCircuit:
             QiskitError: if the gate is of a different shape than the wires
                 it is being attached to.
         """
-        # Convert input to instruction
-        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
-            instruction = instruction.to_instruction()
         if not isinstance(instruction, Instruction):
             raise QiskitError('object is not an Instruction.')
 
@@ -351,12 +352,6 @@ class QuantumCircuit:
         self._check_dups(qargs)
         self._check_qargs(qargs)
         self._check_cargs(cargs)
-        if instruction.num_qubits != len(qargs) or instruction.num_clbits != len(cargs):
-            raise QiskitError("instruction %s with %d qubits and %d clbits "
-                              "cannot be appended onto %d qubits and %d clbits." %
-                              (instruction.name,
-                               instruction.num_qubits, instruction.num_clbits,
-                               len(qargs), len(cargs)))
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
