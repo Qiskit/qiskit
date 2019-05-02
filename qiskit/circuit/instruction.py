@@ -299,10 +299,12 @@ class Instruction:
                 arguments does not match the gate expectation.
         """
         if len(qargs) != self.num_qubits:
-            raise QiskitError("")
+            raise QiskitError(
+                'The amount of qubit arguments does not match the instruction expectation.')
 
         if len(cargs) != self.num_clbits:
-            raise QiskitError("")
+            raise QiskitError(
+                'The amount of clbit arguments does not match the instruction expectation.')
 
         if len(cargs) == len(qargs):
             for qarg, carg in zip(qargs, cargs):
