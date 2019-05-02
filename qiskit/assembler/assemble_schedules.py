@@ -102,16 +102,16 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
             for lo_dict in run_config.schedule_los:
                 experiments.append(PulseQobjExperiment(
                     instructions=qobj_schedules[0]['instructions'],
-                    experimentheader=qobj_schedules[0]['header'],
-                    experimentconfig=lo_converter(lo_dict)
+                    header=qobj_schedules[0]['header'],
+                    config=lo_converter(lo_dict)
                 ))
         elif len(qobj_schedules) == len(run_config.schedule_los):
             # n:n setup
             for lo_dict, schedule in zip(run_config.schedule_los, qobj_schedules):
                 experiments.append(PulseQobjExperiment(
                     instructions=schedule['instructions'],
-                    experimentheader=schedule['header'],
-                    experimentconfig=lo_converter(lo_dict)
+                    header=schedule['header'],
+                    config=lo_converter(lo_dict)
                 ))
         else:
             raise QiskitError('Invalid LO setting is specified. '
@@ -124,7 +124,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         for schedule in qobj_schedules:
             experiments.append(PulseQobjExperiment(
                 instructions=schedule['instructions'],
-                experimentheader=schedule['header'],
+                header=schedule['header'],
             ))
 
     qobj_config = PulseQobjConfig(**qobj_config)
