@@ -139,7 +139,7 @@ class QuantumChannel(BaseOperator):
             # preference to a 'to_quantumchannel' attribute that allows
             # an arbitrary object to define its own conversion to any
             # quantum channel subclass.
-            return data.to_channel()
+            return data.to_quantumchannel()
         if hasattr(data, 'to_channel'):
             # TODO: this 'to_channel' method is the same case as the above
             # but is used by current version of Aer. It should be removed
