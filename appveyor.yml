@@ -15,11 +15,11 @@ version: 1.0.{build}
 environment:
     matrix:
         - PYTHON: C:\Python35
-          TAG_SCENARIO: false
+          TAG_SCENARIO: true
         - PYTHON: C:\Python36
-          TAG_SCENARIO: false
+          TAG_SCENARIO: true
         - PYTHON: C:\Python37
-          TAG_SCENARIO: false
+          TAG_SCENARIO: true
         - WHEEL: 1
           PYTHON: C:\Python35
           CIBW_BEFORE_BUILD: pip install -U Cython
@@ -27,7 +27,7 @@ environment:
           TWINE_USERNAME: qiskit
           TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
           CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
-          TAG_SCENARIO: true
+          TAG_SCENARIO: false
 
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid
@@ -61,7 +61,7 @@ skip_branch_with_pr: true
 build_script:
   - if defined WHEEL (pip install cibuildwheel==0.10.1 twine)
   - if defined WHEEL (cibuildwheel --output-dir wheelhouse)
-  - if defined WHEEL {twine upload wheelhouse\*}
+#  - if defined WHEEL {twine upload wheelhouse\*}
 artifacts:
   - path: "wheelhouse\\*.whl"
     name: Wheels
