@@ -25,7 +25,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import Layout
 from qiskit.extensions.standard import SwapGate
-from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 
 class BasicSwap(TransformationPass):
@@ -45,7 +44,6 @@ class BasicSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """

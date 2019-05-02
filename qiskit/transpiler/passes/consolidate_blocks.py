@@ -23,7 +23,6 @@ from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.extensions import UnitaryGate
-from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -35,10 +34,6 @@ class ConsolidateBlocks(TransformationPass):
     Important note: this pass assumes that the 'blocks_list' property that
     it reads is given such that blocks are in topological order.
     """
-    def __init__(self):
-        super().__init__()
-        self.requires.append(Unroller(["u1", "u2", "u3", "cx", "id"]))
-
     def run(self, dag):
         """iterate over each block and replace it with an equivalent Unitary
         on the same wires.

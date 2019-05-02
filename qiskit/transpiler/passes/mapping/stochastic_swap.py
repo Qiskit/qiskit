@@ -26,7 +26,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler import Layout
-from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 # pylint: disable=no-name-in-module, import-error
 from .cython.stochastic_swap.utils import nlayout_from_layout
 # pylint: disable=no-name-in-module, import-error
@@ -84,7 +83,6 @@ class StochasticSwap(TransformationPass):
         self.seed = seed
         self.qregs = None
         self.rng = None
-        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """
