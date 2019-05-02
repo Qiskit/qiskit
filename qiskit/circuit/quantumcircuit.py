@@ -269,7 +269,7 @@ class QuantumCircuit:
                 raise QiskitError('Index out of range.')
         elif isinstance(bit_representation, range):
             try:
-                return [in_array[index] for index in bit_representation ]
+                return [in_array[index] for index in bit_representation]
             except IndexError:
                 raise QiskitError('Index out of range.')
         elif isinstance(bit_representation, slice):
@@ -279,11 +279,31 @@ class QuantumCircuit:
         else:
             raise QiskitError(str(type(bit_representation)))
 
-    def qbit_argument_expansion(self, bit_representation):
-        return QuantumCircuit._bit_argument_expansion(bit_representation, self.qubits)
+    def qbit_argument_expansion(self, qubit_representation):
+        """
+        Expands several qubit representations (such as indexes, range, etc)
+        into a list of qubits.
 
-    def cbit_argument_expansion(self, bit_representation):
-        return QuantumCircuit._bit_argument_expansion(bit_representation, self.clbits)
+        Args:
+            qubit_representation: representation to expand
+
+        Returns:
+            List(tuple): Where the tuple is a qubit.
+        """
+        return QuantumCircuit._bit_argument_expansion(qubit_representation, self.qubits)
+
+    def cbit_argument_expansion(self, clbit_representation):
+        """
+        Expands several classical bit representations (such as indexes, range, etc)
+        into a list of classical bits.
+
+        Args:
+            clbit_representation: representation to expand
+
+        Returns:
+            List(tuple): Where the tuple is a classical bit.
+        """
+        return QuantumCircuit._bit_argument_expansion(clbit_representation, self.clbits)
 
     def append(self, instruction, qargs=None, cargs=None):
         """Append one or more instructions to the end of the circuit, modifying
