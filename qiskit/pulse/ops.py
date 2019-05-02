@@ -82,7 +82,7 @@ def insert(parent: ScheduleComponent, time: int, child: ScheduleComponent, buffe
         buffer: Obey buffer when inserting
         name: Name of the new schedule. Defaults to name of parent
     """
-    if buffer and child.buffer:
+    if buffer and child.buffer and time > 0:
         time += parent.buffer
     return union(parent, (time, child), name=name)
 
@@ -102,8 +102,9 @@ def append(parent: ScheduleComponent, child: ScheduleComponent, buffer: bool = T
         name: Name of the new schedule. Defaults to name of parent
     """
     common_channels = set(parent.channels) & set(child.channels)
+
     time = parent.ch_stop_time(*common_channels)
-    if buffer and child.buffer:
+    if buffer and child.buffer and time > 0:
         time += parent.buffer
 
     return insert(parent, time, child, name=name)
