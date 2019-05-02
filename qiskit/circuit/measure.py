@@ -33,6 +33,9 @@ class Measure(Instruction):
         if len(carg) == len(qarg):
             for qarg, carg in zip(qarg, carg):
                 yield [qarg], [carg]
+        elif len(qarg) == 1 and carg:
+            for each_carg in carg:
+                yield qarg, [each_carg]
         else:
             raise QiskitError('register size error')
 
