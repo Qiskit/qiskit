@@ -29,8 +29,15 @@ from .classicalregister import ClassicalRegister
 from .parametertable import ParameterTable
 from .instructionset import InstructionSet
 from .register import Register
-from qiskit.circuit.decorators import _is_bit
 
+
+def _is_bit(obj):
+    """Determine if obj is a bit"""
+    # If there is a bit type this could be replaced by isinstance.
+    if isinstance(obj, tuple) and len(obj) == 2:
+        if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
+            return True
+    return False
 
 
 class QuantumCircuit:
@@ -67,7 +74,7 @@ class QuantumCircuit:
             # pylint: disable=not-callable
             # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
             if sys.platform != "win32" and \
-               isinstance(mp.current_process(), mp.context.ForkProcess):
+                    isinstance(mp.current_process(), mp.context.ForkProcess):
                 name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
@@ -140,7 +147,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: the mirrored circuit
         """
-        reverse_circ = self.copy(name=self.name+'_mirror')
+        reverse_circ = self.copy(name=self.name + '_mirror')
         reverse_circ.data = []
         for inst, qargs, cargs in reversed(self.data):
             reverse_circ.data.append((inst.mirror(), qargs, cargs))
@@ -157,7 +164,7 @@ class QuantumCircuit:
         Raises:
             QiskitError: if the circuit cannot be inverted.
         """
-        inverse_circ = self.copy(name=self.name+'_dg')
+        inverse_circ = self.copy(name=self.name + '_dg')
         inverse_circ.data = []
         for inst, qargs, cargs in reversed(self.data):
             inverse_circ.data.append((inst.inverse(), qargs, cargs))
@@ -554,13 +561,13 @@ class QuantumCircuit:
         # a register is given by reg_int+qubit_num
         reg_offset = 0
         reg_map = {}
-        for reg in self.qregs+self.cregs:
+        for reg in self.qregs + self.cregs:
             reg_map[reg.name] = reg_offset
             reg_offset += reg.size
 
         # A list that holds the height of each qubit
         # and classical bit.
-        op_stack = [0]*reg_offset
+        op_stack = [0] * reg_offset
         # Here we are playing a modified version of
         # Tetris where we stack gates, but multi-qubit
         # gates, or measurements have a block for each
@@ -575,19 +582,19 @@ class QuantumCircuit:
             if instr.name not in ['barrier', 'snapshot']:
                 levels = []
                 reg_ints = []
-                for ind, reg in enumerate(qargs+cargs):
+                for ind, reg in enumerate(qargs + cargs):
                     # Add to the stacks of the qubits and
                     # cbits used in the gate.
-                    reg_ints.append(reg_map[reg[0].name]+reg[1])
+                    reg_ints.append(reg_map[reg[0].name] + reg[1])
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 if instr.control:
                     # Controls operate over all bits in the
                     # classical register they use.
                     cint = reg_map[instr.control[0].name]
                     for off in range(instr.control[0].size):
-                        if cint+off not in reg_ints:
-                            reg_ints.append(cint+off)
-                            levels.append(op_stack[cint+off]+1)
+                        if cint + off not in reg_ints:
+                            reg_ints.append(cint + off)
+                            levels.append(op_stack[cint + off] + 1)
 
                 max_level = max(levels)
                 for ind in reg_ints:
@@ -601,7 +608,7 @@ class QuantumCircuit:
             int: Width of circuit.
 
         """
-        return sum(reg.size for reg in self.qregs+self.cregs)
+        return sum(reg.size for reg in self.qregs + self.cregs)
 
     def count_ops(self):
         """Count each operation kind in the circuit.
@@ -633,7 +640,7 @@ class QuantumCircuit:
         if unitary_only:
             regs = self.qregs
         else:
-            regs = self.qregs+self.cregs
+            regs = self.qregs + self.cregs
 
         for reg in regs:
             reg_map[reg.name] = reg_offset
@@ -650,7 +657,7 @@ class QuantumCircuit:
                 args = qargs
                 num_qargs = len(args)
             else:
-                args = qargs+cargs
+                args = qargs + cargs
                 num_qargs = len(args) + (1 if instr.control else 0)
 
             if num_qargs >= 2 and instr.name not in ['barrier', 'snapshot']:
@@ -662,7 +669,7 @@ class QuantumCircuit:
                     creg = instr.control[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
-                        temp_int = creg_int+coff
+                        temp_int = creg_int + coff
                         for k in range(num_sub_graphs):
                             if temp_int in sub_graphs[k]:
                                 graphs_touched.append(k)
@@ -670,7 +677,7 @@ class QuantumCircuit:
                                 break
 
                 for item in args:
-                    reg_int = reg_map[item[0].name]+item[1]
+                    reg_int = reg_map[item[0].name] + item[1]
                     for k in range(num_sub_graphs):
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
@@ -691,7 +698,7 @@ class QuantumCircuit:
                             _sub_graphs.append(sub_graphs[idx])
                     _sub_graphs.append(connections)
                     sub_graphs = _sub_graphs
-                    num_sub_graphs -= (num_touched-1)
+                    num_sub_graphs -= (num_touched - 1)
             # Cannot go lower than one so break
             if num_sub_graphs == 1:
                 break

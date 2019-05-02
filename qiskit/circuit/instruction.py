@@ -282,6 +282,7 @@ class Instruction:
         # Validation and expantion of the qargs and cargs for the gate
         if len(qargs) != self.num_qubits:
             raise QiskitError("")
+
         if len(cargs) != self.num_clbits:
             raise QiskitError("")
 
