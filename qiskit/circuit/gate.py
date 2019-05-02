@@ -98,7 +98,9 @@ class Gate(Instruction):
             for arg0, arg1, arg2 in zip(qarg0, qarg1, qarg2):
                 yield [arg0, arg1, arg2], []
         else:
-            raise QiskitError('')
+            raise QiskitError(
+                'Not sure how to combine these three qubit arguments:\n%s\n%s\n%s' % qarg0, qarg1,
+                qarg2)
 
     def argument_expansion(self, qargs, cargs):
         if len(qargs) != self.num_qubits or cargs:

@@ -277,7 +277,7 @@ class QuantumCircuit:
         elif isinstance(bit_representation, list):
             return bit_representation
         else:
-            raise QiskitError(str(type(bit_representation)))
+            raise QiskitError('Not able to expand a %s' % type(bit_representation))
 
     def qbit_argument_expansion(self, qubit_representation):
         """
