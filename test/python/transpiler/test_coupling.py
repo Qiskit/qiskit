@@ -16,6 +16,7 @@
 
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
+from qiskit.test.mock import FakeRueschlikon
 from qiskit.test import QiskitTestCase
 
 
@@ -78,3 +79,22 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual(coupling.physical_qubits, qubits_expected)
         self.assertEqual(coupling.get_edges(), edges_expected)
         self.assertEqual(2, coupling.distance(0, 2))
+
+    def test_successful_reduced_map(self):
+        """Generate a reduced map
+        """
+        fake = FakeRueschlikon()
+        cmap = fake.configuration().coupling_map
+        coupling_map = CouplingMap(cmap)
+        out = coupling_map.reduce([12, 11, 10, 9]).get_edges()
+        ans = [(1, 2), (3, 2), (0, 1)]
+        self.assertEqual(set(out), set(ans))
+
+    def test_failed_reduced_map(self):
+        """Generate a bad disconnected reduced map
+        """
+        fake = FakeRueschlikon()
+        cmap = fake.configuration().coupling_map
+        coupling_map = CouplingMap(cmap)
+        with self.assertRaises(CouplingError):
+            coupling_map.reduce([12, 11, 10, 3])
