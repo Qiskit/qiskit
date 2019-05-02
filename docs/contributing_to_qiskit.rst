@@ -87,6 +87,17 @@ require using the ``development`` version of the rest of the items as well.
   you can install. Ignis, Aqua, Qiskit Chemistry, and the IBM Q provider backend
   do not require a compiler.
 
+Installing elements from source requires the following order of installation to
+prevent getting versions of elements that may be lower than those desired if the
+pip version is behind the source versions:
+
+#. qiskit-terra
+#. qiskit-ibmq-provider (if wanting to connect to the IBM Q devices or online
+   simulator)
+#. qiskit-aer
+#. qiskit-ignis
+#. qiskit-aqua
+
 To work with several components and elements simultaneously, use the following
 steps for each element.
 
