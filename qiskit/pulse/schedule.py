@@ -11,15 +11,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
-# pylint: disable=missing-return-doc,cyclic-import
-
 """
 Schedule.
 """
 import itertools
 import logging
-from typing import List, Tuple, Iterable, Union
+from typing import List, Tuple, Iterable, Union, Dict
 
 from qiskit.pulse import ops
 from .channels import Channel
@@ -28,6 +25,8 @@ from .timeslots import TimeslotCollection
 from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=missing-return-doc,cyclic-import
 
 
 class Schedule(ScheduleComponent):
@@ -48,7 +47,7 @@ class Schedule(ScheduleComponent):
         self._name = name
         try:
             timeslots = []
-            children = []
+            _children = []
             for sched_pair in schedules:
                 # recreate as sequence starting at 0.
                 if not isinstance(sched_pair, (list, tuple)):
@@ -60,11 +59,11 @@ class Schedule(ScheduleComponent):
                 if insert_time:
                     sched_timeslots = sched_timeslots.shift(insert_time)
                 timeslots.append(sched_timeslots.timeslots)
-                children.append(sched_pair)
+                _children.append(sched_pair)
 
             self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
-            self._children = tuple(children)
-            self._buffer = max([child.buffer for _, child in children]) if children else 0
+            self.__children = tuple(_children)
+            self._buffer = max([child.buffer for _, child in _children]) if _children else 0
 
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
@@ -99,8 +98,8 @@ class Schedule(ScheduleComponent):
         return self.timeslots.channels
 
     @property
-    def children(self) -> Tuple[ScheduleComponent]:
-        return self._children
+    def _children(self) -> Tuple[ScheduleComponent]:
+        return self.__children
 
     @property
     def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
@@ -141,7 +140,7 @@ class Schedule(ScheduleComponent):
             Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
                 at and the flattened `ScheduleComponent`.
         """
-        for insert_time, child_sched in self.children:
+        for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
     def union(self, *schedules: List[ScheduleComponent], name: str = None) -> 'Schedule':
@@ -210,3 +209,59 @@ class Schedule(ScheduleComponent):
         if len(instructions) > 50:
             return res + ', ...)'
         return res + ')'
+
+
+class ParameterizedSchedule:
+    """Temporary parameterized schedule class.
+
+    This should not be returned to users as it is currently only a helper class.
+
+    This class is takes an input command definition that accepts
+    a set of parameters. Calling `bind` on the class will return a `Schedule`.
+
+    # TODO: In the near future this will be replaced with proper incorporation of parameters
+        into the `Schedule` class.
+    """
+
+    def __init__(self, *schedules, parameters=None, name=None):
+        full_schedules = []
+        parameterized = []
+        parameters = parameters or []
+        self.name = name or ''
+        # partition schedules into callable and schedules
+        for schedule in schedules:
+            if isinstance(schedule, ParameterizedSchedule):
+                parameterized.append(schedule)
+                parameters += schedule.parameters
+            elif callable(schedule):
+                parameterized.append(schedule)
+            elif isinstance(schedule, Schedule):
+                full_schedules.append(schedule)
+            else:
+                raise PulseError('Input type: {0} not supported'.format(type(schedule)))
+
+        self._parameterized = tuple(parameterized)
+        self._schedules = tuple(full_schedules)
+        self._parameters = tuple(sorted(parameters))
+
+    @property
+    def parameters(self) -> Tuple[str]:
+        """Schedule parameters."""
+        return self._parameters
+
+    def bind_parameters(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+        """Generate the Schedule from params to evaluate command expressions"""
+        bound_schedule = Schedule(name=self.name)
+        schedules = list(self._schedules)
+        for param_sched in self._parameterized:
+            # recursively call until based callable is reached
+            schedules.append(param_sched(*args, **kwargs))
+
+        # construct evaluated schedules
+        for sched in schedules:
+            bound_schedule |= sched
+
+        return bound_schedule
+
+    def __call__(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+        return self.bind_parameters(*args, **kwargs)
