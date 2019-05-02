@@ -263,7 +263,10 @@ class QuantumCircuit:
         elif isinstance(bit_representation, Register):
             return bit_representation[:]
         elif isinstance(bit_representation, int):
-            return [in_array[bit_representation]]
+            try:
+                return [in_array[bit_representation]]
+            except IndexError:
+                raise QiskitError('')
         elif isinstance(bit_representation, list):
             return bit_representation
         else:
