@@ -10,6 +10,8 @@ Channels.
 """
 from abc import ABCMeta
 
+from qiskit.pulse.exceptions import PulseError
+
 
 class Channel(metaclass=ABCMeta):
     """Base class of channels."""
@@ -22,9 +24,18 @@ class Channel(metaclass=ABCMeta):
         Args:
             index: Index of channel
             buffer: Buffer that should be placed between instructions on channel
+
+        Raises:
+            PulseError: If integer index or buffer not supplied
         """
+        if not isinstance(index, int):
+            raise PulseError('Channel index must be integer')
 
         self._index = index
+
+        if not isinstance(buffer, int):
+            raise PulseError('Channel buffer must be integer')
+
         self._buffer = buffer
 
     @property

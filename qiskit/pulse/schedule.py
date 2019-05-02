@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,7 @@ Schedule.
 """
 import itertools
 import logging
-from typing import List, Tuple, Iterable, Union, Dict
+from typing import List, Tuple, Iterable, Union, Dict, Callable
 
 from qiskit.pulse import ops
 from .channels import Channel
@@ -188,6 +188,43 @@ class Schedule(ScheduleComponent):
     def flatten(self) -> 'ScheduleComponent':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
         return ops.flatten(self)
+
+    def draw(self, dt: float = 1, style=None,
+             filename: str = None, interp_method: Callable = None, scaling: float = 1,
+             channels_to_plot: List[Channel] = None, plot_all: bool = False,
+             plot_range: Tuple[float] = None, interactive: bool = False,
+             table: bool = True, label: bool = False,
+             framechange: bool = True):
+        """Plot the schedule.
+
+        Args:
+            dt: Time interval of samples
+            style (OPStyleSched): A style sheet to configure plot appearance
+            filename: Name required to save pulse image
+            interp_method: A function for interpolation
+            scaling (float): Relative visual scaling of waveform amplitudes
+            channels_to_plot: A list of channel names to plot
+            plot_all: Plot empty channels
+            plot_range: A tuple of time range to plot
+            interactive: When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this)
+            table: Draw event table for supported commands
+            label: Label individual instructions
+            framechange: Add framechange indicators
+
+        Returns:
+            matplotlib.figure: A matplotlib figure object of the pulse schedule.
+        """
+        # pylint: disable=invalid-name, cyclic-import
+
+        from qiskit.tools import visualization
+
+        return visualization.pulse_drawer(self, dt=dt, style=style,
+                                          filename=filename, interp_method=interp_method,
+                                          scaling=scaling, channels_to_plot=channels_to_plot,
+                                          plot_all=plot_all, plot_range=plot_range,
+                                          interactive=interactive, table=table,
+                                          label=label, framechange=framechange)
 
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
