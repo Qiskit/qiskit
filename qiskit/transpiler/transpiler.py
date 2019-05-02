@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=too-many-function-args, unexpected-keyword-arg
+
 """THIS FILE IS DEPRECATED AND WILL BE REMOVED IN RELEASE 0.9.
 """
 import warnings
