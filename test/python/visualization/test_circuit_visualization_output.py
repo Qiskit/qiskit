@@ -14,8 +14,7 @@
 
 # pylint: disable=missing-docstring
 
-"""Tests for comparing the outputs of visualization tools with expected ones.
-Useful for refactoring purposes."""
+"""Tests for comparing the outputs of circuit drawer with expected ones."""
 
 import os
 import unittest
@@ -24,23 +23,16 @@ from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
 from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
-from qiskit.test import QiskitTestCase
+
+from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
-def _path_to_diagram_reference(filename):
-    return os.path.join(_this_directory(), 'references', filename)
-
-
-def _this_directory():
-    return os.path.dirname(os.path.abspath(__file__))
-
-
-class TestVisualizationImplementation(QiskitTestCase):
+class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
     """Visual accuracy of visualization tools outputs tests."""
 
-    latex_reference = _path_to_diagram_reference('latex_ref.png')
-    matplotlib_reference = _path_to_diagram_reference('matplotlib_ref.png')
-    text_reference = _path_to_diagram_reference('text_ref.txt')
+    latex_reference = path_to_diagram_reference('circuit_latex_ref.png')
+    matplotlib_reference = path_to_diagram_reference('circuit_matplotlib_ref.png')
+    text_reference = path_to_diagram_reference('circuit_text_ref.txt')
 
     def sample_circuit(self):
         """Generate a sample circuit that includes the most common elements of
@@ -114,39 +106,6 @@ class TestVisualizationImplementation(QiskitTestCase):
             encode(str(output), encoding='cp437')
         except UnicodeEncodeError:
             self.fail("_text_circuit_drawer() should only use extended ascii (aka code page 437).")
-
-    def assertFilesAreEqual(self, current, expected):
-        """Checks if both file are the same."""
-        self.assertTrue(os.path.exists(current))
-        self.assertTrue(os.path.exists(expected))
-        with open(current, "r", encoding='cp437') as cur, \
-                open(expected, "r", encoding='cp437') as exp:
-            self.assertEqual(cur.read(), exp.read())
-
-    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
-        """Checks if both images are similar enough to be considered equal.
-        Similarity is controlled by the ```diff_tolerance``` argument."""
-        from PIL import Image, ImageChops
-
-        if isinstance(current, str):
-            current = Image.open(current)
-        if isinstance(expected, str):
-            expected = Image.open(expected)
-
-        diff = ImageChops.difference(expected, current)
-        black_pixels = _get_black_pixels(diff)
-        total_pixels = diff.size[0] * diff.size[1]
-        similarity_ratio = black_pixels / total_pixels
-        self.assertTrue(
-            1 - similarity_ratio < diff_tolerance,
-            'The images are different by more than a {}%'
-            .format(diff_tolerance * 100))
-
-
-def _get_black_pixels(image):
-    black_and_white_version = image.convert('1')
-    black_pixels = black_and_white_version.histogram()[0]
-    return black_pixels
 
 
 if __name__ == '__main__':

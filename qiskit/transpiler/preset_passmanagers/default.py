@@ -22,6 +22,7 @@ from qiskit.transpiler.passes.mapping.check_map import CheckMap
 from qiskit.transpiler.passes.mapping.cx_direction import CXDirection
 from qiskit.transpiler.passes.mapping.dense_layout import DenseLayout
 from qiskit.transpiler.passes.mapping.trivial_layout import TrivialLayout
+from qiskit.transpiler.passes.mapping.set_layout import SetLayout
 from qiskit.transpiler.passes.mapping.legacy_swap import LegacySwap
 from qiskit.transpiler.passes.mapping.full_ancilla_allocation import FullAncillaAllocation
 from qiskit.transpiler.passes.mapping.enlarge_with_ancilla import EnlargeWithAncilla
@@ -41,8 +42,7 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
         PassManager: A pass manager to map and optimize.
     """
     pass_manager = PassManager()
-    pass_manager.property_set['layout'] = initial_layout
-
+    pass_manager.append(SetLayout(initial_layout))
     pass_manager.append(Unroller(basis_gates))
 
     # Use the trivial layout if no layout is found
