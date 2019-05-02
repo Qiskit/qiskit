@@ -19,6 +19,7 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CheckCXDirection
 from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import LegacySwap
@@ -34,6 +35,16 @@ def level_1_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
     """
     Level 1 pass manager: light optimization by simple adjacent gate collapsing
 
+    This pass manager applies the user-given initial layout. If none is given, and a trivial
+    layout (i-th virtual -> i-th physical) makes the circuit fit the coupling map, that is used.
+    Otherwise, the circuit is mapped to the most densely connected coupling subgraph, and swaps
+    are inserted to map. Any unused physical qubit is allocated as ancilla space.
+    The pass manager then unrolls the circuit to the desired basis, and transforms the
+    circuit to match the coupling map. Finally, optimizations in the form of adjacent
+    gate collapse and redundant reset removal are performed.
+    Note: in simulators where coupling_map=None, only the unrolling and optimization
+    stages are done.
+
     Args:
         basis_gates (list[str]): list of basis gate names supported by the target.
         coupling_map (CouplingMap): coupling map to target in mapping.
@@ -44,8 +55,14 @@ def level_1_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
         PassManager: a level 1 pass manager.
     """
     # 1. Use trivial layout if no layout given
+    _given_layout = SetLayout(initial_layout)
     _choose_layout = TrivialLayout(coupling_map)
     _choose_layout_condition = lambda property_set: not property_set['layout']
+
+    # 2. Use a better layout on densely connected qubits, if circuit needs swaps
+    _layout_check = CheckMap(coupling_map)
+    _improve_layout = DenseLayout(coupling_map)
+    _improve_layout_condition = lambda property_set: not property_set['is_swap_mapped']
 
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
@@ -55,8 +72,7 @@ def level_1_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
-    _swap = [DenseLayout(coupling_map),
-             LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
+    _swap = [LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
     _swap_condition = lambda property_set: not property_set['is_swap_mapped']
 
@@ -74,14 +90,18 @@ def level_1_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
     _opt_control = lambda property_set: not property_set['depth_fixed_point']
 
     pm1 = PassManager()
-    pm1.property_set['layout'] = initial_layout
-    pm1.append(_choose_layout, condition=_choose_layout_condition)
-    pm1.append(_embed)
+    if coupling_map:
+        pm1.append(_given_layout)
+        pm1.append(_choose_layout, condition=_choose_layout_condition)
+        pm1.append(_layout_check)
+        pm1.append(_improve_layout, condition=_improve_layout_condition)
+        pm1.append(_embed)
     pm1.append(_unroll)
-    pm1.append(_swap_check)
-    pm1.append(_swap, condition=_swap_condition)
-    # pm1.append(_direction_check)
-    pm1.append(_direction, condition=_direction_condition)
+    if coupling_map:
+        pm1.append(_swap_check)
+        pm1.append(_swap, condition=_swap_condition)
+        # pm1.append(_direction_check)
+        pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt, do_while=_opt_control)
 
