@@ -23,6 +23,7 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
+- Added exact and approximate decomposition of SU(4) to arbitrary supercontrolled basis
 - Introduced schedule lo configuration. (#2115)
 - Introduced pulse schedule assembler. (#2115)
 - Builtin library of continuous pulses and builtin library of discrete pulses which are obtained
@@ -102,6 +103,7 @@ Added
 Changed
 -------
 
+- require scipy>=1.0, use `scipy.stats.unitary_group.rvs` for `random_unitary()`.
 - two_qubit_kak decomposition works with Operator or raw matrix input objects.
 - process_fidelity works with QuantumChannel and Operator object inputs.
 - Backend defaults values are no longer required (#2101).

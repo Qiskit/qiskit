@@ -20,6 +20,8 @@ from .command import Command
 class Acquire(Command):
     """Acquire."""
 
+    ALIAS = 'acquire'
+
     def __init__(self, duration, discriminator=None, kernel=None):
         """Create new acquire command.
 

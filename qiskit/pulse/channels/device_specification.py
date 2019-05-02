@@ -11,6 +11,8 @@ Specification of the device.
 import logging
 from typing import List
 
+from qiskit.validation.exceptions import ModelValidationError
+
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
@@ -47,19 +49,29 @@ class DeviceSpecification:
         """
         backend_config = backend.configuration()
 
+        # TODO : Remove usage of config.defaults when backend.defaults() is updated.
+        try:
+            backend_default = backend.defaults()
+            buffer = backend_default.buffer
+        except ModelValidationError:
+            try:
+                buffer = backend_config.defaults.get('buffer', 0)
+            except AttributeError:
+                buffer = 0
+
         # system size
         n_qubits = backend_config.n_qubits
         n_registers = backend_config.n_registers
         n_uchannels = backend_config.n_uchannels
 
         # generate channels with assuming their numberings are aligned with qubits
-        drives = [DriveChannel(i) for i in range(n_qubits)]
+        drives = [DriveChannel(i, buffer=buffer) for i in range(n_qubits)]
 
-        measures = [MeasureChannel(i) for i in range(n_qubits)]
+        measures = [MeasureChannel(i, buffer=buffer) for i in range(n_qubits)]
 
-        controls = [ControlChannel(i) for i in range(n_uchannels)]
+        controls = [ControlChannel(i, buffer=buffer) for i in range(n_uchannels)]
 
-        acquires = [AcquireChannel(i) for i in range(n_qubits)]
+        acquires = [AcquireChannel(i, buffer=buffer) for i in range(n_qubits)]
 
         qubits = []
         for i in range(n_qubits):

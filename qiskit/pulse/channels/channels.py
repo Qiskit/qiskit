@@ -10,19 +10,43 @@ Channels.
 """
 from abc import ABCMeta
 
+from qiskit.pulse.exceptions import PulseError
+
 
 class Channel(metaclass=ABCMeta):
     """Base class of channels."""
 
     prefix = None
 
-    def __init__(self, index: int = None):
+    def __init__(self, index: int = None, buffer: int = 0):
+        """Channel class.
+
+        Args:
+            index: Index of channel
+            buffer: Buffer that should be placed between instructions on channel
+
+        Raises:
+            PulseError: If integer index or buffer not supplied
+        """
+        if not isinstance(index, int):
+            raise PulseError('Channel index must be integer')
+
         self._index = index
+
+        if not isinstance(buffer, int):
+            raise PulseError('Channel buffer must be integer')
+
+        self._buffer = buffer
 
     @property
     def index(self) -> int:
         """Return the index of this channel."""
         return self._index
+
+    @property
+    def buffer(self) -> int:
+        """Return the buffer for this channel."""
+        return self._buffer
 
     @property
     def name(self) -> str:
@@ -55,14 +79,6 @@ class AcquireChannel(Channel):
 
     prefix = 'a'
 
-    def __init__(self, index):
-        """Create new acquire channel.
-
-        Args:
-            index (int): Index of the channel.
-        """
-        super().__init__(index)
-
 
 class SnapshotChannel(Channel):
     """Snapshot channel."""
@@ -79,24 +95,8 @@ class MemorySlot(Channel):
 
     prefix = 'm'
 
-    def __init__(self, index):
-        """Create new memory slot.
-
-        Args:
-            index (int): Index of the channel.
-        """
-        super().__init__(index)
-
 
 class RegisterSlot(Channel):
     """Classical resister slot channel."""
 
     prefix = 'c'
-
-    def __init__(self, index):
-        """Create new register slot.
-
-        Args:
-            index (int): Index of the channel.
-        """
-        super().__init__(index)

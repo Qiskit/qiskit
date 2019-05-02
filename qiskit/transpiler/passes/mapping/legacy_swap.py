@@ -21,7 +21,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit import QuantumRegister
 
 from qiskit.extensions.standard import SwapGate
-from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 
 class LegacySwap(TransformationPass):
@@ -47,8 +46,6 @@ class LegacySwap(TransformationPass):
         self.initial_layout = initial_layout
         self.trials = trials
         self.seed = seed
-
-        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """Map a DAGCircuit onto a CouplingGraph using swap gates.

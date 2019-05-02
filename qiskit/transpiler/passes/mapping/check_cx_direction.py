@@ -23,7 +23,7 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.cxbase import CXBase
 
 
-class CheckCnotDirection(AnalysisPass):
+class CheckCXDirection(AnalysisPass):
     """
     Checks if the CNOTs in the DAG circuit follow the right
     direction with respect to the coupling map.
