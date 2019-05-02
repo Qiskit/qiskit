@@ -22,3 +22,4 @@ from .configuration import LoConfig, LoRange
 from .schedule import Schedule
 from .cmd_def import CmdDef
 from .exceptions import PulseError
+from .interfaces import ScheduleComponent
