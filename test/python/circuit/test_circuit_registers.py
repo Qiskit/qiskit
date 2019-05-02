@@ -48,6 +48,16 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(cr1.size, 10)
         self.assertEqual(type(cr1), ClassicalRegister)
 
+    def test_qarg_negative_size(self):
+        """Test attempt to create a negative size QuantumRegister.
+        """
+        self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, -1)
+
+    def test_qarg_negative_size(self):
+        """Test attempt to create a non-integer size QuantumRegister.
+        """
+        self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, 'string')
+
     def test_negative_index(self):
         """Test indexing from the back
         """

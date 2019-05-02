@@ -49,8 +49,9 @@ class Register:
 
         self.name = name
         self.size = size
-        if size <= 0:
-            raise QiskitError("register size must be positive")
+        if not isinstance(size, int) or size <= 0:
+            raise QiskitError(
+                "Register size must be positive integer ('%s' %s was provided)." % (size, type(size)))
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -106,7 +107,7 @@ class Register:
             iterator: an iterator over the bits/qubits of the register, in the
                 form `tuple (Register, int)`.
         """
-        return zip([self]*self.size, range(self.size))
+        return zip([self] * self.size, range(self.size))
 
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
