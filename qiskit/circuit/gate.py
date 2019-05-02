@@ -72,9 +72,42 @@ class Gate(Instruction):
         else:
             raise TypeError('label expects a string or None')
 
+    @staticmethod
+    def _argument_expansion_1(qarg):
+        for arg0 in qarg:
+            yield [arg0], []
+
+    @staticmethod
+    def _argument_expansion_2(qarg0, qarg1):
+        if len(qarg0) == len(qarg1):
+            for arg0, arg1 in zip(qarg0, qarg1):
+                yield [arg0, arg1], []
+        elif len(qarg0) == 1:
+            for arg1 in qarg1:
+                yield [qarg0[0], arg1], []
+        elif len(qarg1) == 1:
+            for arg0 in qarg0:
+                yield [arg0, qarg1[0]], []
+        else:
+            raise QiskitError('')
+
+    @staticmethod
+    def _argument_expansion_3(qarg0, qarg1, qarg2):
+        if len(qarg0) == len(qarg1) == len(qarg2):
+            for arg0, arg1, arg2 in zip(qarg0, qarg1, qarg2):
+                yield [arg0, arg1, arg2], []
+        else:
+            raise QiskitError('')
+
     def argument_expansion(self, qargs, cargs):
-        # Validation and expantion of the qargs and cargs for the gate
-        # if len(cargs) == 0:
-        #     raise QiskitError("")
-        for qarg in zip(*qargs):
-            yield list(qarg), []
+        if len(qargs) != self.num_qubits or cargs:
+            raise QiskitError()
+
+        if len(qargs) == 1:
+            return Gate._argument_expansion_1(qargs[0])
+        elif len(qargs) == 2:
+            return Gate._argument_expansion_2(qargs[0], qargs[1])
+        elif len(qargs) == 3:
+            return Gate._argument_expansion_3(qargs[0], qargs[1], qargs[2])
+        else:
+            raise QiskitError('')
