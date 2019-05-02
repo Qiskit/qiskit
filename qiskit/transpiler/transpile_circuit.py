@@ -51,7 +51,7 @@ def transpile_circuit(circuit, transpile_config):
         elif level == 3:
             pass_manager = level_3_pass_manager(transpile_config)
         else:
-            raise TranspilerError("optimization level can only be a non-negative integer")
+            raise TranspilerError("optimization_level can range from 0 to 3.")
 
     # legacy behavior
     elif transpile_config.coupling_map:
