@@ -1,43 +1,111 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """
 Simulator command to snapshot internal simulator representation.
 """
+
+import warnings
+
 from qiskit import QuantumCircuit
+from qiskit.circuit import CompositeGate
 from qiskit import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.extensions._extensionerror import ExtensionError
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.extensions.exceptions import ExtensionError
 
 
 class Snapshot(Instruction):
     """Simulator snapshot instruction."""
 
-    def __init__(self, slot, qubits, circ):
-        """Create new snapshot instruction."""
-        super().__init__("snapshot", [slot], list(qubits), [], circ)
+    def __init__(self,
+                 label,
+                 snapshot_type='statevector',
+                 num_qubits=0,
+                 num_clbits=0,
+                 params=None):
+        """Create new snapshot instruction.
+
+        Args:
+            label (str): the snapshot label for result data.
+            snapshot_type (str): the type of the snapshot.
+            num_qubits (int): the number of qubits for the snapshot type [Default: 0].
+            num_clbits (int): the number of classical bits for the snapshot type [Default: 0].
+            params (list or None): the parameters for snapshot_type [Default: None].
+
+        Raises:
+            ExtensionError: if snapshot label is invalid.
+        """
+        if not isinstance(label, str):
+            raise ExtensionError('Snapshot label must be a string.')
+        self._label = label
+        self._snapshot_type = snapshot_type
+        if params is None:
+            params = []
+        super().__init__('snapshot', num_qubits, num_clbits, params)
+
+    def assemble(self):
+        """Assemble a QasmQobjInstruction"""
+        instruction = super().assemble()
+        instruction.label = self._label
+        instruction.snapshot_type = self._snapshot_type
+        return instruction
 
     def inverse(self):
         """Special case. Return self."""
-        return self
+        return Snapshot(self.num_qubits, self.num_clbits, self.params[0],
+                        self.params[1])
 
-    def reapply(self, circ):
-        """Reapply this instruction to corresponding qubits in circ."""
-        self._modifiers(circ.snapshot(self.param[0]))
+    @property
+    def snapshot_type(self):
+        """Return snapshot type"""
+        return self._snapshot_type
+
+    @property
+    def label(self):
+        """Return snapshot label"""
+        return self._label
+
+    @label.setter
+    def label(self, name):
+        """Set snapshot label to name
+
+        Args:
+            name (str or None): label to assign unitary
+
+        Raises:
+            TypeError: name is not string or None.
+        """
+        if isinstance(name, str):
+            self._label = name
+        else:
+            raise TypeError('label expects a string')
 
 
-def snapshot(self, slot):
-    """Take a snapshot of the internal simulator representation (statevector,
-    probability, density matrix, clifford table)
+def snapshot(self,
+             label,
+             snapshot_type='statevector',
+             qubits=None,
+             params=None):
+    """Take a statevector snapshot of the internal simulator representation.
     Works on all qubits, and prevents reordering (like barrier).
 
+    For other types of snapshots use the Snapshot extension directly.
+
     Args:
-        slot (int): a snapshot slot to report the result
+        label (str): a snapshot label to report the result
+        snapshot_type (str): the type of the snapshot.
+        qubits (list or None): the qubits to apply snapshot to [Default: None].
+        params (list or None): the parameters for snapshot_type [Default: None].
 
     Returns:
         QuantumCircuit: with attached command
@@ -45,26 +113,38 @@ def snapshot(self, slot):
     Raises:
         ExtensionError: malformed command
     """
-    tuples = []
-    if isinstance(self, QuantumCircuit):
-        for register in self.qregs:
-            tuples.append(register)
-    if not tuples:
-        raise ExtensionError("no qubits for snapshot")
-    if slot is None:
-        raise ExtensionError("no snapshot slot passed")
-    qubits = []
-    for tuple_element in tuples:
-        if isinstance(tuple_element, QuantumRegister):
-            for j in range(tuple_element.size):
-                self._check_qubit((tuple_element, j))
-                qubits.append((tuple_element, j))
-        else:
-            self._check_qubit(tuple_element)
-            qubits.append(tuple_element)
-    self._check_dups(qubits)
-    return self._attach(Snapshot(slot, qubits, self))
+    # Convert label to string for backwards compatibility
+    if not isinstance(label, str):
+        warnings.warn(
+            "Snapshot label should be a string, "
+            "implicit conversion is depreciated.", DeprecationWarning)
+        label = str(label)
+    # If no qubits are specified we add all qubits so it acts as a barrier
+    # This is needed for full register snapshots like statevector
+    if isinstance(qubits, QuantumRegister):
+        qubits = qubits[:]
+    if not qubits:
+        tuples = []
+        if isinstance(self, QuantumCircuit):
+            for register in self.qregs:
+                tuples.append(register)
+        if not tuples:
+            raise ExtensionError('no qubits for snapshot')
+        qubits = []
+        for tuple_element in tuples:
+            if isinstance(tuple_element, QuantumRegister):
+                for j in range(tuple_element.size):
+                    qubits.append((tuple_element, j))
+            else:
+                qubits.append(tuple_element)
+    return self.append(
+        Snapshot(
+            label,
+            snapshot_type=snapshot_type,
+            num_qubits=len(qubits),
+            params=params), qubits)
 
 
-# Add to QuantumCircuit class
+# Add to QuantumCircuit and CompositeGate classes
 QuantumCircuit.snapshot = snapshot
+CompositeGate.snapshot = snapshot

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name,missing-docstring
 
@@ -21,8 +28,8 @@ from qiskit.tools.qi.qi import shannon_entropy, entropy, mutual_information
 from qiskit.tools.qi.qi import choi_to_rauli, random_density_matrix
 from qiskit.tools.qi.qi import entanglement_of_formation, is_pos_def
 from qiskit.tools.qi.qi import __eof_qubit as eof_qubit
-from qiskit import QiskitError
-from .common import QiskitTestCase
+from qiskit.exceptions import QiskitError
+from qiskit.test import QiskitTestCase
 
 
 class TestQI(QiskitTestCase):
@@ -225,10 +232,9 @@ class TestQI(QiskitTestCase):
         self.assertTrue(np.array_equal(expected, res))
 
     def test_random_density_matrix(self):
-        # Verify the shape because random data will change each call
-        random_hs_matrix = random_density_matrix(2)
+        random_hs_matrix = random_density_matrix(2, seed=42)
         self.assertEqual((2, 2), random_hs_matrix.shape)
-        random_bures_matrix = random_density_matrix(2, method='Bures')
+        random_bures_matrix = random_density_matrix(2, method='Bures', seed=40)
         self.assertEqual((2, 2), random_bures_matrix.shape)
 
     def test_random_density_matrix_invalid_method(self):

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Implementation of Sven Jandura's swap mapper submission for the 2018 QISKit
@@ -45,9 +52,11 @@ from copy import deepcopy
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.transpiler._basepasses import TransformationPass
-from qiskit.mapper import Layout, MapperError
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler import Layout
+from qiskit.dagcircuit import DAGNode
+
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
@@ -56,16 +65,17 @@ SEARCH_WIDTH = 4
 class LookaheadSwap(TransformationPass):
     """Map input circuit onto a backend topology via insertion of SWAPs."""
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, initial_layout=None):
         """Initialize a LookaheadSwap instance.
 
         Arguments:
             coupling_map (CouplingMap): CouplingMap of the target backend.
+            initial_layout (Layout): The initial layout of the DAG to analyze.
         """
 
         super().__init__()
         self._coupling_map = coupling_map
-        self.requires.append(BarrierBeforeFinalMeasurements())
+        self.initial_layout = initial_layout
 
     def run(self, dag):
         """Run one pass of the lookahead mapper on the provided DAG.
@@ -74,27 +84,29 @@ class LookaheadSwap(TransformationPass):
             dag (DAGCircuit): the directed acyclic graph to be mapped
         Returns:
             DAGCircuit: A dag mapped to be compatible with the coupling_map in
-              the property_set.
+                the property_set.
         Raises:
-            MapperError: If the provided DAG has more qubits than are available
-              in the coupling map.
-
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
-
         coupling_map = self._coupling_map
         ordered_virtual_gates = list(dag.serial_layers())
 
-        if len(dag.get_qubits()) > len(coupling_map.physical_qubits):
-            raise MapperError('DAG contains more qubits than are present in the coupling map.')
+        if self.initial_layout is None:
+            if self.property_set["layout"]:
+                self.initial_layout = self.property_set["layout"]
+            else:
+                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
-        dag_qubits = dag.get_qubits()
-        coupling_qubits = coupling_map.physical_qubits
+        if len(dag.qubits()) != len(self.initial_layout):
+            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
-        starting_layout = [dag_qubits[i] if i < len(dag_qubits) else None
-                           for i in range(len(coupling_qubits))]
+        if len(self._coupling_map.physical_qubits) != len(self.initial_layout):
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
 
         mapped_gates = []
-        layout = Layout(starting_layout)
+        layout = self.initial_layout.copy()
         gates_remaining = ordered_virtual_gates.copy()
 
         while gates_remaining:
@@ -110,8 +122,8 @@ class LookaheadSwap(TransformationPass):
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = _copy_circuit_metadata(dag, coupling_map)
 
-        for gate in mapped_gates:
-            mapped_dag.apply_operation_back(**gate)
+        for node in mapped_gates:
+            mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
 
         return mapped_dag
 
@@ -198,8 +210,7 @@ def _map_free_gates(layout, gates, coupling_map):
         # Gates without a partition (barrier, snapshot, save, load, noise) may
         # still have associated qubits. Look for them in the qargs.
         if not gate['partition']:
-            qubits = [n for n in gate['graph'].multi_graph.nodes.values()
-                      if n['type'] == 'op'][0]['qargs']
+            qubits = [n for n in gate['graph'].nodes() if n.type == 'op'][0].qargs
 
             if not qubits:
                 continue
@@ -244,15 +255,15 @@ def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
 
 
 def _score_step(step):
-    """Count the mapped two-qubit gates, less the number of added SWAPs."""
 
+    """Count the mapped two-qubit gates, less the number of added SWAPs."""
     # Each added swap will add 3 ops to gates_mapped, so subtract 3.
     return len([g for g in step['gates_mapped']
-                if len(g.get('qargs', [])) == 2]) - 3 * step['swaps_added']
+                if len(g.qargs) == 2]) - 3 * step['swaps_added']
 
 
 def _copy_circuit_metadata(source_dag, coupling_map):
-    """Return a copy of source_dag with metadata but without a multi_graph.
+    """Return a copy of source_dag with metadata but empty.
     Generate only a single qreg in the output DAG, matching the size of the
     coupling_map."""
 
@@ -265,27 +276,22 @@ def _copy_circuit_metadata(source_dag, coupling_map):
     device_qreg = QuantumRegister(len(coupling_map.physical_qubits), 'q')
     target_dag.add_qreg(device_qreg)
 
-    for name, (num_qbits, num_cbits, num_params) in source_dag.basis.items():
-        target_dag.add_basis_element(name, num_qbits, num_cbits, num_params)
-
-    for name, gate_data in source_dag.gates.items():
-        target_dag.add_gate_data(name, gate_data)
-
     return target_dag
 
 
 def _transform_gate_for_layout(gate, layout):
     """Return op implementing a virtual gate on given layout."""
 
-    mapped_op = deepcopy([n for n in gate['graph'].multi_graph.nodes.values()
-                          if n['type'] == 'op'][0])
+    mapped_op_node = deepcopy([n for n in gate['graph'].nodes() if n.type == 'op'][0])
 
+    # Workaround until #1816, apply mapped to qargs to both DAGNode and op
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
-    mapped_op['qargs'] = [(device_qreg, layout[a]) for a in mapped_op['qargs']]
-    mapped_op.pop('type')
-    mapped_op.pop('name')
+    mapped_qargs = [(device_qreg, layout[a]) for a in mapped_op_node.qargs]
+    mapped_op_node.qargs = mapped_op_node.op.qargs = mapped_qargs
 
-    return mapped_op
+    mapped_op_node.pop('name')
+
+    return mapped_op_node
 
 
 def _swap_ops_from_edge(edge, layout):
@@ -293,6 +299,8 @@ def _swap_ops_from_edge(edge, layout):
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
     qreg_edge = [(device_qreg, i) for i in edge]
+
+    # TODO shouldn't be making other nodes not by the DAG!!
     return [
-        {'op': SwapGate(*qreg_edge), 'qargs': qreg_edge},
+        DAGNode({'op': SwapGate(), 'qargs': qreg_edge, 'cargs': [], 'type': 'op'})
     ]

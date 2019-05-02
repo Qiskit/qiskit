@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 
 """Test cases for the circuit qasm_file and qasm_string method."""
 
 from qiskit import QiskitError
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-
-from ..common import QiskitTestCase, Path
+from qiskit.test import QiskitTestCase, Path
 
 
 class LoadFromQasmTest(QiskitTestCase):
@@ -120,7 +126,7 @@ class LoadFromQasmTest(QiskitTestCase):
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm.
         """
-        qasm_filename = self._get_resource_path('qasm/example.qasm')
+        qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
         expected_circuit = QuantumCircuit.from_qasm_str('\n'.join(["OPENQASM 2.0;",
                                                                    "include \"qelib1.inc\";",
                                                                    "qreg q[3];",
@@ -146,3 +152,19 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(q_circuit, expected_circuit)
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 2)
+
+    def test_qasm_qas_string_order(self):
+        """ Test that gates are returned in qasm in ascending order"""
+        expected_qasm = '\n'.join(["OPENQASM 2.0;",
+                                   "include \"qelib1.inc\";",
+                                   "qreg q[3];",
+                                   "h q[0];",
+                                   "h q[1];",
+                                   "h q[2];"]) + '\n'
+        qasm_string = """OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[3];
+        h q;"""
+        q_circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        self.assertEqual(q_circuit.qasm(), expected_qasm)

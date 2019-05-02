@@ -1,17 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Example showing how to use Qiskit-Terra at level 0 (novice).
 
 This example shows the most basic way to user Terra. It builds some circuits
-and runs them on both the Aer (local Qiskit provider) or IBMQ (remote IBMQ provider).
+and runs them on both the BasicAer (local Qiskit provider) or IBMQ (remote IBMQ provider).
 
-To control the compile parameters we have provided a compile function which can be used 
+To control the compile parameters we have provided a transpile function which can be used 
 as a level 1 user.
 
 """
@@ -49,7 +56,7 @@ try:
     qc2.measure(qubit_reg, clbit_reg)
 
     # setting up the backend
-    print("(AER Backends)")
+    print("(BasicAER Backends)")
     print(BasicAer.backends())
 
     # running the job
@@ -68,18 +75,20 @@ try:
     try:
         # select least busy available device and execute.
         least_busy_device = least_busy(IBMQ.backends(simulator=False))
-        print("Running on current least busy device: ", least_busy_device)
-
-        # running the job
-        job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
-
-        job_monitor(job_exp)
-        exp_result = job_exp.result()
-
-        # Show the results
-        print(exp_result.get_counts(qc1))
-        print(exp_result.get_counts(qc2))
     except:
         print("All devices are currently unavailable.")
+
+    print("Running on current least busy device: ", least_busy_device)
+
+    # running the job
+    job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
+
+    job_monitor(job_exp)
+    exp_result = job_exp.result()
+
+    # Show the results
+    print(exp_result.get_counts(qc1))
+    print(exp_result.get_counts(qc2))
+
 except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

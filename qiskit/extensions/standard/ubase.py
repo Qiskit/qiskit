@@ -1,55 +1,63 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name
 
 """
 Element of SU(2).
 """
+import numpy
+from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import InstructionSet
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard import header  # pylint: disable=unused-import
+from qiskit.circuit.decorators import _op_expand, _to_bits
 
 
 class UBase(Gate):  # pylint: disable=abstract-method
     """Element of SU(2)."""
 
-    def __init__(self, theta, phi, lam, qubit, circ=None):
-        super().__init__("U", [theta, phi, lam], [qubit], circ)
+    def __init__(self, theta, phi, lam):
+        super().__init__("U", 1, [theta, phi, lam])
 
     def inverse(self):
         """Invert this gate.
 
         U(theta,phi,lambda)^dagger = U(-theta,-lambda,-phi)
         """
-        self.param[0] = -self.param[0]
-        phi = self.param[1]
-        self.param[1] = -self.param[2]
-        self.param[2] = -phi
-        return self
+        return UBase(-self.params[0], -self.params[2], -self.params[1])
 
-    def reapply(self, circ):
-        """Reapply this gate to corresponding qubits in circ."""
-        self._modifiers(circ.u_base(self.param[0], self.param[1], self.param[2],
-                                    self.qargs[0]))
+    def to_matrix(self):
+        """Return a Numpy.array for the U3 gate."""
+        theta, phi, lam = self.params
+        return numpy.array(
+            [[
+                numpy.cos(theta / 2),
+                -numpy.exp(1j * lam) * numpy.sin(theta / 2)
+            ],
+             [
+                 numpy.exp(1j * phi) * numpy.sin(theta / 2),
+                 numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2)
+             ]],
+            dtype=complex)
 
 
+@_to_bits(1)
+@_op_expand(1)
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
-    if isinstance(q, QuantumRegister):
-        gs = InstructionSet()
-        for j in range(q.size):
-            gs.add(self.u_base(theta, phi, lam, (q, j)))
-        return gs
-
-    self._check_qubit(q)
-    return self._attach(UBase(theta, phi, lam, q, self))
+    return self.append(UBase(theta, phi, lam), [q], [])
 
 
 QuantumCircuit.u_base = u_base
+CompositeGate.u_base = u_base

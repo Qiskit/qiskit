@@ -1,22 +1,28 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=missing-docstring
 
 """Test of QCVV/tomography module."""
 
 import unittest
-
 import numpy as np
 
 from qiskit import execute, BasicAer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.tools.qcvv import tomography as tomo
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestTomography(QiskitTestCase):
@@ -38,7 +44,6 @@ class TestTomography(QiskitTestCase):
             [0], meas_basis='Pauli', prep_basis='SIC')
         self.assertEqual(tomo_set['circuits'], default_set['circuits'])
 
-    @unittest.skip('Temporarily disabled until adjusting to counts key format')
     def test_state_tomography_1qubit(self):
         # Tomography set
         tomo_set = tomo.state_tomography_set([0])
@@ -68,7 +73,6 @@ class TestTomography(QiskitTestCase):
             _tomography_test_fit(rho, [1 / np.sqrt(2), -1j / np.sqrt(2)],
                                  threshold))
 
-    @unittest.skip('Temporarily disabled until adjusting to counts key format')
     def test_state_tomography_2qubit(self):
         # Tomography set
         tomo_set = tomo.state_tomography_set([0, 1])
@@ -84,7 +88,6 @@ class TestTomography(QiskitTestCase):
         rho = _tomography_test_data(circuits['X1Id0'], qr, cr, tomo_set, shots)
         self.assertTrue(_tomography_test_fit(rho, [0, 0, 1, 0], threshold))
 
-    @unittest.skip('Temporarily disabled until adjusting to counts key format')
     def test_process_tomography_1qubit(self):
         # Tomography set
         tomo_set = tomo.process_tomography_set([0])
@@ -101,7 +104,6 @@ class TestTomography(QiskitTestCase):
         self.assertTrue(
             _tomography_test_fit(choi, [0.5, 0.5, 0.5, -0.5], threshold))
 
-    @unittest.skip('Temporarily disabled until adjusting to counts key format')
     def test_process_tomography_2qubit(self):
         # Tomography set
         tomo_set = tomo.process_tomography_set([0, 1])

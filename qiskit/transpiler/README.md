@@ -110,13 +110,13 @@ The control argument `do_while` will run these passes until the callable returns
 The pass manager developer can avoid one or more passes by making them conditional (on a property in the property set):
 
 ```
-pm.append(LayoutMapper(coupling_map))
-pm.append(CheckIfMapped(coupling_map))
+pm.append(BasicLayout(coupling_map))
+pm.append(CheckMap(coupling_map))
 pm.append(BasicSwap(coupling_map),
-              condition=lambda property_set: not property_set['is_mapped'])
+              condition=lambda property_set: not property_set['is_swap_mapped'])
 ``` 
 
-The `CheckIfMapped` is an analysis pass that updates the property `is_mapped`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary.
+The `CheckMap` is an analysis pass that updates the property `is_swap_mapped`. If `LayoutMapper` could map the circuit to the coupling map, the `SwapMapper` is unnecessary.
 
 
 ### Idempotent passes

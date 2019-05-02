@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Models tests."""
 
-from test.python.common import QiskitTestCase
-
 from datetime import datetime
 
-from qiskit.validation import fields, ValidationError
+from qiskit.validation import fields
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema
+from qiskit.validation.exceptions import ModelValidationError
+from qiskit.test import QiskitTestCase
 
 
 class DummySchema(BaseSchema):
@@ -69,20 +75,20 @@ class TestModels(QiskitTestCase):
 
     def test_instantiate_required(self):
         """Test model instantiation without required fields."""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Person()
 
         # From dict.
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Person.from_dict({})
 
     def test_instantiate_wrong_type(self):
         """Test model instantiation with fields of the wrong type."""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Person(name=1)
 
         # From dict.
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Person.from_dict({'name': 1})
 
     def test_instantiate_deserialized_types(self):
@@ -91,14 +97,14 @@ class TestModels(QiskitTestCase):
 
         person = Person(name='Foo', birth_date=birth_date)
         self.assertEqual(person.birth_date, birth_date)
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Person(name='Foo', birth_date=birth_date.isoformat())
 
         # From dict.
         person_dict = Person.from_dict({'name': 'Foo',
                                         'birth_date': birth_date.isoformat()})
         self.assertEqual(person_dict.birth_date, birth_date)
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Person.from_dict({'name': 'Foo', 'birth_date': birth_date})
 
         self.assertEqual(person, person_dict)
@@ -138,11 +144,11 @@ class TestModels(QiskitTestCase):
 
     def test_instantiate_nested_wrong_type(self):
         """Test model instantiation with nested fields of the wrong type."""
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Book(title='A Book', author=NotAPerson())
 
         # From dict.
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Book.from_dict({'title': 'A Book',
                                 'author': {'fur_density': '1.2'}})
 

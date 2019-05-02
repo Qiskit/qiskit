@@ -1,85 +1,87 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
+# pylint: disable=too-many-boolean-expressions
 """
 A generic quantum instruction.
 
-Instructions can be implementable on hardware (U, CX, etc.) or in simulation
+Instructions can be implementable on hardware (u, cx, etc.) or in simulation
 (snapshot, noise, etc.).
 
 Instructions can be unitary (a.k.a Gate) or non-unitary.
 
-Instructions are identified by the following fields, and are serialized as such in Qobj.
+Instructions are identified by the following:
 
     name: A string to identify the type of instruction.
           Used to request a specific instruction on the backend, or in visualizing circuits.
 
-    param: List of parameters to specialize a specific intruction instance.
+    num_qubits, num_clbits: dimensions of the instruction
 
-    qargs: List of qubits (QuantumRegister, index) that the instruction acts on.
+    params: List of parameters to specialize a specific intruction instance.
 
-    cargs: List of clbits (ClassicalRegister, index) that the instruction acts on.
-
+Instructions do not have any context about where they are in a circuit (which qubits/clbits).
+The circuit itself keeps this context.
 """
+import copy
+from itertools import zip_longest
 import sympy
+import numpy
 
-from qiskit.qasm._node import _node
-from qiskit.qiskiterror import QiskitError
-from .quantumregister import QuantumRegister
-from .classicalregister import ClassicalRegister
+from qiskit.qasm.node import node
+from qiskit.exceptions import QiskitError
+from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.parameter import Parameter
+from qiskit.qobj.models.qasm import QasmQobjInstruction
+
+_CUTOFF_PRECISION = 1E-10
 
 
-class Instruction(object):
+class Instruction:
     """Generic quantum instruction."""
 
-    def __init__(self, name, param, qargs, cargs, circuit=None):
+    def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
         Args:
             name (str): instruction name
-            param (list[sympy.Basic|qasm.Node|int|float|complex|str]): list of parameters
-            qargs (list[(QuantumRegister, index)]): list of quantum args
-            cargs (list[(ClassicalRegister, index)]): list of classical args
-            circuit (QuantumCircuit or Instruction): where the instruction is attached
+            num_qubits (int): instruction's qubit width
+            num_clbits (int): instructions's clbit width
+            params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
         Raises:
             QiskitError: when the register is not in the correct format.
         """
-        if not all((type(i[0]), type(i[1])) == (QuantumRegister, int) for i in qargs):
-            raise QiskitError("qarg not (QuantumRegister, int) tuple")
-        if not all((type(i[0]), type(i[1])) == (ClassicalRegister, int) for i in cargs):
-            raise QiskitError("carg not (ClassicalRegister, int) tuple")
+        if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
+            raise QiskitError("num_qubits and num_clbits must be integer.")
+        if num_qubits < 0 or num_clbits < 0:
+            raise QiskitError(
+                "bad instruction dimensions: %d qubits, %d clbits." %
+                num_qubits, num_clbits)
         self.name = name
-        self.param = []  # a list of gate params stored as sympy objects
-        for single_param in param:
-            # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, sympy.Basic):
-                self.param.append(single_param)
-            # example: OpenQASM parsed instruction
-            elif isinstance(single_param, _node.Node):
-                self.param.append(single_param.sym())
-            # example: u3(0.1, 0.2, 0.3)
-            elif isinstance(single_param, (int, float)):
-                self.param.append(sympy.Number(single_param))
-            # example: Initialize([complex(0,1), complex(0,0)])
-            elif isinstance(single_param, complex):
-                self.param.append(single_param.real + single_param.imag * sympy.I)
-            # example: snapshot('label')
-            elif isinstance(single_param, str):
-                self.param.append(sympy.Symbol(single_param))
-            else:
-                raise QiskitError("invalid param type {0} in instruction "
-                                  "{1}".format(type(single_param), name))
-        self.qargs = qargs
-        self.cargs = cargs
-        self.control = None  # tuple (ClassicalRegister, int) for "if"
-        self.circuit = circuit
+        self.num_qubits = num_qubits
+        self.num_clbits = num_clbits
+
+        self._params = []  # a list of gate params stored
+
+        # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
+        self.control = None
+        # list of instructions (and their contexts) that this instruction is composed of
+        # empty definition means opaque or fundamental instruction
+        self._definition = None
+        self.params = params
 
     def __eq__(self, other):
-        """Two instructions are the same if they have the same name and same
-        params.
+        """Two instructions are the same if they have the same name,
+        same dimensions, and same params.
 
         Args:
             other (instruction): other instruction
@@ -87,35 +89,175 @@ class Instruction(object):
         Returns:
             bool: are self and other equal.
         """
-        res = False
-        if type(self) is type(other) and \
-                self.name == other.name and \
-                self.param == other.param:
-            res = True
-        return res
+        if type(self) is not type(other) or \
+                self.name != other.name or \
+                self.num_qubits != other.num_qubits or \
+                self.num_clbits != other.num_clbits or \
+                self.definition != other.definition:
+            return False
 
-    def check_circuit(self):
-        """Raise exception if self.circuit is None."""
-        if self.circuit is None:
-            raise QiskitError("Instruction's circuit not assigned")
+        for self_param, other_param in zip_longest(self.params, other.params):
+            if self_param == other_param:
+                continue
+
+            try:
+                if numpy.isclose(float(self_param), float(other_param),
+                                 atol=_CUTOFF_PRECISION):
+                    continue
+            except TypeError:
+                pass
+
+            return False
+
+        return True
+
+    def _define(self):
+        """Populates self.definition with a decomposition of this gate."""
+        pass
+
+    @property
+    def params(self):
+        """return instruction params"""
+        return self._params
+
+    @params.setter
+    def params(self, parameters):
+        self._params = []
+        for single_param in parameters:
+            # example: u2(pi/2, sin(pi/4))
+            if isinstance(single_param, (Parameter, sympy.Basic)):
+                self._params.append(single_param)
+            # example: OpenQASM parsed instruction
+            elif isinstance(single_param, node.Node):
+                self._params.append(single_param.sym())
+            # example: u3(0.1, 0.2, 0.3)
+            elif isinstance(single_param, (int, float)):
+                self._params.append(sympy.Number(single_param))
+            # example: Initialize([complex(0,1), complex(0,0)])
+            elif isinstance(single_param, complex):
+                self._params.append(single_param.real +
+                                    single_param.imag * sympy.I)
+            # example: snapshot('label')
+            elif isinstance(single_param, str):
+                self._params.append(sympy.Symbol(single_param))
+            # example: numpy.array([[1, 0], [0, 1]])
+            elif isinstance(single_param, numpy.ndarray):
+                self._params.append(single_param)
+            # example: sympy.Matrix([[1, 0], [0, 1]])
+            elif isinstance(single_param, sympy.Matrix):
+                self._params.append(single_param)
+            elif isinstance(single_param, sympy.Expr):
+                self._params.append(single_param)
+            elif isinstance(single_param, numpy.number):
+                self._params.append(sympy.Number(single_param.item()))
+            else:
+                raise QiskitError("invalid param type {0} in instruction "
+                                  "{1}".format(type(single_param), self.name))
+
+    @property
+    def definition(self):
+        """Return definition in terms of other basic gates."""
+        if self._definition is None:
+            self._define()
+        return self._definition
+
+    @definition.setter
+    def definition(self, array):
+        """Set matrix representation"""
+        self._definition = array
+
+    def assemble(self):
+        """Assemble a QasmQobjInstruction"""
+        instruction = QasmQobjInstruction(name=self.name)
+        # Evaluate parameters
+        if self.params:
+            params = [
+                x.evalf() if hasattr(x, 'evalf') else x for x in self.params
+            ]
+            params = [
+                sympy.matrix2numpy(x, dtype=complex) if isinstance(
+                    x, sympy.Matrix) else x for x in params
+            ]
+            instruction.params = params
+        # Add placeholder for qarg and carg params
+        if self.num_qubits:
+            instruction.qubits = list(range(self.num_qubits))
+        if self.num_clbits:
+            instruction.memory = list(range(self.num_clbits))
+        # Add control parameters for assembler. This is needed to convert
+        # to a qobj conditional instruction at assemble time and after
+        # conversion will be deleted by the assembler.
+        if self.control:
+            instruction._control = self.control
+        return instruction
+
+    def mirror(self):
+        """For a composite instruction, reverse the order of sub-gates.
+
+        This is done by recursively mirroring all sub-instructions.
+        It does not invert any gate.
+
+        Returns:
+            Instruction: a fresh gate with sub-gates reversed
+        """
+        if not self._definition:
+            return self.copy()
+
+        reverse_inst = self.copy(name=self.name + '_mirror')
+        reverse_inst.definition = []
+        for inst, qargs, cargs in reversed(self._definition):
+            reverse_inst._definition.append((inst.mirror(), qargs, cargs))
+        return reverse_inst
+
+    def inverse(self):
+        """Invert this instruction.
+
+        If the instruction is composite (i.e. has a definition),
+        then its definition will be recursively inverted.
+
+        Special instructions inheriting from Instruction can
+        implement their own inverse (e.g. T and Tdg, Barrier, etc.)
+
+        Returns:
+            Instruction: a fresh instruction for the inverse
+
+        Raises:
+            QiskitError: if the instruction is not composite
+                and an inverse has not been implemented for it.
+        """
+        if not self.definition:
+            raise QiskitError("inverse() not implemented for %s." % self.name)
+        inverse_gate = self.copy(name=self.name + '_dg')
+        inverse_gate._definition = []
+        for inst, qargs, cargs in reversed(self._definition):
+            inverse_gate._definition.append((inst.inverse(), qargs, cargs))
+        return inverse_gate
 
     def c_if(self, classical, val):
         """Add classical control on register classical and value val."""
-        self.check_circuit()
-        self.circuit._check_creg(classical)
+        if not isinstance(classical, ClassicalRegister):
+            raise QiskitError("c_if must be used with a classical register")
         if val < 0:
             raise QiskitError("control value should be non-negative")
         self.control = (classical, val)
         return self
 
-    def _modifiers(self, gate):
-        """Apply any modifiers of this instruction to another one."""
-        if self.control is not None:
-            self.check_circuit()
-            if not gate.circuit.has_register(self.control[0]):
-                raise QiskitError("control register %s not found"
-                                  % self.control[0].name)
-            gate.c_if(self.control[0], self.control[1])
+    def copy(self, name=None):
+        """
+        shallow copy of the instruction.
+
+        Args:
+          name (str): name to be given to the copied circuit,
+            if None then the name stays the same
+
+        Returns:
+          Instruction: a shallow copy of the current instruction, with the name
+            updated if it was provided
+        """
+        cpy = copy.copy(self)
+        if name:
+            cpy.name = name
+        return cpy
 
     def _qasmif(self, string):
         """Print an if statement if needed."""
@@ -130,11 +272,8 @@ class Instruction(object):
         different format (e.g. measure q[0] -> c[0];).
         """
         name_param = self.name
-        if self.param:
-            name_param = "%s(%s)" % (name_param,
-                                     ",".join([str(i) for i in self.param]))
+        if self.params:
+            name_param = "%s(%s)" % (name_param, ",".join(
+                [str(i) for i in self.params]))
 
-        name_param_arg = "%s %s;" % (name_param,
-                                     ",".join(["%s[%d]" % (j[0].name, j[1])
-                                               for j in self.qargs + self.cargs]))
-        return self._qasmif(name_param_arg)
+        return self._qasmif(name_param)

@@ -1,34 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
+"""Exception for errors raised by Qiskit.
+
+Note: this module will be deprecated in Terra 0.8+. Please import the exceptions
+from the `qiskit.exceptions` module instead.
 """
-Exception for errors raised by the Qiskit.
-"""
 
+# pylint: disable=unused-import
 
-# NOTE(mtreinish): This class is here to maintain backwards compatibility and should not be
-# used directly. Instead use the QiskitError class.
-class QISKitError(Exception):
-    """Old Base class for errors raised by the Qiskit for backwards compat only, not for use."""
-
-
-class QiskitError(QISKitError):
-    """Base class for errors raised by the Qiskit."""
-
-    def __init__(self, *message):
-        """Set the error message."""
-        super().__init__(' '.join(message))
-        self.message = ' '.join(message)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.message)
-
-
-class QiskitIndexError(QiskitError, IndexError):
-    """Raised when a sequence subscript is out of range."""
-    pass
+from .exceptions import QiskitError

@@ -1,31 +1,28 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# pylint: disable=unused-import
-# pylint: disable=redefined-builtin
 
 """Test Qiskit's QuantumCircuit class for multiple registers."""
 
-import os
-import tempfile
-import unittest
-
-from qiskit import BasicAer, LegacySimulators
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity, process_fidelity, Pauli, basis_state
-from ..common import QiskitTestCase, requires_cpp_simulator
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitMultiRegs(QiskitTestCase):
     """QuantumCircuit Qasm tests."""
 
-    @requires_cpp_simulator
     def test_circuit_multi(self):
         """Test circuit multi regs declared at start.
         """
@@ -43,45 +40,6 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc = circ + meas
 
-        backend_sim = BasicAer.get_backend('qasm_simulator')
-        qobj_qc = compile(qc, backend_sim, seed_mapper=34342)
-        qobj_circ = compile(circ, backend_sim, seed_mapper=3438)
-
-        result = backend_sim.run(qobj_qc).result()
-        counts = result.get_counts(qc)
-
-        backend_sim = LegacySimulators.get_backend('qasm_simulator')
-        result = backend_sim.run(qobj_qc).result()
-        counts_py = result.get_counts(qc)
-
-        target = {'01 10': 1024}
-
-        backend_sim = LegacySimulators.get_backend('statevector_simulator')
-        result = backend_sim.run(qobj_circ).result()
-        state = result.get_statevector(circ)
-
-        backend_sim = BasicAer.get_backend('statevector_simulator')
-        result = backend_sim.run(qobj_circ).result()
-        state_py = result.get_statevector(circ)
-
-        backend_sim = BasicAer.get_backend('unitary_simulator')
-        result = backend_sim.run(qobj_circ).result()
-        unitary = result.get_unitary(circ)
-
-        self.assertEqual(counts, target)
-        self.assertEqual(counts_py, target)
-        self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
-        self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state_py), 1.0, places=7)
-        self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
-                               1.0, places=7)
-
-    def test_circuit_multi_case2(self):
-        """Test circuit multi regs declared at start.
-        """
-        qreg0 = QuantumRegister(2, 'q0')
-        creg0 = ClassicalRegister(2, 'c0')
-        qreg1 = QuantumRegister(2, 'q1')
-        creg1 = ClassicalRegister(2, 'c1')
         circ2 = QuantumCircuit()
         circ2.add_register(qreg0)
         circ2.add_register(qreg1)
@@ -98,20 +56,10 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         qc2 = circ2 + meas2
 
-        backend_sim = BasicAer.get_backend('statevector_simulator')
-        result = execute(circ2, backend_sim).result()
-        state = result.get_statevector(circ2)
+        dag_qc = circuit_to_dag(qc)
+        dag_qc2 = circuit_to_dag(qc2)
+        dag_circ2 = circuit_to_dag(circ2)
+        dag_circ = circuit_to_dag(circ)
 
-        backend_sim = BasicAer.get_backend('qasm_simulator')
-        result = execute(qc2, backend_sim).result()
-        counts = result.get_counts(qc2)
-
-        backend_sim = BasicAer.get_backend('unitary_simulator')
-        result = execute(circ2, backend_sim).result()
-        unitary = result.get_unitary(circ2)
-
-        target = {'01 10': 1024}
-        self.assertEqual(target, counts)
-        self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)
-        self.assertAlmostEqual(process_fidelity(Pauli(label='IXXI').to_matrix(), unitary),
-                               1.0, places=7)
+        self.assertEqual(dag_qc, dag_qc2)
+        self.assertEqual(dag_circ, dag_circ2)

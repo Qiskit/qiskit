@@ -1,45 +1,29 @@
 # Qiskit Terra
 
-[![PyPI](https://img.shields.io/pypi/v/qiskit.svg)](https://pypi.python.org/pypi/qiskit)
-[![Build Status](https://travis-ci.org/Qiskit/qiskit-terra.svg?branch=master)](https://travis-ci.org/Qiskit/qiskit-terra)
-[![Build Status IBM Q](https://travis-matrix-badges.herokuapp.com/repos/Qiskit/qiskit-terra/branches/master/8)](https://travis-ci.org/Qiskit/qiskit-terra)
+[![License](https://img.shields.io/github/license/Qiskit/qiskit-terra.svg?style=popout-square)](https://opensource.org/licenses/Apache-2.0)[![Build Status](https://img.shields.io/travis/com/Qiskit/qiskit-terra/master.svg?style=popout-square)](https://travis-ci.com/Qiskit/qiskit-terra)[![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)](https://github.com/Qiskit/qiskit-terra/releases)[![](https://img.shields.io/pypi/dm/qiskit-terra.svg?style=popout-square)](https://pypi.org/project/qiskit-terra/)
 
-**Qiskit**  is a software development kit  for
-developing quantum computing applications and working with NISQ (Noisy-Intermediate Scale Quantum) computers.
+**Qiskit** is an open-source framework for working with Noisy Intermediate-Scale Quantum (NISQ) computers at the level of pulses, circuits, and algorithms.
 
-Qiskit is made up elements that each work together to enable quantum computing. This element is **Terra** 
-and is the foundation on which the rest of Qiskit is built (see this [post](https://medium.com/qiskit/qiskit-and-its-fundamental-elements-bcd7ead80492) for an overview).
-
+Qiskit is made up of elements that work together to enable quantum computing. This element is **Terra** and is the foundation on which the rest of Qiskit is built.
 
 ## Installation
 
-
-We encourage installing Qiskit via the PIP tool (a python package manager):
+We encourage installing Qiskit via the pip tool (a python package manager), which installs all Qiskit elements, including Terra.
 
 ```bash
 pip install qiskit
 ```
 
-PIP will handle all dependencies automatically for us and you will always install the latest (and well-tested) version.
+PIP will handle all dependencies automatically and you will always install the latest (and well-tested) version.
 
-At least [Python 3.5 or later](https://www.python.org/downloads/) is needed for using Qiskit. In
-addition, [Jupyter Notebook](https://jupyter.readthedocs.io/en/latest/install.html) is recommended
-for interacting with the tutorials.
-For this reason we recommend installing the [Anaconda 3](https://www.continuum.io/downloads)
-python distribution, as it comes with all of these dependencies pre-installed.
-Windows users also need to install VC++ runtime components. We recommend one of the following links.
-- [Microsoft Visual C++ Redistributable for Visual Studio 2017](https://go.microsoft.com/fwlink/?LinkId=746572)
-- [Microsoft Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-US/download/details.aspx?id=48145)
+To install from source, follow the instructions in the [contribution guidelines](.github/CONTRIBUTING.rst).
 
-See [installing](doc/install.rst) Qiskit for detailed instructions, how to build from source and using environments. 
-
-
-## Creating your first quantum program
+## Creating Your First Quantum Program in Qiskit Terra
 
 Now that Qiskit is installed, it's time to begin working with Terra.
 
 We are ready to try out a quantum circuit example, which is simulated locally using 
-the Qiskt Aer element. This is a simple example that makes an entangled state.
+the Qiskit BasicAer element. This is a simple example that makes an entangled state.
 
 ```
 $ python
@@ -53,7 +37,7 @@ $ python
 >>> qc.h(q[0])
 >>> qc.cx(q[0], q[1])
 >>> qc.measure(q, c)
->>> backend_sim = Aer.get_backend('qasm_simulator')
+>>> backend_sim = BasicAer.get_backend('qasm_simulator')
 >>> result = execute(qc, backend_sim).result()
 >>> print(result.get_counts(qc))
 ```
@@ -61,7 +45,7 @@ $ python
 In this case, the output will be:
 
 ```python
-{'counts': {'00': 513, '11': 511}}
+{'00': 513, '11': 511}
 ```
 
 A script is available [here](examples/python/hello_quantum.py), where we also show how to
@@ -88,7 +72,7 @@ your IBM Q account:
     ```
 
 4. If you have access to the IBM Q Network features, you also need to pass the
-   url listed on your IBM Q account page to `save_account`.
+   URL listed on your IBM Q account page to `save_account`.
 
 After calling `IBMQ.save_account()`, your credentials will be stored on disk.
 Once they are stored, at any point in the future you can load and use them
@@ -99,7 +83,7 @@ in your program simply via:
 >>> IBMQ.load_accounts()
 ```
 
-For those who do not want to save there credentials to disk please use
+Those who do not want to save their credentials to disk should use instead:
 
 ```python
 >>> from qiskit import IBMQ
@@ -110,26 +94,25 @@ and the token will only be active for the session. For examples using Terra with
 devices we have provided a set of examples in **examples/python** and we suggest starting with [using_qiskit_terra_level_0.py](examples/python/using_qiskit_terra_level_0.py) and working up in 
 the levels.
 
-## Contribution guidelines
+## Contribution Guidelines
 
-If you'd like to contribute to Qiskit, please take a look at our
-[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expect to uphold to this code.
+If you'd like to contribute to Qiskit Terra, please take a look at our
+[contribution guidelines](.github/CONTRIBUTING.rst). This project adheres to Qiskit's [code of conduct](.github/CODE_OF_CONDUCT.rst). By participating, you are expected to uphold this code.
 
-We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. 
-Please use our [slack](https://qiskit.slack.com) for discussion. To join our Slack community use the [link](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk). To ask questions to [Stack Overflow](https://stackoverflow.com/questions/tagged/qiskit).
+We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
+[join the Qiskit Slack community](https://join.slack.com/t/qiskit/shared_invite/enQtNDc2NjUzMjE4Mzc0LTMwZmE0YTM4ZThiNGJmODkzN2Y2NTNlMDIwYWNjYzA2ZmM1YTRlZGQ3OGM0NjcwMjZkZGE0MTA4MGQ1ZTVmYzk)
+and use our [Qiskit Slack channel](https://qiskit.slack.com) for discussion and simple questions.
+For questions that are more suited for a forum we use the Qiskit tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
-
-
-### Next Steps
+## Next Steps
 
 Now you're set up and ready to check out some of the other examples from our
-[Qiskit Tutorial](https://github.com/Qiskit/qiskit-tutorial) repository.
+[Qiskit Tutorials](https://github.com/Qiskit/qiskit-tutorials) repository.
 
-
-## Authors
+## Authors and Citation
 
 Qiskit Terra is the work of [many people](https://github.com/Qiskit/qiskit-terra/graphs/contributors) who contribute
-to the project at different levels.
+to the project at different levels. If you use Qiskit, please cite as per the included [BibTeX file](https://github.com/Qiskit/qiskit/blob/master/Qiskit.bib).
 
 ## License
 

@@ -137,3 +137,6 @@ qiskit/providers/legacysimulators/qasm_simulator_cpp
 src/qasm-simulator-cpp/test/qubit_vector_tests
 
 *.o
+
+# Cython pass
+qiskit/transpiler/passes/**/cython/**/*.cpp

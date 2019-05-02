@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test the Check Map pass"""
 
@@ -13,13 +20,13 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler.passes import CheckMap
 from qiskit.mapper import CouplingMap
 from qiskit.converters import circuit_to_dag
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
-class TestCheckMap(QiskitTestCase):
-    """ Tests the CheckMap pass."""
+class TestCheckMapCX(QiskitTestCase):
+    """ Tests the CheckMap pass with CX gates"""
 
-    def test_trivial_map(self):
+    def test_trivial_nop_map(self):
         """ Trivial map in a circuit without entanglement
          qr0:---[H]---
 
@@ -36,10 +43,9 @@ class TestCheckMap(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = CheckMap(coupling)
         pass_.run(dag)
-        self.assertTrue(pass_.property_set['is_mapped'])
-        self.assertTrue(pass_.property_set['is_direction_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
 
-    def test_true_map(self):
+    def test_swap_mapped_true(self):
         """ Mapped is easy to check
          qr0:--(+)-[H]-(+)-
                 |       |
@@ -47,115 +53,39 @@ class TestCheckMap(QiskitTestCase):
                         |
          qr2:-----------.--
 
-         CouplingMap map: [1]<-[0]->[2]
+         CouplingMap map: [1]--[0]--[2]
         """
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.cx(qr[0], qr[2])
-        coupling = CouplingMap([(0, 1), (0, 2)])
+        coupling = CouplingMap([[0, 1], [0, 2]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertTrue(pass_.property_set['is_mapped'])
-        self.assertTrue(pass_.property_set['is_direction_mapped'])
+        self.assertTrue(pass_.property_set['is_swap_mapped'])
 
-    def test_true_map_in_same_layer(self):
-        """ Two CXs distance_qubits 1 to each other, in the same layer
-         qr0:--(+)--
-                |
-         qr1:---.---
-
-         qr2:--(+)--
-                |
-         qr3:---.---
-
-         CouplingMap map: [0]->[1]->[2]->[3]
-        """
-        qr = QuantumRegister(4, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[2], qr[3])
-        coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
-        dag = circuit_to_dag(circuit)
-
-        pass_ = CheckMap(coupling)
-        pass_.run(dag)
-
-        self.assertTrue(pass_.property_set['is_mapped'])
-        self.assertTrue(pass_.property_set['is_direction_mapped'])
-
-    def test_false_map(self):
+    def test_swap_mapped_false(self):
         """ Needs [0]-[1] in a [0]--[2]--[1]
          qr0:--(+)--
                 |
          qr1:---.---
 
-         CouplingMap map: [0]->[2]->[1]
+         CouplingMap map: [0]--[2]--[1]
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
-        coupling = CouplingMap([(0, 2), (2, 1)])
+        coupling = CouplingMap([[0, 2], [2, 1]])
         dag = circuit_to_dag(circuit)
 
         pass_ = CheckMap(coupling)
         pass_.run(dag)
 
-        self.assertFalse(pass_.property_set['is_mapped'])
-        self.assertFalse(pass_.property_set['is_direction_mapped'])
-
-    def test_true_map_undirected(self):
-        """ Mapped but with wrong direction
-         qr0:--(+)-[H]--.--
-                |       |
-         qr1:---.-------|--
-                        |
-         qr2:----------(+)-
-
-         CouplingMap map: [1]<-[0]->[2]
-        """
-        qr = QuantumRegister(3, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.h(qr[0])
-        circuit.cx(qr[2], qr[0])
-        coupling = CouplingMap([(0, 1), (0, 2)])
-        dag = circuit_to_dag(circuit)
-
-        pass_ = CheckMap(coupling)
-        pass_.run(dag)
-
-        self.assertTrue(pass_.property_set['is_mapped'])
-        self.assertFalse(pass_.property_set['is_direction_mapped'])
-
-    def test_true_map_in_same_layer_undirected(self):
-        """ Two CXs in the same layer, but one is wrongly directed
-         qr0:--(+)--
-                |
-         qr1:---.---
-
-         qr2:---.---
-                |
-         qr3:--(+)--
-
-         CouplingMap map: [0]->[1]->[2]->[3]
-        """
-        qr = QuantumRegister(4, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[3], qr[2])
-        coupling = CouplingMap([(0, 1), (1, 2), (2, 3)])
-        dag = circuit_to_dag(circuit)
-
-        pass_ = CheckMap(coupling)
-        pass_.run(dag)
-
-        self.assertTrue(pass_.property_set['is_mapped'])
-        self.assertFalse(pass_.property_set['is_direction_mapped'])
+        self.assertFalse(pass_.property_set['is_swap_mapped'])
 
 
 if __name__ == '__main__':

@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test qiskit.tools.qcvv.fitters."""
 
 import numpy as np
 
 from qiskit.tools.qcvv import fitters
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestQCVVFitters(QiskitTestCase):
@@ -48,7 +55,7 @@ class TestQCVVFitters(QiskitTestCase):
     def test_shape_rb_data(self):
         """Test randomized benchmark data shaping function."""
         raw_data = np.zeros((2, 2, 2))
-        # TODO(mtreinish): Come up with a more realistic input data set instead
+        # TODO: Come up with a more realistic input data set instead
         # of this synthetic example
         for i in range(2):
             raw_data[i][i][i] = i + 1

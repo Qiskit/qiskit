@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 A pass implementing a basic mapper.
@@ -13,13 +20,11 @@ a cx is not in the coupling map possibilities, it inserts one or more swaps in f
 compatible.
 """
 
-from copy import copy
-
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout
+from qiskit.transpiler import Layout
 from qiskit.extensions.standard import SwapGate
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 
 
 class BasicSwap(TransformationPass):
@@ -39,8 +44,6 @@ class BasicSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.swap_gate = SwapGate
-        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """
@@ -50,25 +53,34 @@ class BasicSwap(TransformationPass):
 
         Returns:
             DAGCircuit: A mapped DAG.
+
+        Raises:
+            TranspilerError: if the coupling map or the layout are not
+            compatible with the DAG
         """
         new_dag = DAGCircuit()
 
         if self.initial_layout is None:
-            # create a one-to-one layout
-            self.initial_layout = Layout()
-            physical_qubit = 0
-            for qreg in dag.qregs.values():
-                for index in range(qreg.size):
-                    self.initial_layout[(qreg, index)] = physical_qubit
-                    physical_qubit += 1
-        current_layout = copy(self.initial_layout)
+            if self.property_set["layout"]:
+                self.initial_layout = self.property_set["layout"]
+            else:
+                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+
+        if len(dag.qubits()) != len(self.initial_layout):
+            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
+
+        if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
+            raise TranspilerError(
+                "Mappers require to have the layout to be the same size as the coupling map")
+
+        current_layout = self.initial_layout.copy()
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
-            for a_cx in subdag.get_cnot_nodes():
-                physical_q0 = current_layout[a_cx['qargs'][0]]
-                physical_q1 = current_layout[a_cx['qargs'][1]]
+            for gate in subdag.twoQ_gates():
+                physical_q0 = current_layout[gate.qargs[0]]
+                physical_q1 = current_layout[gate.qargs[1]]
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     # Insert a new layer with the SWAP(s).
                     swap_layer = DAGCircuit()
@@ -81,16 +93,15 @@ class BasicSwap(TransformationPass):
                         qubit_1 = current_layout[connected_wire_1]
                         qubit_2 = current_layout[connected_wire_2]
 
-                        # create the involved registers
-                        if qubit_1[0] not in swap_layer.qregs.values():
-                            swap_layer.add_qreg(qubit_1[0])
-                        if qubit_2[0] not in swap_layer.qregs.values():
-                            swap_layer.add_qreg(qubit_2[0])
+                        # create qregs
+                        for qreg in current_layout.get_registers():
+                            if qreg not in swap_layer.qregs.values():
+                                swap_layer.add_qreg(qreg)
 
                         # create the swap operation
-                        swap_layer.add_basis_element('swap', 2, 0, 0)
-                        swap_layer.apply_operation_back(self.swap_gate(qubit_1, qubit_2),
-                                                        qargs=[qubit_1, qubit_2])
+                        swap_layer.apply_operation_back(SwapGate(),
+                                                        qargs=[qubit_1, qubit_2],
+                                                        cargs=[])
 
                     # layer insertion
                     edge_map = current_layout.combine_into_edge_map(self.initial_layout)

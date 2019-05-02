@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test qiskit validators."""
-from test.python.common import QiskitTestCase
 
 from marshmallow.validate import Regexp
 
-from qiskit.validation import fields, ValidationError
+from qiskit.validation import fields, ModelValidationError
 from qiskit.validation.base import BaseModel, BaseSchema, bind_schema, ObjSchema, Obj
 from qiskit.validation.validate import PatternProperties
+from qiskit.test import QiskitTestCase
 
 
 class HistogramSchema(BaseSchema):
@@ -46,21 +52,21 @@ class TestValidators(QiskitTestCase):
     def test_patternproperties_invalid_key(self):
         """Test the PatternProperties validator fails when invalid key"""
         invalid_key_data = {'counts': {'00': 50, '0x11': 50}}
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Histogram(**invalid_key_data)
 
         # From dict
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Histogram.from_dict(invalid_key_data)
 
     def test_patternproperties_invalid_value(self):
         """Test the PatternProperties validator fails when invalid value"""
         invalid_value_data = {'counts': {'0x00': 'so many', '0x11': 50}}
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Histogram(**invalid_value_data)
 
         # From dict
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ModelValidationError):
             _ = Histogram.from_dict(invalid_value_data)
 
     def test_patternproperties_to_dict(self):

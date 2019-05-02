@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 
 """Test Qiskit's QuantumCircuit class."""
@@ -12,8 +19,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
 from qiskit import QiskitError
-
-from ..common import QiskitTestCase
+from qiskit.test import QiskitTestCase
 
 
 class TestCircuitOperations(QiskitTestCase):
@@ -126,20 +132,33 @@ class TestCircuitOperations(QiskitTestCase):
     def test_measure_args_type_cohesion(self):
         """Test for proper args types for measure function.
         """
-        quantum_reg = QuantumRegister(2)
+        quantum_reg = QuantumRegister(3)
         classical_reg_0 = ClassicalRegister(1)
-        classical_reg_1 = ClassicalRegister(1)
-        quantum_circuit = QuantumCircuit(quantum_reg, classical_reg_0, classical_reg_1)
+        classical_reg_1 = ClassicalRegister(2)
+        quantum_circuit = QuantumCircuit(quantum_reg, classical_reg_0,
+                                         classical_reg_1)
         quantum_circuit.h(quantum_reg)
 
         with self.assertRaises(QiskitError) as ctx:
             quantum_circuit.measure(quantum_reg, classical_reg_1)
         self.assertEqual(ctx.exception.message,
-                         'qubit (2) and cbit (1) should have the same length')
+                         'register size error')
 
-        with self.assertRaises(QiskitError) as ctx:
-            quantum_circuit.measure(quantum_reg[1], classical_reg_1)
-        self.assertEqual(ctx.exception.message, 'Both qubit <tuple> and cbit <ClassicalRegister> '
-                                                'should be Registers or formated as tuples. Hint: '
-                                                'You can use subscript eg. cbit[0] to '
-                                                'convert it into tuple.')
+    def test_copy_circuit(self):
+        """ Test copy method makes a copy"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.measure(qr[1], cr[1])
+
+        self.assertEqual(qc, qc.copy())
+
+
+class TestCircuitBuilding(QiskitTestCase):
+    """QuantumCircuit tests."""
+
+    def test_append_dimension_mismatch(self):
+        """Test appending to incompatible wires.
+        """

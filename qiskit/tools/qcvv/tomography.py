@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name
 
@@ -50,7 +57,7 @@ from re import match
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.tools.qi.qi import vectorize, devectorize, outer
 
 logger = logging.getLogger(__name__)
@@ -575,12 +582,12 @@ def create_tomography_circuits(circuit, qreg, creg, tomoset):
             prep = QuantumCircuit(qreg, creg, name='tmp_prep')
             for qubit, op in conf['prep'].items():
                 tomoset['prep_basis'].prep_gate(prep, qreg[qubit], op)
-                prep.barrier(qreg[qubit])  # pylint: disable=no-member
+                prep.barrier(qreg[qubit])
             tmp = prep + tmp
         # Add measurement circuits
         meas = QuantumCircuit(qreg, creg, name='tmp_meas')
         for qubit, op in conf['meas'].items():
-            meas.barrier(qreg[qubit])  # pylint: disable=no-member
+            meas.barrier(qreg[qubit])
             tomoset['meas_basis'].meas_gate(meas, qreg[qubit], op)
             meas.measure(qreg[qubit], creg[qubit])
         tmp = tmp + meas
@@ -952,7 +959,7 @@ def build_wigner_circuits(circuit, phis, thetas, qubits,
         label += str(point)
         tmp_circ = QuantumCircuit(qreg, creg, name=label)
         for qubit, _ in enumerate(qubits):
-            tmp_circ.u3(thetas[qubit][point], 0,  # pylint: disable=no-member
+            tmp_circ.u3(thetas[qubit][point], 0,
                         phis[qubit][point], qreg[qubits[qubit]])
             tmp_circ.measure(qreg[qubits[qubit]], creg[qubits[qubit]])
         # Add to original circuit

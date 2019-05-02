@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
@@ -46,9 +53,9 @@ from the multiprocessing library.
 import os
 import platform
 from multiprocessing import Pool
-from qiskit.qiskiterror import QiskitError
-from qiskit._util import local_hardware_info
-from qiskit.tools.events._pubsub import Publisher
+from qiskit.exceptions import QiskitError
+from qiskit.util import local_hardware_info
+from qiskit.tools.events.pubsub import Publisher
 
 # Set parallel flag
 os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
@@ -69,7 +76,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: dis
     overhead from spawning processes in Windows.
 
     Args:
-        task (func): Function that is to be called for each value in ``task_vec``.
+        task (func): Function that is to be called for each value in ``values``.
         values (array_like): List or array of values for which the ``task``
                             function is to be evaluated.
         task_args (list): Optional additional arguments to the ``task`` function.

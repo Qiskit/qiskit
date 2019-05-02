@@ -1,8 +1,7 @@
 from qiskit import *
 
 from qiskit.transpiler import PassManager
-from qiskit.transpiler.passes import CommutationAnalysis, CommutationTransformation
-from qiskit.transpiler import transpile
+from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation
 
 qr = QuantumRegister(5, 'qr')
 circuit = QuantumCircuit(qr)
@@ -22,10 +21,6 @@ circuit.cx(qr[3], qr[2])
 print(circuit.draw())
 
 pm = PassManager()
-
-pm.append([CommutationAnalysis(), CommutationTransformation()])
-
-# TODO make it not needed to have a backend 
-backend_device = BasicAer.get_backend('qasm_simulator')
-circuit = transpile(circuit, backend_device, pass_manager=pm)
-print(circuit.draw())
+pm.append([CommutationAnalysis(), CommutativeCancellation()])
+new_circuit=pm.run(circuit)
+print(new_circuit.draw())

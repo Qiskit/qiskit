@@ -1,50 +1,73 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Unitary gate.
 """
-from qiskit.qiskiterror import QiskitError
+
+from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
 
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(self, name, param, qargs, circuit=None):
-        """Create a new composite gate.
+    def __init__(self, name, num_qubits, params, label=None):
+        """Create a new gate.
 
-        name = instruction name string
-        param = list of real parameters (will be converted to symbolic)
-        qargs = list of pairs (QuantumRegister, index)
-        circuit = QuantumCircuit containing this gate
+        Args:
+            name (str): the Qobj name of the gate
+            num_qubits (int): the number of qubits the gate acts on.
+            params (list): a list of parameters.
+            label (str or None): An optional label for the gate [Default: None]
         """
-        self._is_multi_qubit = False
-        self._qubit_coupling = [qarg[1] for qarg in qargs]
-        self._is_multi_qubit = (len(qargs) > 1)
-        self._decompositions = None
+        self._label = label
+        super().__init__(name, num_qubits, 0, params)
 
-        super().__init__(name, param, qargs, [], circuit)
+    def to_matrix(self):
+        """Return a Numpy.array for the gate unitary matrix.
 
-    def inverse(self):
-        """Invert this gate."""
-        raise QiskitError("inverse not implemented")
+        Additional Information
+        ----------------------
+        If a Gate subclass does not implement this method an exception
+        will be raised when this base class method is called.
+        """
+        raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
-    def q_if(self, *qregs):
-        """Add controls to this gate."""
-        # pylint: disable=unused-argument
-        raise QiskitError("control not implemented")
+    def assemble(self):
+        """Assemble a QasmQobjInstruction"""
+        instruction = super().assemble()
+        if self.label:
+            instruction.label = self.label
+        return instruction
 
-    def decompositions(self):
-        """ Returns a list of possible decompositions. """
-        if self._decompositions is None:
-            self._define_decompositions()
-        return self._decompositions
+    @property
+    def label(self):
+        """Return gate label"""
+        return self._label
 
-    def _define_decompositions(self):
-        """ Populates self.decompositions with way to decompose this gate"""
-        raise NotImplementedError("No decomposition rules defined for ", self.name)
+    @label.setter
+    def label(self, name):
+        """Set gate label to name
+
+        Args:
+            name (str or None): label to assign unitary
+
+        Raises:
+            TypeError: name is not string or None.
+        """
+        if isinstance(name, (str, type(None))):
+            self._label = name
+        else:
+            raise TypeError('label expects a string or None')

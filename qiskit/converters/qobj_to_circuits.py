@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Helper function for converting qobj to a list of circuits"""
 
-from qiskit.circuit import classicalregister as cr
-from qiskit.circuit import quantumcircuit as qc
-from qiskit.circuit import quantumregister as qr
+import warnings
+
+from qiskit.assembler import disassemble
 
 
 def qobj_to_circuits(qobj):
@@ -21,40 +28,10 @@ def qobj_to_circuits(qobj):
         list: A list of QuantumCircuit objects from the qobj
 
     """
-    if qobj.experiments:
-        circuits = []
-        for x in qobj.experiments:
-            quantum_registers = [
-                qr.QuantumRegister(
-                    i[1], name=i[0]) for i in x.header.qreg_sizes]
-            classical_registers = [
-                cr.ClassicalRegister(
-                    i[1], name=i[0]) for i in x.header.creg_sizes]
-            circuit = qc.QuantumCircuit(*quantum_registers,
-                                        *classical_registers,
-                                        name=x.header.name)
-            qreg_dict = {}
-            creg_dict = {}
-            for reg in quantum_registers:
-                qreg_dict[reg.name] = reg
-            for reg in classical_registers:
-                creg_dict[reg.name] = reg
-            for i in x.instructions:
-                instr_method = getattr(circuit, i.name)
-                qubits = []
-                for qubit in i.qubits:
-                    qubit_label = x.header.qubit_labels[qubit]
-                    qubits.append(
-                        qreg_dict[qubit_label[0]][qubit_label[1]])
-                clbits = []
-                for clbit in i.memory:
-                    clbit_label = x.header.clbit_labels[clbit]
-                    clbits.append(
-                        creg_dict[clbit_label[0]][clbit_label[1]])
-                if i.name in ['snapshot', 'save', 'load', 'noise']:
-                    instr_method(*i.params)
-                else:
-                    instr_method(*i.params, *qubits, *clbits)
-            circuits.append(circuit)
-        return circuits
-    return None
+    warnings.warn('qiskit.converters.qobj_to_circuit() is deprecated and will '
+                  'be removed in Qiskit Terra 0.9. Please use '
+                  'qiskit.compiler.disassemble_circuits() to convert a qobj '
+                  'to list of circuits.', DeprecationWarning)
+
+    variables = disassemble(qobj)
+    return variables[0]

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """This module implements the abstract base class for backend modules.
 
@@ -12,7 +19,7 @@ Doing so requires that the required backend interface is implemented.
 """
 from abc import ABC, abstractmethod
 
-import qiskit
+from qiskit.version import __version__
 from .models import BackendStatus
 
 
@@ -75,7 +82,7 @@ class BaseBackend(ABC):
             BackendStatus: the status of the backend.
         """
         return BackendStatus(backend_name=self.name(),
-                             backend_version=qiskit.__version__,
+                             backend_version=__version__,
                              operational=True,
                              pending_jobs=0,
                              status_msg='')

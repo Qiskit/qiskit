@@ -50,16 +50,17 @@ try:
     # Compile and run the Quantum Program on a real device backend
     try:
         least_busy_device = least_busy(IBMQ.backends(simulator=False))
-        print("Running on current least busy device: ", least_busy_device)
-
-        #running the job
-        job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
-        result_exp = job_exp.result()
-
-        # Show the results
-        print(result_exp.get_counts(qc))
     except:
         print("All devices are currently unavailable.")
+
+    print("Running on current least busy device: ", least_busy_device)
+
+    #running the job
+    job_exp = execute(qc, least_busy_device, shots=1024, max_credits=10)
+    result_exp = job_exp.result()
+
+    # Show the results
+    print('Counts: ', result_exp.get_counts(qc))
 
 except QiskitError as ex:
     print('There was an error in the circuit!. Error = {}'.format(ex))

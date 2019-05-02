@@ -1,23 +1,70 @@
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 version: 1.0.{build}
 
 environment:
     matrix:
         - PYTHON: C:\Python35
+          TAG_SCENARIO: false
         - PYTHON: C:\Python36
+          TAG_SCENARIO: false
         - PYTHON: C:\Python37
+          TAG_SCENARIO: false
+        - WHEEL: 1
+          PYTHON: C:\Python35
+          CIBW_BEFORE_BUILD: pip install -U Cython
+          CIBW_SKIP: cp27-* cp34-*
+          TWINE_USERNAME: qiskit
+          TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
+          CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+          TAG_SCENARIO: true
+
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid
     TRAVIS_REPO_SLUG: invalid-but-different
 
+for:
+-
+  # non-tagged scenario
+  matrix:
+    only:
+      - TAG_SCENARIO: false
+
+  skip_tags: true
+
+-
+  # tagged scenario
+  matrix:
+    only:
+      - TAG_SCENARIO: true
+
+  skip_non_tags: true
+
+
 build: false
 deploy: false
+#      on:
+#        APPVEYOR_REPO_TAG: true
+
 skip_branch_with_pr: true
 
+build_script:
+  - if defined WHEEL (pip install cibuildwheel==0.10.1)
+  - if defined WHEEL (cibuildwheel --output-dir wheelhouse)
+  - if defined WHEEL {twine upload wheelhouse\*}
+artifacts:
+  - path: "wheelhouse\\*.whl"
+    name: Wheels
 install:
     # If there is a newer build queued for the same PR, cancel this one.
     # The AppVeyor 'rollout builds' option is supposed to serve the same
@@ -34,19 +81,28 @@ install:
     - pip.exe install vcrpy
     - pip.exe install jupyter
     - pip.exe install ipywidgets
+    - pip.exe install cython
     - pip.exe install stestr
-# TODO(mtreinish): uncomment this when testing-cabal/subunit#33 is fixed
+    - pip.exe install qiskit-aer
+    - pip.exe install "qiskit-ibmq-provider==0.1rc3"
+    - pip.exe install PyGithub
+    - python setup.py build_ext --inplace
+# TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #   - pip.exe install junitxml
 
 # Use py.test for output of xunit test results.
 test_script:
     - stestr run
     - stestr last --subunit > test_results.subunit
-# TODO(mtreinish): uncomment this when testing-cabal/subunit#33 is fixed
+# TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #    - subunit2junitxml test_results.subunit > test_results.xml
 
 # Upload the test results to appveyor so they are shown on the "Tests" tab.
 on_finish:
     - ps: $wc = New-Object 'System.Net.WebClient'
-# TODO(mtreinish): uncomment this when testing-cabal/subunit#33 is fixed
+# TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #   - ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/junit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\test_results.xml))
+
+# Open an issue on failure
+on_failure:
+    - python tools/report_ci_failure.py

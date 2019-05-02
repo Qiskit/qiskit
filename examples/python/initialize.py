@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Example use of the initialize gate to prepare arbitrary pure states.
@@ -48,7 +55,7 @@ circuit.measure(qr[1], cr[1])
 circuit.measure(qr[2], cr[2])
 circuit.measure(qr[3], cr[3])
 
-print(circuit.qasm())
+print(circuit.draw())
 
 ###############################################################
 # Execute on a simulator backend.
@@ -56,7 +63,7 @@ print(circuit.qasm())
 shots = 10000
 
 # Desired vector
-print("Desired probabilities...")
+print("Desired probabilities: ")
 print(str(list(map(lambda x: format(abs(x * x), '.3f'), desired_vector))))
 
 # Initialize on local simulator
@@ -64,11 +71,11 @@ sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute(circuit, sim_backend, shots=shots)
 result = job.result()
 
-print("Probabilities from simulator...[%s]" % result)
 n_qubits_qureg = qr.size
 counts = result.get_counts(circuit)
 
 qubit_strings = [format(i, '0%sb' % n_qubits_qureg) for
                  i in range(2 ** n_qubits_qureg)]
+print("Probabilities from simulator: ")
 print([format(counts.get(s, 0) / shots, '.3f') for
        s in qubit_strings])

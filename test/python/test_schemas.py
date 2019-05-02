@@ -1,26 +1,29 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
-# pylint: disable=redefined-builtin
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Schemas test."""
+
 import json
 import logging
 import os
 
-from marshmallow import ValidationError
-
-from qiskit.qobj._schema_validation import (validate_json_against_schema,
-                                            _get_validator)
-from qiskit import __path__ as qiskit_path
-from qiskit.providers.models import (BackendConfiguration, BackendProperties,
-                                     BackendStatus, JobStatus)
+from qiskit.validation.jsonschema.schema_validation import (
+    validate_json_against_schema, _get_validator)
+from qiskit.providers.models import (QasmBackendConfiguration, PulseBackendConfiguration,
+                                     BackendProperties, BackendStatus, JobStatus, PulseDefaults)
 from qiskit.result import Result
-from .common import QiskitTestCase
+from qiskit.test import QiskitTestCase, Path
 
 
 logger = logging.getLogger(__name__)
@@ -31,10 +34,13 @@ class TestSchemaExamples(QiskitTestCase):
     Tests schema validation
     """
     _json_examples_per_schema = {
-        "backend_configuration": [
-            "backend_configuration_openpulse_example.json",
-            "backend_configuration_openqasm_example.json",
-            "backend_configuration_openqasm_simulator_example.json"],
+        "qasm_backend_configuration": (
+            'backend_configuration',
+            ["backend_configuration_openqasm_example.json",
+             "backend_configuration_openqasm_simulator_example.json"]),
+        "pulse_backend_configuration": (
+            'backend_configuration',
+            ["backend_configuration_openpulse_example.json"]),
         "backend_properties": [
             "backend_properties_example.json"],
         "backend_status": [
@@ -55,14 +61,20 @@ class TestSchemaExamples(QiskitTestCase):
     }
 
     def setUp(self):
-        self.examples_base_path = os.path.join(qiskit_path[0], 'schemas',
-                                               'examples')
+        self.examples_base_path = self._get_resource_path('examples',
+                                                          Path.SCHEMAS)
 
     def test_examples_are_valid(self):
         """Validate example json files against respective schemas"""
         schemas = TestSchemaExamples._json_examples_per_schema
-        for schema_name, examples in schemas.items():
-            with self.subTest(schema_test=schema_name):
+        for test_name, examples in schemas.items():
+            if isinstance(examples, tuple):
+                schema_name = examples[0]
+                examples = examples[1]
+            else:
+                schema_name = test_name
+
+            with self.subTest(schema_test=test_name):
                 for example_schema in examples:
                     with self.subTest(example=example_schema):
                         with open(os.path.join(self.examples_base_path,
@@ -72,27 +84,31 @@ class TestSchemaExamples(QiskitTestCase):
                             msg = 'JSON failed validation of {}.'\
                                   'Set Qiskit log level to DEBUG'\
                                   'for further information.'\
-                                  ''.format(schema_name)
+                                  ''.format(test_name)
 
                             validate_json_against_schema(example,
                                                          schema_name, msg)
-                        # TODO: temporary quick check for validating examples
-                        # using the qiskit.validation-based Result.
-                        try:
-                            obj_map = {'result': Result,
-                                       'backend_configuration': BackendConfiguration,
-                                       'backend_properties': BackendProperties,
-                                       'backend_status': BackendStatus,
-                                       'job_status': JobStatus}
-                            cls = obj_map.get(schema_name, None)
-                            if cls and 'openpulse' not in example_schema:
-                                _ = cls.from_dict(example)
-                        except ValidationError as ex:
-                            logger.debug(example_schema, ex)
+
+                        # Check for validating examples using the qiskit models.
+                        obj_map = {'result': Result,
+                                   'qasm_backend_configuration': QasmBackendConfiguration,
+                                   'pulse_backend_configuration': PulseBackendConfiguration,
+                                   'backend_properties': BackendProperties,
+                                   'backend_status': BackendStatus,
+                                   'job_status': JobStatus,
+                                   'default_pulse_configuration': PulseDefaults}
+                        cls = obj_map.get(schema_name, None)
+                        if cls and 'openpulse' not in example_schema:
+                            _ = cls.from_dict(example)
 
     def test_schemas_are_valid(self):
         """Validate that schemas are valid jsonschema"""
         schemas = TestSchemaExamples._json_examples_per_schema
-        for schema_name in schemas:
+        for test_name, examples in schemas.items():
+            if isinstance(examples, tuple):
+                schema_name = examples[0]
+                examples = examples[1]
+            else:
+                schema_name = test_name
             with self.subTest(schema_test=schema_name):
                 _get_validator(schema_name, check_schema=True)

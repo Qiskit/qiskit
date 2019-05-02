@@ -1,39 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Standard gates."""
-from .barrier import barrier
-from .ccx import ccx
-from .cswap import cswap
-from .cx import cx
-from .cxbase import cx_base
-from .cy import cy
-from .cz import cz
-from .swap import swap
-from .h import h
-from .iden import iden
-from .s import s, sdg
-from .t import t, tdg
-from .u0 import u0
-from .u1 import u1
-from .u2 import u2
-from .u3 import u3
-from .ubase import u_base
-from .x import x
-from .y import y
-from .z import z
-from .rx import rx
-from .ry import ry
-from .rz import rz
-from .cu1 import cu1
-from .ch import ch
-from .crz import crz
-from .cu3 import cu3
-from .rzz import rzz
 
 from .barrier import Barrier
 from .ccx import ToffoliGate

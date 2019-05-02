@@ -1,101 +1,86 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"The Qiskit Terra setup file."
 
 import os
-import platform
-from distutils.command.build import build
-from multiprocessing import cpu_count
-from subprocess import call
+import sys
+import distutils.sysconfig
+from setuptools import setup, find_packages, Extension
+from Cython.Build import cythonize
 
-from setuptools import setup, find_packages
-from setuptools.dist import Distribution
-
-
-requirements = [
+REQUIREMENTS = [
     "jsonschema>=2.6,<2.7",
-    "marshmallow>=2.16.3,<3",
+    "marshmallow>=2.17.0,<3",
     "marshmallow_polyfield>=3.2,<4",
     "networkx>=2.2",
     "numpy>=1.13",
     "pillow>=4.2.1",
     "ply>=3.10",
     "psutil>=5",
-    "requests>=2.19",
-    "requests-ntlm>=1.1.0",
-    "scipy>=0.19,!=0.19.1",
+    "pylatexenc>=1.4",
+    "scipy>=1.0",
     "sympy>=1.3"
 ]
 
+# Add Cython extensions here
+CYTHON_EXTS = ['utils', 'swap_trial']
+CYTHON_MODULE = 'qiskit.transpiler.passes.mapping.cython.stochastic_swap'
+CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/mapping/cython/stochastic_swap'
 
-# C++ components compilation
-class QasmSimulatorCppBuild(build):
-    def run(self):
-        super().run()
-        # Store the current working directory, as invoking cmake involves
-        # an out of source build and might interfere with the rest of the steps.
-        current_directory = os.getcwd()
+PACKAGE_DATA = {}
 
-        try:
-            supported_platforms = ['Linux', 'Darwin', 'Windows']
-            current_platform = platform.system()
-            if current_platform not in supported_platforms:
-                # TODO: stdout is silenced by pip if the full setup.py invocation is
-                # successful, unless using '-v' - hence the warnings are not printed.
-                print('WARNING: Qiskit cpp simulator is meant to be built with these '
-                      'platforms: {}. We will support other platforms soon!'
-                      .format(supported_platforms))
-                return
+INCLUDE_DIRS = []
+# Extra link args
+LINK_FLAGS = []
+# If on Win and not in MSYS2 (i.e. Visual studio compile)
+if (sys.platform == 'win32' and os.environ.get('MSYSTEM') is None):
+    COMPILER_FLAGS = ['/O2']
+# Everything else
+else:
+    COMPILER_FLAGS = ['-O2', '-funroll-loops', '-std=c++11']
+    if sys.platform == 'darwin':
+        # These are needed for compiling on OSX 10.14+
+        COMPILER_FLAGS.append('-mmacosx-version-min=10.9')
+        LINK_FLAGS.append('-mmacosx-version-min=10.9')
 
-            cmd_cmake = ['cmake', '-vvv']
-            if 'USER_LIB_PATH' in os.environ:
-                cmd_cmake.append('-DUSER_LIB_PATH={}'.format(os.environ['USER_LIB_PATH']))
-            if current_platform == 'Windows':
-                # We only support MinGW so far
-                cmd_cmake.append("-GMinGW Makefiles")
-            cmd_cmake.append('..')
+# Remove -Wstrict-prototypes from cflags
+CFG_VARS = distutils.sysconfig.get_config_vars()
+if "CFLAGS" in CFG_VARS:
+    CFG_VARS["CFLAGS"] = CFG_VARS["CFLAGS"].replace("-Wstrict-prototypes", "")
 
-            cmd_make = ['make', 'pypi_package_copy_qasm_simulator_cpp']
-
-            try:
-                cmd_make.append('-j%d' % cpu_count())
-            except NotImplementedError:
-                print('WARNING: Unable to determine number of CPUs. Using single threaded make.')
-
-            def compile_simulator():
-                self.mkpath('out')
-                os.chdir('out')
-                call(cmd_cmake)
-                call(cmd_make)
-
-            self.execute(compile_simulator, [], 'Compiling C++ QASM Simulator')
-        except Exception as e:
-            print(str(e))
-            print("WARNING: Seems like the cpp simulator can't be built, Qiskit will "
-                  "install anyway, but won't have this simulator support.")
-
-        # Restore working directory.
-        os.chdir(current_directory)
-
-
-# This is for creating wheel specific platforms
-class BinaryDistribution(Distribution):
-    def has_ext_modules(self):
-        return True
+EXT_MODULES = []
+# Add Cython Extensions
+for ext in CYTHON_EXTS:
+    mod = Extension(CYTHON_MODULE+'.'+ext,
+                    sources=[CYTHON_SOURCE_DIR+'/'+ext+'.pyx'],
+                    include_dirs=INCLUDE_DIRS,
+                    extra_compile_args=COMPILER_FLAGS,
+                    extra_link_args=LINK_FLAGS,
+                    language='c++')
+    EXT_MODULES.append(mod)
 
 
 setup(
     name="qiskit-terra",
-    version="0.7.2",
+    version="0.8.0",
     description="Software for developing quantum computing programs",
-    long_description="""Terra provides the foundations for Qiskit. It allows the user to write 
+    long_description="""Terra provides the foundations for Qiskit. It allows the user to write
         quantum circuits easily, and takes care of the constraints of real hardware.""",
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
-    author_email="qiskit@us.ibm.com",
+    author_email="qiskit@qiskit.org",
     license="Apache 2.0",
     classifiers=[
         "Environment :: Console",
@@ -111,16 +96,16 @@ setup(
     ],
     keywords="qiskit sdk quantum",
     packages=find_packages(exclude=['test*']),
-    install_requires=requirements,
+    install_requires=REQUIREMENTS,
+    setup_requires=['Cython>=0.27.1'],
+    package_data=PACKAGE_DATA,
     include_package_data=True,
     python_requires=">=3.5",
-    cmdclass={
-        'build': QasmSimulatorCppBuild,
-    },
-    distclass=BinaryDistribution,
-    extra_requires={
+    extras_require={
         'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
                           'pydot'],
         'full-featured-simulators': ['qiskit-aer>=0.1']
-    }
+    },
+    ext_modules=cythonize(EXT_MODULES),
+    zip_safe=False
 )
