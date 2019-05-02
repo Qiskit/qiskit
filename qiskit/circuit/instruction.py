@@ -298,7 +298,6 @@ class Instruction:
             QiskitError: If the input is not valid. For example, the number of
                 arguments does not match the gate expectation.
         """
-        #
         if len(qargs) != self.num_qubits:
             raise QiskitError("")
 

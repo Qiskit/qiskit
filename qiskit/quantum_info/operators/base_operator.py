@@ -390,6 +390,16 @@ class BaseOperator(ABC):
         return self.multiply(-1)
 
     def argument_expansion(self, qargs, cargs):
+        """
+        See `QuantumCircuit.argument_expansion()` for details.
+
+        Args:
+            qargs (List): List of quantum bit arguments.
+            cargs (List): List of classical bit arguments.
+
+        Yields:
+            Tuple(List, List): A tuple with flat arguments.
+        """
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
         flat_cargs = [carg for sublist in cargs for carg in sublist]
         yield flat_qargs, flat_cargs
