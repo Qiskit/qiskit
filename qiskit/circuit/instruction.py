@@ -291,9 +291,8 @@ class Instruction:
                 yield qarg, carg
         elif not cargs and len(qargs) == 1:
             for qarg in qargs[0]:
-                yield [qarg],[]
+                yield [qarg], []
         else:
             flat_qargs = [qarg for sublist in qargs for qarg in sublist]
             flat_cargs = [carg for sublist in cargs for carg in sublist]
             yield flat_qargs, flat_cargs
-

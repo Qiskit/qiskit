@@ -27,7 +27,6 @@ from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.t import TGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
-from qiskit.exceptions import QiskitError
 
 
 class CHGate(Gate):
