@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,96 +15,60 @@
 # pylint: disable=invalid-name
 
 """
-Visualization function for pulse envelope.
+matplotlib pulse visualization.
 """
 
-import numpy as np
-from scipy.interpolate import CubicSpline
+import logging
 
-from qiskit.exceptions import QiskitError
+from qiskit.pulse import Schedule, Instruction, SamplePulse
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.visualization import matplotlib as _matplotlib
+
+logger = logging.getLogger(__name__)
 
 
-def pulse_drawer(samples, duration, dt=None, interp_method='None',
-                 filename=None, interactive=False,
-                 dpi=150, nop=1000, size=(6, 5)):
+def pulse_drawer(data, dt=1, style=None, filename=None,
+                 interp_method=None, scaling=None, channels_to_plot=None,
+                 plot_all=False, plot_range=None, interactive=False,
+                 table=True, label=False, framechange=True):
     """Plot the interpolated envelope of pulse
 
     Args:
-        samples (ndarray): Data points of complex pulse envelope.
-        duration (int): Pulse length (number of points).
-        dt (float): Time interval of samples.
-        interp_method (str): Method of interpolation
-            (set `None` for turn off the interpolation).
-        filename (str): Name required to save pulse image.
+        data (ScheduleComponent or SamplePulse): Data to plot
+        dt (float): Time interval of samples
+        style (OPStylePulse or OPStyleSched): A style sheet to configure plot appearance
+        filename (str): Name required to save pulse image
+        interp_method (Callable): interpolation function
+            See `qiskit.visualization.interpolation` for more information
+        scaling (float): scaling of waveform amplitude
+        channels_to_plot (list): A list of channel names to plot
+        plot_all (bool): Plot empty channels
+        plot_range (tuple): A tuple of time range to plot
         interactive (bool): When set true show the circuit in a new window
-            (this depends on the matplotlib backend being used supporting this).
-        dpi (int): Resolution of saved image.
-        nop (int): Data points for interpolation.
-        size (tuple): Size of figure.
+            (this depends on the matplotlib backend being used supporting this)
+        table (bool): Draw event table for supported commands
+        label (bool): Label individual instructions
+        framechange (bool): Add framechange indicators
     Returns:
-        matplotlib.figure: A matplotlib figure object for the pulse envelope.
+        matplotlib.figure: A matplotlib figure object for the pulse envelope
     Raises:
-        ImportError: when the output methods requieres non-installed libraries.
-        QiskitError: when invalid interpolation method is specified.
+        VisualizationError: when invalid data is given or lack of information
     """
-
-    try:
-        from matplotlib import pyplot as plt
-    except ImportError:
-        raise ImportError('pulse_drawer need matplotlib. '
-                          'Run "pip install matplotlib" before.')
-
-    if dt:
-        _dt = dt
+    if isinstance(data, SamplePulse):
+        drawer = _matplotlib.SamplePulseDrawer(style=style)
+        image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling)
+    elif isinstance(data, (Schedule, Instruction)):
+        drawer = _matplotlib.ScheduleDrawer(style=style)
+        image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling,
+                            plot_range=plot_range, channels_to_plot=channels_to_plot,
+                            plot_all=plot_all, table=table, label=label,
+                            framechange=framechange)
     else:
-        _dt = 1
-
-    re_y = np.real(samples)
-    im_y = np.imag(samples)
-
-    image = plt.figure(figsize=size)
-    ax0 = image.add_subplot(111)
-
-    if interp_method == 'CubicSpline':
-        # spline interpolation, use mid-point of dt
-        time = np.arange(0, duration + 1) * _dt + 0.5 * _dt
-        cs_ry = CubicSpline(time[:-1], re_y)
-        cs_iy = CubicSpline(time[:-1], im_y)
-
-        _time = np.linspace(0, duration * _dt, nop)
-        _re_y = cs_ry(_time)
-        _im_y = cs_iy(_time)
-    elif interp_method == 'None':
-        # pseudo-DAC output
-        time = np.arange(0, duration + 1) * _dt
-
-        _time = np.r_[time[0], np.repeat(time[1:-1], 2), time[-1]]
-        _re_y = np.repeat(re_y, 2)
-        _im_y = np.repeat(im_y, 2)
-    else:
-        raise QiskitError('Invalid interpolation method "%s"' % interp_method)
-
-    # plot
-    ax0.fill_between(x=_time, y1=_re_y, y2=np.zeros_like(_time),
-                     facecolor='red', alpha=0.3,
-                     edgecolor='red', linewidth=1.5,
-                     label='real part')
-    ax0.fill_between(x=_time, y1=_im_y, y2=np.zeros_like(_time),
-                     facecolor='blue', alpha=0.3,
-                     edgecolor='blue', linewidth=1.5,
-                     label='imaginary part')
-
-    ax0.set_xlim(0, duration * _dt)
-    ax0.grid(b=True, linestyle='-')
-    ax0.legend(bbox_to_anchor=(0.5, 1.00), loc='lower center',
-               ncol=2, frameon=False, fontsize=14)
+        raise VisualizationError('This data cannot be visualized.')
 
     if filename:
-        image.savefig(filename, dpi=dpi, bbox_inches='tight')
-
-    plt.close(image)
+        image.savefig(filename, dpi=drawer.style.dpi, bbox_inches='tight')
 
     if image and interactive:
-        plt.show(image)
-
+        image.show()
     return image
