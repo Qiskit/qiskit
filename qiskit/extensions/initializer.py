@@ -242,6 +242,7 @@ class Initialize(Instruction):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
         yield flat_qargs, []
 
+
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
     if not isinstance(qubits, list):

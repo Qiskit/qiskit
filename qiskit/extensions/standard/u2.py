@@ -59,6 +59,7 @@ class U2Gate(Gate):
                             ]],
                            dtype=complex)
 
+
 def u2(self, phi, lam, q):
     """Apply u2 to q."""
     return self.append(U2Gate(phi, lam), [q], [])

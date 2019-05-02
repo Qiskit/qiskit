@@ -19,6 +19,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 
+
 class Measure(Instruction):
     """Quantum measurement in the computational basis."""
 
@@ -39,6 +40,7 @@ class Measure(Instruction):
         else:
             raise QiskitError('register size error')
 
+
 def measure(self, qubit, cbit):
     """Measure quantum bit into classical bit (tuples).
 
@@ -54,5 +56,6 @@ def measure(self, qubit, cbit):
             if cbit is not in this circuit or not creg.
     """
     return self.append(Measure(), [qubit], [cbit])
+
 
 QuantumCircuit.measure = measure
