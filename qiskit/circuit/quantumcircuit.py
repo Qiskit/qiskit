@@ -285,7 +285,7 @@ class QuantumCircuit:
         into a list of qubits.
 
         Args:
-            qubit_representation: representation to expand
+            qubit_representation (Object): representation to expand
 
         Returns:
             List(tuple): Where the tuple is a qubit.
@@ -298,7 +298,7 @@ class QuantumCircuit:
         into a list of classical bits.
 
         Args:
-            clbit_representation: representation to expand
+            clbit_representation (Object): representation to expand
 
         Returns:
             List(tuple): Where the tuple is a classical bit.

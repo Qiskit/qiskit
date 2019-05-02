@@ -279,7 +279,21 @@ class Instruction:
         return self._qasmif(name_param)
 
     def argument_expansion(self, qargs, cargs):
-        # Validation and expantion of the qargs and cargs for the gate
+        """
+        Validation and handling of the arguments and its relationship. For example:
+        `cx([q[0],q[1]], q[2])` means `cx(q[0], q[2]); cx(q[1], q[2])`. This method
+        yields the arguments in the right grouping. In the example:
+           in: [[q[0],q[1]], q[2]],[]
+         outs: [q[0], q[2]], []
+               [q[1], q[2]], []
+        Args:
+            qargs (List): List of quantum bit arguments.
+            cargs (List): List of classical bit arguments.
+
+        Returns:
+            Tuple(List, List): A tuple with single arguments.
+        """
+        #
         if len(qargs) != self.num_qubits:
             raise QiskitError("")
 
