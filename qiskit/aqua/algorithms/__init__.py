@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 from .quantum_algorithm import QuantumAlgorithm
-from .adaptive import VQE, QAOA, VQC
+from .adaptive import VQE, QAOA, VQC, QGAN
 from .classical import ExactEigensolver, ExactLSsolver, SVM_Classical
 from .many_sample import EOH, QSVM
 from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, Simon, \
@@ -25,6 +25,7 @@ __all__ = [
     'VQE',
     'QAOA',
     'VQC',
+    'QGAN',
     'ExactEigensolver',
     'ExactLSsolver',
     'SVM_Classical',
