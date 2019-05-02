@@ -19,7 +19,8 @@ from .models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentC
 
 from .models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
                            PulseQobjExperiment, PulseQobjConfig,
-                           QobjMeasurementOption, QobjPulseLibrary)
+                           QobjMeasurementOption, PulseLibraryItem,
+                           PulseLibraryItemSchema, PulseQobjInstructionSchema)
 
 from .models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,
                           QasmQobjExperiment, QasmQobjConfig)

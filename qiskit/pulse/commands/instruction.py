@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Instruction = Leaf node of schedule.
 """
 import logging
-from typing import Tuple, List, Iterable
+from typing import Tuple, List, Iterable, Callable
 
 from qiskit.pulse import ops
 from qiskit.pulse.channels import Channel
@@ -86,7 +93,7 @@ class Instruction(ScheduleComponent):
 
     @property
     def duration(self) -> int:
-        """Duration of this instruction. """
+        """Duration of this instruction."""
         return self.timeslots.duration
 
     @property
@@ -95,7 +102,7 @@ class Instruction(ScheduleComponent):
         return self._buffer
 
     @property
-    def children(self) -> Tuple[ScheduleComponent]:
+    def _children(self) -> Tuple[ScheduleComponent]:
         """Instruction has no child nodes. """
         return ()
 
@@ -185,6 +192,44 @@ class Instruction(ScheduleComponent):
             name: Name of the new schedule. Defaults to name of parent
         """
         return ops.append(self, schedule, buffer=buffer, name=name)
+
+    def draw(self, dt: float = 1, style=None,
+             filename: str = None, interp_method: Callable = None, scaling: float = 1,
+             channels_to_plot: List[Channel] = None, plot_all: bool = False,
+             plot_range: Tuple[float] = None, interactive: bool = False,
+             table: bool = True, label: bool = False,
+             framechange: bool = True):
+        """Plot the instruction.
+
+        Args:
+            dt: Time interval of samples
+            style (OPStyleSched): A style sheet to configure plot appearance
+            filename: Name required to save pulse image
+            interp_method: A function for interpolation
+            scaling (float): Relative visual scaling of waveform amplitudes
+            channels_to_plot: A list of channel names to plot
+            plot_all: Plot empty channels
+            plot_range: A tuple of time range to plot
+            interactive: When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this)
+            table: Draw event table for supported commands
+            label: Label individual instructions
+            framechange: Add framechange indicators
+
+
+        Returns:
+            matplotlib.figure: A matplotlib figure object of the pulse schedule.
+        """
+        # pylint: disable=invalid-name, cyclic-import
+
+        from qiskit.tools import visualization
+
+        return visualization.pulse_drawer(self, dt=dt, style=style,
+                                          filename=filename, interp_method=interp_method,
+                                          scaling=scaling, channels_to_plot=channels_to_plot,
+                                          plot_all=plot_all, plot_range=plot_range,
+                                          interactive=interactive, table=table,
+                                          label=label, framechange=framechange)
 
     def __add__(self, schedule: ScheduleComponent) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""

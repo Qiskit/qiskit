@@ -27,7 +27,7 @@ from qiskit.providers.basicaer import basicaerjob
 from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjInstruction, PulseQobjExperiment,
                          PulseQobjConfig, QobjMeasurementOption,
-                         QobjPulseLibrary, QasmQobjInstruction,
+                         PulseLibraryItem, QasmQobjInstruction,
                          QasmQobjExperiment, QasmQobjConfig)
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.validation.jsonschema.exceptions import SchemaValidationError
@@ -146,7 +146,7 @@ class TestPulseQobj(QiskitTestCase):
                                    memory_slot_size=8192,
                                    meas_return='avg',
                                    pulse_library=[
-                                       QobjPulseLibrary(name='pulse0',
+                                       PulseLibraryItem(name='pulse0',
                                                         samples=[0.0 + 0.0j,
                                                                  0.5 + 0.0j,
                                                                  0.0 + 0.0j])
@@ -221,7 +221,7 @@ class TestPulseQobj(QiskitTestCase):
                                 memory_slot_size=8192,
                                 meas_return='avg',
                                 pulse_library=[
-                                    QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j])
+                                    PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j])
                                 ],
                                 qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
                                 rep_time=1000),
@@ -233,8 +233,8 @@ class TestPulseQobj(QiskitTestCase):
                  'meas_lo_freq': [6.9],
                  'rep_time': 1000},
             ),
-            QobjPulseLibrary: (
-                QobjPulseLibrary(name='pulse0', samples=[0.1 + 0.0j]),
+            PulseLibraryItem: (
+                PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j]),
                 {'name': 'pulse0', 'samples': [[0.1, 0.0]]}
             ),
             PulseQobjExperiment: (

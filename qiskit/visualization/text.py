@@ -502,7 +502,7 @@ class TextDrawing():
         """
         if line_length is None:
             line_length = self.line_length
-        if line_length is None:
+        if not line_length:
             if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
                 line_length = 80
             else:
@@ -511,9 +511,6 @@ class TextDrawing():
         noqubits = len(self.qregs)
 
         layers = self.build_layers()
-
-        if not line_length:
-            line_length = self.line_length
 
         layer_groups = [[]]
         rest_of_the_line = line_length
