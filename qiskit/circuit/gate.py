@@ -103,7 +103,7 @@ class Gate(Instruction):
         if len(qargs) != self.num_qubits or cargs:
             raise QiskitError()
 
-        if any([len(qarg)==0 for qarg in qargs]):
+        if any([not len(qarg) for qarg in qargs]):
             raise QiskitError('One or more of the arguments are empty')
 
         if len(qargs) == 1:
