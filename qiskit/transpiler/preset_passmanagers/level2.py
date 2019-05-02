@@ -74,6 +74,7 @@ def level_2_pass_manager(transpile_config):
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']
+
     _choose_layout = DenseLayout(coupling_map)
     if backend_properties:
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
@@ -86,6 +87,7 @@ def level_2_pass_manager(transpile_config):
 
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
+
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
              LegacySwap(coupling_map),
@@ -98,6 +100,7 @@ def level_2_pass_manager(transpile_config):
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
     def _direction_condition(property_set):
         return not property_set['is_direction_mapped']
+
     _direction = [CXDirection(coupling_map)]
 
     # 6. Remove zero-state reset
@@ -108,6 +111,7 @@ def level_2_pass_manager(transpile_config):
 
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
+
     _opt = [Optimize1qGates(), CommutativeCancellation()]
 
     pm2 = PassManager()
@@ -119,7 +123,7 @@ def level_2_pass_manager(transpile_config):
     if coupling_map:
         pm2.append(_swap_check)
         pm2.append(_swap, condition=_swap_condition)
-        # pm2.append(_direction_check)
+        # pm2.append(_direction_check)  # TODO
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
     pm2.append(_depth_check + _opt, do_while=_opt_control)

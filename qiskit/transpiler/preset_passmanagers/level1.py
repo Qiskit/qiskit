@@ -70,6 +70,7 @@ def level_1_pass_manager(transpile_config):
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']
+
     _choose_layout = TrivialLayout(coupling_map)
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
@@ -77,6 +78,7 @@ def level_1_pass_manager(transpile_config):
 
     def _improve_layout_condition(property_set):
         return not property_set['is_swap_mapped']
+
     _improve_layout = DenseLayout(coupling_map)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
@@ -90,6 +92,7 @@ def level_1_pass_manager(transpile_config):
 
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
+
     _swap = [BarrierBeforeFinalMeasurements(),
              LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
@@ -98,6 +101,7 @@ def level_1_pass_manager(transpile_config):
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
     def _direction_condition(property_set):
         return not property_set['is_direction_mapped']
+
     _direction = [CXDirection(coupling_map)]
 
     # 6. Remove zero-state reset
@@ -108,6 +112,7 @@ def level_1_pass_manager(transpile_config):
 
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
+
     _opt = [Optimize1qGates(), CXCancellation()]
 
     pm1 = PassManager()
@@ -121,7 +126,7 @@ def level_1_pass_manager(transpile_config):
     if coupling_map:
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
-        # pm1.append(_direction_check)
+        # pm1.append(_direction_check)  # TODO
         pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt, do_while=_opt_control)

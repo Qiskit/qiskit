@@ -63,6 +63,7 @@ def level_0_pass_manager(transpile_config):
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']
+
     _choose_layout = TrivialLayout(coupling_map)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
@@ -76,6 +77,7 @@ def level_0_pass_manager(transpile_config):
 
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
+
     _swap = [BarrierBeforeFinalMeasurements(),
              LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
@@ -84,6 +86,7 @@ def level_0_pass_manager(transpile_config):
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
     def _direction_condition(property_set):
         return not property_set['is_direction_mapped']
+
     _direction = [CXDirection(coupling_map)]
 
     # 6. Remove zero-state reset
@@ -98,7 +101,7 @@ def level_0_pass_manager(transpile_config):
     if coupling_map:
         pm0.append(_swap_check)
         pm0.append(_swap, condition=_swap_condition)
-        # pm0.append(_direction_check)
+        # pm0.append(_direction_check)  # TODO
         pm0.append(_direction, condition=_direction_condition)
     pm0.append(_reset)
     pm0.append(_direction)

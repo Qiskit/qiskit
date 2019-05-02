@@ -76,6 +76,7 @@ def level_3_pass_manager(transpile_config):
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']
+
     _choose_layout = DenseLayout(coupling_map)
     if backend_properties:
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
@@ -88,6 +89,7 @@ def level_3_pass_manager(transpile_config):
 
     def _swap_condition(property_set):
         return not property_set['is_swap_mapped']
+
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
              LegacySwap(coupling_map)]
@@ -100,6 +102,7 @@ def level_3_pass_manager(transpile_config):
 
     def _opt_control(property_set):
         return not property_set['depth_fixed_point']
+
     _opt = [RemoveResetInZeroState(),
             Collect2qBlocks(), ConsolidateBlocks(),
             Unroller(basis_gates), CXDirection(coupling_map),  # unroll unitaries and match coupling
