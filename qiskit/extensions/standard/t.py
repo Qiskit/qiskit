@@ -87,15 +87,11 @@ class TdgGate(Gate):
                             [0, (1-1j) / numpy.sqrt(2)]], dtype=complex)
 
 
-@_to_bits(1)
-@_op_expand(1)
 def t(self, q):
     """Apply T to q."""
     return self.append(TGate(), [q], [])
 
 
-@_to_bits(1)
-@_op_expand(1)
 def tdg(self, q):
     """Apply Tdg to q."""
     return self.append(TdgGate(), [q], [])

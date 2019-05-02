@@ -53,8 +53,6 @@ class U0Gate(Gate):
                             [0, 1]], dtype=complex)
 
 
-@_to_bits(1)
-@_op_expand(1)
 def u0(self, m, q):
     """Apply u0 with length m to q."""
     return self.append(U0Gate(m), [q], [])

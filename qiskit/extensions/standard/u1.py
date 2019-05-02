@@ -54,8 +54,6 @@ class U1Gate(Gate):
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
 
-@_to_bits(1)
-@_op_expand(1)
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
     return self.append(U1Gate(theta), [q], [])
