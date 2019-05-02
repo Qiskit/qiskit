@@ -29,7 +29,6 @@ from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
-from qiskit.transpiler.passes.unroller import Unroller
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumRegister, Parameter
 
@@ -38,11 +37,6 @@ _CHOP_THRESHOLD = 1e-15
 
 class Optimize1qGates(TransformationPass):
     """Simplify runs of single qubit gates in the ["u1", "u2", "u3", "cx", "id"] basis."""
-
-    def __init__(self):
-        super().__init__()
-        self.requires.append(Unroller(["u1", "u2", "u3", "cx", "id"]))
-
     def run(self, dag):
         """Return a new circuit that has been optimized."""
         runs = dag.collect_runs(["u1", "u2", "u3", "id"])
