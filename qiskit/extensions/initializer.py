@@ -238,8 +238,14 @@ class Initialize(Instruction):
 
         return circuit
 
+    def argument_expansion(self, qargs, cargs):
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+        yield flat_qargs, []
+
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
+    if not isinstance(qubits, list):
+        qubits = [qubits]
     return self.append(Initialize(params), qubits)
 
 
