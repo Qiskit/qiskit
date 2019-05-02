@@ -16,13 +16,14 @@
 The CX direction rearrenges the direction of the cx nodes to make the circuit
 compatible with the coupling_map.
 """
+from math import pi
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler import Layout
-from qiskit.extensions.standard import HGate
+from qiskit.extensions.standard import U2Gate
 
 
 class CXDirection(TransformationPass):
@@ -89,10 +90,10 @@ class CXDirection(TransformationPass):
                         subdag.add_qreg(target[0])
 
                     # Add H gates around
-                    subdag.apply_operation_back(HGate(), [target], [])
-                    subdag.apply_operation_back(HGate(), [control], [])
-                    subdag.apply_operation_front(HGate(), [target], [])
-                    subdag.apply_operation_front(HGate(), [control], [])
+                    subdag.apply_operation_back(U2Gate(0, pi), [target], [])
+                    subdag.apply_operation_back(U2Gate(0, pi), [control], [])
+                    subdag.apply_operation_front(U2Gate(0, pi), [target], [])
+                    subdag.apply_operation_front(U2Gate(0, pi), [control], [])
 
                     # Flips the CX
                     cnot_node.qargs[0], cnot_node.qargs[1] = target, control

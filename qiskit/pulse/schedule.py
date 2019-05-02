@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,7 @@ Schedule.
 """
 import itertools
 import logging
-from typing import List, Tuple, Iterable, Union, Dict
+from typing import List, Tuple, Iterable, Union, Dict, Callable
 
 from qiskit.pulse import ops
 from .channels import Channel
@@ -47,7 +47,7 @@ class Schedule(ScheduleComponent):
         self._name = name
         try:
             timeslots = []
-            children = []
+            _children = []
             for sched_pair in schedules:
                 # recreate as sequence starting at 0.
                 if not isinstance(sched_pair, (list, tuple)):
@@ -59,11 +59,11 @@ class Schedule(ScheduleComponent):
                 if insert_time:
                     sched_timeslots = sched_timeslots.shift(insert_time)
                 timeslots.append(sched_timeslots.timeslots)
-                children.append(sched_pair)
+                _children.append(sched_pair)
 
             self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
-            self._children = tuple(children)
-            self._buffer = max([child.buffer for _, child in children]) if children else 0
+            self.__children = tuple(_children)
+            self._buffer = max([child.buffer for _, child in _children]) if _children else 0
 
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
@@ -98,8 +98,8 @@ class Schedule(ScheduleComponent):
         return self.timeslots.channels
 
     @property
-    def children(self) -> Tuple[ScheduleComponent]:
-        return self._children
+    def _children(self) -> Tuple[ScheduleComponent]:
+        return self.__children
 
     @property
     def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
@@ -140,7 +140,7 @@ class Schedule(ScheduleComponent):
             Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
                 at and the flattened `ScheduleComponent`.
         """
-        for insert_time, child_sched in self.children:
+        for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
     def union(self, *schedules: List[ScheduleComponent], name: str = None) -> 'Schedule':
@@ -188,6 +188,43 @@ class Schedule(ScheduleComponent):
     def flatten(self) -> 'ScheduleComponent':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
         return ops.flatten(self)
+
+    def draw(self, dt: float = 1, style=None,
+             filename: str = None, interp_method: Callable = None, scaling: float = 1,
+             channels_to_plot: List[Channel] = None, plot_all: bool = False,
+             plot_range: Tuple[float] = None, interactive: bool = False,
+             table: bool = True, label: bool = False,
+             framechange: bool = True):
+        """Plot the schedule.
+
+        Args:
+            dt: Time interval of samples
+            style (OPStyleSched): A style sheet to configure plot appearance
+            filename: Name required to save pulse image
+            interp_method: A function for interpolation
+            scaling (float): Relative visual scaling of waveform amplitudes
+            channels_to_plot: A list of channel names to plot
+            plot_all: Plot empty channels
+            plot_range: A tuple of time range to plot
+            interactive: When set true show the circuit in a new window
+                (this depends on the matplotlib backend being used supporting this)
+            table: Draw event table for supported commands
+            label: Label individual instructions
+            framechange: Add framechange indicators
+
+        Returns:
+            matplotlib.figure: A matplotlib figure object of the pulse schedule.
+        """
+        # pylint: disable=invalid-name, cyclic-import
+
+        from qiskit.tools import visualization
+
+        return visualization.pulse_drawer(self, dt=dt, style=style,
+                                          filename=filename, interp_method=interp_method,
+                                          scaling=scaling, channels_to_plot=channels_to_plot,
+                                          plot_all=plot_all, plot_range=plot_range,
+                                          interactive=interactive, table=table,
+                                          label=label, framechange=framechange)
 
     def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
