@@ -22,6 +22,7 @@ from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import LegacySwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
@@ -72,7 +73,8 @@ def level_1_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
 
     # 4. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
-    _swap = [LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
+    _swap = [BarrierBeforeFinalMeasurements(),
+             LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
     _swap_condition = lambda property_set: not property_set['is_swap_mapped']
 

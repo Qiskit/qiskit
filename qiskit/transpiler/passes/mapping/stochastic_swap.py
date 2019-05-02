@@ -84,7 +84,6 @@ class StochasticSwap(TransformationPass):
         self.seed = seed
         self.qregs = None
         self.rng = None
-        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """

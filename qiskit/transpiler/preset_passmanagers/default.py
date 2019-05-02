@@ -23,6 +23,7 @@ from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import LegacySwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
@@ -63,6 +64,7 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
     pass_manager.append(Unroll3qOrMore())
 
     # Swap mapper
+    pass_manager.append(BarrierBeforeFinalMeasurements())
     pass_manager.append(LegacySwap(coupling_map, trials=20, seed=seed_transpiler))
 
     # Expand swaps
@@ -70,9 +72,6 @@ def default_pass_manager(basis_gates, coupling_map, initial_layout, seed_transpi
 
     # Change CX directions
     pass_manager.append(CXDirection(coupling_map))
-
-    # Unroll to the basis
-    pass_manager.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
 
     # Simplify single qubit gates and CXs
     simplification_passes = [Optimize1qGates(), CXCancellation(), RemoveResetInZeroState()]

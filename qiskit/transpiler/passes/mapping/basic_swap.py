@@ -45,7 +45,6 @@ class BasicSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """

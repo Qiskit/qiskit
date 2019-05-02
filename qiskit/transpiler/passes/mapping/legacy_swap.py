@@ -48,8 +48,6 @@ class LegacySwap(TransformationPass):
         self.trials = trials
         self.seed = seed
 
-        self.requires.append(BarrierBeforeFinalMeasurements())
-
     def run(self, dag):
         """Map a DAGCircuit onto a CouplingGraph using swap gates.
 
