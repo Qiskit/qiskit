@@ -266,7 +266,14 @@ class QuantumCircuit:
             try:
                 return [in_array[bit_representation]]
             except IndexError:
-                raise QiskitError('')
+                raise QiskitError('Index out of range.')
+        elif isinstance(bit_representation, range):
+            try:
+                return [in_array[index] for index in bit_representation ]
+            except IndexError:
+                raise QiskitError('Index out of range.')
+        elif isinstance(bit_representation, slice):
+            return in_array[bit_representation]
         elif isinstance(bit_representation, list):
             return bit_representation
         else:
