@@ -88,7 +88,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
     schedule_los = qobj_config.pop('schedule_los', [])
 
     if len(schedule_los) == 1:
-        lo_dict = schedule_los
+        lo_dict = schedule_los[0]
         # update global config
         q_los = lo_converter.get_qubit_los(lo_dict)
         if q_los:
@@ -97,7 +97,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         if m_los:
             qobj_config['meas_lo_freq'] = m_los
 
-    elif schedule_los:
+    if schedule_los:
         # multiple frequency setups
         if len(qobj_schedules) == 1:
             # frequency sweep
