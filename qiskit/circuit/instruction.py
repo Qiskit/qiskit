@@ -286,12 +286,17 @@ class Instruction:
            in: [[q[0],q[1]], q[2]],[]
          outs: [q[0], q[2]], []
                [q[1], q[2]], []
+
         Args:
             qargs (List): List of quantum bit arguments.
             cargs (List): List of classical bit arguments.
 
-        Returns:
+        Yields:
             Tuple(List, List): A tuple with single arguments.
+
+        Raises:
+            QiskitError: If the input is not valid. For example, the number of
+                arguments does not match the gate expectation.
         """
         #
         if len(qargs) != self.num_qubits:
