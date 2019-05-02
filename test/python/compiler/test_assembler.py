@@ -352,7 +352,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
-        self.assertDictEqual(test_dict['experiments'][0]['experimentconfig'].to_dict(),
+        self.assertDictEqual(test_dict['experiments'][0]['config'],
                              {'qubit_lo_freq': [4.91, 5.0]})
 
     def test_assemble_multi_schedules_with_multi_lo_configs(self):
@@ -368,7 +368,7 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertListEqual(test_dict['config']['qubit_lo_freq'], [4.9, 5.0])
         self.assertEqual(len(test_dict['experiments']), 2)
         self.assertEqual(len(test_dict['experiments'][0]['instructions']), 2)
-        self.assertDictEqual(test_dict['experiments'][0]['experimentconfig'].to_dict(),
+        self.assertDictEqual(test_dict['experiments'][0]['config'],
                              {'qubit_lo_freq': [4.91, 5.0]})
 
     def test_assemble_multi_schedules_with_wrong_number_of_multi_lo_configs(self):
@@ -380,6 +380,15 @@ class TestPulseAssembler(QiskitTestCase):
                      meas_lo_freq=self.default_meas_lo_freq,
                      schedule_los=[self.user_lo_config, self.user_lo_config],
                      **self.config)
+
+    def test_assemble_meas_map(self):
+        """Test assembling a single schedule, no lo config."""
+        acquire = pulse.Acquire(5)
+        schedule = acquire(self.device.q, mem_slots=self.device.mem)
+        assemble(schedule, meas_map=[[0], [1]])
+
+        with self.assertRaises(QiskitError):
+            assemble(schedule, meas_map=[[0, 1, 2]])
 
 
 if __name__ == '__main__':

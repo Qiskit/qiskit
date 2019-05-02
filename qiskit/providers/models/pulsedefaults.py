@@ -11,17 +11,9 @@ from marshmallow.validate import Length, Range
 
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.base import ObjSchema
-from qiskit.validation.fields import (Complex, Integer, List, Nested, Number,
-                                      String)
-
-
-class PulseLibraryItemSchema(BaseSchema):
-    """Schema for PulseLibraryItem."""
-
-    # Required properties.
-    name = String(required=True)
-    samples = List(Complex(), required=True,
-                   validate=Length(min=1))
+from qiskit.validation.fields import (Integer, List, Nested, Number, String)
+from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema
+from qiskit.pulse import CmdDef
 
 
 class MeasurementKernelSchema(BaseSchema):
@@ -49,7 +41,7 @@ class CommandSchema(BaseSchema):
     # Optional properties.
     qubits = List(Integer(validate=Range(min=0)),
                   validate=Length(min=1))
-    sequence = Nested(ObjSchema, many=True)
+    sequence = Nested(PulseQobjInstructionSchema, many=True)
 
 
 class PulseDefaultsSchema(BaseSchema):
@@ -65,24 +57,6 @@ class PulseDefaultsSchema(BaseSchema):
     # Optional properties.
     meas_kernel = Nested(MeasurementKernelSchema)
     discriminator = Nested(DiscriminatorSchema)
-
-
-@bind_schema(PulseLibraryItemSchema)
-class PulseLibraryItem(BaseModel):
-    """Model for PulseLibraryItem.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``PulseLibraryItemSchema``.
-
-    Attributes:
-        name (str): Pulse name.
-        samples (list[complex]): Pulse samples.
-    """
-    def __init__(self, name, samples, **kwargs):
-        self.name = name
-        self.samples = samples
-
-        super().__init__(**kwargs)
 
 
 @bind_schema(MeasurementKernelSchema)
@@ -146,3 +120,11 @@ class PulseDefaults(BaseModel):
         self.cmd_def = cmd_def
 
         super().__init__(**kwargs)
+
+    def build_cmd_def(self):
+        """Construct the `CmdDef` object for the backend.
+
+        Returns:
+            CmdDef: `CmdDef` instance generated from defaults
+        """
+        return CmdDef.from_defaults(self.cmd_def, self.pulse_library)

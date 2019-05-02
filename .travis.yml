@@ -99,7 +99,7 @@ jobs:
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
-        - CIBW_TEST_COMMAND="python3 {project}/examples/python/teleport.py"
+        - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       if: tag IS present
       script:
         - sudo pip install cibuildwheel==0.10.1
@@ -113,7 +113,7 @@ jobs:
         - CIBW_SKIP="cp27-* cp34-*"
         - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
-        - CIBW_TEST_COMMAND="python3 {project}/examples/python/teleport.py"
+        - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       script:
         - sudo pip2 install cibuildwheel==0.10.1
         - cibuildwheel --output-dir wheelhouse

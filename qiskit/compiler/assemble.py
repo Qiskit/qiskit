@@ -20,7 +20,7 @@ import copy
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.pulse import Schedule, LoConfig
+from qiskit.pulse import ScheduleComponent, LoConfig
 from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
@@ -36,7 +36,7 @@ def assemble(experiments,
              shots=1024, memory=False, max_credits=None, seed_simulator=None,
              qubit_lo_freq=None, meas_lo_freq=None,  # schedule run options
              qubit_lo_range=None, meas_lo_range=None,
-             schedule_los=None, meas_level=2, meas_return='avg',
+             schedule_los=None, meas_level=2, meas_return='avg', meas_map=None,
              memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
              config=None, seed=None,  # deprecated
              **run_config):
@@ -104,6 +104,9 @@ def assemble(experiments,
                 "single" returns information from every shot.
                 "avg" returns average measurement output (averaged over number of shots).
 
+        meas_map (list):
+            List of lists, containing qubits that must be measured together.
+
         memory_slots (int):
             Number of classical memory slots used in this job.
 
@@ -155,7 +158,8 @@ def assemble(experiments,
                                                        qubit_lo_freq, meas_lo_freq,
                                                        qubit_lo_range, meas_lo_range,
                                                        schedule_los, meas_level, meas_return,
-                                                       memory_slots, memory_slot_size, rep_time,
+                                                       meas_map, memory_slots,
+                                                       memory_slot_size, rep_time,
                                                        parameter_binds, **run_config)
 
     # assemble either circuits or schedules
@@ -166,7 +170,7 @@ def assemble(experiments,
         return assemble_circuits(circuits=bound_experiments, qobj_id=qobj_id,
                                  qobj_header=qobj_header, run_config=run_config)
 
-    elif all(isinstance(exp, Schedule) for exp in experiments):
+    elif all(isinstance(exp, ScheduleComponent) for exp in experiments):
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
                                   qobj_header=qobj_header, run_config=run_config)
 
@@ -181,7 +185,8 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                     qubit_lo_freq, meas_lo_freq,
                     qubit_lo_range, meas_lo_range,
                     schedule_los, meas_level, meas_return,
-                    memory_slots, memory_slot_size, rep_time,
+                    meas_map, memory_slots,
+                    memory_slot_size, rep_time,
                     parameter_binds, **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
@@ -212,6 +217,7 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                 meas_freq_est=backend_config_defaults.get('meas_freq_est')
             )
 
+    meas_map = meas_map or getattr(backend_config, 'meas_map', None)
     memory_slots = memory_slots or getattr(backend_config, 'memory_slots', None)
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
     if isinstance(rep_time, list):
@@ -260,6 +266,7 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                            schedule_los=schedule_los,
                            meas_level=meas_level,
                            meas_return=meas_return,
+                           meas_map=meas_map,
                            memory_slots=memory_slots,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
