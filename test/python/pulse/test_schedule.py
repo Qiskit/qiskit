@@ -303,7 +303,9 @@ class TestSchedule(QiskitTestCase):
     def test_buffering(self):
         """Test channel buffering."""
         buffer_chan = DriveChannel(0, buffer=5)
-
+        measure_chan = MeasureChannel(0, buffer=10)
+        acquire_chan = AcquireChannel(0, buffer=10)
+        memory_slot = MemorySlot(0)
         gp0 = pulse_lib.gaussian(duration=10, amp=0.7, sigma=3)
         fc_pi_2 = FrameChange(phase=1.57)
 
@@ -327,6 +329,12 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(sched.duration, gp0(buffer_chan), buffer=True)
 
         self.assertEqual(sched.duration, 40)
+
+        sched = Schedule()
+
+        sched = gp0(measure_chan) + Acquire(duration=10)(acquire_chan, memory_slot)
+
+        self.assertEqual(sched.duration, 10)
 
 
 if __name__ == '__main__':

@@ -102,6 +102,19 @@ class TestInstructionToQobjConverter(QiskitTestCase):
 
         self.assertEqual(converter(0, instruction), valid_qobj)
 
+        # test without register
+        instruction = command(self.device.q, self.device.mem)
+
+        valid_qobj = PulseQobjInstruction(
+            name='acquire',
+            t0=0,
+            duration=10,
+            qubits=[0],
+            memory_slot=[0]
+        )
+
+        self.assertEqual(converter(0, instruction), valid_qobj)
+
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
