@@ -32,13 +32,13 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Qiskit'
-copyright = '2018, Qiskit Development Team'
+copyright = '2019, Qiskit Development Team'
 author = 'Qiskit Development Team'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
-release = '0.7'
+release = '0.9'
 
 
 # -- General configuration ---------------------------------------------------
