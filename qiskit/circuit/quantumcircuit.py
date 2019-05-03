@@ -317,7 +317,7 @@ class QuantumCircuit:
             clbit_representation (Object): representation to expand
 
         Returns:
-            List(tuple): Where the tuple is a classical bit.
+            List(tuple): Where each tuple is a classical bit.
         """
         return QuantumCircuit._bit_argument_expansion(clbit_representation, self.clbits)
 
