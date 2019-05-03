@@ -304,7 +304,7 @@ class QuantumCircuit:
             qubit_representation (Object): representation to expand
 
         Returns:
-            List(tuple): Where the tuple is a qubit.
+            List(tuple): Where each tuple is a qubit.
         """
         return QuantumCircuit._bit_argument_expansion(qubit_representation, self.qubits)
 
