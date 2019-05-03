@@ -81,7 +81,7 @@ def get_measured_qubits_from_qobj(qobj):
 
 def add_measurement_error_mitigation_to_qobj(qobj, fitter_cls, backend,
                                              backend_config=None, compile_config=None,
-                                             run_config=None):
+                                             run_config=None, new_qobj=False):
     """
         Args:
             qobj (QasmQobj): QasmQobj of the algorithm
@@ -90,12 +90,12 @@ def add_measurement_error_mitigation_to_qobj(qobj, fitter_cls, backend,
             backend_config (dict, optional): configuration for backend
             compile_config (dict, optional): configuration for compilation
             run_config (RunConfig, optional): configuration for running a circuit
+            new_qobj (bool, optional): whether or not combine qobj to the input qobj
 
         Returns:
             QasmQobj: the Qobj with calibration circuits at the beginning
             list[str]: the state labels for build MeasFitter
             list[str]: the labels of the calibration circuits
-            list[int]: qubit index for this calibration
 
         Raises:
             AquaError: when the fitter_cls is not recognizable.
@@ -116,6 +116,10 @@ def add_measurement_error_mitigation_to_qobj(qobj, fitter_cls, backend,
         raise AquaError("Unknown fitter {}".format(fitter_cls))
 
     cals_qobj = compile_circuits(meas_calibs_circuits, backend, backend_config, compile_config, run_config)
-    qobj.experiments[0:0] = cals_qobj.experiments
+
+    if new_qobj:
+        qobj = cals_qobj
+    else:
+        qobj.experiments[0:0] = cals_qobj.experiments
 
     return qobj, state_labels, circlabel
