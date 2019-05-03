@@ -45,7 +45,6 @@ In addition there is also the introduction of the following new features:
 
 Upgrades
 --------
->>>>>>> Add notes about new compile workflow and adjust heading levels
 
 Please note that some backwards incompatible changes have been made during this
 release. The following notes contain infomation on how to adapt to these
