@@ -17,8 +17,9 @@ Quantum register reference object.
 """
 import itertools
 
+from qiskit.exceptions import QiskitError
 from .register import Register
-
+from .bit import Bit
 
 class QuantumRegister(Register):
     """Implement a quantum register."""
@@ -30,3 +31,14 @@ class QuantumRegister(Register):
     def qasm(self):
         """Return OPENQASM string for this register."""
         return "qreg %s[%d];" % (self.name, self.size)
+
+    def __getitem__(self, key):
+        tuple = super().__getitem__(key)
+        return  QuBit.from_tuple(tuple)
+
+class QuBit(Bit):
+    def __init__(self, register, index):
+        if isinstance(register, QuantumRegister):
+            super().__init__(register, index)
+        else:
+            raise QiskitError('')
