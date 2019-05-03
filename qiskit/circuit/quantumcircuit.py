@@ -274,10 +274,12 @@ class QuantumCircuit:
                 raise QiskitError('Index out of range.')
         elif isinstance(bit_representation, slice):
             return in_array[bit_representation]
-        elif isinstance(bit_representation, list):
+        elif isinstance(bit_representation, list) and \
+                all(_is_bit(bit) for bit in bit_representation):
             return bit_representation
         else:
-            raise QiskitError('Not able to expand a %s' % type(bit_representation))
+            raise QiskitError('Not able to expand a %s (%s)' % (bit_representation,
+                                                                type(bit_representation)))
 
     def qbit_argument_expansion(self, qubit_representation):
         """

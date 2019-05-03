@@ -292,6 +292,18 @@ class TestGatesOnWireSlice(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
+    def test_wire_list(self):
+        """Test gate wire slice
+        """
+        qreg = QuantumRegister(4)
+        circuit = QuantumCircuit(qreg)
+        circuit.h([0, 1])
+
+        expected = QuantumCircuit(qreg)
+        expected.h(qreg[0:2])
+
+        self.assertEqual(circuit, expected)
+
     def test_circuit_multi_qregs_h(self):
         """Test circuit multi qregs in slices of wires (H gate).
         """
