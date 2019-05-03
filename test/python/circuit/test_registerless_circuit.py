@@ -229,7 +229,7 @@ class TestGatesOnWireRange(QiskitTestCase):
         circuit.barrier(range(0, 3))
 
         expected = QuantumCircuit(qreg01, qreg23)
-        expected.barrier(qreg01[0], qreg01[1], qreg23[0])
+        expected.barrier([qreg01[0], qreg01[1], qreg23[0]])
 
         self.assertEqual(circuit, expected)
 
