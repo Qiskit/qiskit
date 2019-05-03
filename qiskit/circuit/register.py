@@ -51,7 +51,7 @@ class Register:
         self.size = size
         if not isinstance(size, int) or size <= 0:
             raise QiskitError("Register size must be positive integer ('%s' %s was provided)." % (
-            size, type(size)))
+                size, type(size)))
 
     def __repr__(self):
         """Return the official string representing the register."""
