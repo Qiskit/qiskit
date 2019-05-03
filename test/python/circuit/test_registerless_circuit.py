@@ -306,7 +306,6 @@ class TestGatesOnWireSlice(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
-
     def test_wire_np_int(self):
         """Test gate wire with numpy int
         """
@@ -323,7 +322,7 @@ class TestGatesOnWireSlice(QiskitTestCase):
     def test_wire_np_1d_array(self):
         """Test gate wire with numpy array (one-dimensional)
         """
-        numpy_arr = numpy.array([0,1])
+        numpy_arr = numpy.array([0, 1])
         qreg = QuantumRegister(4)
         circuit = QuantumCircuit(qreg)
         circuit.h(numpy_arr)
@@ -426,7 +425,7 @@ class TestGatesOnWireSlice(QiskitTestCase):
     def test_wire_np_2d_array(self):
         """Test gate wire with numpy array (two-dimensional). Raises.
         """
-        numpy_arr = numpy.array([[0,1],[2,3]])
+        numpy_arr = numpy.array([[0, 1], [2, 3]])
         qreg = QuantumRegister(4)
         circuit = QuantumCircuit(qreg)
-        self.assertRaises(QiskitError, circuit.h, numpy_arr) # circuit.h(numpy_arr)
+        self.assertRaises(QiskitError, circuit.h, numpy_arr)  # circuit.h(numpy_arr)
