@@ -57,7 +57,7 @@ def barrier(self, *qargs):
         elif isinstance(qarg, range):
             qubits.extend([i for i in qarg])
         elif isinstance(qarg, slice):
-            qubits.extend([i for i in range(*qarg.indices(1000))])
+            qubits.extend(self.qubits[qarg])
         else:
             qubits.append(qarg)
 
