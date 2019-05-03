@@ -24,7 +24,7 @@ from qiskit import compiler
 from qiskit.assembler import assemble_circuits
 from qiskit.providers import BaseBackend, JobStatus, JobError
 from qiskit.providers.basicaer import BasicAerJob
-from qiskit.qobj import QobjHeader, QasmQobj, PulseQobj
+from qiskit.qobj import QobjHeader, QasmQobj
 from qiskit.aqua.aqua_error import AquaError
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
@@ -138,11 +138,8 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
                 temp_qobj.qobj_id = str(uuid.uuid4())
                 temp_qobj.experiments = qobj.experiments[i * chunk_size:(i + 1) * chunk_size]
                 qobjs.append(temp_qobj)
-        elif isinstance(qobj, PulseQobj):
-            # TODO
-            raise NotImplementedError("Will support PulseQobj soon.")
         else:
-            raise AquaError("Unknown Qobj type.")
+            raise AquaError("Only support QasmQobj now.")
 
     return qobjs
 
