@@ -257,28 +257,36 @@ class QuantumCircuit:
         return self.data[item]
 
     @staticmethod
+    def cast(value, _type):
+        """Best effort to cast value to type. Otherwise, returns the value."""
+        try:
+            return _type(value)
+        except (ValueError, TypeError):
+            return value
+
+    @staticmethod
     def _bit_argument_expansion(bit_representation, in_array):
-        if _is_bit(bit_representation):
-            return [bit_representation]
-        elif isinstance(bit_representation, Register):
-            return bit_representation[:]
-        elif isinstance(bit_representation, int):
-            try:
+        try:
+            if _is_bit(bit_representation):
+                return [bit_representation]
+            elif isinstance(bit_representation, Register):
+                return bit_representation[:]
+            elif isinstance(QuantumCircuit.cast(bit_representation, int), int):
                 return [in_array[bit_representation]]
-            except IndexError:
-                raise QiskitError('Index out of range.')
-        elif isinstance(bit_representation, range):
-            try:
+            elif isinstance(bit_representation, slice):
+                return in_array[bit_representation]
+            elif isinstance(bit_representation, list) and \
+                    all(_is_bit(bit) for bit in bit_representation):
+                return bit_representation
+            elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
                 return [in_array[index] for index in bit_representation]
-            except IndexError:
-                raise QiskitError('Index out of range.')
-        elif isinstance(bit_representation, slice):
-            return in_array[bit_representation]
-        elif isinstance(bit_representation, list) and \
-                all(_is_bit(bit) for bit in bit_representation):
-            return bit_representation
-        else:
-            raise QiskitError('Not able to expand a %s (%s)' % (bit_representation,
+            else:
+                raise QiskitError('Not able to expand a %s (%s)' % (bit_representation,
+                                                                    type(bit_representation)))
+        except IndexError:
+            raise QiskitError('Index out of range.')
+        except TypeError:
+            raise QiskitError('Type error handeling %s (%s)' % (bit_representation,
                                                                 type(bit_representation)))
 
     def qbit_argument_expansion(self, qubit_representation):
