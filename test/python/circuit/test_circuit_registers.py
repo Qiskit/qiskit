@@ -19,6 +19,7 @@
 import os
 import tempfile
 import unittest
+import numpy as np
 
 import qiskit.extensions.simulator
 from qiskit import BasicAer
@@ -27,7 +28,6 @@ from qiskit import execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
-
 
 class TestCircuitRegisters(QiskitTestCase):
     """QuantumCircuit Registers tests."""
@@ -57,6 +57,15 @@ class TestCircuitRegisters(QiskitTestCase):
         """Test attempt to create a non-integer size QuantumRegister.
         """
         self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, 'string')
+
+    def test_qarg_numpy_int_size(self):
+        """Test attempt to create a non-integer size QuantumRegister.
+        """
+        np_int = np.dtype('int').type(10)
+        qr1 = QuantumRegister(np_int, "q")
+        self.assertEqual(qr1.name, "q")
+        self.assertEqual(qr1.size, 10)
+        self.assertEqual(type(qr1), QuantumRegister)
 
     def test_negative_index(self):
         """Test indexing from the back
