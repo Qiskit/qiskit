@@ -54,7 +54,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
-    'sphinx.ext.viewcode'
+    'sphinx.ext.viewcode',
+    'sphinx.ext.extlinks'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -94,6 +95,17 @@ add_module_names = False
 # This can be handy if you document a project that consists of a single
 # package. Works only for the HTML builder currently.
 modindex_common_prefix = ['qiskit.']
+
+# -- Configuration for extlinks extension ------------------------------------
+# Refer to https://www.sphinx-doc.org/en/master/usage/extensions/extlinks.html
+
+extlinks = {
+    'pull_terra': ('https://github.com/Qiskit/qiskit-terra/pull/%s', '#'),
+    'pull_aqua': ('https://github.com/Qiskit/qiskit-aqua/pull/%s', '#'),
+    'pull_aer': ('https://github.com/Qiskit/qiskit-aer/pull/%s', '#'),
+    'pull_ignis': ('https://github.com/Qiskit/qiskit-ignis/pull/%s', '#')
+}
+
 
 # -- Options for HTML output -------------------------------------------------
 

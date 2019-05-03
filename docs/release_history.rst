@@ -31,8 +31,8 @@ In addition there is also the introduction of the following new features:
   ``RemoveDiagonalGatesBeforeMeasure``, ``CommutativeCancellation``,
   ``Collect2qBlocks``, and ``ConsolidateBlocks``.
 
-Upgrade
-^^^^^^^
+Upgrades
+^^^^^^^^
 
 Please note that some backwards incompatible changes have been made during this
 release. The following notes contain infomation on how to adapt to these
@@ -110,6 +110,152 @@ adjust for before the next release to avoid a breaking change.
   removed in a future release. Instead
   ``qiskit.compiler.disassemble_circuits()`` should be used to extract
   ``QuantumCircuit`` objects from a compiled qobj.
+
+
+
+Aer 0.2
+~~~~~~~
+
+New Features
+^^^^^^^^^^^^
+
+* Added multiplexer gate :pull_aer:`192`
+* Added ``remap_noise_model`` function to ``noise.utils`` :pull_aer:`181`
+* Added ``__eq__`` method to ``NoiseModel``, ``QuantumError``, ``ReadoutError``
+  :pull_aer:`181`
+* Added support for labelled gates in noise models :pull_aer:`175`
+* Improved efficiency of parallelization with ``max_memory_mb`` a new parameter
+  of ``backend_opts`` :pull_aer:`61`
+* Added optimized ``mcx``, ``mcy``, ``mcz``, ``mcu1``, ``mcu2``, ``mcu3``, gates
+  to ``QubitVector`` :pull_aer:`124`
+* Added optimized controlled-swap gate to ``QubitVector`` :pull_aer:`142`
+* Added gate-fusion optimization for ``QasmContoroller``, which is enabled by
+  setting ``fusion_enable=true`` :pull_aer:`136`
+* Added better management of failed simulations :pull_aer:`167`
+* Added qubits truncate optimization for unused qubits :pull_aer:`64`
+* Improved noise transformations :pull_aer:`162`
+* Improved error reporting :pull_aer:`160`
+* Adedd ability to disable depolarizing error on device noise model
+  :pull_aer:`131`
+* Improved u1 performance in ``statevector`` :pull_aer:`123`
+* Added initialise simulator instruction to ``statevector_state``
+  :pull_aer:`117`,  :pull_aer:`137`
+* Added coupling maps to simulators :pull_aer:`93`
+* Added circuit optimization framework :pull_aer:`83`
+* Added benchmarking :pull_aer:`71`, :pull_aer:`177`
+* Added wheels support for Debian-like distributions :pull_aer:`69`
+* Added autoconfiguration of threads for qasm simulator :pull_aer:`61`
+* Added Simulation method based on Stabilizer Rank Decompositions :pull_aer:`51`
+* Fixed OpenMP clashing problems on MacOS for the Terra Addon :pull_aer:`46`
+
+
+
+Upgrades
+^^^^^^^^
+
+* Added ``basis_gates`` kwarg to ``NoiseModel`` init :pull_aer:`175`
+* Renamed ``"chop_threshold"`` backend option to ``"zero_threshold"`` and change
+  default value to ``1e-10`` :pull_aer:`185`
+* Added an optional parameter to ``NoiseModel.as_dict()`` for returning
+  dictionaries that can be serialized using the standard json library directly.
+  :pull_aer:`165`
+* Refactored thread management :pull_aer:`50`
+
+
+
+
+
+Aqua 0.5
+~~~~~~~~
+
+New Features
+^^^^^^^^^^^^
+
+* Implementation of the HHL algorithm supporting ``LinearSystemInput``.
+* Pluggable component ``Eigenvalues`` with variant ``EigQPE``.
+* Pluggable component ``Reciprocal`` with variants ``LookupRotation`` and
+  ``LongDivision``.
+* Multiple-Controlled U1 and U3 operations ``mcu1`` and ``mcu3``.
+* Pluggable component ``QFT`` derived from component ``IQFT``.
+* Summarize the transpiled circuits at the DEBUG logging level.
+* ``QuantumInstance`` accepts ``basis_gates`` and ``coupling_map`` again.
+* Support to use ``cx`` gate for the entangement in ``RY`` and ``RYRZ``
+  variational form. (``cz`` is the default choice.)
+* Support to use arbitrary mixer Hamiltonian in QAOA. This allows to use QAOA
+  in constrained optimization problems [arXiv:1709.03489].
+* Added variational algorithm base class ``VQAlgorithm``, implemented by
+  ``VQE`` and ``QSVMVariational``.
+* Added ``ising/docplex.py`` for automatically generating Ising Hamiltonian
+  from optimization models of DOcplex.
+* Added ``'basic-dirty-ancilla``' mode for ``mct``.
+* Added ``mcmt`` for Multi-Controlled, Multi-Target gate.
+* Exposed capabilities to generate circuits from logical AND, OR, DNF
+  (disjunctive normal forms), and CNF (conjunctive normal forms) formulae.
+* Added the capability to generate circuits from ESOP (exclusive sum of
+  products) formulae with optional optimization based on Quine-McCluskey and ExactCover.
+* Added ``LogicalExpressionOracle`` for generating oracle circuits from
+  arbitrary boolean logic expressions (including DIMACS support) with optional
+  optimization capability.
+* Added ``TruthTableOracle`` for generating oracle circuits from truth-tables
+  with optional optimization capability.
+* Added ``CustomCircuitOracle`` for generating oracle from user specified
+  circuits.
+* Added implementation of the Deutsch-Jozsa algorithm.
+* Added implementation of the Bernstein-Vazirani algorithm.
+* Added implementation of the Simon's algorithm.
+* Added implementation of the Shor's algorithm.
+* Added optional capability for ``Grover``'s algorithm to take a custom
+  initial state (as opposed to the default uniform superposition)
+* Added capability to create a ``Custom`` initial state using existing
+  circuit.
+* Added the ADAM (and AMSGRAD) optimization algorithm
+* Multivariate distributions added, so uncertainty models now have univariate
+  and multivariate distribution components.
+* Added option to include or skip the swaps operations for qft and iqft
+  circuit constructions.
+* Added classical linear system solver ``ExactLSsolver``.
+* Added parameters ``auto_hermitian`` and ``auto_resize`` to ``HHL`` algorithm
+  to support non-hermititan and non :math:`2^n` sized matrices by default.
+* Added another feature map, ``RawFeatureVector``, that directly maps feature
+  vectors to qubits' states for classification.
+* ``SVM_Classical`` can now load models trained by ``QSVM``.
+
+Upgrades
+^^^^^^^^
+
+* Fixed ``ising/docplex.py`` to correctly multiply constant values in constraints
+* Changed the type of ``entanger_map`` used in ``FeatureMap`` and ``VariationalForm`` to
+  list of list.
+* Fixed package setup to correctly identify namespace packages using
+  ``setuptools.find_namespace_packages``.
+* Changed ``advanced`` mode implementation of ``mct``: using simple ``h`` gates instead
+  of ``ch``, and fixing the old recursion step in ``_multicx``.
+* Components ``random_distributions`` renamed to ``uncertainty_models``.
+* Reorganized the constructions of various common gates (``ch``, ``cry``, ``mcry``, ``mct``,
+  ``mcu1``, ``mcu3``, ``mcmt``, ``logic_and``, and ``logic_or``) and circuits
+  (``PhaseEstimationCircuit``, ``BooleanLogicCircuits``, ``FourierTransformCircuits``,
+  and ``StateVectorCircuits``) under the ``circuits`` directory.
+* Renamed the algorithm ``QSVMVariational`` to ``VQC``, which stands for Variational
+  Quantum Classifier.
+* Renamed the algorithm ``QSVMKernel`` to ``QSVM``.
+* Renamed the class ``SVMInput`` to ``ClassificationInput``.
+* Renamed problem type ``'svm_classification'`` to ``'classification'``
+
+
+Deprecations
+^^^^^^^^^^^^
+
+* ``QuantumInstance`` does not take ``memory`` anymore.
+* Moved Command line and GUI interfaces to separate repo
+  (``qiskit_aqua_uis``).
+* Removed the ``SAT``-specific oracle (now supported by
+  ``LogicalExpressionOracle``).
+
+
+
+
+
+
 
 Qiskit 0.8
 ----------
