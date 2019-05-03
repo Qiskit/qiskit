@@ -119,24 +119,24 @@ class Gate(Instruction):
         Validation and handling of the arguments and its relationship. For example:
         `cx([q[0],q[1]], q[2])` means `cx(q[0], q[2]); cx(q[1], q[2])`. This method
         yields the arguments in the right grouping. In the given example:
-           in: [[q[0],q[1]], q[2]],[]
-         outs: [q[0], q[2]], []
-               [q[1], q[2]], []
+          in: [[q[0],q[1]], q[2]],[]
+        outs: [q[0], q[2]], []
+              [q[1], q[2]], []
         The general expansions rules are:
-          * If len(qargs) == 1:
+         * If len(qargs) == 1:
                 [q[0], q[1]] -> [q[0]],[q[1]]
-          * If len(qargs) == 2:
+         * If len(qargs) == 2:
                 [[q[0], q[1]], [r[0], r[1]]] -> [q[0], r[0]], [q[1], r[1]]
                 [[q[0]], [r[0], r[1]]]       -> [q[0], r[0]], [q[0], r[1]]
                 [[q[0], q[1]], [r[0]]]       -> [q[0], r[0]], [q[1], r[0]]
-          * If len(qargs) == 3:
+         * If len(qargs) == 3:
                 [q[0], q[1]], [r[0], r[1]],  [s[0], s[1]] -> [q[0], r[0], s[0]], [q[1], r[1], s[1]]
 
         Args:
             qargs (List): List of quantum bit arguments.
             cargs (List): List of classical bit arguments.
 
-        Yields:
+        Returns:
             Tuple(List, List): A tuple with single arguments.
 
         Raises:
