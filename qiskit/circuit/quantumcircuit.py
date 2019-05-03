@@ -267,17 +267,24 @@ class QuantumCircuit:
     def _bit_argument_expansion(bit_representation, in_array):
         try:
             if _is_bit(bit_representation):
+                # circuit.h(qr[0]) -> circuit.h([qr[0]])
                 return [bit_representation]
             elif isinstance(bit_representation, Register):
+                # circuit.h(qr) -> circuit.h([qr[0], qr[1]])
                 return bit_representation[:]
             elif isinstance(QuantumCircuit.cast(bit_representation, int), int):
+                # circuit.h(0) -> circuit.h([qr[0]])
                 return [in_array[bit_representation]]
             elif isinstance(bit_representation, slice):
+                # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
                 return in_array[bit_representation]
             elif isinstance(bit_representation, list) and \
                     all(_is_bit(bit) for bit in bit_representation):
+                # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
                 return bit_representation
             elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
+                # circuit.h([0, 1])     -> circuit.h([qr[0], qr[1]])
+                # circuit.h(range(0,2)) -> circuit.h([qr[0], qr[1]])
                 return [in_array[index] for index in bit_representation]
             else:
                 raise QiskitError('Not able to expand a %s (%s)' % (bit_representation,
