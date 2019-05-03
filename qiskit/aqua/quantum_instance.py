@@ -19,10 +19,9 @@ from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
 from qiskit.transpiler import Layout
 
-from .utils import (run_qobjs, compile_circuits, CircuitCache,
+from .utils import (run_qobj, compile_circuits, CircuitCache,
                     get_measured_qubits_from_qobj,
-                    build_measurement_error_mitigation_fitter,
-                    mitigate_measurement_error)
+                    add_measurement_error_mitigation_to_qobj)
 from .utils.backend_utils import (is_aer_provider,
                                   is_ibmq_provider,
                                   is_statevector_backend,
@@ -150,7 +149,7 @@ class QuantumInstance:
                 logger.info("Measurement error mitigation does not work with statevector simulation, disable it.")
         else:
             self._measurement_error_mitigation_cls = measurement_error_mitigation_cls
-        self._measurement_error_mitigation_fitter = None
+        self._measurement_error_mitigation_fitters = {}
         self._measurement_error_mitigation_method = 'least_squares'
         self._cals_matrix_refresh_period = cals_matrix_refresh_period
         self._prev_timestamp = 0
@@ -189,30 +188,41 @@ class QuantumInstance:
         Returns:
             Result: Result object
         """
-        qobjs = compile_circuits(circuits, self._backend, self._backend_config, self._compile_config, self._run_config,
-                                 show_circuit_summary=self._circuit_summary, circuit_cache=self._circuit_cache,
-                                 **kwargs)
+        qobj = compile_circuits(circuits, self._backend, self._backend_config, self._compile_config, self._run_config,
+                                show_circuit_summary=self._circuit_summary, circuit_cache=self._circuit_cache,
+                                **kwargs)
 
         if self._measurement_error_mitigation_cls is not None:
-            if self.maybe_refresh_cals_matrix():
+            qubit_index = get_measured_qubits_from_qobj(qobj)
+            qubit_index_str = '_'.join([str(x) for x in qubit_index])
+            measurement_error_mitigation_fitter = self._measurement_error_mitigation_fitters.get(qubit_index_str, None)
+            build_cals_matrix = self.maybe_refresh_cals_matrix() or measurement_error_mitigation_fitter is None
+
+            if build_cals_matrix:
+                logger.info("Updating qobj with the circuits for measurement error mitigation.")
+                qobj, state_labels, circuit_labels = \
+                    add_measurement_error_mitigation_to_qobj(qobj,
+                                                             self._measurement_error_mitigation_cls,
+                                                             self._backend,
+                                                             self._backend_config,
+                                                             self._compile_config,
+                                                             self._run_config)
+
+            result = run_qobj(qobj, self._backend, self._qjob_config, self._backend_options, self._noise_config,
+                              self._skip_qobj_validation)
+
+            if build_cals_matrix:
                 logger.info("Building calibration matrix for measurement error mitigation.")
-                qubit_list = get_measured_qubits_from_qobj(qobjs)
-                self._measurement_error_mitigation_fitter = build_measurement_error_mitigation_fitter(qubit_list,
-                                                                                          self._measurement_error_mitigation_cls,
-                                                                                          self._backend,
-                                                                                          self._backend_config,
-                                                                                          self._compile_config,
-                                                                                          self._run_config,
-                                                                                          self._qjob_config,
-                                                                                          self._backend_options,
-                                                                                          self._noise_config)
-
-        result = run_qobjs(qobjs, self._backend, self._qjob_config, self._backend_options, self._noise_config,
-                           self._skip_qobj_validation)
-
-        if self._measurement_error_mitigation_fitter is not None:
-            result = mitigate_measurement_error(result, self._measurement_error_mitigation_fitter,
-                                                self._measurement_error_mitigation_method)
+                measurement_error_mitigation_fitter = self._measurement_error_mitigation_cls(result, state_labels,
+                                                                                             circuit_labels)
+                self._measurement_error_mitigation_fitters[qubit_index_str] = measurement_error_mitigation_fitter
+            if measurement_error_mitigation_fitter is not None:
+                logger.info("Performing measurement error mitigation.")
+                result = measurement_error_mitigation_fitter.filter.apply(result,
+                                                                          self._measurement_error_mitigation_method)
+        else:
+            result = run_qobj(qobj, self._backend, self._qjob_config, self._backend_options, self._noise_config,
+                              self._skip_qobj_validation)
 
         if self._circuit_summary:
             self._circuit_summary = False
@@ -351,9 +361,13 @@ class QuantumInstance:
 
         return ret
 
-    @property
-    def cals_matrix(self):
-        cals_matrix = None
-        if self._measurement_error_mitigation_fitter is not None:
-            cals_matrix = self._measurement_error_mitigation_fitter.cal_matrix
-        return cals_matrix
+    def cals_matrix(self, qubit_index=None):
+        ret = None
+        if qubit_index:
+            qubit_index_str = '_'.join([str(x) for x in qubit_index])
+            fitter = self._measurement_error_mitigation_fitters.get(qubit_index_str, None)
+            if fitter is not None:
+                ret = fitter.cal_matrix
+        else:
+            ret = {k: v.cal_matrix for k, v in self._measurement_error_mitigation_fitters.items()}
+        return ret
