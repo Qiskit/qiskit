@@ -33,8 +33,7 @@ class Barrier(Instruction):
         return Barrier(self.num_qubits)
 
     def argument_expansion(self, qargs, cargs):
-        for qarg in zip(*qargs):
-            yield list(qarg), []
+        yield [qarg for sublist in qargs for qarg in sublist], []
 
 
 def barrier(self, *qargs):
