@@ -53,13 +53,13 @@ class TestCircuitRegisters(QiskitTestCase):
         """
         self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, -1)
 
-    def test_qarg_negative_size(self):
+    def test_qarg_string_size(self):
         """Test attempt to create a non-integer size QuantumRegister.
         """
         self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, 'string')
 
     def test_qarg_numpy_int_size(self):
-        """Test attempt to create a non-integer size QuantumRegister.
+        """Test castable to integer size QuantumRegister.
         """
         np_int = np.dtype('int').type(10)
         qr1 = QuantumRegister(np_int, "q")
