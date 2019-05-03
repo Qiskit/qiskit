@@ -29,6 +29,7 @@ from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
 
+
 class TestCircuitRegisters(QiskitTestCase):
     """QuantumCircuit Registers tests."""
 
@@ -194,8 +195,8 @@ class TestCircuitRegisters(QiskitTestCase):
         for i, ictl, (gate, qargs, _) in zip(range(len(qc.data)), range(0, 10, 2), qc.data):
             self.assertEqual(gate.name, 'ccx')
             self.assertEqual(len(qargs), 3)
-            self.assertIn(qargs[0][1], [ictl, ictl+1])
-            self.assertIn(qargs[1][1], [ictl, ictl+1])
+            self.assertIn(qargs[0][1], [ictl, ictl + 1])
+            self.assertIn(qargs[1][1], [ictl, ictl + 1])
             self.assertEqual(qargs[2][1], i)
         # test decrementing slice
         qc = QuantumCircuit(qcontrol, qtarget)

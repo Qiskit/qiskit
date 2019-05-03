@@ -35,7 +35,8 @@ class Register:
     def __init__(self, size, name=None):
         """Create a new generic register.
         """
-        #validate (or cast) size
+
+        # validate (or cast) size
         try:
             size = int(size)
         except Exception:
