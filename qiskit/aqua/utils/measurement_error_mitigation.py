@@ -116,6 +116,6 @@ def add_measurement_error_mitigation_to_qobj(qobj, fitter_cls, backend,
         raise AquaError("Unknown fitter {}".format(fitter_cls))
 
     cals_qobj = compile_circuits(meas_calibs_circuits, backend, backend_config, compile_config, run_config)
-    cals_qobj.experiments += qobj.experiments
+    qobj.experiments[0:0] = cals_qobj.experiments
 
-    return cals_qobj, state_labels, circlabel
+    return qobj, state_labels, circlabel
