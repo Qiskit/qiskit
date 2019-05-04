@@ -19,6 +19,10 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Removed
+-------
+
+- International documentation of outdated readme etc (#2302)
 
 `0.8.0`_ - 2019-05-02
 =====================
