@@ -38,7 +38,7 @@ class TestCircuitOperations(QiskitTestCase):
         new_circuit = qc1 + qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
+        result = execute(new_circuit, backend=backend, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
@@ -56,7 +56,8 @@ class TestCircuitOperations(QiskitTestCase):
         new_circuit = qc1 + qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
+        result = execute(new_circuit, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'11': shots}
         self.assertEqual(counts, target)
@@ -90,7 +91,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc1 += qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed=78).result()
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
@@ -108,7 +110,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc1 += qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed=78).result()
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'11': shots}
         self.assertEqual(counts, target)

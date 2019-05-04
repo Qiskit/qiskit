@@ -207,8 +207,8 @@ class TestCompiler(QiskitTestCase):
                           seed_simulator=42)
         rtrue = backend.run(qrtrue).result()
         qrfalse = assemble(transpile(qc, backend, seed_transpiler=8,
-                                     pass_manager=PassManager()),         
-                            seed_simulator=42)
+                                     pass_manager=PassManager()),
+                           seed_simulator=42)
         rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
@@ -270,7 +270,7 @@ class TestCompiler(QiskitTestCase):
                           shots=shots)
         count1 = result1.result().get_counts()
         result2 = execute(circ, backend=self.backend,
-                          coupling_map=None, 
+                          coupling_map=None,
                           seed_simulator=self.seed_simulator,
                           seed_transpiler=8, shots=shots)
         count2 = result2.result().get_counts()

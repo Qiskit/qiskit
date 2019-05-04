@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj"""
-import warnings
 import uuid
 import logging
 import copy
@@ -38,7 +37,6 @@ def assemble(experiments,
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=2, meas_return='avg', meas_map=None,
              memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
-             config=None, # deprecated
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
 
@@ -125,9 +123,6 @@ def assemble(experiments,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
-        config (dict):
-            DEPRECATED in 0.8: use run_config instead
-
         run_config (dict):
             extra arguments used to configure the run (e.g. for Aer configurable backends)
             Refer to the backend documentation for details on these arguments
@@ -139,12 +134,6 @@ def assemble(experiments,
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
-    # deprecation matter
-    if config:
-        warnings.warn('config is not used anymore. Set all configs in '
-                      'run_config.', DeprecationWarning)
-        run_config = run_config or config
-
     # Get RunConfig(s) that will be inserted in Qobj to configure the run
     experiments = experiments if isinstance(experiments, list) else [experiments]
     qobj_id, qobj_header, run_config = _parse_run_args(backend, qobj_id, qobj_header,
