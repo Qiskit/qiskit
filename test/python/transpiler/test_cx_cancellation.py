@@ -15,7 +15,8 @@
 """Tests for pass cancelling 2 consecutive CNOTs on the same qubits."""
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, transpile
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.test import QiskitTestCase
 

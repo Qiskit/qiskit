@@ -38,7 +38,7 @@ def assemble(experiments,
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=2, meas_return='avg', meas_map=None,
              memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
-             config=None, seed=None,  # deprecated
+             config=None, # deprecated
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
 
@@ -125,9 +125,6 @@ def assemble(experiments,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
-        seed (int):
-            DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
-
         config (dict):
             DEPRECATED in 0.8: use run_config instead
 
@@ -147,9 +144,6 @@ def assemble(experiments,
         warnings.warn('config is not used anymore. Set all configs in '
                       'run_config.', DeprecationWarning)
         run_config = run_config or config
-    if seed:
-        warnings.warn('seed is deprecated in favor of seed_simulator.', DeprecationWarning)
-        seed_simulator = seed_simulator or seed
 
     # Get RunConfig(s) that will be inserted in Qobj to configure the run
     experiments = experiments if isinstance(experiments, list) else [experiments]
@@ -258,7 +252,6 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                            memory=memory,
                            max_credits=max_credits,
                            seed_simulator=seed_simulator,
-                           seed=seed_simulator,  # deprecated
                            qubit_lo_freq=qubit_lo_freq,
                            meas_lo_freq=meas_lo_freq,
                            qubit_lo_range=qubit_lo_range,
