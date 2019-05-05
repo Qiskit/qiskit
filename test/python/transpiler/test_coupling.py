@@ -40,8 +40,7 @@ class CouplingTest(QiskitTestCase):
         coupling_list = [(0, 1), (0, 2), (1, 2)]
         coupling = CouplingMap(coupling_list)
         self.assertTrue(coupling.is_connected())
-        physical_qubits = coupling.physical_qubits
-        result = coupling.distance(physical_qubits[0], physical_qubits[1])
+        result = coupling.distance(0, 1)
         self.assertEqual(1, result)
 
     def test_subcoupling_distance(self):
