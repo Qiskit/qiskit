@@ -22,7 +22,7 @@ from qiskit.tools.monitor import backend_overview, backend_monitor
 from qiskit.test import QiskitTestCase, requires_qe_access
 from qiskit.util import _has_connection
 # Check if internet connection exists
-HAS_NET_CONNECTION = _has_connection('qvisualization.mybluemix.net', 443)
+HAS_NET_CONNECTION = _has_connection('quantumexperience.ng.bluemix.net', 443)
 
 
 class TestBackendOverview(QiskitTestCase):
