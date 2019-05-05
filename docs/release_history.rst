@@ -143,7 +143,6 @@ from ``qiskit.transpiler`` instead of ``qiskit.mapper`` sooner will avoid any
 surprises in the future.
 
 
-
 Deprecations
 ------------
 As part of the 0.8 release the following things have been
@@ -308,6 +307,29 @@ Deprecations
 * Removed the ``SAT``-specific oracle (now supported by
   ``LogicalExpressionOracle``).
 
+Ignis 0.1.1
+===========
+
+New Features
+------------
+
+* Quantum volume
+* Measurement mitigation using tensored calibrations
+
+Upgrades
+--------
+
+* Simultaneous RB has the option to align Clifford gates across subsets
+* Measurement correction can produce a new calibration for a subset of qubits
+
+Changes
+-------
+
+* RB writes to the minimal set of classical registers (it used to be
+  Q[i]->C[i]). This change enables measurement correction with RB.
+  Unless users had external analysis code, this will not change outcomes.
+  RB circuits from 0.1 are not compatible with 0.1.1 fitters.
+
 
 IBMQ Provider 0.1
 =================
@@ -335,7 +357,6 @@ Non-qobj format jobs
 Support for non-qobj format jobs has been removed from the provider. You'll
 have to convert submissions in an older format to qobj before you can submit.
 
-
 **********
 Qiskit 0.8
 **********
@@ -343,6 +364,14 @@ Qiskit 0.8
 In Qiskit 0.8 we introduced the Qiskit Ignis element. It also includes the
 Qiskit Terra element 0.7.1 release which contains a bug fix for the BasicAer
 Python simulator.
+
+Ignis 0.1.0
+===========
+
+New Features
+------------
+
+This is the first release of Ignis.
 
 **********
 Qiskit 0.7
