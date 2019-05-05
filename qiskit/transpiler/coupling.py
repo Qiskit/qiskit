@@ -52,6 +52,8 @@ class CouplingMap:
         self._dist_matrix = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._qubit_list = None
+        # a sorted list of physical qubits (integers) in this coupling map
+        self._is_symmetric = None
 
         if couplinglist is not None:
             for source, target in couplinglist:
