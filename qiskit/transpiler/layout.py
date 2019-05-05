@@ -19,9 +19,7 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
 Physical (qu)bits are integers.
 """
-import warnings
 
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.register import Register
 from qiskit.transpiler.exceptions import LayoutError
 
@@ -73,33 +71,6 @@ class Layout():
                      1: qr[1],
                      2: qr[2]}
         """
-        # TODO (luciano): Remove this full block after 0.8.
-        #  its here to support {("qr", 0): ("q", 0),...}
-        if len(input_dict) >= 1:
-            key = list(input_dict.keys())[0]
-            value = input_dict[key]
-            if (isinstance(key, tuple) and  # pylint: disable=too-many-boolean-expressions
-                    len(key) == 2 and
-                    isinstance(key[0], str) and
-                    isinstance(key[1], int) and
-                    isinstance(value, tuple) and
-                    len(value) == 2 and
-                    isinstance(key[0], str) and
-                    isinstance(key[1], int)):
-                warnings.warn("This form of dictionary (i.e. {(\"%s\",%s):(\"%s\",%s), ...} is "
-                              "going to be deprecated after 0.8." % (key + value),
-                              DeprecationWarning)
-                qreg_names = {qubit[0] for qubit in input_dict.keys()}
-                qregs = {}
-                for qreg_name in qreg_names:
-                    qregs[qreg_name] = QuantumRegister(
-                        max([qubit[1] for qubit in input_dict.keys() if qubit[0] == qreg_name]) + 1,
-                        qreg_name)
-                new_input_dict = {}
-                for key, value in input_dict.items():
-                    new_input_dict[value[1]] = (qregs[key[0]], key[1])
-                input_dict = new_input_dict
-
         for key, value in input_dict.items():
             virtual, physical = Layout.order_based_on_type(key, value)
             self._p2v[physical] = virtual
