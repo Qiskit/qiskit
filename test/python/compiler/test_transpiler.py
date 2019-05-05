@@ -20,8 +20,8 @@ from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler import Layout
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
+from qiskit.transpiler import Layout, CouplingMap
 from qiskit.circuit import Parameter
 
 
@@ -435,6 +435,21 @@ class TestTranspile(QiskitTestCase):
                   initial_layout=layout)
 
         self.assertTrue(mock_pass.called)
+
+    def test_do_not_run_cxdirection_with_symmetric_cm(self):
+        """When the coupling map is symmetric, do not run CXDirection."""
+
+        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+        layout = Layout.generate_trivial_layout(*circ.qregs)
+        coupling_map = []
+        for node1,node2 in FakeRueschlikon().configuration().coupling_map:
+            coupling_map.append([node1, node2])
+            coupling_map.append([node2, node1])
+
+        cxdir_pass = CXDirection(CouplingMap(coupling_map))
+        with unittest.mock.patch.object(CXDirection, 'run', wraps=cxdir_pass.run) as mock_pass:
+            transpile(circ, coupling_map=coupling_map, initial_layout=layout)
+            self.assertFalse(mock_pass.called)
 
     def test_optimize_to_nothing(self):
         """ Optimze gates up to fixed point in the default pipeline

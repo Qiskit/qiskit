@@ -99,7 +99,7 @@ def level_2_pass_manager(transpile_config):
     # 5. Fix any bad CX directions
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
     def _direction_condition(property_set):
-        return not coupling_map.is_symmetric or not property_set['is_direction_mapped']
+        return not coupling_map.is_symmetric and not property_set['is_direction_mapped']
 
     _direction = [CXDirection(coupling_map)]
 
