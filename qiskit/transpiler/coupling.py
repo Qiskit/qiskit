@@ -139,8 +139,13 @@ class CouplingMap:
         """
         if not self.is_connected():
             raise CouplingError("coupling graph not connected")
-        lengths = nx.all_pairs_shortest_path_length(self.graph.to_undirected(as_view=True))
-        self._dist_matrix = dict(lengths)
+        lengths = dict(nx.all_pairs_shortest_path_length(self.graph.to_undirected(as_view=True)))
+        size = max(self.physical_qubits)+1
+        cmap = np.full((size, size), float('inf'))
+        for idx in lengths:
+            cmap[idx, np.fromiter(lengths[idx].keys(), dtype=int)] = np.fromiter(
+                lengths[idx].values(), dtype=int)
+        self._dist_matrix = cmap
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
@@ -161,7 +166,7 @@ class CouplingMap:
             raise CouplingError("%s not in coupling graph" % (physical_qubit2,))
         if self._dist_matrix is None:
             self._compute_distance_matrix()
-        return self._dist_matrix[physical_qubit1][physical_qubit2]
+        return self._dist_matrix[physical_qubit1, physical_qubit2]
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
