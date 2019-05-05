@@ -98,3 +98,9 @@ class CouplingTest(QiskitTestCase):
         coupling_map = CouplingMap(cmap)
         with self.assertRaises(CouplingError):
             coupling_map.reduce([12, 11, 10, 3])
+
+    def test_symmetric(self):
+        coupling_list = [[0, 1], [1, 0]]
+        coupling = CouplingMap(coupling_list)
+
+        self.assertTrue(coupling.is_symmetric)

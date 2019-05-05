@@ -186,6 +186,17 @@ class CouplingMap:
             raise CouplingError(
                 "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
 
+    @property
+    def is_symmetric(self):
+        if self._is_symmetric is None:
+            self._is_symmetric = self.check_symmetry()
+        return self._is_symmetric
+
+    def check_symmetry(self):
+        mat = nx.adjacency_matrix(self.graph)
+        return (abs(mat-mat.T)>1e-10).nnz == 0
+
+
     def reduce(self, mapping):
         """Returns a reduced coupling map that
         corresponds to the subgraph of qubits
