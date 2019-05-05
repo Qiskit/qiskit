@@ -87,7 +87,8 @@ class CouplingMap:
                 "The physical qubit %s is already in the coupling graph" % physical_qubit)
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
-        self._qubit_list = None  # invalidate
+        self._qubit_list = None   # invalidate
+        self._is_symmetric = None # invalidate
 
     def add_edge(self, src, dst):
         """
@@ -102,6 +103,7 @@ class CouplingMap:
             self.add_physical_qubit(dst)
         self.graph.add_edge(src, dst)
         self._dist_matrix = None  # invalidate
+        self._is_symmetric = None # invalidate
 
     def subgraph(self, nodelist):
         """Return a CouplingMap object for a subgraph of self.
