@@ -12,7 +12,7 @@ import numpy
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Parameter
-from qiskit.transpiler import transpile
+from qiskit.compiler import transpile
 from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
