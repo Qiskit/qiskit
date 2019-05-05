@@ -73,8 +73,8 @@ def default_pass_manager(transpile_config):
 
     # Change CX directions
     pass_manager.append(CXDirection(coupling_map),
-                        condition=lambda property_set: (not coupling_map.is_symmetric and not
-                        property_set['is_direction_mapped']))
+                        condition=lambda property_set: (not coupling_map.is_symmetric and
+                                                        not property_set['is_direction_mapped']))
 
     # Simplify single qubit gates and CXs
     simplification_passes = [Optimize1qGates(), CXCancellation(), RemoveResetInZeroState()]

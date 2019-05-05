@@ -87,8 +87,8 @@ class CouplingMap:
                 "The physical qubit %s is already in the coupling graph" % physical_qubit)
         self.graph.add_node(physical_qubit)
         self._dist_matrix = None  # invalidate
-        self._qubit_list = None   # invalidate
-        self._is_symmetric = None # invalidate
+        self._qubit_list = None  # invalidate
+        self._is_symmetric = None  # invalidate
 
     def add_edge(self, src, dst):
         """
@@ -103,7 +103,7 @@ class CouplingMap:
             self.add_physical_qubit(dst)
         self.graph.add_edge(src, dst)
         self._dist_matrix = None  # invalidate
-        self._is_symmetric = None # invalidate
+        self._is_symmetric = None  # invalidate
 
     def subgraph(self, nodelist):
         """Return a CouplingMap object for a subgraph of self.
@@ -192,14 +192,24 @@ class CouplingMap:
 
     @property
     def is_symmetric(self):
+        """
+        Test if the graph is symmetric.
+
+        Return True if symmetric, False otherwise
+        """
         if self._is_symmetric is None:
-            self._is_symmetric = self.check_symmetry()
+            self._is_symmetric = self._check_symmetry()
         return self._is_symmetric
 
-    def check_symmetry(self):
-        mat = nx.adjacency_matrix(self.graph)
-        return (abs(mat-mat.T)>1e-10).nnz == 0
+    def _check_symmetry(self):
+        """
+        Calculates symmetry
 
+        Returns:
+            Bool: True if symmetric, False otherwise
+        """
+        mat = nx.adjacency_matrix(self.graph)
+        return (abs(mat - mat.T) > 1e-10).nnz == 0
 
     def reduce(self, mapping):
         """Returns a reduced coupling map that
@@ -217,7 +227,7 @@ class CouplingMap:
             CouplingError: Reduced coupling map must be connected.
         """
         reduced_qubits = len(mapping)
-        inv_map = [None]*(max(mapping)+1)
+        inv_map = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
             inv_map[val] = idx
 
