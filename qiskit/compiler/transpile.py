@@ -27,8 +27,7 @@ def transpile(circuits,
               basis_gates=None, coupling_map=None, backend_properties=None,
               initial_layout=None, seed_transpiler=None,
               optimization_level=None,
-              pass_manager=None,
-              seed_mapper=None):  # deprecated
+              pass_manager=None):
     """transpile one or more circuits, according to some desired
     transpilation targets.
 
@@ -117,8 +116,6 @@ def transpile(circuits,
             pass manager will be used directly (Qiskit will not attempt to
             auto-select a pass manager based on transpile options).
 
-        seed_mapper (int):
-            DEPRECATED in 0.8: use ``seed_transpiler`` kwarg instead
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
@@ -126,12 +123,6 @@ def transpile(circuits,
     Raises:
         TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
-    # Deprecation matter
-    if seed_mapper:
-        warnings.warn("seed_mapper has been deprecated and will be removed in the "
-                      "0.9 release. Instead use seed_transpiler to set the seed "
-                      "for all stochastic parts of the.", DeprecationWarning)
-        seed_transpiler = seed_mapper
 
     # transpiling schedules is not supported yet.
     if isinstance(circuits, Schedule) or \

@@ -19,6 +19,12 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Removed
+-------
+
+- International documentation of outdated readme etc (#2302)
+- Removed deprecated options in execute, transpile, and assemble. Removed deprecated compiler. 
+  Removed deprecated qcvv in tools. Removed deprecated converters qobj_to_circuits and circuits_to_qobj (#2301)
 
 `0.8.0`_ - 2019-05-02
 =====================
