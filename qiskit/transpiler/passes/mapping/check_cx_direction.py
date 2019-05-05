@@ -56,8 +56,6 @@ class CheckCXDirection(AnalysisPass):
                 self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         self.property_set['is_direction_mapped'] = True
-        if self.coupling_map.is_symmetric:
-            return
         edges = self.coupling_map.get_edges()
 
         for gate in dag.twoQ_gates():

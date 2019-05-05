@@ -111,4 +111,4 @@ class CouplingTest(QiskitTestCase):
                          [13, 12]]
         coupling = CouplingMap(coupling_list)
 
-        self.assertTrue(coupling.is_symmetric)
+        self.assertFalse(coupling.is_symmetric)
