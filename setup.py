@@ -103,7 +103,7 @@ setup(
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
         "Documentation": "https://qiskit.org/documentation/",
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
-    }
+    },
     ext_modules=cythonize(EXT_MODULES),
     zip_safe=False
 )
