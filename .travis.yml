@@ -32,7 +32,7 @@ sudo: false
 
 stage_generic: &stage_generic
   install:
-    - pip install -U pip
+    - pip install -U pip setuptools
     # Install step for jobs that require compilation and qa.
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt -c constraints.txt
