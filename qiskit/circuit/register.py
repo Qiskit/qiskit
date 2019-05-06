@@ -40,9 +40,11 @@ class Register:
         try:
             size = int(size)
         except Exception:
-            raise QiskitError("size needs to be castable to an int")
+            raise QiskitError("Register size must be castable to an int (%s '%s' was provided)"
+                              % (type(size).__name__, size))
         if size <= 0:
-            raise QiskitError("register size must be positive")
+            raise QiskitError("Register size must be positive (%s '%s' was provided)"
+                              % (type(size).__name__, size))
 
         # validate (or cast) name
         if name is None:

@@ -17,14 +17,12 @@
 """
 controlled-Phase gate.
 """
-
 import numpy
 
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 
@@ -63,8 +61,6 @@ class CzGate(Gate):
                             [0, 0, 0, -1]], dtype=complex)
 
 
-@_to_bits(2)
-@_op_expand(2)
 def cz(self, ctl, tgt):
     """Apply CZ to circuit."""
     return self.append(CzGate(), [ctl, tgt], [])
