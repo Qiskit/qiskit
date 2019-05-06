@@ -26,7 +26,7 @@ class Reset(Instruction):
         """Create new reset instruction."""
         super().__init__("reset", 1, 0, [])
 
-    def argument_expansion(self, qargs, cargs):
+    def broadcast_arguments(self, qargs, cargs):
         for qarg in qargs[0]:
             yield [qarg], []
 

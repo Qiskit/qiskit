@@ -278,7 +278,7 @@ class Instruction:
 
         return self._qasmif(name_param)
 
-    def argument_expansion(self, qargs, cargs):
+    def broadcast_arguments(self, qargs, cargs):
         """
         Validation and handling of the arguments and its relationship. For example:
         `cx([q[0],q[1]], q[2])` means `cx(q[0], q[2]); cx(q[1], q[2])`. This method

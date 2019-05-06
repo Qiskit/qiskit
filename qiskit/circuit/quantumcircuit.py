@@ -341,7 +341,7 @@ class QuantumCircuit:
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
         instructions = InstructionSet()
-        for (qarg, carg) in instruction.argument_expansion(expanded_qargs, expanded_cargs):
+        for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
             instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
 

@@ -238,7 +238,7 @@ class Initialize(Instruction):
 
         return circuit
 
-    def argument_expansion(self, qargs, cargs):
+    def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
         yield flat_qargs, []
 

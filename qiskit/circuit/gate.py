@@ -73,7 +73,7 @@ class Gate(Instruction):
             raise TypeError('label expects a string or None')
 
     @staticmethod
-    def _argument_expansion_1(qarg):
+    def _broadcast_single_argument(qarg):
         """ Expands a single argument. For example: [q[0], q[1]] -> [q[0]], [q[1]]
         """
         # [q[0], q[1]] -> [q[0]]
@@ -82,7 +82,7 @@ class Gate(Instruction):
             yield [arg0], []
 
     @staticmethod
-    def _argument_expansion_2(qarg0, qarg1):
+    def _broadcast_2_arguments(qarg0, qarg1):
         if len(qarg0) == len(qarg1):
             # [[q[0], q[1]], [r[0], r[1]]] -> [q[0], r[0]]
             #                              -> [q[1], r[1]]
@@ -103,7 +103,7 @@ class Gate(Instruction):
                               (qarg0, qarg1))
 
     @staticmethod
-    def _argument_expansion_3(qarg0, qarg1, qarg2):
+    def _broadcast_3_arguments(qarg0, qarg1, qarg2):
         if len(qarg0) == len(qarg1) == len(qarg2):
             # [q[0], q[1]], [r[0], r[1]],  [s[0], s[1]] -> [q[0], r[0], s[0]]
             #                                           -> [q[1], r[1], s[1]]
@@ -114,7 +114,7 @@ class Gate(Instruction):
                 'Not sure how to combine these three qubit arguments:\n %s\n %s\n %s' %
                 (qarg0, qarg1, qarg2))
 
-    def argument_expansion(self, qargs, cargs):
+    def broadcast_arguments(self, qargs, cargs):
         """
         Validation and handling of the arguments and its relationship. For example:
         `cx([q[0],q[1]], q[2])` means `cx(q[0], q[2]); cx(q[1], q[2])`. This method
@@ -151,10 +151,10 @@ class Gate(Instruction):
             raise QiskitError('One or more of the arguments are empty')
 
         if len(qargs) == 1:
-            return Gate._argument_expansion_1(qargs[0])
+            return Gate._broadcast_single_argument(qargs[0])
         elif len(qargs) == 2:
-            return Gate._argument_expansion_2(qargs[0], qargs[1])
+            return Gate._broadcast_2_arguments(qargs[0], qargs[1])
         elif len(qargs) == 3:
-            return Gate._argument_expansion_3(qargs[0], qargs[1], qargs[2])
+            return Gate._broadcast_3_arguments(qargs[0], qargs[1], qargs[2])
         else:
             raise QiskitError('This gate cannot handle %i arguments' % len(qargs))

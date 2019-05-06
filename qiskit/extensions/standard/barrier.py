@@ -32,7 +32,7 @@ class Barrier(Instruction):
         """Special case. Return self."""
         return Barrier(self.num_qubits)
 
-    def argument_expansion(self, qargs, cargs):
+    def broadcast_arguments(self, qargs, cargs):
         yield [qarg for sublist in qargs for qarg in sublist], []
 
 

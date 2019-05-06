@@ -27,7 +27,7 @@ class Measure(Instruction):
         """Create new measurement instruction."""
         super().__init__("measure", 1, 1, [])
 
-    def argument_expansion(self, qargs, cargs):
+    def broadcast_arguments(self, qargs, cargs):
         qarg = qargs[0]
         carg = cargs[0]
 
