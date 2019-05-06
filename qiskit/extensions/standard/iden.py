@@ -22,7 +22,6 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.u3 import U3Gate
 
 
@@ -53,8 +52,6 @@ class IdGate(Gate):
                             [0, 1]], dtype=complex)
 
 
-@_to_bits(1)
-@_op_expand(1)
 def iden(self, q):
     """Apply Identity to q."""
     return self.append(IdGate(), [q], [])
