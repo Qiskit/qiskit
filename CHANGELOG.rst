@@ -19,6 +19,14 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Removed
+-------
+- The previously deprecated functions ``qiksit.visualization.plot_state`` and
+  ``qiskit.visualization.iplot_state`` have been removed. Instead use the
+  specific functions for each plot type (#2325).
+- International documentation of outdated readme etc (#2302)
+- Removed deprecated options in execute, transpile, and assemble. Removed deprecated compiler. 
+  Removed deprecated qcvv in tools. Removed deprecated converters qobj_to_circuits and circuits_to_qobj (#2301)
 
 `0.8.0`_ - 2019-05-02
 =====================

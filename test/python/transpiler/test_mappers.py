@@ -77,7 +77,8 @@ import os
 
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
-from qiskit.transpiler import PassManager, transpile
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, LegacySwap, SetLayout
 from qiskit.mapper import CouplingMap, Layout
 
@@ -98,7 +99,7 @@ class CommonUtilitiesMixin:
 
     regenerate_expected = False
     seed = 42
-    seed_mapper = 42
+    seed_transpiler = 42
     additional_args = {}
     pass_class = None
 
@@ -128,7 +129,7 @@ class CommonUtilitiesMixin:
         """
         sim_backend = self.create_backend()
         job = execute(transpiled_result, sim_backend, seed=self.seed, shots=self.shots,
-                      seed_mapper=self.seed_mapper)
+                      seed_transpiler=self.seed_transpiler)
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
         with open(filename, "wb") as output_file:
@@ -194,7 +195,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.measure(qr, cr)
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_mapper=self.seed_mapper,
+                           seed_transpiler=self.seed_transpiler,
                            pass_manager=self.create_passmanager(coupling_map))
         self.assertResult(result, circuit)
 
@@ -232,7 +233,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         layout = {qr[3]: 0, qr[0]: 1, qr[1]: 2, qr[2]: 3}
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_mapper=self.seed_mapper,
+                           seed_transpiler=self.seed_transpiler,
                            pass_manager=self.create_passmanager(coupling_map, layout))
         self.assertResult(result, circuit)
 
@@ -272,7 +273,7 @@ class SwapperCommonTestCases(CommonUtilitiesMixin):
         circuit.measure(qr, cr)
 
         result = transpile(circuit, self.create_backend(), coupling_map=coupling_map,
-                           seed_mapper=self.seed_mapper,
+                           seed_transpiler=self.seed_transpiler,
                            pass_manager=self.create_passmanager(coupling_map))
         self.assertResult(result, circuit)
 
