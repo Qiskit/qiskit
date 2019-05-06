@@ -18,8 +18,7 @@ AST (abstract syntax tree) to DAG (directed acyclic graph) converter.
 Acts as an OpenQASM interpreter.
 """
 from collections import OrderedDict
-from qiskit.circuit import QuantumRegister
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
@@ -322,63 +321,41 @@ class AstInterpreter:
         Raises:
             QiskitError: if encountering a non-basis opaque gate
         """
-        if name == "u0":
-            op_class = U0Gate
-        elif name == "u1":
-            op_class = U1Gate
-        elif name == "u2":
-            op_class = U2Gate
-        elif name == "u3":
-            op_class = U3Gate
-        elif name == "x":
-            op_class = XGate
-        elif name == "y":
-            op_class = YGate
-        elif name == "z":
-            op_class = ZGate
-        elif name == "t":
-            op_class = TGate
-        elif name == "tdg":
-            op_class = TdgGate
-        elif name == "s":
-            op_class = SGate
-        elif name == "sdg":
-            op_class = SdgGate
-        elif name == "swap":
-            op_class = SwapGate
-        elif name == "rx":
-            op_class = RXGate
-        elif name == "ry":
-            op_class = RYGate
-        elif name == "rz":
-            op_class = RZGate
-        elif name == "rzz":
-            op_class = RZZGate
-        elif name == "id":
-            op_class = IdGate
-        elif name == "h":
-            op_class = HGate
-        elif name == "cx":
-            op_class = CnotGate
-        elif name == "cy":
-            op_class = CyGate
-        elif name == "cz":
-            op_class = CzGate
-        elif name == "ch":
-            op_class = CHGate
-        elif name == "crz":
-            op_class = CrzGate
-        elif name == "cu1":
-            op_class = Cu1Gate
-        elif name == "cu3":
-            op_class = Cu3Gate
-        elif name == "ccx":
-            op_class = ToffoliGate
-        elif name == "cswap":
-            op_class = FredkinGate
+        standard_extension = {"u0"   : U0Gate     ,
+                              "u1"   : U1Gate     ,
+                              "u2"   : U2Gate     ,
+                              "u3"   : U3Gate     ,
+                              "x"    : XGate      ,
+                              "y"    : YGate      ,
+                              "z"    : ZGate      ,
+                              "t"    : TGate      ,
+                              "tdg"  : TdgGate    ,
+                              "s"    : SGate      ,
+                              "sdg"  : SdgGate    ,
+                              "swap" : SwapGate   ,
+                              "rx"   : RXGate     ,
+                              "ry"   : RYGate     ,
+                              "rz"   : RZGate     ,
+                              "rzz"  : RZZGate    ,
+                              "id"   : IdGate     ,
+                              "h"    : HGate      ,
+                              "cx"   : CnotGate   ,
+                              "cy"   : CyGate     ,
+                              "cz"   : CzGate     ,
+                              "ch"   : CHGate     ,
+                              "crz"  : CrzGate    ,
+                              "cu1"  : Cu1Gate    ,
+                              "cu3"  : Cu3Gate    ,
+                              "ccx"  : ToffoliGate,
+                              "cswap": FredkinGate}
+
+        if name in standard_extension:
+            op = standard_extension[name](*params)
+
+        elif name in self.gates and self.gates[name]['opaque']:
+            op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
+
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
-
-        op = op_class(*params)
 
         self.dag.apply_operation_back(op, qargs, [], condition=self.condition)
