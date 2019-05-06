@@ -264,7 +264,7 @@ class QuantumCircuit:
             return value
 
     @staticmethod
-    def _bit_argument_expansion(bit_representation, in_array):
+    def _bit_argument_conversion(bit_representation, in_array):
         try:
             if _is_bit(bit_representation):
                 # circuit.h(qr[0]) -> circuit.h([qr[0]])
@@ -295,9 +295,9 @@ class QuantumCircuit:
             raise QiskitError('Type error handeling %s (%s)' % (bit_representation,
                                                                 type(bit_representation)))
 
-    def qbit_argument_expansion(self, qubit_representation):
+    def qbit_argument_conversion(self, qubit_representation):
         """
-        Expands several qubit representations (such as indexes, range, etc)
+        Converts several qubit representations (such as indexes, range, etc)
         into a list of qubits.
 
         Args:
@@ -306,11 +306,11 @@ class QuantumCircuit:
         Returns:
             List(tuple): Where each tuple is a qubit.
         """
-        return QuantumCircuit._bit_argument_expansion(qubit_representation, self.qubits)
+        return QuantumCircuit._bit_argument_conversion(qubit_representation, self.qubits)
 
-    def cbit_argument_expansion(self, clbit_representation):
+    def cbit_argument_conversion(self, clbit_representation):
         """
-        Expands several classical bit representations (such as indexes, range, etc)
+        Converts several classical bit representations (such as indexes, range, etc)
         into a list of classical bits.
 
         Args:
@@ -319,7 +319,7 @@ class QuantumCircuit:
         Returns:
             List(tuple): Where each tuple is a classical bit.
         """
-        return QuantumCircuit._bit_argument_expansion(clbit_representation, self.clbits)
+        return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
 
     def append(self, instruction, qargs=None, cargs=None):
         """Append one or more instructions to the end of the circuit, modifying
@@ -337,8 +337,8 @@ class QuantumCircuit:
         if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
             instruction = instruction.to_instruction()
 
-        expanded_qargs = [self.qbit_argument_expansion(qarg) for qarg in qargs or []]
-        expanded_cargs = [self.cbit_argument_expansion(carg) for carg in cargs or []]
+        expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
+        expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
         instructions = InstructionSet()
         for (qarg, carg) in instruction.argument_expansion(expanded_qargs, expanded_cargs):
