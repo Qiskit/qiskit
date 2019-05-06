@@ -14,7 +14,6 @@
 
 """Qsikit visualization library."""
 
-from .iplot_state import iplot_state
 from .iplot_blochsphere import iplot_bloch_multivector
 from .iplot_cities import iplot_state_city
 from .iplot_qsphere import iplot_state_qsphere
