@@ -122,7 +122,7 @@ class Gate(Instruction):
           in: [[q[0],q[1]], q[2]],[]
         outs: [q[0], q[2]], []
               [q[1], q[2]], []
-        The general expansions rules are:
+        The general broadcasting rules are:
          * If len(qargs) == 1:
                 [q[0], q[1]] -> [q[0]],[q[1]]
          * If len(qargs) == 2:
