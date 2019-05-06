@@ -476,16 +476,16 @@ class QasmSimulatorPy(BaseBackend):
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
         # Get the seed looking in circuit, qobj, and then random.
-        if hasattr(experiment.config, 'seed'):
-            seed = experiment.config.seed
-        elif hasattr(self._qobj_config, 'seed'):
-            seed = self._qobj_config.seed
+        if hasattr(experiment.config, 'seed_simulator'):
+            seed_simulator = experiment.config.seed_simulator
+        elif hasattr(self._qobj_config, 'seed_simulator'):
+            seed_simulator = self._qobj_config.seed_simulator
         else:
             # For compatibility on Windows force dyte to be int32
             # and set the maximum value to be (2 ** 31) - 1
-            seed = np.random.randint(2147483647, dtype='int32')
+            seed_simulator = np.random.randint(2147483647, dtype='int32')
 
-        self._local_random.seed(seed=seed)
+        self._local_random.seed(seed=seed_simulator)
         # Check if measure sampling is supported for current circuit
         self._validate_measure_sampling(experiment)
 
@@ -618,7 +618,7 @@ class QasmSimulatorPy(BaseBackend):
                 data.pop('memory')
         end = time.time()
         return {'name': experiment.header.name,
-                'seed': seed,
+                'seed_simulator': seed_simulator,
                 'shots': self._shots,
                 'data': data,
                 'status': 'DONE',
