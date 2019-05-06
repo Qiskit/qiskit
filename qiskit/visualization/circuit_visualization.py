@@ -40,6 +40,17 @@ from qiskit.visualization import matplotlib as _matplotlib
 
 logger = logging.getLogger(__name__)
 
+_CONFIG = user_config.get_config()
+if _CONFIG:
+    if _matplotlib.HAS_MATPLOTLIB:
+        _DEFAULT_OUTPUT = _CONFIG.get('circuit_drawer', 'mpl')
+    else:
+        _DEFAULT_OUTPUT = _CONFIG.get('circuit_drawer', 'text')
+else:
+    if _matplotlib.HAS_MATPLOTLIB:
+        _DEFAULT_OUTPUT = 'mpl'
+    else:
+        _DEFAULT_OUTPUT = 'text'
 
 def circuit_drawer(circuit,
                    scale=0.7,
@@ -177,13 +188,9 @@ def circuit_drawer(circuit,
             `linestyle` kwarg value. Defaults to `doublet`(`mpl` only)
     """
     image = None
-    config = user_config.get_config()
-    # Get default from config file else use text
-    default_output = 'text'
-    if config:
-        default_output = config.get('circuit_drawer', 'text')
+
     if output is None:
-        output = default_output
+        output = _DEFAULT_OUTPUT
 
     if output == 'text':
         return _text_circuit_drawer(circuit, filename=filename,
