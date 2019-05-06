@@ -18,7 +18,6 @@
 Visualization functions for quantum states.
 """
 
-import warnings
 from functools import reduce
 import numpy as np
 from scipy import linalg
@@ -590,44 +589,6 @@ def plot_state_qsphere(rho, figsize=None):
             break
     plt.tight_layout()
     plt.close(fig)
-    return fig
-
-
-def plot_state(quantum_state, method='city', figsize=None):
-    """Plot the quantum state.
-
-    Args:
-        quantum_state (ndarray): statevector or density matrix
-                                 representation of a quantum state.
-        method (str): Plotting method to use.
-        figsize (tuple): Figure size in inches,
-
-    Returns:
-         matplotlib.Figure: The matplotlib.Figure of the visualization
-    Raises:
-        ImportError: Requires matplotlib.
-        VisualizationError: if the input is not a statevector or density
-        matrix, or if the state is not an multi-qubit quantum state.
-    """
-    if not HAS_MATPLOTLIB:
-        raise ImportError('Must have Matplotlib installed.')
-    warnings.warn("plot_state is deprecated, and will be removed in \
-                  the 0.9 release. Use the plot_state_ * functions \
-                  instead.",
-                  DeprecationWarning)
-    # Check if input is a statevector, and convert to density matrix
-    rho = _validate_input_state(quantum_state)
-    fig = None
-    if method == 'city':
-        fig = plot_state_city(rho, figsize=figsize)
-    elif method == "paulivec":
-        fig = plot_state_paulivec(rho, figsize=figsize)
-    elif method == "qsphere":
-        fig = plot_state_qsphere(rho, figsize=figsize)
-    elif method == "bloch":
-        plot_bloch_multivector(rho, figsize=figsize)
-    elif method == "hinton":
-        fig = plot_state_hinton(rho, figsize=figsize)
     return fig
 
 
