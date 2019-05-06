@@ -18,7 +18,6 @@
 Visualization functions for quantum states.
 """
 
-import warnings
 from functools import reduce
 import numpy as np
 from scipy import linalg
