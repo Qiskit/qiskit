@@ -133,40 +133,23 @@ class QasmSimulatorPy(BaseBackend):
         # TEMP
         self._sample_measure = False
 
-    def _add_unitary_single(self, gate, qubit):
-        """Apply an arbitrary 1-qubit unitary matrix.
+    def _add_unitary(self, gate, qubits):
+        """Apply an N-qubit unitary matrix.
 
         Args:
-            gate (matrix_like): a single qubit gate matrix
-            qubit (int): the qubit to apply gate to
+            gate (matrix_like): an N-qubit unitary matrix
+            qubits (list): the list of N-qubits.
         """
+        # Get the number of qubits
+        num_qubits = len(qubits)
         # Compute einsum index string for 1-qubit matrix multiplication
-        indexes = einsum_vecmul_index([qubit], self._number_of_qubits)
-        # Convert to complex rank-2 tensor
-        gate_tensor = np.array(gate, dtype=complex)
+        indexes = einsum_vecmul_index(qubits, self._number_of_qubits)
+        # Convert to complex rank-2N tensor
+        gate_tensor = np.reshape(np.array(gate, dtype=complex),
+                                 num_qubits * [2, 2])
         # Apply matrix multiplication
-        self._statevector = np.einsum(indexes, gate_tensor,
-                                      self._statevector,
-                                      dtype=complex,
-                                      casting='no')
-
-    def _add_unitary_two(self, gate, qubit0, qubit1):
-        """Apply a two-qubit unitary matrix.
-
-        Args:
-            gate (matrix_like): a the two-qubit gate matrix
-            qubit0 (int): gate qubit-0
-            qubit1 (int): gate qubit-1
-        """
-        # Compute einsum index string for 1-qubit matrix multiplication
-        indexes = einsum_vecmul_index([qubit0, qubit1], self._number_of_qubits)
-        # Convert to complex rank-4 tensor
-        gate_tensor = np.reshape(np.array(gate, dtype=complex), 4 * [2])
-        # Apply matrix multiplication
-        self._statevector = np.einsum(indexes, gate_tensor,
-                                      self._statevector,
-                                      dtype=complex,
-                                      casting='no')
+        self._statevector = np.einsum(indexes, gate_tensor, self._statevector,
+                                      dtype=complex, casting='no')
 
     def _get_measure_outcome(self, qubit):
         """Simulate the outcome of measurement of a qubit.
@@ -252,7 +235,7 @@ class QasmSimulatorPy(BaseBackend):
         else:
             update_diag = [[0, 0], [0, 1 / np.sqrt(probability)]]
         # update classical state
-        self._add_unitary_single(update_diag, qubit)
+        self._add_unitary(update_diag, [qubit])
 
     def _add_qasm_reset(self, qubit):
         """Apply a reset instruction to a qubit.
@@ -269,10 +252,10 @@ class QasmSimulatorPy(BaseBackend):
         # update quantum state
         if outcome == '0':
             update = [[1 / np.sqrt(probability), 0], [0, 0]]
-            self._add_unitary_single(update, qubit)
+            self._add_unitary(update, [qubit])
         else:
             update = [[0, 1 / np.sqrt(probability)], [0, 0]]
-            self._add_unitary_single(update, qubit)
+            self._add_unitary(update, [qubit])
 
     def _validate_initial_statevector(self):
         """Validate an initial statevector"""
@@ -521,11 +504,15 @@ class QasmSimulatorPy(BaseBackend):
                             continue
 
                 # Check if single  gate
-                if operation.name in ('U', 'u1', 'u2', 'u3'):
+                if operation.name == 'unitary':
+                    qubits = operation.qubits
+                    gate = operation.params[0]
+                    self._add_unitary(gate, qubits)
+                elif operation.name in ('U', 'u1', 'u2', 'u3'):
                     params = getattr(operation, 'params', None)
                     qubit = operation.qubits[0]
                     gate = single_gate_matrix(operation.name, params)
-                    self._add_unitary_single(gate, qubit)
+                    self._add_unitary(gate, [qubit])
                 # Check if CX gate
                 elif operation.name in ('id', 'u0'):
                     pass
@@ -533,7 +520,7 @@ class QasmSimulatorPy(BaseBackend):
                     qubit0 = operation.qubits[0]
                     qubit1 = operation.qubits[1]
                     gate = cx_gate_matrix()
-                    self._add_unitary_two(gate, qubit0, qubit1)
+                    self._add_unitary(gate, [qubit0, qubit1])
                 # Check if reset
                 elif operation.name == 'reset':
                     qubit = operation.qubits[0]
