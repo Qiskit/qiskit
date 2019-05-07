@@ -98,6 +98,7 @@ class CommonUtilitiesMixin:
     """
 
     regenerate_expected = False
+    seed_simulator = 42
     seed_transpiler = 42
     additional_args = {}
     pass_class = None
@@ -127,7 +128,8 @@ class CommonUtilitiesMixin:
             filename (string): Where the pickle is saved.
         """
         sim_backend = self.create_backend()
-        job = execute(transpiled_result, sim_backend, seed_transpiler=self.seed_transpiler, shots=self.shots)
+        job = execute(transpiled_result, sim_backend, seed_simulator=self.seed_simulator,
+                      seed_transpiler=self.seed_transpiler, shots=self.shots)
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
         with open(filename, "wb") as output_file:
@@ -289,13 +291,13 @@ class TestsLookaheadSwap(SwapperCommonTestCases, QiskitTestCase):
 class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using StochasticSwap."""
     pass_class = StochasticSwap
-    additional_args = {'seed_transpiler': 0}
+    additional_args = {'seed': 0}
 
 
 class TestsLegacySwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using LegacySwap."""
     pass_class = LegacySwap
-    additional_args = {'seed_transpiler': 0, 'trials': 20}
+    additional_args = {'seed': 0, 'trials': 20}
 
 
 if __name__ == '__main__':
