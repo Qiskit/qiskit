@@ -30,6 +30,8 @@ class UserConfig:
 
     [default]
     circuit_drawer = mpl
+    circuit_mpl_style = default
+
     """
     def __init__(self, filename=None):
         """Create a UserConfig
@@ -62,6 +64,15 @@ class UserConfig:
                         % circuit_drawer)
                 self.settings['circuit_drawer'] = circuit_drawer
 
+            circuit_mpl_style = self.config_parser.get('default',
+                                                       'circuit_mpl_style')
+            if circuit_mpl_style:
+                if circuit_mpl_style not in ['default', 'bw']:
+                    raise exceptions.QiskitUserConfigError(
+                        "%s is not a valid mpl circuit style. Must be "
+                        "either 'default' or 'bw'"
+                        % circuit_mpl_style)
+                self.settings['circuit_mpl_style'] = circuit_mpl_style
 
 def get_config():
     """Read the config file from the default location or env var

@@ -41,6 +41,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                           PulseError)
+from qiskit import user_config
 
 logger = logging.getLogger(__name__)
 
@@ -127,10 +128,18 @@ class MatplotlibDrawer:
             'xmax': 0,
             'ymax': 0,
         }
-        if style is None:
+        config = user_config.get_config()
+        if config:
+            config_style = config.get('circuit_mpl_style', 'default')
+            if config_style == 'default':
+                self._style = DefaultStyle()
+            elif config_style == 'bw':
+                self._style = BWStyle()
+        if not config and style is None:
             self._style = DefaultStyle()
         elif style is False:
             self._style = BWStyle()
+        
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         if style:
