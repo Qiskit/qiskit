@@ -174,9 +174,7 @@ class AstInterpreter:
         de_gate["bits"] = [c.name for c in node.bitlist.children]
         if opaque:
             de_gate["body"] = None
-            de_gate["instruction"] = None
         else:
-            print('ppp'*10, node.name)
             de_gate["body"] = node.body
 
     def _process_cnot(self, node):
@@ -353,14 +351,13 @@ class AstInterpreter:
 
         if name in standard_extension:
             op = standard_extension[name](*params)
-
         elif name in self.gates:
             if self.gates[name]['opaque']:
                 # call an opaque gate
                 op = Gate(name=name, num_qubits=self.gates[name]['n_bits'], params=params)
             else:
                 # call a custom gate
-                print('AAA')
+                raise QiskitError('Custom non-opaque gates are not supported by as_to_dag module')
         else:
             raise QiskitError("unknown operation for ast node name %s" % name)
 
