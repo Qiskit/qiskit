@@ -31,9 +31,9 @@ To make a new swapper pass throw all the common tests, create a new class inside
 For example::
 
     class TestsSomeSwap(SwapperCommonTestCases, QiskitTestCase):
-        pass_class = SomeSwap           # The pass class
-        additional_args = {'seed': 42}  # In case SomeSwap.__init__ requires
-                                        # additional arguments
+        pass_class = SomeSwap                      # The pass class
+        additional_args = {'seed_transpiler': 42}  # In case SomeSwap.__init__ requires
+                                                   # additional arguments
 
 To **add a test for all the swappers**, add a new method ``test_foo``to the
 ``SwapperCommonTestCases`` class:
@@ -80,7 +80,7 @@ from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.transpiler import PassManager
 from qiskit.compiler import transpile
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, LegacySwap, SetLayout
-from qiskit.mapper import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout
 
 from qiskit.test import QiskitTestCase
 
@@ -98,7 +98,7 @@ class CommonUtilitiesMixin:
     """
 
     regenerate_expected = False
-    seed = 42
+    seed_simulator = 42
     seed_transpiler = 42
     additional_args = {}
     pass_class = None
@@ -128,8 +128,8 @@ class CommonUtilitiesMixin:
             filename (string): Where the pickle is saved.
         """
         sim_backend = self.create_backend()
-        job = execute(transpiled_result, sim_backend, seed=self.seed, shots=self.shots,
-                      seed_transpiler=self.seed_transpiler)
+        job = execute(transpiled_result, sim_backend, seed_simulator=self.seed_simulator,
+                      seed_transpiler=self.seed_transpiler, shots=self.shots)
         self.assertDictAlmostEqual(self.counts, job.result().get_counts(), delta=self.delta)
 
         with open(filename, "wb") as output_file:

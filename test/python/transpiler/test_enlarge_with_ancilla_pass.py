@@ -10,7 +10,7 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.mapper import Layout
+from qiskit.transpiler import Layout
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
