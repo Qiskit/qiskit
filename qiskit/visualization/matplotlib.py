@@ -128,7 +128,7 @@ class MatplotlibDrawer:
             'ymax': 0,
         }
         if style is None:
-            self._style = qcstyle.ColorBlindStyle()
+            self._style = ColorBlindStyle()
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         if style:

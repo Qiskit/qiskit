@@ -57,7 +57,7 @@ class QCircuitImage:
                circuit. Defaults to True.
         """
         # style sheet
-        self._style = _qcstyle.QCStyle()
+        self._style = _qcstyle.ColorBlindStyle()
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
