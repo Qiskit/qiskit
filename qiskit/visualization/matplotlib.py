@@ -34,9 +34,9 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 from qiskit.visualization import exceptions
-from qiskit.visualization import qcstyle
 from qiskit.visualization import interpolation
-from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched, ColorBlindStyle
+from qiskit.visualization.qcstyle import (OPStylePulse, OPStyleSched,
+                                          DefaultStyle, BWStyle)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
@@ -128,7 +128,9 @@ class MatplotlibDrawer:
             'ymax': 0,
         }
         if style is None:
-            self._style = ColorBlindStyle()
+            self._style = DefaultStyle()
+        elif style is False:
+            self._style = BWStyle()
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         if style:
