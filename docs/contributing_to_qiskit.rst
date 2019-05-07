@@ -14,13 +14,14 @@ Where Things Are
 The code for Qiskit is located in the `Qiskit GitHub organization <https://github.com/Qiskit>`_,
 where you can find the individual projects that make up Qiskit, including
 
-* `Qiskit Terra <https://github.com/Qiskit/qiskit-terra>`_
+* `Qiskit Terra <https://github.com/Qiskit/qiskit-terra>`__
 * `Qiskit Aer <https://github.com/Qiskit/qiskit-aer>`__
+* `Qiskit Ignis <https://github.com/Qiskit/qiskit-ignis>`__
 * `Qiskit Aqua <https://github.com/Qiskit/qiskit-aqua>`__
 * `Qiskit Chemistry <https://github.com/Qiskit/qiskit-chemistry>`__
 * `Qiskit IBMQ Provider <https://github.com/Qiskit/qiskit-ibmq-provider>`__
-* `Qiskit Tutorials <https://github.com/Qiskit/qiskit-tutorials>`_
-* `Qiskit Documentation <https://github.com/Qiskit/qiskit/tree/master/docs>`_
+* `Qiskit Tutorials <https://github.com/Qiskit/qiskit-tutorials>`__
+* `Qiskit Documentation <https://github.com/Qiskit/qiskit/tree/master/docs>`__
 
 
 ****************
