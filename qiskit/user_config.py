@@ -74,6 +74,7 @@ class UserConfig:
                         % circuit_mpl_style)
                 self.settings['circuit_mpl_style'] = circuit_mpl_style
 
+
 def get_config():
     """Read the config file from the default location or env var
 
