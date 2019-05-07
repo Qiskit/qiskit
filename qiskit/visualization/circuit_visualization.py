@@ -54,6 +54,7 @@ if not _CONFIG or _DEFAULT_OUTPUT == 'auto':
     else:
         _DEFAULT_OUTPUT = 'text'
 
+
 def circuit_drawer(circuit,
                    scale=0.7,
                    filename=None,
