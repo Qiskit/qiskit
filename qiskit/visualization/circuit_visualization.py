@@ -41,12 +41,14 @@ from qiskit.visualization import matplotlib as _matplotlib
 logger = logging.getLogger(__name__)
 
 _CONFIG = user_config.get_config()
+_DEFAULT_OUTPUT = 'auto'
 if _CONFIG:
     if _matplotlib.HAS_MATPLOTLIB:
         _DEFAULT_OUTPUT = _CONFIG.get('circuit_drawer', 'mpl')
     else:
         _DEFAULT_OUTPUT = _CONFIG.get('circuit_drawer', 'text')
-else:
+
+if not _CONFIG or _DEFAULT_OUTPUT == 'auto':
     if _matplotlib.HAS_MATPLOTLIB:
         _DEFAULT_OUTPUT = 'mpl'
     else:

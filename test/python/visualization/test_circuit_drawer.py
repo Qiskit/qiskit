@@ -25,7 +25,10 @@ class TestCircuitDrawer(QiskitTestCase):
                                  return_value={}):
             circuit = QuantumCircuit()
             out = visualization.circuit_drawer(circuit)
-            self.assertIsInstance(out, text.TextDrawing)
+            if visualization.HAS_MATPLOTLIB:
+                self.assertIsInstance(out, figure.Figure)
+            else:
+                self.assertIsInstance(out, text.TextDrawing)
 
     @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
                          'Skipped because matplotib is not available')
@@ -41,13 +44,14 @@ class TestCircuitDrawer(QiskitTestCase):
                                  return_value={'other_option': True}):
             circuit = QuantumCircuit()
             out = visualization.circuit_drawer(circuit)
-            self.assertIsInstance(out, text.TextDrawing)
+            if visualization.HAS_MATPLOTLIB:
+                self.assertIsInstance(out, figure.Figure)
+            else:
+                self.assertIsInstance(out, text.TextDrawing)
 
-    @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
-                         'Skipped because matplotib is not available')
     def test_kwarg_priority_over_user_config_default_output(self):
         with unittest.mock.patch('qiskit.user_config.get_config',
                                  return_value={'circuit_drawer': 'latex'}):
             circuit = QuantumCircuit()
-            out = visualization.circuit_drawer(circuit, output='mpl')
-            self.assertIsInstance(out, figure.Figure)
+            out = visualization.circuit_drawer(circuit, output='text')
+            self.assertIsInstance(out, text.TextDrawing)
