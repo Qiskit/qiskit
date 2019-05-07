@@ -36,7 +36,7 @@ except ImportError:
 from qiskit.visualization import exceptions
 from qiskit.visualization import qcstyle
 from qiskit.visualization import interpolation
-from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched
+from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched, ColorBlindStyle
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
@@ -127,8 +127,8 @@ class MatplotlibDrawer:
             'xmax': 0,
             'ymax': 0,
         }
-
-        self._style = qcstyle.QCStyle()
+        if style is None:
+            self._style = qcstyle.ColorBlindStyle()
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         if style:

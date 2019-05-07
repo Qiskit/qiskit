@@ -15,7 +15,12 @@
 # pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
 
 
-class QCStyle:
+class ColorBlindStyle:
+    """A colorblind friendly gate styling modelled
+    after:
+        B. Wang, “Points of view: Color blindness“,
+        Nat. Methods 8, 441 (2011).
+    """
     def __init__(self):
         self.tc = '#000000'
         self.sc = '#000000'
@@ -47,25 +52,25 @@ class QCStyle:
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
-            'id': '#ffffff',
-            'u0': '#ffffff',
-            'u1': '#ffffff',
-            'u2': '#ffffff',
-            'u3': '#ffffff',
-            'x': '#ffffff',
-            'y': '#ffffff',
-            'z': '#ffffff',
-            'h': '#ffffff',
-            's': '#ffffff',
-            'sdg': '#ffffff',
-            't': '#ffffff',
-            'tdg': '#ffffff',
+            'id': '#F0E442',
+            'u0': '#E7AB3B',
+            'u1': '#E7AB3B',
+            'u2': '#E7AB3B',
+            'u3': '#E7AB3B',
+            'x': '#58C698',
+            'y': '#58C698',
+            'z': '#58C698',
+            'h': '#70B7EB',
+            's': '#E0722D',
+            'sdg': '#E0722D',
+            't': '#E0722D',
+            'tdg': '#E0722D',
             'rx': '#ffffff',
             'ry': '#ffffff',
             'rz': '#ffffff',
-            'reset': '#ffffff',
-            'target': '#ffffff',
-            'meas': '#ffffff'
+            'reset': '#D188B4',
+            'target': '#70B7EB',
+            'meas': '#D188B4'
         }
         self.latexmode = True
         self.pimode = False
