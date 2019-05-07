@@ -103,7 +103,8 @@ extlinks = {
     'pull_terra': ('https://github.com/Qiskit/qiskit-terra/pull/%s', '#'),
     'pull_aqua': ('https://github.com/Qiskit/qiskit-aqua/pull/%s', '#'),
     'pull_aer': ('https://github.com/Qiskit/qiskit-aer/pull/%s', '#'),
-    'pull_ignis': ('https://github.com/Qiskit/qiskit-ignis/pull/%s', '#')
+    'pull_ignis': ('https://github.com/Qiskit/qiskit-ignis/pull/%s', '#'),
+    'pull_ibmq-provider': ('https://github.com/Qiskit/qiskit-ibmq-provider/pull/%s', '#')
 }
 
 
