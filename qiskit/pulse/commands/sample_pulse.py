@@ -68,7 +68,7 @@ class SamplePulse(Command):
         """
         # pylint: disable=invalid-name, cyclic-import
 
-        from qiskit.tools import visualization
+        from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
                                           interp_method=interp_method, scaling=scaling,

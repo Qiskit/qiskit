@@ -22,7 +22,7 @@ import logging
 
 from qiskit.pulse import Schedule, Instruction, SamplePulse
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization import matplotlib as _matplotlib
+from qiskit.visualization.pulse import matplotlib as _matplotlib
 
 logger = logging.getLogger(__name__)
 
