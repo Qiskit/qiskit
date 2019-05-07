@@ -209,7 +209,7 @@ class CouplingMap:
             Bool: True if symmetric, False otherwise
         """
         mat = nx.adjacency_matrix(self.graph)
-        return (abs(mat - mat.T) > 1e-10).nnz == 0
+        return (mat - mat.T).nnz == 0
 
     def reduce(self, mapping):
         """Returns a reduced coupling map that
