@@ -124,6 +124,18 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(len(q_circuit.qregs), 1)
         self.assertEqual(q_circuit, ref)
 
+    def test_custom_gate(self):
+        """Test parse a custom gate
+        See https://github.com/Qiskit/qiskit-terra/issues/1566"""
+
+        qasm_string = '\n'.join(["OPENQASM 2.0;",
+                                 "include \"qelib1.inc\";",
+                                 "gate rinv q {sdg q; h q; sdg q; h q; }",
+                                 "qreg q[3];",
+                                 "rinv q[2];"]) + '\n'
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        print(circuit)
+
     def test_opaque_gate(self):
         """Test parse an opaque gate
         See https://github.com/Qiskit/qiskit-terra/issues/1566"""
@@ -137,9 +149,10 @@ class LoadFromQasmTest(QiskitTestCase):
 
         qr = QuantumRegister(3, 'q')
         expected = QuantumCircuit(qr)
-        expected.append(Gate(name='my_gate', num_qubits=2, params=[1, 2, 3]), [qr[1], qr[2]])
+        expected.append(Gate(name='my_gate', num_qubits=2, params=[1,2,3]), [qr[1], qr[2]])
 
-        self.assertEqual(circuit, expected)
+        self.assertEqual(circuit,expected)
+
 
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm.
