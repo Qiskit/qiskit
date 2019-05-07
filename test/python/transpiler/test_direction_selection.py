@@ -18,7 +18,7 @@ from math import pi
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.transpiler import TranspilerError
-from qiskit.mapper import CouplingMap
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
