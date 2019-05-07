@@ -16,7 +16,7 @@
 
 import unittest
 from qiskit.transpiler.passes import LookaheadSwap
-from qiskit.mapper import CouplingMap
+from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
