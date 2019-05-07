@@ -20,7 +20,7 @@ import unittest.mock
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
-from qiskit.transpiler import transpile
+from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerAccessError, TranspilerError
 from qiskit.transpiler.passmanager import DoWhileController, ConditionalController, \
     FlowController, FlowControllerLinear

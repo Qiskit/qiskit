@@ -19,7 +19,6 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ccx import ToffoliGate
 
@@ -55,8 +54,6 @@ class FredkinGate(Gate):
         return FredkinGate()  # self-inverse
 
 
-@_to_bits(3)
-@_op_expand(3, broadcastable=[True, False, False])
 def cswap(self, ctl, tgt1, tgt2):
     """Apply Fredkin to circuit."""
     return self.append(FredkinGate(), [ctl, tgt1, tgt2], [])
