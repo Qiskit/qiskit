@@ -74,6 +74,16 @@ class UserConfig:
                         % circuit_mpl_style)
                 self.settings['circuit_mpl_style'] = circuit_mpl_style
 
+            transpile_optimization_level = self.config_parser.getint(
+                'default', 'transpile_optimization_level')
+            if (transpile_optimization_level < 0 or
+                    transpile_optimization_level > 3):
+                raise exceptions.QiskitUserConfigError(
+                    "%s is not a valid optimization level. Must be "
+                    "0, 1, 2, or 3.")
+            self.settings['transpile_optimization_level'] = (
+                transpile_optimization_level)
+
 
 def get_config():
     """Read the config file from the default location or env var
