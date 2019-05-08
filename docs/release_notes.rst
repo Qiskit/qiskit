@@ -13,16 +13,16 @@ New Features
 ------------
 
 - The ``IBMQProvider`` supports connecting to the new version of the IBM Q API.
-  Please note support for this version is still experimental :pull_ibmq-provider:`78`
-- Added support for Circuits through the new API :pull_ibmq-provider:`79`
+  Please note support for this version is still experimental :pull_ibmq-provider:`78`.
+- Added support for Circuits through the new API :pull_ibmq-provider:`79`.
 
 
 
 Bug Fixes
 ---------
 
-- Fixed incorrect parsing of some API hub URLs :pull_ibmq-provider:`77`
-- Fixed noise model handling for remote simulators :pull_ibmq-provider:`84`
+- Fixed incorrect parsing of some API hub URLs :pull_ibmq-provider:`77`.
+- Fixed noise model handling for remote simulators :pull_ibmq-provider:`84`.
 
 
 
@@ -54,8 +54,8 @@ Highlights
 New Features
 ------------
 
-- The core ``StochasticSwap`` routine is implemented in `Cython`_
-- Added Quantum Channel classes for manipulating quantum channels and CPTP
+- The core ``StochasticSwap`` routine is implemented in `Cython`_.
+- Added ``QuantumChannel`` classes for manipulating quantum channels and CPTP
   maps.
 - Support for parameterized circuits.
 - The ``PassManager`` interface has been improved and new functions added for
@@ -63,7 +63,7 @@ New Features
 - Preset ``PassManager``\s are now included which offer a predetermined pipeline
   of transpiler passes.
 - User configuration files to let local environments override default values
-  for some functions
+  for some functions.
 - New transpiler passes: ``EnlargeWithAncilla``, ``Unroll2Q``,
   ``NoiseAdaptiveLayout``, ``OptimizeSwapBeforeMeasure``,
   ``RemoveDiagonalGatesBeforeMeasure``, ``CommutativeCancellation``,
@@ -75,15 +75,14 @@ New Features
 Compatibility Considerations
 ----------------------------
 
-As part of the 0.8 release the following things have been
-deprecated and will either be removed or changed in a backwards incompatible
-manner in a future release. While not strictly necessary these are things to
-adjust for before the 0.9 (unless otherwise noted) to avoid a breaking change
-in the future.
+As part of the 0.8 release the following things have been deprecated and will
+either be removed or changed in a backwards incompatible manner in a future
+release. While not strictly necessary these are things to adjust for before the
+0.9 (unless otherwise noted) release to avoid a breaking change in the future.
 
 * The methods prefixed by ``_get`` in the ``DAGCircuit`` object are being
   renamed without that prefix.
-* Changed elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists
+* Changed elements in ``couplinglist`` of ``CouplingMap`` from tuples to lists.
 * Unroller bases must now be explicit, and violation raises an informative
   ``QiskitError``.
 * The ``qiskit.tools.qcvv`` package is deprecated and will be removed in the in
@@ -92,7 +91,7 @@ in the future.
 * The ``qiskit.compile()`` function is now deprecated in favor of explicitly
   using the ``qiskit.compiler.transpile()`` function to transform a circuit,
   followed by ``qiskit.compiler.assemble()`` to make a Qobj out of
-  it. Instead of compile(...), use assemble(transpile(...), ...)
+  it. Instead of ``compile(...)``, use ``assemble(transpile(...), ...)``.
 * ``qiskit.converters.qobj_to_circuits()`` has been deprecated and will be
   removed in a future release. Instead
   ``qiskit.assembler.disassemble()`` should be used to extract
@@ -239,7 +238,7 @@ New Features
 - Added Simulation method based on Stabilizer Rank Decompositions :pull_aer:`51`
 - Added ``basis_gates`` kwarg to ``NoiseModel`` init :pull_aer:`175`.
 - Added an optional parameter to ``NoiseModel.as_dict()`` for returning
-  dictionaries that can be serialized using the standard json library directly.
+  dictionaries that can be serialized using the standard json library directly
   :pull_aer:`165`
 - Refactor thread management :pull_aer:`50`
 - Improve noise transformations :pull_aer:`162`
@@ -297,54 +296,54 @@ Aqua 0.5
 New Features
 ------------
 
-* Implementation of the HHL algorithm supporting ``LinearSystemInput``.
-* Pluggable component ``Eigenvalues`` with variant ``EigQPE``.
+* Implementation of the HHL algorithm supporting ``LinearSystemInput``
+* Pluggable component ``Eigenvalues`` with variant ``EigQPE``
 * Pluggable component ``Reciprocal`` with variants ``LookupRotation`` and
-  ``LongDivision``.
-* Multiple-Controlled U1 and U3 operations ``mcu1`` and ``mcu3``.
-* Pluggable component ``QFT`` derived from component ``IQFT``.
-* Summarize the transpiled circuits at the DEBUG logging level.
+  ``LongDivision``
+* Multiple-Controlled U1 and U3 operations ``mcu1`` and ``mcu3``
+* Pluggable component ``QFT`` derived from component ``IQFT``
+* Summarized the transpiled circuits at the DEBUG logging level
 * ``QuantumInstance`` accepts ``basis_gates`` and ``coupling_map`` again.
 * Support to use ``cx`` gate for the entanglement in ``RY`` and ``RYRZ``
-  variational form. (``cz`` is the default choice.)
-* Support to use arbitrary mixer Hamiltonian in QAOA. This allows to use QAOA
-  in constrained optimization problems [arXiv:1709.03489].
+  variational form (``cz`` is the default choice)
+* Support to use arbitrary mixer Hamiltonian in QAOA, allowing use of QAOA
+  in constrained optimization problems [arXiv:1709.03489]
 * Added variational algorithm base class ``VQAlgorithm``, implemented by
-  ``VQE`` and ``QSVMVariational``.
+  ``VQE`` and ``QSVMVariational``
 * Added ``ising/docplex.py`` for automatically generating Ising Hamiltonian
-  from optimization models of DOcplex.
-* Added ``'basic-dirty-ancilla``' mode for ``mct``.
-* Added ``mcmt`` for Multi-Controlled, Multi-Target gate.
+  from optimization models of DOcplex
+* Added ``'basic-dirty-ancilla``' mode for ``mct``
+* Added ``mcmt`` for Multi-Controlled, Multi-Target gate
 * Exposed capabilities to generate circuits from logical AND, OR, DNF
-  (disjunctive normal forms), and CNF (conjunctive normal forms) formulae.
+  (disjunctive normal forms), and CNF (conjunctive normal forms) formulae
 * Added the capability to generate circuits from ESOP (exclusive sum of
-  products) formulae with optional optimization based on Quine-McCluskey and ExactCover.
+  products) formulae with optional optimization based on Quine-McCluskey and ExactCover
 * Added ``LogicalExpressionOracle`` for generating oracle circuits from
   arbitrary Boolean logic expressions (including DIMACS support) with optional
-  optimization capability.
+  optimization capability
 * Added ``TruthTableOracle`` for generating oracle circuits from truth-tables
-  with optional optimization capability.
+  with optional optimization capability
 * Added ``CustomCircuitOracle`` for generating oracle from user specified
-  circuits.
-* Added implementation of the Deutsch-Jozsa algorithm.
-* Added implementation of the Bernstein-Vazirani algorithm.
-* Added implementation of the Simon's algorithm.
-* Added implementation of the Shor's algorithm.
-* Added optional capability for ``Grover``'s algorithm to take a custom
+  circuits
+* Added implementation of the Deutsch-Jozsa algorithm
+* Added implementation of the Bernstein-Vazirani algorithm
+* Added implementation of the Simon's algorithm
+* Added implementation of the Shor's algorithm
+* Added optional capability for Grover's algorithm to take a custom
   initial state (as opposed to the default uniform superposition)
 * Added capability to create a ``Custom`` initial state using existing
-  circuit.
+  circuit
 * Added the ADAM (and AMSGRAD) optimization algorithm
 * Multivariate distributions added, so uncertainty models now have univariate
-  and multivariate distribution components.
+  and multivariate distribution components
 * Added option to include or skip the swaps operations for qft and iqft
-  circuit constructions.
-* Added classical linear system solver ``ExactLSsolver``.
+  circuit constructions
+* Added classical linear system solver ``ExactLSsolver``
 * Added parameters ``auto_hermitian`` and ``auto_resize`` to ``HHL`` algorithm
-  to support non-Hermititan and non :math:`2^n` Sized matrices by default.
+  to support non-Hermitian and non :math:`2^n` sized matrices by default
 * Added another feature map, ``RawFeatureVector``, that directly maps feature
-  vectors to qubits' states for classification.
-* ``SVM_Classical`` can now load models trained by ``QSVM``.
+  vectors to qubits' states for classification
+* ``SVM_Classical`` can now load models trained by ``QSVM``
 
 
 
@@ -353,7 +352,7 @@ Bug Fixes
 
 * Fixed ``ising/docplex.py`` to correctly multiply constant values in constraints
 * Fixed package setup to correctly identify namespace packages using
-  ``setuptools.find_namespace_packages``.
+  ``setuptools.find_namespace_packages``
 
 
 
@@ -362,24 +361,24 @@ Compatibility Considerations
 
 * ``QuantumInstance`` does not take ``memory`` anymore.
 * Moved command line and GUI to separate repo
-  (``qiskit_aqua_uis``).
+  (``qiskit_aqua_uis``)
 * Removed the ``SAT``-specific oracle (now supported by
-  ``LogicalExpressionOracle``).
+  ``LogicalExpressionOracle``)
 * Changed ``advanced`` mode implementation of ``mct``: using simple ``h`` gates
-  instead of ``ch``, and fixing the old recursion step in ``_multicx``.
-* Components ``random_distributions`` renamed to ``uncertainty_models``.
+  instead of ``ch``, and fixing the old recursion step in ``_multicx``
+* Components ``random_distributions`` renamed to ``uncertainty_models``
 * Reorganized the constructions of various common gates (``ch``, ``cry``,
   ``mcry``, ``mct``, ``mcu1``, ``mcu3``, ``mcmt``, ``logic_and``, and
   ``logic_or``) and circuits (``PhaseEstimationCircuit``,
   ``BooleanLogicCircuits``, ``FourierTransformCircuits``,
-  and ``StateVectorCircuits``) under the ``circuits`` directory.
+  and ``StateVectorCircuits``) under the ``circuits`` directory
 * Renamed the algorithm ``QSVMVariational`` to ``VQC``, which stands for
-  Variational Quantum Classifier.
-* Renamed the algorithm ``QSVMKernel`` to ``QSVM``.
-* Renamed the class ``SVMInput`` to ``ClassificationInput``.
+  Variational Quantum Classifier
+* Renamed the algorithm ``QSVMKernel`` to ``QSVM``
+* Renamed the class ``SVMInput`` to ``ClassificationInput``
 * Renamed problem type ``'svm_classification'`` to ``'classification'``
 * Changed the type of ``entangler_map`` used in ``FeatureMap`` and
-  ``VariationalForm`` to list of lists.
+  ``VariationalForm`` to list of lists
 
 
 
@@ -389,12 +388,12 @@ IBM Q Provider 0.1
 New Features
 ------------
 
-- Standalone Package. This is the first release as a standalone package. If you
+- This is the first release as a standalone package. If you
   are installing Terra standalone you'll also need to install the
   ``qiskit-ibmq-provider`` package with ``pip install qiskit-ibmq-provider`` if
   you want to use the IBM Q backends.
 
-- Non-Qobj format jobs. Support for non-Qobj format jobs has been removed from
+- Support for non-Qobj format jobs has been removed from
   the provider. You'll have to convert submissions in an older format to
   Qobj before you can submit.
 
@@ -413,7 +412,7 @@ Python simulator.
 Ignis 0.1
 =========
 
-This is the first release of Ignis.
+This is the first release of Qiskit Ignis.
 
 
 
@@ -421,7 +420,7 @@ This is the first release of Ignis.
 Qiskit 0.7
 **********
 
-In Qiskit 0.7 we introduced Qiskit Aer and combined it with Terra.
+In Qiskit 0.7 we introduced Qiskit Aer and combined it with Qiskit Terra.
 
 
 
@@ -442,15 +441,15 @@ deprecation periods warning of any coming changes.
 There is also the introduction of the following new features:
 
 - A new ASCII art circuit drawing output mode
-- A new circuit drawing interface off of QuantumCircuit objects. Now you can
-  call ``circuit.draw()`` or ``print(circuit)`` and render a drawing of
-  the circuit.
+- A new circuit drawing interface off of ``QuantumCircuit`` objects that
+  enables calls of ``circuit.draw()`` or ``print(circuit)`` to render a drawing
+  of circuits
 - A visualizer for drawing the DAG representation of a circuit
 - A new quantum state plot type for hinton diagrams in the local matplotlib
-  based state plots.
+  based state plots
 - 2 new constructor methods off the ``QuantumCircuit`` class
   ``from_qasm_str()`` and ``from_qasm_file()`` which let you easily create a
-  circuit object from OpenQASM.
+  circuit object from OpenQASM
 - A new function ``plot_bloch_multivector()`` to plot Bloch vectors from a
   tensored state vector or density matrix
 - Per-shot measurement results are available in simulators and select devices.
@@ -458,7 +457,7 @@ There is also the introduction of the following new features:
   calling ``compile()`` or ``execute()`` and then accessed using the
   ``get_memory()`` method on the ``Result`` object.
 - A ``qiskit.quantum_info`` module with revamped Pauli objects and methods for
-  working with quantum states.
+  working with quantum states
 - New transpile passes for circuit analysis and transformation:
   ``CommutationAnalysis``, ``CommutationTransformation``, ``CXCancellation``,
   ``Decompose``, ``Unroll``, ``Optimize1QGates``, ``CheckMap``,
@@ -467,7 +466,7 @@ There is also the introduction of the following new features:
   ``BasicSwap``, ``LookaheadSwap``, ``StochasticSwap``
 - More advanced transpiler infrastructure with support for analysis passes,
   transformation passes, a global ``property_set`` for the pass manager, and
-  repeat-until control of passes.
+  repeat-until control of passes
 
 
 
@@ -499,9 +498,9 @@ next release to avoid a breaking change.
 - The functions ``plot_state()`` and ``iplot_state()`` have been depreciated.
   Instead the functions ``plot_state_*()`` and ``iplot_state_*()`` should be
   called for the visualization method required.
-- The ``skip_transpiler`` arg has been deprecated from ``compile()`` and
-  ``execute()``. Instead you can use the PassManager directly, just set
-  the ``pass_manager`` to a blank PassManager object with ``PassManager()``
+- The ``skip_transpiler`` argumentt has been deprecated from ``compile()`` and
+  ``execute()``. Instead you can use the ``PassManager`` directly, just set
+  the ``pass_manager`` to a blank ``PassManager`` object with ``PassManager()``
 - The ``transpile_dag()`` function ``format`` kwarg for emitting different
   output formats is deprecated, instead you should convert the default output
   ``DAGCircuit`` object to the desired format.
@@ -735,7 +734,7 @@ Aer provides three simulator backends:
 ``utils`` module:
 
 - ``qobj_utils`` provides functions for directly modifying a Qobj to insert
-  special simulator instructions not yet supported through the Qiskit Terra API
+  special simulator instructions not yet supported through the Qiskit Terra API.
 
 
 Aqua 0.4
@@ -811,16 +810,16 @@ release, are:
 
 - Improvements for inter-operability (based on the Qobj specification) and
   extensibility (facilities for extending Qiskit with new backends in a
-  seamless way).
+  seamless way)
 - New options for handling credentials and authentication for the IBM Q
   backends, aimed at simplifying the process and supporting automatic loading
-  of user credentials.
+  of user credentials
 - A revamp of the visualization utilities: stylish interactive visualizations
   are now available for Jupyter users, along with refinements for the circuit
-  drawer (including a matplotlib-based version).
+  drawer (including a matplotlib-based version)
 - Performance improvements centered around circuit transpilation: the basis for
   a more flexible and modular architecture have been set, including
-  parallelization of the circuit compilation and numerous optimizations.
+  parallelization of the circuit compilation and numerous optimizations
 
 
 Compatibility Considerations
@@ -1019,12 +1018,12 @@ detailed description of the changes - the highlights are:
 * new ``statevector`` :mod:`simulators <qiskit.backends.local>` and feature and
   performance improvements to the existing ones (in particular to the C++
   simulator), along with a reorganization of how to work with backends focused
-  on extensibility and flexibility (using aliases and backend providers).
+  on extensibility and flexibility (using aliases and backend providers)
 * reorganization of the asynchronous features, providing a friendlier interface
-  for running jobs asynchronously via :class:`Job` instances.
+  for running jobs asynchronously via :class:`Job` instances
 * numerous improvements and fixes throughout the Terra as a whole, both for
   convenience of the users (such as allowing anonymous registers) and for
-  enhanced functionality (such as improved plotting of circuits).
+  enhanced functionality (such as improved plotting of circuits)
 
 
 Compatibility Considerations
