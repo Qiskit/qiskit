@@ -1,24 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2019.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 import logging
 
 import numpy as np
 
+from qiskit.aqua import aqua_globals
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
@@ -172,7 +170,7 @@ class SPSA(Optimizer):
             # SPSA Parameters
             a_spsa = float(self._parameters[0]) / np.power(k + 1 + self._parameters[4], self._parameters[2])
             c_spsa = float(self._parameters[1]) / np.power(k + 1, self._parameters[3])
-            delta = 2 * np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
+            delta = 2 * aqua_globals.random.randint(2, size=np.shape(initial_theta)[0]) - 1
             # plus and minus directions
             theta_plus = theta + c_spsa * delta
             theta_minus = theta - c_spsa * delta
@@ -230,7 +228,7 @@ class SPSA(Optimizer):
         for i in range(stat):
             if i % 5 == 0:
                 logger.debug('calibration step # {} of {}'.format(str(i), str(stat)))
-            delta = 2 * np.random.randint(2, size=np.shape(initial_theta)[0]) - 1
+            delta = 2 * aqua_globals.random.randint(2, size=np.shape(initial_theta)[0]) - 1
             theta_plus = initial_theta + initial_c * delta
             theta_minus = initial_theta - initial_c * delta
             if self._max_evals_grouped > 1:
