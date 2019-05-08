@@ -337,6 +337,16 @@ When backporting a patch from master to stable we want to keep a reference to th
 
 `$ git cherry-pick -x $master_commit_id`
 
+However, this only works for small self contained patches from master. If you
+need to backport a subset of a larger commit (from a squashed PR for
+example) from master this just need be done manually. This should be handled
+by adding::
+
+    Backported from: #master pr number
+
+in these cases, so we can track the source of the change subset even if a
+strict cherry pick doesn't make sense.
+
 If the patch you’re proposing will not cherry-pick cleanly, you can help by resolving the conflicts yourself and proposing the resulting patch. Please keep Conflicts lines in the commit message to help review of the stable patch.
 
 Backport Tags
