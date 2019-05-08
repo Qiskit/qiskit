@@ -118,6 +118,6 @@ def level_3_pass_manager(transpile_config):
     if coupling_map:
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
-    pm3.append(_opt + _depth_check, do_while=_opt_control)
+    pm3.append(_depth_check + _optdo_while=_opt_control)
 
     return pm3

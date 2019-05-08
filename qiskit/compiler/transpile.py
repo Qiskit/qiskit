@@ -241,7 +241,7 @@ def _parse_basis_gates(basis_gates, backend, circuits):
         if basis is None:
             gates_in_circuit = set(inst.name for inst, _, _ in circuit.data)
             # Other passes might add new gates that need to be supported
-            basis_gates[index] = list(gates_in_circuit.union(['U', 'CX']))
+            basis_gates[index] = list(gates_in_circuit.union(['u3', 'cx']))
     return basis_gates
 
 
