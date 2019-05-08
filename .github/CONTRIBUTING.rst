@@ -353,4 +353,5 @@ Backport Tags
 -------------
 
 Bugs or PRs tagged with `stable backport potential` are bugs which apply to the stable release too and may be suitable for backporting once a fix lands in master. Once the backport has been proposed, the tag should be removed.
+The PR against the stable branch should include `[stable]` in the title, as a sign that PRing stable was not a mistake. Also, reference to the PR number in master that you are porting.
 
