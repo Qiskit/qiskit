@@ -137,10 +137,9 @@ class LoadFromQasmTest(QiskitTestCase):
 
         qr = QuantumRegister(3, 'q')
         expected = QuantumCircuit(qr)
-        expected.append(Gate(name='my_gate', num_qubits=2, params=[1,2,3]), [qr[1], qr[2]])
+        expected.append(Gate(name='my_gate', num_qubits=2, params=[1, 2, 3]), [qr[1], qr[2]])
 
-        self.assertEqual(circuit,expected)
-
+        self.assertEqual(circuit, expected)
 
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm.
