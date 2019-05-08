@@ -21,6 +21,7 @@ running quickly we have provided this wrapper module.
 import warnings
 import logging
 
+from qiskit import QuantumCircuit
 from qiskit.compiler import transpile, assemble
 
 logger = logging.getLogger(__name__)
@@ -208,18 +209,23 @@ def execute(experiments, backend,
                       "please use `experiments`, which can handle both circuit "
                       "and pulse Schedules", DeprecationWarning)
 
-    # transpiling the circuits using given transpile options
-    experiments = transpile(experiments,
-                            basis_gates=basis_gates,
-                            coupling_map=coupling_map,
-                            backend_properties=backend_properties,
-                            initial_layout=initial_layout,
-                            seed_transpiler=seed_transpiler,
-                            optimization_level=optimization_level,
-                            backend=backend,
-                            pass_manager=pass_manager,
-                            seed_mapper=seed_mapper,  # deprecated
-                            )
+    if not isinstance(experiments, (list, tuple)):
+        experiments = [experiments]
+
+    # If experiments are QuantumCircuit, transpile.
+    if isinstance(experiments[0], QuantumCircuit):
+        # transpiling the circuits using given transpile options
+        experiments = transpile(experiments,
+                                basis_gates=basis_gates,
+                                coupling_map=coupling_map,
+                                backend_properties=backend_properties,
+                                initial_layout=initial_layout,
+                                seed_transpiler=seed_transpiler,
+                                optimization_level=optimization_level,
+                                backend=backend,
+                                pass_manager=pass_manager,
+                                seed_mapper=seed_mapper,  # deprecated
+                                )
 
     # assembling the circuits into a qobj to be run on the backend
     qobj = assemble(experiments,
