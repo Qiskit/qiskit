@@ -143,7 +143,7 @@ class AstInterpreter:
                 self.arg_stack.append({gargs[j]: args[j]
                                        for j in range(len(gargs))})
                 # Only index into register arguments.
-                element = [idx*x for x in
+                element = [idx * x for x in
                            [len(bits[j]) > 1 for j in range(len(bits))]]
                 self.bit_stack.append({gbits[j]: bits[j][element[j]]
                                        for j in range(len(gbits))})
@@ -181,7 +181,7 @@ class AstInterpreter:
         """Process a CNOT gate node."""
         id0 = self._process_bit_id(node.children[0])
         id1 = self._process_bit_id(node.children[1])
-        if not(len(id0) == len(id1) or len(id0) == 1 or len(id1) == 1):
+        if not (len(id0) == len(id1) or len(id0) == 1 or len(id1) == 1):
             raise QiskitError("internal error: qreg size mismatch",
                               "line=%s" % node.line, "file=%s" % node.file)
         maxidx = max([len(id0), len(id1)])
@@ -321,32 +321,32 @@ class AstInterpreter:
         Raises:
             QiskitError: if encountering a non-basis opaque gate
         """
-        standard_extension = {"u0"   : U0Gate     ,
-                              "u1"   : U1Gate     ,
-                              "u2"   : U2Gate     ,
-                              "u3"   : U3Gate     ,
-                              "x"    : XGate      ,
-                              "y"    : YGate      ,
-                              "z"    : ZGate      ,
-                              "t"    : TGate      ,
-                              "tdg"  : TdgGate    ,
-                              "s"    : SGate      ,
-                              "sdg"  : SdgGate    ,
-                              "swap" : SwapGate   ,
-                              "rx"   : RXGate     ,
-                              "ry"   : RYGate     ,
-                              "rz"   : RZGate     ,
-                              "rzz"  : RZZGate    ,
-                              "id"   : IdGate     ,
-                              "h"    : HGate      ,
-                              "cx"   : CnotGate   ,
-                              "cy"   : CyGate     ,
-                              "cz"   : CzGate     ,
-                              "ch"   : CHGate     ,
-                              "crz"  : CrzGate    ,
-                              "cu1"  : Cu1Gate    ,
-                              "cu3"  : Cu3Gate    ,
-                              "ccx"  : ToffoliGate,
+        standard_extension = {"u0": U0Gate,
+                              "u1": U1Gate,
+                              "u2": U2Gate,
+                              "u3": U3Gate,
+                              "x": XGate,
+                              "y": YGate,
+                              "z": ZGate,
+                              "t": TGate,
+                              "tdg": TdgGate,
+                              "s": SGate,
+                              "sdg": SdgGate,
+                              "swap": SwapGate,
+                              "rx": RXGate,
+                              "ry": RYGate,
+                              "rz": RZGate,
+                              "rzz": RZZGate,
+                              "id": IdGate,
+                              "h": HGate,
+                              "cx": CnotGate,
+                              "cy": CyGate,
+                              "cz": CzGate,
+                              "ch": CHGate,
+                              "crz": CrzGate,
+                              "cu1": Cu1Gate,
+                              "cu3": Cu3Gate,
+                              "ccx": ToffoliGate,
                               "cswap": FredkinGate}
 
         if name in standard_extension:
