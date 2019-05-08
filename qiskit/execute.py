@@ -213,7 +213,7 @@ def execute(experiments, backend,
         experiments = [experiments]
 
     # If experiments are QuantumCircuit, transpile.
-    if isinstance(experiments[0], QuantumCircuit):
+    if any(isinstance(exp, QuantumCircuit) for exp in experiments):
         # transpiling the circuits using given transpile options
         experiments = transpile(experiments,
                                 basis_gates=basis_gates,
