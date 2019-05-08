@@ -14,6 +14,7 @@
 
 # pylint: disable=missing-docstring
 
+
 class OPStyleSched:
     def __init__(self, figsize=(10, 12), fig_unit_h_table=0.4,
                  use_table=True, table_columns=2, table_font_size=10, axis_font_size=18,
