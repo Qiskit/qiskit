@@ -53,7 +53,6 @@ class UchannelLOSchema(BaseSchema):
 
 class PulseHamiltonianSchema(BaseSchema):
     """Schema for PulseHamiltonian."""
-    # pylint: disable=redefined-builtin
 
     # Required properties.
     h_str = List(String(), validate=Length(min=1), required=True)

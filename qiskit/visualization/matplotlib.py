@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
+# pylint: disable=invalid-name,missing-docstring
 
 """mpl circuit visualization backend."""
 
@@ -1240,9 +1240,7 @@ class ScheduleDrawer:
             cell_color = [self.style.table_color * ncols for _jj in range(nrows)]
             cell_width = [*([0.2, 0.2, 0.5] * ncols)]
             for ii, data in enumerate(table_data):
-                # pylint: disable=unbalanced-tuple-unpacking
                 r, c = np.unravel_index(ii, (nrows, ncols), order='f')
-                # pylint: enable=unbalanced-tuple-unpacking
                 time, ch_name, data_str = data
                 # item
                 cell_value[r][3 * c + 0] = 't = %s' % time * dt

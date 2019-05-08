@@ -420,7 +420,7 @@ class InputWire(DrawElement):
         super().__init__(label)
 
     @staticmethod
-    def fillup_layer(names):  # pylint: disable=arguments-differ
+    def fillup_layer(names):
         """
         Creates a layer with InputWire elements.
         Args:
@@ -897,7 +897,6 @@ class Layer:
         self.clbit_layer[self.cregs.index(clbit)] = element
 
     def _set_multibox(self, wire_type, bits, label, top_connect=None):
-        # pylint: disable=invalid-name
         bits = list(bits)
         if wire_type == "cl":
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])

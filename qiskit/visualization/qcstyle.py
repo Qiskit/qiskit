@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
+# pylint: disable=invalid-name,missing-docstring
 
 
 class QCStyle:

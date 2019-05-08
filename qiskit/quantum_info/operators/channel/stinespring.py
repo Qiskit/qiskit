@@ -153,7 +153,6 @@ class Stinespring(QuantumChannel):
 
     def conjugate(self):
         """Return the conjugate of the QuantumChannel."""
-        # pylint: disable=assignment-from-no-return
         stine_l = np.conjugate(self._data[0])
         stine_r = None
         if self._data[1] is not None:
