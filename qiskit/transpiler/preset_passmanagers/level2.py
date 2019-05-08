@@ -126,6 +126,6 @@ def level_2_pass_manager(transpile_config):
         # pm2.append(_direction_check)  # TODO
         pm2.append(_direction, condition=_direction_condition)
     pm2.append(_reset)
-    pm2.append(_depth_check + _opt, do_while=_opt_control)
+    pm2.append(_opt + _depth_check, do_while=_opt_control)
 
     return pm2
