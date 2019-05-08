@@ -16,7 +16,6 @@ The format is based on `Keep a Changelog`_.
   - **Fixed**: for any bug fixes.
   - **Security**: in case of vulnerabilities.
 
-=============
 `UNRELEASED`_
 =============
 
