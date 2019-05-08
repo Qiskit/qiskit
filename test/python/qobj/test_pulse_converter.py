@@ -261,7 +261,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertTrue(_is_math_expr_safe('-P1*cos(P2)'))
         self.assertTrue(_is_math_expr_safe('-P1*P2*P3'))
         self.assertTrue(_is_math_expr_safe('-P1'))
-        self.assertTrue(_is_math_expr_safe('-1 (P1)'))
+        self.assertTrue(_is_math_expr_safe('-1.*P1'))
+        self.assertTrue(_is_math_expr_safe('-1.*P1*P2'))
         self.assertTrue(_is_math_expr_safe('-(P1)'))
 
 
