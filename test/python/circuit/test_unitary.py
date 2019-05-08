@@ -17,7 +17,8 @@ from qiskit.extensions.unitary import UnitaryGate
 from qiskit.test import QiskitTestCase
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.transpiler import transpile, PassManager
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.transpiler.passes import CXCancellation
 

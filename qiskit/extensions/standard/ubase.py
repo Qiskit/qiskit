@@ -21,7 +21,6 @@ import numpy
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.decorators import _op_expand, _to_bits
 
 
 class UBase(Gate):  # pylint: disable=abstract-method
@@ -52,8 +51,6 @@ class UBase(Gate):  # pylint: disable=abstract-method
             dtype=complex)
 
 
-@_to_bits(1)
-@_op_expand(1)
 def u_base(self, theta, phi, lam, q):
     """Apply U to q."""
     return self.append(UBase(theta, phi, lam), [q], [])

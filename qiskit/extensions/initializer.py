@@ -24,7 +24,6 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
-from qiskit.circuit.decorators import _convert_to_bits
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
@@ -239,13 +238,15 @@ class Initialize(Instruction):
 
         return circuit
 
+    def broadcast_arguments(self, qargs, cargs):
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+        yield flat_qargs, []
+
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
-    if isinstance(qubits, QuantumRegister):
-        qubits = qubits[:]
-    else:
-        qubits = _convert_to_bits([qubits], [qbit for qreg in self.qregs for qbit in qreg])[0]
+    if not isinstance(qubits, list):
+        qubits = [qubits]
     return self.append(Initialize(params), qubits)
 
 
