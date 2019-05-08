@@ -59,7 +59,7 @@ deploy: false
 skip_branch_with_pr: true
 
 build_script:
-  - if defined WHEEL (pip install cibuildwheel==0.10.1)
+  - if defined WHEEL (pip install cibuildwheel==0.10.1 twine)
   - if defined WHEEL (cibuildwheel --output-dir wheelhouse)
   - if defined WHEEL {twine upload wheelhouse\*}
 artifacts:
