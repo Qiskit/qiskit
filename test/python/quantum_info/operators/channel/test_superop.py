@@ -100,27 +100,27 @@ class TestSuperOp(ChannelTestCase):
         # Identity channel
         chan = SuperOp(self.sopI)
         target_rho = np.array([[0, 0], [0, 1]])
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)).data, target_rho)
+        self.assertAllClose(chan._evolve(input_rho).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)).data, target_rho)
 
         # Hadamard channel
         mat = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
         chan = SuperOp(np.kron(mat.conj(), mat))
         target_rho = np.array([[1, -1], [-1, 1]]) / 2
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)).data, target_rho)
+        self.assertAllClose(chan._evolve(input_rho).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)).data, target_rho)
 
         # Completely depolarizing channel
         chan = SuperOp(self.depol_sop(1))
         target_rho = np.eye(2) / 2
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)).data, target_rho)
+        self.assertAllClose(chan._evolve(input_rho).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)).data, target_rho)
 
     def test_evolve_subsystem(self):
         """Test subsystem _evolve method."""
@@ -138,44 +138,50 @@ class TestSuperOp(ChannelTestCase):
 
         # Evolve on qubit 0
         full_op = id2.tensor(op_a)
-        rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qargs=[0]), rho_targ)
+        rho_targ = full_op._evolve(rho).data
+        rho_test = op._evolve(rho, qargs=[0]).data
+        self.assertAllClose(rho_test, rho_targ)
 
         # Evolve on qubit 1
         full_op = id1.tensor(op_a).tensor(id1)
-        rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qargs=[1]), rho_targ)
+        rho_targ = full_op._evolve(rho).data
+        rho_test = op._evolve(rho, qargs=[1]).data
+        self.assertAllClose(rho_test, rho_targ)
 
         # Evolve on qubit 2
         full_op = op_a.tensor(id2)
-        rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qargs=[2]), rho_targ)
+        rho_targ = full_op._evolve(rho).data
+        rho_test = op._evolve(rho, qargs=[2]).data
+        self.assertAllClose(rho_test, rho_targ)
 
         # Test 2-qubit evolution
         op = op_b.tensor(op_a)
 
         # Evolve on qubits [0, 2]
         full_op = op_b.tensor(id1).tensor(op_a)
-        rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qargs=[0, 2]), rho_targ)
-
+        rho_targ = full_op._evolve(rho).data
+        rho_test = op._evolve(rho, qargs=[0, 2]).data
+        self.assertAllClose(rho_test, rho_targ)
         # Evolve on qubits [2, 0]
         full_op = op_a.tensor(id1).tensor(op_b)
-        rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qargs=[2, 0]), rho_targ)
+        rho_targ = full_op._evolve(rho).data
+        rho_test = op._evolve(rho, qargs=[2, 0]).data
+        self.assertAllClose(rho_test, rho_targ)
 
         # Test 3-qubit evolution
         op = op_c.tensor(op_b).tensor(op_a)
 
         # Evolve on qubits [0, 1, 2]
         full_op = op
-        rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qargs=[0, 1, 2]), rho_targ)
+        rho_targ = full_op._evolve(rho).data
+        rho_test = op._evolve(rho, qargs=[0, 1, 2]).data
+        self.assertAllClose(rho_test, rho_targ)
 
         # Evolve on qubits [2, 1, 0]
         full_op = op_a.tensor(op_b).tensor(op_c)
-        rho_targ = full_op._evolve(rho)
-        self.assertAllClose(op._evolve(rho, qargs=[2, 1, 0]), rho_targ)
+        rho_targ = full_op._evolve(rho).data
+        rho_test = op._evolve(rho, qargs=[2, 1, 0]).data
+        self.assertAllClose(rho_test, rho_targ)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -389,13 +395,13 @@ class TestSuperOp(ChannelTestCase):
         chan = chan1.expand(chan2)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -408,18 +414,18 @@ class TestSuperOp(ChannelTestCase):
         chan = chan2.tensor(chan1)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
         chan = chan2 ^ chan1
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
         # I \otimes X
         chan = chan1.tensor(chan2)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
         chan = chan1 ^ chan2
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
     def test_power(self):
         """Test power method."""

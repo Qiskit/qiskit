@@ -77,26 +77,26 @@ class TestChi(ChannelTestCase):
         # Identity channel
         chan = Chi(self.chiI)
         target_rho = np.array([[0, 0], [0, 1]])
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)).data, target_rho)
+        self.assertAllClose(chan._evolve(input_rho).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)).data, target_rho)
 
         # Hadamard channel
         chan = Chi(self.chiH)
         target_rho = np.array([[1, -1], [-1, 1]]) / 2
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)).data, target_rho)
+        self.assertAllClose(chan._evolve(input_rho).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)).data, target_rho)
 
         # Completely depolarizing channel
         chan = Chi(self.depol_chi(1))
         target_rho = np.eye(2) / 2
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        self.assertAllClose(chan._evolve(input_psi).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_psi)).data, target_rho)
+        self.assertAllClose(chan._evolve(input_rho).data, target_rho)
+        self.assertAllClose(chan._evolve(np.array(input_rho)).data, target_rho)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -119,27 +119,27 @@ class TestChi(ChannelTestCase):
         chan1 = Chi(self.chiX)
         chan2 = Chi(self.chiY)
         chan = chan1.compose(chan2)
-        targ = Chi(self.chiZ)._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        targ = Chi(self.chiZ)._evolve(rho).data
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # 50% depolarizing channel
         chan1 = Chi(self.depol_chi(0.5))
         chan = chan1.compose(chan1)
-        targ = Chi(self.depol_chi(0.75))._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        targ = Chi(self.depol_chi(0.75))._evolve(rho).data
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # Compose random
         chi1 = self.rand_matrix(4, 4, real=True)
         chi2 = self.rand_matrix(4, 4, real=True)
         chan1 = Chi(chi1, input_dims=2, output_dims=2)
         chan2 = Chi(chi2, input_dims=2, output_dims=2)
-        targ = chan2._evolve(chan1._evolve(rho))
+        targ = chan2._evolve(chan1._evolve(rho)).data
         chan = chan1.compose(chan2)
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         chan = chan1 @ chan2
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_compose_front(self):
         """Test front compose method."""
@@ -150,18 +150,18 @@ class TestChi(ChannelTestCase):
         chan1 = Chi(self.chiX)
         chan2 = Chi(self.chiY)
         chan = chan2.compose(chan1, front=True)
-        targ = Chi(self.chiZ)._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        targ = Chi(self.chiZ)._evolve(rho).data
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # Compose random
         chi1 = self.rand_matrix(4, 4, real=True)
         chi2 = self.rand_matrix(4, 4, real=True)
         chan1 = Chi(chi1, input_dims=2, output_dims=2)
         chan2 = Chi(chi2, input_dims=2, output_dims=2)
-        targ = chan2._evolve(chan1._evolve(rho))
+        targ = chan2._evolve(chan1._evolve(rho)).data
         chan = chan2.compose(chan1, front=True)
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_expand(self):
         """Test expand method."""
@@ -184,7 +184,7 @@ class TestChi(ChannelTestCase):
         chan = chan_dep.expand(chan_dep)
         targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -211,11 +211,11 @@ class TestChi(ChannelTestCase):
         chan = chan_dep.tensor(chan_dep)
         targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         # Test operator overload
         chan = chan_dep ^ chan_dep
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_power(self):
         """Test power method."""

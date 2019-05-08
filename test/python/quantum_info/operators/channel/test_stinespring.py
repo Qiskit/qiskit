@@ -79,35 +79,32 @@ class TestStinespring(ChannelTestCase):
 
     def test_evolve(self):
         """Test evolve method."""
-        input_psi = [0, 1]
         input_rho = [[0, 0], [0, 1]]
 
         # Identity channel
         chan = Stinespring(self.UI)
-        target_psi = np.array([0, 1])
-        self.assertAllClose(chan._evolve(input_psi), target_psi)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_psi)
         target_rho = np.array([[0, 0], [0, 1]])
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        test_rho = chan._evolve(input_rho).data
+        self.assertAllClose(test_rho, target_rho)
+        test_rho = chan._evolve(np.array(input_rho)).data
+        self.assertAllClose(test_rho, target_rho)
 
         # Hadamard channel
         mat = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
         chan = Stinespring(mat)
-        target_psi = np.array([1, -1]) / np.sqrt(2)
-        self.assertAllClose(chan._evolve(input_psi), target_psi)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_psi)
         target_rho = np.array([[1, -1], [-1, 1]]) / 2
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        test_rho = chan._evolve(input_rho).data
+        self.assertAllClose(test_rho, target_rho)
+        test_rho = chan._evolve(np.array(input_rho)).data
+        self.assertAllClose(test_rho, target_rho)
 
         # Completely depolarizing channel
         chan = Stinespring(self.depol_stine(1))
         target_rho = np.eye(2) / 2
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
+        test_rho = chan._evolve(input_rho).data
+        self.assertAllClose(test_rho, target_rho)
+        test_rho = chan._evolve(np.array(input_rho)).data
+        self.assertAllClose(test_rho, target_rho)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -182,26 +179,26 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(self.UX)
         chan2 = Stinespring(self.UY)
         chan = chan1.compose(chan2)
-        targ = Stinespring(self.UZ)._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        targ = Stinespring(self.UZ)._evolve(rho).data
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # 50% depolarizing channel
         chan1 = Stinespring(self.depol_stine(0.5))
         chan = chan1.compose(chan1)
-        targ = Stinespring(self.depol_stine(0.75))._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        targ = Stinespring(self.depol_stine(0.75))._evolve(rho).data
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # Compose different dimensions
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
-        targ = chan2._evolve(chan1._evolve(rho))
+        targ = chan2._evolve(chan1._evolve(rho)).data
         chan = chan1.compose(chan2)
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         chan = chan1 @ chan2
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_compose_front(self):
         """Test front compose method."""
@@ -212,23 +209,23 @@ class TestStinespring(ChannelTestCase):
         chan1 = Stinespring(self.UX)
         chan2 = Stinespring(self.UY)
         chan = chan1.compose(chan2, front=True)
-        targ = Stinespring(self.UZ)._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        targ = Stinespring(self.UZ)._evolve(rho).data
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # 50% depolarizing channel
         chan1 = Stinespring(self.depol_stine(0.5))
         chan = chan1.compose(chan1, front=True)
-        targ = Stinespring(self.depol_stine(0.75))._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        targ = Stinespring(self.depol_stine(0.75))._evolve(rho).data
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # Compose different dimensions
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
-        targ = chan2._evolve(chan1._evolve(rho))
+        targ = chan2._evolve(chan1._evolve(rho)).data
         chan = chan2.compose(chan1, front=True)
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_expand(self):
         """Test expand method."""
@@ -241,20 +238,20 @@ class TestStinespring(ChannelTestCase):
         chan = chan1.expand(chan2)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
         # Completely depolarizing
         chan_dep = Stinespring(self.depol_stine(1))
         chan = chan_dep.expand(chan_dep)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -267,20 +264,20 @@ class TestStinespring(ChannelTestCase):
         chan = chan2.tensor(chan1)
         rho_targ = np.kron(rho1, rho0)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
         # I \otimes X
         chan = chan1.tensor(chan2)
         rho_targ = np.kron(rho0, rho1)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
         # Completely depolarizing
         chan_dep = Stinespring(self.depol_stine(1))
         chan = chan_dep.tensor(chan_dep)
         rho_targ = np.diag([1, 1, 1, 1]) / 4
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertAllClose(chan._evolve(rho_init).data, rho_targ)
 
     def test_power(self):
         """Test power method."""
@@ -292,10 +289,10 @@ class TestStinespring(ChannelTestCase):
         # Compose 3 times
         p_id3 = p_id**3
         chan3 = chan.power(3)
-        targ3a = chan._evolve(chan._evolve(chan._evolve(rho)))
-        self.assertAllClose(chan3._evolve(rho), targ3a)
-        targ3b = Stinespring(self.depol_stine(1 - p_id3))._evolve(rho)
-        self.assertAllClose(chan3._evolve(rho), targ3b)
+        targ3a = chan._evolve(chan._evolve(chan._evolve(rho))).data
+        self.assertAllClose(chan3._evolve(rho).data, targ3a)
+        targ3b = Stinespring(self.depol_stine(1 - p_id3))._evolve(rho).data
+        self.assertAllClose(chan3._evolve(rho).data, targ3b)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
@@ -312,17 +309,17 @@ class TestStinespring(ChannelTestCase):
         # Random Single-Stinespring maps
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
-        targ = chan1._evolve(rho) + chan2._evolve(rho)
+        targ = chan1._evolve(rho).data + chan2._evolve(rho).data
         chan = chan1.add(chan2)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         chan = chan1 + chan2
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
-        targ = 2 * chan._evolve(rho)
+        targ = 2 * chan._evolve(rho).data
         chan = chan.add(chan)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_subtract(self):
         """Test subtract method."""
@@ -333,17 +330,17 @@ class TestStinespring(ChannelTestCase):
         # Random Single-Stinespring maps
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
-        targ = chan1._evolve(rho) - chan2._evolve(rho)
+        targ = chan1._evolve(rho).data - chan2._evolve(rho).data
         chan = chan1.subtract(chan2)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         chan = chan1 - chan2
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
-        targ = 0 * chan._evolve(rho)
+        targ = 0 * chan._evolve(rho).data
         chan = chan.subtract(chan)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_multiply(self):
         """Test multiply method."""
@@ -354,23 +351,23 @@ class TestStinespring(ChannelTestCase):
 
         # Single Stinespring set
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
-        targ = val * chan1._evolve(rho)
+        targ = val * chan1._evolve(rho).data
         chan = chan1.multiply(val)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         chan = val * chan1
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         chan = chan1 * val
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
         # Double Stinespring set
         chan2 = Stinespring((stine1, stine2), input_dims=2, output_dims=4)
-        targ = val * chan2._evolve(rho)
+        targ = val * chan2._evolve(rho).data
         chan = chan2.multiply(val)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         chan = val * chan2
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
         chan = chan2 * val
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
@@ -383,7 +380,7 @@ class TestStinespring(ChannelTestCase):
         rho = np.diag([1, 0])
         targ = np.diag([-0.5, -0.5])
         chan = -Stinespring(self.depol_stine(1))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertAllClose(chan._evolve(rho).data, targ)
 
 
 if __name__ == '__main__':

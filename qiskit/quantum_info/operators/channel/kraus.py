@@ -134,7 +134,7 @@ class Kraus(QuantumChannel):
             if isinstance(data, (QuantumCircuit, Instruction)):
                 # If the input is a Terra QuantumCircuit or Instruction we
                 # convert it to a SuperOp
-                data = SuperOp._instruction_to_superop(data)
+                data = SuperOp._init_instruction(data)
             else:
                 # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
@@ -367,42 +367,21 @@ class Kraus(QuantumChannel):
         return Kraus((kraus_l, kraus_r), self._input_dim, self._output_dim)
 
     def _evolve(self, state, qargs=None):
-        """Evolve a quantum state by the QuantumChannel.
+        """Evolve a quantum state by the quantum channel.
 
         Args:
-            state (QuantumState): The input statevector or density matrix.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
+            state (DensityMatrix or Statevector): The input state.
+            qargs (list): a list of quantum state subsystem positions to apply
+                           the quantum channel on.
 
         Returns:
-            QuantumState: the output quantum state.
+            DensityMatrix: the output quantum state as a density matrix.
 
         Raises:
-            QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
+            QiskitError: if the quantum channel dimension does not match the
+            specified quantum state subsystem dimensions.
         """
-        # If subsystem evolution we use the SuperOp representation
-        if qargs is not None:
-            return SuperOp(self)._evolve(state, qargs)
-
-        # Otherwise we compute full evolution directly
-        state = self._format_state(state)
-        if state.shape[0] != self._input_dim:
-            raise QiskitError(
-                "QuantumChannel input dimension is not equal to state dimension."
-            )
-        if state.ndim == 1 and self._data[1] is None and len(
-                self._data[0]) == 1:
-            # If we only have a single Kraus operator we can implement unitary-type
-            # evolution of a state vector psi -> K[0].psi
-            return np.dot(self._data[0][0], state)
-        # Otherwise we always return a density matrix
-        state = self._format_state(state, density_matrix=True)
-        kraus_l, kraus_r = self._data
-        if kraus_r is None:
-            kraus_r = kraus_l
-        return np.einsum('AiB,BC,AjC->ij', kraus_l, state,
-                         np.conjugate(kraus_r))
+        return SuperOp(self)._evolve(state, qargs)
 
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
