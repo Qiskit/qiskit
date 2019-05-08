@@ -16,3 +16,4 @@
 
 from .states import basis_state, projector, purity
 from .statevector import Statevector
+from .densitymatrix import DensityMatrix
