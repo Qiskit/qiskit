@@ -77,6 +77,34 @@ def ast_to_dag(ast):
 class AstInterpreter:
     """Interprets an OpenQASM by expanding subroutines and unrolling loops."""
 
+    standard_extension = {"u0": U0Gate,
+                          "u1": U1Gate,
+                          "u2": U2Gate,
+                          "u3": U3Gate,
+                          "x": XGate,
+                          "y": YGate,
+                          "z": ZGate,
+                          "t": TGate,
+                          "tdg": TdgGate,
+                          "s": SGate,
+                          "sdg": SdgGate,
+                          "swap": SwapGate,
+                          "rx": RXGate,
+                          "ry": RYGate,
+                          "rz": RZGate,
+                          "rzz": RZZGate,
+                          "id": IdGate,
+                          "h": HGate,
+                          "cx": CnotGate,
+                          "cy": CyGate,
+                          "cz": CzGate,
+                          "ch": CHGate,
+                          "crz": CrzGate,
+                          "cu1": Cu1Gate,
+                          "cu3": Cu3Gate,
+                          "ccx": ToffoliGate,
+                          "cswap": FredkinGate}
+
     def __init__(self, dag):
         """Initialize interpreter's data."""
         # DAG object to populate
@@ -172,6 +200,8 @@ class AstInterpreter:
         else:
             de_gate["args"] = []
         de_gate["bits"] = [c.name for c in node.bitlist.children]
+        if node.name in self.standard_extension:
+            return
         if opaque:
             de_gate["body"] = None
         else:
@@ -321,36 +351,9 @@ class AstInterpreter:
         Raises:
             QiskitError: if encountering a non-basis opaque gate
         """
-        standard_extension = {"u0": U0Gate,
-                              "u1": U1Gate,
-                              "u2": U2Gate,
-                              "u3": U3Gate,
-                              "x": XGate,
-                              "y": YGate,
-                              "z": ZGate,
-                              "t": TGate,
-                              "tdg": TdgGate,
-                              "s": SGate,
-                              "sdg": SdgGate,
-                              "swap": SwapGate,
-                              "rx": RXGate,
-                              "ry": RYGate,
-                              "rz": RZGate,
-                              "rzz": RZZGate,
-                              "id": IdGate,
-                              "h": HGate,
-                              "cx": CnotGate,
-                              "cy": CyGate,
-                              "cz": CzGate,
-                              "ch": CHGate,
-                              "crz": CrzGate,
-                              "cu1": Cu1Gate,
-                              "cu3": Cu3Gate,
-                              "ccx": ToffoliGate,
-                              "cswap": FredkinGate}
 
-        if name in standard_extension:
-            op = standard_extension[name](*params)
+        if name in self.standard_extension:
+            op = self.standard_extension[name](*params)
         elif name in self.gates:
             if self.gates[name]['opaque']:
                 # call an opaque gate
