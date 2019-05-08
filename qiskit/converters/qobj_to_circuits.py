@@ -30,7 +30,7 @@ def qobj_to_circuits(qobj):
     """
     warnings.warn('qiskit.converters.qobj_to_circuit() is deprecated and will '
                   'be removed in Qiskit Terra 0.9. Please use '
-                  'qiskit.compiler.disassemble_circuits() to convert a qobj '
+                  'qiskit.assembler.disassemble() to convert a qobj '
                   'to list of circuits.', DeprecationWarning)
 
     variables = disassemble(qobj)
