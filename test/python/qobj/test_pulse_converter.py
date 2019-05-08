@@ -252,9 +252,14 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertFalse(_is_math_expr_safe('2***2'))
         self.assertFalse(_is_math_expr_safe('avdfd*3'))
         self.assertFalse(_is_math_expr_safe('Cos(1+2)'))
+        self.assertFalse(_is_math_expr_safe('hello'))
         self.assertFalse(_is_math_expr_safe('hello_world'))
         self.assertFalse(_is_math_expr_safe('1_2'))
         self.assertFalse(_is_math_expr_safe('2+-2'))
+        self.assertFalse(_is_math_expr_safe('print(1.0)'))
+        self.assertFalse(_is_math_expr_safe('1.1.1.1'))
+        self.assertFalse(_is_math_expr_safe('abc.1'))
+
 
         self.assertTrue(_is_math_expr_safe('1+1*2*3.2+8*cos(1)**2'))
         self.assertTrue(_is_math_expr_safe('pi*2'))
