@@ -37,7 +37,7 @@ class QuantumInstance:
 
     BACKEND_CONFIG = ['basis_gates', 'coupling_map']
     COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_transpiler']
-    RUN_CONFIG = ['shots', 'max_credits', 'memory', 'seed']
+    RUN_CONFIG = ['shots', 'max_credits', 'memory', 'seed_simulator']
     QJOB_CONFIG = ['timeout', 'wait']
     NOISE_CONFIG = ['noise_model']
 
@@ -47,7 +47,7 @@ class QuantumInstance:
                        "max_parallel_experiments", "statevector_parallel_threshold",
                        "statevector_hpc_gate_opt"] + BACKEND_OPTIONS_QASM_ONLY
 
-    def __init__(self, backend, shots=1024, seed=None, max_credits=10,
+    def __init__(self, backend, shots=1024, seed_simulator=None, max_credits=10,
                  basis_gates=None, coupling_map=None,
                  initial_layout=None, pass_manager=None, seed_transpiler=None,
                  backend_options=None, noise_model=None, timeout=None, wait=5,
@@ -59,7 +59,7 @@ class QuantumInstance:
         Args:
             backend (BaseBackend): instance of selected backend
             shots (int, optional): number of repetitions of each circuit, for sampling
-            seed (int, optional): random seed for simulators
+            seed_simulator (int, optional): random seed for simulators
             max_credits (int, optional): maximum credits to use
             basis_gates (list[str], optional): list of basis gate names supported by the
                                                 target. Default: ['u1','u2','u3','cx','id']
@@ -83,8 +83,8 @@ class QuantumInstance:
         self._backend = backend
         # setup run config
         run_config = RunConfig(shots=shots, max_credits=max_credits)
-        if seed:
-            run_config.seed = seed
+        if seed_simulator:
+            run_config.seed_simulator = seed_simulator
 
         if getattr(run_config, 'shots', None) is not None:
             if self.is_statevector and run_config.shots != 1:
