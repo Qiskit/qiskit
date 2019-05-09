@@ -164,6 +164,11 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
 
     Returns:
         QasmObj: compiled qobj.
+
+    Raises:
+        ValueError: backend type is wrong or not given
+        ValueError: no circuit in the circuits
+
     """
     backend_config = backend_config or {}
     compile_config = compile_config or {}
@@ -174,6 +179,9 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
 
     if not isinstance(circuits, list):
         circuits = [circuits]
+
+    if len(circuits) == 0:
+        raise ValueError("The input circuit is empty.")
 
     if is_simulator_backend(backend):
         circuits = _avoid_empty_circuits(circuits)
