@@ -46,7 +46,7 @@ def barrier(self, *qargs):
     if not qargs:  # None
         for qreg in self.qregs:
             for j in range(qreg.size):
-                qubits.append((qreg, j))
+                qubits.append(QuBit(qreg, j))
 
     for qarg in qargs:
         if isinstance(qarg, QuantumRegister):

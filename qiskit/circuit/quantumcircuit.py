@@ -284,7 +284,7 @@ class QuantumCircuit:
         except IndexError:
             raise QiskitError('Index out of range.')
         except TypeError:
-            raise QiskitError('Type error handeling %s (%s)' % (bit_representation,
+            raise QiskitError('Type error handling %s (%s)' % (bit_representation,
                                                                 type(bit_representation)))
 
     def qbit_argument_conversion(self, qubit_representation):
