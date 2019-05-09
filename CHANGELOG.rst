@@ -19,6 +19,11 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Deprecated
+----------
+
+- The gates `U` and `CX` are being deprecated in favor of `u3` and `cx`.
+
 Removed
 -------
 - The previously deprecated functions ``qiksit.visualization.plot_state`` and
