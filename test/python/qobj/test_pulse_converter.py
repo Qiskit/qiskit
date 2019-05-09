@@ -249,6 +249,9 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertFalse(_is_math_expr_safe('INSERT INTO students VALUES (?,?)'))
         self.assertFalse(_is_math_expr_safe('import math'))
         self.assertFalse(_is_math_expr_safe('complex'))
+        self.assertFalse(_is_math_expr_safe('__import__("os").system("clear")'))
+        self.assertFalse(_is_math_expr_safe('eval("()._" + "_class_" + "_._" +'
+                                            ' "_bases_" + "_[0]")'))
         self.assertFalse(_is_math_expr_safe('2***2'))
         self.assertFalse(_is_math_expr_safe('avdfd*3'))
         self.assertFalse(_is_math_expr_safe('Cos(1+2)'))
@@ -259,7 +262,6 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         self.assertFalse(_is_math_expr_safe('print(1.0)'))
         self.assertFalse(_is_math_expr_safe('1.1.1.1'))
         self.assertFalse(_is_math_expr_safe('abc.1'))
-
 
         self.assertTrue(_is_math_expr_safe('1+1*2*3.2+8*cos(1)**2'))
         self.assertTrue(_is_math_expr_safe('pi*2'))

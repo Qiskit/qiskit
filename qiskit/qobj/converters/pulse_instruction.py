@@ -228,8 +228,8 @@ _math_ops_regex = r"(" + ")|(".join(_math_ops) + ")"
 # match consecutive alphanumeric, and single consecutive math ops +-/.()
 # and multiple * for exponentiation
 _allowedchars = re.compile(r'(([+\/\-]?|\*{0,2})?[\(\)\s]*'  # allow to start with math/bracket
-                            '([a-zA-Z][a-zA-Z\d]*|'  # match word
-                            '[\d]+(\.\d*)?)[\(\)\s]*)*')  # match decimal and bracket
+                           r'([a-zA-Z][a-zA-Z\d]*|'  # match word
+                           r'[\d]+(\.\d*)?)[\(\)\s]*)*')  # match decimal and bracket
 # match any sequence of chars and numbers
 _expr_regex = r'([a-zA-Z]+\d*)'
 # and valid params
