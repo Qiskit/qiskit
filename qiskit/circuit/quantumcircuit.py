@@ -24,20 +24,12 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.parameter import Parameter
-from .quantumregister import QuantumRegister
-from .classicalregister import ClassicalRegister
+from .quantumregister import QuantumRegister, QuBit
+from .classicalregister import ClassicalRegister, ClBit
 from .parametertable import ParameterTable
 from .instructionset import InstructionSet
 from .register import Register
-
-
-def _is_bit(obj):
-    """Determine if obj is a bit"""
-    # If there is a bit type this could be replaced by isinstance.
-    if isinstance(obj, tuple) and len(obj) == 2:
-        if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
-            return True
-    return False
+from .bit import Bit
 
 
 class QuantumCircuit:
@@ -266,7 +258,7 @@ class QuantumCircuit:
     @staticmethod
     def _bit_argument_conversion(bit_representation, in_array):
         try:
-            if _is_bit(bit_representation):
+            if isinstance(bit_representation, Bit):
                 # circuit.h(qr[0]) -> circuit.h([qr[0]])
                 return [bit_representation]
             elif isinstance(bit_representation, Register):
@@ -279,7 +271,7 @@ class QuantumCircuit:
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
                 return in_array[bit_representation]
             elif isinstance(bit_representation, list) and \
-                    all(_is_bit(bit) for bit in bit_representation):
+                    all(isinstance(bit, Bit) for bit in bit_representation):
                 # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
                 return bit_representation
             elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
@@ -429,25 +421,21 @@ class QuantumCircuit:
 
     def _check_qargs(self, qargs):
         """Raise exception if a qarg is not in this circuit or bad format."""
-        if not all(isinstance(i, tuple) and
-                   isinstance(i[0], QuantumRegister) and
-                   isinstance(i[1], int) for i in qargs):
-            raise QiskitError("qarg not (QuantumRegister, int) tuple")
-        if not all(self.has_register(i[0]) for i in qargs):
+        if not all(isinstance(i, QuBit) for i in qargs):
+            raise QiskitError("qarg is not a QuBit")
+        if not all(self.has_register(i.register) for i in qargs):
             raise QiskitError("register not in this circuit")
         for qubit in qargs:
-            qubit[0].check_range(qubit[1])
+            qubit.register.check_range(qubit.index)
 
     def _check_cargs(self, cargs):
         """Raise exception if clbit is not in this circuit or bad format."""
-        if not all(isinstance(i, tuple) and
-                   isinstance(i[0], ClassicalRegister) and
-                   isinstance(i[1], int) for i in cargs):
-            raise QiskitError("carg not (ClassicalRegister, int) tuple")
-        if not all(self.has_register(i[0]) for i in cargs):
+        if not all(isinstance(i, ClBit) for i in cargs):
+            raise QiskitError("carg is not a ClBit")
+        if not all(self.has_register(i.register) for i in cargs):
             raise QiskitError("register not in this circuit")
         for clbit in cargs:
-            clbit[0].check_range(clbit[1])
+            clbit.register.check_range(clbit.index)
 
     def to_instruction(self, parameter_map=None):
         """Create an Instruction out of this circuit.

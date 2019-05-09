@@ -34,7 +34,7 @@ class QuantumRegister(Register):
 
     def __getitem__(self, key):
         tuple = super().__getitem__(key)
-        return  QuBit.from_tuple(tuple)
+        return QuBit.from_tuple(tuple)
 
 class QuBit(Bit):
     def __init__(self, register, index):
