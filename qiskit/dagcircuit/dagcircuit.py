@@ -435,12 +435,11 @@ class DAGCircuit:
             s = set(v.values())
             if len(s) == 2:
                 raise DAGCircuitError("edge_map fragments reg %s" % k)
-            elif s == set([False]):
+            if s == {False}:
                 if k in self.qregs.values() or k in self.cregs.values():
                     raise DAGCircuitError("unmapped duplicate reg %s" % k)
-                else:
-                    # Add registers that appear only in keyregs
-                    add_regs.add(k)
+                # Add registers that appear only in keyregs
+                add_regs.add(k)
             else:
                 if valreg:
                     # If mapping to a register not in valregs, add it.
