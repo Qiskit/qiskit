@@ -843,24 +843,40 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.swap(qr1, qr2)
         self.assertEqual(str(_text_circuit_drawer(circuit, justify='left')), expected)
 
-    def test_text_justify_right_measure_resize(self):
-        """ Measure gate can resize if necessary"""
-        expected = '\n'.join(['         ┌───┐',
-                              'q1_0: |0>┤ X ├',
-                              '         └┬─┬┘',
-                              'q1_1: |0>─┤M├─',
-                              '          └╥┘ ',
-                              ' c1_0: 0 ══╬══',
-                              '           ║  ',
-                              ' c1_1: 0 ══╩══',
-                              '              '])
+    def test_text_spacing_2378(self):
+        """Small gates in the same layer as long gates.
+        See https://github.com/Qiskit/qiskit-terra/issues/2378"""
+        expected = '\n'.join(["                     ",
+                              "q_0: |0>──────X──────",
+                              "              │      ",
+                              "q_1: |0>──────X──────",
+                              "        ┌───────────┐",
+                              "q_2: |0>┤ Rz(11111) ├",
+                              "        └───────────┘"])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.swap(qr[0], qr[1])
+        circuit.rz(11111, qr[2])
 
-        qr1 = QuantumRegister(2, 'q1')
-        cr1 = ClassicalRegister(2, 'c1')
-        circuit = QuantumCircuit(qr1, cr1)
-        circuit.x(qr1[0])
-        circuit.measure(qr1[1], cr1[1])
-        self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_box_length(self):
+        """The length of boxes is indepedent of other boxes in the layer
+        https://github.com/Qiskit/qiskit-terra/issues/1882"""
+        expected = '\n'.join(["             ┌───┐    ┌───┐",
+                              "q1_0: |0>────┤ H ├────┤ H ├",
+                              "             └───┘    └───┘",
+                              "q1_1: |0>──────────────────",
+                              "         ┌───────────┐     ",
+                              "q1_2: |0>┤ U1(1e-07) ├─────",
+                              "         └───────────┘     "])
+
+        qr = QuantumRegister(3, 'q1')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[0])
+        circuit.u1(0.0000001, qr[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_box_length(self):
         """The length of boxes is indepedent of other boxes in the layer
