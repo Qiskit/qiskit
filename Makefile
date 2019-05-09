@@ -66,9 +66,6 @@ test_ci:
 	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"
 	stestr run --concurrency $(CONCURRENCY)
 
-profile:
-	python3 -m unittest discover -p "profile*.py" -v
-
 coverage:
 	coverage3 run --source qiskit -m unittest discover -s test -q
 	coverage3 report
