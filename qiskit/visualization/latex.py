@@ -505,12 +505,12 @@ class QCircuitImage:
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (op.op.params[0])
                             elif nm == "cu1":
-                                self._latex[pos_1][column - 1] = "\\ctrl{" + str(
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column - 1] = "\\control\\qw"
-                                self._latex[min(pos_1, pos_2)][column] = \
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "\\dstick{%s}\\qw" % (op.op.params[0])
-                                self._latex[max(pos_1, pos_2)][column] = "\\qw"
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = \
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
@@ -548,12 +548,12 @@ class QCircuitImage:
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (op.op.params[0])
                             elif nm == "cu1":
-                                self._latex[pos_1][column - 1] = "\\ctrl{" + str(
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column - 1] = "\\control\\qw"
-                                self._latex[min(pos_1, pos_2)][column] = \
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "\\dstick{%s}\\qw" % (op.op.params[0])
-                                self._latex[max(pos_1, pos_2)][column] = "\\qw"
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
