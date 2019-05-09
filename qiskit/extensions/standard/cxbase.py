@@ -18,7 +18,6 @@ Fundamental controlled-NOT gate.
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.decorators import _op_expand, _to_bits
 
 
 class CXBase(Gate):  # pylint: disable=abstract-method
@@ -33,8 +32,6 @@ class CXBase(Gate):  # pylint: disable=abstract-method
         return CXBase()  # self-inverse
 
 
-@_to_bits(2)
-@_op_expand(2)
 def cx_base(self, ctl, tgt):
     """Apply CX ctl, tgt."""
     return self.append(CXBase(), [ctl, tgt], [])

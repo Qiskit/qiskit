@@ -5,18 +5,16 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Tests basic functionality of the transpile function"""
 
 import math
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, BasicAer
+from qiskit import BasicAer
 from qiskit.extensions.standard import CnotGate
-from qiskit.transpiler import PassManager, transpile
-from qiskit.compiler import assemble
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
@@ -53,9 +51,9 @@ class TestTranspile(QiskitTestCase):
         circuit2 = transpile(circuit, backend=backend, coupling_map=coupling_map,
                              basis_gates=basis_gates, pass_manager=None)
 
-        qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
-        qobj2 = assemble(circuit2, qobj_id=qobj.qobj_id, shots=1024, max_credits=10)
-        self.assertEqual(qobj, qobj2)
+        circuit3 = transpile(circuit, backend=backend, coupling_map=coupling_map,
+                             basis_gates=basis_gates)
+        self.assertEqual(circuit2, circuit3)
 
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):
         """Verify tranpile() works with no coupling_map or backend."""
@@ -486,10 +484,7 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(
             self._get_resource_path('move_measurements.qasm', Path.QASMS))
 
-        lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
-                      ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
-                      ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
-                      ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
+        lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
         out = transpile(circ, initial_layout=lay, coupling_map=cmap)
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes('measure')

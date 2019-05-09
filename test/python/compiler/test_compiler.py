@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=redefined-builtin
-
 """Compiler Test."""
 
 import unittest
@@ -21,7 +19,8 @@ import unittest
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
-from qiskit import compile, execute
+from qiskit import execute
+from qiskit.compiler import transpile, assemble
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeRueschlikon, FakeTenerife
 from qiskit.qobj import QasmQobj
@@ -31,7 +30,7 @@ class TestCompiler(QiskitTestCase):
     """Qiskit Compiler Tests."""
 
     def setUp(self):
-        self.seed = 42
+        self.seed_simulator = 42
         self.backend = BasicAer.get_backend("qasm_simulator")
 
     def test_example_multiple_compile(self):
@@ -65,11 +64,13 @@ class TestCompiler(QiskitTestCase):
         bell.measure(qr[0], cr[0])
         bell.measure(qr[1], cr[1])
         shots = 2048
-        bell_qobj = compile(bell, backend=backend,
-                            shots=shots, seed=10)
-        ghz_qobj = compile(ghz, backend=backend,
-                           shots=shots, coupling_map=coupling_map,
-                           seed=10)
+        bell_backend = transpile(bell, backend=backend)
+        ghz_backend = transpile(ghz, backend=backend,
+                                coupling_map=coupling_map)
+        bell_qobj = assemble(bell_backend, shots=shots,
+                             seed_simulator=10)
+        ghz_qobj = assemble(ghz_backend, shots=shots,
+                            seed_simulator=10)
         bell_result = backend.run(bell_qobj).result()
         ghz_result = backend.run(ghz_qobj).result()
 
@@ -100,13 +101,11 @@ class TestCompiler(QiskitTestCase):
         qc.measure(qr[2], cr[2])
         shots = 2048
         coupling_map = [[0, 1], [1, 2]]
-        # TODO (luciano): this initial_layout should be replaced by
-        #  {(qr, 0): 0, (qr, 1): 1, (qr, 2): 2} after 0.8
-        initial_layout = {("qr", 0): ("q", 0), ("qr", 1): ("q", 1),
-                          ("qr", 2): ("q", 2)}
-        qobj = compile(qc, backend=backend, shots=shots,
-                       coupling_map=coupling_map,
-                       initial_layout=initial_layout, seed=88)
+        initial_layout = [0, 1, 2]
+        qc_b = transpile(qc, backend=backend,
+                         coupling_map=coupling_map,
+                         initial_layout=initial_layout)
+        qobj = assemble(qc_b, shots=shots, seed_simulator=88)
         job = backend.run(qobj)
         result = job.result()
         qasm_to_check = qc.qasm()
@@ -149,12 +148,12 @@ class TestCompiler(QiskitTestCase):
         # First version: no mapping
         result = execute(qc, backend=backend,
                          coupling_map=None, shots=1024,
-                         seed=14).result()
+                         seed_simulator=14).result()
         self.assertEqual(result.get_counts(qc), {'010000': 1024})
         # Second version: map to coupling graph
         result = execute(qc, backend=backend,
                          coupling_map=coupling_map, shots=1024,
-                         seed=14).result()
+                         seed_simulator=14).result()
         self.assertEqual(result.get_counts(qc), {'010000': 1024})
 
     def test_parallel_compile(self):
@@ -169,7 +168,7 @@ class TestCompiler(QiskitTestCase):
             qc.cx(qr[0], qr[k])
         qc.measure(qr[5], cr[0])
         qlist = [qc for k in range(10)]
-        qobj = compile(qlist, backend=backend)
+        qobj = assemble(transpile(qlist, backend=backend))
         self.assertEqual(len(qobj.experiments), 10)
 
     def test_compile_single_qubit(self):
@@ -182,8 +181,9 @@ class TestCompiler(QiskitTestCase):
         cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8], [7, 8],
                 [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]]
 
-        qobj = compile(circuit, backend=None, coupling_map=cmap, basis_gates=['u2'],
-                       initial_layout=layout)
+        circuit2 = transpile(circuit, backend=None, coupling_map=cmap, basis_gates=['u2'],
+                             initial_layout=layout)
+        qobj = assemble(circuit2)
 
         compiled_instruction = qobj.experiments[0].instructions[0]
 
@@ -201,9 +201,12 @@ class TestCompiler(QiskitTestCase):
         qc.barrier(qr)
         qc.measure(qr, cr)
         backend = BasicAer.get_backend('qasm_simulator')
-        qrtrue = compile(qc, backend, seed=42)
+        qrtrue = assemble(transpile(qc, backend, seed_transpiler=8),
+                          seed_simulator=42)
         rtrue = backend.run(qrtrue).result()
-        qrfalse = compile(qc, backend, seed=42, pass_manager=PassManager())
+        qrfalse = assemble(transpile(qc, backend, seed_transpiler=8,
+                                     pass_manager=PassManager()),
+                           seed_simulator=42)
         rfalse = backend.run(qrfalse).result()
         self.assertEqual(rtrue.get_counts(), rfalse.get_counts())
 
@@ -218,8 +221,8 @@ class TestCompiler(QiskitTestCase):
         qc.cx(qr[2], qr[0])
         initial_layout = {0: (qr, 1), 2: (qr, 0), 15: (qr, 2)}
         backend = FakeRueschlikon()
-
-        qobj = compile(qc, backend, seed=42, initial_layout=initial_layout)
+        qc_b = transpile(qc, backend, seed_transpiler=42, initial_layout=initial_layout)
+        qobj = assemble(qc_b)
 
         compiled_ops = qobj.experiments[0].instructions
         for operation in compiled_ops:
@@ -259,10 +262,15 @@ class TestCompiler(QiskitTestCase):
         shots = 1000
 
         result1 = execute(circ, backend=self.backend,
-                          coupling_map=coupling_map, seed=self.seed, shots=shots)
+                          coupling_map=coupling_map,
+                          seed_simulator=self.seed_simulator,
+                          seed_transpiler=8,
+                          shots=shots)
         count1 = result1.result().get_counts()
         result2 = execute(circ, backend=self.backend,
-                          coupling_map=None, seed=self.seed, shots=shots)
+                          coupling_map=None,
+                          seed_simulator=self.seed_simulator,
+                          seed_transpiler=8, shots=shots)
         count2 = result2.result().get_counts()
         self.assertDictAlmostEqual(count1, count2, shots * 0.02)
 
@@ -305,7 +313,8 @@ class TestCompiler(QiskitTestCase):
         circuit.measure(qr[1], cr[1])
 
         result = execute(circuit, backend=self.backend,
-                         coupling_map=coupling_map, seed=self.seed, shots=shots)
+                         coupling_map=coupling_map,
+                         seed_simulator=self.seed_simulator, shots=shots)
         counts = result.result().get_counts()
 
         expected_probs = {'00': 0.64,
@@ -343,7 +352,8 @@ class TestCompiler(QiskitTestCase):
         coupling_map = [[0, 2], [1, 2], [2, 3]]
         shots = 2000
         job = execute(circ, backend=self.backend,
-                      coupling_map=coupling_map, seed=self.seed, shots=shots)
+                      coupling_map=coupling_map,
+                      seed_simulator=self.seed_simulator, shots=shots)
         counts = job.result().get_counts()
         target = {'0001': shots / 2, '0101': shots / 2}
         threshold = 0.04 * shots
@@ -356,7 +366,8 @@ class TestCompiler(QiskitTestCase):
         coupling_map = [[0, 1], [1, 2], [2, 3], [3, 4]]
         shots = 1024
         qobj = execute(circ, backend=self.backend,
-                       coupling_map=coupling_map, shots=shots, seed=self.seed)
+                       coupling_map=coupling_map, shots=shots,
+                       seed_simulator=self.seed_simulator)
         counts = qobj.result().get_counts()
         expected_probs = {
             '00000': 0.079239867254200971,
@@ -407,7 +418,7 @@ class TestCompiler(QiskitTestCase):
         circ1.cx(qr[0], qr[1])
         circ1.rz(0.7, qr[1])
         circ1.rx(1.570796, qr[1])
-        qobj1 = compile(circ1, backend)
+        qobj1 = assemble(transpile(circ1, backend))
         self.assertIsInstance(qobj1, QasmQobj)
 
         circ2 = QuantumCircuit(qr)
@@ -415,7 +426,7 @@ class TestCompiler(QiskitTestCase):
         circ2.h(qr[0])
         circ2.s(qr[0])
         circ2.h(qr[0])
-        qobj2 = compile(circ2, backend)
+        qobj2 = assemble(transpile(circ2, backend))
         self.assertIsInstance(qobj2, QasmQobj)
 
 

@@ -11,8 +11,7 @@ import unittest
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.converters import circuit_to_dag
-from qiskit.mapper import CouplingMap
-from qiskit.mapper import Layout
+from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.test import QiskitTestCase
 
