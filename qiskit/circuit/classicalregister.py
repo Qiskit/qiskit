@@ -48,20 +48,7 @@ class ClassicalRegister(Register):
             QiskitIndexError: if the `key` is not in the range
                 `(0, self.size)`.
         """
-        if not isinstance(key, (int, slice, list)):
-            raise QiskitError("expected integer or slice index into register")
-        if isinstance(key, int) and key < 0:
-            key = self.size + key
-        self.check_range(key)
-        if isinstance(key, slice):
-            return [ClBit.from_tuple((self, ind)) for ind in range(*key.indices(len(self)))]
-        elif isinstance(key, list):  # list of qubit indices
-            if max(key) < len(self):
-                return [ClBit.from_tuple((self, ind)) for ind in key]
-            else:
-                raise QiskitError('register index out of range')
-        else:
-            return ClBit.from_tuple((self, key))
+        return self.getitem(ClBit, key)
 
     def __iter__(self):
         """
