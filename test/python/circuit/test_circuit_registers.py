@@ -19,6 +19,7 @@
 import os
 import tempfile
 import unittest
+import numpy as np
 
 import qiskit.extensions.simulator
 from qiskit import BasicAer
@@ -47,6 +48,25 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(cr1.name, "c")
         self.assertEqual(cr1.size, 10)
         self.assertEqual(type(cr1), ClassicalRegister)
+
+    def test_qarg_negative_size(self):
+        """Test attempt to create a negative size QuantumRegister.
+        """
+        self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, -1)
+
+    def test_qarg_string_size(self):
+        """Test attempt to create a non-integer size QuantumRegister.
+        """
+        self.assertRaises(qiskit.exceptions.QiskitError, QuantumRegister, 'string')
+
+    def test_qarg_numpy_int_size(self):
+        """Test castable to integer size QuantumRegister.
+        """
+        np_int = np.dtype('int').type(10)
+        qr1 = QuantumRegister(np_int, "q")
+        self.assertEqual(qr1.name, "q")
+        self.assertEqual(qr1.size, 10)
+        self.assertEqual(type(qr1), QuantumRegister)
 
     def test_negative_index(self):
         """Test indexing from the back
@@ -175,8 +195,8 @@ class TestCircuitRegisters(QiskitTestCase):
         for i, ictl, (gate, qargs, _) in zip(range(len(qc.data)), range(0, 10, 2), qc.data):
             self.assertEqual(gate.name, 'ccx')
             self.assertEqual(len(qargs), 3)
-            self.assertIn(qargs[0][1], [ictl, ictl+1])
-            self.assertIn(qargs[1][1], [ictl, ictl+1])
+            self.assertIn(qargs[0][1], [ictl, ictl + 1])
+            self.assertIn(qargs[1][1], [ictl, ictl + 1])
             self.assertEqual(qargs[2][1], i)
         # test decrementing slice
         qc = QuantumCircuit(qcontrol, qtarget)
