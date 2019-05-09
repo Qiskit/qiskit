@@ -34,12 +34,13 @@ class ClassicalRegister(Register):
         """Return OPENQASM string for this register."""
         return "creg %s[%d];" % (self.name, self.size)
 
-    def __getitem__(self, key):
-        tuple = super().__getitem__(key)
-        if isinstance(tuple, list):
-            return [ ClBit.from_tuple(bit_tuple) for bit_tuple in tuple ]
-        else:
-            return  ClBit.from_tuple(tuple)
+    def __iter__(self):
+        """
+        Yields:
+            Qubit: an iterator over the qubits in the register.
+        """
+        for bit in range(self.size):
+            yield ClBit(self, bit)
 
 class ClBit(Bit):
     def __init__(self, register, index):

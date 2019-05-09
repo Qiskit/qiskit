@@ -32,9 +32,13 @@ class QuantumRegister(Register):
         """Return OPENQASM string for this register."""
         return "qreg %s[%d];" % (self.name, self.size)
 
-    def __getitem__(self, key):
-        tuple = super().__getitem__(key)
-        return QuBit.from_tuple(tuple)
+    def __iter__(self):
+        """
+        Yields:
+            Qubit: an iterator over the qubits in the register.
+        """
+        for bit in range(self.size):
+            yield QuBit(self, bit)
 
 class QuBit(Bit):
     def __init__(self, register, index):

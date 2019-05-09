@@ -20,6 +20,7 @@ import logging
 import itertools
 
 from qiskit.exceptions import QiskitError, QiskitIndexError
+from .bit import Bit
 
 logger = logging.getLogger(__name__)
 
@@ -101,22 +102,14 @@ class Register:
             key = self.size + key
         self.check_range(key)
         if isinstance(key, slice):
-            return [(self, ind) for ind in range(*key.indices(len(self)))]
+            return [Bit.from_tuple((self, ind)) for ind in range(*key.indices(len(self)))]
         elif isinstance(key, list):  # list of qubit indices
             if max(key) < len(self):
-                return [(self, ind) for ind in key]
+                return [Bit.from_tuple((self, ind)) for ind in key]
             else:
                 raise QiskitError('register index out of range')
         else:
-            return self, key
-
-    def __iter__(self):
-        """
-        Returns:
-            iterator: an iterator over the bits/qubits of the register, in the
-                form `tuple (Register, int)`.
-        """
-        return zip([self] * self.size, range(self.size))
+            return Bit.from_tuple((self, key))
 
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
