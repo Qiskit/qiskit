@@ -39,6 +39,8 @@ class Bit:
         return "(%s, %s)" % (self.register, self.index)
 
     def __eq__(self, other):
+        if isinstance(other, tuple):
+            return other[1] == self.index and other[0] == self.register
         return other.index == self.index and other.register == self.register
 
     @classmethod
