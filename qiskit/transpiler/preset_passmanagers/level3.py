@@ -92,7 +92,7 @@ def level_3_pass_manager(transpile_config):
 
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
-             LegacySwap(coupling_map)]
+             LegacySwap(coupling_map, trials=20, seed=seed_transpiler)]
 
     # 4. Unroll to the basis
     _unroll = Unroller(basis_gates)
