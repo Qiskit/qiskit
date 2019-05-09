@@ -501,13 +501,13 @@ class TestTranspile(QiskitTestCase):
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.u_base(1.5708, 0, 0, qr[0])
-        expected.u_base(0, 0, 0, qr[0])
+        expected.u3(1.5708, 0, 0, qr[0])
+        expected.u3(0, 0, 0, qr[0])
         expected.reset(qr[0])
-        expected.u_base(1.5708, 0, 0, qr[0])
-        expected.u_base(0, 0, 3.1416, qr[0])
+        expected.u3(1.5708, 0, 0, qr[0])
+        expected.u3(0, 0, 3.1416, qr[0])
 
-        after = transpile(qc, basis_gates=['reset', 'U'])
+        after = transpile(qc, basis_gates=['reset', 'u3'])
 
         self.assertEqual(after, expected)
 
