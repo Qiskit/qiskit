@@ -39,6 +39,14 @@ class Bit:
         return "(%s, %s)" % (self.register, self.index)
 
 
+    def __getitem__(self, item):
+        if item == 0:
+            return self.register
+        elif item == 1:
+            return self.index
+        else:
+            raise IndexError
+
     def __hash__(self):
         return hash((self.register, self.index))
 
