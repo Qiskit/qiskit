@@ -32,13 +32,42 @@ class QuantumRegister(Register):
         """Return OPENQASM string for this register."""
         return "qreg %s[%d];" % (self.name, self.size)
 
+    def __getitem__(self, key):
+        """
+        Arg:
+            key (int|slice|list): index of the qubit to be retrieved.
+
+        Returns:
+            tuple[Register, int]: a tuple in the form `(self, key)` if key is int.
+                If key is a slice, return a `list((self,key))`.
+
+        Raises:
+            QiskitError: if the `key` is not an integer.
+            QiskitIndexError: if the `key` is not in the range
+                `(0, self.size)`.
+        """
+        if not isinstance(key, (int, slice, list)):
+            raise QiskitError("expected integer or slice index into register")
+        if isinstance(key, int) and key < 0:
+            key = self.size + key
+        self.check_range(key)
+        if isinstance(key, slice):
+            return [QuBit.from_tuple((self, ind)) for ind in range(*key.indices(len(self)))]
+        elif isinstance(key, list):  # list of qubit indices
+            if max(key) < len(self):
+                return [QuBit.from_tuple((self, ind)) for ind in key]
+            else:
+                raise QiskitError('register index out of range')
+        else:
+            return QuBit.from_tuple((self, key))
+
     def __iter__(self):
         """
         Yields:
             Qubit: an iterator over the qubits in the register.
         """
         for bit in range(self.size):
-            yield QuBit(self, bit)
+            yield self[bit]
 
 class QuBit(Bit):
     def __init__(self, register, index):

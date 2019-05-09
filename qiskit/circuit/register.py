@@ -20,7 +20,7 @@ import logging
 import itertools
 
 from qiskit.exceptions import QiskitError, QiskitIndexError
-from .bit import Bit
+
 
 logger = logging.getLogger(__name__)
 
@@ -81,35 +81,6 @@ class Register:
                 if j.start < 0 or j.stop >= self.size or (j.step is not None and
                                                           j.step <= 0):
                     raise QiskitIndexError("register index slice out of range")
-
-    def __getitem__(self, key):
-        """
-        Arg:
-            key (int|slice|list): index of the bit/qubit to be retrieved.
-
-        Returns:
-            tuple[Register, int]: a tuple in the form `(self, key)` if key is int.
-                If key is a slice, return a `list((self,key))`.
-
-        Raises:
-            QiskitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range
-                `(0, self.size)`.
-        """
-        if not isinstance(key, (int, slice, list)):
-            raise QiskitError("expected integer or slice index into register")
-        if isinstance(key, int) and key < 0:
-            key = self.size + key
-        self.check_range(key)
-        if isinstance(key, slice):
-            return [Bit.from_tuple((self, ind)) for ind in range(*key.indices(len(self)))]
-        elif isinstance(key, list):  # list of qubit indices
-            if max(key) < len(self):
-                return [Bit.from_tuple((self, ind)) for ind in key]
-            else:
-                raise QiskitError('register index out of range')
-        else:
-            return Bit.from_tuple((self, key))
 
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
