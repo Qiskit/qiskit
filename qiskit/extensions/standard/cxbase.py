@@ -15,6 +15,7 @@
 """
 Fundamental controlled-NOT gate.
 """
+import warnings
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -25,10 +26,14 @@ class CXBase(Gate):  # pylint: disable=abstract-method
 
     def __init__(self):
         """Create new CX instruction."""
+        warnings.warn('CXBase is deprecated and it will be removed after 0.9. '
+                      'Use CnotGate instead.', DeprecationWarning, 2)
         super().__init__("CX", 2, [])
 
     def inverse(self):
         """Invert this gate."""
+        warnings.warn('CXBase.inverse is deprecated and it will be removed after 0.9. '
+                      'Use CnotGate.inverse instead.', DeprecationWarning, 2)
         return CXBase()  # self-inverse
 
 

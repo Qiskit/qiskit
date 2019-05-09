@@ -18,6 +18,8 @@
 Element of SU(2).
 """
 import numpy
+import warnings
+
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -27,6 +29,8 @@ class UBase(Gate):  # pylint: disable=abstract-method
     """Element of SU(2)."""
 
     def __init__(self, theta, phi, lam):
+        warnings.warn('UBase is deprecated and it will be removed after 0.9. '
+                      'Use U3Gate instead.', DeprecationWarning, 2)
         super().__init__("U", 1, [theta, phi, lam])
 
     def inverse(self):
@@ -34,10 +38,17 @@ class UBase(Gate):  # pylint: disable=abstract-method
 
         U(theta,phi,lambda)^dagger = U(-theta,-lambda,-phi)
         """
+        warnings.warn('UBase.inverse is deprecated and it will be removed after 0.9. '
+                      'Use U3Gate.inverse instead.',
+                      DeprecationWarning, 2)
         return UBase(-self.params[0], -self.params[2], -self.params[1])
 
     def to_matrix(self):
         """Return a Numpy.array for the U3 gate."""
+        warnings.warn('UBase.to_matrix is deprecated and it will be removed after 0.9.'
+                      'Use U3Gate.to_matrix instead.',
+                      DeprecationWarning, 2)
+
         theta, phi, lam = self.params
         return numpy.array(
             [[
