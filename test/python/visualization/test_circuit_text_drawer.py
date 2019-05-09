@@ -896,6 +896,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.rz(11111, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+
 class TestTextDrawerMultiQGates(QiskitTestCase):
     """ Gates impling multiple qubits."""
 
