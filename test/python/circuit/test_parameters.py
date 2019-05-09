@@ -17,11 +17,13 @@ import numpy
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Gate, Parameter
+from qiskit.circuit import Gate, Parameter, ParameterVector
 from qiskit.compiler import transpile
 from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
+
+import numpy as np
 
 
 class TestParameters(QiskitTestCase):
@@ -176,3 +178,47 @@ class TestParameters(QiskitTestCase):
         qc.u1(theta1, 0)
 
         self.assertRaises(QiskitError, qc.u1, theta2, 0)
+
+    def test_bind_ryrz_vector(self):
+        qc = QuantumCircuit(4)
+        depth = 4
+        theta = ParameterVector('θ_', length=len(qc.qubits) * depth * 2)
+        theta_iter = iter(theta)
+        for d in range(depth):
+            for q in qc.qubits:
+                qc.ry(next(theta_iter), q)
+                qc.rz(next(theta_iter), q)
+            for i, q in enumerate(qc.qubits[:-1]):
+                qc.cx(i, i + 1)
+            qc.barrier()
+        theta_vals = np.random.random(len(theta)) * np.pi
+        self.assertEqual(set(qc.parameters), set(theta.params))
+        bqc = qc.bind_parameters({theta: theta_vals})
+        for gate_tuple in bqc.data:
+            if hasattr(gate_tuple[0], 'params') and len(gate_tuple[0].params) > 0:
+                self.assertIn(gate_tuple[0].params[0], theta_vals)
+
+    def test_compile_vector(self):
+        qc = QuantumCircuit(4)
+        depth = 4
+        theta = ParameterVector('θ_', length=len(qc.qubits)*depth*2)
+        theta_iter = iter(theta)
+        for d in range(depth):
+            for q in qc.qubits:
+                qc.ry(next(theta_iter), q)
+                qc.rz(next(theta_iter), q)
+            for i, q in enumerate(qc.qubits[:-1]):
+                qc.cx(i, i+1)
+            qc.barrier()
+        backend = BasicAer.get_backend('qasm_simulator')
+        qc_aer = transpile(qc, backend)
+        for param in theta:
+            self.assertIn(param, qc_aer.parameters)
+
+    def test_instruction_vector(self):
+        pass
+        # TODO
+
+    def test_circuit_composition_vector(self):
+        pass
+        # TODO

@@ -26,6 +26,7 @@ from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 from .parametertable import ParameterTable
+from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
 
@@ -818,14 +819,21 @@ class QuantumCircuit:
         """
         new_circuit = self.copy()
 
-        if value_dict.keys() > self.parameters:
+        unrolled_value_dict = {}
+        for (param, value) in value_dict.items():
+            if isinstance(param, Parameter):
+                unrolled_value_dict[param] = value
+            if isinstance(param, ParameterVector):
+                unrolled_value_dict.update(zip(param, value))
+
+        if unrolled_value_dict.keys() > self.parameters:
             raise QiskitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                 [str(p) for p in value_dict.keys() - self.parameters]))
 
-        for parameter, value in value_dict.items():
+        for parameter, value in unrolled_value_dict.items():
             new_circuit._bind_parameter(parameter, value)
         # clear evaluated expressions
-        for parameter in value_dict:
+        for parameter in unrolled_value_dict:
             del new_circuit._parameter_table[parameter]
         return new_circuit
 
