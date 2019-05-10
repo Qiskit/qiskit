@@ -32,9 +32,11 @@ from qiskit.extensions.standard.s import SdgGate
 class CHGate(Gate):
     """controlled-H gate."""
 
-    def __init__(self):
+    qobj_name = 'ch'
+
+    def __init__(self, name=None):
         """Create new CH gate."""
-        super().__init__("ch", 2, [])
+        super().__init__(name, 2, [])
 
     def _define(self):
         """

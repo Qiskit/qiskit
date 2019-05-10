@@ -27,9 +27,11 @@ from qiskit.extensions.standard.ubase import UBase
 class U3Gate(Gate):
     """Two-pulse single-qubit gate."""
 
-    def __init__(self, theta, phi, lam, label=None):
+    qobj_name = 'u3'
+
+    def __init__(self, theta, phi, lam, label=None, name='u3'):
         """Create new two-pulse single qubit gate."""
-        super().__init__("u3", 1, [theta, phi, lam], label=label)
+        super().__init__(name, 1, [theta, phi, lam], label=label)
 
     def _define(self):
         definition = []

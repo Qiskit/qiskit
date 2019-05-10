@@ -30,9 +30,11 @@ from qiskit.extensions.standard.cxbase import CXBase
 class CnotGate(Gate):
     """controlled-NOT gate."""
 
-    def __init__(self):
+    qobj_name = 'cx'
+
+    def __init__(self, name=None):
         """Create new CNOT gate."""
-        super().__init__("cx", 2, [])
+        super().__init__(name, 2, [])
 
     def _define(self):
         """

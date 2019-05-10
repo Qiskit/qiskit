@@ -23,9 +23,11 @@ from qiskit.circuit import QuantumCircuit
 class CXBase(Gate):  # pylint: disable=abstract-method
     """Fundamental controlled-NOT gate."""
 
-    def __init__(self):
+    qobj_name = 'CX'
+
+    def __init__(self, name=None):
         """Create new CX instruction."""
-        super().__init__("CX", 2, [])
+        super().__init__(name, 2, [])
 
     def inverse(self):
         """Invert this gate."""

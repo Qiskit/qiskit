@@ -40,7 +40,9 @@ class Initialize(Instruction):
     zero state).
     """
 
-    def __init__(self, params):
+    qobj_name = "initialize"
+
+    def __init__(self, params, name=None):
         """Create new initialize composite.
 
         params (list): vector of complex amplitudes to initialize to
@@ -52,13 +54,12 @@ class Initialize(Instruction):
             raise QiskitError("Desired statevector length not a positive power of 2.")
 
         # Check if probabilities (amplitudes squared) sum to 1
-        if not math.isclose(sum(np.absolute(params) ** 2), 1.0,
-                            abs_tol=_EPS):
+        if not math.isclose(sum(np.absolute(params) ** 2), 1.0, abs_tol=_EPS):
             raise QiskitError("Sum of amplitudes-squared does not equal one.")
 
         num_qubits = int(num_qubits)
 
-        super().__init__("initialize", num_qubits, 0, params)
+        super().__init__(name, num_qubits, 0, params)
 
     def _define(self):
         """Calculate a subcircuit that implements this initialization

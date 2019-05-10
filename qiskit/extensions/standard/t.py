@@ -29,9 +29,11 @@ from qiskit.extensions.standard.u1 import U1Gate
 class TGate(Gate):
     """T Gate: pi/4 rotation around Z axis."""
 
-    def __init__(self, label=None):
+    qobj_name = 't'
+
+    def __init__(self, label=None, name=None):
         """Create new T gate."""
-        super().__init__("t", 1, [], label=label)
+        super().__init__(name, 1, [], label=label)
 
     def _define(self):
         """

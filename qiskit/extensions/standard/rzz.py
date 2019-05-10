@@ -26,9 +26,11 @@ from qiskit.extensions.standard.cx import CnotGate
 class RZZGate(Gate):
     """Two-qubit ZZ-rotation gate."""
 
-    def __init__(self, theta):
+    qobj_name = 'rzz'
+
+    def __init__(self, theta, name=None):
         """Create new rzz gate."""
-        super().__init__("rzz", 2, [theta])
+        super().__init__(name, 2, [theta])
 
     def _define(self):
         """

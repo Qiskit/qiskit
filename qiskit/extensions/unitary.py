@@ -34,7 +34,9 @@ from qiskit.extensions.exceptions import ExtensionError
 class UnitaryGate(Gate):
     """Class for representing unitary gates"""
 
-    def __init__(self, data, label=None):
+    qobj_name = 'unitary'
+
+    def __init__(self, data, label=None, name=None):
         """Create a gate from a numeric unitary matrix.
 
         Args:
@@ -65,7 +67,7 @@ class UnitaryGate(Gate):
             raise ExtensionError(
                 "Input matrix is not an N-qubit operator.")
         # Store instruction params
-        super().__init__('unitary', n_qubits, [data], label=label)
+        super().__init__(name, n_qubits, [data], label=label)
 
     def __eq__(self, other):
         if not isinstance(other, UnitaryGate):

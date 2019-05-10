@@ -50,6 +50,8 @@ _CUTOFF_PRECISION = 1E-10
 class Instruction:
     """Generic quantum instruction."""
 
+    qobj_name = None
+
     def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
         Args:
@@ -66,7 +68,7 @@ class Instruction:
             raise QiskitError(
                 "bad instruction dimensions: %d qubits, %d clbits." %
                 num_qubits, num_clbits)
-        self.name = name
+        self.name = name or self.qobj_name
         self.num_qubits = num_qubits
         self.num_clbits = num_clbits
 
@@ -168,7 +170,7 @@ class Instruction:
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
-        instruction = QasmQobjInstruction(name=self.name)
+        instruction = QasmQobjInstruction(name=self.qobj_name or self.name)
         # Evaluate parameters
         if self.params:
             params = [

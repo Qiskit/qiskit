@@ -28,9 +28,11 @@ from qiskit.extensions.standard.u3 import U3Gate
 class IdGate(Gate):
     """Identity gate."""
 
-    def __init__(self, label=None):
+    qobj_name = 'id'
+
+    def __init__(self, label=None, name=None):
         """Create new Identity gate."""
-        super().__init__("id", 1, [], label=label)
+        super().__init__(name, 1, [], label=label)
 
     def _define(self):
         definition = []

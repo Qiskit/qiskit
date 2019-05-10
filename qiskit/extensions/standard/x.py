@@ -31,9 +31,11 @@ from qiskit.extensions.standard.u3 import U3Gate
 class XGate(Gate):
     """Pauli X (bit-flip) gate."""
 
-    def __init__(self, label=None):
+    qobj_name = 'x'
+
+    def __init__(self, label=None, name=None):
         """Create new X gate."""
-        super().__init__("x", 1, [], label=label)
+        super().__init__(name, 1, [], label=label)
 
     def _define(self):
         """

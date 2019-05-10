@@ -28,9 +28,11 @@ from qiskit.extensions.standard.u3 import U3Gate
 class U0Gate(Gate):
     """Wait gate."""
 
-    def __init__(self, m):
+    qobj_name = 'u0'
+
+    def __init__(self, m, name='u0'):
         """Create new u0 gate."""
-        super().__init__("u0", 1, [m])
+        super().__init__(name, 1, [m])
 
     def _define(self):
         definition = []

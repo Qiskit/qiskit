@@ -27,9 +27,11 @@ from qiskit.extensions.standard.u1 import U1Gate
 class RZGate(Gate):
     """rotation around the z-axis."""
 
-    def __init__(self, phi):
+    qobj_name = 'rz'
+
+    def __init__(self, phi, name=None):
         """Create new rz single qubit gate."""
-        super().__init__("rz", 1, [phi])
+        super().__init__(name, 1, [phi])
 
     def _define(self):
         """

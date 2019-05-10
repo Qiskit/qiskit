@@ -26,8 +26,10 @@ from qiskit.circuit import QuantumCircuit
 class UBase(Gate):  # pylint: disable=abstract-method
     """Element of SU(2)."""
 
-    def __init__(self, theta, phi, lam):
-        super().__init__("U", 1, [theta, phi, lam])
+    qobj_name = 'U'
+
+    def __init__(self, theta, phi, lam, name=None):
+        super().__init__(name, 1, [theta, phi, lam])
 
     def inverse(self):
         """Invert this gate.

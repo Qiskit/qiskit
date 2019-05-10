@@ -26,9 +26,11 @@ from qiskit.extensions.standard.ccx import ToffoliGate
 class FredkinGate(Gate):
     """Fredkin gate."""
 
-    def __init__(self):
+    qobj_name = 'cswap'
+
+    def __init__(self, name=None):
         """Create new Fredkin gate."""
-        super().__init__("cswap", 3, [])
+        super().__init__(name, 3, [])
 
     def _define(self):
         """

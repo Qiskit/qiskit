@@ -29,9 +29,11 @@ from qiskit.extensions.standard.cx import CnotGate
 class CyGate(Gate):
     """controlled-Y gate."""
 
-    def __init__(self):
+    qobj_name = 'cy'
+
+    def __init__(self, name=None):
         """Create new CY gate."""
-        super().__init__("cy", 2, [])
+        super().__init__(name, 2, [])
 
     def _define(self):
         """

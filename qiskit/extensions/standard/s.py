@@ -29,9 +29,11 @@ from qiskit.extensions.standard.u1 import U1Gate
 class SGate(Gate):
     """S=diag(1,i) Clifford phase gate."""
 
-    def __init__(self, label=None):
+    qobj_name = 's'
+
+    def __init__(self, label=None, name=None):
         """Create new S gate."""
-        super().__init__("s", 1, [], label=label)
+        super().__init__(name, 1, [], label=label)
 
     def _define(self):
         """

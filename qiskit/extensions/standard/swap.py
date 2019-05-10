@@ -30,9 +30,11 @@ from qiskit.extensions.standard.cx import CnotGate
 class SwapGate(Gate):
     """SWAP gate."""
 
-    def __init__(self):
+    qobj_name = 'swap'
+
+    def __init__(self, name=None):
         """Create new SWAP gate."""
-        super().__init__("swap", 2, [])
+        super().__init__(name, 2, [])
 
     def _define(self):
         """

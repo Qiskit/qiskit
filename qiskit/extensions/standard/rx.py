@@ -28,9 +28,11 @@ from qiskit.extensions.standard.u3 import U3Gate
 class RXGate(Gate):
     """rotation around the x-axis."""
 
-    def __init__(self, theta):
+    qobj_name = 'rx'
+
+    def __init__(self, theta, name=None):
         """Create new rx single qubit gate."""
-        super().__init__("rx", 1, [theta])
+        super().__init__(name, 1, [theta])
 
     def _define(self):
         """

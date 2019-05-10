@@ -26,9 +26,11 @@ from qiskit.extensions.standard.cx import CnotGate
 class Cu1Gate(Gate):
     """controlled-u1 gate."""
 
-    def __init__(self, theta):
+    qobj_name = 'cu1'
+
+    def __init__(self, theta, name=None):
         """Create new cu1 gate."""
-        super().__init__("cu1", 2, [theta])
+        super().__init__(name, 2, [theta])
 
     def _define(self):
         """

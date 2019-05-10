@@ -27,7 +27,7 @@ class Gate(Instruction):
         """Create a new gate.
 
         Args:
-            name (str): the Qobj name of the gate
+            name (str): the name of the gate
             num_qubits (int): the number of qubits the gate acts on.
             params (list): a list of parameters.
             label (str or None): An optional label for the gate [Default: None]

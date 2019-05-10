@@ -31,9 +31,11 @@ from qiskit.extensions.standard.t import TdgGate
 class ToffoliGate(Gate):
     """Toffoli gate."""
 
-    def __init__(self):
+    qobj_name = 'ccx'
+
+    def __init__(self, name=None):
         """Create new Toffoli gate."""
-        super().__init__("ccx", 3, [])
+        super().__init__(name, 3, [])
 
     def _define(self):
         """

@@ -24,9 +24,11 @@ from qiskit.circuit import Instruction
 class Barrier(Instruction):
     """Barrier instruction."""
 
-    def __init__(self, num_qubits):
+    qobj_name = 'barrier'
+
+    def __init__(self, num_qubits, name=None):
         """Create new barrier instruction."""
-        super().__init__("barrier", num_qubits, 0, [])
+        super().__init__(name, num_qubits, 0, [])
 
     def inverse(self):
         """Special case. Return self."""
