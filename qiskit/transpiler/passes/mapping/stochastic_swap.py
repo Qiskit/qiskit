@@ -78,7 +78,6 @@ class StochasticSwap(TransformationPass):
         super().__init__()
         self.coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.input_layout = None
         self.trials = trials
         self.seed = seed
         self.qregs = None
@@ -111,8 +110,6 @@ class StochasticSwap(TransformationPass):
         if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
             raise TranspilerError(
                 "Mappers require to have the layout to be the same size as the coupling map")
-
-        self.input_layout = self.initial_layout.copy()
 
         self.qregs = dag.qregs
         if self.seed is None:
@@ -249,25 +246,9 @@ class StochasticSwap(TransformationPass):
         for i, v in enumerate(layerlist):
             logger.debug("    %d: %s", i, v["partition"])
 
-        if self.initial_layout is not None:
-            qubit_subset = self.initial_layout.get_virtual_bits().keys()
-        else:
-            # Supply a default layout for this dag
-            self.initial_layout = Layout()
-            physical_qubit = 0
-            for qreg in circuit_graph.qregs.values():
-                for index in range(qreg.size):
-                    self.initial_layout[(qreg, index)] = physical_qubit
-                    physical_qubit += 1
-            qubit_subset = self.initial_layout.get_virtual_bits().keys()
-            # Restrict the coupling map to the image of the layout
-            coupling_graph = coupling_graph.subgraph(
-                self.initial_layout.get_physical_bits().keys())
-            if coupling_graph.size() < len(self.initial_layout):
-                raise TranspilerError("Coupling map too small for default layout")
-            self.input_layout = self.initial_layout.copy()
+        qubit_subset = self.initial_layout.get_virtual_bits().keys()
 
-        # Find swap circuit to preceed to each layer of input circuit
+        # Find swap circuit to precede each layer of input circuit
         layout = self.initial_layout.copy()
 
         # Construct an empty DAGCircuit with the same set of
@@ -334,9 +315,6 @@ class StochasticSwap(TransformationPass):
                         logger.debug("mapper: skip to next sublayer")
                         continue
 
-                    if first_layer:
-                        self.initial_layout = layout
-
                     # Update the record of qubit positions
                     # for each inner iteration
                     layout = best_layout
@@ -355,9 +333,6 @@ class StochasticSwap(TransformationPass):
             else:
                 # Update the record of qubit positions for each iteration
                 layout = best_layout
-
-                if first_layer:
-                    self.initial_layout = layout
 
                 # Update the DAG
                 dagcircuit_output.extend_back(
