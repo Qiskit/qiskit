@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Look-up table for varaible parameters in QuantumCircuit.
+Look-up table for variable parameters in QuantumCircuit.
 """
 from collections.abc import MutableMapping
 

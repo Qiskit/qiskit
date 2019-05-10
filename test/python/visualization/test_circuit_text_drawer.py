@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable = no-member
-
 """ `_text_circuit_drawer` "draws" a circuit in "ascii art" """
 
 from codecs import encode
@@ -863,7 +861,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
 
     def test_text_box_length(self):
-        """The length of boxes is indepedent of other boxes in the layer
+        """The length of boxes is independent of other boxes in the layer
         https://github.com/Qiskit/qiskit-terra/issues/1882"""
         expected = '\n'.join(["             ┌───┐    ┌───┐",
                               "q1_0: |0>────┤ H ├────┤ H ├",

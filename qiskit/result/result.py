@@ -56,7 +56,7 @@ class Result(BaseModel):
         """Get the raw data for an experiment.
 
         Note this data will be a single classical and quantum register and in a
-        format required by the results schema. We recomened that most users use
+        format required by the results schema. We recommend that most users use
         the get_xxx method, and the data will be post-processed for the data type.
 
         Args:

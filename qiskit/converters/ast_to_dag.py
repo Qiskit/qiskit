@@ -125,7 +125,6 @@ class AstInterpreter:
 
         Return a list of tuples (Register,index).
         """
-        # pylint: disable=inconsistent-return-statements
         reg = None
         if node.name in self.dag.qregs:
             reg = self.dag.qregs[node.name]

@@ -20,7 +20,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 
 
-class CXBase(Gate):  # pylint: disable=abstract-method
+class CXBase(Gate):
     """Fundamental controlled-NOT gate."""
 
     qobj_name = 'CX'
