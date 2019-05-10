@@ -324,6 +324,7 @@ class InstructionToQobjConverter:
     def convert_shift_phase(self, shift, instruction):
         """Return converted `ShiftPhase`.
 
+<<<<<<< HEAD
         Args:
             shift(int): Offset time.
             instruction (ShiftPhase): Shift phase instruction.
@@ -337,6 +338,56 @@ class InstructionToQobjConverter:
             'phase': instruction.phase
         }
         return self._qobj_model(**command_dict)
+=======
+# pylint: disable=invalid-name
+
+# get math operations valid in python. Presumably these are valid in sympy
+_math_ops = [math_op for math_op in math.__dict__ if not math_op.startswith('__')]
+# only allow valid math ops
+_math_ops_regex = r"(" + ")|(".join(_math_ops) + ")"
+# match consecutive alphanumeric, and single consecutive math ops +-/.()
+# and multiple * for exponentiation
+_allowedchars = re.compile(r'(([+\/\-]?|\*{0,2})?[\(\)\s]*'  # allow to start with math/bracket
+                           r'([a-zA-Z][a-zA-Z\d]*|'  # match word
+                           r'[\d]+(\.\d*)?)[\(\)\s]*)*')  # match decimal and bracket
+# match any sequence of chars and numbers
+_expr_regex = r'([a-zA-Z]+\d*)'
+# and valid params
+_param_regex = r'(P\d+)'
+# only valid sequences are P# for parameters and valid math operations above
+_valid_sub_expr = re.compile(_param_regex+'|'+_math_ops_regex)
+# pylint: enable=invalid-name
+
+
+def _is_math_expr_safe(expr):
+    r"""Verify mathematical expression is sanitized.
+
+    Only allow strings of form 'P\d+' and operations from `math`.
+    Allowed chars are [a-zA-Z]. Allowed math operators are '+*/().'
+    where only '*' are allowed to be consecutive.
+
+    Args:
+        expr (str): Expression to sanitize
+
+    Returns:
+        bool: Whether the string is safe to parse math from
+
+    Raise:
+        QiskitError: If math expression is not sanitized
+    """
+
+    only_allowed_chars = _allowedchars.match(expr)
+    if not only_allowed_chars:
+        return False
+    elif not only_allowed_chars.group(0) == expr:
+        return False
+
+    sub_expressions = re.findall(_expr_regex, expr)
+    if not all([_valid_sub_expr.match(sub_exp) for sub_exp in sub_expressions]):
+        return False
+
+    return True
+>>>>>>> c9c6d46ca... Update expression math sanitization (#2376)
 
     @bind_instruction(instructions.Play)
     def convert_play(self, shift, instruction):

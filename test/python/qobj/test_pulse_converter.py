@@ -321,9 +321,58 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         evaluated_instruction = converted_instruction.bind_parameters(2.)
 
+<<<<<<< HEAD
         self.assertEqual(evaluated_instruction.start_time, shifted.start_time)
         self.assertEqual(evaluated_instruction.duration, shifted.duration)
         self.assertEqual(evaluated_instruction.instructions[0][-1], instruction)
+=======
+        self.assertEqual(evaluated_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(evaluated_instruction.instructions[0][-1].command, cmd)
+
+    def test_parameterized_persistent_value(self):
+        """Test converted qobj from PersistentValueInstruction."""
+        cmd = PersistentValue(value=0.5+0.j)
+        instruction = cmd(ControlChannel(1)) << 10
+
+        qobj = PulseQobjInstruction(name='pv', ch='u1', t0=10, val='P1*cos(np.pi*P2)')
+        converted_instruction = self.converter(qobj)
+
+        self.assertIsInstance(converted_instruction, ParameterizedSchedule)
+
+        evaluated_instruction = converted_instruction.bind_parameters(P1=0.5, P2=0.)
+
+        self.assertEqual(evaluated_instruction.timeslots, instruction.timeslots)
+        self.assertEqual(evaluated_instruction.instructions[0][-1].command, cmd)
+
+    def test_expression_sanitizer(self):
+        """Test math expression sanitization."""
+
+        self.assertFalse(_is_math_expr_safe('INSERT INTO students VALUES (?,?)'))
+        self.assertFalse(_is_math_expr_safe('import math'))
+        self.assertFalse(_is_math_expr_safe('complex'))
+        self.assertFalse(_is_math_expr_safe('__import__("os").system("clear")'))
+        self.assertFalse(_is_math_expr_safe('eval("()._" + "_class_" + "_._" +'
+                                            ' "_bases_" + "_[0]")'))
+        self.assertFalse(_is_math_expr_safe('2***2'))
+        self.assertFalse(_is_math_expr_safe('avdfd*3'))
+        self.assertFalse(_is_math_expr_safe('Cos(1+2)'))
+        self.assertFalse(_is_math_expr_safe('hello'))
+        self.assertFalse(_is_math_expr_safe('hello_world'))
+        self.assertFalse(_is_math_expr_safe('1_2'))
+        self.assertFalse(_is_math_expr_safe('2+-2'))
+        self.assertFalse(_is_math_expr_safe('print(1.0)'))
+        self.assertFalse(_is_math_expr_safe('1.1.1.1'))
+        self.assertFalse(_is_math_expr_safe('abc.1'))
+
+        self.assertTrue(_is_math_expr_safe('1+1*2*3.2+8*cos(1)**2'))
+        self.assertTrue(_is_math_expr_safe('pi*2'))
+        self.assertTrue(_is_math_expr_safe('-P1*cos(P2)'))
+        self.assertTrue(_is_math_expr_safe('-P1*P2*P3'))
+        self.assertTrue(_is_math_expr_safe('-P1'))
+        self.assertTrue(_is_math_expr_safe('-1.*P1'))
+        self.assertTrue(_is_math_expr_safe('-1.*P1*P2'))
+        self.assertTrue(_is_math_expr_safe('-(P1)'))
+>>>>>>> c9c6d46ca... Update expression math sanitization (#2376)
 
 
 class TestLoConverter(QiskitTestCase):
