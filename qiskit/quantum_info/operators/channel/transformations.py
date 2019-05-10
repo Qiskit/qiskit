@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=unused-argument,too-many-return-statements,len-as-condition
+# pylint: disable=too-many-return-statements,len-as-condition
 """
 Transformations between QuantumChannel representations.
 """
@@ -150,6 +150,7 @@ def _from_operator(rep, data, input_dim, output_dim):
 
 def _kraus_to_operator(data, input_dim, output_dim):
     """Transform Kraus representation to Operator representation."""
+    del input_dim, output_dim  # unused
     if data[1] is not None or len(data[0]) > 1:
         raise QiskitError(
             'Channel cannot be converted to Operator representation')
@@ -158,6 +159,7 @@ def _kraus_to_operator(data, input_dim, output_dim):
 
 def _stinespring_to_operator(data, input_dim, output_dim):
     """Transform Stinespring representation to Operator representation."""
+    del input_dim  # unused
     trace_dim = data[0].shape[0] // output_dim
     if data[1] is not None or trace_dim != 1:
         raise QiskitError(
@@ -179,6 +181,7 @@ def _choi_to_superop(data, input_dim, output_dim):
 
 def _kraus_to_choi(data, input_dim, output_dim):
     """Transform Kraus representation to Choi representation."""
+    del input_dim, output_dim  # unused
     choi = 0
     kraus_l, kraus_r = data
     if kraus_r is None:
@@ -225,6 +228,7 @@ def _choi_to_kraus(data, input_dim, output_dim, atol=ATOL_DEFAULT):
 
 def _stinespring_to_kraus(data, input_dim, output_dim):
     """Transform Stinespring representation to Kraus representation."""
+    del input_dim  # unused
     kraus_pair = []
     for stine in data:
         if stine is None:
@@ -285,6 +289,7 @@ def _kraus_to_stinespring(data, input_dim, output_dim):
 
 def _kraus_to_superop(data, input_dim, output_dim):
     """Transform Kraus representation to SuperOp representation."""
+    del input_dim, output_dim  # unused
     kraus_l, kraus_r = data
     superop = 0
     if kraus_r is None:
@@ -298,24 +303,28 @@ def _kraus_to_superop(data, input_dim, output_dim):
 
 def _chi_to_choi(data, input_dim, output_dim):
     """Transform Chi representation to a Choi representation."""
+    del output_dim  # unused
     num_qubits = int(np.log2(input_dim))
     return _transform_from_pauli(data, num_qubits)
 
 
 def _choi_to_chi(data, input_dim, output_dim):
     """Transform Choi representation to the Chi representation."""
+    del output_dim  # unused
     num_qubits = int(np.log2(input_dim))
     return _transform_to_pauli(data, num_qubits)
 
 
 def _ptm_to_superop(data, input_dim, output_dim):
     """Transform PTM representation to SuperOp representation."""
+    del output_dim  # unused
     num_qubits = int(np.log2(input_dim))
     return _transform_from_pauli(data, num_qubits)
 
 
 def _superop_to_ptm(data, input_dim, output_dim):
     """Transform SuperOp representation to PTM representation."""
+    del output_dim  # unused
     num_qubits = int(np.log2(input_dim))
     return _transform_to_pauli(data, num_qubits)
 

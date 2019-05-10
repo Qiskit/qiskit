@@ -45,15 +45,15 @@ class Real(Node):
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        # pylint: disable=unused-argument
+        del prec, nested_scope  # unused
         return latex(self.value)
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
-        # pylint: disable=unused-argument
+        del nested_scope  # unused
         return self.value
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-        # pylint: disable=unused-argument
+        del nested_scope  # unused
         return float(self.value.evalf())

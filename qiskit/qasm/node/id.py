@@ -43,7 +43,7 @@ class Id(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        # pylint: disable=unused-argument
+        del prec  # prec ignored
         return self.name
 
     def latex(self, prec=15, nested_scope=None):
