@@ -379,7 +379,7 @@ class TwoQubitBasisDecomposer():
         |Tr(Ur.Utarget^dag)| = 4cos(z)
         which is the optimal approximation for basis of CNOT-class ~Ud(pi/4, 0, 0)
         or DCNOT-class ~Ud(pi/4, pi/4, 0) and any target.
-        May be sub-optimal for b!=0 (eg there exists exact decomposition for any target using B
+        May be sub-optimal for b!=0 (e.g. there exists exact decomposition for any target using B
                 B~Ud(pi/4, pi/8, 0), but not this decomposition.)
         This is an exact decomposition for supercontrolled basis and target ~Ud(x, y, 0).
         No guarantees for non-supercontrolled basis."""

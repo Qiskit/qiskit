@@ -80,7 +80,7 @@ class PassC_TP_RA_PA(DummyTP):
 
 
 class PassD_TP_NR_NP(DummyTP):
-    """ A dummy transfomation pass that takes an argument.
+    """ A dummy transformation pass that takes an argument.
     TP: Transformation Pass
     NR: No Requires
     NP: No Preserves
@@ -171,7 +171,7 @@ class PassI_Bad_AP(DummyAP):
         super().run(dag)
         cx_runs = dag.collect_runs(["cx"])
 
-        # Convert to ID so thatcan be checked if in correct order
+        # Convert to ID so that can be checked if in correct order
         cx_runs_ids = set()
         for run in cx_runs:
             curr = []

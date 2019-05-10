@@ -191,7 +191,7 @@ class _SchemaBinder:
                 '{}. If you want to reuse the schema, use '
                 'subclassing'.format(self._schema_cls, self._schema_cls.model_cls))
 
-        # Set a reference to the Model in the Schema, and viceversa.
+        # Set a reference to the Model in the Schema, and vice versa.
         self._schema_cls.model_cls = model_cls
         model_cls.schema = self._schema_cls()
 

@@ -52,7 +52,7 @@ class UnitaryGate(Gate):
             # the object to an Operator so that we can extract the underlying
             # numpy matrix from `Operator.data`.
             data = data.to_operator().data
-        # Convert to numpy array incase not already an array
+        # Convert to numpy array in case not already an array
         data = numpy.array(data, dtype=complex)
         # Check input is unitary
         if not is_unitary_matrix(data):

@@ -260,7 +260,7 @@ class TestOperator(OperatorTestCase):
             op._evolve(np.array([[1, 0], [0, 0]])), target_rho)
 
     def test_evolve_subsystem(self):
-        """Test subsytem _evolve method."""
+        """Test subsystem _evolve method."""
         # Test evolving single-qubit of 3-qubit system
         mat = self.rand_matrix(2, 2)
         op = Operator(mat)

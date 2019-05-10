@@ -290,7 +290,7 @@ class TestUseCases(SchedulerTestCase):
                                    TranspilerAccessError)
 
     def test_ignore_request_pm(self):
-        """ A pass manager that ignores requires does not run the passes decleared in the 'requires'
+        """ A pass manager that ignores requires does not run the passes declared in the 'requires'
         field of the passes."""
         passmanager = PassManager(ignore_requires=True)
         passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
@@ -304,7 +304,7 @@ class TestUseCases(SchedulerTestCase):
                                                          'run transformation pass PassB_TP_RA_PA'])
 
     def test_ignore_preserves_pm(self):
-        """ A pass manager that ignores preserves does not record the passes decleared in the
+        """ A pass manager that ignores preserves does not record the passes declared in the
         'preserves' field of the passes as valid passes."""
         passmanager = PassManager(ignore_preserves=True)
         passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA

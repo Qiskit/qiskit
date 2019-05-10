@@ -92,7 +92,7 @@ class TestSuperOp(ChannelTestCase):
         self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
     def test_evolve_subsystem(self):
-        """Test subsytem _evolve method."""
+        """Test subsystem _evolve method."""
 
         # Single-qubit random superoperators
         op_a = SuperOp(self.rand_matrix(4, 4))

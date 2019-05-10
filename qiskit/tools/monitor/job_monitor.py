@@ -77,7 +77,7 @@ def job_monitor(job, interval=None, monitor_async=False, quiet=False, output=sys
     Args:
         job (BaseJob): Job to monitor.
         interval (int): Time interval between status queries.
-        monitor_async (bool): Monitor asyncronously (in Jupyter only).
+        monitor_async (bool): Monitor asynchronously (in Jupyter only).
         quiet (bool): If True, do not print status messages.
         output (file): The file like object to write status messages to.
         By default this is sys.stdout.

@@ -26,7 +26,7 @@ def random_state(dim, seed=None):
     state space.
 
     Args:
-        dim (int): the dim of the state spaxe
+        dim (int): the dim of the state space
         seed (int): Optional. To set a random seed.
 
     Returns:
