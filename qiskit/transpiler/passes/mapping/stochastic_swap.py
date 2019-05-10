@@ -26,9 +26,9 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler import Layout
-# pylint: disable=no-name-in-module, import-error
+# pylint: disable=no-name-in-module
 from .cython.stochastic_swap.utils import nlayout_from_layout
-# pylint: disable=no-name-in-module, import-error
+# pylint: disable=no-name-in-module
 from .cython.stochastic_swap.swap_trial import swap_trial
 logger = getLogger(__name__)
 

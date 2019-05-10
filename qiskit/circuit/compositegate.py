@@ -20,7 +20,7 @@ from qiskit.exceptions import QiskitError
 from .gate import Gate
 
 
-class CompositeGate(Gate):  # pylint: disable=abstract-method
+class CompositeGate(Gate):
     """Composite gate, a sequence of unitary gates."""
 
     def __init__(self, name, params, inverse_name=None):
