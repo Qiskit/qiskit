@@ -42,6 +42,7 @@ class UnitaryGate(Gate):
         Args:
             data (matrix or Operator): unitary operator.
             label (str): unitary name for backend [Default: None].
+            name (str): the name of the gate.
 
         Raises:
             ExtensionError: if input data is not an N-qubit unitary operator.

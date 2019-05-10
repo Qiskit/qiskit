@@ -44,6 +44,7 @@ class Snapshot(Instruction):
             num_qubits (int): the number of qubits for the snapshot type [Default: 0].
             num_clbits (int): the number of classical bits for the snapshot type [Default: 0].
             params (list or None): the parameters for snapshot_type [Default: None].
+            name (str): the name of the gate.
 
         Raises:
             ExtensionError: if snapshot label is invalid.
