@@ -79,9 +79,9 @@ class LayoutTest(QiskitTestCase):
     def test_layout_set(self):
         """Setter"""
         layout = Layout()
-        layout[(self.qr, 0)] = 0
-        self.assertEqual(layout[(self.qr, 0)], 0)
-        self.assertEqual(layout[0], (self.qr, 0))
+        layout[self.qr[0]] = 0
+        self.assertEqual(layout[self.qr[0]], 0)
+        self.assertEqual(layout[0], self.qr[0])
 
     def test_layout_avoid_dangling_physical(self):
         """ No dangling pointers for physical qubits."""
@@ -103,18 +103,18 @@ class LayoutTest(QiskitTestCase):
         """Length of the layout is the amount of physical bits"""
         layout = Layout()
         self.assertEqual(len(layout), 0)
-        layout.add((self.qr, 2))
+        layout.add(self.qr[2])
         self.assertEqual(len(layout), 1)
-        layout.add((self.qr, 1), 3)
+        layout.add(self.qr[1], 3)
         self.assertEqual(len(layout), 2)
 
     def test_layout_len_with_idle(self):
         """Length of the layout is the amount of physical bits"""
         layout = Layout()
         self.assertEqual(len(layout), 0)
-        layout.add((self.qr, 2))
+        layout.add(self.qr[2])
         self.assertEqual(len(layout), 1)
-        layout.add((self.qr, 1), 3)
+        layout.add(self.qr[1], 3)
         self.assertEqual(len(layout), 2)
 
     def test_layout_get_bits(self):
@@ -127,10 +127,10 @@ class LayoutTest(QiskitTestCase):
 
     def test_layout_get_physical_bits(self):
         """Get the map from the physical bits view"""
-        layout = Layout({(self.qr, 0): 0, (self.qr, 1): 1, (self.qr, 2): 2})
-        self.assertDictEqual(layout.get_physical_bits(), {0: (self.qr, 0),
-                                                          1: (self.qr, 1),
-                                                          2: (self.qr, 2)})
+        layout = Layout({self.qr[0]: 0, self.qr[1]: 1, self.qr[2]: 2})
+        self.assertDictEqual(layout.get_physical_bits(), {0: self.qr[0],
+                                                          1: self.qr[1],
+                                                          2: self.qr[2]})
 
     def test_layout_add(self):
         """add() method"""
@@ -154,7 +154,7 @@ class LayoutTest(QiskitTestCase):
     def test_physical_keyerror(self):
         """When asking for an unexistant physical qubit, KeyError"""
         layout = Layout()
-        layout[(self.qr, 0)] = 1
+        layout[self.qr[0]] = 1
 
         with self.assertRaises(KeyError):
             _ = layout[0]
@@ -162,7 +162,7 @@ class LayoutTest(QiskitTestCase):
     def test_virtual_keyerror(self):
         """When asking for an unexistant virtual qubit, KeyError"""
         layout = Layout()
-        layout[(self.qr, 0)] = 1
+        layout[self.qr[0]] = 1
 
         with self.assertRaises(KeyError):
             _ = layout[(self.qr, 1)]
@@ -170,27 +170,27 @@ class LayoutTest(QiskitTestCase):
     def test_layout_swap(self):
         """swap() method"""
         layout = Layout()
-        layout.add((self.qr, 0))
-        layout.add((self.qr, 1))
+        layout.add(self.qr[0])
+        layout.add(self.qr[1])
         layout.swap(0, 1)
         self.assertDictEqual(layout.get_virtual_bits(), {(self.qr, 0): 1, (self.qr, 1): 0})
 
     def test_layout_swap_error(self):
         """swap() method error"""
         layout = Layout()
-        layout.add((self.qr, 0))
-        layout.add((self.qr, 1))
+        layout.add(self.qr[0])
+        layout.add(self.qr[1])
         with self.assertRaises(LayoutError):
             layout.swap(0, (self.qr, 0))
 
     def test_layout_combine(self):
         """combine_into_edge_map() method"""
         layout = Layout()
-        layout.add((self.qr, 0))
-        layout.add((self.qr, 1))
+        layout.add(self.qr[0])
+        layout.add(self.qr[1])
         another_layout = Layout()
-        another_layout.add((self.qr, 1))
-        another_layout.add((self.qr, 0))
+        another_layout.add(self.qr[1])
+        another_layout.add(self.qr[0])
 
         edge_map = layout.combine_into_edge_map(another_layout)
         self.assertDictEqual(edge_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
@@ -211,8 +211,8 @@ class LayoutTest(QiskitTestCase):
     def test_set_virtual_without_physical(self):
         """When adding a virtual without care in which physical is going"""
         layout = Layout()
-        layout.add((self.qr, 1), 2)
-        layout.add((self.qr, 0))
+        layout.add(self.qr[1], 2)
+        layout.add(self.qr[0])
 
         self.assertDictEqual(layout.get_virtual_bits(), {(self.qr, 0): 1, (self.qr, 1): 2})
 
@@ -273,11 +273,11 @@ class LayoutTest(QiskitTestCase):
     def test_layout_repr(self):
         """Layout repr reproduces layout"""
         qr = QuantumRegister(5, 'qr')
-        layout = Layout({(qr, 0): 2,
-                         (qr, 1): 4,
-                         (qr, 2): 3,
-                         (qr, 3): 0,
-                         (qr, 4): 1,
+        layout = Layout({qr[0]: 2,
+                         qr[1]: 4,
+                         qr[2]: 3,
+                         qr[3]: 0,
+                         qr[4]: 1,
                          })
 
         repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
