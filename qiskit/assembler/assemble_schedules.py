@@ -83,7 +83,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
                                     for pulse in user_pulselib]
 
-    # create qob experiment field
+    # create qobj experiment field
     experiments = []
     schedule_los = qobj_config.pop('schedule_los', [])
 
