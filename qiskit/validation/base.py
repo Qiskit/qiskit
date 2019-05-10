@@ -84,7 +84,7 @@ class ModelTypeValidator(_fields.Field):
         else:
             body = 'is not the expected type {}'.format(type_)
 
-        message = 'Value \'{}\' {}'.format(value, body)
+        message = 'Value \'{}\' {}: {}'.format(value, type(value), body)
         return ValidationError(message, **kwargs)
 
 
