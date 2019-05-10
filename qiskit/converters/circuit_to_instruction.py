@@ -16,8 +16,8 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister, QuBit
+from qiskit.circuit.classicalregister import ClassicalRegister, ClBit
 
 
 def circuit_to_instruction(circuit, parameter_map=None):
@@ -80,8 +80,8 @@ def circuit_to_instruction(circuit, parameter_map=None):
 
     definition = list(map(lambda x:
                           (x[0],
-                           list(map(lambda y: (q, find_bit_position(y)), x[1])),
-                           list(map(lambda y: (c, find_bit_position(y)), x[2]))), definition))
+                           list(map(lambda y: QuBit(q, find_bit_position(y)), x[1])),
+                           list(map(lambda y: ClBit(c, find_bit_position(y)), x[2]))), definition))
     instruction.definition = definition
 
     return instruction
