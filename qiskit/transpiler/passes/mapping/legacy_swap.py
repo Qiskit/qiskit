@@ -303,7 +303,7 @@ class LegacySwap(TransformationPass):
                             # Compute the objective function
                             new_cost = sum([xi[new_layout[g[0]]][new_layout[g[1]]]
                                             for g in gates])
-                            # Record progress if we succceed
+                            # Record progress if we succeed
                             if new_cost < min_cost:
                                 progress_made = True
                                 min_cost = new_cost

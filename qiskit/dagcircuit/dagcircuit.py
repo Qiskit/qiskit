@@ -529,7 +529,7 @@ class DAGCircuit:
                 of self.
 
         Raises:
-            DAGCircuitError: if missing, duplicate or incosistent wire
+            DAGCircuitError: if missing, duplicate or inconsistent wire
         """
         edge_map = edge_map or {}
 

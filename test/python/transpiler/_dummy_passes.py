@@ -80,7 +80,7 @@ class PassC_TP_RA_PA(DummyTP):
 
 
 class PassD_TP_NR_NP(DummyTP):
-    """ A dummy transfomation pass that takes an argument.
+    """ A dummy transformation pass that takes an argument.
     TP: Transformation Pass
     NR: No Requires
     NP: No Preserves

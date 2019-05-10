@@ -251,7 +251,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), self.ref_label + self.ref_label)
 
     def test_insert_pauli_labels_1(self):
-        """Test inseting paulis via labels."""
+        """Test inserting paulis via labels."""
         p2 = deepcopy(self.ref_p)
 
         p2.insert_paulis(indices=[1, 2], pauli_labels=['Y', 'I'])
@@ -260,7 +260,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), 'IZIXYY')
 
     def test_insert_pauli_labels_2(self):
-        """Test inseting paulis via labels."""
+        """Test inserting paulis via labels."""
         p2 = deepcopy(self.ref_p)
 
         p2.insert_paulis(indices=[3, 2], pauli_labels=['Y', 'I'])
