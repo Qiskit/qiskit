@@ -17,8 +17,8 @@
 """
 Element of SU(2).
 """
-import numpy
 import warnings
+import numpy
 
 from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
