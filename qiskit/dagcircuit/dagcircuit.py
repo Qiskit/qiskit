@@ -29,8 +29,8 @@ import itertools
 import warnings
 import networkx as nx
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister, QuBit
+from qiskit.circuit.classicalregister import ClassicalRegister, ClBit
 from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
 from .dagnode import DAGNode
@@ -192,7 +192,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
         for j in range(qreg.size):
-            self._add_wire((qreg, j))
+            self._add_wire(QuBit(qreg, j))
 
     def add_creg(self, creg):
         """Add all wires in a classical register."""
@@ -202,7 +202,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register %s" % creg.name)
         self.cregs[creg.name] = creg
         for j in range(creg.size):
-            self._add_wire((creg, j))
+            self._add_wire(ClBit(creg, j))
 
     def _add_wire(self, wire):
         """Add a qubit or bit to the circuit.
@@ -290,7 +290,7 @@ class DAGCircuit:
         """
         all_bits = []
         if cond is not None:
-            all_bits.extend([(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
+            all_bits.extend([ClBit(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
         return all_bits
 
     def _add_op_node(self, op, qargs, cargs, condition=None):
@@ -300,7 +300,7 @@ class DAGCircuit:
             op (Instruction): the operation associated with the DAG node
             qargs (list): list of quantum wires to attach to.
             cargs (list): list of classical wires to attach to.
-            condition (tuple or None): optional condition (ClassicalRegister, int)
+            condition (ClBit or None): optional condition.
         """
         node_properties = {
             "type": "op",
