@@ -12,7 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 # pylint: disable=arguments-differ
 
 """Contains a (slow) python simulator.

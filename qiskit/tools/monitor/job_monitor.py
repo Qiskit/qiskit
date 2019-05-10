@@ -98,7 +98,7 @@ def job_monitor(job, interval=None, monitor_async=False, quiet=False, output=sys
             except ImportError:
                 raise ImportError('These functions  need ipywidgets. '
                                   'Run "pip install ipywidgets" before.')
-            from qiskit.tools.jupyter.jupyter_magics import _html_checker  # pylint: disable=C0412
+            from qiskit.tools.jupyter.jupyter_magics import _html_checker
 
             style = "font-size:16px;"
             header = "<p style='{style}'>Job Status: %s </p>".format(
