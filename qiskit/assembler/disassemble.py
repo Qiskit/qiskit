@@ -92,10 +92,10 @@ def _experiments_to_circuits(qobj):
 
 
 def disassemble(qobj):
-    """Dissasemble a qobj and return the circuits, run_config, and user header
+    """Disassemble a qobj and return the circuits, run_config, and user header
 
     Args:
-        qobj (Qobj): The input qobj object to dissasemble
+        qobj (Qobj): The input qobj object to disassemble
     Returns:
         circuits (list): A list of quantum circuits
         run_config (dict): The dist of the run config

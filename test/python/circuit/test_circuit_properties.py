@@ -324,7 +324,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(size, qc.num_connected_components())
 
     def test_circuit_connected_components_multi_reg(self):
-        """Test tensor factors works over muli registers
+        """Test tensor factors works over multi registers
         """
         q1 = QuantumRegister(3, 'q1')
         q2 = QuantumRegister(2, 'q2')
@@ -341,7 +341,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(qc.num_connected_components(), 1)
 
     def test_circuit_connected_components_multi_reg2(self):
-        """Test tensor factors works over muli registers #2
+        """Test tensor factors works over multi registers #2
         """
         q1 = QuantumRegister(3, 'q1')
         q2 = QuantumRegister(2, 'q2')

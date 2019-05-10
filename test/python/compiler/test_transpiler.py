@@ -56,7 +56,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(circuit2, circuit3)
 
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):
-        """Verify tranpile() works with no coupling_map or backend."""
+        """Verify transpile() works with no coupling_map or backend."""
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -435,7 +435,7 @@ class TestTranspile(QiskitTestCase):
         self.assertTrue(mock_pass.called)
 
     def test_optimize_to_nothing(self):
-        """ Optimze gates up to fixed point in the default pipeline
+        """ Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035 """
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
