@@ -14,8 +14,8 @@
 
 """Module for Circuits."""
 from .quantumcircuit import QuantumCircuit
-from .classicalregister import ClassicalRegister
-from .quantumregister import QuantumRegister
+from .classicalregister import ClassicalRegister, ClBit
+from .quantumregister import QuantumRegister, QuBit
 from .gate import Gate
 from .instruction import Instruction
 from .instructionset import InstructionSet
