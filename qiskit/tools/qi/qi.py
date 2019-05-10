@@ -186,7 +186,7 @@ def vectorize(density_matrix, method='col'):
         method (str): the method of vectorization. Allowed values are
             - 'col' (default) flattens to column-major vector.
             - 'row' flattens to row-major vector.
-            - 'pauli'flattens in the n-qubit Pauli basis.
+            - 'pauli' flattens in the n-qubit Pauli basis.
             - 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
                weight.
 
@@ -299,7 +299,7 @@ def chop(array, epsilon=1e-10):
     Truncate small values of a complex array.
 
     Args:
-        array (array_like): array to truncte small values.
+        array (array_like): array to truncate small values.
         epsilon (float): threshold.
 
     Returns:
@@ -414,7 +414,7 @@ def shannon_entropy(pvec, base=2):
 
     Args:
         pvec (array_like): a probability vector.
-        base (int): the base of the logarith
+        base (int): the base of the logarithm
 
     Returns:
         float: The Shannon entropy H(pvec).

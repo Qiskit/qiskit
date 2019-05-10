@@ -119,7 +119,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             zero state. This size of this vector must be correct for the number
             of qubits in all experiments in the qobj.
 
-            The "chop_threshold" option specifies a trunctation value for
+            The "chop_threshold" option specifies a truncation value for
             setting small values to zero in the output statevector. The default
             value is 1e-15.
 

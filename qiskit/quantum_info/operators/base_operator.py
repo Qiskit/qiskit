@@ -68,12 +68,12 @@ class BaseOperator(ABC):
 
     @property
     def _atol(self):
-        """The absolute tolerence parameter for float comparisons."""
+        """The absolute tolerance parameter for float comparisons."""
         return self.__class__.ATOL
 
     @_atol.setter
     def _atol(self, atol):
-        """Set the absolute tolerence parameter for float comparisons."""
+        """Set the absolute tolerance parameter for float comparisons."""
         # NOTE: that this overrides the class value so applies to all
         # instances of the class.
         max_tol = self.__class__.MAX_TOL
@@ -86,12 +86,12 @@ class BaseOperator(ABC):
 
     @property
     def _rtol(self):
-        """The relative tolerence parameter for float comparisons."""
+        """The relative tolerance parameter for float comparisons."""
         return self.__class__.RTOL
 
     @_rtol.setter
     def _rtol(self, rtol):
-        """Set the relative tolerence parameter for float comparisons."""
+        """Set the relative tolerance parameter for float comparisons."""
         # NOTE: that this overrides the class value so applies to all
         # instances of the class.
         max_tol = self.__class__.MAX_TOL
@@ -333,7 +333,7 @@ class BaseOperator(ABC):
             tensor (np.array): a vector or matrix reshaped to a rank-N tensor.
             mat (np.array): a matrix reshaped to a rank-2M tensor.
             indices (list): tensor indices to contract with mat.
-            shift (int): shift for indicies of tensor to contract [Default: 0].
+            shift (int): shift for indices of tensor to contract [Default: 0].
             right_mul (bool): if True right multiply tensor by mat
                               (else left multiply) [Default: False].
 
@@ -352,7 +352,7 @@ class BaseOperator(ABC):
         indices_tensor = list(range(rank))
         for j, index in enumerate(indices):
             indices_tensor[index + shift] = rank + j
-        # Get einsum indces for mat
+        # Get einsum indices for mat
         mat_contract = list(reversed(range(rank, rank + len(indices))))
         mat_free = [index + shift for index in reversed(indices)]
         if right_mul:

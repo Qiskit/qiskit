@@ -89,7 +89,7 @@ class PTM(QuantumChannel):
                 # convert it to a SuperOp
                 data = SuperOp._instruction_to_superop(data)
             else:
-                # We use the QuantumChannel init transform to intialize
+                # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim

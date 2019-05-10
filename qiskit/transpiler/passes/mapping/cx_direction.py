@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-The CX direction rearrenges the direction of the cx nodes to make the circuit
+The CX direction rearranges the direction of the cx nodes to make the circuit
 compatible with the coupling_map.
 """
 from math import pi
