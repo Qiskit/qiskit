@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=missing-docstring
 
 """Quick program to test the qi tools modules."""
 

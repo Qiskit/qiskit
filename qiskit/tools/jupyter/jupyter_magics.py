@@ -171,7 +171,7 @@ class ProgressBarMagic(Magics):
         default='html',
         help="Type of progress bar, 'html' or 'text'."
     )
-    def qiskit_progress_bar(self, line='', cell=None):  # pylint: disable=W0613
+    def qiskit_progress_bar(self, line='', cell=None):
         """A Jupyter magic function to generate progressbar.
         """
         args = magic_arguments.parse_argstring(self.qiskit_progress_bar, line)

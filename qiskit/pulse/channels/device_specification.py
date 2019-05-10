@@ -105,7 +105,6 @@ class DeviceSpecification:
         """Return qubits in this device."""
         return self._qubits
 
-    # pylint: disable=invalid-name
     @property
     def c(self) -> List[RegisterSlot]:
         """Return register slots in this device."""
