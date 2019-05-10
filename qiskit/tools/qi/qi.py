@@ -444,6 +444,7 @@ def entropy(state):
     Returns:
         float: The von-Neumann entropy S(rho).
     """
+    # pylint: disable=assignment-from-no-return
 
     rho = np.array(state)
     if rho.ndim == 1:
