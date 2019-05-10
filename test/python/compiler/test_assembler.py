@@ -176,7 +176,7 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(bfunc_op.register, h_op.conditional)
 
     def test_assemble_circuits_raises_for_bind_circuit_mismatch(self):
-        """Verify assemble_circuits raise error for parametized circuits without matching binds."""
+        """Verify assemble_circuits raise error for parameterized circuits without matching binds."""
         qr = QuantumRegister(2)
         x = Parameter('x')
         y = Parameter('y')

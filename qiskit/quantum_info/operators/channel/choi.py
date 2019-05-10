@@ -61,7 +61,7 @@ class Choi(QuantumChannel):
         automatically determined from the input data. If the input data is
         a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
         the input operator is not an N-qubit operator, it will assign a
-        single subsystem with dimension specifed by the shape of the input.
+        single subsystem with dimension specified by the shape of the input.
         """
         # If the input is a raw list or matrix we assume that it is
         # already a Choi matrix.
@@ -94,7 +94,7 @@ class Choi(QuantumChannel):
                 # convert it to a SuperOp
                 data = SuperOp._instruction_to_superop(data)
             else:
-                # We use the QuantumChannel init transform to intialize
+                # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim
@@ -124,7 +124,7 @@ class Choi(QuantumChannel):
         # Make bipartite matrix
         d_in, d_out = self.dim
         data = np.reshape(self._data, (d_in, d_out, d_in, d_out))
-        # Swap input and output indicies on bipartite matrix
+        # Swap input and output indices on bipartite matrix
         data = np.transpose(data, (1, 0, 3, 2))
         # Transpose channel has input and output dimensions swapped
         data = np.reshape(data, (d_in * d_out, d_in * d_out))

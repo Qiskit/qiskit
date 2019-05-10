@@ -435,7 +435,7 @@ class TestTranspile(QiskitTestCase):
         self.assertTrue(mock_pass.called)
 
     def test_optimize_to_nothing(self):
-        """ Optimze gates up to fixed point in the default pipeline
+        """ Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035 """
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
