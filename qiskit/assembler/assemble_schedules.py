@@ -29,6 +29,11 @@ def assemble_schedules(schedules: List[pulse.Schedule],
                        run_config: RunConfig) -> qobj.PulseQobj:
     """Assembles a list of schedules into a qobj that can be run on the backend.
 
+<<<<<<< HEAD
+=======
+def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
+    """Assembles a list of schedules into a qobj which can be run on the backend.
+>>>>>>> d24bfd273... Make assemble_schedule kwargs, args (#2351)
     Args:
         schedules: Schedules to assemble.
         qobj_id: Identifier for the generated qobj.
