@@ -29,6 +29,7 @@ import scipy.sparse.csgraph as cs
 from qiskit.transpiler import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.circuit.quantumregister import QuBit
 
 
 class DenseLayout(AnalysisPass):
@@ -68,7 +69,7 @@ class DenseLayout(AnalysisPass):
         map_iter = 0
         for qreg in dag.qregs.values():
             for i in range(qreg.size):
-                layout[(qreg, i)] = int(best_sub[map_iter])
+                layout[QuBit(qreg, i)] = int(best_sub[map_iter])
                 map_iter += 1
         self.property_set['layout'] = layout
 

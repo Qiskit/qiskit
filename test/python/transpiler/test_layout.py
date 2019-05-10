@@ -388,7 +388,7 @@ class LayoutTest(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qr2')
         tuplelist_layout = [None, None, None, qr1[0], None, qr2[0], None, qr2[1]]
 
-        layout = Layout.from_tuplelist(tuplelist_layout)
+        layout = Layout.from_qubit_list(tuplelist_layout)
 
         expected = Layout({3: qr1[0],
                            5: qr2[0],

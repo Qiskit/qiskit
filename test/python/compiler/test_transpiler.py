@@ -385,9 +385,9 @@ class TestTranspile(QiskitTestCase):
         qc.cx(qubit_reg[0], qubit_reg[1])
         qc.measure(qubit_reg, clbit_reg)
 
-        bad_initial_layout = [(QuantumRegister(3, 'q'), 0),
-                              (QuantumRegister(3, 'q'), 1),
-                              (QuantumRegister(3, 'q'), 2)]
+        bad_initial_layout = [QuantumRegister(3, 'q')[0],
+                              QuantumRegister(3, 'q')[1],
+                              QuantumRegister(3, 'q')[2]]
 
         self.assertRaises(KeyError, transpile,
                           qc, backend, initial_layout=bad_initial_layout)
