@@ -221,7 +221,7 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(p2.to_label(), 'IZX')
 
     def test_delete_qubits(self):
-        """Test deleting mulitple qubits."""
+        """Test deleting multiple qubits."""
         p1 = self.ref_p
         p2 = deepcopy(p1)
 

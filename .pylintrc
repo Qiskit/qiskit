@@ -21,7 +21,16 @@ persistent=yes
 # List of plugins (as comma separated values of python modules names) to load,
 # usually to register additional checkers.
 load-plugins=pylint.extensions.docparams, # enable checking of docstring args
-    pylint.extensions.docstyle  # basic docstring stle checks
+    pylint.extensions.docstyle,  # basic docstring stle checks
+    pylint.extensions.bad_builtin,
+    #pylint.extensions.broad_try_clause,
+    pylint.extensions.check_elif,
+    pylint.extensions.comparetozero,
+    pylint.extensions.emptystring,
+    pylint.extensions.mccabe,
+    pylint.extensions.overlapping_exceptions,
+    pylint.extensions.redefined_variable_type
+
 
 # Use multiple processes to speed up Pylint.
 jobs=1
@@ -33,7 +42,7 @@ unsafe-load-any-extension=no
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code
-extension-pkg-whitelist=
+extension-pkg-whitelist=numpy
 
 
 [MESSAGES CONTROL]
@@ -46,7 +55,7 @@ confidence=
 # either give multiple identifier separated by comma (,) or put this option
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
-#enable=
+#enable=useless-suppression
 
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifiers separated by comma (,) or put this
@@ -57,19 +66,20 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=no-self-use,        # disabled as it is too verbose
+disable=spelling,
+    no-self-use,        # disabled as it is too verbose
     fixme,              # disabled as TODOs would show up as warnings
-    protected-access,   # disabled as we don't follow the public vs private
+    #protected-access,   # disabled as we don't follow the public vs private
                         # convention strictly
-    duplicate-code,     # disabled as it is too verbose
+    #duplicate-code,     # disabled as it is too verbose
     redundant-returns-doc, # for @abstractmethod, it cannot interpret "pass"
     # disable the "too-many/few-..." refactoring hints
     too-many-lines, too-many-branches, too-many-locals, too-many-nested-blocks,
     too-many-statements, too-many-instance-attributes, too-many-arguments,
     too-many-public-methods, too-few-public-methods, too-many-ancestors,
-    unnecessary-pass,   # allow for methods with just "pass", for clarity
-    no-else-return,     # relax "elif" after a clause with a return
-    docstring-first-line-empty # relax docstring style
+    unnecessary-pass   # allow for methods with just "pass", for clarity
+    #no-else-return,     # relax "elif" after a clause with a return
+    #docstring-first-line-empty # relax docstring style
 
 
 
@@ -126,7 +136,7 @@ bad-names=foo,bar,toto,tutu,tata
 name-group=
 
 # Include a hint for the correct naming format with invalid-name
-include-naming-hint=no
+include-naming-hint=yes
 
 # List of decorators that produce properties, such as abc.abstractproperty. Add
 # to this list to register other decorators that produce valid properties.
@@ -271,13 +281,13 @@ ignore-imports=no
 
 # Spelling dictionary name. Available dictionaries: none. To make it working
 # install python-enchant package.
-spelling-dict=
+spelling-dict=en_US
 
 # List of comma separated words that should not be checked.
 spelling-ignore-words=
 
 # A path to a file that contains private dictionary; one word per line.
-spelling-private-dict-file=
+spelling-private-dict-file=.local-spellings
 
 # Tells whether to store unknown words to indicated private dictionary in
 # --spelling-private-dict-file option instead of raising a message.
