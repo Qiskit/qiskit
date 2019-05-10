@@ -43,16 +43,16 @@ class LayoutTest(QiskitTestCase):
 
     def test_layout_from_dict(self):
         """Constructor from a dict"""
-        layout = Layout({(self.qr, 0): 0,
-                         (self.qr, 1): 1,
-                         (self.qr, 2): 2})
+        layout = Layout({self.qr[0]: 0,
+                         self.qr[1]: 1,
+                         self.qr[2]: 2})
 
-        self.assertEqual(layout[(self.qr, 0)], 0)
-        self.assertEqual(layout[(self.qr, 1)], 1)
-        self.assertEqual(layout[(self.qr, 2)], 2)
-        self.assertEqual(layout[0], (self.qr, 0))
-        self.assertEqual(layout[1], (self.qr, 1))
-        self.assertEqual(layout[2], (self.qr, 2))
+        self.assertEqual(layout[self.qr[0]], 0)
+        self.assertEqual(layout[self.qr[1]], 1)
+        self.assertEqual(layout[self.qr[2]], 2)
+        self.assertEqual(layout[0], self.qr[0])
+        self.assertEqual(layout[1], self.qr[1])
+        self.assertEqual(layout[2], self.qr[2])
 
     def test_layout_from_dict_hole(self):
         """Constructor from a dict with a hole"""
@@ -93,11 +93,11 @@ class LayoutTest(QiskitTestCase):
 
     def test_layout_avoid_dangling_virtual(self):
         """ No dangling pointers for virtual qubits."""
-        layout = Layout({(self.qr, 0): 0})
+        layout = Layout({self.qr[0]: 0})
         self.assertEqual(layout[0], (self.qr, 0))
-        layout[0] = (self.qr, 1)
+        layout[0] = self.qr[1]
         with self.assertRaises(KeyError):
-            print(layout[(self.qr, 0)])
+            print(layout[self.qr[0]])
 
     def test_layout_len(self):
         """Length of the layout is the amount of physical bits"""
@@ -232,8 +232,8 @@ class LayoutTest(QiskitTestCase):
     def test_copy(self):
         """Test copy methods return equivalent layouts."""
         layout = Layout()
-        layout.add((self.qr, 0))
-        layout.add((self.qr, 1))
+        layout.add(self.qr[0])
+        layout.add(self.qr[1])
 
         layout_dict_copy = layout.copy()
         self.assertTrue(isinstance(layout_dict_copy, Layout))
