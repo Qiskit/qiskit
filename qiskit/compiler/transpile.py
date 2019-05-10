@@ -234,10 +234,14 @@ def _parse_basis_gates(basis_gates, backend, circuits):
     if basis_gates is None or (isinstance(basis_gates, list) and
                                all(isinstance(i, str) for i in basis_gates)):
         basis_gates = [basis_gates] * len(circuits)
-    # no basis means don't unroll (all circuit gates are valid basis)
-    basis_gates = [[inst.name for inst, _, _ in circuit.data] if basis is None
-                   else basis for basis, circuit in zip(basis_gates, circuits)]
 
+    # no basis means don't unroll (all circuit gates are valid basis)
+    for index, circuit in enumerate(circuits):
+        basis = basis_gates[index]
+        if basis is None:
+            gates_in_circuit = set(inst.name for inst, _, _ in circuit.data)
+            # Other passes might add new gates that need to be supported
+            basis_gates[index] = list(gates_in_circuit.union(['u3', 'cx']))
     return basis_gates
 
 
