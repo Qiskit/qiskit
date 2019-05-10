@@ -26,9 +26,8 @@ import re
 
 from pylatexenc.latexencode import utf8tolatex
 import numpy as np
-
-from qiskit.visualization import exceptions
 from qiskit.visualization import qcstyle as _qcstyle
+from qiskit.visualization import exceptions
 
 
 class QCircuitImage:
@@ -56,7 +55,7 @@ class QCircuitImage:
                circuit. Defaults to True.
         """
         # style sheet
-        self._style = _qcstyle.QCStyle()
+        self._style = _qcstyle.BWStyle()
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)

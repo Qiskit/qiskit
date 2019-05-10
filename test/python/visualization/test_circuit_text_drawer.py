@@ -878,6 +878,22 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.u1(0.0000001, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_spacing_2378(self):
+        """Small gates in the same layer as long gates.
+        See https://github.com/Qiskit/qiskit-terra/issues/2378"""
+        expected = '\n'.join(["                     ",
+                              "q_0: |0>──────X──────",
+                              "              │      ",
+                              "q_1: |0>──────X──────",
+                              "        ┌───────────┐",
+                              "q_2: |0>┤ Rz(11111) ├",
+                              "        └───────────┘"])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.swap(qr[0], qr[1])
+        circuit.rz(11111, qr[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 class TestTextDrawerMultiQGates(QiskitTestCase):
     """ Gates impling multiple qubits."""

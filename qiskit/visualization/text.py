@@ -309,7 +309,7 @@ class DirectOnQuWire(DrawElement):
         self.top_format = ' %s '
         self.mid_format = '─%s─'
         self.bot_format = ' %s '
-        self._mid_padding = '─'
+        self._mid_padding = self.mid_bck = '─'
         self.top_connector = {"│": '│'}
         self.bot_connector = {"│": '│'}
 
