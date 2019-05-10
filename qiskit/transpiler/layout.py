@@ -21,6 +21,7 @@ Physical (qu)bits are integers.
 """
 
 from qiskit.circuit.register import Register
+from qiskit.circuit.bit import Bit
 from qiskit.transpiler.exceptions import LayoutError
 
 
@@ -81,22 +82,16 @@ class Layout():
     @staticmethod
     def order_based_on_type(value1, value2):
         """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
-        if isinstance(value1, int) and Layout.is_virtual(value2):
+        if isinstance(value1, int) and isinstance(value2, Bit):
             physical = value1
             virtual = value2
-        elif isinstance(value2, int) and Layout.is_virtual(value1):
+        elif isinstance(value2, int) and isinstance(value1, Bit):
             physical = value2
             virtual = value1
         else:
-            raise LayoutError('The map (%s -> %s) has to be a ((Register, integer) -> integer)'
+            raise LayoutError('The map (%s -> %s) has to be a (Bit -> integer)'
                               ' or the other way around.' % (type(value1), type(value2)))
         return virtual, physical
-
-    @staticmethod
-    def is_virtual(value):
-        """Checks if value has the format of a virtual qubit """
-        return value is None or isinstance(value, tuple) and len(value) == 2 and isinstance(
-            value[0], Register) and isinstance(value[1], int)
 
     def __getitem__(self, item):
         if item in self._p2v:
@@ -301,7 +296,7 @@ class Layout():
         for physical, virtual in enumerate(tuple_list):
             if virtual is None:
                 continue
-            elif Layout.is_virtual(virtual):
+            elif isinstance(virtual, Bit):
                 if virtual in out._v2p:
                     raise LayoutError('Duplicate values not permitted; Layout is bijective.')
                 out[virtual] = physical
