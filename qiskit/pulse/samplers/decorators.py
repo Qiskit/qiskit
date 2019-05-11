@@ -112,7 +112,7 @@ This is partly because `functools.wraps` has been used on the underlying functio
 This in itself is not sufficient as the signature of the sampled function has
 `duration`, whereas the signature of the continuous function is `time`.
 
-This is acheived by removing `__wrapped__` set by `functools.wraps` in order to preserve
+This is achieved by removing `__wrapped__` set by `functools.wraps` in order to preserve
 the correct signature and also applying `_update_annotations` and `_update_docstring`
 to the generated function which corrects the function annotations and adds an informative
 docstring respectively.
@@ -209,7 +209,7 @@ def sampler(sample_function: Callable) -> Callable:
         @functools.wraps(continuous_pulse)
         def call_sampler(duration: int, *args, **kwargs) -> commands.SamplePulse:
             """Replace the call to the continuous function with a call to the sampler applied
-            to the anlytic pulse function."""
+            to the analytic pulse function."""
             sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)
             return np.asarray(sampled_pulse, dtype=np.complex_)
 

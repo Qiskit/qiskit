@@ -240,7 +240,7 @@ class UnitarySimulatorPy(BaseBackend):
             matrix. This size of this matrix must be correct for the number
             of qubits inall experiments in the qobj.
 
-            The "chop_threshold" option specifies a trunctation value for
+            The "chop_threshold" option specifies a truncation value for
             setting small values to zero in the output unitary. The default
             value is 1e-15.
 

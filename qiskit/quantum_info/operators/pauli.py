@@ -285,7 +285,7 @@ class Pauli:
 
         Returns:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
-            represnets the pauli.
+            represents the pauli.
         """
         mat = sparse.coo_matrix(1)
         for z, x in zip(self._z, self._x):
@@ -388,7 +388,7 @@ class Pauli:
             pauli_labels (list[str]): the to-be-inserted or appended pauli label
 
         Note:
-            the indices refers to the localion of original paulis,
+            the indices refers to the location of original paulis,
             e.g. if indices = [0, 2], pauli_labels = ['Z', 'I'] and original pauli = 'ZYXI'
             the pauli will be updated to ZY'I'XI'Z'
             'Z' and 'I' are inserted before the qubit at 0 and 2.
@@ -472,7 +472,7 @@ class Pauli:
 
         Args:
             num_qubits (int): the length of pauli
-            index (int): the qubit index to insert the single qubii
+            index (int): the qubit index to insert the single qubit
             pauli_label (str): pauli
 
         Returns:
@@ -488,7 +488,7 @@ class Pauli:
         return cls(z, x)
 
     def kron(self, other):
-        r"""Kron product of two paulis.
+        r"""Kronecker product of two paulis.
 
         Order is $P_2 (other) \otimes P_1 (self)$
 

@@ -527,7 +527,7 @@ class TestDagEquivalence(QiskitTestCase):
 
 
 class TestDagSubstitute(QiskitTestCase):
-    """Test substitutuing a dag node with a sub-dag"""
+    """Test substituting a dag node with a sub-dag"""
 
     def setUp(self):
         self.dag = DAGCircuit()
