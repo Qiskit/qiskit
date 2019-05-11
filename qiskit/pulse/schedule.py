@@ -26,7 +26,7 @@ from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=missing-return-doc,cyclic-import
+# pylint: disable=missing-return-doc
 
 
 class Schedule(ScheduleComponent):
