@@ -49,7 +49,7 @@ https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
 
 from copy import deepcopy
 
-from qiskit import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
