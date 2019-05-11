@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Contains functions used by the basic aer simulators.
 
 """
@@ -160,7 +158,7 @@ def _einsum_matmul_index_helper(gate_indices, number_of_qubits):
     if len(gate_indices) + number_of_qubits > 26:
         raise QiskitError("Total number of free indexes limited to 26")
 
-    # Indicies for N-qubit input tensor
+    # Indices for N-qubit input tensor
     tens_in = ascii_lowercase[:number_of_qubits]
 
     # Indices for the N-qubit output tensor

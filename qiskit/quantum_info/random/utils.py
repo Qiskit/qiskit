@@ -5,8 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,invalid-sequence-index
-# pylint: disable=unsupported-assignment-operation
+# pylint: disable=invalid-name
 
 """
 Methods to create random unitaries, states, etc.
@@ -27,7 +26,7 @@ def random_state(dim, seed=None):
     state space.
 
     Args:
-        dim (int): the dim of the state spaxe
+        dim (int): the dim of the state space
         seed (int): Optional. To set a random seed.
 
     Returns:

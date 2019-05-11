@@ -40,7 +40,7 @@ class TestSchedule(QiskitTestCase):
         self.two_qubit_device = DeviceSpecification(qubits, registers, mem_slots)
 
     def test_append_an_instruction_to_empty_schedule(self):
-        """Test append instructions to an emtpy schedule."""
+        """Test append instructions to an empty schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -62,7 +62,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(3, sched.stop_time)
 
     def test_insert_an_instruction_into_empty_schedule(self):
-        """Test insert an instruction into an emtpy schedule."""
+        """Test insert an instruction into an empty schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
