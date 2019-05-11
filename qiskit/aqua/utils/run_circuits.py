@@ -24,7 +24,7 @@ from qiskit import compiler
 from qiskit.assembler import assemble_circuits
 from qiskit.providers import BaseBackend, JobStatus, JobError
 from qiskit.providers.basicaer import BasicAerJob
-from qiskit.qobj import QobjHeader
+from qiskit.qobj import QobjHeader, QasmQobj
 from qiskit.aqua.aqua_error import AquaError
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
@@ -125,6 +125,25 @@ def _compile_wrapper(circuits, backend, backend_config, compile_config, run_conf
     return qobj, transpiled_circuits
 
 
+def _split_qobj_to_qobjs(qobj, chunk_size):
+    qobjs = []
+    num_chunks = int(np.ceil(len(qobj.experiments) / chunk_size))
+    if num_chunks == 1:
+        qobjs = [qobj]
+    else:
+        if isinstance(qobj, QasmQobj):
+            qobj_template = QasmQobj(qobj_id=qobj.qobj_id, config=qobj.config, experiments=[], header=qobj.header)
+            for i in range(num_chunks):
+                temp_qobj = copy.deepcopy(qobj_template)
+                temp_qobj.qobj_id = str(uuid.uuid4())
+                temp_qobj.experiments = qobj.experiments[i * chunk_size:(i + 1) * chunk_size]
+                qobjs.append(temp_qobj)
+        else:
+            raise AquaError("Only support QasmQobj now.")
+
+    return qobjs
+
+
 def compile_circuits(circuits, backend, backend_config=None, compile_config=None, run_config=None,
                      show_circuit_summary=False, circuit_cache=None, **kwargs):
     """
@@ -141,12 +160,15 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
         run_config (RunConfig, optional): configuration for running a circuit
         show_circuit_summary (bool, optional): showing the summary of submitted circuits.
         circuit_cache (CircuitCache, optional): A CircuitCache to use when calling compile_and_run_circuits
+        kwargs (optional): special aer instructions to evaluation the expectation of a hamiltonian
 
     Returns:
         QasmObj: compiled qobj.
 
     Raises:
-        AquaError: Any error except for JobError raised by Qiskit Terra
+        ValueError: backend type is wrong or not given
+        ValueError: no circuit in the circuits
+
     """
     backend_config = backend_config or {}
     compile_config = compile_config or {}
@@ -158,16 +180,11 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
     if not isinstance(circuits, list):
         circuits = [circuits]
 
+    if len(circuits) == 0:
+        raise ValueError("The input circuit is empty.")
+
     if is_simulator_backend(backend):
         circuits = _avoid_empty_circuits(circuits)
-
-    if MAX_CIRCUITS_PER_JOB is not None:
-        max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
-    else:
-        if is_local_backend(backend):
-            max_circuits_per_job = sys.maxsize
-        else:
-            max_circuits_per_job = backend.configuration().max_experiments
 
     if circuit_cache is not None and circuit_cache.try_reusing_qobjs:
         # Check if all circuits are the same length.
@@ -177,68 +194,62 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
         else:  # Try setting up the reusable qobj
             # Compile and cache first circuit if cache is empty. The load method will try to reuse it
             if circuit_cache.qobjs is None:
-                qobj, transpiled_circuits = _compile_wrapper([circuits[0]], backend, backend_config,
-                                                             compile_config, run_config)
+                qobj, _ = _compile_wrapper([circuits[0]], backend, backend_config, compile_config, run_config)
 
                 if is_aer_provider(backend):
                     qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, [circuits[0]], 0)
 
-    qobjs = []
-    transpiled_circuits = []
-    chunks = int(np.ceil(len(circuits) / max_circuits_per_job))
-    for i in range(chunks):
-        sub_circuits = circuits[i * max_circuits_per_job:(i + 1) * max_circuits_per_job]
-        if circuit_cache is not None and circuit_cache.misses < circuit_cache.allowed_misses:
-            try:
-                if circuit_cache.cache_transpiled_circuits:
-                    transpiled_sub_circuits = compiler.transpile(sub_circuits, backend, **backend_config,
-                                                                 **compile_config)
-                    qobj = circuit_cache.load_qobj_from_cache(transpiled_sub_circuits, i, run_config=run_config)
-                else:
-                    qobj = circuit_cache.load_qobj_from_cache(sub_circuits, i, run_config=run_config)
-                if is_aer_provider(backend):
-                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
-            # cache miss, fail gracefully
-            except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
-                circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
-                if len(circuit_cache.qobjs) > 0:
-                    logger.info('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
-                    circuit_cache.misses += 1
-                else:
-                    logger.info('Circuit cache is empty, compiling from scratch.')
-                circuit_cache.clear_cache()
-                qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, backend_config,
-                                                                 compile_config, run_config)
-                transpiled_circuits.extend(transpiled_sub_circuits)
-                if is_aer_provider(backend):
-                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
-                try:
-                    circuit_cache.cache_circuit(qobj, sub_circuits, i)
-                except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
-                    try:
-                        circuit_cache.cache_transpiled_circuits = True
-                        circuit_cache.cache_circuit(qobj, transpiled_sub_circuits, i)
-                    except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
-                        logger.info('Circuit could not be cached for reason: ' + repr(e))
-                        logger.info('Transpilation may be too aggressive. Try skipping transpiler.')
+    transpiled_circuits = None
+    if circuit_cache is not None and circuit_cache.misses < circuit_cache.allowed_misses:
+        try:
+            if circuit_cache.cache_transpiled_circuits:
+                transpiled_circuits = compiler.transpile(circuits, backend, **backend_config,
+                                                         **compile_config)
+                qobj = circuit_cache.load_qobj_from_cache(transpiled_circuits, 0, run_config=run_config)
+            else:
+                qobj = circuit_cache.load_qobj_from_cache(circuits, 0, run_config=run_config)
 
-        else:
-            qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, backend_config, compile_config,
-                                                             run_config)
-            transpiled_circuits.extend(transpiled_sub_circuits)
             if is_aer_provider(backend):
                 qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
+        # cache miss, fail gracefully
+        except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
+            circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
+            if len(circuit_cache.qobjs) > 0:
+                logger.info('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
+                circuit_cache.misses += 1
+            else:
+                logger.info('Circuit cache is empty, compiling from scratch.')
+            circuit_cache.clear_cache()
 
-        qobjs.append(qobj)
+            qobj, transpiled_circuits = _compile_wrapper(circuits, backend, backend_config,
+                                                         compile_config, run_config)
+            if is_aer_provider(backend):
+                qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
+            try:
+                circuit_cache.cache_circuit(qobj, circuits, 0)
+            except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
+                try:
+                    circuit_cache.cache_transpiled_circuits = True
+                    circuit_cache.cache_circuit(qobj, transpiled_circuits, 0)
+                except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
+                    logger.info('Circuit could not be cached for reason: ' + repr(e))
+                    logger.info('Transpilation may be too aggressive. Try skipping transpiler.')
+
+    else:
+        qobj, transpiled_circuits = _compile_wrapper(circuits, backend, backend_config, compile_config,
+                                                     run_config)
+        if is_aer_provider(backend):
+            qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
 
     if logger.isEnabledFor(logging.DEBUG) and show_circuit_summary:
         logger.debug("==== Before transpiler ====")
         logger.debug(summarize_circuits(circuits))
-        logger.debug("====  After transpiler ====")
-        logger.debug(summarize_circuits(transpiled_circuits))
+        if transpiled_circuits is not None:
+            logger.debug("====  After transpiler ====")
+            logger.debug(summarize_circuits(transpiled_circuits))
 
-    return qobjs
+    return qobj
 
 
 def _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation):
@@ -259,16 +270,16 @@ def _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_va
     return job, job_id
 
 
-def run_qobjs(qobjs, backend, qjob_config=None, backend_options=None,
-              noise_config=None, skip_qobj_validation=False):
+def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
+             noise_config=None, skip_qobj_validation=False):
     """
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
 
-    The autorecovery feature is only applied for non-simulator backend.
+    The auto-recovery feature is only applied for non-simulator backend.
     This wraper will try to get the result no matter how long it costs.
 
     Args:
-        qobjs (list[QasmObj]): qobjs to execute
+        qobj (QasmQobj): qobj to execute
         backend (BaseBackend): backend instance
         qjob_config (dict, optional): configuration for quantum job object
         backend_options (dict, optional): configuration for simulator
@@ -290,6 +301,17 @@ def run_qobjs(qobjs, backend, qjob_config=None, backend_options=None,
 
     with_autorecover = False if is_simulator_backend(backend) else True
 
+    if MAX_CIRCUITS_PER_JOB is not None:
+        max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
+    else:
+        if is_local_backend(backend):
+            max_circuits_per_job = sys.maxsize
+        else:
+            max_circuits_per_job = backend.configuration().max_experiments
+
+    # split qobj if it exceeds the payload of the backend
+
+    qobjs = _split_qobj_to_qobjs(qobj, max_circuits_per_job)
     jobs = []
     job_ids = []
     for qobj in qobjs:
@@ -402,7 +424,7 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
     """
     qobjs = compile_circuits(circuits, backend, backend_config, compile_config, run_config,
                              show_circuit_summary, circuit_cache, **kwargs)
-    result = run_qobjs(qobjs, backend, qjob_config, backend_options, noise_config, skip_qobj_validation)
+    result = run_qobj(qobjs, backend, qjob_config, backend_options, noise_config, skip_qobj_validation)
     return result
 
 
