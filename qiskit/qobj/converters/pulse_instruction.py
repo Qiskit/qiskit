@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
+
 import re
 import math
 
@@ -14,11 +15,11 @@ from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
                                         function_exponentiation)
 from sympy import Symbol
 
-from qiskit.pulse import commands, channels, Schedule
-from qiskit.pulse.schedule import ParameterizedSchedule
+from qiskit.pulse import commands, channels
+from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjMeasurementOption
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class ConversionMethodBinder:

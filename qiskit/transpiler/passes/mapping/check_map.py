@@ -18,7 +18,7 @@ It checks that all 2-qubit interactions are laid out to be physically close.
 """
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 
 
 class CheckMap(AnalysisPass):

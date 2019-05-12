@@ -23,7 +23,7 @@ compatible.
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 from qiskit.extensions.standard import SwapGate
 
 
