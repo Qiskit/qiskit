@@ -562,15 +562,16 @@ class QuantumCircuit:
         Raises:
             VisualizationError: when an invalid output method is selected
         """
-        from qiskit.tools import visualization
-        return visualization.circuit_drawer(self, scale=scale,
-                                            filename=filename, style=style,
-                                            output=output,
-                                            interactive=interactive,
-                                            line_length=line_length,
-                                            plot_barriers=plot_barriers,
-                                            reverse_bits=reverse_bits,
-                                            justify=justify)
+        # pylint: disable=cyclic-import
+        from qiskit.visualization import circuit_drawer
+        return circuit_drawer(self, scale=scale,
+                              filename=filename, style=style,
+                              output=output,
+                              interactive=interactive,
+                              line_length=line_length,
+                              plot_barriers=plot_barriers,
+                              reverse_bits=reverse_bits,
+                              justify=justify)
 
     def size(self):
         """Returns total number of gate operations in circuit.
