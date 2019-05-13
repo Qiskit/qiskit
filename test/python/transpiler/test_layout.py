@@ -119,9 +119,9 @@ class LayoutTest(QiskitTestCase):
 
     def test_layout_get_bits(self):
         """Get the map from the (qu)bits view"""
-        layout_dict = {(self.qr, 0): 0,
-                       (self.qr, 1): 1,
-                       (self.qr, 2): 2}
+        layout_dict = {self.qr[0]: 0,
+                       self.qr[1]: 1,
+                       self.qr[2]: 2}
         layout = Layout(layout_dict)
         self.assertDictEqual(layout_dict, layout.get_virtual_bits())
 

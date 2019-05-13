@@ -81,10 +81,10 @@ class Layout():
     @staticmethod
     def order_based_on_type(value1, value2):
         """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
-        if isinstance(value1, int) and isinstance(value2, QuBit):
+        if isinstance(value1, int) and isinstance(value2, (QuBit, type(None))):
             physical = value1
             virtual = value2
-        elif isinstance(value2, int) and isinstance(value1, QuBit):
+        elif isinstance(value2, int) and isinstance(value1, (QuBit, type(None))):
             physical = value2
             virtual = value1
         else:
