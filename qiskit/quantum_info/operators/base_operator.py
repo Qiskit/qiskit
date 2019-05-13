@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
