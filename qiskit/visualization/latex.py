@@ -515,8 +515,8 @@ class QCircuitImage:
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "\\dstick{%s}\\qw" % (op.op.params[0])
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
-                                # this is because this gate takes up 2 columns, and we have just written to
-                                # the next column
+                                # this is because this gate takes up 2 columns,
+                                # and we have just written to the next column
                                 num_cols_used = 2
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = \
