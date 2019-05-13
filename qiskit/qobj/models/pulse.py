@@ -46,7 +46,7 @@ class PulseQobjInstructionSchema(QobjInstructionSchema):
     ch = String(validate=Regexp('[dum]([0-9])+'))
     conditional = Integer(validate=Range(min=0))
     val = ByType([Complex(), String()])
-    phase = ByType([String(), Number()])
+    phase = ByType([Number(), String()])
     duration = Integer(validate=Range(min=1))
     qubits = List(Integer(validate=Range(min=0)), validate=Length(min=1))
     memory_slot = List(Integer(validate=Range(min=0)), validate=Length(min=1))
