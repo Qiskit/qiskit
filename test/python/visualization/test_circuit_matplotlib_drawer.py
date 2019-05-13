@@ -7,7 +7,6 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-import os
 import tempfile
 import unittest
 import os
