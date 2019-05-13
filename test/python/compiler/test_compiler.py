@@ -219,7 +219,7 @@ class TestCompiler(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         qc.cx(qr[2], qr[1])
         qc.cx(qr[2], qr[0])
-        initial_layout = {0: (qr, 1), 2: (qr, 0), 15: (qr, 2)}
+        initial_layout = {0: qr[1], 2: qr[0], 15: qr[2]}
         backend = FakeRueschlikon()
         qc_b = transpile(qc, backend, seed_transpiler=42, initial_layout=initial_layout)
         qobj = assemble(qc_b)
