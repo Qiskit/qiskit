@@ -78,7 +78,7 @@ def _list_to_complex_array(complex_list):
         complex_list (list): List to convert.
 
     Returns:
-        np.ndarray: Complex numpy aray
+        np.ndarray: Complex numpy array
 
     Raises:
         QiskitError: If inner most array of input nested list is not of length 2.
@@ -102,7 +102,7 @@ def format_level_0_memory(memory):
 
     Raises:
         QiskitError: If the returned numpy array does not have 2 (avg) or 3 (single)
-            indicies.
+            indices.
     """
     formatted_memory = _list_to_complex_array(memory)
     # infer meas_return from shape of returned data.
@@ -123,7 +123,7 @@ def format_level_1_memory(memory):
 
     Raises:
         QiskitError: If the returned numpy array does not have 1 (avg) or 2 (single)
-            indicies.
+            indices.
     """
     formatted_memory = _list_to_complex_array(memory)
     # infer meas_return from shape of returned data.

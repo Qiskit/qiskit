@@ -36,9 +36,9 @@ class Quaternion:
     def __str__(self):
         return np.array_str(self.data)
 
-    def __mul__(self, r):  # pylint: disable=C0103
+    def __mul__(self, r):
         if isinstance(r, Quaternion):
-            q = self  # pylint: disable=C0103
+            q = self
             out_data = np.zeros(4, dtype=float)
             out_data[0] = r(0)*q(0) - r(1)*q(1) - r(2)*q(2) - r(3)*q(3)
             out_data[1] = r(0)*q(1) + r(1)*q(0) - r(2)*q(3) + r(3)*q(2)
@@ -78,7 +78,7 @@ class Quaternion:
         Returns:
             ndarray: Rotation matrix.
         """
-        w, x, y, z = self.normalize().data  # pylint: disable=C0103
+        w, x, y, z = self.normalize().data
         mat = np.array([
             [1-2*y**2-2*z**2, 2*x*y-2*z*w, 2*x*z+2*y*w],
             [2*x*y+2*z*w, 1-2*x**2-2*z**2, 2*y*z-2*x*w],

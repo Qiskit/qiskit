@@ -12,7 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-boolean-expressions
 """
 A generic quantum instruction.
 
@@ -28,7 +27,7 @@ Instructions are identified by the following:
 
     num_qubits, num_clbits: dimensions of the instruction
 
-    params: List of parameters to specialize a specific intruction instance.
+    params: List of parameters to specialize a specific instruction instance.
 
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
@@ -55,7 +54,7 @@ class Instruction:
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
-            num_clbits (int): instructions's clbit width
+            num_clbits (int): instruction's clbit width
             params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
         Raises:
             QiskitError: when the register is not in the correct format.

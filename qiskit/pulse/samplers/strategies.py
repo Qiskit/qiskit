@@ -20,7 +20,7 @@ where the supplied `continuous_pulse` is a function with signature:
         ...
     ```
 The sampler will call the `continuous_pulse` function with a set of times it will decide
-according to the sampling strategy it implments along with the passed `args` and `kwargs`.
+according to the sampling strategy it implements along with the passed `args` and `kwargs`.
 """
 
 from typing import Callable

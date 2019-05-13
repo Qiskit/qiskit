@@ -145,7 +145,7 @@ class Subscriber:
     def subscribe(self, event, callback):
         """ Subscribes to an event, associating a callback function to that event, so
         when the event occurs, the callback will be called.
-        This is a blocking call, so try to keep callbacks as lighweight as possible. """
+        This is a blocking call, so try to keep callbacks as lightweight as possible. """
         return self._broker.subscribe(event, callback)
 
     def unsubscribe(self, event, callback):

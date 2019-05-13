@@ -309,7 +309,7 @@ class DirectOnQuWire(DrawElement):
         self.top_format = ' %s '
         self.mid_format = '─%s─'
         self.bot_format = ' %s '
-        self._mid_padding = '─'
+        self._mid_padding = self.mid_bck = '─'
         self.top_connector = {"│": '│'}
         self.bot_connector = {"│": '│'}
 
@@ -420,7 +420,7 @@ class InputWire(DrawElement):
         super().__init__(label)
 
     @staticmethod
-    def fillup_layer(names):  # pylint: disable=arguments-differ
+    def fillup_layer(names):
         """
         Creates a layer with InputWire elements.
         Args:
@@ -897,7 +897,6 @@ class Layer:
         self.clbit_layer[self.cregs.index(clbit)] = element
 
     def _set_multibox(self, wire_type, bits, label, top_connect=None):
-        # pylint: disable=invalid-name
         bits = list(bits)
         if wire_type == "cl":
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
