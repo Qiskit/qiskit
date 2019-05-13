@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-# pylint: disable=arguments-differ
 
 """Contains a (slow) python statevector simulator.
 
@@ -119,7 +117,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
             zero state. This size of this vector must be correct for the number
             of qubits in all experiments in the qobj.
 
-            The "chop_threshold" option specifies a trunctation value for
+            The "chop_threshold" option specifies a truncation value for
             setting small values to zero in the output statevector. The default
             value is 1e-15.
 

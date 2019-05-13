@@ -84,7 +84,7 @@ def is_diagonal_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
 
 
 def is_symmetric_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
-    """Test if an array is a symmetrix matrix"""
+    """Test if an array is a symmetric matrix"""
     if atol is None:
         atol = ATOL_DEFAULT
     if rtol is None:

@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-type-doc
-
 """Disassemble function for a qobj into a list of circuits and it's config"""
 
 from qiskit.circuit.classicalregister import ClassicalRegister
@@ -28,9 +26,9 @@ def _experiments_to_circuits(qobj):
 
     Args:
         qobj (Qobj): The Qobj object to convert to QuantumCircuits
+
     Returns:
         list: A list of QuantumCircuit objects from the qobj
-
     """
     if qobj.experiments:
         circuits = []
@@ -92,15 +90,16 @@ def _experiments_to_circuits(qobj):
 
 
 def disassemble(qobj):
-    """Dissasemble a qobj and return the circuits, run_config, and user header
+    """Disassemble a qobj and return the circuits, run_config, and user header
 
     Args:
-        qobj (Qobj): The input qobj object to dissasemble
-    Returns:
-        circuits (list): A list of quantum circuits
-        run_config (dict): The dist of the run config
-        user_qobj_header (dict): The dict of any user headers in the qobj
+        qobj (Qobj): The input qobj object to disassemble
 
+    Returns:
+        tuple: (circuits, run_config, user_qobj_header):
+            * circuits (list): A list of quantum circuits
+            * run_config (dict): The dist of the run config
+            * user_qobj_header (dict): The dict of any user headers in the qobj
     """
     run_config = qobj.config.to_dict()
     user_qobj_header = qobj.header.to_dict()

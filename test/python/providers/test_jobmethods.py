@@ -39,7 +39,6 @@ class TestSimulatorsJob(QiskitTestCase):
 
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
-        # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (SimulatorJob, executor):
             for index in range(taskcount):
                 job = SimulatorJob(backend, job_id, target_tasks[index], new_fake_qobj())
@@ -59,7 +58,6 @@ class TestSimulatorsJob(QiskitTestCase):
 
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
-        # pylint: disable=invalid-name,redefined-outer-name
         with mocked_executor() as (BasicAerJob, executor):
             job = BasicAerJob(backend, job_id, lambda: None, new_fake_qobj())
             job.submit()

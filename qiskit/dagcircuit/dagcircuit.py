@@ -528,7 +528,7 @@ class DAGCircuit:
                 of self.
 
         Raises:
-            DAGCircuitError: if missing, duplicate or incosistent wire
+            DAGCircuitError: if missing, duplicate or inconsistent wire
         """
         edge_map = edge_map or {}
 
@@ -814,7 +814,7 @@ class DAGCircuit:
             node = self._id_to_node[node]
 
         condition = node.condition
-        # the dag must be ammended if used in a
+        # the dag must be amended if used in a
         # conditional context. delete the op nodes and replay
         # them with the condition.
         if condition:

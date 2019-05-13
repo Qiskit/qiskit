@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring,import-error
+# pylint: disable=invalid-name,import-error
 
 """
 Visualization functions for measurement counts.
