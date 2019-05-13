@@ -26,7 +26,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit.quantumregister import QuBit
