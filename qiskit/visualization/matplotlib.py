@@ -609,9 +609,9 @@ class MatplotlibDrawer:
                             c_idxs.append(index)
                             break
 
-                # if it isn't going to be plotted, don't add it to the anchors. This prevents
-                # additional blank wires at the end of the line if the last instruction
-                # is a barrier type
+                # Only add the gate to the anchors if it is going to be plotted.
+                # This prevents additional blank wires at the end of the line if
+                # the last instruction is a barrier type
                 if self.plot_barriers or \
                         op.name not in ['barrier', 'snapshot', 'load', 'save',
                                         'noise']:
