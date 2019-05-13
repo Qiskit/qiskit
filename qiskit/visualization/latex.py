@@ -12,8 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
-# pylint: disable=consider-using-enumerate
+# pylint: disable=invalid-name
 
 """latex circuit visualization backends."""
 

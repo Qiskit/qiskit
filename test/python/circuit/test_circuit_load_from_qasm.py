@@ -17,6 +17,7 @@
 
 from qiskit import QiskitError
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import Gate
 from qiskit.test import QiskitTestCase, Path
 
 
@@ -122,6 +123,23 @@ class LoadFromQasmTest(QiskitTestCase):
         self.assertEqual(len(q_circuit.cregs), 2)
         self.assertEqual(len(q_circuit.qregs), 1)
         self.assertEqual(q_circuit, ref)
+
+    def test_opaque_gate(self):
+        """Test parse an opaque gate
+        See https://github.com/Qiskit/qiskit-terra/issues/1566"""
+
+        qasm_string = '\n'.join(["OPENQASM 2.0;",
+                                 "include \"qelib1.inc\";",
+                                 "opaque my_gate(theta,phi,lambda) a,b;",
+                                 "qreg q[3];",
+                                 "my_gate(1,2,3) q[1],q[2];"]) + '\n'
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+
+        qr = QuantumRegister(3, 'q')
+        expected = QuantumCircuit(qr)
+        expected.append(Gate(name='my_gate', num_qubits=2, params=[1, 2, 3]), [qr[1], qr[2]])
+
+        self.assertEqual(circuit, expected)
 
     def test_qasm_example_file(self):
         """Loads qasm/example.qasm.

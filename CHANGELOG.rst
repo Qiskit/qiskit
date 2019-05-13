@@ -29,6 +29,9 @@ Removed
 -  Removed deprecated qcvv in tools. Removed deprecated converters qobj_to_circuits and circuits_to_qobj (#2301)
 - The previously deprecated ``qiskit._util`` module has been removed. Use
   ``qiskit.util`` instead. (#2329)
+- The logging tools in ``qiskit.tools.logging`` are removed. (#2387)
+- The ``qiskit.qiskiterror`` module has been removed. Please use
+  ``qiskit.exceptions`` instead. (#2399)
 
 `0.8.0`_ - 2019-05-02
 =====================

@@ -11,9 +11,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Schedule.
-"""
+
+"""Schedule."""
+
 import itertools
 import logging
 from typing import List, Tuple, Iterable, Union, Dict, Callable
@@ -26,7 +26,7 @@ from .exceptions import PulseError
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=missing-return-doc,cyclic-import
+# pylint: disable=missing-return-doc
 
 
 class Schedule(ScheduleComponent):
