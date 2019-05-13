@@ -174,7 +174,6 @@ class DictParameters(ModelTypeValidator):
         return value
 
     def _validate_values(self, value):
-        # pylint: disable=too-many-return-statements
         if value is None:
             return None
         if isinstance(value, self.valid_value_types):
@@ -187,7 +186,6 @@ class DictParameters(ModelTypeValidator):
         return self.fail('invalid', input=value)
 
     def _serialize(self, value, attr, obj):
-        # pylint: disable=too-many-return-statements
         if value is None:
             return None
         if isinstance(value, Mapping):
@@ -196,7 +194,6 @@ class DictParameters(ModelTypeValidator):
         return self.fail('invalid_mapping')
 
     def _deserialize(self, value, attr, data):
-        # pylint: disable=too-many-return-statements
         if value is None:
             return None
         if isinstance(value, Mapping):

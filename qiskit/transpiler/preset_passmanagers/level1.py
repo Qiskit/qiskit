@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
-
 """
 Level 1 pass manager:
 mapping in addition to light optimization via adjacent gate collapse

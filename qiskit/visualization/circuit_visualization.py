@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 # TODO: Remove after 0.7 and the deprecated methods are removed
-# pylint: disable=unused-argument
 
 
 """
@@ -182,6 +181,11 @@ def circuit_drawer(circuit,
     default_output = 'text'
     if config:
         default_output = config.get('circuit_drawer', 'text')
+        if default_output == 'auto':
+            if _matplotlib.HAS_MATPLOTLIB:
+                default_output = 'mpl'
+            else:
+                default_output = 'text'
     if output is None:
         output = default_output
 

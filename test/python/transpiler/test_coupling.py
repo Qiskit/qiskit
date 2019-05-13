@@ -63,7 +63,7 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual(expected, str(coupling))
 
     def test_distance_error(self):
-        """Test distance between unconected physical_qubits."""
+        """Test distance between unconnected physical_qubits."""
         graph = CouplingMap()
         graph.add_physical_qubit(0)
         graph.add_physical_qubit(1)

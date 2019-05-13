@@ -19,7 +19,7 @@ import logging
 from typing import List, Union, Tuple
 
 from .interfaces import ScheduleComponent
-from .schedule import Schedule
+from .schedule import Schedule  # pylint: disable=cyclic-import
 
 logger = logging.getLogger(__name__)
 

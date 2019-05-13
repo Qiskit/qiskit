@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string,ungrouped-imports,import-error
+# pylint: disable=invalid-name,ungrouped-imports,import-error
 
 """
 Visualization functions for quantum states.
@@ -445,7 +445,7 @@ def bit_string_index(s):
 
 
 def phase_to_color_wheel(complex_number):
-    """Map a phase of a complexnumber to a color in (r,g,b).
+    """Map a phase of a complex number to a color in (r,g,b).
 
     complex_number is phase is first mapped to angle in the range
     [0, 2pi] and then to a color wheel with blue at zero phase.
