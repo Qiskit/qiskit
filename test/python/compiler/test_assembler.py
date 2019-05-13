@@ -59,7 +59,7 @@ class TestCircuitAssembler(QiskitTestCase):
         circ1.cx(qr1[0], qr1[2])
         circ1.measure(qr1, qc1)
 
-        qobj = assemble([circ0, circ1], shots=100, memory=False, seed=6)
+        qobj = assemble([circ0, circ1], shots=100, memory=False, seed_simulator=6)
         self.assertIsInstance(qobj, QasmQobj)
         self.assertEqual(qobj.config.seed_simulator, 6)
         self.assertEqual(len(qobj.experiments), 2)
@@ -176,7 +176,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(bfunc_op.register, h_op.conditional)
 
     def test_assemble_circuits_raises_for_bind_circuit_mismatch(self):
-        """Verify assemble_circuits raise error for parametized circuits without matching binds."""
+        """Verify assemble_circuits raises error for parameterized circuits without matching
+        binds."""
         qr = QuantumRegister(2)
         x = Parameter('x')
         y = Parameter('y')

@@ -12,7 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cyclic-import
 """Quantum circuit object."""
 
 from copy import deepcopy
@@ -27,6 +26,17 @@ from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 from .parametertable import ParameterTable
+from .instructionset import InstructionSet
+from .register import Register
+
+
+def _is_bit(obj):
+    """Determine if obj is a bit"""
+    # If there is a bit type this could be replaced by isinstance.
+    if isinstance(obj, tuple) and len(obj) == 2:
+        if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
+            return True
+    return False
 
 
 class QuantumCircuit:
@@ -62,8 +72,7 @@ class QuantumCircuit:
             name = self.cls_prefix() + str(self.cls_instances())
             # pylint: disable=not-callable
             # (known pylint bug: https://github.com/PyCQA/pylint/issues/1699)
-            if sys.platform != "win32" and \
-               isinstance(mp.current_process(), mp.context.ForkProcess):
+            if sys.platform != "win32" and isinstance(mp.current_process(), mp.context.ForkProcess):
                 name += '-{}'.format(mp.current_process().pid)
         self._increment_instances()
 
@@ -136,7 +145,7 @@ class QuantumCircuit:
         Returns:
             QuantumCircuit: the mirrored circuit
         """
-        reverse_circ = self.copy(name=self.name+'_mirror')
+        reverse_circ = self.copy(name=self.name + '_mirror')
         reverse_circ.data = []
         for inst, qargs, cargs in reversed(self.data):
             reverse_circ.data.append((inst.mirror(), qargs, cargs))
@@ -153,7 +162,7 @@ class QuantumCircuit:
         Raises:
             QiskitError: if the circuit cannot be inverted.
         """
-        inverse_circ = self.copy(name=self.name+'_dg')
+        inverse_circ = self.copy(name=self.name + '_dg')
         inverse_circ.data = []
         for inst, qargs, cargs in reversed(self.data):
             inverse_circ.data.append((inst.inverse(), qargs, cargs))
@@ -245,7 +254,97 @@ class QuantumCircuit:
         """Return indexed operation."""
         return self.data[item]
 
+    @staticmethod
+    def cast(value, _type):
+        """Best effort to cast value to type. Otherwise, returns the value."""
+        try:
+            return _type(value)
+        except (ValueError, TypeError):
+            return value
+
+    @staticmethod
+    def _bit_argument_conversion(bit_representation, in_array):
+        try:
+            if _is_bit(bit_representation):
+                # circuit.h(qr[0]) -> circuit.h([qr[0]])
+                return [bit_representation]
+            elif isinstance(bit_representation, Register):
+                # circuit.h(qr) -> circuit.h([qr[0], qr[1]])
+                return bit_representation[:]
+            elif isinstance(QuantumCircuit.cast(bit_representation, int), int):
+                # circuit.h(0) -> circuit.h([qr[0]])
+                return [in_array[bit_representation]]
+            elif isinstance(bit_representation, slice):
+                # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
+                return in_array[bit_representation]
+            elif isinstance(bit_representation, list) and \
+                    all(_is_bit(bit) for bit in bit_representation):
+                # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
+                return bit_representation
+            elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
+                # circuit.h([0, 1])     -> circuit.h([qr[0], qr[1]])
+                # circuit.h(range(0,2)) -> circuit.h([qr[0], qr[1]])
+                return [in_array[index] for index in bit_representation]
+            else:
+                raise QiskitError('Not able to expand a %s (%s)' % (bit_representation,
+                                                                    type(bit_representation)))
+        except IndexError:
+            raise QiskitError('Index out of range.')
+        except TypeError:
+            raise QiskitError('Type error handeling %s (%s)' % (bit_representation,
+                                                                type(bit_representation)))
+
+    def qbit_argument_conversion(self, qubit_representation):
+        """
+        Converts several qubit representations (such as indexes, range, etc)
+        into a list of qubits.
+
+        Args:
+            qubit_representation (Object): representation to expand
+
+        Returns:
+            List(tuple): Where each tuple is a qubit.
+        """
+        return QuantumCircuit._bit_argument_conversion(qubit_representation, self.qubits)
+
+    def cbit_argument_conversion(self, clbit_representation):
+        """
+        Converts several classical bit representations (such as indexes, range, etc)
+        into a list of classical bits.
+
+        Args:
+            clbit_representation (Object): representation to expand
+
+        Returns:
+            List(tuple): Where each tuple is a classical bit.
+        """
+        return QuantumCircuit._bit_argument_conversion(clbit_representation, self.clbits)
+
     def append(self, instruction, qargs=None, cargs=None):
+        """Append one or more instructions to the end of the circuit, modifying
+        the circuit in place. Expands qargs and cargs.
+
+        Args:
+            instruction (Instruction or Operation): Instruction instance to append
+            qargs (list(argument)): qubits to attach instruction to
+            cargs (list(argument)): clbits to attach instruction to
+
+        Returns:
+            Instruction: a handle to the instruction that was just added
+        """
+        # Convert input to instruction
+        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+            instruction = instruction.to_instruction()
+
+        expanded_qargs = [self.qbit_argument_conversion(qarg) for qarg in qargs or []]
+        expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
+
+        instructions = InstructionSet()
+        for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
+            instructions.add(self._append(instruction, qarg, carg), qarg, carg)
+        return instructions
+
+    def _append(self, instruction, qargs, cargs):
         """Append an instruction to the end of the circuit, modifying
         the circuit in place.
 
@@ -261,12 +360,6 @@ class QuantumCircuit:
             QiskitError: if the gate is of a different shape than the wires
                 it is being attached to.
         """
-        qargs = qargs or []
-        cargs = cargs or []
-
-        # Convert input to instruction
-        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
-            instruction = instruction.to_instruction()
         if not isinstance(instruction, Instruction):
             raise QiskitError('object is not an Instruction.')
 
@@ -274,13 +367,6 @@ class QuantumCircuit:
         self._check_dups(qargs)
         self._check_qargs(qargs)
         self._check_cargs(cargs)
-        if instruction.num_qubits != len(qargs) or \
-                instruction.num_clbits != len(cargs):
-            raise QiskitError("instruction %s with %d qubits and %d clbits "
-                              "cannot be appended onto %d qubits and %d clbits." %
-                              (instruction.name,
-                               instruction.num_qubits, instruction.num_clbits,
-                               len(qargs), len(cargs)))
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
@@ -476,15 +562,16 @@ class QuantumCircuit:
         Raises:
             VisualizationError: when an invalid output method is selected
         """
-        from qiskit.tools import visualization
-        return visualization.circuit_drawer(self, scale=scale,
-                                            filename=filename, style=style,
-                                            output=output,
-                                            interactive=interactive,
-                                            line_length=line_length,
-                                            plot_barriers=plot_barriers,
-                                            reverse_bits=reverse_bits,
-                                            justify=justify)
+        # pylint: disable=cyclic-import
+        from qiskit.visualization import circuit_drawer
+        return circuit_drawer(self, scale=scale,
+                              filename=filename, style=style,
+                              output=output,
+                              interactive=interactive,
+                              line_length=line_length,
+                              plot_barriers=plot_barriers,
+                              reverse_bits=reverse_bits,
+                              justify=justify)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -515,13 +602,13 @@ class QuantumCircuit:
         # a register is given by reg_int+qubit_num
         reg_offset = 0
         reg_map = {}
-        for reg in self.qregs+self.cregs:
+        for reg in self.qregs + self.cregs:
             reg_map[reg.name] = reg_offset
             reg_offset += reg.size
 
         # A list that holds the height of each qubit
         # and classical bit.
-        op_stack = [0]*reg_offset
+        op_stack = [0] * reg_offset
         # Here we are playing a modified version of
         # Tetris where we stack gates, but multi-qubit
         # gates, or measurements have a block for each
@@ -536,19 +623,19 @@ class QuantumCircuit:
             if instr.name not in ['barrier', 'snapshot']:
                 levels = []
                 reg_ints = []
-                for ind, reg in enumerate(qargs+cargs):
+                for ind, reg in enumerate(qargs + cargs):
                     # Add to the stacks of the qubits and
                     # cbits used in the gate.
-                    reg_ints.append(reg_map[reg[0].name]+reg[1])
+                    reg_ints.append(reg_map[reg[0].name] + reg[1])
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 if instr.control:
                     # Controls operate over all bits in the
                     # classical register they use.
                     cint = reg_map[instr.control[0].name]
                     for off in range(instr.control[0].size):
-                        if cint+off not in reg_ints:
-                            reg_ints.append(cint+off)
-                            levels.append(op_stack[cint+off]+1)
+                        if cint + off not in reg_ints:
+                            reg_ints.append(cint + off)
+                            levels.append(op_stack[cint + off] + 1)
 
                 max_level = max(levels)
                 for ind in reg_ints:
@@ -562,7 +649,7 @@ class QuantumCircuit:
             int: Width of circuit.
 
         """
-        return sum(reg.size for reg in self.qregs+self.cregs)
+        return sum(reg.size for reg in self.qregs + self.cregs)
 
     def count_ops(self):
         """Count each operation kind in the circuit.
@@ -594,7 +681,7 @@ class QuantumCircuit:
         if unitary_only:
             regs = self.qregs
         else:
-            regs = self.qregs+self.cregs
+            regs = self.qregs + self.cregs
 
         for reg in regs:
             reg_map[reg.name] = reg_offset
@@ -611,7 +698,7 @@ class QuantumCircuit:
                 args = qargs
                 num_qargs = len(args)
             else:
-                args = qargs+cargs
+                args = qargs + cargs
                 num_qargs = len(args) + (1 if instr.control else 0)
 
             if num_qargs >= 2 and instr.name not in ['barrier', 'snapshot']:
@@ -623,7 +710,7 @@ class QuantumCircuit:
                     creg = instr.control[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
-                        temp_int = creg_int+coff
+                        temp_int = creg_int + coff
                         for k in range(num_sub_graphs):
                             if temp_int in sub_graphs[k]:
                                 graphs_touched.append(k)
@@ -631,7 +718,7 @@ class QuantumCircuit:
                                 break
 
                 for item in args:
-                    reg_int = reg_map[item[0].name]+item[1]
+                    reg_int = reg_map[item[0].name] + item[1]
                     for k in range(num_sub_graphs):
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
@@ -652,7 +739,7 @@ class QuantumCircuit:
                             _sub_graphs.append(sub_graphs[idx])
                     _sub_graphs.append(connections)
                     sub_graphs = _sub_graphs
-                    num_sub_graphs -= (num_touched-1)
+                    num_sub_graphs -= (num_touched - 1)
             # Cannot go lower than one so break
             if num_sub_graphs == 1:
                 break

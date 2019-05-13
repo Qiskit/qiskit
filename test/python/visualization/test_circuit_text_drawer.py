@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable = no-member
-
 """ `_text_circuit_drawer` "draws" a circuit in "ascii art" """
 
 from codecs import encode
@@ -863,7 +861,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit, justify='right')), expected)
 
     def test_text_box_length(self):
-        """The length of boxes is indepedent of other boxes in the layer
+        """The length of boxes is independent of other boxes in the layer
         https://github.com/Qiskit/qiskit-terra/issues/1882"""
         expected = '\n'.join(["             ┌───┐    ┌───┐",
                               "q1_0: |0>────┤ H ├────┤ H ├",
@@ -878,6 +876,22 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.h(qr[0])
         circuit.h(qr[0])
         circuit.u1(0.0000001, qr[2])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_spacing_2378(self):
+        """Small gates in the same layer as long gates.
+        See https://github.com/Qiskit/qiskit-terra/issues/2378"""
+        expected = '\n'.join(["                     ",
+                              "q_0: |0>──────X──────",
+                              "              │      ",
+                              "q_1: |0>──────X──────",
+                              "        ┌───────────┐",
+                              "q_2: |0>┤ Rz(11111) ├",
+                              "        └───────────┘"])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.swap(qr[0], qr[1])
+        circuit.rz(11111, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 

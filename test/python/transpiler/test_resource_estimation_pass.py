@@ -10,7 +10,8 @@
 import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import PassManager, transpile
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
 from qiskit.transpiler.passes import ResourceEstimation
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon

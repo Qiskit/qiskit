@@ -63,7 +63,7 @@ def level_3_pass_manager(transpile_config):
         transpile_config (TranspileConfig)
 
     Returns:
-        PassManager: a level 2 pass manager.
+        PassManager: a level 3 pass manager.
     """
     basis_gates = transpile_config.basis_gates
     coupling_map = transpile_config.coupling_map
@@ -92,7 +92,7 @@ def level_3_pass_manager(transpile_config):
 
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
-             LegacySwap(coupling_map)]
+             LegacySwap(coupling_map, trials=20, seed=seed_transpiler)]
 
     # 4. Unroll to the basis
     _unroll = Unroller(basis_gates)

@@ -19,7 +19,7 @@ Greedy mapping heuristic
 -------------------------
 
 Ordering of edges:
-Map qubits edge-by-edge in the order of decreasing frequency of occurence in the program dag.
+Map qubits edge-by-edge in the order of decreasing frequency of occurrence in the program dag.
 
 Initialization:
 If an edge exists with both endpoints unmapped,
@@ -40,7 +40,7 @@ being set in `property_set`.
 import math
 import networkx as nx
 
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 

@@ -16,7 +16,6 @@
 
 import os
 import sys
-import distutils.sysconfig
 from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 
@@ -39,8 +38,6 @@ CYTHON_EXTS = ['utils', 'swap_trial']
 CYTHON_MODULE = 'qiskit.transpiler.passes.mapping.cython.stochastic_swap'
 CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/mapping/cython/stochastic_swap'
 
-PACKAGE_DATA = {}
-
 INCLUDE_DIRS = []
 # Extra link args
 LINK_FLAGS = []
@@ -55,16 +52,12 @@ else:
         COMPILER_FLAGS.append('-mmacosx-version-min=10.9')
         LINK_FLAGS.append('-mmacosx-version-min=10.9')
 
-# Remove -Wstrict-prototypes from cflags
-CFG_VARS = distutils.sysconfig.get_config_vars()
-if "CFLAGS" in CFG_VARS:
-    CFG_VARS["CFLAGS"] = CFG_VARS["CFLAGS"].replace("-Wstrict-prototypes", "")
 
 EXT_MODULES = []
 # Add Cython Extensions
 for ext in CYTHON_EXTS:
-    mod = Extension(CYTHON_MODULE+'.'+ext,
-                    sources=[CYTHON_SOURCE_DIR+'/'+ext+'.pyx'],
+    mod = Extension(CYTHON_MODULE + '.' + ext,
+                    sources=[CYTHON_SOURCE_DIR + '/' + ext + '.pyx'],
                     include_dirs=INCLUDE_DIRS,
                     extra_compile_args=COMPILER_FLAGS,
                     extra_link_args=LINK_FLAGS,
@@ -74,7 +67,7 @@ for ext in CYTHON_EXTS:
 
 setup(
     name="qiskit-terra",
-    version="0.8.0",
+    version="0.9.0",
     description="Software for developing quantum computing programs",
     long_description="""Terra provides the foundations for Qiskit. It allows the user to write
         quantum circuits easily, and takes care of the constraints of real hardware.""",
@@ -92,19 +85,24 @@ setup(
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
     packages=find_packages(exclude=['test*']),
     install_requires=REQUIREMENTS,
     setup_requires=['Cython>=0.27.1'],
-    package_data=PACKAGE_DATA,
     include_package_data=True,
     python_requires=">=3.5",
     extras_require={
         'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
                           'pydot'],
         'full-featured-simulators': ['qiskit-aer>=0.1']
+    },
+    project_urls={
+        "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
+        "Documentation": "https://qiskit.org/documentation/",
+        "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
     ext_modules=cythonize(EXT_MODULES),
     zip_safe=False

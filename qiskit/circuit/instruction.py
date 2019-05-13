@@ -12,7 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-boolean-expressions
 """
 A generic quantum instruction.
 
@@ -28,7 +27,7 @@ Instructions are identified by the following:
 
     num_qubits, num_clbits: dimensions of the instruction
 
-    params: List of parameters to specialize a specific intruction instance.
+    params: List of parameters to specialize a specific instruction instance.
 
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
@@ -55,7 +54,7 @@ class Instruction:
         Args:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
-            num_clbits (int): instructions's clbit width
+            num_clbits (int): instruction's clbit width
             params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
         Raises:
             QiskitError: when the register is not in the correct format.
@@ -277,3 +276,47 @@ class Instruction:
                 [str(i) for i in self.params]))
 
         return self._qasmif(name_param)
+
+    def broadcast_arguments(self, qargs, cargs):
+        """
+        Validation and handling of the arguments and its relationship. For example:
+        `cx([q[0],q[1]], q[2])` means `cx(q[0], q[2]); cx(q[1], q[2])`. This method
+        yields the arguments in the right grouping. In the example:
+           in: [[q[0],q[1]], q[2]],[]
+         outs: [q[0], q[2]], []
+               [q[1], q[2]], []
+
+        Args:
+            qargs (List): List of quantum bit arguments.
+            cargs (List): List of classical bit arguments.
+
+        Yields:
+            Tuple(List, List): A tuple with single arguments.
+
+        Raises:
+            QiskitError: If the input is not valid. For example, the number of
+                arguments does not match the gate expectation.
+        """
+        if len(qargs) != self.num_qubits:
+            raise QiskitError(
+                'The amount of qubit arguments does not match the instruction expectation.')
+
+        if len(cargs) != self.num_clbits:
+            raise QiskitError(
+                'The amount of clbit arguments does not match the instruction expectation.')
+
+        if len(cargs) == len(qargs):
+            #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0]], [r[0]]
+            #                               -> [q[1]], [r[1]]
+            for qarg, carg in zip(qargs, cargs):
+                yield [qarg], [carg]
+        elif not cargs and len(qargs) == 1:
+            #  [[q[0], q[1]], []] -> [q[0]], []]
+            #                     -> [q[1]], []
+            for qarg in qargs[0]:
+                yield [qarg], []
+        else:
+            #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], r[0]], [q[1], r[1]]
+            flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+            flat_cargs = [carg for sublist in cargs for carg in sublist]
+            yield flat_qargs, flat_cargs

@@ -37,6 +37,7 @@ class TestUserConfig(QiskitTestCase):
         test_config = """
         [default]
         circuit_drawer = MSPaint
+        circuit_mpl_style = default
         """
         file_path = tempfile.NamedTemporaryFile(mode='w')
         self.addCleanup(file_path.close)
@@ -51,6 +52,7 @@ class TestUserConfig(QiskitTestCase):
         test_config = """
         [default]
         circuit_drawer = latex
+        circuit_mpl_style = default
         """
         file_path = tempfile.NamedTemporaryFile(mode='w')
         self.addCleanup(file_path.close)
@@ -58,4 +60,5 @@ class TestUserConfig(QiskitTestCase):
         file_path.flush()
         config = user_config.UserConfig(file_path.name)
         config.read_config_file()
-        self.assertEqual({'circuit_drawer': 'latex'}, config.settings)
+        self.assertEqual({'circuit_drawer': 'latex',
+                          'circuit_mpl_style': 'default'}, config.settings)

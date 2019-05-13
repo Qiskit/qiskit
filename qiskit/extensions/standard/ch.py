@@ -21,7 +21,6 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
@@ -76,8 +75,6 @@ class CHGate(Gate):
         return CHGate()  # self-inverse
 
 
-@_to_bits(2)
-@_op_expand(2)
 def ch(self, ctl, tgt):
     """Apply CH from ctl to tgt."""
     return self.append(CHGate(), [ctl, tgt], [])

@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=redefined-builtin
-
 """Helper module for simplified Qiskit usage.
 
 The functions in this module provide convenience helpers for accessing commonly
@@ -23,4 +21,3 @@ refer to the documentation of each component and use them separately.
 """
 
 from .parallel import parallel_map
-from .compiler import compile

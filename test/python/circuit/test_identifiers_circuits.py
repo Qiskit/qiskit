@@ -50,7 +50,7 @@ class TestAnonymousIds(QiskitTestCase):
         """Several Registers with no name."""
         cr0 = ClassicalRegister(size=3)
         qr0 = QuantumRegister(size=3)
-        # Get the current index counte of the registers
+        # Get the current index count of the registers
         cr_index = int(cr0.name[1:])
         qr_index = int(qr0.name[1:])
 
