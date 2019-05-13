@@ -435,7 +435,7 @@ class DAGCircuit:
             s = set(v.values())
             if len(s) == 2:
                 raise DAGCircuitError("edge_map fragments reg %s" % k)
-            elif s == set([False]):
+            elif s == {False}:
                 if k in self.qregs.values() or k in self.cregs.values():
                     raise DAGCircuitError("unmapped duplicate reg %s" % k)
                 else:

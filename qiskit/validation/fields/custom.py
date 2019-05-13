@@ -114,7 +114,7 @@ class InstructionParameter(ModelTypeValidator):
         """Customize check_type for handling containers."""
         # Check the type in the standard way first, in order to fail quickly
         # in case of invalid values.
-        root_value = super(InstructionParameter, self).check_type(
+        root_value = super().check_type(
             value, attr, data)
 
         if is_collection(value):
@@ -140,7 +140,7 @@ class DictParameters(ModelTypeValidator):
         """
         # pylint: disable=missing-param-doc
 
-        super(DictParameters, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.valid_value_types = valid_value_types
 
     def _expected_types(self):
