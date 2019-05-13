@@ -319,3 +319,43 @@ The ``stable`` branch should only receive changes in the form of bug fixes, so t
 third version number (the maintenance number: [major].[minor].[maintenance])
 will increase on every new change.
 
+
+Stable Branch Policy
+====================
+
+The stable branch is intended to be a safe source of fixes for high impact bugs and security issues which have been fixed on master since a release. When reviewing a stable branch PR we need to balance the risk of any given patch with the value that it will provide to users of the stable branch. Only a limited class of changes are appropriate for inclusion on the stable branch. A large, risky patch for a major issue might make sense. As might a trivial fix for a fairly obscure error handling case. A number of factors must be weighed when considering a change:
+
+- The risk of regression: even the tiniest changes carry some risk of breaking something and we really want to avoid regressions on the stable branch
+- The user visible benefit: are we fixing something that users might actually notice and, if so, how important is it?
+- How self-contained the fix is: if it fixes a significant issue but also refactors a lot of code, it’s probably worth thinking about what a less risky fix might look like
+- Whether the fix is already on master: a change must be a backport of a change already merged onto master, unless the change simply does not make sense on master.
+
+Backporting procedure:
+----------------------
+
+When backporting a patch from master to stable we want to keep a reference to the change on master. When you create the branch for the stable PR you can use:
+
+`$ git cherry-pick -x $master_commit_id`
+
+However, this only works for small self contained patches from master. If you
+need to backport a subset of a larger commit (from a squashed PR for
+example) from master this just need be done manually. This should be handled
+by adding::
+
+    Backported from: #master pr number
+
+in these cases, so we can track the source of the change subset even if a
+strict cherry pick doesn't make sense.
+
+If the patch you’re proposing will not cherry-pick cleanly, you can help by resolving the conflicts yourself and proposing the resulting patch. Please keep Conflicts lines in the commit message to help review of the stable patch.
+
+Backport Tags
+-------------
+
+Bugs or PRs tagged with `stable backport potential` are bugs which apply to the
+stable release too and may be suitable for backporting once a fix lands in
+master. Once the backport has been proposed, the tag should be removed.
+
+The PR against the stable branch should include `[stable]` in the title, as a
+sign that setting the target branch as stable was not a mistake. Also,
+reference to the PR number in master that you are porting.

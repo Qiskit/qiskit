@@ -40,7 +40,7 @@ def transpile_circuit(circuit, transpile_config):
     if transpile_config.pass_manager:
         pass_manager = transpile_config.pass_manager
 
-    elif transpile_config.optimization_level:
+    elif transpile_config.optimization_level is not None:
         level = transpile_config.optimization_level
         if level == 0:
             pass_manager = level_0_pass_manager(transpile_config)

@@ -84,7 +84,7 @@ class ModelTypeValidator(_fields.Field):
         else:
             body = 'is not the expected type {}'.format(type_)
 
-        message = 'Value \'{}\' {}'.format(value, body)
+        message = 'Value \'{}\' {}: {}'.format(value, type(value), body)
         return ValidationError(message, **kwargs)
 
 
@@ -191,7 +191,7 @@ class _SchemaBinder:
                 '{}. If you want to reuse the schema, use '
                 'subclassing'.format(self._schema_cls, self._schema_cls.model_cls))
 
-        # Set a reference to the Model in the Schema, and viceversa.
+        # Set a reference to the Model in the Schema, and vice versa.
         self._schema_cls.model_cls = model_cls
         model_cls.schema = self._schema_cls()
 

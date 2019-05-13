@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 # TODO: Remove after 0.7 and the deprecated methods are removed
-# pylint: disable=unused-argument
 
 
 """
@@ -191,7 +190,6 @@ def circuit_drawer(circuit,
             `linestyle` kwarg value. Defaults to `doublet`(`mpl` only)
     """
     image = None
-
     if output is None:
         output = _DEFAULT_OUTPUT
 

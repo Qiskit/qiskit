@@ -14,7 +14,6 @@ IF "%target%"=="env" GOTO :env
 IF "%target%"=="run" GOTO :run
 IF "%target%"=="lint" GOTO :lint
 IF "%target%"=="test" GOTO :test
-IF "%target%"=="profile" GOTO :profile
 IF "%target%"=="clean" GOTO :clean
 :usage
 ECHO.
@@ -50,11 +49,6 @@ GOTO :next
 pip install -r requirements.txt
 IF errorlevel 9009 GOTO :error
 python -m unittest discover -v
-IF errorlevel 9009 GOTO :error
-GOTO :next
-
-:profile
-python -m unittest discover -p "profile*.py" -v
 IF errorlevel 9009 GOTO :error
 GOTO :next
 
