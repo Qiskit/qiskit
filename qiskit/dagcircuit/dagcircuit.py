@@ -110,7 +110,7 @@ class DAGCircuit:
 
     def qubits(self):
         """Return a list of qubits as (QuantumRegister, index) pairs."""
-        return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
+        return [qubit for qreg in self.qregs.values() for qubit in qreg]
 
     def get_bits(self):
         """Deprecated. Use clbits()."""
@@ -120,7 +120,7 @@ class DAGCircuit:
 
     def clbits(self):
         """Return a list of bits as (ClassicalRegister, index) pairs."""
-        return [(v, i) for k, v in self.cregs.items() for i in range(v.size)]
+        return [clbit for creg in self.cregs.values() for clbit in creg]
 
     @property
     def node_counter(self):

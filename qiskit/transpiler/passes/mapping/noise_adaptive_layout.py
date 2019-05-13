@@ -241,5 +241,5 @@ class NoiseAdaptiveLayout(AnalysisPass):
         for q in dag.qubits():
             pid = self._qarg_to_id(q)
             hwid = self.prog2hw[pid]
-            layout[(q[0], q[1])] = hwid
+            layout[q] = hwid
         self.property_set['layout'] = layout

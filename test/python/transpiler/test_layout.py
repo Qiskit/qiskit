@@ -139,7 +139,6 @@ class LayoutTest(QiskitTestCase):
         layout.add(self.qr[1])
 
         self.assertEqual(layout[self.qr[1]], 1)
-        self.assertEqual(layout[1], self.qr[1])
 
     def test_layout_add_register(self):
         """add_register() method"""
