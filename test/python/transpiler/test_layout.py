@@ -85,9 +85,9 @@ class LayoutTest(QiskitTestCase):
 
     def test_layout_avoid_dangling_physical(self):
         """ No dangling pointers for physical qubits."""
-        layout = Layout({(self.qr, 0): 0})
-        self.assertEqual(layout[0], (self.qr, 0))
-        layout[(self.qr, 0)] = 1
+        layout = Layout({self.qr[0]: 0})
+        self.assertEqual(layout[0], self.qr[0])
+        layout[self.qr[0]] = 1
         with self.assertRaises(KeyError):
             _ = layout[0]
 
@@ -135,11 +135,11 @@ class LayoutTest(QiskitTestCase):
     def test_layout_add(self):
         """add() method"""
         layout = Layout()
-        layout[(self.qr, 0)] = 0
-        layout.add((self.qr, 1))
+        layout[self.qr[0]] = 0
+        layout.add(self.qr[1])
 
-        self.assertEqual(layout[(self.qr, 1)], 1)
-        self.assertEqual(layout[1], (self.qr, 1))
+        self.assertEqual(layout[self.qr[1]], 1)
+        self.assertEqual(layout[1], self.qr[1])
 
     def test_layout_add_register(self):
         """add_register() method"""
@@ -198,12 +198,12 @@ class LayoutTest(QiskitTestCase):
     def test_layout_combine_bigger(self):
         """combine_into_edge_map() method with another_layout is bigger"""
         layout = Layout()
-        layout.add((self.qr, 0))
-        layout.add((self.qr, 1))
+        layout.add(self.qr[0])
+        layout.add(self.qr[1])
         another_layout = Layout()
-        another_layout.add((self.qr, 1))
-        another_layout.add((self.qr, 0))
-        another_layout.add((self.qr, 2))
+        another_layout.add(self.qr[1])
+        another_layout.add(self.qr[0])
+        another_layout.add(self.qr[2])
 
         edge_map = layout.combine_into_edge_map(another_layout)
         self.assertDictEqual(edge_map, {(self.qr, 0): (self.qr, 1), (self.qr, 1): (self.qr, 0)})
@@ -219,12 +219,12 @@ class LayoutTest(QiskitTestCase):
     def test_layout_combine_smaller(self):
         """combine_into_edge_map() method with another_layout is smaller and raises an Error"""
         layout = Layout()
-        layout.add((self.qr, 0))
-        layout.add((self.qr, 1))
-        layout.add((self.qr, 2))
+        layout.add(self.qr[0])
+        layout.add(self.qr[1])
+        layout.add(self.qr[2])
         another_layout = Layout()
-        another_layout.add((self.qr, 1))
-        another_layout.add((self.qr, 0))
+        another_layout.add(self.qr[1])
+        another_layout.add(self.qr[0])
 
         with self.assertRaises(LayoutError):
             _ = layout.combine_into_edge_map(another_layout)
