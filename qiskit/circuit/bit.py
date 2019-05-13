@@ -36,7 +36,7 @@ class Bit:
 
     def __repr__(self):
         """Return the official string representing the bit."""
-        return "(%s, %s)" % (self.register, self.index)
+        return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
 
 
     def __getitem__(self, item):
