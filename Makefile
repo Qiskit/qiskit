@@ -45,7 +45,7 @@ env:
 
 # Ignoring generated ones with .py extension.
 lint:
-	pylint -j 2 -rn qiskit test
+	pylint -rn qiskit test
 
 style:
 	pycodestyle --max-line-length=100 qiskit test
