@@ -5,8 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,invalid-sequence-index
-# pylint: disable=unsupported-assignment-operation
+# pylint: disable=invalid-name
 
 """
 Methods to create random unitaries, states, etc.
@@ -14,6 +13,7 @@ Methods to create random unitaries, states, etc.
 
 import math
 import numpy as np
+from scipy.stats import unitary_group
 
 from qiskit.quantum_info.operators import Operator
 from qiskit.exceptions import QiskitError
@@ -26,7 +26,7 @@ def random_state(dim, seed=None):
     state space.
 
     Args:
-        dim (int): the dim of the state spaxe
+        dim (int): the dim of the state space
         seed (int): Optional. To set a random seed.
 
     Returns:
@@ -58,24 +58,11 @@ def random_unitary(dim, seed=None):
     Raises:
         QiskitError: if dim is not a positive power of 2.
     """
+    if seed is not None:
+        np.random.seed(seed)
     if dim == 0 or not math.log2(dim).is_integer():
         raise QiskitError("Desired unitary dimension not a positive power of 2.")
-    matrix = np.zeros([dim, dim], dtype=complex)
-    for j in range(dim):
-        if j == 0:
-            a = random_state(dim, seed)
-        else:
-            a = random_state(dim)
-        matrix[:, j] = np.copy(a)
-        # Grahm-Schmidt Orthogonalize
-        i = j-1
-        while i >= 0:
-            dc = np.vdot(matrix[:, i], a)
-            matrix[:, j] = matrix[:, j]-dc*matrix[:, i]
-            i = i - 1
-        # normalize
-        matrix[:, j] = matrix[:, j] * (1.0 / np.sqrt(np.vdot(matrix[:, j], matrix[:, j])))
-    return Operator(matrix)
+    return Operator(unitary_group.rvs(dim))
 
 
 # TODO: return a DensityMatrix object.

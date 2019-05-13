@@ -49,15 +49,14 @@ https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
 
 from copy import deepcopy
 
-from qiskit import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGNode
 
-from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
@@ -77,7 +76,6 @@ class LookaheadSwap(TransformationPass):
         super().__init__()
         self._coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """Run one pass of the lookahead mapper on the provided DAG.

@@ -13,12 +13,12 @@
 # that they have been altered from the originals.
 
 """Test the CX Direction  pass"""
-
 import unittest
+from math import pi
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.transpiler import TranspilerError
-from qiskit.mapper import CouplingMap
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
@@ -107,11 +107,11 @@ class TestCXDirection(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.h(qr[0])
-        expected.h(qr[1])
+        expected.u2(0, pi, qr[0])
+        expected.u2(0, pi, qr[1])
         expected.cx(qr[0], qr[1])
-        expected.h(qr[0])
-        expected.h(qr[1])
+        expected.u2(0, pi, qr[0])
+        expected.u2(0, pi, qr[1])
 
         pass_ = CXDirection(coupling)
         after = pass_.run(dag)
@@ -144,11 +144,11 @@ class TestCXDirection(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         expected = QuantumCircuit(qr, cr)
-        expected.h(qr[0])
-        expected.h(qr[1])
+        expected.u2(0, pi, qr[0])
+        expected.u2(0, pi, qr[1])
         expected.cx(qr[0], qr[1])
-        expected.h(qr[0])
-        expected.h(qr[1])
+        expected.u2(0, pi, qr[0])
+        expected.u2(0, pi, qr[1])
         expected.measure(qr[0], cr[0])
 
         pass_ = CXDirection(coupling)

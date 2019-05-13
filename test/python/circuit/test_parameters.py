@@ -12,7 +12,7 @@ import numpy
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Parameter
-from qiskit.transpiler import transpile
+from qiskit.compiler import transpile
 from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
@@ -22,14 +22,14 @@ class TestParameters(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
     def test_gate(self):
-        """Test instantiating gate with variable parmeters"""
+        """Test instantiating gate with variable parameters"""
         theta = Parameter('θ')
         theta_gate = Gate('test', 1, params=[theta])
         self.assertEqual(theta_gate.name, 'test')
         self.assertIsInstance(theta_gate.params[0], Parameter)
 
     def test_compile_quantum_circuit(self):
-        """Test instantiating gate with variable parmeters"""
+        """Test instantiating gate with variable parameters"""
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
@@ -39,7 +39,7 @@ class TestParameters(QiskitTestCase):
         self.assertIn(theta, qc_aer.parameters)
 
     def test_get_parameters(self):
-        """Test instantiating gate with variable parmeters"""
+        """Test instantiating gate with variable parameters"""
         from qiskit.extensions.standard.rx import RXGate
         theta = Parameter('θ')
         qr = QuantumRegister(1)
@@ -52,7 +52,7 @@ class TestParameters(QiskitTestCase):
         self.assertIs(rxg, vparams[theta][0][0])
 
     def test_fix_variable(self):
-        """Test setting a varaible to a constant value"""
+        """Test setting a variable to a constant value"""
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)

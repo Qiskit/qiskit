@@ -5,18 +5,16 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=redefined-builtin
-
 """Tests basic functionality of the transpile function"""
 
 import math
-from unittest.mock import patch
+import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit import compile, BasicAer
+from qiskit import BasicAer
 from qiskit.extensions.standard import CnotGate
-from qiskit.transpiler import PassManager, transpile
-from qiskit.compiler import assemble
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
@@ -53,12 +51,12 @@ class TestTranspile(QiskitTestCase):
         circuit2 = transpile(circuit, backend=backend, coupling_map=coupling_map,
                              basis_gates=basis_gates, pass_manager=None)
 
-        qobj = compile(circuit, backend=backend, coupling_map=coupling_map, basis_gates=basis_gates)
-        qobj2 = assemble(circuit2, qobj_id=qobj.qobj_id, shots=1024, max_credits=10)
-        self.assertEqual(qobj, qobj2)
+        circuit3 = transpile(circuit, backend=backend, coupling_map=coupling_map,
+                             basis_gates=basis_gates)
+        self.assertEqual(circuit2, circuit3)
 
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):
-        """Verify tranpile() works with no coupling_map or backend."""
+        """Verify transpile() works with no coupling_map or backend."""
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -425,7 +423,7 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(expected_qc, transpiled_qc)
 
-    @patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
+    @unittest.mock.patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
     def test_final_measurement_barrier_for_devices(self, mock_pass):
         """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
 
@@ -437,7 +435,7 @@ class TestTranspile(QiskitTestCase):
         self.assertTrue(mock_pass.called)
 
     def test_optimize_to_nothing(self):
-        """ Optimze gates up to fixed point in the default pipeline
+        """ Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035 """
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)
@@ -451,7 +449,8 @@ class TestTranspile(QiskitTestCase):
         circ.cx(qr[0], qr[1])
         circ.cx(qr[0], qr[1])
 
-        after = transpile(circ, coupling_map=[[0, 1], [1, 0]])
+        after = transpile(circ, coupling_map=[[0, 1], [1, 0]],
+                          basis_gates=['u3', 'cx'])
 
         expected = QuantumCircuit(QuantumRegister(2, 'q'))
         self.assertEqual(after, expected)
@@ -485,10 +484,7 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(
             self._get_resource_path('move_measurements.qasm', Path.QASMS))
 
-        lay = Layout({('qa', 0): ('q', 0), ('qa', 1): ('q', 1), ('qb', 0): ('q', 15),
-                      ('qb', 1): ('q', 2), ('qb', 2): ('q', 14), ('qN', 0): ('q', 3),
-                      ('qN', 1): ('q', 13), ('qN', 2): ('q', 4), ('qc', 0): ('q', 12),
-                      ('qNt', 0): ('q', 5), ('qNt', 1): ('q', 11), ('qt', 0): ('q', 6)})
+        lay = [0, 1, 15, 2, 14, 3, 13, 4, 12, 5, 11, 6]
         out = transpile(circ, initial_layout=lay, coupling_map=cmap)
         out_dag = circuit_to_dag(out)
         meas_nodes = out_dag.named_nodes('measure')
@@ -528,3 +524,47 @@ class TestTranspile(QiskitTestCase):
         reset_nodes = out_dag.named_nodes('reset')
 
         self.assertEqual(reset_nodes, [])
+
+    def test_non_standard_basis(self):
+        """Test a transpilation with a non-standard basis"""
+        qr1 = QuantumRegister(1, 'q1')
+        qr2 = QuantumRegister(2, 'q2')
+        qr3 = QuantumRegister(3, 'q3')
+        qc = QuantumCircuit(qr1, qr2, qr3)
+        qc.h(qr1[0])
+        qc.h(qr2[1])
+        qc.h(qr3[2])
+        layout = [4, 5, 6, 8, 9, 10]
+
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9],
+                [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                [13, 12]]
+
+        circuit = transpile(qc, backend=None, coupling_map=cmap,
+                            basis_gates=['h'], initial_layout=layout)
+
+        dag_circuit = circuit_to_dag(circuit)
+        resources_after = dag_circuit.count_ops()
+        self.assertEqual({'h': 3}, resources_after)
+
+    @unittest.skip('skipping due to MacOS specific failure, unrolling to u2')
+    def test_basis_subset(self):
+        """Test a transpilation with a basis subset of the standard basis"""
+        qr = QuantumRegister(1, 'q1')
+        qc = QuantumCircuit(qr)
+        qc.h(qr[0])
+        qc.x(qr[0])
+        qc.t(qr[0])
+
+        layout = [4, 5, 6, 8, 9, 10]
+
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9],
+                [6, 8], [7, 8], [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                [13, 12]]
+
+        circuit = transpile(qc, backend=None, coupling_map=cmap,
+                            basis_gates=['u3'], initial_layout=layout)
+
+        dag_circuit = circuit_to_dag(circuit)
+        resources_after = dag_circuit.count_ops()
+        self.assertEqual({'u3': 1}, resources_after)

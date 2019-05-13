@@ -40,7 +40,7 @@ class TestSchedule(QiskitTestCase):
         self.two_qubit_device = DeviceSpecification(qubits, registers, mem_slots)
 
     def test_append_an_instruction_to_empty_schedule(self):
-        """Test append instructions to an emtpy schedule."""
+        """Test append instructions to an empty schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -62,7 +62,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(3, sched.stop_time)
 
     def test_insert_an_instruction_into_empty_schedule(self):
-        """Test insert an instruction into an emtpy schedule."""
+        """Test insert an instruction into an empty schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -303,7 +303,9 @@ class TestSchedule(QiskitTestCase):
     def test_buffering(self):
         """Test channel buffering."""
         buffer_chan = DriveChannel(0, buffer=5)
-
+        measure_chan = MeasureChannel(0, buffer=10)
+        acquire_chan = AcquireChannel(0, buffer=10)
+        memory_slot = MemorySlot(0)
         gp0 = pulse_lib.gaussian(duration=10, amp=0.7, sigma=3)
         fc_pi_2 = FrameChange(phase=1.57)
 
@@ -327,6 +329,12 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(sched.duration, gp0(buffer_chan), buffer=True)
 
         self.assertEqual(sched.duration, 40)
+
+        sched = Schedule()
+
+        sched = gp0(measure_chan) + Acquire(duration=10)(acquire_chan, memory_slot)
+
+        self.assertEqual(sched.duration, 10)
 
 
 if __name__ == '__main__':

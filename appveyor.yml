@@ -77,15 +77,9 @@ install:
             throw "There are newer queued builds for this pull request, failing early." }
     - "%PYTHON%\\python.exe -m venv venv"
     - venv\Scripts\activate.bat
-    - pip.exe install -r requirements.txt
-    - pip.exe install vcrpy
-    - pip.exe install jupyter
-    - pip.exe install ipywidgets
-    - pip.exe install cython
-    - pip.exe install stestr
-    - pip.exe install qiskit-aer
-    - pip.exe install "qiskit-ibmq-provider==0.1rc3"
-    - pip.exe install PyGithub
+    - pip.exe install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+    - pip.exe install -e .
+    - pip.exe install "qiskit-ibmq-provider" -c constraints.txt
     - python setup.py build_ext --inplace
 # TODO: uncomment this when testing-cabal/subunit#33 is fixed
 #   - pip.exe install junitxml

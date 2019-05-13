@@ -46,7 +46,7 @@ class QobjConfigSchema(BaseSchema):
 
     # Optional properties.
     max_credits = Integer()
-    seed = Integer()
+    seed_simulator = Integer()
     memory_slots = Integer(validate=Range(min=0))
     shots = Integer(validate=Range(min=1))
 

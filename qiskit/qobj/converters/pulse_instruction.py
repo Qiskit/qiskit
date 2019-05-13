@@ -6,6 +6,7 @@
 # the LICENSE.txt file in the root directory of this source tree.
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
+
 import re
 import math
 
@@ -14,11 +15,11 @@ from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
                                         function_exponentiation)
 from sympy import Symbol
 
-from qiskit.pulse import commands, channels, Schedule
-from qiskit.pulse.schedule import ParameterizedSchedule
+from qiskit.pulse import commands, channels
+from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.pulse.exceptions import PulseError
 from qiskit.qobj import QobjMeasurementOption
-from qiskit import QiskitError
+from qiskit.exceptions import QiskitError
 
 
 class ConversionMethodBinder:
@@ -227,7 +228,9 @@ _math_ops = [math_op for math_op in math.__dict__ if not math_op.startswith('__'
 _math_ops_regex = r"(" + ")|(".join(_math_ops) + ")"
 # match consecutive alphanumeric, and single consecutive math ops +-/.()
 # and multiple * for exponentiation
-_allowedchars = re.compile(r'([+\/\-\(\)\.])?([\sa-zA-Z\d]+[+\/\-\(\)\.]?\*{0,2})*')
+_allowedchars = re.compile(r'(([+\/\-]?|\*{0,2})?[\(\)\s]*'  # allow to start with math/bracket
+                           r'([a-zA-Z][a-zA-Z\d]*|'  # match word
+                           r'[\d]+(\.\d*)?)[\(\)\s]*)*')  # match decimal and bracket
 # match any sequence of chars and numbers
 _expr_regex = r'([a-zA-Z]+\d*)'
 # and valid params
@@ -263,6 +266,7 @@ def _is_math_expr_safe(expr):
     sub_expressions = re.findall(_expr_regex, expr)
     if not all([_valid_sub_expr.match(sub_exp) for sub_exp in sub_expressions]):
         return False
+
     return True
 
 

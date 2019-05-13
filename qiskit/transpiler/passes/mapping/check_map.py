@@ -18,7 +18,7 @@ It checks that all 2-qubit interactions are laid out to be physically close.
 """
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 
 
 class CheckMap(AnalysisPass):
@@ -35,7 +35,7 @@ class CheckMap(AnalysisPass):
             initial_layout (Layout): The initial layout of the DAG to analyze.
         """
         super().__init__()
-        self.layout = initial_layout
+        self.layout = initial_layout  # TODO: this arg is never used, remove.
         self.coupling_map = coupling_map
 
     def run(self, dag):

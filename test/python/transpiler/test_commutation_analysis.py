@@ -25,7 +25,7 @@ from qiskit.test import QiskitTestCase
 
 
 class TestCommutationAnalysis(QiskitTestCase):
-    """Test the Communttion pass."""
+    """Test the Commutation pass."""
 
     def setUp(self):
         self.pass_ = CommutationAnalysis()

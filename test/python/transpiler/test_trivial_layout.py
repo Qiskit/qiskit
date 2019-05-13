@@ -17,7 +17,7 @@
 import unittest
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.mapper import CouplingMap
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag

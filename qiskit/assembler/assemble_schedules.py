@@ -25,7 +25,7 @@ from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 logger = logging.getLogger(__name__)
 
 
-def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=None):
+def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     """Assembles a list of schedules into a qobj which can be run on the backend.
     Args:
         schedules (list[Schedule]): schedules to assemble
@@ -83,10 +83,12 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
                                     for pulse in user_pulselib]
 
-    # create qob experiment field
+    # create qobj experiment field
     experiments = []
-    if len(run_config.schedule_los) == 1:
-        lo_dict = run_config.schedule_los.pop()
+    schedule_los = qobj_config.pop('schedule_los', [])
+
+    if len(schedule_los) == 1:
+        lo_dict = schedule_los[0]
         # update global config
         q_los = lo_converter.get_qubit_los(lo_dict)
         if q_los:
@@ -95,19 +97,19 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
         if m_los:
             qobj_config['meas_lo_freq'] = m_los
 
-    if run_config.schedule_los:
+    if schedule_los:
         # multiple frequency setups
         if len(qobj_schedules) == 1:
             # frequency sweep
-            for lo_dict in run_config.schedule_los:
+            for lo_dict in schedule_los:
                 experiments.append(PulseQobjExperiment(
                     instructions=qobj_schedules[0]['instructions'],
                     header=qobj_schedules[0]['header'],
                     config=lo_converter(lo_dict)
                 ))
-        elif len(qobj_schedules) == len(run_config.schedule_los):
+        elif len(qobj_schedules) == len(schedule_los):
             # n:n setup
-            for lo_dict, schedule in zip(run_config.schedule_los, qobj_schedules):
+            for lo_dict, schedule in zip(schedule_los, qobj_schedules):
                 experiments.append(PulseQobjExperiment(
                     instructions=schedule['instructions'],
                     header=schedule['header'],

@@ -19,6 +19,21 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Removed
+-------
+- The previously deprecated functions ``qiksit.visualization.plot_state`` and
+  ``qiskit.visualization.iplot_state`` have been removed. Instead use the
+  specific functions for each plot type (#2325).
+- International documentation of outdated readme etc (#2302)
+- Removed deprecated options in execute, transpile, and assemble. Removed deprecated compiler. 
+-  Removed deprecated qcvv in tools. Removed deprecated converters qobj_to_circuits and circuits_to_qobj (#2301)
+- The previously deprecated ``qiskit._util`` module has been removed. Use
+  ``qiskit.util`` instead. (#2329)
+- The logging tools in ``qiskit.tools.logging`` are removed. (#2387)
+
+`0.8.0`_ - 2019-05-02
+=====================
+
 
 Added
 -----
@@ -103,6 +118,7 @@ Added
 Changed
 -------
 
+- require scipy>=1.0, use `scipy.stats.unitary_group.rvs` for `random_unitary()`.
 - two_qubit_kak decomposition works with Operator or raw matrix input objects.
 - process_fidelity works with QuantumChannel and Operator object inputs.
 - Backend defaults values are no longer required (#2101).
@@ -253,6 +269,28 @@ Removed
   ``plot_wigner_curve``, ``plot_wigner_plaquette``, and ``plot_wigner_data``
   (#1860).
 - Removed ``Instruction.reapply()`` method (#1816).
+
+
+`0.7.2`_ - 2019-05-01
+=====================
+
+
+Fixed
+-----
+
+- A potential issue where the backend configuration schema validation would
+  improperly reject valid responses from the API (#2258)
+
+
+`0.7.1`_ - 2019-03-04
+=====================
+
+
+Fixed
+-----
+
+- Fixed a bug with measurement sampling optimization in BasicAer
+  qasm_simulator (#1624).
 
 
 `0.7.0`_ - 2018-12-19
@@ -1108,7 +1146,10 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...HEAD
+.. _0.8.0: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0
+.. _0.7.2: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
+.. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
 .. _0.7.0: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...0.7.0
 .. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
 .. _0.5.7: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7

@@ -119,7 +119,7 @@ class QuantumChannel(BaseOperator):
             if shape[1] != 1 and shape[1] != shape[0]:
                 raise QiskitError('Input state is not a vector or matrix.')
             if shape[1] == 1:
-                # flatten colum-vector to vector
+                # flatten column-vector to vector
                 state = np.reshape(state, shape[0])
         # Convert statevector to density matrix if required
         if density_matrix and ndim == 1:
