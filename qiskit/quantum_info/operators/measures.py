@@ -20,7 +20,7 @@ A collection of useful quantum information functions for operators.
 
 import numpy as np
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators import SuperOp
 
