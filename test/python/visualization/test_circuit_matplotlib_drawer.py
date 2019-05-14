@@ -46,7 +46,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         return expected
 
     def _make_temp_file(self, plot):
-        tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+        tmp = tempfile.NamedTemporaryFile(suffix='.png')
         self.addCleanup(tmp.close)
         plot.savefig(tmp.name)
         return tmp
@@ -65,6 +65,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
+    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_plot_barriers(self):
         """Test to see that plotting barriers works - if it is set to False, no
         blank columns are introduced"""
