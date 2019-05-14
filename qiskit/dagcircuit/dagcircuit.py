@@ -222,7 +222,7 @@ class DAGCircuit:
             self._max_node_id += 1
             output_map_wire = self._max_node_id
 
-            wire_name = "%s[%s]" % (wire[0].name, wire[1])
+            wire_name = "%s[%s]" % (wire.register.name, wire.index)
 
             inp_node = DAGNode(data_dict={'type': 'in', 'name': wire_name, 'wire': wire},
                                nid=input_map_wire)
@@ -241,7 +241,7 @@ class DAGCircuit:
                                        outp_node)
 
             self._multi_graph.adj[inp_node][outp_node][0]["name"] \
-                = "%s[%s]" % (wire[0].name, wire[1])
+                = "%s[%s]" % (wire.register.name, wire.index)
             self._multi_graph.adj[inp_node][outp_node][0]["wire"] \
                 = wire
         else:
@@ -258,7 +258,7 @@ class DAGCircuit:
             DAGCircuitError: if conditioning on an invalid register
         """
         # Verify creg exists
-        if condition is not None and condition[0].name not in self.cregs:
+        if condition is not None and condition.register.name not in self.cregs:
             raise DAGCircuitError("invalid creg in condition for %s" % name)
 
     def _check_bits(self, args, amap):
@@ -290,7 +290,8 @@ class DAGCircuit:
         """
         all_bits = []
         if cond is not None:
-            all_bits.extend([ClBit(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
+            all_bits.extend(
+                [ClBit(cond.register, j) for j in range(self.cregs[cond.register.name].size)])
         return all_bits
 
     def _add_op_node(self, op, qargs, cargs, condition=None):
@@ -356,10 +357,10 @@ class DAGCircuit:
                 raise DAGCircuitError("output node has multiple in-edges")
 
             self._multi_graph.add_edge(ie[0], self._id_to_node[self._max_node_id],
-                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
+                                       name="%s[%s]" % (q.register.name, q.index), wire=q)
             self._multi_graph.remove_edge(ie[0], self.output_map[q])
             self._multi_graph.add_edge(self._id_to_node[self._max_node_id], self.output_map[q],
-                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
+                                       name="%s[%s]" % (q.register.name, q.index), wire=q)
 
         return self._id_to_node[self._max_node_id]
 
@@ -1299,7 +1300,7 @@ class DAGCircuit:
             for op_node in op_nodes:
                 args = self._bits_in_condition(op_node.condition) \
                        + op_node.cargs + op_node.qargs
-                arg_ids = (self.input_map[(arg[0], arg[1])] for arg in args)
+                arg_ids = (self.input_map[(arg.register, arg.index)] for arg in args)
                 for arg_id in arg_ids:
                     wires[arg_id], wires[op_node] = op_node, wires[arg_id]
 
