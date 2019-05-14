@@ -61,12 +61,12 @@ def circuit_to_instruction(circuit, parameter_map=None):
         """find the index of a given bit (Register, int) within
         a flat ordered list of bits of the circuit
         """
-        if isinstance(bit[0], QuantumRegister):
+        if isinstance(bit, QuBit):
             ordered_regs = circuit.qregs
         else:
             ordered_regs = circuit.cregs
-        reg_index = ordered_regs.index(bit[0])
-        return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit[1]
+        reg_index = ordered_regs.index(bit.register)
+        return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
     target = circuit.copy()
     target._substitute_parameters(parameter_map)

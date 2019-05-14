@@ -109,7 +109,7 @@ class TestTranspile(QiskitTestCase):
 
         for gate, qargs, _ in new_circuit.data:
             if isinstance(gate, CnotGate):
-                self.assertIn([x[1] for x in qargs], coupling_map)
+                self.assertIn([x.index for x in qargs], coupling_map)
 
     def test_transpile_qft_grid(self):
         """Transpile pipeline can handle 8-qubit QFT on 14-qubit grid.
@@ -129,7 +129,7 @@ class TestTranspile(QiskitTestCase):
 
         for gate, qargs, _ in new_circuit.data:
             if isinstance(gate, CnotGate):
-                self.assertIn([x[1] for x in qargs], coupling_map)
+                self.assertIn([x.index for x in qargs], coupling_map)
 
     def test_already_mapped_1(self):
         """Circuit not remapped if matches topology.
@@ -156,7 +156,7 @@ class TestTranspile(QiskitTestCase):
         new_qc = transpile(qc, coupling_map=coupling_map, basis_gates=basis_gates)
         cx_qubits = [qargs for (gate, qargs, _) in new_qc.data
                      if gate.name == "cx"]
-        cx_qubits_physical = [[ctrl[1], tgt[1]] for [ctrl, tgt] in cx_qubits]
+        cx_qubits_physical = [[ctrl.index, tgt.index] for [ctrl, tgt] in cx_qubits]
         self.assertEqual(sorted(cx_qubits_physical),
                          [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
 
@@ -197,7 +197,7 @@ class TestTranspile(QiskitTestCase):
                            basis_gates=basis_gates, initial_layout=initial_layout)
         cx_qubits = [qargs for (gate, qargs, _) in new_qc.data
                      if gate.name == "cx"]
-        cx_qubits_physical = [[ctrl[1], tgt[1]] for [ctrl, tgt] in cx_qubits]
+        cx_qubits_physical = [[ctrl.index, tgt.index] for [ctrl, tgt] in cx_qubits]
         self.assertEqual(sorted(cx_qubits_physical),
                          [[9, 4], [9, 4]])
 
@@ -334,7 +334,7 @@ class TestTranspile(QiskitTestCase):
                              initial_layout=layout)
         mapped_qubits = []
         for _, qargs, _ in new_circ.data:
-            mapped_qubits.append(qargs[0][1])
+            mapped_qubits.append(qargs[0].index)
 
         self.assertEqual(mapped_qubits, [4, 6, 10])
 

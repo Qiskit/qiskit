@@ -395,10 +395,10 @@ class DAGCircuit:
             if len(ie) != 1:
                 raise DAGCircuitError("input node has multiple out-edges")
             self._multi_graph.add_edge(self._id_to_node[self._max_node_id], ie[0],
-                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
+                                       name="%s[%s]" % (q.register.name, q.index), wire=q)
             self._multi_graph.remove_edge(self.input_map[q], ie[0])
             self._multi_graph.add_edge(self.input_map[q], self._id_to_node[self._max_node_id],
-                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
+                                       name="%s[%s]" % (q.register.name, q.index), wire=q)
 
         return self._id_to_node[self._max_node_id]
 
@@ -447,11 +447,11 @@ class DAGCircuit:
                     # If mapping to a register not in valregs, add it.
                     # (k,0) exists in edge_map because edge_map doesn't
                     # fragment k
-                    if not edge_map[(k, 0)][0].name in valregs:
+                    if not edge_map[(k, 0)].register.name in valregs:
                         size = max(map(lambda x: x[1],
                                        filter(lambda x: x[0] == edge_map[(k, 0)][0],
                                               edge_map.values())))
-                        qreg = QuantumRegister(size + 1, edge_map[(k, 0)][0].name)
+                        qreg = QuantumRegister(size + 1, edge_map[(k, 0)].register.name)
                         add_regs.add(qreg)
         return add_regs
 
@@ -1153,8 +1153,7 @@ class DAGCircuit:
         successors = []
         for successor in self.successors(node):
             if isinstance(self._multi_graph.get_edge_data(
-                    node, successor, key=0)['wire'][0],
-                          QuantumRegister):
+                    node, successor, key=0)['wire'], QuBit):
                 successors.append(successor)
         return successors
 
@@ -1180,7 +1179,7 @@ class DAGCircuit:
 
         for w in pred_map.keys():
             self._multi_graph.add_edge(pred_map[w], succ_map[w],
-                                       name="%s[%s]" % (w[0].name, w[1]), wire=w)
+                                       name="%s[%s]" % (w.register.name, w.index), wire=w)
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
