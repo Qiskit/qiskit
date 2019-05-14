@@ -18,7 +18,7 @@ direction with respect to the coupling map.
 """
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.cxbase import CXBase
 
