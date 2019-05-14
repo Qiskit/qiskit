@@ -1103,8 +1103,7 @@ class DAGCircuit:
 
         predecessors = []
         for predecessor in self.predecessors(node):
-            if isinstance(self._multi_graph.get_edge_data(predecessor, node, key=0)['wire'][0],
-                          QuantumRegister):
+            if isinstance(self._multi_graph.get_edge_data(predecessor, node, key=0)['wire'], QuBit):
                 predecessors.append(predecessor)
         return predecessors
 
