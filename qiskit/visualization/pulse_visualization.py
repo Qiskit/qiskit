@@ -36,7 +36,8 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     Args:
         data (ScheduleComponent or SamplePulse): Data to plot
         dt (float): Time interval of samples
-        style (OPStylePulse or OPStyleSched): A style sheet to configure plot appearance
+        style (PulseStylePulse or PulseStyleSched): A style sheet to configure
+            plot appearance
         filename (str): Name required to save pulse image
         interp_method (Callable): interpolation function
             See `qiskit.visualization.interpolation` for more information

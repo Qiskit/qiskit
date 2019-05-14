@@ -15,7 +15,7 @@
 # pylint: disable=missing-docstring
 
 
-class OPStyleSched:
+class PulseStyleSched:
     def __init__(self, figsize=(10, 12), fig_unit_h_table=0.4,
                  use_table=True, table_columns=2, table_font_size=10, axis_font_size=18,
                  label_font_size=10, icon_font_size=18, label_ch_linestyle='--',
@@ -68,7 +68,7 @@ class OPStyleSched:
         self.dpi = dpi
 
 
-class OPStylePulse:
+class PulseStylePulse:
     def __init__(self, figsize=(7, 5), wave_color=None,
                  bg_color=None, num_points=None, dpi=None):
         """Set style sheet for OpenPulse sample pulse drawer.
