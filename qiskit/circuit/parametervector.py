@@ -48,13 +48,5 @@ class ParameterVector():
     def __str__(self):
         return '{}, {}'.format(self.name, [str(item) for item in self.params])
 
-    def __copy__(self):
-        return self
-
-    def __deepcopy__(self, memo=None):
-        return self
-
-    # Note, this won't reproduce names of inserted Parameters,
-    # it will autoname the new Parameter objects
     def __repr__(self):
         return '{}(name={}, length={})'.format(self.__class__.__name__, self.name, len(self))
