@@ -287,8 +287,8 @@ def _expand_parameters(circuits, run_config):
 
         # Collect set of all unique parameters across all circuits and binds
         unique_parameters = {param
-                                for param_list in all_bind_parameters + all_circuit_parameters
-                                for param in param_list}
+                             for param_list in all_bind_parameters + all_circuit_parameters
+                             for param in param_list}
 
         # Check that all parameters are common to all circuits and binds
         if not all_bind_parameters \
