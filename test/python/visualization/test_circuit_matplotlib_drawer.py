@@ -71,8 +71,8 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         # Use a different backend as the default backend causes the test to fail.
         # This is because it adds less whitespace around the image than is present
-        # in the reference image, but only on MacOS
-        if sys.platform == 'darwin':
+        # in the reference image, but only on MacOS and Window
+        if sys.platform in ['darwin', 'win32']:
             matplotlib.use('agg')
 
         # generate a circuit with barriers and other barrier like instructions in
