@@ -23,8 +23,6 @@ from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
-import numpy as np
-
 
 class TestParameters(QiskitTestCase):
     """QuantumCircuit Operations tests."""
@@ -180,30 +178,32 @@ class TestParameters(QiskitTestCase):
         self.assertRaises(QiskitError, qc.u1, theta2, 0)
 
     def test_bind_ryrz_vector(self):
+        """Test binding a list of floats to a ParamterVector"""
         qc = QuantumCircuit(4)
         depth = 4
         theta = ParameterVector('θ', length=len(qc.qubits) * depth * 2)
         theta_iter = iter(theta)
-        for d in range(depth):
+        for _ in range(depth):
             for q in qc.qubits:
                 qc.ry(next(theta_iter), q)
                 qc.rz(next(theta_iter), q)
             for i, q in enumerate(qc.qubits[:-1]):
                 qc.cx(qc.qubits[i], qc.qubits[i+1])
             qc.barrier()
-        theta_vals = np.linspace(0, 1, len(theta)) * np.pi
+        theta_vals = numpy.linspace(0, 1, len(theta)) * numpy.pi
         self.assertEqual(set(qc.parameters), set(theta.params))
         bqc = qc.bind_parameters({theta: theta_vals})
         for gate_tuple in bqc.data:
-            if hasattr(gate_tuple[0], 'params') and len(gate_tuple[0].params) > 0:
+            if hasattr(gate_tuple[0], 'params') and gate_tuple[0].params:
                 self.assertIn(gate_tuple[0].params[0], theta_vals)
 
     def test_compile_vector(self):
+        """Test compiling a circuit with an unbound ParamterVector"""
         qc = QuantumCircuit(4)
         depth = 4
         theta = ParameterVector('θ', length=len(qc.qubits)*depth*2)
         theta_iter = iter(theta)
-        for d in range(depth):
+        for _ in range(depth):
             for q in qc.qubits:
                 qc.ry(next(theta_iter), q)
                 qc.rz(next(theta_iter), q)
@@ -216,6 +216,7 @@ class TestParameters(QiskitTestCase):
             self.assertIn(param, qc_aer.parameters)
 
     def test_instruction_ryrz_vector(self):
+        """Test constructing a circuit from instructions with remapped ParamterVectors"""
         qubits = 5
         depth = 4
         ryrz = QuantumCircuit(qubits, name='ryrz')
@@ -226,7 +227,7 @@ class TestParameters(QiskitTestCase):
             ryrz.rz(next(theta_iter), q)
 
         cxs = QuantumCircuit(qubits-1, name='cxs')
-        for i, q in enumerate(cxs.qubits[:-1:2]):
+        for i, _ in enumerate(cxs.qubits[:-1:2]):
             cxs.cx(cxs.qubits[2*i], cxs.qubits[2*i+1])
 
         paramvecs = []
