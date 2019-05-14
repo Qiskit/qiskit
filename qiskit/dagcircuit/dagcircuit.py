@@ -430,8 +430,8 @@ class DAGCircuit:
         for v in keyregs.values():
             reg_frag_chk[v] = {j: False for j in range(len(v))}
         for k in edge_map.keys():
-            if k[0].name in keyregs:
-                reg_frag_chk[k[0]][k[1]] = True
+            if k.register.name in keyregs:
+                reg_frag_chk[k.register][k.index] = True
         for k, v in reg_frag_chk.items():
             s = set(v.values())
             if len(s) == 2:
@@ -471,8 +471,8 @@ class DAGCircuit:
             DAGCircuitError: if wire_map not valid
         """
         for k, v in wire_map.items():
-            kname = "%s[%d]" % (k[0].name, k[1])
-            vname = "%s[%d]" % (v[0].name, v[1])
+            kname = "%s[%d]" % (k.register.name, k.index)
+            vname = "%s[%d]" % (v.register.name, v.index)
             if k not in keymap:
                 raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
@@ -833,8 +833,8 @@ class DAGCircuit:
                                                replay_node.cargs, condition=condition)
 
         if wires is None:
-            qwires = [w for w in input_dag.wires if isinstance(w[0], QuantumRegister)]
-            cwires = [w for w in input_dag.wires if isinstance(w[0], ClassicalRegister)]
+            qwires = [w for w in input_dag.wires if isinstance(w, QuBit)]
+            cwires = [w for w in input_dag.wires if isinstance(w, ClBit)]
             wires = qwires + cwires
 
         self._check_wires_list(wires, node)
@@ -893,7 +893,7 @@ class DAGCircuit:
             for q in itertools.chain(*al):
                 self._multi_graph.add_edge(full_pred_map[q],
                                            self._id_to_node[self._max_node_id],
-                                           name="%s[%s]" % (q[0].name, q[1]),
+                                           name="%s[%s]" % (q.register.name, q.index),
                                            wire=q)
                 full_pred_map[q] = self._id_to_node[self._max_node_id]
 
@@ -902,7 +902,7 @@ class DAGCircuit:
         for w in full_pred_map:
             self._multi_graph.add_edge(full_pred_map[w],
                                        full_succ_map[w],
-                                       name="%s[%s]" % (w[0].name, w[1]),
+                                       name="%s[%s]" % (w.register.name, w.index),
                                        wire=w)
             o_pred = list(self._multi_graph.predecessors(self.output_map[w]))
             if len(o_pred) > 1:

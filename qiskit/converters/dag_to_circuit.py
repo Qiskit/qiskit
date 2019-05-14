@@ -48,7 +48,7 @@ def dag_to_circuit(dag):
 
         clbits = []
         for clbit in node.cargs:
-            clbits.append(cregs[clbit[0].name][clbit[1]])
+            clbits.append(cregs[clbit.register.name][clbit.index])
 
         # Get arguments for classical control (if any)
         inst = node.op.copy()
