@@ -191,7 +191,7 @@ class TestParameters(QiskitTestCase):
             for i, q in enumerate(qc.qubits[:-1]):
                 qc.cx(qc.qubits[i], qc.qubits[i+1])
             qc.barrier()
-        theta_vals = np.random.random(len(theta)) * np.pi
+        theta_vals = np.linspace(0, 1, len(theta)) * np.pi
         self.assertEqual(set(qc.parameters), set(theta.params))
         bqc = qc.bind_parameters({theta: theta_vals})
         for gate_tuple in bqc.data:
