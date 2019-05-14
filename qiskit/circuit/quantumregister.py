@@ -21,6 +21,7 @@ from qiskit.exceptions import QiskitError
 from .register import Register
 from .bit import Bit
 
+
 class QuantumRegister(Register):
     """Implement a quantum register."""
     # Counter for the number of instances in this class.
@@ -56,7 +57,10 @@ class QuantumRegister(Register):
         for bit in range(self.size):
             yield self[bit]
 
+
 class QuBit(Bit):
+    """Implement a quantum bit."""
+
     def __init__(self, register, index):
         if isinstance(register, QuantumRegister):
             super().__init__(register, index)

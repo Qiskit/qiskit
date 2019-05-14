@@ -58,7 +58,10 @@ class ClassicalRegister(Register):
         for bit in range(self.size):
             yield self[bit]
 
+
 class ClBit(Bit):
+    """Implement a classical bit."""
+
     def __init__(self, register, index):
         if isinstance(register, ClassicalRegister):
             super().__init__(register, index)

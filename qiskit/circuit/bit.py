@@ -61,6 +61,7 @@ class Bit:
 
     @classmethod
     def from_tuple(cls, tuple_or_list):
+        """ Convert a tuple into a Bit instance """
         if isinstance(tuple_or_list, list):
             return [cls(item[0], item[1]) for item in tuple_or_list]
         return cls(tuple_or_list[0], tuple_or_list[1])

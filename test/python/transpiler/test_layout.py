@@ -17,7 +17,7 @@
 import copy
 import unittest
 
-from qiskit import QuantumRegister, QuBit
+from qiskit import QuantumRegister, QuBit  # pylint: disable=unused-import
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.test import QiskitTestCase
