@@ -18,6 +18,7 @@ Quantum bit and Classical bit objects.
 
 from qiskit.exceptions import QiskitError
 
+
 class Bit:
     """Implement a generic bit."""
 
