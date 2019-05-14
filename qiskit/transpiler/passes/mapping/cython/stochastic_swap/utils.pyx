@@ -189,7 +189,7 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
     cdef dict merged_dict = {**layout._p2v, **layout._v2p}
     for key, val in merged_dict.items():
         if isinstance(key, QuBit):
-            out.logic_to_phys[reg_idx[regint[key[0]]]+key[1]] = val
+            out.logic_to_phys[reg_idx[regint[key.register]]+key.index] = val
         else:
-            out.phys_to_logic[key] = reg_idx[regint[val[0]]]+val[1]
+            out.phys_to_logic[key] = reg_idx[regint[val.register]]+val.index
     return out
