@@ -21,7 +21,7 @@ from libc.stdlib cimport calloc, free
 from libcpp.vector cimport vector
 
 from qiskit.transpiler.layout import Layout
-
+from qiskit.circuit import QuBit
 
 cdef class EdgeCollection:
     """ A simple contain that contains a C++ vector
@@ -158,7 +158,7 @@ cdef class NLayout:
         cdef size_t idx
         for qreg in qregs.values():
             for idx in range(<unsigned int>qreg.size):
-                out[(qreg, idx)] = self.logic_to_phys[main_idx]
+                out[QuBit(qreg, idx)] = self.logic_to_phys[main_idx]
                 main_idx += 1
         return out
     
@@ -188,7 +188,7 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
     cdef object key, val
     cdef dict merged_dict = {**layout._p2v, **layout._v2p}
     for key, val in merged_dict.items():
-        if isinstance(key, tuple):
+        if isinstance(key, QuBit):
             out.logic_to_phys[reg_idx[regint[key[0]]]+key[1]] = val
         else:
             out.phys_to_logic[key] = reg_idx[regint[val[0]]]+val[1]
