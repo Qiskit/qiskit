@@ -23,7 +23,7 @@ class ParameterVector():
         self._name = name
         self._params = []
         for i in range(length):
-            self._params += [Parameter("{0}{1}".format(self._name, i))]
+            self._params += [Parameter("{0}[{1}]".format(self._name, i))]
 
     @property
     def name(self):
@@ -38,31 +38,8 @@ class ParameterVector():
     def __getitem__(self, offset):
         return self.params[offset]
 
-    # Returns a list, not a ParameterVector
-    def __getslice__(self, low, high):
-        return self.params[low:high]
-
     def __iter__(self):
         return iter(self.params)
-
-    def __next__(self):
-        return next(self.params)
-
-    # Add a list of Parameter objects to the vector
-    # TODO maybe remove to make immutable?
-    def extend(self, param_list=None):
-        self._params += param_list
-
-    # Add a single Parameter object to the vector
-    # TODO maybe remove to make immutable?
-    def append(self, param=None):
-        self._params.append(param)
-
-    # Grow the vector to more elements
-    # TODO maybe remove to make immutable?
-    def grow(self, grow_length):
-        for i in range(grow_length):
-            self._params[i] = Parameter("{0}{1}".format(self._name, len(self)+i))
 
     def __len__(self):
         return len(self.params)

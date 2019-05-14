@@ -818,13 +818,7 @@ class QuantumCircuit:
             QuantumCircuit: copy of self with assignment substitution.
         """
         new_circuit = self.copy()
-
-        unrolled_value_dict = {}
-        for (param, value) in value_dict.items():
-            if isinstance(param, Parameter):
-                unrolled_value_dict[param] = value
-            if isinstance(param, ParameterVector):
-                unrolled_value_dict.update(zip(param, value))
+        unrolled_value_dict = self._unroll_param_dict(value_dict)
 
         if unrolled_value_dict.keys() > self.parameters:
             raise QiskitError('Cannot bind parameters ({}) not present in the circuit.'.format(
@@ -836,6 +830,18 @@ class QuantumCircuit:
         for parameter in unrolled_value_dict:
             del new_circuit._parameter_table[parameter]
         return new_circuit
+
+    def _unroll_param_dict(self, value_dict):
+        unrolled_value_dict = {}
+        for (param, value) in value_dict.items():
+            if isinstance(param, Parameter):
+                unrolled_value_dict[param] = value
+            if isinstance(param, ParameterVector):
+                if not len(param) == len(value):
+                    raise QiskitError('ParameterVector {} has length {}, which differs from value list {} of '
+                                      'len {}'.format(param, len(param), value, len(value)))
+                unrolled_value_dict.update(zip(param, value))
+        return unrolled_value_dict
 
     def _bind_parameter(self, parameter, value):
         """Assigns a parameter value to matching instructions in-place."""
