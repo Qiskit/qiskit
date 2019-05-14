@@ -128,6 +128,11 @@ class Register:
             res = True
         return res
 
+    def __lt__(self, other):
+        if self.name == other.name:
+            return self.size < other.size
+        return self.name < other.name
+
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
         return hash((type(self), self.name, self.size))
