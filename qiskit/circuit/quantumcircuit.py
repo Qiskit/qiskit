@@ -838,7 +838,8 @@ class QuantumCircuit:
                 unrolled_value_dict[param] = value
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
-                    raise QiskitError('ParameterVector {} has length {}, which differs from value list {} of '
+                    raise QiskitError('ParameterVector {} has length {}, which '
+                                      'differs from value list {} of '
                                       'len {}'.format(param, len(param), value, len(value)))
                 unrolled_value_dict.update(zip(param, value))
         return unrolled_value_dict

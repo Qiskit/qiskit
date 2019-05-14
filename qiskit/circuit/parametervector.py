@@ -17,6 +17,7 @@ Parameter Vector Class to simplify management of parameter lists.
 
 from .parameter import Parameter
 
+
 class ParameterVector():
     """ParameterVector Class to quickly generate lists of parameters"""
     def __init__(self, name, length=0):
@@ -53,6 +54,7 @@ class ParameterVector():
     def __deepcopy__(self, memo=None):
         return self
 
-    # Note, this won't reproduce names of inserted Parameters, it will autoname the new Parameter objects
+    # Note, this won't reproduce names of inserted Parameters,
+    # it will autoname the new Parameter objects
     def __repr__(self):
         return '{}(name={}, length={})'.format(self.__class__.__name__, self.name, len(self))
