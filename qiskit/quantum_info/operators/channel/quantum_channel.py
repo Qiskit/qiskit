@@ -12,7 +12,7 @@ Abstract base class for Quantum Channels.
 
 import numpy as np
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
