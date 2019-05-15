@@ -141,7 +141,7 @@ def _validate_meas_map(acquire, meas_map):
     """Validate all qubits tied in meas_map are to be acquired."""
     meas_map_set = [set(m) for m in meas_map]
     # Verify that each qubit is listed once in measurement map
-    measured_qubits = set(acq_ch.index for acq_ch in acquire.acquires)
+    measured_qubits = {acq_ch.index for acq_ch in acquire.acquires}
     tied_qubits = set()
     for meas_qubit in measured_qubits:
         for map_inst in meas_map_set:
