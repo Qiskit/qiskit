@@ -8,10 +8,12 @@
 """Tests for pass marging/canceling phase-shift gates and cnot cancellation."""
 
 import numpy as np
-import qiskit
-from qiskit import QuantumCircuit, QuantumRegister
+
 from qiskit import BasicAer, execute
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.passes import OptimizePhaseShiftGates
 
 
 class TestOptimizePhaseShiftGates(QiskitTestCase):
@@ -49,9 +51,9 @@ class TestOptimizePhaseShiftGates(QiskitTestCase):
             elif x == 8:
                 y = np.random.randint(n-1)
                 circ.cx(q[y+1], q[y])
-        circ_dag = qiskit.converters.circuit_to_dag(circ)
-        circ_dag = qiskit.transpiler.passes.OptimizePhaseShiftGates.run(circ_dag, circ_dag)
-        circ_new = qiskit.converters.dag_to_circuit(circ_dag)
+        circ_dag = circuit_to_dag(circ)
+        circ_dag = OptimizePhaseShiftGates.run(circ_dag, circ_dag)
+        circ_new = dag_to_circuit(circ_dag)
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result_original = execute(circ, backend_sim).result()
         unitary_original = result_original.get_unitary(circ)

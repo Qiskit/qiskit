@@ -11,8 +11,9 @@ import copy
 import sys
 import warnings
 import numpy as np
-import qiskit
-from qiskit import QuantumCircuit, QuantumRegister
+
+from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.cx_cancellation import CXCancellation
 
@@ -93,7 +94,7 @@ class OptimizePhaseShiftGates(TransformationPass):
                                 repl.tdg(p_reg[0])
                             else:
                                 repl.u1((t_counter[key] % 8) * np.pi / 4, p_reg[0])
-                            dag_repl = qiskit.converters.circuit_to_dag(repl)
+                            dag_repl = circuit_to_dag(repl)
                             dag_copy.substitute_node_with_dag(dag_copy._id_to_node[i._node_id],
                                                               dag_repl)
                         else:
