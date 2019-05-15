@@ -192,7 +192,7 @@ class TimeslotCollection:
         intervals = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
         if intervals:
-            return min((interval.begin for interval in intervals))
+            return min(interval.begin for interval in intervals)
         return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
@@ -204,7 +204,7 @@ class TimeslotCollection:
         intervals = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
         if intervals:
-            return max((interval.end for interval in intervals))
+            return max(interval.end for interval in intervals)
         return 0
 
     def ch_duration(self, *channels: List[Channel]) -> int:
