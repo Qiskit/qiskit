@@ -496,8 +496,8 @@ class DAGCircuit:
             # Map the register name, using fact that registers must not be
             # fragmented by the wire_map (this must have been checked
             # elsewhere)
-            bit0 = (condition[0], 0)
-            new_condition = (wire_map.get(bit0, bit0)[0], condition[1])
+            bit0 = (condition.register, 0)
+            new_condition = ClBit(wire_map.get(bit0, bit0).register, condition.index)
         return new_condition
 
     def extend_back(self, dag, edge_map=None):
@@ -700,7 +700,7 @@ class DAGCircuit:
 
         wire_tot = len(node.qargs) + len(node.cargs)
         if node.condition is not None:
-            wire_tot += node.condition[0].size
+            wire_tot += node.condition.register.size
 
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d"
@@ -820,7 +820,7 @@ class DAGCircuit:
         # conditional context. delete the op nodes and replay
         # them with the condition.
         if condition:
-            input_dag.add_creg(condition[0])
+            input_dag.add_creg(condition.register)
             to_replay = []
             for sorted_node in input_dag.topological_nodes():
                 if sorted_node.type == "op":
