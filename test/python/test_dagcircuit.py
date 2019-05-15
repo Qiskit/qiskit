@@ -19,7 +19,7 @@ import unittest
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import ClassicalRegister, ClBit
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
@@ -106,7 +106,7 @@ class TestDagOperations(QiskitTestCase):
         self.qubit2 = qreg[2]
         self.clbit0 = creg[0]
         self.clbit1 = creg[1]
-        self.condition = (creg, 3)
+        self.condition = ClBit(creg, 3)
 
     def test_apply_operation_back(self):
         """The apply_operation_back() method."""
@@ -301,9 +301,8 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual([7, 8], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
         self.assertEqual([], [i._node_id for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
 
-        (reg, _) = qbit
         with self.assertRaises(DAGCircuitError):
-            next(self.dag.nodes_on_wire((reg, 7)))
+            next(self.dag.nodes_on_wire((qbit.register, 7)))
 
     def test_dag_nodes_on_wire_multiple_successors(self):
         """
@@ -373,7 +372,7 @@ class TestDagLayers(QiskitTestCase):
         qubit1 = qreg[1]
         clbit0 = creg[0]
         clbit1 = creg[1]
-        condition = (creg, 3)
+        condition = ClBit(creg, 3)
         dag = DAGCircuit()
         dag.add_qreg(qreg)
         dag.add_creg(creg)
