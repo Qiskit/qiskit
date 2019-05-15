@@ -135,11 +135,9 @@ class MatplotlibDrawer:
                 self._style = DefaultStyle()
             elif config_style == 'bw':
                 self._style = BWStyle()
-        if not config and style is None:
-            self._style = DefaultStyle()
         elif style is False:
             self._style = BWStyle()
-        else :
+        else:
             self._style = DefaultStyle()
 
         self.plot_barriers = plot_barriers
