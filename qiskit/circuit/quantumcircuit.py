@@ -614,13 +614,13 @@ class QuantumCircuit:
                 for ind, reg in enumerate(qargs + cargs):
                     # Add to the stacks of the qubits and
                     # cbits used in the gate.
-                    reg_ints.append(reg_map[reg[0].name] + reg[1])
+                    reg_ints.append(reg_map[reg.register.name] + reg.index)
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 if instr.control:
                     # Controls operate over all bits in the
                     # classical register they use.
-                    cint = reg_map[instr.control[0].name]
-                    for off in range(instr.control[0].size):
+                    cint = reg_map[instr.control.register.name]
+                    for off in range(instr.control.register.size):
                         if cint + off not in reg_ints:
                             reg_ints.append(cint + off)
                             levels.append(op_stack[cint + off] + 1)
@@ -695,7 +695,7 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.control and not unitary_only:
-                    creg = instr.control[0]
+                    creg = instr.control.register
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
                         temp_int = creg_int + coff
@@ -706,7 +706,7 @@ class QuantumCircuit:
                                 break
 
                 for item in args:
-                    reg_int = reg_map[item[0].name] + item[1]
+                    reg_int = reg_map[item.register.name] + item.index
                     for k in range(num_sub_graphs):
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
