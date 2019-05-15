@@ -5,7 +5,6 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
 """Equivalence tests for quantum channel methods."""
 
 import unittest
@@ -25,7 +24,7 @@ from .channel_test_case import ChannelTestCase
 class TestEquivalence(ChannelTestCase):
     """Tests for channel equivalence for linear operations.
 
-    This tests that addition, subtraction, multiplication and negatation
+    This tests that addition, subtraction, multiplication and negation
     work for all representations as if they were performed in the SuperOp
     representation.s equivalent to performing the same
     operations in other representations.

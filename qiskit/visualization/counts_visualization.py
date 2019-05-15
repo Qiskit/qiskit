@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring,import-error
+# pylint: disable=invalid-name,import-error
 
 """
 Visualization functions for measurement counts.
@@ -83,7 +83,7 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         raise VisualizationError("Value of sort option, %s, isn't a "
                                  "valid choice. Must be 'asc', "
                                  "'desc', or 'hamming'")
-    elif sort in DIST_MEAS.keys() and target_string is None:
+    if sort in DIST_MEAS.keys() and target_string is None:
         err_msg = 'Must define target_string when using distance measure.'
         raise VisualizationError(err_msg)
 

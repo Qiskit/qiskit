@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string,missing-docstring
+# pylint: disable=invalid-name,missing-docstring
 
 """mpl circuit visualization backend."""
 
@@ -34,13 +34,14 @@ except ImportError:
     HAS_MATPLOTLIB = False
 
 from qiskit.visualization import exceptions
-from qiskit.visualization import qcstyle
 from qiskit.visualization import interpolation
-from qiskit.visualization.qcstyle import OPStylePulse, OPStyleSched
+from qiskit.visualization.qcstyle import (OPStylePulse, OPStyleSched,
+                                          DefaultStyle, BWStyle)
 from qiskit.pulse.channels import (DriveChannel, ControlChannel, MeasureChannel,
                                    AcquireChannel, SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                           PulseError)
+from qiskit import user_config
 
 logger = logging.getLogger(__name__)
 
@@ -127,8 +128,18 @@ class MatplotlibDrawer:
             'xmax': 0,
             'ymax': 0,
         }
+        config = user_config.get_config()
+        if config:
+            config_style = config.get('circuit_mpl_style', 'default')
+            if config_style == 'default':
+                self._style = DefaultStyle()
+            elif config_style == 'bw':
+                self._style = BWStyle()
+        if not config and style is None:
+            self._style = DefaultStyle()
+        elif style is False:
+            self._style = BWStyle()
 
-        self._style = qcstyle.QCStyle()
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
         if style:
@@ -1268,7 +1279,7 @@ class ScheduleDrawer:
             snapshots = events.snapshots
             if snapshots:
                 for time in snapshots:
-                    ax.annotate(s=u"\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0+0.08),
+                    ax.annotate(s="\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
     def _draw_framechanges(self, ax, fcs, dt, y0):

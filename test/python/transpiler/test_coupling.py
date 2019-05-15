@@ -63,7 +63,7 @@ class CouplingTest(QiskitTestCase):
         self.assertEqual(expected, str(coupling))
 
     def test_distance_error(self):
-        """Test distance between unconected physical_qubits."""
+        """Test distance between unconnected physical_qubits."""
         graph = CouplingMap()
         graph.add_physical_qubit(0)
         graph.add_physical_qubit(1)
@@ -98,3 +98,17 @@ class CouplingTest(QiskitTestCase):
         coupling_map = CouplingMap(cmap)
         with self.assertRaises(CouplingError):
             coupling_map.reduce([12, 11, 10, 3])
+
+    def test_symmetric_small_true(self):
+        coupling_list = [[0, 1], [1, 0]]
+        coupling = CouplingMap(coupling_list)
+
+        self.assertTrue(coupling.is_symmetric)
+
+    def test_symmetric_big_false(self):
+        coupling_list = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8],
+                         [9, 8], [9, 10], [7, 8], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                         [13, 12]]
+        coupling = CouplingMap(coupling_list)
+
+        self.assertFalse(coupling.is_symmetric)

@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
-
 """
 Level 1 pass manager:
 mapping in addition to light optimization via adjacent gate collapse
@@ -100,8 +98,7 @@ def level_1_pass_manager(transpile_config):
     # 5. Fix any bad CX directions
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
     def _direction_condition(property_set):
-        return not property_set['is_direction_mapped']
-
+        return not coupling_map.is_symmetric and not property_set['is_direction_mapped']
     _direction = [CXDirection(coupling_map)]
 
     # 6. Remove zero-state reset

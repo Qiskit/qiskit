@@ -114,7 +114,7 @@ class InstructionParameter(ModelTypeValidator):
         """Customize check_type for handling containers."""
         # Check the type in the standard way first, in order to fail quickly
         # in case of invalid values.
-        root_value = super(InstructionParameter, self).check_type(
+        root_value = super().check_type(
             value, attr, data)
 
         if is_collection(value):
@@ -140,7 +140,7 @@ class DictParameters(ModelTypeValidator):
         """
         # pylint: disable=missing-param-doc
 
-        super(DictParameters, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.valid_value_types = valid_value_types
 
     def _expected_types(self):
@@ -174,7 +174,6 @@ class DictParameters(ModelTypeValidator):
         return value
 
     def _validate_values(self, value):
-        # pylint: disable=too-many-return-statements
         if value is None:
             return None
         if isinstance(value, self.valid_value_types):
@@ -187,7 +186,6 @@ class DictParameters(ModelTypeValidator):
         return self.fail('invalid', input=value)
 
     def _serialize(self, value, attr, obj):
-        # pylint: disable=too-many-return-statements
         if value is None:
             return None
         if isinstance(value, Mapping):
@@ -196,7 +194,6 @@ class DictParameters(ModelTypeValidator):
         return self.fail('invalid_mapping')
 
     def _deserialize(self, value, attr, data):
-        # pylint: disable=too-many-return-statements
         if value is None:
             return None
         if isinstance(value, Mapping):

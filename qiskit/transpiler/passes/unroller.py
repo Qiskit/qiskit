@@ -65,8 +65,7 @@ class Unroller(TransformationPass):
                 if any(isinstance(p, Parameter) for p in node.op.params):
                     raise QiskitError('Unrolling gates parameterized by expressions '
                                       'is currently unsupported.')
-                else:
-                    raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
+                raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 
             if not rule:
                 raise QiskitError("Cannot unroll the circuit to the given basis, %s. "

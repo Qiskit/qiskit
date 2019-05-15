@@ -11,7 +11,6 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-# pylint: disable=invalid-name
 
 """Main Qiskit visualization methods."""
 
@@ -23,8 +22,7 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
                                                       plot_bloch_multivector,
                                                       plot_state_city,
                                                       plot_state_paulivec,
-                                                      plot_state_qsphere,
-                                                      plot_state)
+                                                      plot_state_qsphere)
 
 from .pulse_visualization import pulse_drawer
 from .circuit_visualization import circuit_drawer, qx_color_scheme
@@ -36,8 +34,7 @@ from .matplotlib import HAS_MATPLOTLIB
 
 if ('ipykernel' in sys.modules) and ('spyder' not in sys.modules):
     if _has_connection('qvisualization.mybluemix.net', 443):
-        from qiskit.visualization.interactive import (iplot_state,
-                                                      iplot_bloch_multivector,
+        from qiskit.visualization.interactive import (iplot_bloch_multivector,
                                                       iplot_state_city,
                                                       iplot_state_qsphere,
                                                       iplot_state_hinton,

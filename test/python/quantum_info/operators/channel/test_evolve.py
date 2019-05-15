@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name
 """Tests for quantum channel representation transformations."""
 
 import unittest
@@ -292,7 +292,7 @@ class TestTransformations(ChannelTestCase):
                                     self.repetitions)
 
     def test_kraus_to_stinespring_single(self):
-        """Test single Krausp to Stinespring evolution."""
+        """Test single Kraus to Stinespring evolution."""
         self._kraus_to_other_single(Stinespring, self.qubits_test_cases,
                                     self.repetitions)
 
@@ -317,7 +317,7 @@ class TestTransformations(ChannelTestCase):
                                     self.repetitions)
 
     def test_kraus_to_stinespring_double(self):
-        """Test single Krausp to Stinespring evolution."""
+        """Test single Kraus to Stinespring evolution."""
         self._kraus_to_other_double(Stinespring, self.qubits_test_cases,
                                     self.repetitions)
 

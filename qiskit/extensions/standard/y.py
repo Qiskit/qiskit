@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Pauli Y (bit-phase-flip) gate.
 """
@@ -22,7 +20,6 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.qasm import pi
 from qiskit.extensions.standard.u3 import U3Gate
 
@@ -54,8 +51,6 @@ class YGate(Gate):
                             [1j, 0]], dtype=complex)
 
 
-@_to_bits(1)
-@_op_expand(1)
 def y(self, q):
     """Apply Y to q."""
     return self.append(YGate(), [q], [])

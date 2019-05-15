@@ -21,7 +21,6 @@ from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit.decorators import _op_expand, _to_bits
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 from qiskit.extensions.standard.cx import CnotGate
@@ -54,8 +53,6 @@ class CyGate(Gate):
         return CyGate()  # self-inverse
 
 
-@_to_bits(2)
-@_op_expand(2)
 def cy(self, ctl, tgt):
     """Apply CY to circuit."""
     return self.append(CyGate(), [ctl, tgt], [])

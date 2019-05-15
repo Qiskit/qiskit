@@ -51,8 +51,8 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
         import nxpd
         import pydot  # pylint: disable=unused-import
     except ImportError:
-        raise ImportError("dag_drawer requires nxpd, pydot, and Graphviz. "
-                          "Run 'pip install nxpd pydot', and install graphviz")
+        raise ImportError("dag_drawer requires nxpd and pydot. "
+                          "Run 'pip install nxpd pydot'.")
 
     G = dag.to_networkx()
     G.graph['dpi'] = 100 * scale
@@ -87,4 +87,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     else:
         show = True
 
-    return nxpd.draw(G, filename=filename, show=show)
+    try:
+        return nxpd.draw(G, filename=filename, show=show)
+    except nxpd.pydot.InvocationException:
+        raise VisualizationError("dag_drawer requires GraphViz installed in the system. "
+                                 "Check https://www.graphviz.org/download/ for details on "
+                                 "how to install GraphViz in your system.")
