@@ -17,7 +17,12 @@
 import os
 import sys
 from setuptools import setup, find_packages, Extension
-from Cython.Build import cythonize
+try:
+    from Cython.Build import cythonize
+except ImportError:
+    import subprocess
+    subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
+    from Cython.Build import cythonize
 
 REQUIREMENTS = [
     "jsonschema>=2.6,<2.7",

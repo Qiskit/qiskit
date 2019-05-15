@@ -88,11 +88,11 @@ class BackendOverview(Magics):
                                                grid_template_rows='auto',
                                                grid_gap='0px 25px'))
 
-        backend_grid._backends = _backends        # pylint: disable=W0201
-        backend_grid._update = types.MethodType(  # pylint: disable=W0201
+        backend_grid._backends = _backends        # pylint: disable=attribute-defined-outside-init
+        backend_grid._update = types.MethodType(  # pylint: disable=attribute-defined-outside-init
             update_backend_info, backend_grid)
 
-        backend_grid._thread = threading.Thread(  # pylint: disable=W0201
+        backend_grid._thread = threading.Thread(  # pylint: disable=attribute-defined-outside-init
             target=backend_grid._update, args=(args.interval,))
         backend_grid._thread.start()
 
@@ -111,7 +111,7 @@ class GridBox_with_thread(widgets.GridBox):  # pylint: disable=invalid-name
             try:
                 self._thread.do_run = False
                 self._thread.join()
-            except Exception:  # pylint: disable=W0703
+            except Exception:  # pylint: disable=broad-except
                 pass
         self.close()
 
@@ -191,7 +191,7 @@ def update_backend_info(self, interval=60):
                 try:
                     _status = back.status()
                     stati[ind] = _status
-                except Exception:  # pylint: disable=W0703
+                except Exception:  # pylint: disable=broad-except
                     self.children[ind].children[2].value = _value.replace(
                         _head, "<h5 style='color:#ff5c49'>")
                     self.children[ind]._is_alive = False
