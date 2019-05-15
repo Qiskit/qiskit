@@ -619,8 +619,8 @@ class QuantumCircuit:
                 if instr.control:
                     # Controls operate over all bits in the
                     # classical register they use.
-                    cint = reg_map[instr.control.register.name]
-                    for off in range(instr.control.register.size):
+                    cint = reg_map[instr.control[0].name]
+                    for off in range(instr.control[0].size):
                         if cint + off not in reg_ints:
                             reg_ints.append(cint + off)
                             levels.append(op_stack[cint + off] + 1)
@@ -695,7 +695,7 @@ class QuantumCircuit:
                 # Controls necessarily join all the cbits in the
                 # register that they use.
                 if instr.control and not unitary_only:
-                    creg = instr.control.register
+                    creg = instr.control[0]
                     creg_int = reg_map[creg.name]
                     for coff in range(creg.size):
                         temp_int = creg_int + coff
