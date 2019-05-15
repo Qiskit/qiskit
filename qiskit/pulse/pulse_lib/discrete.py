@@ -242,7 +242,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float, name: str = Non
         sigma: Width (standard deviation) of pulse.
         beta: Y correction amplitude. For the SNO this is $\beta=-\frac{\lambda_1^2}{4\Delta_2}$.
             Where $\lambds_1$ is the relative coupling strength between the first excited and second
-            excited states and $\Delta_2$ is the detuning between the resepective excited states.
+            excited states and $\Delta_2$ is the detuning between the respective excited states.
         name: Name of pulse.
     """
     center = duration/2

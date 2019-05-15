@@ -7,6 +7,7 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
+import os
 import tempfile
 import unittest
 
@@ -35,6 +36,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
+    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_empty_circuit(self):
         qc = QuantumCircuit()
         res = visualization.circuit_drawer(qc, output='mpl')

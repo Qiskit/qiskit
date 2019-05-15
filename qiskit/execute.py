@@ -18,7 +18,6 @@ Helper module for simplified Qiskit usage.
 In general we recommend using the SDK modules directly. However, to get something
 running quickly we have provided this wrapper module.
 """
-import warnings
 import logging
 
 from qiskit.compiler import transpile, assemble
@@ -35,8 +34,6 @@ def execute(experiments, backend,
             default_qubit_los=None, default_meas_los=None,  # schedule run options
             schedule_los=None, meas_level=2, meas_return='avg',
             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
-            seed=None, seed_mapper=None,  # deprecated
-            config=None, circuits=None,
             **run_config):
     """Execute a list of circuits or pulse schedules on a backend.
 
@@ -178,18 +175,6 @@ def execute(experiments, backend,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
-        seed (int):
-            DEPRECATED in 0.8: use ``seed_simulator`` kwarg instead
-
-        seed_mapper (int):
-            DEPRECATED in 0.8: use ``seed_transpiler`` kwarg instead
-
-        config (dict):
-            DEPRECATED in 0.8: use run_config instead
-
-        circuits (QuantumCircuit or list[QuantumCircuit]):
-            DEPRECATED in 0.8: use ``experiments`` kwarg instead.
-
         run_config (dict):
             Extra arguments used to configure the run (e.g. for Aer configurable backends)
             Refer to the backend documentation for details on these arguments
@@ -202,12 +187,6 @@ def execute(experiments, backend,
     Raises:
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
     """
-    if circuits is not None:
-        experiments = circuits
-        warnings.warn("the `circuits` arg in `execute()` has been deprecated. "
-                      "please use `experiments`, which can handle both circuit "
-                      "and pulse Schedules", DeprecationWarning)
-
     # transpiling the circuits using given transpile options
     experiments = transpile(experiments,
                             basis_gates=basis_gates,
@@ -218,7 +197,6 @@ def execute(experiments, backend,
                             optimization_level=optimization_level,
                             backend=backend,
                             pass_manager=pass_manager,
-                            seed_mapper=seed_mapper,  # deprecated
                             )
 
     # assembling the circuits into a qobj to be run on the backend
@@ -239,8 +217,6 @@ def execute(experiments, backend,
                     rep_time=rep_time,
                     parameter_binds=parameter_binds,
                     backend=backend,
-                    config=config,  # deprecated
-                    seed=seed,  # deprecated
                     run_config=run_config
                     )
 

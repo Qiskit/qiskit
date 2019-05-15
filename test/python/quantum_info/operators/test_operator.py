@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name
 """Tests for Operator matrix linear operator class."""
 
 import unittest
@@ -260,7 +260,7 @@ class TestOperator(OperatorTestCase):
             op._evolve(np.array([[1, 0], [0, 0]])), target_rho)
 
     def test_evolve_subsystem(self):
-        """Test subsytem _evolve method."""
+        """Test subsystem _evolve method."""
         # Test evolving single-qubit of 3-qubit system
         mat = self.rand_matrix(2, 2)
         op = Operator(mat)

@@ -35,8 +35,8 @@ stage_generic: &stage_generic
     # Install step for jobs that require compilation and qa.
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt -c constraints.txt
-    - pip install qiskit-aer
-    - pip install "qiskit-ibmq-provider==0.1rc3" -c constraints.txt
+    - pip install -e .
+    - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
     # Compile the executables and run the tests.
     - python setup.py build_ext --inplace
@@ -102,7 +102,8 @@ jobs:
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       if: tag IS present
       script:
-        - sudo pip install cibuildwheel==0.10.1
+        - sudo pip install cibuildwheel==0.10.2
+        - sudo pip install -U twine
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
     - os: osx
@@ -115,7 +116,8 @@ jobs:
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       script:
-        - sudo pip2 install cibuildwheel==0.10.1
+        - sudo pip2 install cibuildwheel==0.10.2
+        - sudo pip2 install -U twine
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
 

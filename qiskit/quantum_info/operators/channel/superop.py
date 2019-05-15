@@ -26,7 +26,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.transformations import _to_superop
 from qiskit.quantum_info.operators.channel.transformations import _bipartite_tensor
@@ -58,7 +58,7 @@ class SuperOp(QuantumChannel):
         automatically determined from the input data. If the input data is
         a Numpy array of shape (4**N, 4**N) qubit systems will be used. If
         the input operator is not an N-qubit operator, it will assign a
-        single subsystem with dimension specifed by the shape of the input.
+        single subsystem with dimension specified by the shape of the input.
         """
         # If the input is a raw list or matrix we assume that it is
         # already a superoperator.
@@ -77,14 +77,14 @@ class SuperOp(QuantumChannel):
             if isinstance(data, (QuantumCircuit, Instruction)):
                 # If the input is a Terra QuantumCircuit or Instruction we
                 # perform a simulation to construct the circuit superoperator.
-                # This will only work if the cirucit or instruction can be
+                # This will only work if the circuit or instruction can be
                 # defined in terms of instructions which have no classical
                 # register components. The instructions can be gates, reset,
-                # or kraus instructions. Any conditional gates or measure
+                # or Kraus instructions. Any conditional gates or measure
                 # will cause an exception to be raised.
                 data = self._instruction_to_superop(data)
             else:
-                # We use the QuantumChannel init transform to intialize
+                # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
             # Now that the input is an operator we convert it to a
@@ -104,7 +104,7 @@ class SuperOp(QuantumChannel):
 
     @property
     def _shape(self):
-        """Return the tensor shape of the superopertor matrix"""
+        """Return the tensor shape of the superoperator matrix"""
         return 2 * tuple(reversed(self.output_dims())) + 2 * tuple(
             reversed(self.input_dims()))
 
@@ -336,7 +336,7 @@ class SuperOp(QuantumChannel):
         # product, which is the last tensor wire index.
         tensor = np.reshape(self.data, self._shape)
         mat = np.reshape(other.data, other._shape)
-        # Add first set of indicies
+        # Add first set of indices
         indices = [2 * num_indices - 1 - qubit for qubit in qargs
                    ] + [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims)**2, np.product(input_dims)**2]
@@ -430,7 +430,7 @@ class SuperOp(QuantumChannel):
             chan = None
             if obj.name == 'reset':
                 # For superoperator evolution we can simulate a reset as
-                # a non-unitary supeorperator matrix
+                # a non-unitary superoperator matrix
                 chan = SuperOp(
                     np.array([[1, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0],
                               [0, 0, 0, 0]]))
@@ -449,7 +449,7 @@ class SuperOp(QuantumChannel):
                 except QiskitError:
                     pass
             if chan is not None:
-                # Perform the composition and inplace update the current state
+                # Perform the composition and in-place update the current state
                 # of the operator
                 op = self.compose(chan, qargs=qargs)
                 self._data = op.data

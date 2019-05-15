@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """Utils for transpiler."""
-import os
+
 from .passmanager import PassManager, FlowController
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
@@ -21,5 +21,4 @@ from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
-from .transpiler import transpile, transpile_dag  # deprecated
 from .transpile_circuit import transpile_circuit

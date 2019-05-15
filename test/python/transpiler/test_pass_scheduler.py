@@ -20,7 +20,7 @@ import unittest.mock
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
-from qiskit.transpiler import transpile
+from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerAccessError, TranspilerError
 from qiskit.transpiler.passmanager import DoWhileController, ConditionalController, \
     FlowController, FlowControllerLinear
@@ -290,7 +290,7 @@ class TestUseCases(SchedulerTestCase):
                                    TranspilerAccessError)
 
     def test_ignore_request_pm(self):
-        """ A pass manager that ignores requires does not run the passes decleared in the 'requires'
+        """ A pass manager that ignores requires does not run the passes declared in the 'requires'
         field of the passes."""
         passmanager = PassManager(ignore_requires=True)
         passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
@@ -304,7 +304,7 @@ class TestUseCases(SchedulerTestCase):
                                                          'run transformation pass PassB_TP_RA_PA'])
 
     def test_ignore_preserves_pm(self):
-        """ A pass manager that ignores preserves does not record the passes decleared in the
+        """ A pass manager that ignores preserves does not record the passes declared in the
         'preserves' field of the passes as valid passes."""
         passmanager = PassManager(ignore_preserves=True)
         passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
@@ -470,7 +470,7 @@ class TestUseCases(SchedulerTestCase):
 class DoXTimesController(FlowController):
     """ A control-flow plugin for running a set of passes an X amount of times."""
 
-    def __init__(self, passes, options, do_x_times=0, **_):  # pylint: disable=super-init-not-called
+    def __init__(self, passes, options, do_x_times=0, **_):
         self.do_x_times = do_x_times()
         super().__init__(passes, options)
 

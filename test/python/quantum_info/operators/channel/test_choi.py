@@ -5,7 +5,7 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name
 """Tests for Choi quantum channel representation class."""
 
 import unittest
@@ -138,7 +138,7 @@ class TestChoi(ChannelTestCase):
         Yp, Ym = np.array([[1, -1j], [1j, 1]]) / 2, np.array([[1, 1j],
                                                               [-1j, 1]]) / 2
         chan = Choi(np.kron(Zp, Yp) + np.kron(Zm, Ym))
-        # Ajoint channel swaps Y-basis elements abd Z<->Y bases
+        # Ajoint channel swaps Y-basis elements and Z<->Y bases
         targ = Choi(np.kron(Ym, Zp) + np.kron(Yp, Zm))
         chan_adj = chan.adjoint()
         self.assertEqual(chan_adj, targ)
