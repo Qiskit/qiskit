@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2019.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
@@ -53,6 +50,10 @@ class RYRZ(VariationalForm):
                     'oneOf': [
                         {'enum': ['cz', 'cx']}
                     ]
+                },
+                'skip_unentangled_qubits': {
+                    'type': 'boolean',
+                    'default': False
                 }
             },
             'additionalProperties': False
@@ -69,7 +70,7 @@ class RYRZ(VariationalForm):
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,
                  entanglement='full', initial_state=None,
-                 entanglement_gate='cz'):
+                 entanglement_gate='cz', skip_unentangled_qubits=False):
         """Constructor.
 
         Args:
@@ -82,19 +83,31 @@ class RYRZ(VariationalForm):
             entanglement (str): 'full' or 'linear'
             initial_state (InitialState): an initial state object
             entanglement_gate (str): cz or cx
+            skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
         """
         self.validate(locals())
         super().__init__()
-        self._num_parameters = num_qubits * (depth + 1) * 2
-        self._bounds = [(-np.pi, np.pi)] * self._num_parameters
         self._num_qubits = num_qubits
         self._depth = depth
         if entangler_map is None:
             self._entangler_map = VariationalForm.get_entangler_map(entanglement, num_qubits)
         else:
             self._entangler_map = VariationalForm.validate_entangler_map(entangler_map, num_qubits)
+        # determine the entangled qubits
+        all_qubits = []
+        for src, targ in self._entangler_map:
+            all_qubits.extend([src, targ])
+        self._entangled_qubits = sorted(list(set(all_qubits)))
         self._initial_state = initial_state
         self._entanglement_gate = entanglement_gate
+        self._skip_unentangled_qubits = skip_unentangled_qubits
+
+        # for the first layer
+        self._num_parameters = len(self._entangled_qubits) * 2 if self._skip_unentangled_qubits \
+            else self._num_qubits * 2
+        # for repeated block
+        self._num_parameters += len(self._entangled_qubits) * depth * 2
+        self._bounds = [(-np.pi, np.pi)] * self._num_parameters
 
     def construct_circuit(self, parameters, q=None):
         """
@@ -122,9 +135,10 @@ class RYRZ(VariationalForm):
 
         param_idx = 0
         for qubit in range(self._num_qubits):
-            circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])  # ry
-            circuit.u1(parameters[param_idx + 1], q[qubit])  # rz
-            param_idx += 2
+            if not self._skip_unentangled_qubits or qubit in self._entangled_qubits:
+                circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])  # ry
+                circuit.u1(parameters[param_idx + 1], q[qubit])  # rz
+                param_idx += 2
 
         for block in range(self._depth):
             circuit.barrier(q)
@@ -135,7 +149,8 @@ class RYRZ(VariationalForm):
                     circuit.u2(0.0, np.pi, q[targ])  # h
                 else:
                     circuit.cx(q[src], q[targ])
-            for qubit in range(self._num_qubits):
+            circuit.barrier(q)
+            for qubit in self._entangled_qubits:
                 circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])  # ry
                 circuit.u1(parameters[param_idx + 1], q[qubit])  # rz
                 param_idx += 2

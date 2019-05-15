@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2019.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
@@ -47,6 +44,10 @@ class SwapRZ(VariationalForm):
                 'entangler_map': {
                     'type': ['array', 'null'],
                     'default': None
+                },
+                'skip_unentangled_qubits': {
+                    'type': 'boolean',
+                    'default': False
                 }
             },
             'additionalProperties': False
@@ -62,7 +63,7 @@ class SwapRZ(VariationalForm):
     }
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,
-                 entanglement='full', initial_state=None):
+                 entanglement='full', initial_state=None, skip_unentangled_qubits=False):
         """Constructor.
 
         Args:
@@ -74,6 +75,7 @@ class SwapRZ(VariationalForm):
                                         applying the two-qubit gate.
             entanglement (str): 'full' or 'linear'
             initial_state (InitialState): an initial state object
+            skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
         """
         self.validate(locals())
         super().__init__()
@@ -83,9 +85,20 @@ class SwapRZ(VariationalForm):
             self._entangler_map = VariationalForm.get_entangler_map(entanglement, num_qubits)
         else:
             self._entangler_map = VariationalForm.validate_entangler_map(entangler_map, num_qubits)
+        # determine the entangled qubits
+        all_qubits = []
+        for src, targ in self._entangler_map:
+            all_qubits.extend([src, targ])
+
+        self._entangled_qubits = sorted(list(set(all_qubits)))
         self._initial_state = initial_state
-        self._num_parameters = num_qubits + depth * \
-            (num_qubits + len(self._entangler_map))
+        self._skip_unentangled_qubits = skip_unentangled_qubits
+
+        # for the first layer
+        self._num_parameters = len(self._entangled_qubits) if self._skip_unentangled_qubits \
+            else self._num_qubits
+        # for repeated block
+        self._num_parameters += (len(self._entangled_qubits) + len(self._entangler_map)) * depth
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
 
     def construct_circuit(self, parameters, q=None):
@@ -114,8 +127,10 @@ class SwapRZ(VariationalForm):
 
         param_idx = 0
         for qubit in range(self._num_qubits):
-            circuit.u1(parameters[param_idx], q[qubit])  # rz
-            param_idx += 1
+            if not self._skip_unentangled_qubits or qubit in self._entangled_qubits:
+                circuit.u1(parameters[param_idx], q[qubit])  # rz
+                param_idx += 1
+
         for block in range(self._depth):
             circuit.barrier(q)
             for src, targ in self._entangler_map:
@@ -136,7 +151,8 @@ class SwapRZ(VariationalForm):
                 circuit.u3(-np.pi / 2, -np.pi / 2, np.pi / 2, q[src])
                 circuit.u3(-np.pi / 2, -np.pi / 2, np.pi / 2, q[targ])
                 param_idx += 1
-            for qubit in range(self._num_qubits):
+            circuit.barrier(q)
+            for qubit in self._entangled_qubits:
                 circuit.u1(parameters[param_idx], q[qubit])  # rz
                 param_idx += 1
         circuit.barrier(q)
