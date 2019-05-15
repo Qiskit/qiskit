@@ -147,8 +147,7 @@ cdef class NLayout:
         """ Converts numeric layout back to Qiskit Layout object.
 
         Args:
-            qregs (OrderedDict): An ordered dict of (QuantumRegister, int)
-                                 tuples.
+            qregs (OrderedDict): An ordered dict of QuBit instances.
         
         Returns:
             Layout: The corresponding Qiskit Layout object.
@@ -169,8 +168,7 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
 
     Args:
         layout (Layout): A Qiskit Layout instance.
-        qregs (OrderedDict): An ordered dict of (QuantumRegister, int)
-                                tuples.
+        qregs (OrderedDict): An ordered dict of QuBit instances.
         physical_qubits (int): Number of physical qubits.
     Returns:
         NLayout: The corresponding numerical layout.

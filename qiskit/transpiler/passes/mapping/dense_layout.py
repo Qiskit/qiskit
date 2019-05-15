@@ -15,7 +15,7 @@
 """A pass for choosing a Layout of a circuit onto a Coupling graph.
 
 This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (tuple(QuantumRegister, int)).
+of the circuit (QuBit).
 
 Note: even though a 'layout' is not strictly a property of the DAG,
 in the transpiler architecture it is best passed around between passes by

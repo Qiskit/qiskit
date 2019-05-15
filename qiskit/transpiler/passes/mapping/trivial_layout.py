@@ -16,7 +16,7 @@
 round-robin order.
 
 This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (tuple(QuantumRegister, int)) in increasing order.
+of the circuit (QuBit) in increasing order.
 """
 
 from qiskit.transpiler.layout import Layout

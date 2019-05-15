@@ -109,7 +109,7 @@ class DAGCircuit:
         return self.qubits()
 
     def qubits(self):
-        """Return a list of qubits as (QuantumRegister, index) pairs."""
+        """Return a list of qubits (as a list of QuBit instances)."""
         return [qubit for qreg in self.qregs.values() for qubit in qreg]
 
     def get_bits(self):
@@ -119,7 +119,7 @@ class DAGCircuit:
         return self.clbits()
 
     def clbits(self):
-        """Return a list of bits as (ClassicalRegister, index) pairs."""
+        """Return a list of classical bits (as a list of ClBit instances)."""
         return [clbit for creg in self.cregs.values() for clbit in creg]
 
     @property

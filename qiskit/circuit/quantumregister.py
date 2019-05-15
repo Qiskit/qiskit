@@ -52,7 +52,7 @@ class QuantumRegister(Register):
     def __iter__(self):
         """
         Yields:
-            Qubit: an iterator over the qubits in the register.
+            QuBit: an iterator over the qubits in the register.
         """
         for index in range(self.size):
             yield self[index]

@@ -15,7 +15,7 @@
 """A pass for choosing a Layout of a circuit onto a Backend
 
 This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (tuple(QuantumRegister, int)), using calibration data.
+of the circuit (QuBit), using calibration data.
 
 The pass implements the qubit mapping method from:
 Noise-Adaptive Compiler Mappings for Noisy Intermediate-Scale Quantum Computers
