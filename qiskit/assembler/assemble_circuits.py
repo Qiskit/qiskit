@@ -111,9 +111,9 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
                 mask = 0
                 val = 0
                 for clbit in clbit_labels:
-                    if clbit[0] == ctrl.register.name:
+                    if clbit[0] == ctrl[0].name:
                         mask |= (1 << clbit_labels.index(clbit))
-                        val |= (((ctrl.index >> clbit[1]) & 1) << clbit_labels.index(clbit))
+                        val |= (((ctrl[1] >> clbit[1]) & 1) << clbit_labels.index(clbit))
 
                 conditional_reg_idx = memory_slots + max_conditional_idx
                 conversion_bfunc = QasmQobjInstruction(name='bfunc',
