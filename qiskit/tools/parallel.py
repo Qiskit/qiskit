@@ -64,8 +64,8 @@ os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
 CPU_COUNT = local_hardware_info()['cpus']
 
 
-def parallel_map(task, values, task_args=tuple(), task_kwargs={},  # pylint: disable=W0102
-                 num_processes=CPU_COUNT):
+def parallel_map(  # pylint: disable=dangerous-default-value
+        task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::

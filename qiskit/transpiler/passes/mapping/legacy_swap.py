@@ -233,7 +233,7 @@ class LegacySwap(TransformationPass):
         for layer in layer_partition:
             if len(layer) > 2:
                 raise TranspilerError("Layer contains >2 qubit gates")
-            elif len(layer) == 2:
+            if len(layer) == 2:
                 gates.append(tuple(layer))
 
         # Can we already apply the gates?
