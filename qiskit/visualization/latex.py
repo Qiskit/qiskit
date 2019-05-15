@@ -331,11 +331,11 @@ class QCircuitImage:
         for column, layer in enumerate(self.ops, 1):
             for op in layer:
                 if op.condition:
-                    mask = self._get_mask(op.condition.register)
+                    mask = self._get_mask(op.condition[0])
                     cl_reg = self.clbit_list[self._ffs(mask)]
                     if_reg = cl_reg[0]
                     pos_2 = self.img_regs[cl_reg]
-                    if_value = format(op.condition.index,
+                    if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                    'save', 'noise']:
@@ -348,7 +348,7 @@ class QCircuitImage:
                                                qarglist[0].index)]
 
                         if op.condition:
-                            mask = self._get_mask(op.condition.register)
+                            mask = self._get_mask(op.condition[0])
                             cl_reg = self.clbit_list[self._ffs(mask)]
                             if_reg = cl_reg[0]
                             pos_2 = self.img_regs[cl_reg]
