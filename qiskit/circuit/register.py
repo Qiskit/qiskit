@@ -76,7 +76,7 @@ class Register:
         if isinstance(j, int):
             if j < 0 or j >= self.size:
                 raise QiskitIndexError("register index out of range")
-            elif isinstance(j, slice):
+            if isinstance(j, slice):
                 if j.start < 0 or j.stop >= self.size or (j.step is not None and
                                                           j.step <= 0):
                     raise QiskitIndexError("register index slice out of range")
