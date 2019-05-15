@@ -68,6 +68,23 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qr1.size, 10)
         self.assertEqual(type(qr1), QuantumRegister)
 
+    def test_numpy_array_of_registers(self):
+        """Test numpy array of Registers .
+        See https://github.com/Qiskit/qiskit-terra/issues/1898
+        """
+        qrs = [QuantumRegister(2, name='q%s' % i) for i in range(5)]
+        qreg_array = np.array([], dtype=object, ndmin=1)
+        qreg_array = np.append(qreg_array, qrs)
+
+        expected = [qrs[0][0], qrs[0][1],
+                    qrs[1][0], qrs[1][1],
+                    qrs[2][0], qrs[2][1],
+                    qrs[3][0], qrs[3][1],
+                    qrs[4][0], qrs[4][1]]
+
+        self.assertEqual(len(qreg_array), 10)
+        self.assertEqual(qreg_array.tolist(), expected)
+
     def test_negative_index(self):
         """Test indexing from the back
         """
