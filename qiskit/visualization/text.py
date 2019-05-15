@@ -618,7 +618,7 @@ class TextDrawing():
     @staticmethod
     def label_for_conditional(instruction):
         """ Creates the label for a conditional instruction."""
-        return "= %s" % instruction.condition.index
+        return "= %s" % instruction.condition[1]
 
     @staticmethod
     def params_for_label(instruction):
@@ -758,7 +758,7 @@ class TextDrawing():
             cllabel = TextDrawing.label_for_conditional(instruction)
             qulabel = TextDrawing.label_for_box(instruction)
 
-            layer.set_cl_multibox(instruction.condition.register, cllabel, top_connect='┴')
+            layer.set_cl_multibox(instruction.condition[0], cllabel, top_connect='┴')
             layer.set_qubit(instruction.qargs[0], BoxOnQuWire(qulabel, bot_connect='┬'))
 
         elif instruction.name in ['cx', 'CX', 'ccx']:

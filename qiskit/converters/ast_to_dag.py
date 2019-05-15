@@ -238,7 +238,7 @@ class AstInterpreter:
         creg_name = node.children[0].name
         creg = self.dag.cregs[creg_name]
         cval = node.children[1].value
-        self.condition = ClBit(creg, cval)
+        self.condition = (creg, cval)
         self._process_node(node.children[2])
         self.condition = None
 
