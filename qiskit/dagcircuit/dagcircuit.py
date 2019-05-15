@@ -447,8 +447,8 @@ class DAGCircuit:
                     # (k,0) exists in edge_map because edge_map doesn't
                     # fragment k
                     if not edge_map[(k, 0)].register.name in valregs:
-                        size = max(map(lambda x: x[1],
-                                       filter(lambda x: x[0] == edge_map[(k, 0)][0],
+                        size = max(map(lambda x: x.index,
+                                       filter(lambda x: x.register == edge_map[(k, 0)].register,
                                               edge_map.values())))
                         qreg = QuantumRegister(size + 1, edge_map[(k, 0)].register.name)
                         add_regs.add(qreg)
