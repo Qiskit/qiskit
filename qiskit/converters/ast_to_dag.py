@@ -18,7 +18,7 @@ AST (abstract syntax tree) to DAG (directed acyclic graph) converter.
 Acts as an OpenQASM interpreter.
 """
 from collections import OrderedDict
-from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate, ClBit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
 
