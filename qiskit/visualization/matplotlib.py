@@ -139,6 +139,8 @@ class MatplotlibDrawer:
             self._style = DefaultStyle()
         elif style is False:
             self._style = BWStyle()
+        else :
+            self._style = DefaultStyle()
 
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
