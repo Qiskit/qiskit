@@ -128,7 +128,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         Converts qarg with name and value to an integer id
         """
-        return self.qarg_to_id[qubit[0].name + str(qubit[1])]
+        return self.qarg_to_id[qubit.register.name + str(qubit.index)]
 
     def _create_program_graph(self, dag):
         """
@@ -139,7 +139,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         idx = 0
         for q in dag.qubits():
-            self.qarg_to_id[q[0].name + str(q[1])] = idx
+            self.qarg_to_id[q.register.name + str(q.index)] = idx
             idx += 1
         for gate in dag.twoQ_gates():
             qid1 = self._qarg_to_id(gate.qargs[0])
