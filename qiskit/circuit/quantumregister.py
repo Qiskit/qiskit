@@ -54,8 +54,8 @@ class QuantumRegister(Register):
         Yields:
             Qubit: an iterator over the qubits in the register.
         """
-        for bit in range(self.size):
-            yield self[bit]
+        for index in range(self.size):
+            yield self[index]
 
 
 class QuBit(Bit):
