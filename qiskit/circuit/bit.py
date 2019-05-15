@@ -39,11 +39,6 @@ class Bit:
         """Return the official string representing the bit."""
         return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
 
-    def __lt__(self, other):
-        if self.register == other.register:
-            return self.index < other.index
-        return self.register < other.register
-
     def __hash__(self):
         return hash((self.register, self.index))
 
