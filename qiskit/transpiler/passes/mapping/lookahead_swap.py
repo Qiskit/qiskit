@@ -49,7 +49,7 @@ https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
 
 from copy import deepcopy
 
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister, QuBit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -286,7 +286,7 @@ def _transform_gate_for_layout(gate, layout):
 
     # Workaround until #1816, apply mapped to qargs to both DAGNode and op
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
-    mapped_qargs = [(device_qreg, layout[a]) for a in mapped_op_node.qargs]
+    mapped_qargs = [QuBit(device_qreg, layout[a]) for a in mapped_op_node.qargs]
     mapped_op_node.qargs = mapped_op_node.op.qargs = mapped_qargs
 
     mapped_op_node.pop('name')
@@ -298,7 +298,7 @@ def _swap_ops_from_edge(edge, layout):
     """Generate list of ops to implement a SWAP gate along a coupling edge."""
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
-    qreg_edge = [(device_qreg, i) for i in edge]
+    qreg_edge = [QuBit(device_qreg, i) for i in edge]
 
     # TODO shouldn't be making other nodes not by the DAG!!
     return [

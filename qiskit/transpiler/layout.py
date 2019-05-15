@@ -167,7 +167,7 @@ class Layout():
         Returns:
             List: A list of Register in the layout
         """
-        return {reg for reg, _ in self.get_virtual_bits()}
+        return {bit.register for bit in self.get_virtual_bits()}
 
     def get_virtual_bits(self):
         """
