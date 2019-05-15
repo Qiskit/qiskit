@@ -496,7 +496,7 @@ class DAGCircuit:
             # fragmented by the wire_map (this must have been checked
             # elsewhere)
             bit0 = (condition[0], 0)
-            new_condition = (wire_map.get(bit0, bit0)[0], condition[1])
+            new_condition = (wire_map.get(bit0, bit0).register, condition[1])
         return new_condition
 
     def extend_back(self, dag, edge_map=None):
@@ -699,7 +699,7 @@ class DAGCircuit:
 
         wire_tot = len(node.qargs) + len(node.cargs)
         if node.condition is not None:
-            wire_tot += node.condition.register.size
+            wire_tot += node.condition[0].size
 
         if len(wires) != wire_tot:
             raise DAGCircuitError("expected %d wires, got %d"
@@ -819,7 +819,7 @@ class DAGCircuit:
         # conditional context. delete the op nodes and replay
         # them with the condition.
         if condition:
-            input_dag.add_creg(condition.register)
+            input_dag.add_creg(condition[0])
             to_replay = []
             for sorted_node in input_dag.topological_nodes():
                 if sorted_node.type == "op":
