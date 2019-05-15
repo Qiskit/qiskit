@@ -454,7 +454,7 @@ class Operator(BaseOperator):
                             'Cannot apply instruction with classical registers: {}'.format(
                                 instr.name))
                     # Get the integer position of the flat register
-                    new_qargs = [tup[1] for tup in qregs]
+                    new_qargs = [tup.index for tup in qregs]
                     self._append_instruction(instr, qargs=new_qargs)
         else:
             raise QiskitError('Input is not an instruction.')
