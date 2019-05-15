@@ -489,11 +489,11 @@ class QuantumCircuit:
                 qubit = qargs[0]
                 clbit = cargs[0]
                 string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
-                                                           qubit[0].name, qubit[1],
-                                                           clbit[0].name, clbit[1])
+                                                           qubit.register.name, qubit.index,
+                                                           clbit.register.name, clbit.index)
             else:
                 string_temp += "%s %s;\n" % (instruction.qasm(),
-                                             ",".join(["%s[%d]" % (j[0].name, j[1])
+                                             ",".join(["%s[%d]" % (j.register.name, j.index)
                                                        for j in qargs + cargs]))
         return string_temp
 
