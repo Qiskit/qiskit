@@ -263,7 +263,7 @@ class Layout():
         Raises:
             LayoutError: Invalid input layout.
         """
-        if not all((isinstance(i, int) for i in int_list)):
+        if not all(isinstance(i, int) for i in int_list):
             raise LayoutError('Expected a list of ints')
         if len(int_list) != len(set(int_list)):
             raise LayoutError('Duplicate values not permitted; Layout is bijective.')
