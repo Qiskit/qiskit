@@ -258,7 +258,7 @@ class DAGCircuit:
             DAGCircuitError: if conditioning on an invalid register
         """
         # Verify creg exists
-        if condition is not None and condition.register.name not in self.cregs:
+        if condition is not None and condition[0].name not in self.cregs:
             raise DAGCircuitError("invalid creg in condition for %s" % name)
 
     def _check_bits(self, args, amap):
@@ -291,7 +291,7 @@ class DAGCircuit:
         all_bits = []
         if cond is not None:
             all_bits.extend(
-                [ClBit(cond.register, j) for j in range(self.cregs[cond.register.name].size)])
+                [ClBit(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
         return all_bits
 
     def _add_op_node(self, op, qargs, cargs, condition=None):
@@ -323,8 +323,8 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            qargs (list[tuple]): qubits that op will be applied to
-            cargs (list[tuple]): cbits that op will be applied to
+            qargs (list[QuBit]): qubits that op will be applied to
+            cargs (list[ClBit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
