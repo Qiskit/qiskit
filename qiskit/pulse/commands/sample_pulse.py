@@ -57,10 +57,10 @@ class SamplePulse(Command):
 
         Args:
             dt: Time interval of samples.
-            style: A style sheet to configure plot appearance
+            style (OPStylePulse): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling (OPStylePulse): Relative visual scaling of waveform amplitudes
+            scaling: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
 
