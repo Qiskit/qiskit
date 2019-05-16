@@ -50,14 +50,6 @@ class ClassicalRegister(Register):
         """
         return self.getitem(Clbit, key)
 
-    def __iter__(self):
-        """
-        Yields:
-            Clbit: an iterator over the clbits in the register.
-        """
-        for bit in range(self.size):
-            yield self[bit]
-
 
 class Clbit(Bit):
     """Implement a classical bit."""

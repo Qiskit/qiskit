@@ -49,14 +49,6 @@ class QuantumRegister(Register):
         """
         return self.getitem(Qubit, key)
 
-    def __iter__(self):
-        """
-        Yields:
-            Qubit: an iterator over the qubits in the register.
-        """
-        for index in range(self.size):
-            yield self[index]
-
 
 class Qubit(Bit):
     """Implement a quantum bit."""

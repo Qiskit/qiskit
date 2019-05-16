@@ -109,6 +109,10 @@ class Register:
         else:
             return bit_type(self, key)
 
+    def __iter__(self):
+        for bit in range(self.size):
+            yield self[bit]
+
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
         (i.e. quantum/classical), and have the same name and size.
