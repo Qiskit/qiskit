@@ -107,13 +107,13 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
             # to the conditional instruction to map the creg ?= val condition
             # onto a gating register bit.
             if hasattr(instruction, '_control'):
-                ctrl = instruction._control
+                ctrl_reg, ctrl_val = instruction._control
                 mask = 0
                 val = 0
                 for clbit in clbit_labels:
-                    if clbit[0] == ctrl[0].name:
+                    if clbit[0] == ctrl_reg.name:
                         mask |= (1 << clbit_labels.index(clbit))
-                        val |= (((ctrl[1] >> clbit[1]) & 1) << clbit_labels.index(clbit))
+                        val |= (((ctrl_val >> clbit[1]) & 1) << clbit_labels.index(clbit))
 
                 conditional_reg_idx = memory_slots + max_conditional_idx
                 conversion_bfunc = QasmQobjInstruction(name='bfunc',
