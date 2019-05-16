@@ -21,10 +21,7 @@ DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 
 
-# DEFAULT_STYLE is considered to be a dangerous default, as it could be modified
-# It is never modified, so it is ok to use as the default value
-# pylint: disable=dangerous-default-value
-def pass_manager_drawer(pass_manager, filename=None, style=DEFAULT_STYLE):
+def pass_manager_drawer(pass_manager, filename=None, style=None):
     """
     Draws the pass manager.
 
@@ -63,51 +60,56 @@ def pass_manager_drawer(pass_manager, filename=None, style=DEFAULT_STYLE):
     # appended more than once
     node_id = 0
 
-    prev_nd = None
+    prev_node = None
 
-    for pass_group in passes:
+    for controller_group in passes:
 
         # label is the name of the flow controller (without the word controller)
-        label = pass_group['type'].__name__.replace('Controller', '')
-        # create the subgraph
-        subgraph = pydot.Cluster(str(id(pass_group)), label=label)
+        label = controller_group['type'].__name__.replace('Controller', '')
 
-        for pss in pass_group['passes']:
+        # create the subgraph for this controller
+        subgraph = pydot.Cluster(str(id(controller_group)), label=label)
+
+        for pss in controller_group['passes']:
 
             # label is the name of the pass
-            nd = pydot.Node(str(node_id), label=str(type(pss).__name__),
-                            color=_get_node_color(pss, style),
-                            shape="rectangle")
+            node = pydot.Node(str(node_id),
+                              label=str(type(pss).__name__),
+                              color=_get_node_color(pss, style),
+                              shape="rectangle")
 
-            subgraph.add_node(nd)
+            subgraph.add_node(node)
             node_id += 1
 
             # the arguments that were provided to the pass when it was created
             arg_spec = inspect.getfullargspec(pss.__init__)
             # 0 is the args, 1: to remove the self arg
             args = arg_spec[0][1:]
-            num_defaults = len(arg_spec[3]) if arg_spec[3] else 0
 
+            num_optional = len(arg_spec[3]) if arg_spec[3] else 0
+
+            # add in the inputs to the pass
             for arg_index, arg in enumerate(args):
                 nd_style = 'solid'
                 # any optional args are dashed
-                if arg_index >= (len(args) - num_defaults):
+                # the num of optional counts from the end towards the start of the list
+                if arg_index >= (len(args) - num_optional):
                     nd_style = 'dashed'
 
-                input_nd = pydot.Node(node_id, label=arg,
-                                      color="black",
-                                      shape="ellipse",
-                                      fontsize=10,
-                                      style=nd_style)
-                subgraph.add_node(input_nd)
+                input_node = pydot.Node(node_id, label=arg,
+                                        color="black",
+                                        shape="ellipse",
+                                        fontsize=10,
+                                        style=nd_style)
+                subgraph.add_node(input_node)
                 node_id += 1
-                subgraph.add_edge(pydot.Edge(input_nd, nd))
+                subgraph.add_edge(pydot.Edge(input_node, node))
 
             # if there is a previous node, add an edge between them
-            if prev_nd:
-                subgraph.add_edge(pydot.Edge(prev_nd, nd))
+            if prev_node:
+                subgraph.add_edge(pydot.Edge(prev_node, node))
 
-            prev_nd = nd
+            prev_node = node
 
         graph.add_subgraph(subgraph)
 
