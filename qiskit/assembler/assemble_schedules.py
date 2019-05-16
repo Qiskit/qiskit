@@ -66,7 +66,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 name = instruction.command._name
                 if name in user_pulselib and not np.allclose(instruction.command.samples,
                                                              user_pulselib[name]):
-                    name = f'{0}-{1:x}'.format(name, hash(instruction.command.samples.tostring()))
+                    name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command.samples
                 instruction.command._name = name
