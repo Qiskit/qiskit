@@ -15,9 +15,7 @@
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
 """
-
-import pydot
-
+import inspect
 from qiskit.transpiler import AnalysisPass, TransformationPass
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
@@ -28,18 +26,31 @@ DEFAULT_STYLE = {AnalysisPass: 'red',
 # pylint: disable=dangerous-default-value
 def pass_manager_drawer(pass_manager, filename=None, style=DEFAULT_STYLE):
     """
-    Draws the pass manager
+    Draws the pass manager.
+
+    This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
+    Graphviz <https://www.graphviz.org/>` to be installed.
 
     Args:
         pass_manager (PassManager): the pass manager to be drawn
         filename (str): file path to save image to
         style (dict or OrderedDict): keys are the pass classes and the values are
-            the colors to make them. An ordered dict can be used to ensure a priority
-            coloring when pass falls into multiple categories. Any values not included
-            in the dict will be filled in from the default dict
+            the colors to make them. An example can be seen in the DEFAULT_STYLE. An ordered
+            dict can be used to ensure a priority coloring when pass falls into multiple
+            categories. Any values not included in the provided dict will be filled in from
+            the default dict
     """
 
+    try:
+        import pydot
+    except ImportError:
+        raise ImportError("pass_manager_drawer requires pydot. "
+                          "Run 'pip install pydot'.")
+
     passes = pass_manager.passes()
+
+    if not style:
+        style = DEFAULT_STYLE
 
     # create the overall graph
     graph = pydot.Dot()
@@ -62,16 +73,37 @@ def pass_manager_drawer(pass_manager, filename=None, style=DEFAULT_STYLE):
 
             # label is the name of the pass
             nd = pydot.Node(str(node_id), label=str(type(pss).__name__),
-                            color=_get_node_color(pss, style))
+                            color=_get_node_color(pss, style),
+                            shape="rectangle")
 
             subgraph.add_node(nd)
+            node_id += 1
+
+            arg_spec = inspect.getfullargspec(pss.__init__)
+            # 0 is the args, 1: to remove the self arg
+            args = arg_spec[0][1:]
+            num_defaults = len(arg_spec[3]) if arg_spec[3] else 0
+
+            for arg_index, arg in enumerate(args):
+                # TODO make this colour adjustable too
+                nd_style = 'solid'
+                if arg_index >= (len(args) - num_defaults):
+                    nd_style = 'dashed'
+
+                input_nd = pydot.Node(node_id, label=arg,
+                                      color="black",
+                                      shape="ellipse",
+                                      fontsize=10,
+                                      style=nd_style)
+                subgraph.add_node(input_nd)
+                node_id += 1
+                subgraph.add_edge(pydot.Edge(input_nd, nd))
 
             # if there is a previous node, add an edge between them
             if prev_nd:
                 subgraph.add_edge(pydot.Edge(prev_nd, nd))
 
             prev_nd = nd
-            node_id += 1
 
         graph.add_subgraph(subgraph)
 
