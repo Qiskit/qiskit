@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+<<<<<<< HEAD
 """Backend Configuration Classes."""
 import re
 import copy
@@ -26,6 +27,134 @@ from qiskit.pulse.channels import (AcquireChannel, Channel, ControlChannel,
 
 class GateConfig:
     """Class representing a Gate Configuration
+=======
+"""Model and schema for backend configuration."""
+
+from marshmallow.validate import Length, OneOf, Range, Regexp
+
+from qiskit.validation import BaseModel, BaseSchema, bind_schema
+from qiskit.validation.fields import (Boolean, DateTime, Integer, List, Nested, String,
+                                      Complex, Float, Dict, InstructionParameter)
+from qiskit.validation.validate import PatternProperties
+
+
+class GateConfigSchema(BaseSchema):
+    """Schema for GateConfig."""
+
+    # Required properties.
+    name = String(required=True)
+    parameters = List(String(), required=True)
+    qasm_def = String(required=True)
+
+    # Optional properties.
+    coupling_map = List(List(Integer(),
+                             validate=Length(min=1)),
+                        validate=Length(min=1))
+    latency_map = List(List(Integer(validate=OneOf([0, 1])),
+                            validate=Length(min=1)),
+                       validate=Length(min=1))
+    conditional = Boolean()
+    description = String()
+
+
+class UchannelLOSchema(BaseSchema):
+    """Schema for uchannel LO."""
+
+    # Required properties.
+    q = Integer(required=True, validate=Range(min=0))
+    scale = Complex(required=True)
+
+    # Optional properties.
+
+
+class PulseHamiltonianSchema(BaseSchema):
+    """Schema for PulseHamiltonian."""
+
+    # Required properties.
+    h_str = List(String(), validate=Length(min=1), required=True)
+    dim_osc = List(Integer(validate=Range(min=1)), required=True)
+    dim_qub = List(Integer(validate=Range(min=2)), required=True)
+    vars = Dict(validate=PatternProperties({
+        Regexp('^([a-z0-9])+$'): InstructionParameter()
+    }), required=True)
+
+    # Optional properties.
+
+
+class BackendConfigurationSchema(BaseSchema):
+    """Schema for BackendConfiguration."""
+    # Required properties.
+    backend_name = String(required=True)
+    backend_version = String(required=True,
+                             validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
+    n_qubits = Integer(required=True, validate=Range(min=1))
+    basis_gates = List(String(), required=True,
+                       validate=Length(min=1))
+    gates = Nested(GateConfigSchema, required=True, many=True,
+                   validate=Length(min=1))
+    local = Boolean(required=True)
+    simulator = Boolean(required=True)
+    conditional = Boolean(required=True)
+    open_pulse = Boolean(required=True)
+    memory = Boolean(required=True)
+    max_shots = Integer(required=True, validate=Range(min=1))
+
+    # Optional properties.
+    max_experiments = Integer(validate=Range(min=1))
+    sample_name = String()
+    coupling_map = List(List(Integer(),
+                             validate=Length(min=1)),
+                        validate=Length(min=1), allow_none=True)
+    n_registers = Integer(validate=Range(min=1))
+    register_map = List(List(Integer(validate=OneOf([0, 1])),
+                             validate=Length(min=1)),
+                        validate=Length(min=1))
+    configurable = Boolean()
+    credits_required = Boolean()
+    online_date = DateTime()
+    display_name = String()
+    description = String()
+    tags = List(String())
+
+
+class QasmBackendConfigurationSchema(BackendConfigurationSchema):
+    """Schema for Qasm backend."""
+    open_pulse = Boolean(required=True, validate=OneOf([False]))
+
+
+class PulseBackendConfigurationSchema(QasmBackendConfigurationSchema):
+    """Schema for pulse backend"""
+    # Required properties.
+    open_pulse = Boolean(required=True, validate=OneOf([True]))
+    n_uchannels = Integer(required=True, validate=Range(min=0))
+    u_channel_lo = List(Nested(UchannelLOSchema, validate=Length(min=1),
+                               required=True, many=True))
+    meas_levels = List(Integer(), validate=Length(min=1), required=True)
+    qubit_lo_range = List(List(Float(validate=Range(min=0)),
+                               validate=Length(equal=2)), required=True)
+    meas_lo_range = List(List(Float(validate=Range(min=0)),
+                              validate=Length(equal=2)), required=True)
+    dt = Float(required=True, validate=Range(min=0))  # pylint: disable=invalid-name
+    dtm = Float(required=True, validate=Range(min=0))
+    rep_times = List(Integer(validate=Range(min=0)), required=True)
+    meas_kernels = List(String(), required=True)
+    discriminators = List(String(), required=True)
+
+    # Optional properties.
+    meas_map = List(List(Integer(), validate=Length(min=1)))
+    channel_bandwidth = List(List(Float(), validate=Length(equal=2)))
+    acquisition_latency = List(List(Integer()))
+    conditional_latency = List(List(Integer()))
+    hamiltonian = PulseHamiltonianSchema()
+
+
+@bind_schema(GateConfigSchema)
+class GateConfig(BaseModel):
+    """Model for GateConfig.
+
+    Please note that this class only describes the required fields. For the
+    full description of the model, please check ``GateConfigSchema``.
+>>>>>>> 961b535e6... make rep_times an integer and not a float (#2416)
 
     Attributes:
         name: the gate name as it will be referred to in Qasm.
