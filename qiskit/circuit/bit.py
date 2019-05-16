@@ -26,11 +26,12 @@ class Bit:
         """Create a new generic bit.
         """
         try:
-            size = int(index)
+            index = int(index)
         except Exception:
             raise QiskitError("index needs to be castable to an int")
-        if size < 0:
-            raise QiskitError("index size must be positive")
+        if 0 >= index > register.size:
+            print(index)
+            raise QiskitError("index must be positive and under the size of the register")
 
         self.register = register
         self.index = index
