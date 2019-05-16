@@ -46,6 +46,7 @@ cdef class EdgeCollection:
             int: Size of the edge collection.
         """
         return self._edges.size()
+
     @cython.boundscheck(False)
     def edges(self):
         """ Returns the vector of edges as a NumPy arrau.
@@ -157,7 +158,7 @@ cdef class NLayout:
         cdef size_t idx
         for qreg in qregs.values():
             for idx in range(<unsigned int>qreg.size):
-                out[QuBit(qreg, idx)] = self.logic_to_phys[main_idx]
+                out[Qubit(qreg, idx)] = self.logic_to_phys[main_idx]
                 main_idx += 1
         return out
     
