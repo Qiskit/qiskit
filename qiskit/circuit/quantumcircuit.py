@@ -440,8 +440,6 @@ class QuantumCircuit:
             raise QiskitError("qarg is not a Qubit")
         if not all(self.has_register(i.register) for i in qargs):
             raise QiskitError("register not in this circuit")
-        for qubit in qargs:
-            qubit.register.check_range(qubit.index)
 
     def _check_cargs(self, cargs):
         """Raise exception if clbit is not in this circuit or bad format."""
@@ -449,8 +447,6 @@ class QuantumCircuit:
             raise QiskitError("carg is not a Clbit")
         if not all(self.has_register(i.register) for i in cargs):
             raise QiskitError("register not in this circuit")
-        for clbit in cargs:
-            clbit.register.check_range(clbit.index)
 
     def to_instruction(self, parameter_map=None):
         """Create an Instruction out of this circuit.

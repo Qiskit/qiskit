@@ -72,16 +72,6 @@ class Register:
         """Return register size"""
         return self.size
 
-    def check_range(self, j):
-        """Check that j is a valid index into self."""
-        if isinstance(j, int):
-            if j < 0 or j >= self.size:
-                raise QiskitIndexError("register index out of range")
-            if isinstance(j, slice):
-                if j.start < 0 or j.stop >= self.size or (j.step is not None and
-                                                          j.step <= 0):
-                    raise QiskitIndexError("register index slice out of range")
-
     def getitem(self, bit_type, key):
         """
         Arg:
@@ -98,7 +88,6 @@ class Register:
         """
         if not isinstance(key, (int, slice, list)):
             raise QiskitError("expected integer or slice index into register")
-        self.check_range(key)
         if isinstance(key, slice):
             return [bit_type(self, ind) for ind in range(*key.indices(len(self)))]
         elif isinstance(key, list):  # list of qubit indices

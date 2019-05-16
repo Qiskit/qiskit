@@ -30,8 +30,11 @@ class Bit:
             index = int(index)
         except Exception:
             raise QiskitError("index needs to be castable to an int")
-        if 0 >= index > register.size:
-            print(index)
+
+        if index < 0:
+            index += register.size
+
+        if index >= register.size:
             raise QiskitError("index must be positive and under the size of the register")
 
         self.register = register
