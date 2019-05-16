@@ -274,11 +274,17 @@ class TestPulseQobj(QiskitTestCase):
                 PulseQobjExperiment(instructions=[
                     PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=1.57),
+<<<<<<< HEAD
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=0.),
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase='P1'),
                     PulseQobjInstruction(name='setp', t0=10, ch='d0', phase=3.14),
                     PulseQobjInstruction(name='setf', t0=10, ch='d0', frequency=8.0),
                     PulseQobjInstruction(name='shiftf', t0=10, ch='d0', frequency=4.0),
+=======
+                    PulseQobjInstruction(name='fc', t0=5, ch='d0', phase='P1'),
+                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val=0.1 + 0.0j),
+                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val='P1'),
+>>>>>>> ccf36d5db... Framechange instruction as_dict bug (#2413)
                     PulseQobjInstruction(name='acquire', t0=15, duration=5,
                                          qubits=[0], memory_slot=[0],
                                          kernels=[
@@ -308,11 +314,17 @@ class TestPulseQobj(QiskitTestCase):
                 {'instructions': [
                     {'name': 'pulse0', 't0': 0, 'ch': 'd0'},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 1.57},
+<<<<<<< HEAD
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 0},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 'P1'},
                     {'name': 'setp', 't0': 10, 'ch': 'd0', 'phase': 3.14},
                     {'name': 'setf', 't0': 10, 'ch': 'd0', 'frequency': 8.0},
                     {'name': 'shiftf', 't0': 10, 'ch': 'd0', 'frequency': 4.0},
+=======
+                    {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 'P1'},
+                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': [0.1, 0.0]},
+                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 'P1'},
+>>>>>>> ccf36d5db... Framechange instruction as_dict bug (#2413)
                     {'name': 'acquire', 't0': 15, 'duration': 5,
                      'qubits': [0], 'memory_slot': [0],
                      'kernels': [{'name': 'boxcar',
@@ -374,7 +386,11 @@ class TestPulseQobj(QiskitTestCase):
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj_item, qobj_class.from_dict(expected_dict))
 
+<<<<<<< HEAD
     def test_to_dict_per_class(self):
+=======
+    def test_as_dict_per_class(self):
+>>>>>>> ccf36d5db... Framechange instruction as_dict bug (#2413)
         """Test converting from Qobj and its subclass representations given a dictionary."""
         test_parameters = {
             PulseQobj: (
@@ -393,14 +409,22 @@ class TestPulseQobj(QiskitTestCase):
                 {'meas_level': 1,
                  'memory_slot_size': 8192,
                  'meas_return': 'avg',
+<<<<<<< HEAD
                  'pulse_library': [{'name': 'pulse0', 'samples': [0.1+0j]}],
+=======
+                 'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
+>>>>>>> ccf36d5db... Framechange instruction as_dict bug (#2413)
                  'qubit_lo_freq': [4.9],
                  'meas_lo_freq': [6.9],
                  'rep_time': 1000},
             ),
             PulseLibraryItem: (
                 PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j]),
+<<<<<<< HEAD
                 {'name': 'pulse0', 'samples': [0.1+0j]}
+=======
+                {'name': 'pulse0', 'samples': [[0.1, 0.0]]}
+>>>>>>> ccf36d5db... Framechange instruction as_dict bug (#2413)
             ),
             PulseQobjExperiment: (
                 PulseQobjExperiment(
@@ -415,7 +439,11 @@ class TestPulseQobj(QiskitTestCase):
 
         for qobj_class, (qobj_item, expected_dict) in test_parameters.items():
             with self.subTest(msg=str(qobj_class)):
+<<<<<<< HEAD
                 self.assertEqual(qobj_item.to_dict(), expected_dict)
+=======
+                self.assertEqual(qobj_item.as_dict(), expected_dict)
+>>>>>>> ccf36d5db... Framechange instruction as_dict bug (#2413)
 
 
 def _nop():
