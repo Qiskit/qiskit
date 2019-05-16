@@ -286,13 +286,9 @@ class DAGCircuit:
             cond (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
-            list[(ClassicalRegister, idx)]: list of bits
+            list[Clbit]: list of classical bits
         """
-        all_bits = []
-        if cond is not None:
-            all_bits.extend(
-                [Clbit(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
-        return all_bits
+        return [] if cond is None else [cbit for cbit in cond[0]]
 
     def _add_op_node(self, op, qargs, cargs, condition=None):
         """Add a new operation node to the graph and assign properties.
