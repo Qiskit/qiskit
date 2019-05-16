@@ -264,6 +264,26 @@ class Operator(BaseOperator):
         return Operator(other * self.data, self.input_dims(),
                         self.output_dims())
 
+    def commutator(self, other):
+        """Return the commutator self * other - other * self.
+
+        Args:
+            other (Operator): an operator object.
+
+        Returns:
+            Operator: the operator self * other - other * self.
+
+        Raises:
+            QiskitError: if other is not an operators, or has incompatible
+            dimensions.
+        """
+        if not isinstance(other, Operator):
+            other = Operator(other)
+        if self.dim != other.dim:
+            raise QiskitError("other operator has different dimensions.")
+        return Operator(self.data * other.data - other.data * self.data, self.input_dims(),
+                        self.output_dims())
+    
     @property
     def _shape(self):
         """Return the tensor shape of the matrix operator"""
