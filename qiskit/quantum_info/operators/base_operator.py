@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Abstract BaseOperator class.
 """
@@ -12,7 +20,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import ATOL_DEFAULT, RTOL_DEFAULT
 
 
@@ -68,12 +76,12 @@ class BaseOperator(ABC):
 
     @property
     def _atol(self):
-        """The absolute tolerence parameter for float comparisons."""
+        """The absolute tolerance parameter for float comparisons."""
         return self.__class__.ATOL
 
     @_atol.setter
     def _atol(self, atol):
-        """Set the absolute tolerence parameter for float comparisons."""
+        """Set the absolute tolerance parameter for float comparisons."""
         # NOTE: that this overrides the class value so applies to all
         # instances of the class.
         max_tol = self.__class__.MAX_TOL
@@ -86,12 +94,12 @@ class BaseOperator(ABC):
 
     @property
     def _rtol(self):
-        """The relative tolerence parameter for float comparisons."""
+        """The relative tolerance parameter for float comparisons."""
         return self.__class__.RTOL
 
     @_rtol.setter
     def _rtol(self, rtol):
-        """Set the relative tolerence parameter for float comparisons."""
+        """Set the relative tolerance parameter for float comparisons."""
         # NOTE: that this overrides the class value so applies to all
         # instances of the class.
         max_tol = self.__class__.MAX_TOL
@@ -333,7 +341,7 @@ class BaseOperator(ABC):
             tensor (np.array): a vector or matrix reshaped to a rank-N tensor.
             mat (np.array): a matrix reshaped to a rank-2M tensor.
             indices (list): tensor indices to contract with mat.
-            shift (int): shift for indicies of tensor to contract [Default: 0].
+            shift (int): shift for indices of tensor to contract [Default: 0].
             right_mul (bool): if True right multiply tensor by mat
                               (else left multiply) [Default: False].
 
@@ -352,7 +360,7 @@ class BaseOperator(ABC):
         indices_tensor = list(range(rank))
         for j, index in enumerate(indices):
             indices_tensor[index + shift] = rank + j
-        # Get einsum indces for mat
+        # Get einsum indices for mat
         mat_contract = list(reversed(range(rank, rank + len(indices))))
         mat_free = [index + shift for index in reversed(indices)]
         if right_mul:

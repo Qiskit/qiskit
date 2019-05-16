@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=missing-return-doc
 
@@ -20,7 +27,7 @@ where the supplied `continuous_pulse` is a function with signature:
         ...
     ```
 The sampler will call the `continuous_pulse` function with a set of times it will decide
-according to the sampling strategy it implments along with the passed `args` and `kwargs`.
+according to the sampling strategy it implements along with the passed `args` and `kwargs`.
 """
 
 from typing import Callable

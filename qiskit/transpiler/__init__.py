@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """Utils for transpiler."""
-import os
+
 from .passmanager import PassManager, FlowController
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError

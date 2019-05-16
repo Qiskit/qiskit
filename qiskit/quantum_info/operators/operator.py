@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Matrix Operator class.
 """
@@ -14,7 +22,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -48,12 +56,12 @@ class Operator(BaseOperator):
         automatically determined from the input data. If the input data is
         a Numpy array of shape (2**N, 2**N) qubit systems will be used. If
         the input operator is not an N-qubit operator, it will assign a
-        single subsystem with dimension specifed by the shape of the input.
+        single subsystem with dimension specified by the shape of the input.
         """
         if isinstance(data, (QuantumCircuit, Instruction)):
             # If the input is a Terra QuantumCircuit or Instruction we
-            # perform a simulation to construct the untiary operator.
-            # This will only work if the cirucit or instruction can be
+            # perform a simulation to construct the unitary operator.
+            # This will only work if the circuit or instruction can be
             # defined in terms of unitary gate instructions which have a
             # 'to_matrix' method defined. Any other instructions such as
             # conditional gates, measure, or reset will cause an
@@ -411,7 +419,7 @@ class Operator(BaseOperator):
             if shape[1] != 1 and shape[1] != shape[0]:
                 raise QiskitError('Input state is not a vector or matrix.')
             if shape[1] == 1:
-                # flatten colum-vector to vector
+                # flatten column-vector to vector
                 state = np.reshape(state, shape[0])
         return state
 

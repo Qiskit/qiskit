@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test cases for the pulse schedule."""
 import unittest
@@ -40,7 +47,7 @@ class TestSchedule(QiskitTestCase):
         self.two_qubit_device = DeviceSpecification(qubits, registers, mem_slots)
 
     def test_append_an_instruction_to_empty_schedule(self):
-        """Test append instructions to an emtpy schedule."""
+        """Test append instructions to an empty schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 
@@ -62,7 +69,7 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(3, sched.stop_time)
 
     def test_insert_an_instruction_into_empty_schedule(self):
-        """Test insert an instruction into an emtpy schedule."""
+        """Test insert an instruction into an empty schedule."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
 

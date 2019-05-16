@@ -25,7 +25,7 @@ from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 logger = logging.getLogger(__name__)
 
 
-def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=None):
+def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     """Assembles a list of schedules into a qobj which can be run on the backend.
     Args:
         schedules (list[Schedule]): schedules to assemble
@@ -83,7 +83,7 @@ def assemble_schedules(schedules, qobj_id=None, qobj_header=None, run_config=Non
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
                                     for pulse in user_pulselib]
 
-    # create qob experiment field
+    # create qobj experiment field
     experiments = []
     schedule_los = qobj_config.pop('schedule_los', [])
 
@@ -141,7 +141,7 @@ def _validate_meas_map(acquire, meas_map):
     """Validate all qubits tied in meas_map are to be acquired."""
     meas_map_set = [set(m) for m in meas_map]
     # Verify that each qubit is listed once in measurement map
-    measured_qubits = set(acq_ch.index for acq_ch in acquire.acquires)
+    measured_qubits = {acq_ch.index for acq_ch in acquire.acquires}
     tied_qubits = set()
     for meas_qubit in measured_qubits:
         for map_inst in meas_map_set:

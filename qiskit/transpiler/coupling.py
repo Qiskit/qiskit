@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """
 Directed graph object for representing coupling between physical qubits.
 
@@ -52,6 +50,8 @@ class CouplingMap:
         self._dist_matrix = None
         # a sorted list of physical qubits (integers) in this coupling map
         self._qubit_list = None
+        # a sorted list of physical qubits (integers) in this coupling map
+        self._is_symmetric = None
 
         if couplinglist is not None:
             for source, target in couplinglist:
@@ -100,6 +100,7 @@ class CouplingMap:
             self.add_physical_qubit(dst)
         self.graph.add_edge(src, dst)
         self._dist_matrix = None  # invalidate
+        self._is_symmetric = None  # invalidate
 
     def subgraph(self, nodelist):
         """Return a CouplingMap object for a subgraph of self.
@@ -186,6 +187,27 @@ class CouplingMap:
             raise CouplingError(
                 "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
 
+    @property
+    def is_symmetric(self):
+        """
+        Test if the graph is symmetric.
+
+        Return True if symmetric, False otherwise
+        """
+        if self._is_symmetric is None:
+            self._is_symmetric = self._check_symmetry()
+        return self._is_symmetric
+
+    def _check_symmetry(self):
+        """
+        Calculates symmetry
+
+        Returns:
+            Bool: True if symmetric, False otherwise
+        """
+        mat = nx.adjacency_matrix(self.graph)
+        return (mat - mat.T).nnz == 0
+
     def reduce(self, mapping):
         """Returns a reduced coupling map that
         corresponds to the subgraph of qubits
@@ -202,7 +224,7 @@ class CouplingMap:
             CouplingError: Reduced coupling map must be connected.
         """
         reduced_qubits = len(mapping)
-        inv_map = [None]*(max(mapping)+1)
+        inv_map = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
             inv_map[val] = idx
 

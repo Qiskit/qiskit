@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=missing-return-doc
 
@@ -112,7 +119,7 @@ This is partly because `functools.wraps` has been used on the underlying functio
 This in itself is not sufficient as the signature of the sampled function has
 `duration`, whereas the signature of the continuous function is `time`.
 
-This is acheived by removing `__wrapped__` set by `functools.wraps` in order to preserve
+This is achieved by removing `__wrapped__` set by `functools.wraps` in order to preserve
 the correct signature and also applying `_update_annotations` and `_update_docstring`
 to the generated function which corrects the function annotations and adds an informative
 docstring respectively.
@@ -209,7 +216,7 @@ def sampler(sample_function: Callable) -> Callable:
         @functools.wraps(continuous_pulse)
         def call_sampler(duration: int, *args, **kwargs) -> commands.SamplePulse:
             """Replace the call to the continuous function with a call to the sampler applied
-            to the anlytic pulse function."""
+            to the analytic pulse function."""
             sampled_pulse = sample_function(continuous_pulse, duration, *args, **kwargs)
             return np.asarray(sampled_pulse, dtype=np.complex_)
 

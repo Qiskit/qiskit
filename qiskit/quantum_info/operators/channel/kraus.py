@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=len-as-condition
+
 """
 Kraus representation of a Quantum Channel.
 
 
-The Kraus representation for a quantum channel E is given by a set of matrics [A_i] such that
+The Kraus representation for a quantum channel E is given by a set of matrices [A_i] such that
 
     E(ρ) = sum_i A_i.ρ.A_i^dagger
 
@@ -32,7 +40,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.choi import Choi
@@ -66,7 +74,7 @@ class Kraus(QuantumChannel):
         automatically determined from the input data. If the input data is
         a list of Numpy arrays of shape (2**N, 2**N) qubit systems will be used. If
         the input does not correspond to an N-qubit channel, it will assign a
-        single subsystem with dimension specifed by the shape of the input.
+        single subsystem with dimension specified by the shape of the input.
         """
         # If the input is a list or tuple we assume it is a list of Kraus
         # matrices, if it is a numpy array we assume that it is a single Kraus
@@ -128,7 +136,7 @@ class Kraus(QuantumChannel):
                 # convert it to a SuperOp
                 data = SuperOp._instruction_to_superop(data)
             else:
-                # We use the QuantumChannel init transform to intialize
+                # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
                 data = self._init_transformer(data)
             input_dim, output_dim = data.dim

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """A default passmanager."""
 
@@ -72,7 +79,9 @@ def default_pass_manager(transpile_config):
     pass_manager.append(Decompose(SwapGate))
 
     # Change CX directions
-    pass_manager.append(CXDirection(coupling_map))
+    pass_manager.append(CXDirection(coupling_map),
+                        condition=lambda property_set: (not coupling_map.is_symmetric and
+                                                        not property_set['is_direction_mapped']))
 
     # Simplify single qubit gates and CXs
     simplification_passes = [Optimize1qGates(), CXCancellation(), RemoveResetInZeroState()]

@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=redundant-returns-doc,missing-raises-doc
-
 """Base class for a backend provider."""
 
 from abc import ABC, abstractmethod
@@ -49,7 +47,7 @@ class BaseProvider(ABC):
         backends = self.backends(name, **kwargs)
         if len(backends) > 1:
             raise QiskitBackendNotFoundError('More than one backend matches the criteria')
-        elif not backends:
+        if not backends:
             raise QiskitBackendNotFoundError('No backend matches the criteria')
 
         return backends[0]

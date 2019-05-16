@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-The CX direction rearrenges the direction of the cx nodes to make the circuit
+The CX direction rearranges the direction of the cx nodes to make the circuit
 compatible with the coupling_map.
 """
 from math import pi
@@ -22,7 +22,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 from qiskit.extensions.standard import U2Gate
 
 
