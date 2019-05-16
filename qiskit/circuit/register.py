@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=not-callable
+
 """
 Base register reference object.
 """
@@ -19,7 +21,7 @@ import re
 import logging
 import itertools
 
-from qiskit.exceptions import QiskitError, QiskitIndexError
+from qiskit.exceptions import QiskitError
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,7 @@ class Register:
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
     prefix = 'reg'
+    bit_type = None
 
     def __init__(self, size, name=None):
         """Create a new generic register.
@@ -72,7 +75,7 @@ class Register:
         """Return register size"""
         return self.size
 
-    def getitem(self, bit_type, key):
+    def __getitem__(self, key):
         """
         Arg:
             bit_type (Qubit or Clbit): a constructor type return element/s.
@@ -89,14 +92,14 @@ class Register:
         if not isinstance(key, (int, slice, list)):
             raise QiskitError("expected integer or slice index into register")
         if isinstance(key, slice):
-            return [bit_type(self, ind) for ind in range(*key.indices(len(self)))]
+            return [self.bit_type(self, ind) for ind in range(*key.indices(len(self)))]
         elif isinstance(key, list):  # list of qubit indices
             if max(key) < len(self):
-                return [bit_type(self, ind) for ind in key]
+                return [self.bit_type(self, ind) for ind in key]
             else:
                 raise QiskitError('register index out of range')
         else:
-            return bit_type(self, key)
+            return self.bit_type(self, key)
 
     def __iter__(self):
         for bit in range(self.size):

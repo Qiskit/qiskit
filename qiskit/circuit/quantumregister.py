@@ -22,34 +22,6 @@ from .register import Register
 from .bit import Bit
 
 
-class QuantumRegister(Register):
-    """Implement a quantum register."""
-    # Counter for the number of instances in this class.
-    instances_counter = itertools.count()
-    # Prefix to use for auto naming.
-    prefix = 'q'
-
-    def qasm(self):
-        """Return OPENQASM string for this register."""
-        return "qreg %s[%d];" % (self.name, self.size)
-
-    def __getitem__(self, key):
-        """
-        Arg:
-            key (int|slice|list): index of the qubit to be retrieved.
-
-        Returns:
-            tuple[Register, int]: a tuple in the form `(self, key)` if key is int.
-                If key is a slice, return a `list((self,key))`.
-
-        Raises:
-            QiskitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range
-                `(0, self.size)`.
-        """
-        return self.getitem(Qubit, key)
-
-
 class Qubit(Bit):
     """Implement a quantum bit."""
 
@@ -59,3 +31,16 @@ class Qubit(Bit):
         else:
             raise QiskitError('Qubit needs a QuantumRegister and %s was provided' %
                               type(register).__name__)
+
+
+class QuantumRegister(Register):
+    """Implement a quantum register."""
+    # Counter for the number of instances in this class.
+    instances_counter = itertools.count()
+    # Prefix to use for auto naming.
+    prefix = 'q'
+    bit_type = Qubit
+
+    def qasm(self):
+        """Return OPENQASM string for this register."""
+        return "qreg %s[%d];" % (self.name, self.size)

@@ -22,35 +22,6 @@ from .register import Register
 from .bit import Bit
 
 
-class ClassicalRegister(Register):
-    """Implement a classical register."""
-
-    # Counter for the number of instances in this class.
-    instances_counter = itertools.count()
-    # Prefix to use for auto naming.
-    prefix = 'c'
-
-    def qasm(self):
-        """Return OPENQASM string for this register."""
-        return "creg %s[%d];" % (self.name, self.size)
-
-    def __getitem__(self, key):
-        """
-        Arg:
-            key (int|slice|list): index of the clbit to be retrieved.
-
-        Returns:
-            tuple[Register, int]: a tuple in the form `(self, key)` if key is int.
-                If key is a slice, return a `list((self,key))`.
-
-        Raises:
-            QiskitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range
-                `(0, self.size)`.
-        """
-        return self.getitem(Clbit, key)
-
-
 class Clbit(Bit):
     """Implement a classical bit."""
 
@@ -60,3 +31,17 @@ class Clbit(Bit):
         else:
             raise QiskitError('Clbit needs a ClassicalRegister and %s was provided' %
                               type(register).__name__)
+
+
+class ClassicalRegister(Register):
+    """Implement a classical register."""
+
+    # Counter for the number of instances in this class.
+    instances_counter = itertools.count()
+    # Prefix to use for auto naming.
+    prefix = 'c'
+    bit_type = Clbit
+
+    def qasm(self):
+        """Return OPENQASM string for this register."""
+        return "creg %s[%d];" % (self.name, self.size)
