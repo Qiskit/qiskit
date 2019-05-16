@@ -21,7 +21,6 @@ import numpy as np
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.visualization.qcstyle import OPStyleSched
 
 from .instruction import Instruction
 from .command import Command
@@ -51,7 +50,7 @@ class SamplePulse(Command):
         """Return sample values."""
         return self._samples
 
-    def draw(self, dt: float = 1, style: OPStyleSched = None,
+    def draw(self, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None,
              scaling: float = 1, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
@@ -61,7 +60,7 @@ class SamplePulse(Command):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
+            scaling (OPStylePulse): Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
 

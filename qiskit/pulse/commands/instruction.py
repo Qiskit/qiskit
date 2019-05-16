@@ -23,7 +23,6 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
-from qiskit.visualization.qcstyle import OPStyleSched
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +196,7 @@ class Instruction(ScheduleComponent):
         """
         return ops.append(self, schedule, buffer=buffer, name=name)
 
-    def draw(self, dt: float = 1, style: OPStyleSched = None,
+    def draw(self, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None, scaling: float = 1,
              channels_to_plot: List[Channel] = None, plot_all: bool = False,
              plot_range: Tuple[float] = None, interactive: bool = False,
@@ -210,7 +209,7 @@ class Instruction(ScheduleComponent):
             style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling: Relative visual scaling of waveform amplitudes
+            scaling (OPStyleSched): Relative visual scaling of waveform amplitudes
             channels_to_plot: A list of channel names to plot
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
