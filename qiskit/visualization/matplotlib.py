@@ -135,10 +135,10 @@ class MatplotlibDrawer:
                 self._style = DefaultStyle()
             elif config_style == 'bw':
                 self._style = BWStyle()
-        if not config and style is None:
-            self._style = DefaultStyle()
         elif style is False:
             self._style = BWStyle()
+        else:
+            self._style = DefaultStyle()
 
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
@@ -1279,7 +1279,7 @@ class ScheduleDrawer:
             snapshots = events.snapshots
             if snapshots:
                 for time in snapshots:
-                    ax.annotate(s=u"\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0+0.08),
+                    ax.annotate(s="\u25D8", xy=(time*dt, y0), xytext=(time*dt, y0+0.08),
                                 arrowprops={'arrowstyle': 'wedge'}, ha='center')
 
     def _draw_framechanges(self, ax, fcs, dt, y0):
