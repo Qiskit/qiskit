@@ -20,7 +20,6 @@ import sys
 import unittest
 
 from .utils import Path
-from .http_recorder import http_recorder
 from .testing_options import get_test_options
 
 
@@ -171,7 +170,7 @@ def requires_qe_access(func):
         if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
             # For recording or for replaying existing cassettes, the test
             # should be decorated with @use_cassette.
-            vcr_mode = 'new_episodes' if TEST_OPTIONS['rec'] else 'none'
+                vcr_mode = 'new_episodes' if TEST_OPTIONS['rec'] else 'none'
             decorated_func = http_recorder(
                 vcr_mode, Path.CASSETTES.value).use_cassette()(decorated_func)
 

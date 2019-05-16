@@ -8,7 +8,6 @@ pycodestyle
 pydot
 pylint>=2.2,<2.3
 stestr>=2.0.0
-vcrpy
 PyGithub
 wheel
 cython>=0.27.1
