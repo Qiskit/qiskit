@@ -149,6 +149,12 @@ class PassManager():
         circuit.name = name
         return circuit
 
+    def draw(self, filename=None, style=None):
+        """ Draw the pass manager"""
+        # pylint: disable=cyclic-import
+        from qiskit.visualization import pass_manager_drawer
+        pass_manager_drawer(self, filename=filename, style=style)
+
     def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".
 
