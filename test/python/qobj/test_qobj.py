@@ -158,7 +158,9 @@ class TestPulseQobj(QiskitTestCase):
                 PulseQobjExperiment(instructions=[
                     PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
                     PulseQobjInstruction(name='fc', t0=5, ch='d0', phase=1.57),
+                    PulseQobjInstruction(name='fc', t0=5, ch='d0', phase='P1'),
                     PulseQobjInstruction(name='pv', t0=10, ch='d0', val=0.1 + 0.0j),
+                    PulseQobjInstruction(name='pv', t0=10, ch='d0', val='P1'),
                     PulseQobjInstruction(name='acquire', t0=15, duration=5,
                                          qubits=[0], memory_slot=[0],
                                          kernels=[
@@ -190,7 +192,9 @@ class TestPulseQobj(QiskitTestCase):
                 {'instructions': [
                     {'name': 'pulse0', 't0': 0, 'ch': 'd0'},
                     {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 1.57},
+                    {'name': 'fc', 't0': 5, 'ch': 'd0', 'phase': 'P1'},
                     {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': [0.1, 0.0]},
+                    {'name': 'pv', 't0': 10, 'ch': 'd0', 'val': 'P1'},
                     {'name': 'acquire', 't0': 15, 'duration': 5,
                      'qubits': [0], 'memory_slot': [0],
                      'kernels': [{'name': 'boxcar',
@@ -210,7 +214,7 @@ class TestPulseQobj(QiskitTestCase):
             self.fail(str(validation_error))
 
     def test_from_dict_per_class(self):
-        """Test Qobj and its subclass representations given a dictionary."""
+        """Test converting to Qobj and its subclass representations given a dictionary."""
         test_parameters = {
             PulseQobj: (
                 self.valid_qobj,
@@ -251,6 +255,49 @@ class TestPulseQobj(QiskitTestCase):
         for qobj_class, (qobj_item, expected_dict) in test_parameters.items():
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj_item, qobj_class.from_dict(expected_dict))
+
+    def test_as_dict_per_class(self):
+        """Test converting from Qobj and its subclass representations given a dictionary."""
+        test_parameters = {
+            PulseQobj: (
+                self.valid_qobj,
+                self.valid_dict
+            ),
+            PulseQobjConfig: (
+                PulseQobjConfig(meas_level=1,
+                                memory_slot_size=8192,
+                                meas_return='avg',
+                                pulse_library=[
+                                    PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j])
+                                ],
+                                qubit_lo_freq=[4.9], meas_lo_freq=[6.9],
+                                rep_time=1000),
+                {'meas_level': 1,
+                 'memory_slot_size': 8192,
+                 'meas_return': 'avg',
+                 'pulse_library': [{'name': 'pulse0', 'samples': [[0.1, 0.0]]}],
+                 'qubit_lo_freq': [4.9],
+                 'meas_lo_freq': [6.9],
+                 'rep_time': 1000},
+            ),
+            PulseLibraryItem: (
+                PulseLibraryItem(name='pulse0', samples=[0.1 + 0.0j]),
+                {'name': 'pulse0', 'samples': [[0.1, 0.0]]}
+            ),
+            PulseQobjExperiment: (
+                PulseQobjExperiment(
+                    instructions=[PulseQobjInstruction(name='pulse0', t0=0, ch='d0')]),
+                {'instructions': [{'name': 'pulse0', 't0': 0, 'ch': 'd0'}]}
+            ),
+            PulseQobjInstruction: (
+                PulseQobjInstruction(name='pulse0', t0=0, ch='d0'),
+                {'name': 'pulse0', 't0': 0, 'ch': 'd0'}
+            )
+        }
+
+        for qobj_class, (qobj_item, expected_dict) in test_parameters.items():
+            with self.subTest(msg=str(qobj_class)):
+                self.assertEqual(qobj_item.as_dict(), expected_dict)
 
 
 def _nop():

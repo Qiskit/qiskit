@@ -30,6 +30,7 @@ from qiskit.circuit import ClassicalRegister, Clbit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit import QuantumCircuit
 from qiskit.execute import execute
+from qiskit.compiler import transpile, assemble
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
