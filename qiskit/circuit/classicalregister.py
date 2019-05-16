@@ -68,4 +68,3 @@ class Clbit(Bit):
         else:
             raise QiskitError('Clbit needs a ClassicalRegister and %s was provided' %
                               type(register).__name__)
-
