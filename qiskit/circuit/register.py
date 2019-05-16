@@ -75,11 +75,11 @@ class Register:
     def getitem(self, bit_type, key):
         """
         Arg:
-            bit_type (Qubit|Clbit): a constructor type return element/s.
-            key (int|slice|list): index of the clbit to be retrieved.
+            bit_type (Qubit or Clbit): a constructor type return element/s.
+            key (int or slice or list): index of the clbit to be retrieved.
 
         Returns:
-            QuBit|Clbit|list(Qubit)|list(Clbit): a instances Qubit or Clbit if key is int.
+            Qubit or Clbit or list(Qubit) or list(Clbit): a instances Qubit or Clbit if key is int.
                 If key is a slice, return a list of them.
 
         Raises:
