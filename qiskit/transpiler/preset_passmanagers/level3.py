@@ -109,6 +109,9 @@ def level_3_pass_manager(transpile_config):
             Optimize1qGates(), CommutativeCancellation(),
             OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
+    if not coupling_map:
+        _opt.pop(4)  # if no coupling map, don't call the CXDirection pass
+
     pm3 = PassManager()
     if coupling_map:
         pm3.append(_given_layout)
