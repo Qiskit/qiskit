@@ -18,6 +18,7 @@ from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
+from warnings import warn
 
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
@@ -30,6 +31,15 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 
+def _is_bit(obj):
+    """Determine if obj is a bit"""
+    # If there is a bit type this could be replaced by isinstance.
+    warn('Referring to a bit as a tuple is being deprecated. '
+         'Insterad of (qr, 0), use qr[0].', DeprecationWarning)
+    if isinstance(obj, tuple) and len(obj) == 2:
+        if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
+            return True
+    return False
 
 class QuantumCircuit:
     """Quantum circuit."""
@@ -257,7 +267,10 @@ class QuantumCircuit:
     @staticmethod
     def _bit_argument_conversion(bit_representation, in_array):
         try:
-            if isinstance(bit_representation, Bit):
+            if _is_bit(bit_representation):
+                # circuit.h((qr, 0)) -> circuit.h([qr[0]])
+                return [bit_representation[0][bit_representation[1]]]
+            elif isinstance(bit_representation, Bit):
                 # circuit.h(qr[0]) -> circuit.h([qr[0]])
                 return [bit_representation]
             elif isinstance(bit_representation, Register):
@@ -269,6 +282,9 @@ class QuantumCircuit:
             elif isinstance(bit_representation, slice):
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
                 return in_array[bit_representation]
+            elif isinstance(bit_representation, list) and \
+                    all(_is_bit(bit) for bit in bit_representation):
+                return [bit[0][bit[1]] for bit in bit_representation]
             elif isinstance(bit_representation, list) and \
                     all(isinstance(bit, Bit) for bit in bit_representation):
                 # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
