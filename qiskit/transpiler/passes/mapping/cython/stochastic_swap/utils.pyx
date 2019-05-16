@@ -21,7 +21,7 @@ from libc.stdlib cimport calloc, free
 from libcpp.vector cimport vector
 
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit import QuBit
+from qiskit.circuit import Qubit
 
 cdef class EdgeCollection:
     """ A simple contain that contains a C++ vector
@@ -147,7 +147,7 @@ cdef class NLayout:
         """ Converts numeric layout back to Qiskit Layout object.
 
         Args:
-            qregs (OrderedDict): An ordered dict of QuBit instances.
+            qregs (OrderedDict): An ordered dict of Qubit instances.
         
         Returns:
             Layout: The corresponding Qiskit Layout object.
@@ -168,7 +168,7 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
 
     Args:
         layout (Layout): A Qiskit Layout instance.
-        qregs (OrderedDict): An ordered dict of QuBit instances.
+        qregs (OrderedDict): An ordered dict of Qubit instances.
         physical_qubits (int): Number of physical qubits.
     Returns:
         NLayout: The corresponding numerical layout.
@@ -186,7 +186,7 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
     cdef object key, val
     cdef dict merged_dict = {**layout._p2v, **layout._v2p}
     for key, val in merged_dict.items():
-        if isinstance(key, QuBit):
+        if isinstance(key, Qubit):
             out.logic_to_phys[reg_idx[regint[key.register]]+key.index] = val
         else:
             out.phys_to_logic[key] = reg_idx[regint[val.register]]+val.index

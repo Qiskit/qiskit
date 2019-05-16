@@ -23,8 +23,8 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.parameter import Parameter
-from .quantumregister import QuantumRegister, QuBit
-from .classicalregister import ClassicalRegister, ClBit
+from .quantumregister import QuantumRegister, Qubit
+from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .instructionset import InstructionSet
 from .register import Register
@@ -420,8 +420,8 @@ class QuantumCircuit:
 
     def _check_qargs(self, qargs):
         """Raise exception if a qarg is not in this circuit or bad format."""
-        if not all(isinstance(i, QuBit) for i in qargs):
-            raise QiskitError("qarg is not a QuBit")
+        if not all(isinstance(i, Qubit) for i in qargs):
+            raise QiskitError("qarg is not a Qubit")
         if not all(self.has_register(i.register) for i in qargs):
             raise QiskitError("register not in this circuit")
         for qubit in qargs:
@@ -429,8 +429,8 @@ class QuantumCircuit:
 
     def _check_cargs(self, cargs):
         """Raise exception if clbit is not in this circuit or bad format."""
-        if not all(isinstance(i, ClBit) for i in cargs):
-            raise QiskitError("carg is not a ClBit")
+        if not all(isinstance(i, Clbit) for i in cargs):
+            raise QiskitError("carg is not a Clbit")
         if not all(self.has_register(i.register) for i in cargs):
             raise QiskitError("register not in this circuit")
         for clbit in cargs:

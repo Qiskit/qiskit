@@ -30,7 +30,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister, Parameter, QuBit
+from qiskit.circuit import QuantumRegister, Parameter, Qubit
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -168,7 +168,7 @@ class Optimize1qGates(TransformationPass):
             # Replace the the first node in the run with a dummy DAG which contains a dummy
             # qubit. The name is irrelevant, because substitute_node_with_dag will take care of
             # putting it in the right place.
-            run_qarg = QuBit(QuantumRegister(1, 'q'), 0)
+            run_qarg = Qubit(QuantumRegister(1, 'q'), 0)
             new_op = Gate(name="", num_qubits=1, params=[])
             if right_name == "u1":
                 new_op = U1Gate(right_parameters[2])

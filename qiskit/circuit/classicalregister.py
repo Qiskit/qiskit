@@ -48,7 +48,7 @@ class ClassicalRegister(Register):
             QiskitIndexError: if the `key` is not in the range
                 `(0, self.size)`.
         """
-        return self.getitem(ClBit, key)
+        return self.getitem(Clbit, key)
 
     def __iter__(self):
         """
@@ -59,7 +59,7 @@ class ClassicalRegister(Register):
             yield self[bit]
 
 
-class ClBit(Bit):
+class Clbit(Bit):
     """Implement a classical bit."""
 
     def __init__(self, register, index):

@@ -25,7 +25,7 @@ import numpy as np
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.circuit import QuantumRegister, QuBit, ClBit
+from qiskit.circuit import QuantumRegister, Qubit, Clbit
 
 from qiskit.extensions.standard import SwapGate
 
@@ -90,7 +90,7 @@ class LegacySwap(TransformationPass):
                                    in virtual_qubits}
 
             device_register = QuantumRegister(self.coupling_map.size(), 'q')
-            initial_layout = {QuBit(dag.qregs[k[0]], k[1]): QuBit(device_register, v[1])
+            initial_layout = {Qubit(dag.qregs[k[0]], k[1]): Qubit(device_register, v[1])
                               for k, v in self.initial_layout.items()}
             # Check the input layout
             circ_qubits = dag.qubits()
@@ -107,7 +107,7 @@ class LegacySwap(TransformationPass):
                                           "CouplingGraph" % (v[0].name, v[1]))
         else:
             # Supply a default layout
-            qubit_subset = [QuBit(QuantumRegister(self.coupling_map.size(), 'q'), wire) for wire in
+            qubit_subset = [Qubit(QuantumRegister(self.coupling_map.size(), 'q'), wire) for wire in
                             self.coupling_map.physical_qubits]
             qubit_subset = qubit_subset[0:dag.width()]
             initial_layout = {a: b for a, b in zip(dag.qubits(), qubit_subset)}
@@ -129,10 +129,10 @@ class LegacySwap(TransformationPass):
         identity_wire_map = {}
         q = QuantumRegister(self.coupling_map.size(), 'q')
         for j in range(self.coupling_map.size()):
-            identity_wire_map[QuBit(q, j)] = QuBit(q, j)
+            identity_wire_map[Qubit(q, j)] = Qubit(q, j)
         for creg in dag.cregs.values():
             for j in range(creg.size):
-                identity_wire_map[ClBit(creg, j)] = ClBit(creg, j)
+                identity_wire_map[Clbit(creg, j)] = Clbit(creg, j)
 
         first_layer = True  # True until first layer is output
 
@@ -284,7 +284,7 @@ class LegacySwap(TransformationPass):
             circ.add_qreg(QR)
 
             # Identity wire-map for composing the circuits
-            identity_wire_map = {QuBit(QR, j): QuBit(QR, j) for j in range(n)}
+            identity_wire_map = {Qubit(QR, j): Qubit(QR, j) for j in range(n)}
 
             while d < 2 * n + 1:
                 # Set of available qubits
@@ -298,7 +298,7 @@ class LegacySwap(TransformationPass):
                     progress_made = False
                     # Loop over edges of coupling graph
                     for e in self.coupling_map.get_edges():
-                        e = [QuBit(QR, edge) for edge in e]
+                        e = [Qubit(QR, edge) for edge in e]
                         # Are the qubits available?
                         if e[0] in qubit_set and e[1] in qubit_set:
                             # Try this edge to reduce the cost
@@ -377,7 +377,7 @@ class LegacySwap(TransformationPass):
         QR = QuantumRegister(self.coupling_map.size(), 'q')
         dagcircuit_output.add_qreg(QR)
         # Identity wire-map for composing the circuits
-        identity_wire_map = {QuBit(QR, j): QuBit(QR, j) for j in range(self.coupling_map.size())}
+        identity_wire_map = {Qubit(QR, j): Qubit(QR, j) for j in range(self.coupling_map.size())}
 
         # If this is the first layer with multi-qubit gates,
         # output all layers up to this point and ignore any

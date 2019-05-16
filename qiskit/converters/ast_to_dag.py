@@ -346,7 +346,7 @@ class AstInterpreter:
         Args:
             name (str): operation name to apply to the dag.
             params (list): op parameters
-            qargs (list(QuBit)): qubits to attach to
+            qargs (list(Qubit)): qubits to attach to
 
         Raises:
             QiskitError: if encountering a non-basis opaque gate

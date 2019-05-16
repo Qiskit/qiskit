@@ -23,7 +23,7 @@ import numpy as np
 
 import qiskit.extensions.simulator
 from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, QuBit, ClBit
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
 from qiskit import execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
@@ -314,8 +314,8 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(op.name, 'measure')
         self.assertEqual(len(qargs), 1)
         self.assertEqual(len(cargs), 1)
-        self.assertTrue(isinstance(qargs[0], QuBit))
-        self.assertTrue(isinstance(cargs[0], ClBit))
+        self.assertTrue(isinstance(qargs[0], Qubit))
+        self.assertTrue(isinstance(cargs[0], Clbit))
         self.assertEqual(qargs[0].index, 0)
         self.assertEqual(cargs[0].index, 2)
         # test full register

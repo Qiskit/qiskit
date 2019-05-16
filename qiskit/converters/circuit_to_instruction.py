@@ -16,8 +16,8 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumregister import QuantumRegister, QuBit
-from qiskit.circuit.classicalregister import ClassicalRegister, ClBit
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 
 
 def circuit_to_instruction(circuit, parameter_map=None):
@@ -61,7 +61,7 @@ def circuit_to_instruction(circuit, parameter_map=None):
         """find the index of a given bit (Register, int) within
         a flat ordered list of bits of the circuit
         """
-        if isinstance(bit, QuBit):
+        if isinstance(bit, Qubit):
             ordered_regs = circuit.qregs
         else:
             ordered_regs = circuit.cregs
@@ -80,8 +80,8 @@ def circuit_to_instruction(circuit, parameter_map=None):
 
     definition = list(map(lambda x:
                           (x[0],
-                           list(map(lambda y: QuBit(q, find_bit_position(y)), x[1])),
-                           list(map(lambda y: ClBit(c, find_bit_position(y)), x[2]))), definition))
+                           list(map(lambda y: Qubit(q, find_bit_position(y)), x[1])),
+                           list(map(lambda y: Clbit(c, find_bit_position(y)), x[2]))), definition))
     instruction.definition = definition
 
     return instruction

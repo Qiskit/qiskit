@@ -515,11 +515,11 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
 
 
 def regtuple_to_numeric(items, qregs):
-    """Takes QuBit instances and converts them into an integer array.
+    """Takes Qubit instances and converts them into an integer array.
 
     Args:
-        items (list): List of QuBit instances to convert.
-        qregs (dict): List of QuBit instances.
+        items (list): List of Qubit instances to convert.
+        qregs (dict): List of Qubit instances.
     Returns:
         ndarray: Array of integers.
 
@@ -539,8 +539,8 @@ def gates_to_idx(gates, qregs):
     """Converts gate tuples into a nested list of integers.
 
     Args:
-        gates (list): List of QuBit instances representing gates.
-        qregs (dict): List of QuBit instances.
+        gates (list): List of Qubit instances representing gates.
+        qregs (dict): List of Qubit instances.
 
     Returns:
         list: Nested list of integers for gates.

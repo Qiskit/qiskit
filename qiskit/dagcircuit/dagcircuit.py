@@ -29,8 +29,8 @@ import itertools
 import warnings
 import networkx as nx
 
-from qiskit.circuit.quantumregister import QuantumRegister, QuBit
-from qiskit.circuit.classicalregister import ClassicalRegister, ClBit
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
 from .dagnode import DAGNode
@@ -109,7 +109,7 @@ class DAGCircuit:
         return self.qubits()
 
     def qubits(self):
-        """Return a list of qubits (as a list of QuBit instances)."""
+        """Return a list of qubits (as a list of Qubit instances)."""
         return [qubit for qreg in self.qregs.values() for qubit in qreg]
 
     def get_bits(self):
@@ -119,7 +119,7 @@ class DAGCircuit:
         return self.clbits()
 
     def clbits(self):
-        """Return a list of classical bits (as a list of ClBit instances)."""
+        """Return a list of classical bits (as a list of Clbit instances)."""
         return [clbit for creg in self.cregs.values() for clbit in creg]
 
     @property
@@ -192,7 +192,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
         for j in range(qreg.size):
-            self._add_wire(QuBit(qreg, j))
+            self._add_wire(Qubit(qreg, j))
 
     def add_creg(self, creg):
         """Add all wires in a classical register."""
@@ -202,7 +202,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register %s" % creg.name)
         self.cregs[creg.name] = creg
         for j in range(creg.size):
-            self._add_wire(ClBit(creg, j))
+            self._add_wire(Clbit(creg, j))
 
     def _add_wire(self, wire):
         """Add a qubit or bit to the circuit.
@@ -291,7 +291,7 @@ class DAGCircuit:
         all_bits = []
         if cond is not None:
             all_bits.extend(
-                [ClBit(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
+                [Clbit(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
         return all_bits
 
     def _add_op_node(self, op, qargs, cargs, condition=None):
@@ -323,8 +323,8 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            qargs (list[QuBit]): qubits that op will be applied to
-            cargs (list[ClBit]): cbits that op will be applied to
+            qargs (list[Qubit]): qubits that op will be applied to
+            cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
@@ -832,8 +832,8 @@ class DAGCircuit:
                                                replay_node.cargs, condition=condition)
 
         if wires is None:
-            qwires = [w for w in input_dag.wires if isinstance(w, QuBit)]
-            cwires = [w for w in input_dag.wires if isinstance(w, ClBit)]
+            qwires = [w for w in input_dag.wires if isinstance(w, Qubit)]
+            cwires = [w for w in input_dag.wires if isinstance(w, Clbit)]
             wires = qwires + cwires
 
         self._check_wires_list(wires, node)
@@ -1102,7 +1102,7 @@ class DAGCircuit:
 
         predecessors = []
         for predecessor in self.predecessors(node):
-            if isinstance(self._multi_graph.get_edge_data(predecessor, node, key=0)['wire'], QuBit):
+            if isinstance(self._multi_graph.get_edge_data(predecessor, node, key=0)['wire'], Qubit):
                 predecessors.append(predecessor)
         return predecessors
 
@@ -1151,7 +1151,7 @@ class DAGCircuit:
         successors = []
         for successor in self.successors(node):
             if isinstance(self._multi_graph.get_edge_data(
-                    node, successor, key=0)['wire'], QuBit):
+                    node, successor, key=0)['wire'], Qubit):
                 successors.append(successor)
         return successors
 

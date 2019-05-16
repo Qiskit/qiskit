@@ -20,7 +20,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler.transpile_config import TranspileConfig
 from qiskit.transpiler.transpile_circuit import transpile_circuit
 from qiskit.pulse import Schedule
-from qiskit.circuit.quantumregister import QuBit
+from qiskit.circuit.quantumregister import Qubit
 
 
 def transpile(circuits,
@@ -270,7 +270,7 @@ def _parse_initial_layout(initial_layout, circuits):
         if isinstance(initial_layout, list):
             if all(isinstance(elem, int) for elem in initial_layout):
                 initial_layout = Layout.from_intlist(initial_layout, *circuit.qregs)
-            elif all(elem is None or isinstance(elem, QuBit) for elem in initial_layout):
+            elif all(elem is None or isinstance(elem, Qubit) for elem in initial_layout):
                 initial_layout = Layout.from_qubit_list(initial_layout)
         elif isinstance(initial_layout, dict):
             initial_layout = Layout(initial_layout)

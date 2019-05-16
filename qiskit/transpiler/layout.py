@@ -20,7 +20,7 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 
-from qiskit.circuit.quantumregister import QuBit
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
 
 
@@ -81,10 +81,10 @@ class Layout():
     @staticmethod
     def order_based_on_type(value1, value2):
         """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
-        if isinstance(value1, int) and isinstance(value2, (QuBit, type(None))):
+        if isinstance(value1, int) and isinstance(value2, (Qubit, type(None))):
             physical = value1
             virtual = value2
-        elif isinstance(value2, int) and isinstance(value1, (QuBit, type(None))):
+        elif isinstance(value2, int) and isinstance(value1, (Qubit, type(None))):
             physical = value2
             virtual = value1
         else:
@@ -117,12 +117,12 @@ class Layout():
         if isinstance(key, int):
             del self._p2v[key]
             del self._v2p[self._p2v[key]]
-        elif isinstance(key, QuBit):
+        elif isinstance(key, Qubit):
             del self._v2p[key]
             del self._p2v[self._v2p[key]]
         else:
             raise LayoutError('The key to remove should be of the form'
-                              ' QuBit or integer) and %s was provided' % (type(key),))
+                              ' Qubit or integer) and %s was provided' % (type(key),))
 
     def __len__(self):
         return len(self._p2v)
@@ -268,7 +268,7 @@ class Layout():
         main_idx = 0
         for qreg in qregs:
             for idx in range(qreg.size):
-                out[QuBit(qreg, idx)] = int_list[main_idx]
+                out[Qubit(qreg, idx)] = int_list[main_idx]
                 main_idx += 1
         if main_idx != len(int_list):
             for int_item in int_list[main_idx:]:
@@ -279,7 +279,7 @@ class Layout():
     def from_qubit_list(qubit_list):
         """
         Populates a Layout from a list containing virtual
-        qubits, QuBit or None.
+        qubits, Qubit or None.
 
         Args:
             qubit_list (list):
@@ -287,13 +287,13 @@ class Layout():
         Returns:
             Layout: the corresponding Layout object
         Raises:
-            LayoutError: If the elements are not QuBit or None
+            LayoutError: If the elements are not Qubit or None
         """
         out = Layout()
         for physical, virtual in enumerate(qubit_list):
             if virtual is None:
                 continue
-            elif isinstance(virtual, QuBit):
+            elif isinstance(virtual, Qubit):
                 if virtual in out._v2p:
                     raise LayoutError('Duplicate values not permitted; Layout is bijective.')
                 out[virtual] = physical

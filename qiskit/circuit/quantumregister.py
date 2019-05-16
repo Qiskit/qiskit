@@ -47,18 +47,18 @@ class QuantumRegister(Register):
             QiskitIndexError: if the `key` is not in the range
                 `(0, self.size)`.
         """
-        return self.getitem(QuBit, key)
+        return self.getitem(Qubit, key)
 
     def __iter__(self):
         """
         Yields:
-            QuBit: an iterator over the qubits in the register.
+            Qubit: an iterator over the qubits in the register.
         """
         for index in range(self.size):
             yield self[index]
 
 
-class QuBit(Bit):
+class Qubit(Bit):
     """Implement a quantum bit."""
 
     def __init__(self, register, index):
