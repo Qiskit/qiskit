@@ -31,6 +31,7 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 
+
 def _is_bit(obj):
     """Determine if obj is a bit"""
     # If there is a bit type this could be replaced by isinstance.
@@ -40,6 +41,7 @@ def _is_bit(obj):
         if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
             return True
     return False
+
 
 class QuantumCircuit:
     """Quantum circuit."""

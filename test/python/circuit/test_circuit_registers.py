@@ -368,6 +368,7 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(qargs[0].index, ind1)
             self.assertEqual(qargs[1].index, ind2)
 
+
 class TestCircuitBit(QiskitTestCase):
     """QuantumCircuit Registers tests."""
 
