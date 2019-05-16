@@ -85,16 +85,16 @@ class Register:
     def getitem(self, bit_type, key):
         """
         Arg:
+            bit_type (Qubit|Clbit): a constructor type return element/s.
             key (int|slice|list): index of the clbit to be retrieved.
 
         Returns:
-            tuple[Register, int]: a tuple in the form `(self, key)` if key is int.
-                If key is a slice, return a `list((self,key))`.
+            QuBit|Clbit|list(Qubit)|list(Clbit): a instances Qubit or Clbit if key is int.
+                If key is a slice, return a list of them.
 
         Raises:
             QiskitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range
-                `(0, self.size)`.
+            QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
         """
         if not isinstance(key, (int, slice, list)):
             raise QiskitError("expected integer or slice index into register")
