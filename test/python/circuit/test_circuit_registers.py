@@ -367,3 +367,15 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(len(qargs), 2)
             self.assertEqual(qargs[0].index, ind1)
             self.assertEqual(qargs[1].index, ind2)
+
+class TestCircuitBit(QiskitTestCase):
+    """QuantumCircuit Registers tests."""
+
+    def test_bit_getitem(self):
+        """ Deprecated Bit.__getitem__.
+        """
+        qubit = QuantumRegister(1, "q")[0]
+
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qubit[0], qubit.register)
+            self.assertEqual(qubit[1], qubit.index)
