@@ -98,8 +98,6 @@ class Register:
         """
         if not isinstance(key, (int, slice, list)):
             raise QiskitError("expected integer or slice index into register")
-        if isinstance(key, int) and key < 0:
-            key = self.size + key
         self.check_range(key)
         if isinstance(key, slice):
             return [bit_type(self, ind) for ind in range(*key.indices(len(self)))]
