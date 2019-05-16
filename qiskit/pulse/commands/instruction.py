@@ -41,6 +41,9 @@ class Instruction(ScheduleComponent):
         timeslots: Optional list of timeslots. If channels are supplied timeslots
             cannot also be given
         name: Name of Instruction
+
+        Raises:
+            PulseError: If both channels and timeslots are supplied.
         """
         self._command = command
         self._name = name if name else self._command.name

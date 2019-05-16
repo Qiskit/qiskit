@@ -15,7 +15,7 @@
 """
 Sample pulse.
 """
-from typing import Callable, Union, List, Complex
+from typing import Callable, Union, List
 
 import numpy as np
 
@@ -30,7 +30,7 @@ from .command import Command
 class SamplePulse(Command):
     """Container for functional pulse."""
 
-    def __init__(self, samples: Union[np.ndarray, List[Complex]], name: str = None):
+    def __init__(self, samples: Union[np.ndarray, List[complex]], name: str = None):
         """Create new sample pulse command.
 
         Args:

@@ -19,10 +19,12 @@ Pulse decorators.
 """
 
 import functools
-import numpy as np
 from typing import Callable
 
+import numpy as np
+
 from qiskit.pulse.exceptions import PulseError
+
 from .sample_pulse import SamplePulse
 
 
