@@ -17,7 +17,7 @@
 import copy
 import unittest
 
-from qiskit import QuantumRegister, Qubit  # pylint: disable=unused-import
+from qiskit import QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.test import QiskitTestCase
@@ -279,7 +279,8 @@ class LayoutTest(QiskitTestCase):
                          qr[4]: 1,
                          })
 
-        repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
+        repr_layout = eval(layout.__repr__(), {'Qubit': Qubit, 'QuantumRegister': QuantumRegister,
+                                               'Layout': Layout})  # pylint: disable=eval-used
         self.assertDictEqual(layout._p2v, repr_layout._p2v)
         self.assertDictEqual(layout._v2p, repr_layout._v2p)
 
@@ -288,7 +289,8 @@ class LayoutTest(QiskitTestCase):
         qr = QuantumRegister(5, 'qr')
         layout = Layout({qr[0]: 0, qr[1]: 3, qr[2]: 4, qr[3]: 5, qr[4]: 6})
 
-        repr_layout = eval(layout.__repr__())  # pylint: disable=eval-used
+        repr_layout = eval(layout.__repr__(), {'Qubit': Qubit, 'QuantumRegister': QuantumRegister,
+                                               'Layout': Layout})  # pylint: disable=eval-used
         self.assertDictEqual(layout._p2v, repr_layout._p2v)
         self.assertDictEqual(layout._v2p, repr_layout._v2p)
 
