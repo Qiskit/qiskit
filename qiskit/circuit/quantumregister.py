@@ -65,4 +65,5 @@ class Qubit(Bit):
         if isinstance(register, QuantumRegister):
             super().__init__(register, index)
         else:
-            raise QiskitError('')
+            raise QiskitError('Qubit needs a QuantumRegister and %s was provided' %
+                              type(register).__name__)

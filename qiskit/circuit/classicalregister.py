@@ -66,4 +66,6 @@ class Clbit(Bit):
         if isinstance(register, ClassicalRegister):
             super().__init__(register, index)
         else:
-            raise QiskitError('')
+            raise QiskitError('Clbit needs a ClassicalRegister and %s was provided' %
+                              type(register).__name__)
+
