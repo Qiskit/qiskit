@@ -15,12 +15,14 @@
 """
 Sample pulse.
 """
-from typing import Callable
+from typing import Callable, Union, List, Complex
 
 import numpy as np
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
+from qiskit.visualization.qcstyle import OPStyleSched
+
 from .instruction import Instruction
 from .command import Command
 
@@ -28,12 +30,12 @@ from .command import Command
 class SamplePulse(Command):
     """Container for functional pulse."""
 
-    def __init__(self, samples, name=None):
+    def __init__(self, samples: Union[np.ndarray, List[Complex]], name: str = None):
         """Create new sample pulse command.
 
         Args:
-            samples (Union[np.ndarray, List[Complex]]): Complex array of pulse envelope.
-            name (str): Unique name to identify the pulse.
+            samples: Complex array of pulse envelope.
+            name: Unique name to identify the pulse.
         Raises:
             PulseError: when pulse envelope amplitude exceeds 1.
         """
@@ -49,17 +51,17 @@ class SamplePulse(Command):
         """Return sample values."""
         return self._samples
 
-    def draw(self, dt: float = 1, style=None,
+    def draw(self, dt: float = 1, style: OPStyleSched = None,
              filename: str = None, interp_method: Callable = None,
              scaling: float = 1, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 
         Args:
             dt: Time interval of samples.
-            style (OPStylePulse): A style sheet to configure plot appearance
+            style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling (float): Relative visual scaling of waveform amplitudes
+            scaling: Relative visual scaling of waveform amplitudes
             interactive: When set true show the circuit in a new window
                 (this depends on the matplotlib backend being used supporting this)
 
@@ -74,12 +76,12 @@ class SamplePulse(Command):
                                           interp_method=interp_method, scaling=scaling,
                                           interactive=interactive)
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'SamplePulse'):
         """Two SamplePulses are the same if they are of the same type
         and have the same name and samples.
 
         Args:
-            other (SamplePulse): other SamplePulse
+            other: other SamplePulse
 
         Returns:
             bool: are self and other equal.

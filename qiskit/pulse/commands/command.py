@@ -32,8 +32,8 @@ class Command(metaclass=ABCMeta):
         """Create a new command.
 
         Args:
-            duration (int): Duration of this command.
-            name (str): Name of this command.
+            duration: Duration of this command.
+            name: Name of this command.
         Raises:
             PulseError: when duration is not number of points.
         """
@@ -67,12 +67,12 @@ class Command(metaclass=ABCMeta):
         """Creates an Instruction obtained from call to `to_instruction` wrapped in a Schedule."""
         return self.to_instruction(*args, **kwargs)
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Command'):
         """Two Commands are the same if they are of the same type
         and have the same duration and name.
 
         Args:
-            other (Command): other Command.
+            other: other Command.
 
         Returns:
             bool: are self and other equal.

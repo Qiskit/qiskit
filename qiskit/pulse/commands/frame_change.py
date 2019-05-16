@@ -24,11 +24,11 @@ from .command import Command
 class FrameChange(Command):
     """Frame change pulse."""
 
-    def __init__(self, phase):
+    def __init__(self, phase: float):
         """Create new frame change pulse.
 
         Args:
-            phase (float): Frame change phase in radians.
+            phase: Frame change phase in radians.
                 The allowable precision is device specific.
         """
         super().__init__(duration=0)
@@ -39,12 +39,12 @@ class FrameChange(Command):
         """Framechange phase."""
         return self._phase
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'FrameChange'):
         """Two FrameChanges are the same if they are of the same type
         and have the same phase.
 
         Args:
-            other (FrameChange): other FrameChange
+            other: other FrameChange
 
         Returns:
             bool: are self and other equal.

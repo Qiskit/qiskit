@@ -20,15 +20,16 @@ Pulse decorators.
 
 import functools
 import numpy as np
+from typing import Callable
 
 from qiskit.pulse.exceptions import PulseError
 from .sample_pulse import SamplePulse
 
 
-def functional_pulse(func):
+def functional_pulse(func: Callable):
     """A decorator for generating SamplePulse from python callable.
     Args:
-        func (callable): A function describing pulse envelope.
+        func: A function describing pulse envelope.
     Raises:
         PulseError: when invalid function is specified.
     """

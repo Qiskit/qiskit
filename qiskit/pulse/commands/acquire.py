@@ -29,14 +29,14 @@ class Acquire(Command):
 
     ALIAS = 'acquire'
 
-    def __init__(self, duration, discriminator=None, kernel=None):
+    def __init__(self, duration: int, discriminator: Discriminator = None, kernel: Kernel = None):
         """Create new acquire command.
 
         Args:
-            duration (int): Duration of acquisition.
-            discriminator (Discriminator): Discriminators to be used
+            duration: Duration of acquisition.
+            discriminator: Discriminators to be used
                 (from the list of available discriminator) if the measurement level is 2.
-            kernel (Kernel): The data structures defining the measurement kernels
+            kernel: The data structures defining the measurement kernels
                 to be used (from the list of available kernels) and set of parameters
                 (if applicable) if the measurement level is 1 or 2.
 
@@ -71,12 +71,12 @@ class Acquire(Command):
         """Return discrimination settings."""
         return self._discriminator
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Acquire'):
         """Two Acquires are the same if they are of the same type
         and have the same kernel and discriminator.
 
         Args:
-            other (Acquire): Other Acquire
+            other: Other Acquire
 
         Returns:
             bool: are self and other equal.

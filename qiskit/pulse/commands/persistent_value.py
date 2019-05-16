@@ -25,11 +25,11 @@ from .command import Command
 class PersistentValue(Command):
     """Persistent value."""
 
-    def __init__(self, value):
+    def __init__(self, value: complex):
         """create new persistent value command.
 
         Args:
-            value (complex): Complex value to apply, bounded by an absolute value of 1.
+            value: Complex value to apply, bounded by an absolute value of 1.
                 The allowable precision is device specific.
         Raises:
             PulseError: when input value exceed 1.
@@ -46,12 +46,12 @@ class PersistentValue(Command):
         """Persistent value amplitude."""
         return self._value
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'PersistentValue'):
         """Two PersistentValues are the same if they are of the same type
         and have the same value.
 
         Args:
-            other (PersistentValue): other PersistentValue
+            other: other PersistentValue
 
         Returns:
             bool: are self and other equal.
