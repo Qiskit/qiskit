@@ -15,9 +15,8 @@
 """
 Quantum bit and Classical bit objects.
 """
-
-from qiskit.exceptions import QiskitError
 from warnings import warn
+from qiskit.exceptions import QiskitError
 
 
 class Bit:

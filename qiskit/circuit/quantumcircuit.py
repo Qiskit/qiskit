@@ -266,33 +266,34 @@ class QuantumCircuit:
 
     @staticmethod
     def _bit_argument_conversion(bit_representation, in_array):
+        ret = None
         try:
             if _is_bit(bit_representation):
                 # circuit.h((qr, 0)) -> circuit.h([qr[0]])
-                return [bit_representation[0][bit_representation[1]]]
+                ret = [bit_representation[0][bit_representation[1]]]
             elif isinstance(bit_representation, Bit):
                 # circuit.h(qr[0]) -> circuit.h([qr[0]])
-                return [bit_representation]
+                ret = [bit_representation]
             elif isinstance(bit_representation, Register):
                 # circuit.h(qr) -> circuit.h([qr[0], qr[1]])
-                return bit_representation[:]
+                ret = bit_representation[:]
             elif isinstance(QuantumCircuit.cast(bit_representation, int), int):
                 # circuit.h(0) -> circuit.h([qr[0]])
-                return [in_array[bit_representation]]
+                ret = [in_array[bit_representation]]
             elif isinstance(bit_representation, slice):
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
-                return in_array[bit_representation]
+                ret = in_array[bit_representation]
             elif isinstance(bit_representation, list) and \
                     all(_is_bit(bit) for bit in bit_representation):
-                return [bit[0][bit[1]] for bit in bit_representation]
+                ret = [bit[0][bit[1]] for bit in bit_representation]
             elif isinstance(bit_representation, list) and \
                     all(isinstance(bit, Bit) for bit in bit_representation):
                 # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
-                return bit_representation
+                ret = bit_representation
             elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
                 # circuit.h([0, 1])     -> circuit.h([qr[0], qr[1]])
                 # circuit.h(range(0,2)) -> circuit.h([qr[0], qr[1]])
-                return [in_array[index] for index in bit_representation]
+                ret = [in_array[index] for index in bit_representation]
             else:
                 raise QiskitError('Not able to expand a %s (%s)' % (bit_representation,
                                                                     type(bit_representation)))
@@ -301,6 +302,7 @@ class QuantumCircuit:
         except TypeError:
             raise QiskitError('Type error handling %s (%s)' % (bit_representation,
                                                                type(bit_representation)))
+        return ret
 
     def qbit_argument_conversion(self, qubit_representation):
         """

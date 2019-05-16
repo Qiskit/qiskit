@@ -305,11 +305,11 @@ class Layout():
         warn('Creating a layout with a list of tuples (eg. [(qr,0), None, (qr,2), (qr,3)]) '
              'is deprecated. Go for [qr[0], None, qr[2], qr[3]].', DeprecationWarning)
         new_list = []
-        for tuple in tuple_list:
-            if tuple is None:
+        for tuple_ in tuple_list:
+            if tuple_ is None:
                 new_list.append(None)
             else:
-                new_list.append(tuple[0][tuple[1]])
+                new_list.append(tuple_[0][tuple_[1]])
         return Layout.from_qubit_list(new_list)
 
     @staticmethod
