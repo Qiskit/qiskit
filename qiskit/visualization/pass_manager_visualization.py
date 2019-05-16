@@ -39,6 +39,9 @@ def pass_manager_drawer(pass_manager, filename=None, style=DEFAULT_STYLE):
             dict can be used to ensure a priority coloring when pass falls into multiple
             categories. Any values not included in the provided dict will be filled in from
             the default dict
+
+    Raises:
+        ImportError: when nxpd or pydot not installed.
     """
 
     try:
@@ -79,14 +82,15 @@ def pass_manager_drawer(pass_manager, filename=None, style=DEFAULT_STYLE):
             subgraph.add_node(nd)
             node_id += 1
 
+            # the arguments that were provided to the pass when it was created
             arg_spec = inspect.getfullargspec(pss.__init__)
             # 0 is the args, 1: to remove the self arg
             args = arg_spec[0][1:]
             num_defaults = len(arg_spec[3]) if arg_spec[3] else 0
 
             for arg_index, arg in enumerate(args):
-                # TODO make this colour adjustable too
                 nd_style = 'solid'
+                # any optional args are dashed
                 if arg_index >= (len(args) - num_defaults):
                     nd_style = 'dashed'
 
@@ -109,7 +113,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=DEFAULT_STYLE):
 
     if filename:
         # linter says this isn't a method - it is
-        graph.write_png(filename) # pylint: disable=no-member
+        graph.write_png(filename)  # pylint: disable=no-member
 
 
 def _get_node_color(pss, style):
