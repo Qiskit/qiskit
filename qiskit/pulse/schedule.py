@@ -199,7 +199,7 @@ class Schedule(ScheduleComponent):
 
         Args:
             dt: Time interval of samples
-            style (OPStyleSched): A style sheet to configure plot appearance
+            style (SchedStyle): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scaling (float): Relative visual scaling of waveform amplitudes

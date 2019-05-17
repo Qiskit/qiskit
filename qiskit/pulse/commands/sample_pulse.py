@@ -56,7 +56,7 @@ class SamplePulse(Command):
 
         Args:
             dt: Time interval of samples.
-            style (OPStylePulse): A style sheet to configure plot appearance
+            style (PulseStyle): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scaling (float): Relative visual scaling of waveform amplitudes

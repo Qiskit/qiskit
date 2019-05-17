@@ -26,7 +26,7 @@ try:
 except ImportError:
     HAS_MATPLOTLIB = False
 
-from qiskit.visualization.pulse.qcstyle import PulseStylePulse, PulseStyleSched
+from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse import interpolation
 from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
@@ -219,9 +219,9 @@ class SamplePulseDrawer:
         """Create new figure.
 
         Args:
-            style (PulseStylePulse): style sheet
+            style (PulseStyle): style sheet
         """
-        self.style = style or PulseStylePulse()
+        self.style = style or PulseStyle()
 
     def draw(self, pulse, dt, interp_method, scaling=1):
         """Draw figure.
@@ -275,9 +275,9 @@ class ScheduleDrawer:
         """Create new figure.
 
         Args:
-            style (PulseStyleSched): style sheet
+            style (SchedStyle): style sheet
         """
-        self.style = style or PulseStyleSched()
+        self.style = style or SchedStyle()
 
     def _build_channels(self, schedule, t0, tf):
         # prepare waveform channels
