@@ -15,14 +15,11 @@
 """This module implements the job class used by Basic Aer Provider."""
 
 from concurrent import futures
-import logging
 import sys
 import functools
 
 from qiskit.providers import BaseJob, JobStatus, JobError
 from qiskit.qobj import validate_qobj_against_schema
-
-logger = logging.getLogger(__name__)
 
 
 def requires_submit(func):
