@@ -18,13 +18,10 @@
 Base register reference object.
 """
 import re
-import logging
 import itertools
 
 from qiskit.exceptions import QiskitError
 
-
-logger = logging.getLogger(__name__)
 
 
 class Register:
