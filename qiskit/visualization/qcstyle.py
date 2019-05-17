@@ -95,8 +95,6 @@ class DefaultStyle:
         self.fs = dic.get('fontsize', self.fs)
         self.sfs = dic.get('subfontsize', self.sfs)
         self.disptex = dic.get('displaytext', self.disptex)
-        for key in self.dispcol.keys():
-            self.dispcol[key] = self.gc
         self.dispcol = dic.get('displaycolor', self.dispcol)
         self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
         self.pimode = dic.get('usepiformat', self.pimode)

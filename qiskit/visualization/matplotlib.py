@@ -574,7 +574,7 @@ class MatplotlibDrawer:
                 # if custom gate with a longer than standard name determine
                 # width
                 elif op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                     'noise', 'cswap', 'swap'] and len(
+                                     'noise', 'cswap', 'swap', 'measure'] and len(
                                          op.name) >= 4:
                     box_width = round(len(op.name) / 8)
                     # If more than 4 characters min width is 2
@@ -592,7 +592,7 @@ class MatplotlibDrawer:
 
                 _iswide = op.name in _wide_gate
                 if op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                   'noise', 'cswap', 'swap'] and len(
+                                   'noise', 'cswap', 'swap', 'measure'] and len(
                                        op.name) >= 4:
                     _iswide = True
 
@@ -613,8 +613,16 @@ class MatplotlibDrawer:
                                 reg['index'] == carg[1]):
                             c_idxs.append(index)
                             break
-                for ii in q_idxs:
-                    q_anchors[ii].set_index(this_anc, layer_width)
+
+                # Only add the gate to the anchors if it is going to be plotted.
+                # This prevents additional blank wires at the end of the line if
+                # the last instruction is a barrier type
+                if self.plot_barriers or \
+                        op.name not in ['barrier', 'snapshot', 'load', 'save',
+                                        'noise']:
+
+                    for ii in q_idxs:
+                        q_anchors[ii].set_index(this_anc, layer_width)
 
                 # qreg coordinate
                 q_xy = [q_anchors[ii].plot_coord(this_anc, layer_width) for ii in q_idxs]
@@ -682,6 +690,9 @@ class MatplotlibDrawer:
                         _barriers['coord'].append(q_xy[index])
                     if self.plot_barriers:
                         self._barrier(_barriers, this_anc)
+                    else:
+                        # this stop there being blank lines plotted in place of barriers
+                        this_anc -= 1
                 #
                 # draw single qubit gates
                 #
