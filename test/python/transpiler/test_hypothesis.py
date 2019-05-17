@@ -101,9 +101,9 @@ class QCircuitMachine(RuleBasedStateMachine):
         basicaer_qasm_simulator = Aer.get_backend('qasm_simulator')
 
         aer_counts = execute(self.qc, backend = aer_qasm_simulator).result().get_counts()
-        basicaer_counts = execute(self.qc, backend = aer_qasm_simulator).result().get_counts()
+        #basicaer_counts = execute(self.qc, backend = aer_qasm_simulator).result().get_counts()
 
-        assert counts_equivalent(aer_counts, basicaer_counts), (aer_counts, basicaer_counts)
+        #assert counts_equivalent(aer_counts, basicaer_counts), (aer_counts, basicaer_counts)
 
         levels = [0,1,2,3]
         backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo()]
@@ -113,10 +113,10 @@ class QCircuitMachine(RuleBasedStateMachine):
                 xpiled_qc = transpile(self.qc, backend=backend, optimization_level=level)
 
                 xpiled_aer_counts = execute(xpiled_qc, backend = aer_qasm_simulator).result().get_counts()
-                xpiled_basicaer_counts = execute(xpiled_qc, backend = basicaer_qasm_simulator).result().get_counts()
+                # xpiled_basicaer_counts = execute(xpiled_qc, backend = basicaer_qasm_simulator).result().get_counts()
 
                 assert counts_equivalent(aer_counts, xpiled_aer_counts)
-                assert counts_equivalent(basicaer_counts, xpiled_basicaer_counts)
+                # assert counts_equivalent(basicaer_counts, xpiled_basicaer_counts)
         
         
 def counts_equivalent(c1, c2):
