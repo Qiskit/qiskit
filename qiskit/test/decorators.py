@@ -137,7 +137,7 @@ def _get_credentials(test_object, test_options):
     return dummy_credentials
 
 
-def online_test(func):
+def requires_qe_access(func):
     """Decorator that signals that the test uses the online API:
 
     It involves:
