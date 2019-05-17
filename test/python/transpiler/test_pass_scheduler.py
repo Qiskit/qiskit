@@ -607,6 +607,8 @@ class TestLogPasses(QiskitTestCase):
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
     def assertPassLog(self, passmanager, list_of_passes):
+        """ Runs the passmanager and checks that the elements in
+        passmanager.property_set['pass_log'] match list_of_passes (the names)."""
         transpile(self.circuit, pass_manager=passmanager)
 
         current_names = [pass_log['name'] for pass_log in passmanager.property_set['pass_log']]

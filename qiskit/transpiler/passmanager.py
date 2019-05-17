@@ -220,27 +220,31 @@ class PassManager():
             ret.append(pass_.dump_passes())
         return ret
 
+
 class PassManagerContext:
+    """ A wrap around the execution of a pass."""
     def __init__(self, pm_instance, pass_instance):
         self.pm_instance = pm_instance
         self.pass_instance = pass_instance
+        self.start_time = None
 
     def __enter__(self):
         if self.pm_instance.log_passes:
             self.start_time = time()
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, *exc_info):
         if self.pm_instance.log_passes:
-            self.end_time = time()
+            end_time = time()
             log_dict = {
                 'name': self.pass_instance.name(),
                 'start_time': self.start_time,
-                'end_time': self.end_time,
-                'running_time': self.end_time - self.start_time
+                'end_time': end_time,
+                'running_time': end_time - self.start_time
             }
             if self.pm_instance.property_set['pass_log'] is None:
                 self.pm_instance.property_set['pass_log'] = []
             self.pm_instance.property_set['pass_log'].append(log_dict)
+
 
 class FlowController():
     """This class is a base class for multiple types of working list. When you iterate on it, it
