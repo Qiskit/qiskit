@@ -142,6 +142,7 @@ def requires_qe_access(func):
     """Deprecated in favor of `online_test`"""
     warn("`requires_qe_access` is going to be replaced in favor of `online_test`",
          DeprecationWarning)
+
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
         if TEST_OPTIONS['skip_online']:
