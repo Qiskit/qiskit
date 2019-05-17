@@ -13,16 +13,12 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj"""
-import logging
-
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import PulseInstruction, AcquireInstruction
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
 from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
-
-logger = logging.getLogger(__name__)
 
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
