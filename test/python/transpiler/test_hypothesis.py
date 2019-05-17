@@ -96,6 +96,7 @@ class QCircuitMachine(RuleBasedStateMachine):
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
     @rule()
     def equivalent_transpile(self):
+        print('Evaluating circuit:\n', self.qc.qasm())
         aer_qasm_simulator = Aer.get_backend('qasm_simulator')
         basicaer_qasm_simulator = Aer.get_backend('qasm_simulator')
 
