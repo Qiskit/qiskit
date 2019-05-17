@@ -44,14 +44,16 @@ class QCircuitMachine(RuleBasedStateMachine):
         self.qc = QuantumCircuit()
 
     @precondition(lambda self: len(self.qc.qubits) < 5)
-    @rule(target=qubits, n=st.integers(min_value=1, max_value=5))
+    @rule(target=qubits,
+          n=st.integers(min_value=1, max_value=5))
     def add_qreg(self, n):
         n = max(n, 5 - len(self.qc.qubits))
         qreg = QuantumRegister(n)
         self.qc.add_register(qreg)
         return multiple(*list(qreg))
 
-    @rule(target=clbits, n=st.integers(1, 5))
+    @rule(target=clbits,
+          n=st.integers(1, 5))
     def add_creg(self, n):
         creg = ClassicalRegister(n)
         self.qc.add_register(creg)
@@ -59,7 +61,8 @@ class QCircuitMachine(RuleBasedStateMachine):
 
     ### Gates of various shapes
 
-    @rule(gate=st.sampled_from(oneQ_gates), qarg=qubits)
+    @rule(gate=st.sampled_from(oneQ_gates),
+          qarg=qubits)
     def add_1q_gate(self, gate, qarg):
         self.qc.append(gate(), [qarg], [])
     
@@ -79,7 +82,9 @@ class QCircuitMachine(RuleBasedStateMachine):
     def add_1q1p_gate(self, gate, qarg, param):
         self.qc.append(gate(param), [qarg])
 
-    @rule(gate=st.sampled_from(oneQ_oneC_gates), qarg=qubits, carg=clbits)
+    @rule(gate=st.sampled_from(oneQ_oneC_gates),
+          qarg=qubits,
+          carg=clbits)
     def add_1q1c_gate(self, gate, qarg, carg):
         self.qc.append(gate(), [qarg], [carg])
 
@@ -97,7 +102,9 @@ class QCircuitMachine(RuleBasedStateMachine):
 
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
     @rule(backend=st.sampled_from(backends),
-          opt_level=st.one_of(st.none(), st.integers(min_value=0, max_value=3)))
+          opt_level=st.one_of(
+              st.none(),
+              st.integers(min_value=0, max_value=3)))
     def equivalent_transpile(self, backend, opt_level):
         print('Evaluating circuit at level {} on {}:\n{}'.format(opt_level, backend, self.qc.qasm()))
 
@@ -107,7 +114,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         xpiled_qc = transpile(self.qc, backend=backend, optimization_level=opt_level)
         xpiled_aer_counts = execute(xpiled_qc, backend = aer_qasm_simulator).result().get_counts()
 
-        assert counts_equivalent(aer_counts, xpiled_aer_counts), "Counts not equivalent. Original: {} Transpiled: {}".format(basicaer_counts, xpiled_basicaer_counts)        
+        assert counts_equivalent(aer_counts, xpiled_aer_counts), "Counts not equivalent. Original: {} Transpiled: {}".format(aer_counts, xpiled_aer_counts)
         
 def counts_equivalent(c1, c2):
     sc1 = np.array(sorted(c1.items(), key=lambda c: c[0]))
