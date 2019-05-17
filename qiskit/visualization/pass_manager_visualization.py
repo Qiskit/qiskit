@@ -16,7 +16,7 @@ Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
 """
 import inspect
-from qiskit.transpiler import AnalysisPass, TransformationPass
+from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 

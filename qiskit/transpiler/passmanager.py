@@ -151,7 +151,6 @@ class PassManager():
 
     def draw(self, filename=None, style=None):
         """ Draw the pass manager"""
-        # pylint: disable=cyclic-import
         from qiskit.visualization import pass_manager_drawer
         pass_manager_drawer(self, filename=filename, style=style)
 
