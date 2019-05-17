@@ -96,7 +96,8 @@ class QCircuitMachine(RuleBasedStateMachine):
         self.qc.qasm()
 
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
-    @rule(backend=st.sampled_from(backends), opt_level=st.integers(min_value=0, max_value=3))
+    @rule(backend=st.sampled_from(backends),
+          opt_level=st.one_of(st.none(), st.integers(min_value=0, max_value=3)))
     def equivalent_transpile(self, backend, opt_level):
         print('Evaluating circuit at level {} on {}:\n{}'.format(opt_level, backend, self.qc.qasm()))
 
