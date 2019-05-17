@@ -13,7 +13,6 @@
 
 """Common utilities for Qiskit."""
 
-import logging
 import platform
 import re
 import socket
@@ -22,8 +21,6 @@ import warnings
 
 import psutil
 from marshmallow.warnings import ChangedInMarshmallow3Warning
-
-logger = logging.getLogger(__name__)
 
 
 def _check_python_version():
