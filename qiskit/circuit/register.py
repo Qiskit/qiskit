@@ -23,7 +23,6 @@ import itertools
 from qiskit.exceptions import QiskitError
 
 
-
 class Register:
     """Implement a generic register."""
 
