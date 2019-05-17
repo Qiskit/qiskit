@@ -143,7 +143,7 @@ class AstInterpreter:
             # A qubit or qreg or creg
             if not self.bit_stack[-1]:
                 # Global scope
-                return [reg[j] for j in range(reg.size)]
+                return [bit for bit in reg]
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:

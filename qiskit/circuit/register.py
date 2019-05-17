@@ -65,8 +65,7 @@ class Register:
 
     def __repr__(self):
         """Return the official string representing the register."""
-        return "%s(%d, '%s')" % (self.__class__.__qualname__,
-                                 self.size, self.name)
+        return "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
 
     def __len__(self):
         """Return register size"""
