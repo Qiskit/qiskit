@@ -166,15 +166,7 @@ def requires_qe_access(func):
         kwargs.update({'qe_token': credentials.token,
                        'qe_url': credentials.url})
 
-        decorated_func = func
-        if TEST_OPTIONS['rec'] or TEST_OPTIONS['mock_online']:
-            # For recording or for replaying existing cassettes, the test
-            # should be decorated with @use_cassette.
-                vcr_mode = 'new_episodes' if TEST_OPTIONS['rec'] else 'none'
-            decorated_func = http_recorder(
-                vcr_mode, Path.CASSETTES.value).use_cassette()(decorated_func)
-
-        return decorated_func(self, *args, **kwargs)
+        return func(self, *args, **kwargs)
 
     return _wrapper
 
