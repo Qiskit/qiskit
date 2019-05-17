@@ -33,6 +33,12 @@ Removed
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
 
+Added
+-----
+
+- Introduced a visualization for the Pass Manager. (#2445)
+
+
 `0.8.0`_ - 2019-05-02
 =====================
 
