@@ -4,19 +4,16 @@
 
 import numpy as np
 
-from hypothesis import given
-from hypothesis.stateful import multiple, rule, precondition, invariant, Bundle, RuleBasedStateMachine
-import hypothesis.strategies as st
+from hypothesis import given, settings, Verbosity
+from hypothesis.stateful import multiple, rule, precondition, invariant
+from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
-from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo
+import hypothesis.strategies as st
 
 from qiskit import execute, transpile, Aer, BasicAer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Parameter, Measure, Reset
-
-from qiskit.test.base import QiskitTestCase
-assertDictAlmostEqual = QiskitTestCase.assertDictAlmostEqual
-
+from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo
 from qiskit.extensions.standard import *
 
 # TBD, conditionals, Parameters
