@@ -17,11 +17,8 @@ A collection of useful quantum information functions for states.
 
 
 """
-import logging
 import numpy as np
 from qiskit.exceptions import QiskitError
-
-logger = logging.getLogger(__name__)
 
 
 def basis_state(str_state, num):
