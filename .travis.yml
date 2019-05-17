@@ -49,7 +49,7 @@ stage_linux: &stage_linux
   os: linux
   dist: trusty
   language: python
-  python: 3.5
+  python: 3.6
 
 stage_osx: &stage_osx
   <<: *stage_generic
@@ -96,7 +96,7 @@ jobs:
         - docker
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
-        - CIBW_SKIP="cp27-* cp34-*"
+        - CIBW_SKIP="cp27-* cp34-* cp35-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       if: tag IS present
@@ -110,7 +110,7 @@ jobs:
       if: tag IS present
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
-        - CIBW_SKIP="cp27-* cp34-*"
+        - CIBW_SKIP="cp27-* cp34-* cp35-*"
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       script:
@@ -121,25 +121,19 @@ jobs:
 
     # "lint and and pure python test" stage
     ###########################################################################
-    # Linter and style check (GNU/Linux, Python 3.5)
+    # Linter and style check (GNU/Linux, Python 3.6)
     - stage: lint and pure python test
       name: Python Style and Linter
       <<: *stage_linux
       script: make style && make lint
 
-    # Run the tests against without compilation (GNU/Linux, Python 3.5)
+    # Run the tests against without compilation (GNU/Linux, Python 3.6)
     - stage: lint and pure python test
-      name: Python 3.5 Tests Linux
+      name: Python 3.6 Tests Linux
       <<: *stage_linux
 
     # "test" stage
     ###########################################################################
-
-    # GNU/Linux, Python 3.6
-    - stage: test
-      name: Python 3.6 Tests Linux
-      <<: *stage_linux
-      python: 3.6
 
     # GNU/Linux, Python 3.7
     - stage: test
@@ -152,14 +146,6 @@ jobs:
       dist: xenial
       python: 3.7
       sudo: true
-
-    # OSX, Python 3.5.6 (via pyenv)
-    - stage: test
-      <<: *stage_osx
-      name: Python 3.5 Tests OSX
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.5.6
 
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test

@@ -24,9 +24,9 @@ from marshmallow.warnings import ChangedInMarshmallow3Warning
 
 
 def _check_python_version():
-    """Check for Python version 3.5+."""
-    if sys.version_info < (3, 5):
-        raise Exception('Qiskit requires Python version 3.5 or greater.')
+    """Check for Python version 3.6+."""
+    if sys.version_info < (3, 6):
+        raise Exception('Qiskit requires Python version 3.6 or greater.')
 
 
 def _filter_deprecation_warnings():
