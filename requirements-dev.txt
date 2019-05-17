@@ -7,6 +7,7 @@ pillow>=4.2.1
 pycodestyle
 pydot
 pylint>=2.2,<2.3
+pylintfileheader>=0.0.2
 stestr>=2.0.0
 PyGithub
 wheel
