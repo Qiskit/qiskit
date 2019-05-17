@@ -24,6 +24,7 @@ from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = _has_connection('qiskit.org', 443)
 
+
 def is_aer_provider_available():
     """Check if the C++ simulator can be instantiated.
 
@@ -156,6 +157,7 @@ def online_test(func):
     Returns:
         callable: the decorated function.
     """
+
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
         if TEST_OPTIONS['skip_online']:
