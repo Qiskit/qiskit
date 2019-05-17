@@ -19,9 +19,8 @@ import os
 import sys
 import unittest
 
-from .utils import Path
-from .testing_options import get_test_options
 from qiskit.util import _has_connection
+from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = _has_connection('qiskit.org', 443)
 
