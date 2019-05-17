@@ -18,6 +18,7 @@ import functools
 import os
 import sys
 import unittest
+from warnings import warn
 
 from qiskit.util import _has_connection
 from .testing_options import get_test_options
@@ -138,7 +139,14 @@ def _get_credentials(test_object, test_options):
 
 
 def requires_qe_access(func):
-    """Decorator that signals that the test uses the online API:
+    """Deprecated in favor of `online_test`"""
+    warn("`requires_qe_access` is going to be replaced in favor of `online_test`",
+         DeprecationWarning)
+    return online_test(func)
+
+
+def online_test(func):
+    """Decorator that signals that the test uses the network (and the online API):
 
     It involves:
         * determines if the test should be skipped by checking environment
