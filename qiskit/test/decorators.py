@@ -181,7 +181,8 @@ def online_test(func):
 
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
-        global HAS_NET_CONNECTION
+        # To avoid checking the connection in each test
+        global HAS_NET_CONNECTION  # pylint: disable=global-statement
 
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
