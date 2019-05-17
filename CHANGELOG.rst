@@ -33,6 +33,11 @@ Removed
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
 
+Deprecated
+----------
+- The decorator ``requires_qe_access`` is being deprecated in favor of ``online_test``.
+
+
 `0.8.0`_ - 2019-05-02
 =====================
 
