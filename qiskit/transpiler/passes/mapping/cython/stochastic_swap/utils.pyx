@@ -158,7 +158,7 @@ cdef class NLayout:
         cdef size_t idx
         for qreg in qregs.values():
             for idx in range(<unsigned int>qreg.size):
-                out[Qubit(qreg, idx)] = self.logic_to_phys[main_idx]
+                out[qreg[idx]] = self.logic_to_phys[main_idx]
                 main_idx += 1
         return out
     

@@ -23,7 +23,7 @@ import numpy as np
 
 import qiskit.extensions.simulator
 from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
 from qiskit import execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity

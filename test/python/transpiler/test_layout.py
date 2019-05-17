@@ -17,7 +17,7 @@
 import copy
 import unittest
 
-from qiskit import QuantumRegister, Qubit
+from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.test import QiskitTestCase

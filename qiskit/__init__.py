@@ -26,8 +26,8 @@ from . import util
 from .exceptions import QiskitError
 
 # The main qiskit operators
-from qiskit.circuit import ClassicalRegister, Clbit
-from qiskit.circuit import QuantumRegister, Qubit
+from qiskit.circuit import ClassicalRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
 from qiskit.execute import execute
 from qiskit.compiler import transpile, assemble

@@ -282,7 +282,7 @@ class Layout():
         main_idx = 0
         for qreg in qregs:
             for idx in range(qreg.size):
-                out[Qubit(qreg, idx)] = int_list[main_idx]
+                out[qreg[idx]] = int_list[main_idx]
                 main_idx += 1
         if main_idx != len(int_list):
             for int_item in int_list[main_idx:]:

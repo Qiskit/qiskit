@@ -19,7 +19,7 @@ commutation relations in the circuit. Gates considered include H, X, Y, Z, CX, C
 from collections import defaultdict
 import sympy
 
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.commutation_analysis import CommutationAnalysis
@@ -104,7 +104,7 @@ class CommutativeCancellation(TransformationPass):
 
                 # Replace the data of the first node in the run
                 new_op = U1Gate(total_angle)
-                new_qarg = Qubit(QuantumRegister(1, 'q'), 0)
+                new_qarg = QuantumRegister(1, 'q')[0]
                 new_dag = DAGCircuit()
                 new_dag.add_qreg(new_qarg.register)
                 new_dag.apply_operation_back(new_op, [new_qarg])
