@@ -97,7 +97,7 @@ class LayoutTest(QiskitTestCase):
         self.assertEqual(layout[0], (self.qr, 0))
         layout[0] = self.qr[1]
         with self.assertRaises(KeyError):
-            print(layout[self.qr[0]])
+            _ = layout[self.qr[0]]
 
     def test_layout_len(self):
         """Length of the layout is the amount of physical bits"""
@@ -476,7 +476,7 @@ class LayoutDeprecatedTest(QiskitTestCase):
         self.assertEqual(layout[0], (self.qr, 0))
         layout[0] = (self.qr, 1)
         with self.assertRaises(KeyError):
-            print(layout[(self.qr, 0)])
+            _ = layout[(self.qr, 0)]
 
     def test_layout_len(self):
         """Length of the layout is the amount of physical bits"""
