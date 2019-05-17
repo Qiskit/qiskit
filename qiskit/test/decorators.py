@@ -21,7 +21,9 @@ import unittest
 
 from .utils import Path
 from .testing_options import get_test_options
+from qiskit.util import _has_connection
 
+HAS_NET_CONNECTION = _has_connection('qiskit.org', 443)
 
 def is_aer_provider_available():
     """Check if the C++ simulator can be instantiated.
@@ -135,7 +137,7 @@ def _get_credentials(test_object, test_options):
     return dummy_credentials
 
 
-def requires_qe_access(func):
+def online_test(func):
     """Decorator that signals that the test uses the online API:
 
     It involves:
@@ -155,11 +157,13 @@ def requires_qe_access(func):
     Returns:
         callable: the decorated function.
     """
-
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
+
+        if not HAS_NET_CONNECTION:
+            raise unittest.SkipTest("Test requires internet connection.")
 
         credentials = _get_credentials(self, TEST_OPTIONS)
         self.using_ibmq_credentials = credentials.is_ibmq()
