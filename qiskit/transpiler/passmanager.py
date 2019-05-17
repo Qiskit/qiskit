@@ -15,6 +15,8 @@
 
 from functools import partial
 from collections import OrderedDict
+from time import time
+
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from .propertyset import PropertySet
@@ -60,6 +62,10 @@ class PassManager():
         self.passmanager_options = {'ignore_requires': ignore_requires,
                                     'ignore_preserves': ignore_preserves,
                                     'max_iteration': max_iteration}
+
+        # The property log_passes allows to log and time the passes as they run in the pass manager
+        self.log_passes = False
+
         if passes is not None:
             self.append(passes)
 
@@ -170,23 +176,29 @@ class PassManager():
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
-            if pass_.is_transformation_pass:
-                pass_.property_set = self.fenced_property_set
-                new_dag = pass_.run(dag)
-                if not isinstance(new_dag, DAGCircuit):
-                    raise TranspilerError("Transformation passes should return a transformed dag."
-                                          "The pass %s is returning a %s" % (type(pass_).__name__,
-                                                                             type(new_dag)))
-                dag = new_dag
-            elif pass_.is_analysis_pass:
-                pass_.property_set = self.property_set
-                pass_.run(FencedDAGCircuit(dag))
-            else:
-                raise TranspilerError("I dont know how to handle this type of pass")
+            dag = self._run_this_pass(pass_, dag)
 
             # update the valid_passes property
             self._update_valid_passes(pass_, options['ignore_preserves'])
 
+        return dag
+
+    def _run_this_pass(self, pass_, dag):
+        if pass_.is_transformation_pass:
+            pass_.property_set = self.fenced_property_set
+            with PassManagerContext(self, pass_):
+                new_dag = pass_.run(dag)
+            if not isinstance(new_dag, DAGCircuit):
+                raise TranspilerError("Transformation passes should return a transformed dag."
+                                      "The pass %s is returning a %s" % (type(pass_).__name__,
+                                                                         type(new_dag)))
+            dag = new_dag
+        elif pass_.is_analysis_pass:
+            pass_.property_set = self.property_set
+            with PassManagerContext(self, pass_):
+                pass_.run(FencedDAGCircuit(dag))
+        else:
+            raise TranspilerError("I dont know how to handle this type of pass")
         return dag
 
     def _update_valid_passes(self, pass_, ignore_preserves):
@@ -208,6 +220,27 @@ class PassManager():
             ret.append(pass_.dump_passes())
         return ret
 
+class PassManagerContext:
+    def __init__(self, pm_instance, pass_instance):
+        self.pm_instance = pm_instance
+        self.pass_instance = pass_instance
+
+    def __enter__(self):
+        if self.pm_instance.log_passes:
+            self.start_time = time()
+
+    def __exit__(self, type, value, traceback):
+        if self.pm_instance.log_passes:
+            self.end_time = time()
+            log_dict = {
+                'name': self.pass_instance.name(),
+                'start_time': self.start_time,
+                'end_time': self.end_time,
+                'running_time': self.end_time - self.start_time
+            }
+            if self.pm_instance.property_set['pass_log'] is None:
+                self.pm_instance.property_set['pass_log'] = []
+            self.pm_instance.property_set['pass_log'].append(log_dict)
 
 class FlowController():
     """This class is a base class for multiple types of working list. When you iterate on it, it

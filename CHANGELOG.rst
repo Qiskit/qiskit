@@ -19,6 +19,12 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Added
+-----
+- The attribute ``PassManager.log_passes`` was added to log and time the passes when they are
+  executed. The results is stored in the attribute ``pass_log`` of the property set as a
+  dictionary.
+
 Removed
 -------
 - The previously deprecated functions ``qiksit.visualization.plot_state`` and
