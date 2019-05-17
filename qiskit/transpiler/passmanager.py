@@ -149,7 +149,7 @@ class PassManager():
         circuit.name = name
         return circuit
 
-    def draw(self, filename=None, style=None):
+    def draw(self, filename, style=None):
         """ Draw the pass manager"""
         from qiskit.visualization import pass_manager_drawer
         pass_manager_drawer(self, filename=filename, style=style)
