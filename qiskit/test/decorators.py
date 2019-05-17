@@ -23,7 +23,7 @@ from warnings import warn
 from qiskit.util import _has_connection
 from .testing_options import get_test_options
 
-HAS_NET_CONNECTION = _has_connection('qiskit.org', 443)
+HAS_NET_CONNECTION = None
 
 
 def is_aer_provider_available():
@@ -142,7 +142,19 @@ def requires_qe_access(func):
     """Deprecated in favor of `online_test`"""
     warn("`requires_qe_access` is going to be replaced in favor of `online_test`",
          DeprecationWarning)
-    return online_test(func)
+    @functools.wraps(func)
+    def _wrapper(self, *args, **kwargs):
+        if TEST_OPTIONS['skip_online']:
+            raise unittest.SkipTest('Skipping online tests')
+
+        credentials = _get_credentials(self, TEST_OPTIONS)
+        self.using_ibmq_credentials = credentials.is_ibmq()
+        kwargs.update({'qe_token': credentials.token,
+                       'qe_url': credentials.url})
+
+        return func(self, *args, **kwargs)
+
+    return _wrapper
 
 
 def online_test(func):
@@ -168,8 +180,13 @@ def online_test(func):
 
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):
+        global HAS_NET_CONNECTION
+
         if TEST_OPTIONS['skip_online']:
             raise unittest.SkipTest('Skipping online tests')
+
+        if HAS_NET_CONNECTION is None:
+            HAS_NET_CONNECTION = _has_connection('qiskit.org', 443)
 
         if not HAS_NET_CONNECTION:
             raise unittest.SkipTest("Test requires internet connection.")
