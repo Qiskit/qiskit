@@ -15,7 +15,6 @@
 """
 Instruction = Leaf node of schedule.
 """
-import logging
 from typing import Tuple, List, Iterable, Callable
 
 from qiskit.pulse import ops
@@ -23,8 +22,6 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.pulse.exceptions import PulseError
-
-logger = logging.getLogger(__name__)
 
 # pylint: disable=missing-return-doc,missing-type-doc
 

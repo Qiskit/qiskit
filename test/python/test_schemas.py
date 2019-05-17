@@ -15,7 +15,6 @@
 """Schemas test."""
 
 import json
-import logging
 import os
 
 from qiskit.validation.jsonschema.schema_validation import (
@@ -24,9 +23,6 @@ from qiskit.providers.models import (QasmBackendConfiguration, PulseBackendConfi
                                      BackendProperties, BackendStatus, JobStatus, PulseDefaults)
 from qiskit.result import Result
 from qiskit.test import QiskitTestCase, Path
-
-
-logger = logging.getLogger(__name__)
 
 
 class TestSchemaExamples(QiskitTestCase):

@@ -15,7 +15,6 @@
 """Schedule."""
 
 import itertools
-import logging
 from typing import List, Tuple, Iterable, Union, Dict, Callable
 
 from qiskit.pulse import ops
@@ -23,8 +22,6 @@ from .channels import Channel
 from .interfaces import ScheduleComponent
 from .timeslots import TimeslotCollection
 from .exceptions import PulseError
-
-logger = logging.getLogger(__name__)
 
 # pylint: disable=missing-return-doc
 

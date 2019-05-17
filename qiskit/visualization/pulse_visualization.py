@@ -18,13 +18,9 @@
 matplotlib pulse visualization.
 """
 
-import logging
-
 from qiskit.pulse import Schedule, Instruction, SamplePulse
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
-
-logger = logging.getLogger(__name__)
 
 
 def pulse_drawer(data, dt=1, style=None, filename=None,
