@@ -12,7 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cyclic-import
 """Quantum circuit object."""
 
 from copy import deepcopy
@@ -381,7 +380,7 @@ class QuantumCircuit:
                 if param in current_symbols:
                     self._parameter_table[param].append((instruction, param_index))
                 else:
-                    if param.name in set(p.name for p in current_symbols):
+                    if param.name in {p.name for p in current_symbols}:
                         raise QiskitError(
                             'Name conflict on adding parameter: {}'.format(param.name))
                     self._parameter_table[param] = [(instruction, param_index)]
@@ -563,15 +562,16 @@ class QuantumCircuit:
         Raises:
             VisualizationError: when an invalid output method is selected
         """
-        from qiskit.tools import visualization
-        return visualization.circuit_drawer(self, scale=scale,
-                                            filename=filename, style=style,
-                                            output=output,
-                                            interactive=interactive,
-                                            line_length=line_length,
-                                            plot_barriers=plot_barriers,
-                                            reverse_bits=reverse_bits,
-                                            justify=justify)
+        # pylint: disable=cyclic-import
+        from qiskit.visualization import circuit_drawer
+        return circuit_drawer(self, scale=scale,
+                              filename=filename, style=style,
+                              output=output,
+                              interactive=interactive,
+                              line_length=line_length,
+                              plot_barriers=plot_barriers,
+                              reverse_bits=reverse_bits,
+                              justify=justify)
 
     def size(self):
         """Returns total number of gate operations in circuit.

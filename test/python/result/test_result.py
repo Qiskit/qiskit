@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test Qiskit's Result class."""
 
@@ -79,7 +85,7 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(result.get_memory(0), no_header_processed_memory)
 
     def test_meas_level_1_avg(self):
-        """Test measurment level 1 average result."""
+        """Test measurement level 1 average result."""
         # 3 qubits
         raw_memory = [[0., 1.], [1., 0.], [0.5, 0.5]]
         processed_memory = np.array([1.j, 1., 0.5+0.5j], dtype=np.complex_)
@@ -94,7 +100,7 @@ class TestResultOperations(QiskitTestCase):
         np.testing.assert_almost_equal(memory, processed_memory)
 
     def test_meas_level_1_single(self):
-        """Test measurment level 1 single result."""
+        """Test measurement level 1 single result."""
         # 3 qubits
         raw_memory = [[[0., 1.], [1., 0.], [0.5, 0.5]],
                       [[0.5, 0.5], [1., 0.], [0., 1.]]]
@@ -111,7 +117,7 @@ class TestResultOperations(QiskitTestCase):
         np.testing.assert_almost_equal(memory, processed_memory)
 
     def test_meas_level_0_avg(self):
-        """Test measurment level 0 average result."""
+        """Test measurement level 0 average result."""
         # 3 qubits
         raw_memory = [[[0., 1.], [0., 1.], [0., 1.]],
                       [[1., 0.], [1., 0.], [1., 0.]]]
@@ -128,7 +134,7 @@ class TestResultOperations(QiskitTestCase):
         np.testing.assert_almost_equal(memory, processed_memory)
 
     def test_meas_level_0_single(self):
-        """Test measurment level 0 single result."""
+        """Test measurement level 0 single result."""
         # 3 qubits
         raw_memory = [[[[0., 1.], [0., 1.], [0., 1.]],
                        [[1., 0.], [1., 0.], [1., 0.]]],

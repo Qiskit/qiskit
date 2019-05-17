@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=unused-variable
-
 """
 Level 0 pass manager:
 no optimization, just conforming to basis and coupling map
@@ -85,7 +83,7 @@ def level_0_pass_manager(transpile_config):
     # 5. Fix any bad CX directions
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
     def _direction_condition(property_set):
-        return not property_set['is_direction_mapped']
+        return not coupling_map.is_symmetric and not property_set['is_direction_mapped']
 
     _direction = [CXDirection(coupling_map)]
 

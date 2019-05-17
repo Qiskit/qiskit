@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=missing-return-doc, invalid-name
 
@@ -242,7 +249,7 @@ def drag(duration: int, amp: complex, sigma: float, beta: float, name: str = Non
         sigma: Width (standard deviation) of pulse.
         beta: Y correction amplitude. For the SNO this is $\beta=-\frac{\lambda_1^2}{4\Delta_2}$.
             Where $\lambds_1$ is the relative coupling strength between the first excited and second
-            excited states and $\Delta_2$ is the detuning between the resepective excited states.
+            excited states and $\Delta_2$ is the detuning between the respective excited states.
         name: Name of pulse.
     """
     center = duration/2

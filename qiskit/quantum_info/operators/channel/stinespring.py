@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Stinespring representation of a Quantum Channel.
 
@@ -30,7 +38,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.kraus import Kraus
@@ -68,7 +76,7 @@ class Stinespring(QuantumChannel):
         """
         # If the input is a list or tuple we assume it is a pair of general
         # Stinespring matrices. If it is a numpy array we assume that it is
-        # a single stinespring matrix.
+        # a single Stinespring matrix.
         if isinstance(data, (list, tuple, np.ndarray)):
             if not isinstance(data, tuple):
                 # Convert single Stinespring set to length 1 tuple
@@ -81,7 +89,7 @@ class Stinespring(QuantumChannel):
                              np.array(data[1], dtype=complex))
 
             dim_left, dim_right = stine[0].shape
-            # If two stinespring matrices check they are same shape
+            # If two Stinespring matrices check they are same shape
             if stine[1] is not None:
                 if stine[1].shape != (dim_left, dim_right):
                     raise QiskitError("Invalid Stinespring input.")
@@ -354,7 +362,7 @@ class Stinespring(QuantumChannel):
             )
         if state.ndim == 1 and self._data[1] is None and \
            self._data[0].shape[0] // self._output_dim == 1:
-            # If the shape of the stinespring operator is equal to the output_dim
+            # If the shape of the Stinespring operator is equal to the output_dim
             # evolution of a state vector psi -> stine.psi
             return np.dot(self._data[0], state)
         # Otherwise we always return a density matrix
@@ -385,7 +393,7 @@ class Stinespring(QuantumChannel):
         if not isinstance(other, Stinespring):
             other = Stinespring(other)
 
-        # Tensor stinespring ops
+        # Tensor Stinespring ops
         sa_l, sa_r = self._data
         sb_l, sb_r = other._data
 
@@ -401,7 +409,7 @@ class Stinespring(QuantumChannel):
             shape_in = (dout_a, dtr_a, dout_b, dtr_b, din_a * din_b)
             shape_out = (dout_a * dtr_a * dout_b * dtr_b, din_a * din_b)
 
-        # Compute left stinepsring op
+        # Compute left Stinespring op
         if reverse:
             input_dims = self.input_dims() + other.input_dims()
             output_dims = self.output_dims() + other.output_dims()
@@ -410,12 +418,12 @@ class Stinespring(QuantumChannel):
             input_dims = other.input_dims() + self.input_dims()
             output_dims = other.output_dims() + self.output_dims()
             sab_l = np.kron(sa_l, sb_l)
-        # Reravel indicies
+        # Reravel indices
         sab_l = np.reshape(
             np.transpose(np.reshape(sab_l, shape_in), (0, 2, 1, 3, 4)),
             shape_out)
 
-        # Compute right stinespring op
+        # Compute right Stinespring op
         if sa_r is None and sb_r is None:
             sab_r = None
         else:
@@ -427,7 +435,7 @@ class Stinespring(QuantumChannel):
                 sab_r = np.kron(sb_r, sa_r)
             else:
                 sab_r = np.kron(sa_r, sb_r)
-            # Reravel indicies
+            # Reravel indices
             sab_r = np.reshape(
                 np.transpose(np.reshape(sab_r, shape_in), (0, 2, 1, 3, 4)),
                 shape_out)

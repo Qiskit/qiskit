@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Transformation pass that extends the circuit with new virtual qubits (i.e. ancilla).
@@ -47,8 +53,8 @@ class EnlargeWithAncilla(TransformationPass):
                                   " \"layout\" parameter to run")
 
         layout_virtual_qubits = self.layout.get_virtual_bits().keys()
-        new_qregs = set(virtual_qubit[0] for virtual_qubit in layout_virtual_qubits
-                        if virtual_qubit not in dag.wires)
+        new_qregs = {virtual_qubit[0] for virtual_qubit in layout_virtual_qubits
+                     if virtual_qubit not in dag.wires}
 
         for qreg in new_qregs:
             dag.add_qreg(qreg)

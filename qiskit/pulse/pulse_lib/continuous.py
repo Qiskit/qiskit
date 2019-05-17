@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=missing-return-doc, invalid-unary-operand-type
 
@@ -101,7 +108,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
                         ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
-    This is acheived by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
+    This is achieved by subtracting $\Omega_g(center \pm zeroed_width/2)$ from all samples.
 
     amp: Pulse amplitude at `2\times center+1`.
     center: Center (mean) of pulse.
@@ -229,7 +236,7 @@ def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: flo
         sigma: Width (standard deviation) of pulse.
         beta: Y correction amplitude. For the SNO this is $\beta=-\frac{\lambda_1^2}{4\Delta_2}$.
             Where $\lambds_1$ is the relative coupling strength between the first excited and second
-            excited states and $\Delta_2$ is the detuning between the resepective excited states.
+            excited states and $\Delta_2$ is the detuning between the respective excited states.
         zeroed_width: Subtract baseline to gaussian pulses to make sure
                  $\Omega_g(center \pm zeroed_width/2)=0$ is satisfied. This is used to avoid
                  large discontinuities at the start of a gaussian pulse.

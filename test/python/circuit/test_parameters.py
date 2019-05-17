@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test circuits with variable parameters."""
 import numpy
@@ -22,14 +28,14 @@ class TestParameters(QiskitTestCase):
     """QuantumCircuit Operations tests."""
 
     def test_gate(self):
-        """Test instantiating gate with variable parmeters"""
+        """Test instantiating gate with variable parameters"""
         theta = Parameter('θ')
         theta_gate = Gate('test', 1, params=[theta])
         self.assertEqual(theta_gate.name, 'test')
         self.assertIsInstance(theta_gate.params[0], Parameter)
 
     def test_compile_quantum_circuit(self):
-        """Test instantiating gate with variable parmeters"""
+        """Test instantiating gate with variable parameters"""
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
@@ -39,7 +45,7 @@ class TestParameters(QiskitTestCase):
         self.assertIn(theta, qc_aer.parameters)
 
     def test_get_parameters(self):
-        """Test instantiating gate with variable parmeters"""
+        """Test instantiating gate with variable parameters"""
         from qiskit.extensions.standard.rx import RXGate
         theta = Parameter('θ')
         qr = QuantumRegister(1)
@@ -52,7 +58,7 @@ class TestParameters(QiskitTestCase):
         self.assertIs(rxg, vparams[theta][0][0])
 
     def test_fix_variable(self):
-        """Test setting a varaible to a constant value"""
+        """Test setting a variable to a constant value"""
         theta = Parameter('θ')
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)

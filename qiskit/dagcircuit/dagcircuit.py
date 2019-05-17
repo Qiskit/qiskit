@@ -435,12 +435,11 @@ class DAGCircuit:
             s = set(v.values())
             if len(s) == 2:
                 raise DAGCircuitError("edge_map fragments reg %s" % k)
-            elif s == set([False]):
+            if s == {False}:
                 if k in self.qregs.values() or k in self.cregs.values():
                     raise DAGCircuitError("unmapped duplicate reg %s" % k)
-                else:
-                    # Add registers that appear only in keyregs
-                    add_regs.add(k)
+                # Add registers that appear only in keyregs
+                add_regs.add(k)
             else:
                 if valreg:
                     # If mapping to a register not in valregs, add it.
@@ -529,7 +528,7 @@ class DAGCircuit:
                 of self.
 
         Raises:
-            DAGCircuitError: if missing, duplicate or incosistent wire
+            DAGCircuitError: if missing, duplicate or inconsistent wire
         """
         edge_map = edge_map or {}
 
@@ -815,7 +814,7 @@ class DAGCircuit:
             node = self._id_to_node[node]
 
         condition = node.condition
-        # the dag must be ammended if used in a
+        # the dag must be amended if used in a
         # conditional context. delete the op nodes and replay
         # them with the condition.
         if condition:

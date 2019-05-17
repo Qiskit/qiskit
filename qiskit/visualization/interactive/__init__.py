@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Qsikit visualization library."""
+"""Qiskit visualization library."""
 
 from .iplot_blochsphere import iplot_bloch_multivector
 from .iplot_cities import iplot_state_city

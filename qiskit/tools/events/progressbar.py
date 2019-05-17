@@ -156,7 +156,7 @@ class TextProgressBar(BaseProgressBar):
 
     def update(self, n):
         filled_length = int(round(50 * n / self.iter))
-        pbar = u'█' * filled_length + '-' * (50 - filled_length)
+        pbar = '█' * filled_length + '-' * (50 - filled_length)
         time_left = self.time_remaining_est(n)
         self.output_handler.write('\r|%s| %s%s%s [%s]' % (pbar, n, '/', self.iter, time_left))
         if n == self.iter:

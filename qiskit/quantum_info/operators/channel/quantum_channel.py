@@ -1,18 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint:disable=abstract-method
+
 """
 Abstract base class for Quantum Channels.
 """
 
 import numpy as np
 
-from qiskit.qiskiterror import QiskitError
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_identity_matrix
@@ -119,7 +127,7 @@ class QuantumChannel(BaseOperator):
             if shape[1] != 1 and shape[1] != shape[0]:
                 raise QiskitError('Input state is not a vector or matrix.')
             if shape[1] == 1:
-                # flatten colum-vector to vector
+                # flatten column-vector to vector
                 state = np.reshape(state, shape[0])
         # Convert statevector to density matrix if required
         if density_matrix and ndim == 1:

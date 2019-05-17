@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Element of SU(2).
 """
@@ -25,7 +23,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 
 
-class UBase(Gate):  # pylint: disable=abstract-method
+class UBase(Gate):
     """Element of SU(2)."""
 
     def __init__(self, theta, phi, lam):

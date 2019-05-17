@@ -29,7 +29,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.visualization.gate_map import plot_gate_map
 
 try:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=import-error
     from qiskit.providers.ibmq import IBMQ, IBMQBackend
 except ImportError:
     pass

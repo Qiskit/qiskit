@@ -53,7 +53,6 @@ class UchannelLOSchema(BaseSchema):
 
 class PulseHamiltonianSchema(BaseSchema):
     """Schema for PulseHamiltonian."""
-    # pylint: disable=redefined-builtin
 
     # Required properties.
     h_str = List(String(), validate=Length(min=1), required=True)
@@ -121,7 +120,7 @@ class PulseBackendConfigurationSchema(QasmBackendConfigurationSchema):
                               validate=Length(equal=2)), required=True)
     dt = Float(required=True, validate=Range(min=0))  # pylint: disable=invalid-name
     dtm = Float(required=True, validate=Range(min=0))
-    rep_times = List(Float(validate=Range(min=0)), required=True)
+    rep_times = List(Integer(validate=Range(min=0)), required=True)
     meas_kernels = List(String(), required=True)
     discriminators = List(String(), required=True)
 
@@ -272,7 +271,7 @@ class PulseBackendConfiguration(BackendConfiguration):
             with form (min, max) in GHz.
         dt (float): Qubit drive channel timestep in nanoseconds.
         dtm (float): Measurement drive channel timestep in nanoseconds.
-        rep_times (list[float]): Supported repition times for device in microseconds.
+        rep_times (list[float]): Supported repetition times for device in microseconds.
         meas_kernels (list[str]): Supported measurement kernels.
         discriminators: Supported discriminators.
         **kwargs: Optional fields.

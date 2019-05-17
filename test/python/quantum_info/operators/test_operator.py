@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring
+# pylint: disable=invalid-name
+
 """Tests for Operator matrix linear operator class."""
 
 import unittest
@@ -260,7 +268,7 @@ class TestOperator(OperatorTestCase):
             op._evolve(np.array([[1, 0], [0, 0]])), target_rho)
 
     def test_evolve_subsystem(self):
-        """Test subsytem _evolve method."""
+        """Test subsystem _evolve method."""
         # Test evolving single-qubit of 3-qubit system
         mat = self.rand_matrix(2, 2)
         op = Operator(mat)

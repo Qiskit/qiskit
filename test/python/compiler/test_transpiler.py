@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Tests basic functionality of the transpile function"""
 
@@ -18,8 +25,8 @@ from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler import Layout
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
+from qiskit.transpiler import Layout, CouplingMap
 from qiskit.circuit import Parameter
 
 
@@ -56,7 +63,7 @@ class TestTranspile(QiskitTestCase):
         self.assertEqual(circuit2, circuit3)
 
     def test_transpile_basis_gates_no_backend_no_coupling_map(self):
-        """Verify tranpile() works with no coupling_map or backend."""
+        """Verify transpile() works with no coupling_map or backend."""
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -434,8 +441,23 @@ class TestTranspile(QiskitTestCase):
 
         self.assertTrue(mock_pass.called)
 
+    def test_do_not_run_cxdirection_with_symmetric_cm(self):
+        """When the coupling map is symmetric, do not run CXDirection."""
+
+        circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
+        layout = Layout.generate_trivial_layout(*circ.qregs)
+        coupling_map = []
+        for node1, node2 in FakeRueschlikon().configuration().coupling_map:
+            coupling_map.append([node1, node2])
+            coupling_map.append([node2, node1])
+
+        cxdir_pass = CXDirection(CouplingMap(coupling_map))
+        with unittest.mock.patch.object(CXDirection, 'run', wraps=cxdir_pass.run) as mock_pass:
+            transpile(circ, coupling_map=coupling_map, initial_layout=layout)
+            self.assertFalse(mock_pass.called)
+
     def test_optimize_to_nothing(self):
-        """ Optimze gates up to fixed point in the default pipeline
+        """ Optimize gates up to fixed point in the default pipeline
         See https://github.com/Qiskit/qiskit-terra/issues/2035 """
         qr = QuantumRegister(2)
         circ = QuantumCircuit(qr)

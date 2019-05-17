@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Assembler Test."""
 
@@ -176,7 +183,8 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertEqual(bfunc_op.register, h_op.conditional)
 
     def test_assemble_circuits_raises_for_bind_circuit_mismatch(self):
-        """Verify assemble_circuits raise error for parametized circuits without matching binds."""
+        """Verify assemble_circuits raises error for parameterized circuits without matching
+        binds."""
         qr = QuantumRegister(2)
         x = Parameter('x')
         y = Parameter('y')
