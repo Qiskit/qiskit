@@ -23,6 +23,7 @@ from qiskit import QuantumRegister
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager, level_1_pass_manager
 from qiskit.transpiler.passes import SetLayout, CheckMap, EnlargeWithAncilla, RemoveResetInZeroState
 
+from qiskit.visualization.pass_manager_visualization import HAS_GRAPHVIZ
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
@@ -41,6 +42,8 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
                                       seed_transpiler=987,
                                       backend_properties=None)
 
+    @unittest.skipIf(not HAS_GRAPHVIZ,
+                     'Graphviz not installed.')
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
         filename = self._get_resource_path('current_l0.png')
@@ -49,6 +52,8 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.assertImagesAreEqual(filename, path_to_diagram_reference('pass_manager_l0_ref.png'))
         os.remove(filename)
 
+    @unittest.skipIf(not HAS_GRAPHVIZ,
+                     'Graphviz not installed.')
     def test_pass_manager_drawer_style(self):
         """Test to see if the colours are updated when provided by the user"""
         # set colours for some passes, but leave others to take the default values

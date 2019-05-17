@@ -21,6 +21,16 @@ DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 
 
+try:
+    import subprocess
+    print(subprocess.check_output(['dot', '-V']))
+    HAS_GRAPHVIZ = True
+except FileNotFoundError:
+    # this is raised when the dot command cannot be found, which means GraphViz
+    # isn't installed
+    HAS_GRAPHVIZ = False
+
+
 def pass_manager_drawer(pass_manager, filename, style=None):
     """
     Draws the pass manager.
@@ -43,9 +53,13 @@ def pass_manager_drawer(pass_manager, filename, style=None):
 
     try:
         import pydot
+        if not HAS_GRAPHVIZ:
+            raise ImportError
     except ImportError:
-        raise ImportError("pass_manager_drawer requires pydot. "
-                          "Run 'pip install pydot'.")
+        raise ImportError("pass_manager_drawer requires pydot and graphviz. "
+                          "Run 'pip install pydot'. "
+                          "Graphviz can be installed using 'brew install graphviz' on Mac"
+                          " or by downloading it from the website.")
 
     passes = pass_manager.passes()
 
