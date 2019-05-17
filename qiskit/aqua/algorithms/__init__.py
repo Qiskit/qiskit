@@ -17,7 +17,8 @@ from .adaptive import VQE, QAOA, VQC, QGAN
 from .classical import ExactEigensolver, ExactLSsolver, SVM_Classical
 from .many_sample import EOH, QSVM
 from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, \
-    MaximumLikelihood, Simon, DeutschJozsa, BernsteinVazirani, HHL, Shor
+    MaximumLikelihood, IterativeAmplitudeEstimation, Simon, DeutschJozsa, \
+    BernsteinVazirani, HHL, Shor
 
 
 __all__ = [
@@ -36,6 +37,7 @@ __all__ = [
     'QPE',
     'AmplitudeEstimation',
     'MaximumLikelihood',
+    'IterativeAmplitudeEstimation',
     'Simon',
     'DeutschJozsa',
     'BernsteinVazirani',
