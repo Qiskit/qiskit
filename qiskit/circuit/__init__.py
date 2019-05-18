@@ -23,3 +23,4 @@ from .measure import Measure
 from .reset import Reset
 from .compositegate import CompositeGate
 from .parameter import Parameter
+from .parametervector import ParameterVector
