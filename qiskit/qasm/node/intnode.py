@@ -38,20 +38,20 @@ class Int(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        # pylint: disable=unused-argument
+        del prec  # prec ignored
         return "%d" % self.value
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        # pylint: disable=unused-argument
+        del prec, nested_scope  # ignored
         return "%d" % self.value
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
-        # pylint: disable=unused-argument
+        del nested_scope  # ignored
         return N(self.value)
 
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
-        # pylint: disable=unused-argument
+        del nested_scope  # ignored
         return float(self.value)
