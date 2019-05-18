@@ -25,7 +25,6 @@ The mock devices are mainly for testing the compiler.
 """
 
 import uuid
-import logging
 from concurrent import futures
 import time
 
@@ -41,9 +40,6 @@ from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-
-
-logger = logging.getLogger(__name__)
 
 
 class FakeProvider(BaseProvider):
