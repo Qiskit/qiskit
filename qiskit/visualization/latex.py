@@ -24,7 +24,12 @@ import math
 import operator
 import re
 
-from pylatexenc.latexencode import utf8tolatex
+try:
+    from pylatexenc.latexencode import utf8tolatex
+    HAS_PYLATEX = True
+except ImportError:
+    HAS_PYLATEX = False
+
 import numpy as np
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
@@ -54,6 +59,11 @@ class QCircuitImage:
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
         """
+        if not HAS_PYLATEX:
+            raise ImportError('The latex and latex_source drawers need '
+                              'pylatexenc installed. Run "pip install '
+                              'pylatexenc" before using the latex or '
+                              'latex_source drawers.'
         # style sheet
         self._style = _qcstyle.BWStyle()
         if style:
