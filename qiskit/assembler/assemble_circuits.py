@@ -13,13 +13,9 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj"""
-import logging
-
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
                          QasmQobjConfig)
-
-logger = logging.getLogger(__name__)
 
 
 def assemble_circuits(circuits, run_config, qobj_id, qobj_header):

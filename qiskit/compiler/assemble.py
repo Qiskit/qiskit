@@ -14,7 +14,6 @@
 
 """Assemble function for converting a list of circuits into a qobj"""
 import uuid
-import logging
 import copy
 
 from qiskit.circuit import QuantumCircuit
@@ -24,8 +23,6 @@ from qiskit.assembler.run_config import RunConfig
 from qiskit.assembler import assemble_circuits, assemble_schedules
 from qiskit.qobj import QobjHeader
 from qiskit.validation.exceptions import ModelValidationError
-
-logger = logging.getLogger(__name__)
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
