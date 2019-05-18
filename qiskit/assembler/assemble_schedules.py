@@ -13,16 +13,12 @@
 # that they have been altered from the originals.
 
 """Assemble function for converting a list of circuits into a qobj"""
-import logging
-
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import PulseInstruction, AcquireInstruction
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
 from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
-
-logger = logging.getLogger(__name__)
 
 
 def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
@@ -141,7 +137,7 @@ def _validate_meas_map(acquire, meas_map):
     """Validate all qubits tied in meas_map are to be acquired."""
     meas_map_set = [set(m) for m in meas_map]
     # Verify that each qubit is listed once in measurement map
-    measured_qubits = set(acq_ch.index for acq_ch in acquire.acquires)
+    measured_qubits = {acq_ch.index for acq_ch in acquire.acquires}
     tied_qubits = set()
     for meas_qubit in measured_qubits:
         for map_inst in meas_map_set:

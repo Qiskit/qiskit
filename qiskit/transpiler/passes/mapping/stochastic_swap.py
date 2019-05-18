@@ -25,7 +25,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.transpiler import Layout
+from qiskit.transpiler.layout import Layout
 # pylint: disable=no-name-in-module
 from .cython.stochastic_swap.utils import nlayout_from_layout
 # pylint: disable=no-name-in-module
@@ -431,7 +431,7 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
     for gate_args in layer_partition:
         if len(gate_args) > 2:
             raise TranspilerError("Layer contains > 2-qubit gates")
-        elif len(gate_args) == 2:
+        if len(gate_args) == 2:
             gates.append(tuple(gate_args))
     logger.debug("layer_permutation: gates = %s", pformat(gates))
 

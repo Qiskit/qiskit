@@ -44,17 +44,19 @@ def circuit_to_instruction(circuit, parameter_map=None):
     """
 
     if parameter_map is None:
-        parameter_map = {p: p for p in circuit.parameters}
+        parameter_dict = {p: p for p in circuit.parameters}
+    else:
+        parameter_dict = circuit._unroll_param_dict(parameter_map)
 
-    if parameter_map.keys() != circuit.parameters:
+    if parameter_dict.keys() != circuit.parameters:
         raise QiskitError(('parameter_map should map all circuit parameters. '
                            'Circuit parameters: {}, parameter_map: {}').format(
-                               circuit.parameters, parameter_map))
+                               circuit.parameters, parameter_dict))
 
     instruction = Instruction(name=circuit.name,
                               num_qubits=sum([qreg.size for qreg in circuit.qregs]),
                               num_clbits=sum([creg.size for creg in circuit.cregs]),
-                              params=sorted(parameter_map.values(), key=lambda p: p.name))
+                              params=sorted(parameter_dict.values(), key=lambda p: p.name))
     instruction.control = None
 
     def find_bit_position(bit):
@@ -69,7 +71,7 @@ def circuit_to_instruction(circuit, parameter_map=None):
         return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit[1]
 
     target = circuit.copy()
-    target._substitute_parameters(parameter_map)
+    target._substitute_parameters(parameter_dict)
 
     definition = target.data
 

@@ -15,13 +15,10 @@
 """
 Schedule operations.
 """
-import logging
 from typing import List, Union, Tuple
 
 from .interfaces import ScheduleComponent
-from .schedule import Schedule
-
-logger = logging.getLogger(__name__)
+from .schedule import Schedule  # pylint: disable=cyclic-import
 
 # pylint: disable=missing-return-doc,missing-type-doc
 

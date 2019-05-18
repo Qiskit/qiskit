@@ -12,7 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cyclic-import
 """Quantum circuit object."""
 
 from copy import deepcopy
@@ -27,6 +26,7 @@ from qiskit.circuit.parameter import Parameter
 from .quantumregister import QuantumRegister
 from .classicalregister import ClassicalRegister
 from .parametertable import ParameterTable
+from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
 
@@ -381,7 +381,7 @@ class QuantumCircuit:
                 if param in current_symbols:
                     self._parameter_table[param].append((instruction, param_index))
                 else:
-                    if param.name in set(p.name for p in current_symbols):
+                    if param.name in {p.name for p in current_symbols}:
                         raise QiskitError(
                             'Name conflict on adding parameter: {}'.format(param.name))
                     self._parameter_table[param] = [(instruction, param_index)]
@@ -563,15 +563,16 @@ class QuantumCircuit:
         Raises:
             VisualizationError: when an invalid output method is selected
         """
-        from qiskit.tools import visualization
-        return visualization.circuit_drawer(self, scale=scale,
-                                            filename=filename, style=style,
-                                            output=output,
-                                            interactive=interactive,
-                                            line_length=line_length,
-                                            plot_barriers=plot_barriers,
-                                            reverse_bits=reverse_bits,
-                                            justify=justify)
+        # pylint: disable=cyclic-import
+        from qiskit.visualization import circuit_drawer
+        return circuit_drawer(self, scale=scale,
+                              filename=filename, style=style,
+                              output=output,
+                              interactive=interactive,
+                              line_length=line_length,
+                              plot_barriers=plot_barriers,
+                              reverse_bits=reverse_bits,
+                              justify=justify)
 
     def size(self):
         """Returns total number of gate operations in circuit.
@@ -817,17 +818,31 @@ class QuantumCircuit:
             QuantumCircuit: copy of self with assignment substitution.
         """
         new_circuit = self.copy()
+        unrolled_value_dict = self._unroll_param_dict(value_dict)
 
-        if value_dict.keys() > self.parameters:
+        if unrolled_value_dict.keys() > self.parameters:
             raise QiskitError('Cannot bind parameters ({}) not present in the circuit.'.format(
                 [str(p) for p in value_dict.keys() - self.parameters]))
 
-        for parameter, value in value_dict.items():
+        for parameter, value in unrolled_value_dict.items():
             new_circuit._bind_parameter(parameter, value)
         # clear evaluated expressions
-        for parameter in value_dict:
+        for parameter in unrolled_value_dict:
             del new_circuit._parameter_table[parameter]
         return new_circuit
+
+    def _unroll_param_dict(self, value_dict):
+        unrolled_value_dict = {}
+        for (param, value) in value_dict.items():
+            if isinstance(param, Parameter):
+                unrolled_value_dict[param] = value
+            if isinstance(param, ParameterVector):
+                if not len(param) == len(value):
+                    raise QiskitError('ParameterVector {} has length {}, which '
+                                      'differs from value list {} of '
+                                      'len {}'.format(param, len(param), value, len(value)))
+                unrolled_value_dict.update(zip(param, value))
+        return unrolled_value_dict
 
     def _bind_parameter(self, parameter, value):
         """Assigns a parameter value to matching instructions in-place."""

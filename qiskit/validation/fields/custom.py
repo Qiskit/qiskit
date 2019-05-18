@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Fields custom to Terra to be used with Qiskit validated classes."""
 
@@ -114,7 +121,7 @@ class InstructionParameter(ModelTypeValidator):
         """Customize check_type for handling containers."""
         # Check the type in the standard way first, in order to fail quickly
         # in case of invalid values.
-        root_value = super(InstructionParameter, self).check_type(
+        root_value = super().check_type(
             value, attr, data)
 
         if is_collection(value):
@@ -140,7 +147,7 @@ class DictParameters(ModelTypeValidator):
         """
         # pylint: disable=missing-param-doc
 
-        super(DictParameters, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.valid_value_types = valid_value_types
 
     def _expected_types(self):
