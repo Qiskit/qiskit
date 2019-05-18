@@ -185,7 +185,7 @@ class QCircuitImage:
         return contents
 
     def _initialize_latex_array(self, aliases=None):
-        # pylint: disable=unused-argument
+        del aliases  # unused
         self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_row_heights = self.img_width
         # choose the most compact row spacing, while not squashing them
