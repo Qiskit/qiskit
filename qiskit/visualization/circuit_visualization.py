@@ -406,7 +406,7 @@ def _latex_circuit_drawer(circuit,
             if not HAS_PIL:
                 raise ImportError('The latex drawer needs pillow installed. '
                                   'Run "pip install pillow" before using the '
-                                  'latex drawer.'
+                                  'latex drawer.')
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",

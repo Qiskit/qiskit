@@ -63,7 +63,7 @@ class QCircuitImage:
             raise ImportError('The latex and latex_source drawers need '
                               'pylatexenc installed. Run "pip install '
                               'pylatexenc" before using the latex or '
-                              'latex_source drawers.'
+                              'latex_source drawers.')
         # style sheet
         self._style = _qcstyle.BWStyle()
         if style:
