@@ -56,8 +56,9 @@ def graysynth(cnots, number, nsections):
         for icnots in cnots_copy:
             if np.array_equal(icnots, state[qubit]):
                 qcir.t(qreg[qubit])
-                np.delete(cnots_copy, index, axis=0)
-                break
+                cnots_copy = np.delete(cnots_copy, index, axis=0)
+                if index == len(cnots_copy):
+                    break
             index += 1
 
     # Implementation of the pseudo-code (Algorithm 1) in the aforementioned paper
