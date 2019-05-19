@@ -17,7 +17,7 @@ import numpy
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Gate, Parameter
+from qiskit.circuit import Gate, Parameter, ParameterVector
 from qiskit.compiler import transpile
 from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
@@ -176,3 +176,73 @@ class TestParameters(QiskitTestCase):
         qc.u1(theta1, 0)
 
         self.assertRaises(QiskitError, qc.u1, theta2, 0)
+
+    def test_bind_ryrz_vector(self):
+        """Test binding a list of floats to a ParamterVector"""
+        qc = QuantumCircuit(4)
+        depth = 4
+        theta = ParameterVector('θ', length=len(qc.qubits) * depth * 2)
+        theta_iter = iter(theta)
+        for _ in range(depth):
+            for q in qc.qubits:
+                qc.ry(next(theta_iter), q)
+                qc.rz(next(theta_iter), q)
+            for i, q in enumerate(qc.qubits[:-1]):
+                qc.cx(qc.qubits[i], qc.qubits[i+1])
+            qc.barrier()
+        theta_vals = numpy.linspace(0, 1, len(theta)) * numpy.pi
+        self.assertEqual(set(qc.parameters), set(theta.params))
+        bqc = qc.bind_parameters({theta: theta_vals})
+        for gate_tuple in bqc.data:
+            if hasattr(gate_tuple[0], 'params') and gate_tuple[0].params:
+                self.assertIn(gate_tuple[0].params[0], theta_vals)
+
+    def test_compile_vector(self):
+        """Test compiling a circuit with an unbound ParamterVector"""
+        qc = QuantumCircuit(4)
+        depth = 4
+        theta = ParameterVector('θ', length=len(qc.qubits)*depth*2)
+        theta_iter = iter(theta)
+        for _ in range(depth):
+            for q in qc.qubits:
+                qc.ry(next(theta_iter), q)
+                qc.rz(next(theta_iter), q)
+            for i, q in enumerate(qc.qubits[:-1]):
+                qc.cx(qc.qubits[i], qc.qubits[i+1])
+            qc.barrier()
+        backend = BasicAer.get_backend('qasm_simulator')
+        qc_aer = transpile(qc, backend)
+        for param in theta:
+            self.assertIn(param, qc_aer.parameters)
+
+    def test_instruction_ryrz_vector(self):
+        """Test constructing a circuit from instructions with remapped ParamterVectors"""
+        qubits = 5
+        depth = 4
+        ryrz = QuantumCircuit(qubits, name='ryrz')
+        theta = ParameterVector('θ0', length=len(ryrz.qubits) * 2)
+        theta_iter = iter(theta)
+        for q in ryrz.qubits:
+            ryrz.ry(next(theta_iter), q)
+            ryrz.rz(next(theta_iter), q)
+
+        cxs = QuantumCircuit(qubits-1, name='cxs')
+        for i, _ in enumerate(cxs.qubits[:-1:2]):
+            cxs.cx(cxs.qubits[2*i], cxs.qubits[2*i+1])
+
+        paramvecs = []
+        qc = QuantumCircuit(qubits)
+        for i in range(depth):
+            theta_l = ParameterVector('θ{}'.format(i+1), length=len(ryrz.qubits) * 2)
+            ryrz_inst = ryrz.to_instruction(parameter_map={theta: theta_l})
+            paramvecs += [theta_l]
+            qc.append(ryrz_inst, qargs=qc.qubits)
+            qc.append(cxs, qargs=qc.qubits[1:])
+            qc.append(cxs, qargs=qc.qubits[:-1])
+            qc.barrier()
+
+        backend = BasicAer.get_backend('qasm_simulator')
+        qc_aer = transpile(qc, backend)
+        for vec in paramvecs:
+            for param in vec:
+                self.assertIn(param, qc_aer.parameters)
