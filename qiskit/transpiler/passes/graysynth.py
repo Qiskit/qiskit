@@ -135,16 +135,22 @@ def cnot_synth(qcir, state, qreg, number, nsections):
     """
 
     state = np.matrix(state)  # Making sure that state is a numpy matrix
+    print('State before =\n', state)
     # Synthesize lower triangular part
     [state, circuit_l] = lwr_cnot_synth(state, number, nsections)
-    circuit_l.reverse()
+    print('State after first gauss =\n', state)
+    circuit_l ###
     state = np.transpose(state)
+    print('State after transpose =\n', state)
     # Synthesize upper triangular part
     [state, circuit_u] = lwr_cnot_synth(state, number, nsections)
+    circuit_u.reverse()
+    print('State after second gauss =\n', state)
     for i in circuit_u:
         i.reverse()
     # Convert the list into a circuit of C-NOT gates
-    for i in circuit_u+circuit_l:
+    for i in circuit_l + circuit_u:
+        print(i)
         qcir.cx(qreg[i[0]], qreg[i[1]])
     return [qcir, state]
 
@@ -177,6 +183,8 @@ def lwr_cnot_synth(state, number, nsections):
         patt = {}
         for row in range((sec-1)*nsections, number):
             sub_row_patt = copy.deepcopy(state[row, (sec-1)*nsections:sec*nsections])
+            if np.sum(sub_row_patt) == 0:
+                continue
             if str(sub_row_patt) not in patt:
                 patt[str(sub_row_patt)] = row
             else:
@@ -195,7 +203,7 @@ def lwr_cnot_synth(state, number, nsections):
                         state[col, :] ^= state[row, :]
                         circuit.append([row, col])
                         diag_one = 1
-                        state[row, :] ^= state[col, :]
+                    state[row, :] ^= state[col, :]
                     circuit.append([col, row])
     return [state, circuit]
 
