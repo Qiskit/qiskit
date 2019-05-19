@@ -185,7 +185,7 @@ class QCircuitImage:
         return contents
 
     def _initialize_latex_array(self, aliases=None):
-        # pylint: disable=unused-argument
+        del aliases  # unused
         self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_row_heights = self.img_width
         # choose the most compact row spacing, while not squashing them
@@ -256,8 +256,9 @@ class QCircuitImage:
 
         # wires in the beginning and end
         columns = 2
-        # each layer is one column
-        columns += len(self.ops)
+
+        # all gates take up 1 column except from those with labels (cu1) which take 2
+        columns += sum([2 if nd.name == 'cu1' else 1 for layer in self.ops for nd in layer])
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
@@ -328,7 +329,10 @@ class QCircuitImage:
         else:
             qregdata = self.qregs
 
-        for column, layer in enumerate(self.ops, 1):
+        column = 1
+        for layer in self.ops:
+            num_cols_used = 1
+
             for op in layer:
                 if op.condition:
                     mask = self._get_mask(op.condition[0])
@@ -504,12 +508,15 @@ class QCircuitImage:
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (op.op.params[0])
                             elif nm == "cu1":
-                                self._latex[pos_1][column - 1] = "\\ctrl{" + str(
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column - 1] = "\\control\\qw"
-                                self._latex[min(pos_1, pos_2)][column] = \
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "\\dstick{%s}\\qw" % (op.op.params[0])
-                                self._latex[max(pos_1, pos_2)][column] = "\\qw"
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
+                                # this is because this gate takes up 2 columns,
+                                # and we have just written to the next column
+                                num_cols_used = 2
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = \
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
@@ -547,12 +554,13 @@ class QCircuitImage:
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (op.op.params[0])
                             elif nm == "cu1":
-                                self._latex[pos_1][column - 1] = "\\ctrl{" + str(
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column - 1] = "\\control\\qw"
-                                self._latex[min(pos_1, pos_2)][column] = \
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "\\dstick{%s}\\qw" % (op.op.params[0])
-                                self._latex[max(pos_1, pos_2)][column] = "\\qw"
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
+                                num_cols_used = 2
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
@@ -742,6 +750,9 @@ class QCircuitImage:
                             span) + "}"
                 else:
                     raise exceptions.VisualizationError("bad node data")
+
+            # increase the number of columns by the number of columns this layer used
+            column += num_cols_used
 
     def _get_qubit_index(self, qubit):
         """Get the index number for a quantum bit

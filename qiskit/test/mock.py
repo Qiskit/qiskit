@@ -25,7 +25,6 @@ The mock devices are mainly for testing the compiler.
 """
 
 import uuid
-import logging
 from concurrent import futures
 import time
 
@@ -41,9 +40,6 @@ from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
 from qiskit.providers.jobstatus import JobStatus
 from qiskit.providers.baseprovider import BaseProvider
 from qiskit.providers.exceptions import QiskitBackendNotFoundError
-
-
-logger = logging.getLogger(__name__)
 
 
 class FakeProvider(BaseProvider):
@@ -112,9 +108,9 @@ class FakeBackend(BaseBackend):
         job.submit()
         return job
 
-    # pylint: disable=unused-argument
     def run_job(self, job_id, qobj):
         """Main dummy run loop"""
+        del qobj  # unused
         time.sleep(self.time_alive)
 
         return Result.from_dict(

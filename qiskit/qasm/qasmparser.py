@@ -29,7 +29,7 @@ from .qasmlexer import QasmLexer
 class QasmParser:
     """OPENQASM Parser."""
 
-    # pylint: disable=unused-argument,missing-docstring,invalid-name
+    # pylint: disable=missing-docstring,invalid-name
 
     def __init__(self, filename):
         """Create the parser."""
@@ -553,6 +553,7 @@ class QasmParser:
         """
            gate_scope :
         """
+        del program  # unused
         self.push_scope()
 
     # ----------------------------------------

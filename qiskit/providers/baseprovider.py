@@ -15,12 +15,8 @@
 """Base class for a backend provider."""
 
 from abc import ABC, abstractmethod
-import logging
 
 from .exceptions import QiskitBackendNotFoundError
-
-
-logger = logging.getLogger(__name__)
 
 
 class BaseProvider(ABC):
