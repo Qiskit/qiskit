@@ -12,181 +12,242 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Implementation of the Gray-Synth algorithm.
+"""Implementation of the Gray-Synth algorithm and a efficient synthesis algorithm of linear
+reversible circuits.
 """
+import copy
 import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister
-import copy
 
-class Stack:
+
+def graysynth(cnots, number, nsections):
     """
-    Run one pass of cx cancellation on the circuit
+    This function is an implementation of the GraySynth algorithm.
+    The algorithm is described in the following paper in section 4:
+    "On the controlled-NOT complexity of controlled-NOT–phase circuits."
+    Amy, Matthew, Parsiad Azimzadeh, and Michele Mosca.
+    Quantum Science and Technology 4.1 (2018): 015002.
 
     Args:
-        dag (DAGCircuit): the directed acyclic graph to run on.
+        cnots (list): as described in the aforementioned paper.
+        number (int): the number of quantum bits in the circuit
+        nsections (int): the number of sections
+
     Returns:
-        DAGCircuit: Transformed DAG.
-    """
-    def __init__(self):
-        self.items = []
-
-    def isEmpty(self):
-        return self.items == []
-
-    def push(self, item):
-        self.items.append(item)
-
-    def pop(self):
-        return self.items.pop()
-
-    def peek(self):
-        return self.items[len(self.items) - 1]
-
-    def size(self):
-        return len(self.items)
-
-    def elements(self):
-        return self.items
-
-
-def Union(lists):
-    """
-    Run one pass of cx cancellation on the circuit
-
-    Args:
-        dag (DAGCircuit): the directed acyclic graph to run on.
-    Returns:
-        DAGCircuit: Transformed DAG.
-    """
-    Union_list = []
-    for element in lists:
-        if not(element in Union_list):
-            Union_list.append(element)
-    return Union_list
-
-
-def GraySynth(S, n):
-    """
-    Run one pass of cx cancellation on the circuit
-
-    Args:
-        dag (DAGCircuit): the directed acyclic graph to run on.
-    Returns:
-        DAGCircuit: Transformed DAG.
+        QuantumCircuit: the quantum circuit
+        QuantumRegister: the quantum register
+        numpy.matrix: an n by n matrix describing the output state of the circuit
     """
 
-    q = QuantumRegister(n, 'q') # Create a Quantum Register with n qubits.
-    C = QuantumCircuit(q) # Create a Quantum Circuit acting on the q register
+    # Create a Quantum Register with n quantum bits.
+    qreg = QuantumRegister(number, 'q')
+    # Create a Quantum Circuit acting on the q register
+    qcir = QuantumCircuit(qreg)
 
-    range_list = list(range(n))
-    epsilon = n
-    Q = Stack()
-    S_copy = np.transpose(np.array(copy.deepcopy(S)))
-    state = np.eye(n).astype('int')
+    range_list = list(range(number))
+    epsilon = number
+    sta = Stack()
+    cnots_copy = np.transpose(np.array(copy.deepcopy(cnots)))
+    state = np.eye(number).astype('int')  # This matrix keeps track of the state in the algorithm
 
-    for i in range(n):
-        for ii in range(len(S_copy)):
-            if np.array_equal(S_copy[ii], state[i]):
-                C.t(q[i])
-                S_copy = np.delete(S_copy, (ii), axis=0)
+    # Check if some T-gates can be applied, before adding any C-NOT gates
+    for qubit in range(number):
+        index = 0
+        for icnots in cnots_copy:
+            if np.array_equal(icnots, state[qubit]):
+                qcir.t(qreg[qubit])
+                np.delete(cnots_copy, index, axis=0)
                 break
-    Q.push([S, range_list, epsilon])
-    while not (Q.isEmpty()):
-        [S, I, i] = Q.pop()
-        if len(S) == 0:
+            index += 1
+
+    # Implementation of the pseudo-code (Algorithm 1) in the aforementioned paper
+    sta.push([cnots, range_list, epsilon])
+    while not sta.isempty():
+        [cnots, ilist, qubit] = sta.pop()
+        if cnots == []:
             continue
-        elif (i >= 0 and i < n):
+        elif 0 <= qubit < number:
             condition = True
             while condition:
                 condition = False
-                for j in range(n):
-                    if (j != i) and (sum(S[j]) == len(S[j])):
+                for j in range(number):
+                    if (j != qubit) and (sum(cnots[j]) == len(cnots[j])):
                         condition = True
-                        C.cx(q[j], q[i])
-                        state[i] ^= state[j]
-                        for ii in range(len(S_copy)):
-                            if np.array_equal(S_copy[ii], state[i]):
-                                C.t(q[i])
-                                S_copy = np.delete(S_copy, (ii), axis=0)
+                        qcir.cx(qreg[j], qreg[qubit])
+                        state[qubit] ^= state[j]
+                        index = 0
+                        for icnots in cnots_copy:
+                            if np.array_equal(icnots, state[qubit]):
+                                qcir.t(qreg[qubit])
+                                cnots_copy = np.delete(cnots_copy, index, axis=0)
                                 break
-                        for x in Union(Q.elements() + [[S, I, i]]):
-                            [Sp, Ip, ip] = x
-                            if len(Sp) == 0:
+                            index += 1
+                        for x in union(sta.elements() + [[cnots, ilist, qubit]]):
+                            [cnotsp, _, _] = x
+                            if cnotsp == []:
                                 continue
-                            for t in range(len(Sp[j])):
-                                Sp[j][t] ^= Sp[i][t]
-        if len(I) == 0:
+                            for ttt in range(len(cnotsp[j])):
+                                cnotsp[j][ttt] ^= cnotsp[qubit][ttt]
+        if ilist == []:
             continue
-        j = I[np.argmax([[max(row.count(0), row.count(1)) for row in S][k] for k in
-                         I])]  # see line 18 in pseudo-code
-        S0 = []
-        S1 = []
-        for y in list(map(list, zip(*S))):
+        # See line 18 in pseudo-code of Algorithm 1 in the aforementioned paper
+        j = ilist[np.argmax([[max(row.count(0), row.count(1)) for row in cnots][k] for k in ilist])]
+        cnots0 = []
+        cnots1 = []
+        for y in list(map(list, zip(*cnots))):
             if y[j] == 0:
-                S0.append(y)
+                cnots0.append(y)
             elif y[j] == 1:
-                S1.append(y)
-        S0 = list(map(list, zip(*S0)))
-        S1 = list(map(list, zip(*S1)))
-        if i == epsilon:
-            Q.push([S1, list(set(I).difference([j])), j])
+                cnots1.append(y)
+        cnots0 = list(map(list, zip(*cnots0)))
+        cnots1 = list(map(list, zip(*cnots1)))
+        if qubit == epsilon:
+            sta.push([cnots1, list(set(ilist).difference([j])), j])
         else:
-            Q.push([S1, list(set(I).difference([j])), i])
-        Q.push([S0, list(set(I).difference([j])), i])
-    return [C, q, state]
+            sta.push([cnots1, list(set(ilist).difference([j])), qubit])
+        sta.push([cnots0, list(set(ilist).difference([j])), qubit])
+    [qcir, state] = cnot_synth(qcir, state, qreg, number, nsections)
+    return [qcir, qreg, state]
 
 
-def Lwr_CNOT_Synth(A, n, m):
-    circuit = []
-    if np.allclose(A, np.triu(A)):
-        return [A, circuit]
-    for sec in range(1,int(np.ceil(n/m)+1)): #iterate over column sections
-        #remove duplicate sub-rows in section sec
-        patt = {}
-        for row in range((sec-1)*m,n):
-            sub_row_patt = copy.deepcopy(A[row,(sec-1)*m:sec*m])
-            if not str(sub_row_patt) in patt:
-                patt[str(sub_row_patt)] = row
-            else:
-                A[row,:] ^= A[patt[str(sub_row_patt)],:]
-                circuit.append([patt[str(sub_row_patt)], row])
-        #Use gaussian elimination for remaining entries in column section
-        for col in range((sec-1)*m,sec*m):
-            #Check if 1 on diagonal
-            diag_one = 1
-            if A[col,col] == 0:
-                diag_one = 0
-            #Remove ones in rows below column col
-            for row in range(col+1,n):
-                if A[row,col] == 1:
-                    if diag_one == 0:
-                        A[col,:] ^= A[row,:]
-                        circuit.append([row, col])
-                        diag_one = 1
-                    A[row,:] ^= A[col,:]
-                    circuit.append([col, row])
-    return [A, circuit]
+def cnot_synth(qcir, state, qreg, number, nsections):
+    """
+    This function is an implementation of the algorithm for optimal synthesis of linear
+    reversible circuits, as described in the following paper:
+    "Optimal synthesis of linear reversible circuits."
+    Patel, Ketan N., Igor L. Markov, and John P. Hayes.
+    Quantum Information & Computation 8.3 (2008): 282-294.
 
+    Args:
+        qcir (QuantumCircuit): the initial Quantum Circuit
+        state (numpy.matrix): n by n matrix, describing the state of the input circuit
+        qreg (QuantumRegister): a Quantum Register
+        number (int): the number of quantum bits in the circuit
+        nsections (int): the number of partitions used in the below algorithm
 
-def CNOT_Synth(state, C, q, n, m):
-    state = np.matrix(state)
-    #Synthesize lower/upper tringular part
-    [state, circuit_l] = Lwr_CNOT_Synth(state, n, m)
+    Returns:
+        QuantumCircuit: a Quantum Circuit with added C-NOT gates
+        numpy.matrix: n by n matrix, describing the state of the output circuit
+    """
+
+    state = np.matrix(state)  # Making sure that state is a numpy matrix
+    # Synthesize lower triangular part
+    [state, circuit_l] = lwr_cnot_synth(state, number, nsections)
     circuit_l.reverse()
     state = np.transpose(state)
-    [state, circuit_u] = Lwr_CNOT_Synth(state, n, m)
-    for i in range(len(circuit_u)):
-        circuit_u[i].reverse()
-    for i in range(len(circuit_u+circuit_l)):
-        C.cx(q[circuit_u[i][0]], q[circuit_u[i][1]])
-    return [state, C]
+    # Synthesize upper triangular part
+    [state, circuit_u] = lwr_cnot_synth(state, number, nsections)
+    for i in circuit_u:
+        i.reverse()
+    # Convert the list into a circuit of C-NOT gates
+    for i in circuit_u+circuit_l:
+        qcir.cx(qreg[i[0]], qreg[i[1]])
+    return [qcir, state]
 
 
+def lwr_cnot_synth(state, number, nsections):
+    """
+    This function is a helper function of the algorithm for optimal synthesis of
+    linear reversible circuits, as described in the following paper:
+    "Optimal synthesis of linear reversible circuits."
+    Patel, Ketan N., Igor L. Markov, and John P. Hayes.
+    Quantum Information & Computation 8.3 (2008): 282-294.
+
+    Args:
+        state (numpy.matrix): n by n matrix, describing the state of the input circuit
+        number (int): the number of quantum bits in the circuit
+        nsections (int): the number of partitions used in the below algorithm
+
+    Returns:
+        numpy.matrix: n by n matrix, describing the state of the output circuit
+        list: a k by 2 list of C-NOT operations that need to be applied
+    """
+
+    circuit = []
+    # If the matrix is already an upper triangular one, there is no need for any transformations
+    if np.allclose(state, np.triu(state)):
+        return [state, circuit]
+    # Iterate over column sections
+    for sec in range(1, int(np.ceil(number/nsections)+1)):
+        # Remove duplicate sub-rows in section sec
+        patt = {}
+        for row in range((sec-1)*nsections, number):
+            sub_row_patt = copy.deepcopy(state[row, (sec-1)*nsections:sec*nsections])
+            if str(sub_row_patt) not in patt:
+                patt[str(sub_row_patt)] = row
+            else:
+                state[row, :] ^= state[patt[str(sub_row_patt)], :]
+                circuit.append([patt[str(sub_row_patt)], row])
+        # Use gaussian elimination for remaining entries in column section
+        for col in range((sec-1)*nsections, sec*nsections):
+            # Check if 1 on diagonal
+            diag_one = 1
+            if state[col, col] == 0:
+                diag_one = 0
+            # Remove ones in rows below column col
+            for row in range(col+1, number):
+                if state[row, col] == 1:
+                    if diag_one == 0:
+                        state[col, :] ^= state[row, :]
+                        circuit.append([row, col])
+                        diag_one = 1
+                        state[row, :] ^= state[col, :]
+                    circuit.append([col, row])
+    return [state, circuit]
 
 
+class Stack:
+    """
+    Implementation of a Stack with the possibility of returning a list of all elements at once
+    """
+
+    def __init__(self):
+        self.items = []
+
+    def isempty(self):
+        """
+        Check if stack is empty
+        """
+        return self.items == []
+
+    def push(self, item):
+        """
+        Add element to stack
+        """
+        self.items.append(item)
+
+    def pop(self):
+        """
+        Remove and return last element in stack
+        """
+        return self.items.pop()
+
+    def size(self):
+        """
+        Return length of stack
+        """
+        return len(self.items)
+
+    def elements(self):
+        """
+        Return all elements in stack
+        """
+        return self.items
 
 
+def union(lists):
+    """
+    Remove duplicates in list
 
+    Args:
+        lists (list): a list which may contain duplicate elements.
 
+    Returns:
+        list: a list which contains only unique elements.
+    """
 
-
+    union_list = []
+    for element in lists:
+        if element not in union_list:
+            union_list.append(element)
+    return union_list
