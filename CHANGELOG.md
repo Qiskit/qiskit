@@ -54,6 +54,11 @@ The format is based on [Keep a Changelog].
     (#2553)
 -   Added ``output_name`` as a transpiler parameter to set the name of
     output circuits (\#2745)
+-   Simple expressions of Parameters can now be created via the four basic math
+    operations (+,-,*,/). (#NNNN)
+-   A `ParmeterVector` class has been added to ease the construction of circuits
+    requiring a large number of parameters. (#2379)
+
 
 ### Changed
 

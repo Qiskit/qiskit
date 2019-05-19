@@ -40,7 +40,7 @@ import numpy
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameter import ParameterExpression
 from qiskit.qobj.models.qasm import QasmQobjInstruction
 
 _CUTOFF_PRECISION = 1E-10
@@ -135,7 +135,7 @@ class Instruction:
         self._params = []
         for single_param in parameters:
             # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (Parameter, sympy.Basic)):
+            if isinstance(single_param, (ParameterExpression, sympy.Basic)):
                 self._params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
