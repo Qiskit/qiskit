@@ -59,6 +59,7 @@ def graysynth(cnots, number, nsections):
                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                 if index == len(cnots_copy):
                     break
+                index -= 1
             index += 1
 
     # Implementation of the pseudo-code (Algorithm 1) in the aforementioned paper
@@ -81,7 +82,9 @@ def graysynth(cnots, number, nsections):
                             if np.array_equal(icnots, state[qubit]):
                                 qcir.t(qreg[qubit])
                                 cnots_copy = np.delete(cnots_copy, index, axis=0)
-                                break
+                                if index == len(cnots_copy):
+                                    break
+                                index -= 1
                             index += 1
                         for x in union(sta.elements() + [[cnots, ilist, qubit]]):
                             [cnotsp, _, _] = x
