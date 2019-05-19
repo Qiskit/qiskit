@@ -37,7 +37,7 @@ class QasmLexer:
     This is a wrapper around the PLY lexer to support the "include" statement
     by creating a stack of lexers.
     """
-    # pylint: disable=invalid-name,missing-docstring,unused-argument
+    # pylint: disable=invalid-name,missing-docstring
     # pylint: disable=attribute-defined-outside-init,bad-docstring-quotes
 
     def __mklexer__(self, filename):
@@ -129,6 +129,7 @@ class QasmLexer:
 
     def t_INCLUDE(self, t):
         'include'
+        del t  # unused
         #
         # Now eat up the next two tokens which must be
         # 1 - the name of the include file, and
@@ -190,6 +191,7 @@ class QasmLexer:
         t.lexer.lineno = self.lineno
 
     def t_eof(self, t):
+        del t  # unused
         if self.stack:
             self.pop()
             return self.lexer.token()
