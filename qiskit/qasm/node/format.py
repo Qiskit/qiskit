@@ -36,5 +36,5 @@ class Format(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding format string."""
-        # pylint: disable=unused-argument
+        del prec  # prec ignored
         return "%s %s;" % (self.language, self.version())

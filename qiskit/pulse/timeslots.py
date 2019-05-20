@@ -17,13 +17,11 @@ Timeslots for channels.
 """
 from collections import defaultdict
 import itertools
-import logging
 from typing import List, Tuple
 
 from .channels import Channel
 from .exceptions import PulseError
 
-logger = logging.getLogger(__name__)
 
 # pylint: disable=missing-return-doc
 
