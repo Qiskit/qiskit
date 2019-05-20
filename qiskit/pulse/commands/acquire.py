@@ -34,8 +34,8 @@ class Acquire(Command):
 
         Args:
             duration: Duration of acquisition
-            discriminator: Discriminators to be used
-                (from the list of available discriminator) if the measurement level is 2
+            discriminator: Discriminators to be used (from the list of available discriminator)
+                if the measurement level is 2
             kernel: The data structures defining the measurement kernels
                 to be used (from the list of available kernels) and set of parameters
                 (if applicable) if the measurement level is 1 or 2
