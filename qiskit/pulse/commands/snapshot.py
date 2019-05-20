@@ -28,10 +28,10 @@ class Snapshot(Command, Instruction):
         """Create new snapshot command.
 
         Args:
-            name: Snapshot name which is used to identify the snapshot in the output.
-            snap_type: Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
+            name: Snapshot name which is used to identify the snapshot in the output
+            snap_type: Type of snapshot, e.g., “state” (take a snapshot of the quantum state)
                 The types of snapshots offered are defined in a separate specification
-                document for simulators.
+                document for simulators
         """
         self._type = snap_type
         self._channel = SnapshotChannel()
@@ -49,10 +49,10 @@ class Snapshot(Command, Instruction):
         and have the same name and type.
 
         Args:
-            other: other Snapshot,
+            other: other Snapshot
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if (type(self) is type(other) and
                 self.name == other.name and

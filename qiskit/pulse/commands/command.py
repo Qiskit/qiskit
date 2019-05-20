@@ -32,10 +32,10 @@ class Command(metaclass=ABCMeta):
         """Create a new command.
 
         Args:
-            duration: Duration of this command.
-            name: Name of this command.
+            duration: Duration of this command
+            name: Name of this command
         Raises:
-            PulseError: when duration is not number of points.
+            PulseError: when duration is not number of points
         """
         if isinstance(duration, int):
             self._duration = duration
@@ -50,12 +50,12 @@ class Command(metaclass=ABCMeta):
 
     @property
     def duration(self) -> int:
-        """Duration of this command. """
+        """Duration of this command."""
         return self._duration
 
     @property
     def name(self) -> str:
-        """Name of this command. """
+        """Name of this command."""
         return self._name
 
     @abstractmethod
@@ -72,10 +72,10 @@ class Command(metaclass=ABCMeta):
         and have the same duration and name.
 
         Args:
-            other: other Command.
+            other: other Command
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if type(self) is type(other) and \
                 self._duration == other._duration and \

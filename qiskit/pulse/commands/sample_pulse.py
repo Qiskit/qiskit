@@ -33,10 +33,10 @@ class SamplePulse(Command):
         """Create new sample pulse command.
 
         Args:
-            samples: Complex array of pulse envelope.
-            name: Unique name to identify the pulse.
+            samples: Complex array of pulse envelope
+            name: Unique name to identify the pulse
         Raises:
-            PulseError: when pulse envelope amplitude exceeds 1.
+            PulseError: when pulse envelope amplitude exceeds 1
         """
         super().__init__(duration=len(samples), name=name)
 
@@ -65,7 +65,7 @@ class SamplePulse(Command):
                 (this depends on the matplotlib backend being used supporting this)
 
         Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse envelope.
+            matplotlib.figure: A matplotlib figure object of the pulse envelope
         """
         # pylint: disable=invalid-name, cyclic-import
 
@@ -83,7 +83,7 @@ class SamplePulse(Command):
             other: other SamplePulse
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if super().__eq__(other) and \
                 (self._samples == other._samples).all():
@@ -103,7 +103,7 @@ class SamplePulse(Command):
 
 
 class PulseInstruction(Instruction):
-    """Instruction to drive a pulse to an `PulseChannel`. """
+    """Instruction to drive a pulse to an `PulseChannel`."""
 
     def __init__(self, command: SamplePulse, channel: PulseChannel, name=None):
         super().__init__(command, channel, name=name)

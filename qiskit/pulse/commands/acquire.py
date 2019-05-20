@@ -33,12 +33,12 @@ class Acquire(Command):
         """Create new acquire command.
 
         Args:
-            duration: Duration of acquisition.
+            duration: Duration of acquisition
             discriminator: Discriminators to be used
-                (from the list of available discriminator) if the measurement level is 2.
+                (from the list of available discriminator) if the measurement level is 2
             kernel: The data structures defining the measurement kernels
                 to be used (from the list of available kernels) and set of parameters
-                (if applicable) if the measurement level is 1 or 2.
+                (if applicable) if the measurement level is 1 or 2
 
         Raises:
             PulseError: when invalid discriminator or kernel object is input.
@@ -103,7 +103,7 @@ class Acquire(Command):
 
 
 class AcquireInstruction(Instruction):
-    """Pulse to acquire measurement result. """
+    """Pulse to acquire measurement result."""
 
     def __init__(self,
                  command: Acquire,
@@ -147,15 +147,15 @@ class AcquireInstruction(Instruction):
 
     @property
     def acquires(self):
-        """Acquire channels to be acquired on. """
+        """Acquire channels to be acquired on."""
         return self._acquires
 
     @property
     def mem_slots(self):
-        """MemorySlots. """
+        """MemorySlots."""
         return self._mem_slots
 
     @property
     def reg_slots(self):
-        """RegisterSlots. """
+        """RegisterSlots."""
         return self._reg_slots

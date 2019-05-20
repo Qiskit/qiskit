@@ -35,14 +35,15 @@ class Instruction(ScheduleComponent):
     def __init__(self, command, *channels: List[Channel],
                  timeslots: TimeslotCollection = None, name=None):
         """
-        command: Pulse command to schedule
-        *channels: List of pulse channels to schedule with command
-        timeslots: Optional list of timeslots. If channels are supplied timeslots
-            cannot also be given
-        name: Name of Instruction
+        Args:
+            command: Pulse command to schedule
+            *channels: List of pulse channels to schedule with command
+            timeslots: Optional list of timeslots. If channels are supplied timeslots
+                cannot also be given
+            name: Name of Instruction
 
         Raises:
-            PulseError: If both channels and timeslots are supplied.
+            PulseError: If both channels and timeslots are supplied
         """
         self._command = command
         self._name = name if name else self._command.name
@@ -81,17 +82,17 @@ class Instruction(ScheduleComponent):
 
     @property
     def timeslots(self) -> TimeslotCollection:
-        """Occupied time slots by this instruction. """
+        """Occupied time slots by this instruction."""
         return self._timeslots
 
     @property
     def start_time(self) -> int:
-        """Relative begin time of this instruction. """
+        """Relative begin time of this instruction."""
         return self.timeslots.start_time
 
     @property
     def stop_time(self) -> int:
-        """Relative end time of this instruction. """
+        """Relative end time of this instruction."""
         return self.timeslots.stop_time
 
     @property
@@ -106,7 +107,7 @@ class Instruction(ScheduleComponent):
 
     @property
     def _children(self) -> Tuple[ScheduleComponent]:
-        """Instruction has no child nodes. """
+        """Instruction has no child nodes."""
         return ()
 
     @property
@@ -146,7 +147,7 @@ class Instruction(ScheduleComponent):
 
         Yields:
             Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
-                at and the flattened `ScheduleComponent`.
+                at and the flattened `ScheduleComponent`
         """
         yield (time, self)
 
@@ -158,7 +159,7 @@ class Instruction(ScheduleComponent):
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
-            *schedules: Schedules to be take the union with the parent `Schedule`.
+            *schedules: Schedules to be take the union with the parent `Schedule`
             name: Name of the new schedule. Defaults to name of parent
         """
         return ops.union(self, *schedules, name=name)
@@ -221,7 +222,7 @@ class Instruction(ScheduleComponent):
 
 
         Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse schedule.
+            matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=invalid-name, cyclic-import
 

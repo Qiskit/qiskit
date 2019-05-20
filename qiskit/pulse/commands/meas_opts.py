@@ -46,10 +46,10 @@ class MeasOpts:
         and have the same name and params.
 
         Args:
-            other: Other Discriminator/Kernel.
+            other: Other Discriminator/Kernel
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if type(self) is type(other) and \
                 self._name == other._name and \
@@ -68,7 +68,7 @@ class Discriminator(MeasOpts):
         """Create new discriminator.
 
         Parameters:
-            name: Name of discriminator to be used.
+            name: Name of discriminator to be used
         """
         super().__init__(name, **params)
 
@@ -80,6 +80,6 @@ class Kernel(MeasOpts):
         """Create new kernel.
 
         Parameters:
-            name: Name of kernel to be used.
+            name: Name of kernel to be used
         """
         super().__init__(name, **params)

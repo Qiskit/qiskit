@@ -29,10 +29,10 @@ class PersistentValue(Command):
         """create new persistent value command.
 
         Args:
-            value: Complex value to apply, bounded by an absolute value of 1.
-                The allowable precision is device specific.
+            value: Complex value to apply, bounded by an absolute value of 1
+                The allowable precision is device specific
         Raises:
-            PulseError: when input value exceed 1.
+            PulseError: when input value exceed 1
         """
         super().__init__(duration=0)
 
@@ -54,7 +54,7 @@ class PersistentValue(Command):
             other: other PersistentValue
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if type(self) is type(other) and \
                 self.value == other.value:
@@ -71,7 +71,7 @@ class PersistentValue(Command):
 
 
 class PersistentValueInstruction(Instruction):
-    """Instruction to keep persistent value. """
+    """Instruction to keep persistent value."""
 
     def __init__(self, command: PersistentValue, channel: PulseChannel, name=None):
         super().__init__(command, channel, name=name)

@@ -28,8 +28,7 @@ class FrameChange(Command):
         """Create new frame change pulse.
 
         Args:
-            phase: Frame change phase in radians.
-                The allowable precision is device specific.
+            phase: Frame change phase in radians. The allowable precision is device specific
         """
         super().__init__(duration=0)
         self._phase = phase
@@ -40,14 +39,13 @@ class FrameChange(Command):
         return self._phase
 
     def __eq__(self, other: 'FrameChange'):
-        """Two FrameChanges are the same if they are of the same type
-        and have the same phase.
+        """Two FrameChanges are the same if they are of the same type and phase.
 
         Args:
             other: other FrameChange
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if type(self) is type(other) and \
                 self.phase == other.phase:
@@ -64,7 +62,7 @@ class FrameChange(Command):
 
 
 class FrameChangeInstruction(Instruction):
-    """Instruction to change frame of an `PulseChannel`. """
+    """Instruction to change frame of an `PulseChannel`."""
 
     def __init__(self, command: FrameChange, channel: PulseChannel, name=None):
         super().__init__(command, channel, name=name)
