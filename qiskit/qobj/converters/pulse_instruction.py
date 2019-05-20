@@ -308,7 +308,7 @@ def _parse_string_expr(expr):  # pylint: disable=missing-return-type-doc
         subs = {}
         matched_params = []
         if args:
-            subs.update({symbols[i]: arg for i, arg in enumerate(args)})
+            subs.update({Symbol(symbols[i]): arg for i, arg in enumerate(args)})
             matched_params += list(params[i] for i in range(len(args)))
         if kwargs:
             subs.update({local_dict[key]: value for key, value in kwargs.items()
