@@ -24,7 +24,6 @@ import logging
 import math
 
 import numpy as np
-import sympy
 
 try:
     from matplotlib import patches
