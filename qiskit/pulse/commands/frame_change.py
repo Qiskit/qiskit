@@ -32,7 +32,7 @@ class FrameChange(Command):
                 The allowable precision is device specific.
         """
         super().__init__(duration=0)
-        self._phase = phase
+        self._phase = float(phase)
 
     @property
     def phase(self):
