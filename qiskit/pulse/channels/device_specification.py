@@ -15,7 +15,6 @@
 """
 Specification of the device.
 """
-import logging
 from typing import List
 
 from qiskit.validation.exceptions import ModelValidationError
@@ -23,8 +22,6 @@ from qiskit.validation.exceptions import ModelValidationError
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
-
-logger = logging.getLogger(__name__)
 
 
 class DeviceSpecification:
