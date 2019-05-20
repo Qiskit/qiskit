@@ -15,10 +15,8 @@
 """Assemble function for converting a list of circuits into a qobj"""
 import logging
 
-import numpy as np
-
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands import PulseInstruction, AcquireInstruction
+from qiskit.pulse.commands import PulseInstruction, AcquireInstruction, SamplePulse
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
@@ -63,13 +61,15 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
             if isinstance(instruction, PulseInstruction):
-                name = instruction.command._name
-                if name in user_pulselib and not np.allclose(instruction.command.samples,
-                                                             user_pulselib[name]):
+                name = instruction.command.name
+                if name in user_pulselib and instruction.command != user_pulselib[name]:
                     name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
+                    instruction = PulseInstruction(
+                        command=SamplePulse(name=name, samples=instruction.command.samples),
+                        name=instruction.name,
+                        channel=instruction.timeslots.channels[0])
                 # add samples to pulse library
-                user_pulselib[name] = instruction.command.samples
-                instruction.command._name = name
+                user_pulselib[name] = instruction.command
             if isinstance(instruction, AcquireInstruction):
                 if meas_map:
                     # verify all acquires satisfy meas_map
@@ -87,8 +87,8 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         })
 
     # setup pulse_library
-    qobj_config['pulse_library'] = [PulseLibraryItem(name=name, samples=samples)
-                                    for name, samples in user_pulselib.items()]
+    qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
+                                    for pulse in user_pulselib.values()]
 
     # create qobj experiment field
     experiments = []
