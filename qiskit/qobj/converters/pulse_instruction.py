@@ -298,7 +298,7 @@ def _parse_string_expr(expr):  # pylint: disable=missing-return-type-doc
         raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
     params = sorted(re.findall(_param_regex, expr))
     local_dict = {param: Symbol(param) for param in params}
-    symbols = list(local_dict.keys())
+    symbols = sorted(list(local_dict.keys()))
     transformations = (standard_transformations + (implicit_multiplication_application,) +
                        (function_exponentiation,))
 
