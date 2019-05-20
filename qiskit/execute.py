@@ -18,11 +18,7 @@ Helper module for simplified Qiskit usage.
 In general we recommend using the SDK modules directly. However, to get something
 running quickly we have provided this wrapper module.
 """
-import logging
-
 from qiskit.compiler import transpile, assemble
-
-logger = logging.getLogger(__name__)
 
 
 def execute(experiments, backend,
