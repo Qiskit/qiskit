@@ -373,6 +373,7 @@ def _latex_circuit_drawer(circuit,
         OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
                  missing.
         CalledProcessError: usually points errors during diagram creation.
+        ImportError: if pillow is not installed
     """
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:

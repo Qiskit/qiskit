@@ -58,6 +58,8 @@ class QCircuitImage:
                registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
+        Raises:
+            ImportError: If pylatexenc is not installed
         """
         if not HAS_PYLATEX:
             raise ImportError('The latex and latex_source drawers need '
