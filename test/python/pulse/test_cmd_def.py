@@ -83,7 +83,7 @@ class TestCmdDef(QiskitTestCase):
         cmd_def.add('pv_test', 0, converted_instruction)
         self.assertEqual(cmd_def.get_parameters('pv_test', 0), ('P1', 'P2'))
 
-        sched = cmd_def.get('pv_test', 0, P1='0', P2=-1)
+        sched = cmd_def.get('pv_test', 0, '0', P2=-1)
         self.assertEqual(sched.instructions[0][-1].command.value, -1)
 
     def test_build_cmd_def(self):

@@ -116,6 +116,7 @@ class CmdDef:
         return False
 
     def get(self, cmd_name: str, qubits: Union[int, Iterable[int]],
+            *args: List[Union[float, complex]],
             **params: Dict[str, Union[float, complex]]) -> Schedule:
         """Get command from command definition.
         Args:
@@ -131,7 +132,7 @@ class CmdDef:
             schedule = self._cmd_dict[cmd_name][qubits]
 
             if isinstance(schedule, ParameterizedSchedule):
-                return schedule.bind_parameters(**params)
+                return schedule.bind_parameters(*args, **params)
 
             return schedule.flatten()
 
@@ -158,6 +159,7 @@ class CmdDef:
                              'in CmdDef'.format(cmd_name, qubits))
 
     def pop(self, cmd_name: str, qubits: Union[int, Iterable[int]],
+            *args: List[Union[float, complex]],
             **params: Dict[str, Union[float, complex]]) -> Schedule:
         """Pop command from command definition.
 
@@ -175,7 +177,7 @@ class CmdDef:
             schedule = cmd_dict.pop(qubits)
 
             if isinstance(schedule, ParameterizedSchedule):
-                return schedule.bind_parameters(**params)
+                return schedule.bind_parameters(*args, **params)
 
             return schedule
 
