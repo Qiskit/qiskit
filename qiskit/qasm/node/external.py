@@ -37,8 +37,7 @@ class External(Node):
 
     def latex(self, prec=15, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        # pylint: disable=unused-argument
-        # TODO prec ignored
+        del prec  # TODO prec ignored
         return sympy.latex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):
