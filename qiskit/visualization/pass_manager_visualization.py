@@ -84,19 +84,19 @@ def pass_manager_drawer(pass_manager, filename, style=None):
         # create the subgraph for this controller
         subgraph = pydot.Cluster(str(id(controller_group)), label=label)
 
-        for pss in controller_group['passes']:
+        for pass_ in controller_group['passes']:
 
             # label is the name of the pass
             node = pydot.Node(str(node_id),
-                              label=str(type(pss).__name__),
-                              color=_get_node_color(pss, style),
+                              label=str(type(pass_).__name__),
+                              color=_get_node_color(pass_, style),
                               shape="rectangle")
 
             subgraph.add_node(node)
             node_id += 1
 
             # the arguments that were provided to the pass when it was created
-            arg_spec = inspect.getfullargspec(pss.__init__)
+            arg_spec = inspect.getfullargspec(pass_.__init__)
             # 0 is the args, 1: to remove the self arg
             args = arg_spec[0][1:]
 

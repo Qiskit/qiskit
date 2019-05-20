@@ -21,6 +21,7 @@ from .propertyset import PropertySet
 from .basepasses import BasePass
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
+from qiskit.visualization import pass_manager_drawer
 
 
 class PassManager():
@@ -151,7 +152,6 @@ class PassManager():
 
     def draw(self, filename, style=None):
         """ Draw the pass manager"""
-        from qiskit.visualization import pass_manager_drawer
         pass_manager_drawer(self, filename=filename, style=style)
 
     def _do_pass(self, pass_, dag, options):
