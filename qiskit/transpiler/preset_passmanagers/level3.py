@@ -105,12 +105,12 @@ def level_3_pass_manager(transpile_config):
 
     _opt = [RemoveResetInZeroState(),
             Collect2qBlocks(), ConsolidateBlocks(),
-            Unroller(basis_gates), CXDirection(coupling_map),  # unroll unitaries and match coupling
+            Unroller(basis_gates),
             Optimize1qGates(), CommutativeCancellation(),
             OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    if not coupling_map:
-        _opt.pop(4)  # if no coupling map, don't call the CXDirection pass
+    if coupling_map:
+        _opt.append(CXDirection(coupling_map))  # if coupling map has been provided, unroll unitaries and match coupling
 
     pm3 = PassManager()
     if coupling_map:
