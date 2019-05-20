@@ -77,6 +77,7 @@ class TestUserConfig(QiskitTestCase):
         self.assertEqual({'circuit_drawer': 'latex',
                           'circuit_mpl_style': 'default'}, config.settings)
 
+    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_optimization_level_valid(self):
         test_config = """
         [default]
