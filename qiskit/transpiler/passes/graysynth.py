@@ -35,8 +35,6 @@ def graysynth(cnots, number, nsections):
 
     Returns:
         QuantumCircuit: the quantum circuit
-        QuantumRegister: the quantum register
-        numpy.matrix: an n by n matrix describing the output state of the circuit
     """
 
     # Create a Quantum Register with n quantum bits.
@@ -46,7 +44,7 @@ def graysynth(cnots, number, nsections):
 
     range_list = list(range(number))
     epsilon = number
-    sta = Stack()
+    sta = Storage()
     cnots_copy = np.transpose(np.array(copy.deepcopy(cnots)))
     state = np.eye(number).astype('int')  # This matrix keeps track of the state in the algorithm
 
@@ -86,7 +84,7 @@ def graysynth(cnots, number, nsections):
                                     break
                                 index -= 1
                             index += 1
-                        for x in union(sta.elements() + [[cnots, ilist, qubit]]):
+                        for x in remove_duplicates(sta.elements() + [[cnots, ilist, qubit]]):
                             [cnotsp, _, _] = x
                             if cnotsp == []:
                                 continue
@@ -110,8 +108,8 @@ def graysynth(cnots, number, nsections):
         else:
             sta.push([cnots1, list(set(ilist).difference([j])), qubit])
         sta.push([cnots0, list(set(ilist).difference([j])), qubit])
-    [qcir, state] = cnot_synth(qcir, state, qreg, number, nsections)
-    return [qcir, qreg, state]
+    qcir = cnot_synth(qcir, state, qreg, number, nsections)
+    return qcir
 
 
 def cnot_synth(qcir, state, qreg, number, nsections):
@@ -131,7 +129,6 @@ def cnot_synth(qcir, state, qreg, number, nsections):
 
     Returns:
         QuantumCircuit: a Quantum Circuit with added C-NOT gates
-        numpy.matrix: n by n matrix, describing the state of the output circuit
     """
 
     state = np.matrix(state)  # Making sure that state is a numpy matrix
@@ -146,7 +143,7 @@ def cnot_synth(qcir, state, qreg, number, nsections):
     # Convert the list into a circuit of C-NOT gates
     for i in circuit_l + circuit_u:
         qcir.cx(qreg[i[0]], qreg[i[1]])
-    return [qcir, state]
+    return qcir
 
 
 def lwr_cnot_synth(state, number, nsections):
@@ -202,46 +199,40 @@ def lwr_cnot_synth(state, number, nsections):
     return [state, circuit]
 
 
-class Stack:
+class Storage:
     """
-    Implementation of a Stack with the possibility of returning a list of all elements at once
+    Implementation of a Storage with the possibility of returning a list of all elements at once
     """
 
     def __init__(self):
         self.items = []
 
+    def elements(self):
+        """
+        Return all elements in Storage
+        """
+        return self.items
+
     def isempty(self):
         """
-        Check if stack is empty
+        Check if Storage is empty
         """
         return self.items == []
 
     def push(self, item):
         """
-        Add element to stack
+        Add element to Storage
         """
         self.items.append(item)
 
     def pop(self):
         """
-        Remove and return last element in stack
+        Remove and return last element in Storage
         """
         return self.items.pop()
 
-    def size(self):
-        """
-        Return length of stack
-        """
-        return len(self.items)
 
-    def elements(self):
-        """
-        Return all elements in stack
-        """
-        return self.items
-
-
-def union(lists):
+def remove_duplicates(lists):
     """
     Remove duplicates in list
 
@@ -252,8 +243,8 @@ def union(lists):
         list: a list which contains only unique elements.
     """
 
-    union_list = []
+    unique_list = []
     for element in lists:
-        if element not in union_list:
-            union_list.append(element)
-    return union_list
+        if element not in unique_list:
+            unique_list.append(element)
+    return unique_list

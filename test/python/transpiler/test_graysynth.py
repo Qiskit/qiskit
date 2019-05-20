@@ -56,7 +56,7 @@ class TestGraySynth():
         cnots = [[0, 0, 0, 1, 0, 0], [1, 1, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0], [0, 0, 1, 1, 0, 0],
                  [1, 1, 1, 1, 1, 1], [1, 0, 0, 1, 0, 0]]
         cnots = list(map(list, zip(*cnots)))
-        [c_gray, _, _] = graysynth(cnots, n, m)  # Run the graysynth algorithm with S2
+        c_gray = graysynth(cnots, n, m)  # Run the graysynth algorithm with S2
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result_gray = execute(c_gray, backend_sim).result()
         unitary_gray = result_gray.get_unitary(c_gray)
