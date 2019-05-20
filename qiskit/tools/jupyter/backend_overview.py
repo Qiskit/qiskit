@@ -39,9 +39,10 @@ class BackendOverview(Magics):
         default=60,
         help='Interval for status check.'
     )
-    def qiskit_backend_overview(self, line='', cell=None):  # pylint: disable=W0613
+    def qiskit_backend_overview(self, line='', cell=None):
         """A Jupyter magic function to monitor backends.
         """
+        del cell  # Unused
         args = magic_arguments.parse_argstring(
             self.qiskit_backend_overview, line)
 
