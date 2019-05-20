@@ -17,11 +17,11 @@ from functools import partial
 from collections import OrderedDict
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.visualization import pass_manager_drawer
 from .propertyset import PropertySet
 from .basepasses import BasePass
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
-from qiskit.visualization import pass_manager_drawer
 
 
 class PassManager():
