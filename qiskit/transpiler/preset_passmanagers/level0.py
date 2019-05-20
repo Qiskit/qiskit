@@ -85,8 +85,6 @@ def level_0_pass_manager(transpile_config):
     def _direction_condition(property_set):
         return not coupling_map.is_symmetric and not property_set['is_direction_mapped']
 
-    _direction = [CXDirection(coupling_map)]
-
     # 6. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
@@ -99,9 +97,9 @@ def level_0_pass_manager(transpile_config):
     if coupling_map:
         pm0.append(_swap_check)
         pm0.append(_swap, condition=_swap_condition)
-        # pm0.append(_direction_check)  # TODO
-        pm0.append(_direction, condition=_direction_condition)
+        pm0.append(CXDirection(coupling_map), condition=_direction_condition)
     pm0.append(_reset)
-    pm0.append(_direction)
+    if coupling_map:
+        pm0.append(CXDirection(coupling_map))
 
     return pm0
