@@ -108,11 +108,11 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
 
         self.assertEqual(expected, new_circuit)
@@ -130,8 +130,10 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
-        passmanager.append([CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint('size')],
-          		   do_while=lambda property_set: not property_set['size_fixed_point'])
+        passmanager.append([CommutationAnalysis(),
+                            CommutativeCancellation(),
+                            Size(), FixedPoint('size')],
+                           do_while=lambda property_set: not property_set['size_fixed_point'])
         new_circuit = transpile(circuit, pass_manager=passmanager)
         expected = QuantumCircuit(qr)
 
@@ -148,14 +150,14 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
-        circuit.cx(qr[1],qr[0])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[1], qr[0])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
-        expected.cx(qr[0],qr[1])
-        expected.cx(qr[1],qr[0])
+        expected.cx(qr[0], qr[1])
+        expected.cx(qr[1], qr[0])
 
         self.assertEqual(expected, new_circuit)
 
@@ -169,16 +171,16 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
+        circuit.cx(qr[0], qr[1])
         circuit.x(qr[0])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
-        expected.cx(qr[0],qr[1])
+        expected.cx(qr[0], qr[1])
         expected.x(qr[0])
-        expected.cx(qr[0],qr[1])
+        expected.cx(qr[0], qr[1])
 
         self.assertEqual(expected, new_circuit)
 
@@ -186,18 +188,18 @@ class TestCommutativeCancellation(QiskitTestCase):
         """A simple circuit where the two cnots shoule be cancelled.
 
         qr0:----.------[Z]------.--       qr0:---[Z]---
-                |               |                               
+                |               |
         qr1:---(+)-------------(+)-   =   qr1:---------
         """
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
+        circuit.cx(qr[0], qr[1])
         circuit.z(qr[0])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
         expected.z(qr[0])
 
@@ -207,18 +209,18 @@ class TestCommutativeCancellation(QiskitTestCase):
         """A simple circuit where the two cnots shoule be cancelled.
 
         qr0:----.------[T]------.--       qr0:---[T]---
-                |               |                               
+                |               |
         qr1:---(+)-------------(+)-   =   qr1:---------
         """
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
+        circuit.cx(qr[0], qr[1])
         circuit.t(qr[0])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
         expected.t(qr[0])
 
@@ -228,18 +230,18 @@ class TestCommutativeCancellation(QiskitTestCase):
         """A simple circuit where the two cnots shoule be cancelled.
 
         qr0:----.------[Rz]------.--       qr0:---[Rz]---
-                |                |                               
+                |                |
         qr1:---(+)-------- -----(+)-   =   qr1:----------
         """
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
+        circuit.cx(qr[0], qr[1])
         circuit.rz(sympy.pi / 3, qr[0])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
         circuit.rz(sympy.pi / 3, qr[0])
 
@@ -249,18 +251,18 @@ class TestCommutativeCancellation(QiskitTestCase):
         """A simple circuit where the two cnots shoule be cancelled.
 
         qr0:----.------[T]------.--       qr0:---[T]---
-                |               |                               
+                |               |
         qr1:---(+)-------------(+)-   =   qr1:---------
         """
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
+        circuit.cx(qr[0], qr[1])
         circuit.t(qr[0])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
         expected.t(qr[0])
 
@@ -277,16 +279,16 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
+        circuit.cx(qr[0], qr[1])
         circuit.z(qr[1])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
-        expected.cx(qr[0],qr[1])
+        expected.cx(qr[0], qr[1])
         expected.z(qr[1])
-        expected.cx(qr[0],qr[1])
+        expected.cx(qr[0], qr[1])
 
         self.assertEqual(expected, new_circuit)
 
@@ -300,16 +302,16 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
+        circuit.cx(qr[0], qr[1])
         circuit.t(qr[1])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
-        expected.cx(qr[0],qr[1])
+        expected.cx(qr[0], qr[1])
         expected.t(qr[1])
-        expected.cx(qr[0],qr[1])
+        expected.cx(qr[0], qr[1])
 
         self.assertEqual(expected, new_circuit)
 
@@ -323,16 +325,16 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.cx(qr[0],qr[1])
+        circuit.cx(qr[0], qr[1])
         circuit.rz(np.pi / 3, qr[1])
-        circuit.cx(qr[0],qr[1])
-        
-        pm = PassManager(CommutativeCancellation())
-        new_circuit = transpile(circuit, pass_manager=pm)
+        circuit.cx(qr[0], qr[1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
-        expected.cx(qr[0],qr[1])
+        expected.cx(qr[0], qr[1])
         expected.rz(np.pi / 3, qr[1])
-        expected.cx(qr[0],qr[1])
+        expected.cx(qr[0], qr[1])
 
         self.assertEqual(expected, new_circuit)
 
@@ -347,7 +349,7 @@ class TestCommutativeCancellation(QiskitTestCase):
                       |                                    |
         qr2:---[Rz]---.---[Rz]-[T]--[S]--     qr2:--[U1]---.---
         """
-        
+
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
@@ -382,7 +384,7 @@ class TestCommutativeCancellation(QiskitTestCase):
                         |        |
         qr3:-[Rz]--[X]-(+)------(+)--[X]-[Rz]-------     qr3:--[Rz]-------
         """
-        
+
         qr = QuantumRegister(4, 'qr')
         circuit = QuantumCircuit(qr)
 
@@ -403,8 +405,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.x(qr[1])
 
         passmanager = PassManager()
-        passmanager.append([CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint('size')],
-          		   do_while=lambda property_set: not property_set['size_fixed_point'])
+        passmanager.append([CommutationAnalysis(),
+                            CommutativeCancellation(), Size(), FixedPoint('size')],
+                           do_while=lambda property_set: not property_set['size_fixed_point'])
         new_circuit = transpile(circuit, pass_manager=passmanager)
         expected = QuantumCircuit(qr)
         expected.u1(sympy.pi * 17 / 12, qr[2])
@@ -412,7 +415,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         expected.cx(qr[2], qr[1])
 
         self.assertEqual(expected, new_circuit)
-        
+
     def test_cnot_cascade(self):
         """
         A cascade of CNOTs that equals identity.
@@ -442,8 +445,9 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
-        passmanager.append([CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint('size')],
-          		   do_while=lambda property_set: not property_set['size_fixed_point'])
+        passmanager.append([CommutationAnalysis(),
+                            CommutativeCancellation(), Size(), FixedPoint('size')],
+                           do_while=lambda property_set: not property_set['size_fixed_point'])
         new_circuit = transpile(circuit, pass_manager=passmanager)
         expected = QuantumCircuit(qr)
 
@@ -496,12 +500,14 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.rx(np.pi, qr[9])
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
-        passmanager.append([CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint('size')],
-          		   do_while=lambda property_set: not property_set['size_fixed_point'])
+        passmanager.append([CommutationAnalysis(),
+                            CommutativeCancellation(), Size(), FixedPoint('size')],
+                           do_while=lambda property_set: not property_set['size_fixed_point'])
         new_circuit = transpile(circuit, pass_manager=passmanager)
         expected = QuantumCircuit(qr)
 
         self.assertEqual(expected, new_circuit)
+
 
 if __name__ == '__main__':
     unittest.main()

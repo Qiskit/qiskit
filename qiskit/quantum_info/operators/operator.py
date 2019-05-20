@@ -283,7 +283,7 @@ class Operator(BaseOperator):
             raise QiskitError("other operator has different dimensions.")
         return Operator(self.data * other.data - other.data * self.data, self.input_dims(),
                         self.output_dims())
-    
+
     @property
     def _shape(self):
         """Return the tensor shape of the matrix operator"""

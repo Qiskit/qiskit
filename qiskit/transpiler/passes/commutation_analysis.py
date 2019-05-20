@@ -32,6 +32,7 @@ from qiskit.quantum_info.operators import Operator
 
 _CUTOFF_PRECISION = 1E-10
 
+
 class CommutationAnalysis(AnalysisPass):
     """An analysis pass to find commutation relations between DAG nodes."""
 
@@ -63,7 +64,7 @@ class CommutationAnalysis(AnalysisPass):
             for (_, _, edge_data) in dag.edges(node):
                 edge_name = edge_data['name']
                 self.property_set['commutation_set'][(node, edge_name)] = -1
-        
+
         # Construct the commutation set
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
@@ -78,7 +79,7 @@ class CommutationAnalysis(AnalysisPass):
                     prev_gate = current_comm_set[-1][-1]
                     does_commute = False
                     try:
-                        does_commute = _commute(dag, current_gate, prev_gate)
+                        does_commute = _commute(current_gate, prev_gate)
                     except TranspilerError:
                         pass
                     if does_commute:
@@ -90,7 +91,8 @@ class CommutationAnalysis(AnalysisPass):
                 temp_len = len(current_comm_set)
                 self.property_set['commutation_set'][(current_gate, wire_name)] = temp_len - 1
 
-def _commute(dag, node1, node2):
+
+def _commute(node1, node2):
 
     if node1.type != "op" or node2.type != "op":
 

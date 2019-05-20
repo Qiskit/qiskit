@@ -29,6 +29,7 @@ from qiskit.extensions.standard.rx import RXGate
 
 _CUTOFF_PRECISION = 1E-5
 
+
 class CommutativeCancellation(TransformationPass):
     """
     Transformation pass that cancels the redundant
@@ -51,20 +52,20 @@ class CommutativeCancellation(TransformationPass):
         Raises:
             TranspilerError: when the 1 qubit rotation gates are not found
         """
-        
+
         # Now the gates supported are hard-coded
         q_gate_list = ['cx', 'cy', 'cz', 'h', 'y']
 
         # Gate sets to be cancelled
         cancellation_sets = defaultdict(lambda: [])
-        
+
         # Traverse each qubit to generate the cancel dictionaries
         # Cancel dictionaries:
-        #   - For 1 qubit gates the key is (gate_type, qubit_id, commutation_set_id), 
-        #     the value is the list of gates that share the same gate type, qubit, commutation set.
-        #   - For 2 qubit gates the key is (gate_type, first_qubit, second_qubit, first commutation_set_id,
-        #     second_commutation_set_id), the value is the list gates that share the same gate type, qubits
-        #     and commutation sets.
+        #  - For 1 qubit gates the key is (gate_type, qubit_id, commutation_set_id),
+        #    the value is the list of gates that share the same gate type, qubit, commutation set.
+        #  - For 2qbit gates the key: (gate_type, first_qbit, sec_qbit, first commutation_set_id,
+        #    sec_commutation_set_id), the value is the list gates that share the same gate type,
+        #    qubits and commutation sets.
 
         for wire in dag.wires:
             wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
@@ -124,7 +125,7 @@ class CommutativeCancellation(TransformationPass):
                     new_op = U1Gate(total_angle)
                 elif cancel_set_key[0] == 'x_rotation':
                     new_op = RXGate(total_angle)
-                
+
                 if np.mod(total_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
                     new_qarg = (QuantumRegister(1, 'q'), 0)
                     new_dag = DAGCircuit()
@@ -142,6 +143,6 @@ class CommutativeCancellation(TransformationPass):
                     dag.remove_op_node(current_node)
 
                 if np.mod(total_angle, (2 * np.pi)) < _CUTOFF_PRECISION:
-                    dag.remove_op_node(run[0]) 
+                    dag.remove_op_node(run[0])
 
         return dag
