@@ -20,6 +20,7 @@ from qiskit.tools.parallel import parallel_map
 from qiskit.transpiler.transpile_config import TranspileConfig
 from qiskit.transpiler.transpile_circuit import transpile_circuit
 from qiskit.pulse import Schedule
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 def transpile(circuits,
@@ -136,7 +137,18 @@ def transpile(circuits,
                                               backend_properties, initial_layout,
                                               seed_transpiler, optimization_level,
                                               pass_manager)
-
+    # Check number of virtual qubits vs physical qubits
+    parsed_coupling_maps = list(config.coupling_map for config in transpile_configs)
+    for circuit, coupling_map in zip(circuits, parsed_coupling_maps):
+        # If coupling_map is not None
+        if isinstance(coupling_map, CouplingMap):
+            n_qubits = len(circuit.qubits)
+            max_qubits = coupling_map.size()
+            if n_qubits > max_qubits:
+                raise TranspilerError('Number of qubits {} '.format(n_qubits) +
+                                      'in {} '. format(circuit.name) +
+                                      'is greater than maximum ({}) '.format(max_qubits) +
+                                      'for "{}".'.format(backend.name()))
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
 
