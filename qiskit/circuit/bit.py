@@ -62,3 +62,9 @@ class Bit:
         if isinstance(other, tuple):
             return other[1] == self.index and other[0] == self.register
         return other.index == self.index and other.register == self.register
+
+    @property
+    def __class__(self):
+        warn('Bit-as-tuple is deprecated. Replace isinstance(qr[0], tuple) for '
+             'isinstance(qr[0], Qubit).', DeprecationWarning)
+        return tuple
