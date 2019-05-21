@@ -423,7 +423,7 @@ class QuantumCircuit:
                                   " with %s." % (regs,))
 
         for register in regs:
-            if register in self.qregs or register in self.cregs:
+            if register.name in [reg.name for reg in self.qregs + self.cregs]:
                 raise QiskitError("register name \"%s\" already exists"
                                   % register.name)
             if isinstance(register, QuantumRegister):
