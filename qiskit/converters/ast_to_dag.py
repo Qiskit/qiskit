@@ -126,6 +126,7 @@ class AstInterpreter:
         Return a list of tuples (Register,index).
         """
         reg = None
+
         if node.name in self.dag.qregs:
             reg = self.dag.qregs[node.name]
         elif node.name in self.dag.cregs:
@@ -137,12 +138,12 @@ class AstInterpreter:
 
         if node.type == "indexed_id":
             # An indexed bit or qubit
-            return [(reg, node.index)]
+            return [reg[node.index]]
         elif node.type == "id":
             # A qubit or qreg or creg
             if not self.bit_stack[-1]:
                 # Global scope
-                return [(reg, j) for j in range(reg.size)]
+                return [bit for bit in reg]
             else:
                 # local scope
                 if node.name in self.bit_stack[-1]:
@@ -345,7 +346,7 @@ class AstInterpreter:
         Args:
             name (str): operation name to apply to the dag.
             params (list): op parameters
-            qargs (list(QuantumRegister, int)): qubits to attach to
+            qargs (list(Qubit)): qubits to attach to
 
         Raises:
             QiskitError: if encountering a non-basis opaque gate

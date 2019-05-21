@@ -40,6 +40,11 @@ Removed
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
 
+Changed
+-------
+- Qubits and classical bits are not represented as a tuples anymore, but as
+  instances of ``Qubit`` and ``Clbit`` respectively.
+
 `0.8.0`_ - 2019-05-02
 =====================
 
