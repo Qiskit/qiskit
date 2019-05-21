@@ -30,10 +30,8 @@ REQUIREMENTS = [
     "marshmallow_polyfield>=3.2,<4",
     "networkx>=2.2",
     "numpy>=1.13",
-    "pillow>=4.2.1",
     "ply>=3.10",
     "psutil>=5",
-    "pylatexenc>=1.4",
     "scipy>=1.0",
     "sympy>=1.3"
 ]
@@ -101,7 +99,7 @@ setup(
     python_requires=">=3.5",
     extras_require={
         'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
-                          'pydot'],
+                          'pydot', "pillow>=4.2.1", "pylatexenc>=1.4"],
         'full-featured-simulators': ['qiskit-aer>=0.1']
     },
     project_urls={

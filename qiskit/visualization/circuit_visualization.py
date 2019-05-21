@@ -28,7 +28,11 @@ import os
 import subprocess
 import tempfile
 
-from PIL import Image
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 from qiskit import user_config
 from qiskit.visualization import exceptions
@@ -369,6 +373,7 @@ def _latex_circuit_drawer(circuit,
         OSError: usually indicates that ```pdflatex``` or ```pdftocairo``` is
                  missing.
         CalledProcessError: usually points errors during diagram creation.
+        ImportError: if pillow is not installed
     """
     tmpfilename = 'circuit'
     with tempfile.TemporaryDirectory() as tmpdirname:
@@ -399,6 +404,10 @@ def _latex_circuit_drawer(circuit,
                            'be found in latex_error.log')
             raise
         else:
+            if not HAS_PIL:
+                raise ImportError('The latex drawer needs pillow installed. '
+                                  'Run "pip install pillow" before using the '
+                                  'latex drawer.')
             try:
                 base = os.path.join(tmpdirname, tmpfilename)
                 subprocess.run(["pdftocairo", "-singlefile", "-png", "-q",
