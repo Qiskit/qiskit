@@ -16,7 +16,7 @@
 Sets property_set['layout'] to layout.
 
 This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (tuple(QuantumRegister, int)) in increasing order.
+of the circuit (Qubit) in increasing order.
 """
 
 from qiskit.transpiler.basepasses import AnalysisPass
