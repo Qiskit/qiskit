@@ -12,3 +12,5 @@ stestr>=2.0.0
 PyGithub
 wheel
 cython>=0.27.1
+pillow>=4.2.1
+pylatexenc>=1.4
