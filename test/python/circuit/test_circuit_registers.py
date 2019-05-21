@@ -23,7 +23,7 @@ import numpy as np
 
 import qiskit.extensions.simulator
 from qiskit import BasicAer
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
 from qiskit import execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
@@ -68,13 +68,30 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qr1.size, 10)
         self.assertEqual(type(qr1), QuantumRegister)
 
+    def test_numpy_array_of_registers(self):
+        """Test numpy array of Registers .
+        See https://github.com/Qiskit/qiskit-terra/issues/1898
+        """
+        qrs = [QuantumRegister(2, name='q%s' % i) for i in range(5)]
+        qreg_array = np.array([], dtype=object, ndmin=1)
+        qreg_array = np.append(qreg_array, qrs)
+
+        expected = [qrs[0][0], qrs[0][1],
+                    qrs[1][0], qrs[1][1],
+                    qrs[2][0], qrs[2][1],
+                    qrs[3][0], qrs[3][1],
+                    qrs[4][0], qrs[4][1]]
+
+        self.assertEqual(len(qreg_array), 10)
+        self.assertEqual(qreg_array.tolist(), expected)
+
     def test_negative_index(self):
         """Test indexing from the back
         """
         qr1 = QuantumRegister(10, "q")
         cr1 = ClassicalRegister(10, "c")
-        self.assertEqual(qr1[-1], (qr1, 9))
-        self.assertEqual(qr1[-3:-1], [(qr1, 7), (qr1, 8)])
+        self.assertEqual(qr1[-1], qr1[9])
+        self.assertEqual(qr1[-3:-1], [qr1[7], qr1[8]])
         self.assertEqual(len(cr1[0:-2]), 8)
 
     def test_reg_equal(self):
@@ -155,7 +172,7 @@ class TestCircuitRegisters(QiskitTestCase):
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0:9:2])
         for i, index in enumerate(range(*sli.indices(sli.stop))):
-            self.assertEqual(qc.data[i][1][0][1], index)
+            self.assertEqual(qc.data[i][1][0].index, index)
 
     def test_apply_barrier_to_slice(self):
         """test applying barrier to register slice"""
@@ -169,8 +186,8 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(len(qc.data), 1)
         self.assertEqual(qc.data[0][0].name, 'barrier')
         self.assertEqual(len(qc.data[0][1]), n_qubits)
-        for i, (_, idx) in enumerate(qc.data[0][1]):
-            self.assertEqual(idx, i)
+        for i, bit in enumerate(qc.data[0][1]):
+            self.assertEqual(bit.index, i)
         # test slice
         n_qubits = 2
         qc = QuantumCircuit(qr, cr)
@@ -180,7 +197,7 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qc.data[0][0].name, 'barrier')
         self.assertEqual(len(qc.data[0][1]), n_qubits)
         for i in range(n_qubits):
-            self.assertEqual(qc.data[0][1][i][1], i)
+            self.assertEqual(qc.data[0][1][i].index, i)
 
     def test_apply_ccx_to_slice(self):
         """test applying ccx to register slice"""
@@ -195,9 +212,9 @@ class TestCircuitRegisters(QiskitTestCase):
         for i, ictl, (gate, qargs, _) in zip(range(len(qc.data)), range(0, 10, 2), qc.data):
             self.assertEqual(gate.name, 'ccx')
             self.assertEqual(len(qargs), 3)
-            self.assertIn(qargs[0][1], [ictl, ictl + 1])
-            self.assertIn(qargs[1][1], [ictl, ictl + 1])
-            self.assertEqual(qargs[2][1], i)
+            self.assertIn(qargs[0].index, [ictl, ictl + 1])
+            self.assertIn(qargs[1].index, [ictl, ictl + 1])
+            self.assertEqual(qargs[2].index, i)
         # test decrementing slice
         qc = QuantumCircuit(qcontrol, qtarget)
         qc.ccx(qcontrol[2:0:-1], qcontrol[4:6], qtarget[0:2])
@@ -206,18 +223,18 @@ class TestCircuitRegisters(QiskitTestCase):
                                                         range(4, 6), range(0, 2)):
             self.assertEqual(gate.name, 'ccx')
             self.assertEqual(len(qargs), 3)
-            self.assertEqual(qargs[0][1], ictl1)
-            self.assertEqual(qargs[1][1], ictl2)
-            self.assertEqual(qargs[2][1], itgt)
+            self.assertEqual(qargs[0].index, ictl1)
+            self.assertEqual(qargs[1].index, ictl2)
+            self.assertEqual(qargs[2].index, itgt)
         # test register expansion in ccx
         qc = QuantumCircuit(qcontrol, qcontrol2, qtarget2)
         qc.ccx(qcontrol, qcontrol2, qtarget2)
         for i, (gate, qargs, _) in enumerate(qc.data):
             self.assertEqual(gate.name, 'ccx')
             self.assertEqual(len(qargs), 3)
-            self.assertEqual(qargs[0][1], i)
-            self.assertEqual(qargs[1][1], i)
-            self.assertEqual(qargs[2][1], i)
+            self.assertEqual(qargs[0].index, i)
+            self.assertEqual(qargs[1].index, i)
+            self.assertEqual(qargs[2].index, i)
 
     def test_cswap_on_slice(self):
         """test applying cswap to register slice"""
@@ -256,16 +273,16 @@ class TestCircuitRegisters(QiskitTestCase):
         for (gate, qargs, _), ictrl, itgt in zip(qc.data, range(0, 2), range(2, 4)):
             self.assertEqual(gate.name, 'ch')
             self.assertEqual(len(qargs), 2)
-            self.assertEqual(qargs[0][1], ictrl)
-            self.assertEqual(qargs[1][1], itgt)
+            self.assertEqual(qargs[0].index, ictrl)
+            self.assertEqual(qargs[1].index, itgt)
         # test single qubit args
         qc = QuantumCircuit(qr, cr)
         qc.ch(qr[0], qr[1])
         self.assertEqual(len(qc.data), 1)
         op, qargs, _ = qc.data[0]
         self.assertEqual(op.name, 'ch')
-        self.assertEqual(qargs[0][1], 0)
-        self.assertEqual(qargs[1][1], 1)
+        self.assertEqual(qargs[0].index, 0)
+        self.assertEqual(qargs[1].index, 1)
 
     def test_measure_slice(self):
         """test measure slice"""
@@ -278,8 +295,8 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.name, 'measure')
             self.assertEqual(len(qargs), 1)
             self.assertEqual(len(cargs), 1)
-            self.assertEqual(qargs[0][1], ictrl)
-            self.assertEqual(cargs[0][1], itgt)
+            self.assertEqual(qargs[0].index, ictrl)
+            self.assertEqual(cargs[0].index, itgt)
         # test single element slice
         qc = QuantumCircuit(qr, cr)
         qc.measure(qr[0:1], cr[2:3])
@@ -287,8 +304,8 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.name, 'measure')
             self.assertEqual(len(qargs), 1)
             self.assertEqual(len(cargs), 1)
-            self.assertEqual(qargs[0][1], ictrl)
-            self.assertEqual(cargs[0][1], itgt)
+            self.assertEqual(qargs[0].index, ictrl)
+            self.assertEqual(cargs[0].index, itgt)
         # test tuple
         qc = QuantumCircuit(qr, cr)
         qc.measure(qr[0], cr[2])
@@ -297,10 +314,10 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(op.name, 'measure')
         self.assertEqual(len(qargs), 1)
         self.assertEqual(len(cargs), 1)
-        self.assertTrue(isinstance(qargs[0], tuple))
-        self.assertTrue(isinstance(cargs[0], tuple))
-        self.assertEqual(qargs[0][1], 0)
-        self.assertEqual(cargs[0][1], 2)
+        self.assertTrue(isinstance(qargs[0], Qubit))
+        self.assertTrue(isinstance(cargs[0], Clbit))
+        self.assertEqual(qargs[0].index, 0)
+        self.assertEqual(cargs[0].index, 2)
         # test full register
         qc = QuantumCircuit(qr, cr)
         qc.measure(qr, cr)
@@ -308,8 +325,8 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.name, 'measure')
             self.assertEqual(len(qargs), 1)
             self.assertEqual(len(cargs), 1)
-            self.assertEqual(qargs[0][1], ictrl)
-            self.assertEqual(cargs[0][1], itgt)
+            self.assertEqual(qargs[0].index, ictrl)
+            self.assertEqual(cargs[0].index, itgt)
         # test mix slice full register
         qc = QuantumCircuit(qr, cr2)
         qc.measure(qr[::2], cr2)
@@ -317,8 +334,8 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(gate.name, 'measure')
             self.assertEqual(len(qargs), 1)
             self.assertEqual(len(cargs), 1)
-            self.assertEqual(qargs[0][1], ictrl)
-            self.assertEqual(cargs[0][1], itgt)
+            self.assertEqual(qargs[0].index, ictrl)
+            self.assertEqual(cargs[0].index, itgt)
 
     def test_measure_slice_raises(self):
         """test raising exception for strange measures"""
@@ -341,12 +358,49 @@ class TestCircuitRegisters(QiskitTestCase):
         for (gate, qargs, _), index in zip(qc.data, ind):
             self.assertEqual(gate.name, 'h')
             self.assertEqual(len(qargs), 1)
-            self.assertEqual(qargs[0][1], index)
+            self.assertEqual(qargs[0].index, index)
         qc = QuantumCircuit(qr, cr)
         ind = [0, 1, 8, 9]
         qc.cx(qr[ind], qr[2:6])
         for (gate, qargs, _), ind1, ind2 in zip(qc.data, ind, range(2, 6)):
             self.assertEqual(gate.name, 'cx')
             self.assertEqual(len(qargs), 2)
-            self.assertEqual(qargs[0][1], ind1)
-            self.assertEqual(qargs[1][1], ind2)
+            self.assertEqual(qargs[0].index, ind1)
+            self.assertEqual(qargs[1].index, ind2)
+
+
+class TestCircuitBit(QiskitTestCase):
+    """QuantumCircuit Registers tests."""
+
+    def test_bit_getitem(self):
+        """ Deprecated Bit.__getitem__.
+        """
+        qubit = QuantumRegister(1, "q")[0]
+
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(qubit[0], qubit.register)
+            self.assertEqual(qubit[1], qubit.index)
+
+    def test_gate_with_tuples(self):
+        """ Deprecated gate parameters as tuples"""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+
+        expected = QuantumCircuit(qr)
+        expected.h(qr[0])
+
+        with self.assertWarns(DeprecationWarning):
+            qc.h((qr, 0))
+        self.assertEqual(qc, expected)
+
+    def test_gate_with_tuple_list(self):
+        """ Deprecated gate parameters as tuple list"""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+
+        expected = QuantumCircuit(qr)
+        expected.h([qr[0], qr[1]])
+
+        with self.assertWarns(DeprecationWarning):
+            qc.h([(qr, 0), (qr, 1)])
+        self.assertEqual(qc, expected)
