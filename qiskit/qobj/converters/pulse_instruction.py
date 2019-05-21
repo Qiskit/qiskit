@@ -315,7 +315,8 @@ def _parse_string_expr(expr):  # pylint: disable=missing-return-type-doc
                          if key in local_dict})
             matched_params += list(key for key in kwargs if key in params)
 
-        if not set(matched_params).issuperset(set(params)):
+        if not set(matched_params).issuperset(set(params)) or\
+                not set(subs.keys()).issuperset(set(local_dict.values())):
             raise PulseError('Supplied params ({args}, {kwargs}) do not match '
                              '{params}'.format(args=args, kwargs=kwargs, params=params))
 
