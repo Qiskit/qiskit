@@ -17,7 +17,20 @@ Classical register reference object.
 """
 import itertools
 
+from qiskit.exceptions import QiskitError
 from .register import Register
+from .bit import Bit
+
+
+class Clbit(Bit):
+    """Implement a classical bit."""
+
+    def __init__(self, register, index):
+        if isinstance(register, ClassicalRegister):
+            super().__init__(register, index)
+        else:
+            raise QiskitError('Clbit needs a ClassicalRegister and %s was provided' %
+                              type(register).__name__)
 
 
 class ClassicalRegister(Register):
@@ -27,6 +40,7 @@ class ClassicalRegister(Register):
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
     prefix = 'c'
+    bit_type = Clbit
 
     def qasm(self):
         """Return OPENQASM string for this register."""

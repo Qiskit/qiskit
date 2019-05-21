@@ -16,7 +16,7 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister
 
 
@@ -63,12 +63,12 @@ def circuit_to_instruction(circuit, parameter_map=None):
         """find the index of a given bit (Register, int) within
         a flat ordered list of bits of the circuit
         """
-        if isinstance(bit[0], QuantumRegister):
+        if isinstance(bit, Qubit):
             ordered_regs = circuit.qregs
         else:
             ordered_regs = circuit.cregs
-        reg_index = ordered_regs.index(bit[0])
-        return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit[1]
+        reg_index = ordered_regs.index(bit.register)
+        return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
     target = circuit.copy()
     target._substitute_parameters(parameter_dict)
@@ -82,8 +82,8 @@ def circuit_to_instruction(circuit, parameter_map=None):
 
     definition = list(map(lambda x:
                           (x[0],
-                           list(map(lambda y: (q, find_bit_position(y)), x[1])),
-                           list(map(lambda y: (c, find_bit_position(y)), x[2]))), definition))
+                           list(map(lambda y: q[find_bit_position(y)], x[1])),
+                           list(map(lambda y: c[find_bit_position(y)], x[2]))), definition))
     instruction.definition = definition
 
     return instruction

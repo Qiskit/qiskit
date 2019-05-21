@@ -52,18 +52,17 @@ class CommutationAnalysis(AnalysisPass):
 
         # Build a dictionary to keep track of the gates on each qubit
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
+            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
             self.property_set['commutation_set'][wire_name] = []
 
         # Add edges to the dictionary for each qubit
         for node in dag.topological_op_nodes():
             for (_, _, edge_data) in dag.edges(node):
-
                 edge_name = edge_data['name']
                 self.property_set['commutation_set'][(node, edge_name)] = -1
 
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
+            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
 
             for current_gate in dag.nodes_on_wire(wire):
 
@@ -148,7 +147,7 @@ def _gate_master_def(name, params=None):
             dtype=np.complex)
 
     if name == 'u3':
-        return 1./np.sqrt(2) * np.array(
+        return 1. / np.sqrt(2) * np.array(
             [[np.cos(float(params[0]) / 2.),
               -np.exp(1j * float(params[2])) * np.sin(float(params[0]) / 2.)],
              [np.exp(1j * float(params[1])) * np.sin(float(params[0]) / 2.),
@@ -168,9 +167,8 @@ def _gate_master_def(name, params=None):
 
 
 def _calc_product(node1, node2):
-
     wire_num = len(set(node1.qargs + node2.qargs))
-    wires = sorted(list(map(lambda x: "{0}[{1}]".format(str(x[0].name), str(x[1])),
+    wires = sorted(list(map(lambda x: "{0}[{1}]".format(str(x.register.name), str(x.index)),
                             list(set(node1.qargs + node2.qargs)))))
     final_unitary = np.identity(2 ** wire_num, dtype=np.complex)
 
@@ -182,8 +180,9 @@ def _calc_product(node1, node2):
 
             qstate_list_ext = [np.identity(2)] * wire_num
 
-            node_ctrl = "{0}[{1}]".format(str(node.qargs[0][0].name), str(node.qargs[0][1]))
-            node_tgt = "{0}[{1}]".format(str(node.qargs[1][0].name), str(node.qargs[1][1]))
+            node_ctrl = "{0}[{1}]".format(str(node.qargs[0].register.name),
+                                          str(node.qargs[0].index))
+            node_tgt = "{0}[{1}]".format(str(node.qargs[1].register.name), str(node.qargs[1].index))
             ctrl = wires.index(node_ctrl)
             tgt = wires.index(node_tgt)
 
@@ -202,8 +201,8 @@ def _calc_product(node1, node2):
         else:
 
             mat = _gate_master_def(name=node.name, params=node.op.params)
-            node_num = "{0}[{1}]".format(str(node.qargs[0][0].name),
-                                         str(node.qargs[0][1]))
+            node_num = "{0}[{1}]".format(str(node.qargs[0].register.name),
+                                         str(node.qargs[0].index))
             qstate_list[wires.index(node_num)] = mat
 
             rt_list = [qstate_list]
