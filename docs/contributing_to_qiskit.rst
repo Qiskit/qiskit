@@ -43,26 +43,47 @@ Learn how members of the Qiskit community
 Writing and Building Documentation
 **********************************
 
-Qiskit documentation is shaped by the `docs as code <https://www.writethedocs.org/guide/docs-as-code/>`_ philosophy.
+Qiskit documentation is shaped by the `docs as code
+<https://www.writethedocs.org/guide/docs-as-code/>`_ philosophy and follows the
+`IBM style guidelines
+<https://www.ibm.com/developerworks/library/styleguidelines/>`_.
 
-The `published documentation <https://qiskit.org/documentation/index.html>`_ is built from the master branch of `Qiskit/qiskit/docs <https://github.com/Qiskit/qiskit/tree/master/docs>`_ using `Sphinx <http://www.sphinx-doc.org/en/master/>`_.
-
-The Python API reference documentation is automatically generated from comments in the code by navigating to your local clone of `Qiskit/qiskit <https://github.com/Qiskit/qiskit>`_ and running the following command in a terminal window:
-
-.. code:: sh
-
-  make doc
+The `published documentation <https://qiskit.org/documentation/index.html>`_ is
+built from the master branch of `Qiskit/qiskit/docs
+<https://github.com/Qiskit/qiskit/tree/master/docs>`_ using `Sphinx
+<http://www.sphinx-doc.org/en/master/>`_.
 
 You can build a local copy of the documentation from your local clone of the
-`Qiskit/qiskit` repository by opening a terminal window or command prompt in
-the `docs` directory, then running the following command.
+`Qiskit/qiskit` repository as follows:
 
-.. code:: sh
+1. Clone `Qiskit/qiskit` (or your personal fork).
+
+2. `Install Sphinx <http://www.sphinx-doc.org/en/master/usage/installation.html>`_.
+
+3. Install the `Material Design HTML Theme for Sphinx` by running the following
+   in a terminal window:
+
+   .. code-block:: sh
+
+     pip install sphinx_materialdesign_theme
+
+4. Build the documentation by navigating to your local clone of `Qiskit/qiskit`
+   and running the following command in a terminal window:
+
+   .. code-block:: sh
+
+     make doc
+
+As you make changes to your local RST files, you can update your
+HTML files by navigating to `/doc/` and running the following in a terminal
+window:
+
+.. code-block:: sh
 
   make html
 
 This will build a styled, HTML version of your local documentation repository
-in a subdirectory, ``_build/html``.
+in the subdirectory `/docs/_build/html/`.
 
 .. _install_install_from_source_label:
 
