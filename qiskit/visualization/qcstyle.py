@@ -33,7 +33,7 @@ class DefaultStyle:
         self.fs = 13
         self.sfs = 8
         self.disptex = {
-            'id': 'id',
+            'id': 'Id',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',
@@ -123,7 +123,7 @@ class BWStyle:
         self.fs = 13
         self.sfs = 8
         self.disptex = {
-            'id': 'id',
+            'id': 'Id',
             'u0': 'U_0',
             'u1': 'U_1',
             'u2': 'U_2',

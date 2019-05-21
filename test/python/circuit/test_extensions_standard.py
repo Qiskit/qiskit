@@ -49,7 +49,6 @@ class TestStandard1Q(QiskitTestCase):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.barrier, self.cr[0])
         self.assertRaises(QiskitError, qc.barrier, self.cr)
-        self.assertRaises(QiskitError, qc.barrier, (self.qr, -3))
         self.assertRaises(QiskitError, qc.barrier, (self.qr, 'a'))
         self.assertRaises(QiskitError, qc.barrier, .0)
 
@@ -85,7 +84,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(QiskitError, qc.ccx, self.cr[0], self.cr[1], self.cr[2])
         self.assertRaises(QiskitError, qc.ccx, self.qr[0], self.qr[0], self.qr[2])
         self.assertRaises(QiskitError, qc.ccx, 0.0, self.qr[0], self.qr[2])
-        self.assertRaises(QiskitError, qc.ccx, (self.qr, -3), self.qr[1], self.qr[2])
         self.assertRaises(QiskitError, qc.ccx, self.cr, self.qr, self.qr)
         self.assertRaises(QiskitError, qc.ccx, 'a', self.qr[1], self.qr[2])
 
@@ -934,7 +932,6 @@ class TestStandard1Q(QiskitTestCase):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.x, self.cr[0])
         self.assertRaises(QiskitError, qc.x, self.cr)
-        self.assertRaises(QiskitError, qc.x, (self.qr, -3))
         self.assertRaises(QiskitError, qc.x, (self.qr, 'a'))
         self.assertRaises(QiskitError, qc.x, 0.0)
 
@@ -968,7 +965,6 @@ class TestStandard1Q(QiskitTestCase):
         qc = self.circuit
         self.assertRaises(QiskitError, qc.y, self.cr[0])
         self.assertRaises(QiskitError, qc.y, self.cr)
-        self.assertRaises(QiskitError, qc.y, (self.qr, -3))
         self.assertRaises(QiskitError, qc.y, (self.qr, 'a'))
         self.assertRaises(QiskitError, qc.y, 0.0)
 
