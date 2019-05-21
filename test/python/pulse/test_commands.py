@@ -60,9 +60,9 @@ class TestFrameChange(QiskitTestCase):
     def test_default(self):
         """Test default frame change.
         """
-        fc_command = FrameChange(phase=1.57 - 0.785j)
+        fc_command = FrameChange(phase=1.57)
 
-        self.assertEqual(fc_command.phase, 1.57-0.785j)
+        self.assertEqual(fc_command.phase, 1.57)
         self.assertEqual(fc_command.duration, 0)
 
 
