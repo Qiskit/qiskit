@@ -244,15 +244,15 @@ class BoxOnQuWireMid(MultiBox, BoxOnQuWire):
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
     """ Draws the bottom part of a box that affects more than one quantum wire"""
 
-    def __init__(self, label, input_length, bot_connect='─', wire_label=''):
+    def __init__(self, label, input_length, bot_connect='─', wire_label='', conditional=False):
         super().__init__(label)
         self.wire_label = wire_label
         self.top_pad = " "
         self.left_fill = len(self.wire_label)
         self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
         self.mid_format = "┤{} %s ├".format(self.wire_label)
-        self.bot_format = "└{}─%s─┘".format(self.bot_pad * self.left_fill)
-        self.bot_connect = bot_connect
+        self.bot_format = "└{}%s──┘".format(self.bot_pad * self.left_fill)
+        self.bot_connect = '┬' if conditional else bot_connect
 
         self.mid_content = self.top_connect = ""
         if input_length <= 2:
@@ -287,7 +287,7 @@ class BoxOnClWireMid(MultiBox, BoxOnClWire):
 class BoxOnClWireBot(MultiBox, BoxOnClWire):
     """ Draws the bottom part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, label, input_length, bot_connect='─', wire_label=''):
+    def __init__(self, label, input_length, bot_connect='─', wire_label='', conditional=False):
         super().__init__(label)
         self.wire_label = wire_label
         self.top_format = "│ %s │"
@@ -822,7 +822,7 @@ class TextDrawing():
             params = TextDrawing.params_for_label(instruction)
             if params:
                 label += "(%s)" % ','.join(params)
-            layer.set_qu_multibox(instruction.qargs, label)
+            layer.set_qu_multibox(instruction.qargs, label, conditional=conditional)
 
         else:
             raise VisualizationError(
@@ -900,7 +900,7 @@ class Layer:
         """
         self.clbit_layer[self.cregs.index(clbit)] = element
 
-    def _set_multibox(self, wire_type, bits, label, top_connect=None):
+    def _set_multibox(self, wire_type, bits, label, top_connect=None, conditional=False):
         bits = list(bits)
         if wire_type == "cl":
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
@@ -937,7 +937,7 @@ class Layer:
                     named_bit = (self.qregs + self.cregs)[bit_i]
                     wire_label = ' ' * len(qargs[0])
                 set_bit(named_bit, BoxOnWireMid(label, box_height, order, wire_label=wire_label))
-            set_bit(bits.pop(0), BoxOnWireBot(label, box_height, wire_label=qargs.pop(0)))
+            set_bit(bits.pop(0), BoxOnWireBot(label, box_height, wire_label=qargs.pop(0), conditional=conditional))
 
     def set_cl_multibox(self, creg, label, top_connect='┴'):
         """
@@ -950,14 +950,15 @@ class Layer:
         clbit = [bit for bit in self.cregs if bit[0] == creg]
         self._set_multibox("cl", clbit, label, top_connect=top_connect)
 
-    def set_qu_multibox(self, bits, label):
+    def set_qu_multibox(self, bits, label, conditional=False):
         """
         Sets the multi qubit box.
         Args:
             bits (list[int]): A list of affected bits.
             label (string): The label for the multi qubit box.
+            conditional (bool): If the box has a conditional
         """
-        self._set_multibox("qu", bits, label)
+        self._set_multibox("qu", bits, label, conditional=conditional)
 
     def connect_with(self, wire_char):
         """

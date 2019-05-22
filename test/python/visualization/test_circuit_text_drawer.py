@@ -1353,14 +1353,21 @@ class TestTextConditional(QiskitTestCase):
 
     def test_conditional_multiplexer(self):
         """ Test Multiplexer."""
-        expected = '\n'.join([""])
-
         cx_multiplexer = Gate('multiplexer', 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
-
-        qr = QuantumRegister(2, name='qr')
+        qr = QuantumRegister(3, name='qr')
         cr = ClassicalRegister(1, 'cr')
         qc = QuantumCircuit(qr, cr)
         qc.append(cx_multiplexer.c_if(cr, 1), [qr[0], qr[1]])
+
+        expected = '\n'.join(["         ┌──────────────┐",
+                              "qr_0: |0>┤0             ├",
+                              "         │  multiplexer │",
+                              "qr_1: |0>┤1             ├",
+                              "         └──────┬───────┘",
+                              "qr_2: |0>───────┼────────",
+                              "             ┌──┴──┐     ",
+                              " cr_0: 0 ════╡ = 1 ╞═════",
+                              "             └─────┘     "])
 
         self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
