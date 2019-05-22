@@ -807,7 +807,7 @@ class TextDrawing():
         elif instruction.name == 'crz':
             # crz
             label = "Rz(%s)" % TextDrawing.params_for_label(instruction)[0]
-            gates = [Bullet(), BoxOnQuWire(label)]
+            gates = [Bullet(conditional=conditional), BoxOnQuWire(label, conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif len(instruction.qargs) == 1 and not instruction.cargs:

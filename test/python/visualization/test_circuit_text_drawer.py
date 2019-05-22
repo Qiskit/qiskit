@@ -1333,7 +1333,7 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    def test_text_reset(self):
+    def test_conditional_reset(self):
         """ Reset drawing. """
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
@@ -1350,6 +1350,19 @@ class TestTextConditional(QiskitTestCase):
                               "         └─────┘"])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_conditional_multiplexer(self):
+        """ Test Multiplexer."""
+        expected = '\n'.join([""])
+
+        cx_multiplexer = Gate('multiplexer', 2, [numpy.eye(2), numpy.array([[0, 1], [1, 0]])])
+
+        qr = QuantumRegister(2, name='qr')
+        cr = ClassicalRegister(1, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        qc.append(cx_multiplexer.c_if(cr, 1), [qr[0], qr[1]])
+
+        self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
 
 if __name__ == '__main__':
