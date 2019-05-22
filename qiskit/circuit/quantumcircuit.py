@@ -18,17 +18,19 @@ from copy import deepcopy
 import itertools
 import sys
 import multiprocessing as mp
+from warnings import warn
 
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.parameter import Parameter
-from .quantumregister import QuantumRegister
-from .classicalregister import ClassicalRegister
+from .quantumregister import QuantumRegister, Qubit
+from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
+from .bit import Bit
 
 
 def _is_bit(obj):
@@ -36,6 +38,8 @@ def _is_bit(obj):
     # If there is a bit type this could be replaced by isinstance.
     if isinstance(obj, tuple) and len(obj) == 2:
         if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
+            warn('Referring to a bit as a tuple is being deprecated. '
+                 'Instead go of (qr, 0), use qr[0].', DeprecationWarning)
             return True
     return False
 
@@ -265,35 +269,43 @@ class QuantumCircuit:
 
     @staticmethod
     def _bit_argument_conversion(bit_representation, in_array):
+        ret = None
         try:
             if _is_bit(bit_representation):
+                # circuit.h((qr, 0)) -> circuit.h([qr[0]])
+                ret = [bit_representation[0][bit_representation[1]]]
+            elif isinstance(bit_representation, Bit):
                 # circuit.h(qr[0]) -> circuit.h([qr[0]])
-                return [bit_representation]
+                ret = [bit_representation]
             elif isinstance(bit_representation, Register):
                 # circuit.h(qr) -> circuit.h([qr[0], qr[1]])
-                return bit_representation[:]
+                ret = bit_representation[:]
             elif isinstance(QuantumCircuit.cast(bit_representation, int), int):
                 # circuit.h(0) -> circuit.h([qr[0]])
-                return [in_array[bit_representation]]
+                ret = [in_array[bit_representation]]
             elif isinstance(bit_representation, slice):
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
-                return in_array[bit_representation]
+                ret = in_array[bit_representation]
             elif isinstance(bit_representation, list) and \
                     all(_is_bit(bit) for bit in bit_representation):
+                ret = [bit[0][bit[1]] for bit in bit_representation]
+            elif isinstance(bit_representation, list) and \
+                    all(isinstance(bit, Bit) for bit in bit_representation):
                 # circuit.h([qr[0], qr[1]]) -> circuit.h([qr[0], qr[1]])
-                return bit_representation
+                ret = bit_representation
             elif isinstance(QuantumCircuit.cast(bit_representation, list), (range, list)):
                 # circuit.h([0, 1])     -> circuit.h([qr[0], qr[1]])
                 # circuit.h(range(0,2)) -> circuit.h([qr[0], qr[1]])
-                return [in_array[index] for index in bit_representation]
+                ret = [in_array[index] for index in bit_representation]
             else:
                 raise QiskitError('Not able to expand a %s (%s)' % (bit_representation,
                                                                     type(bit_representation)))
         except IndexError:
             raise QiskitError('Index out of range.')
         except TypeError:
-            raise QiskitError('Type error handeling %s (%s)' % (bit_representation,
-                                                                type(bit_representation)))
+            raise QiskitError('Type error handling %s (%s)' % (bit_representation,
+                                                               type(bit_representation)))
+        return ret
 
     def qbit_argument_conversion(self, qubit_representation):
         """
@@ -411,7 +423,7 @@ class QuantumCircuit:
                                   " with %s." % (regs,))
 
         for register in regs:
-            if register in self.qregs or register in self.cregs:
+            if register.name in [reg.name for reg in self.qregs + self.cregs]:
                 raise QiskitError("register name \"%s\" already exists"
                                   % register.name)
             if isinstance(register, QuantumRegister):
@@ -429,25 +441,17 @@ class QuantumCircuit:
 
     def _check_qargs(self, qargs):
         """Raise exception if a qarg is not in this circuit or bad format."""
-        if not all(isinstance(i, tuple) and
-                   isinstance(i[0], QuantumRegister) and
-                   isinstance(i[1], int) for i in qargs):
-            raise QiskitError("qarg not (QuantumRegister, int) tuple")
-        if not all(self.has_register(i[0]) for i in qargs):
+        if not all(isinstance(i, Qubit) for i in qargs):
+            raise QiskitError("qarg is not a Qubit")
+        if not all(self.has_register(i.register) for i in qargs):
             raise QiskitError("register not in this circuit")
-        for qubit in qargs:
-            qubit[0].check_range(qubit[1])
 
     def _check_cargs(self, cargs):
         """Raise exception if clbit is not in this circuit or bad format."""
-        if not all(isinstance(i, tuple) and
-                   isinstance(i[0], ClassicalRegister) and
-                   isinstance(i[1], int) for i in cargs):
-            raise QiskitError("carg not (ClassicalRegister, int) tuple")
-        if not all(self.has_register(i[0]) for i in cargs):
+        if not all(isinstance(i, Clbit) for i in cargs):
+            raise QiskitError("carg is not a Clbit")
+        if not all(self.has_register(i.register) for i in cargs):
             raise QiskitError("register not in this circuit")
-        for clbit in cargs:
-            clbit[0].check_range(clbit[1])
 
     def to_instruction(self, parameter_map=None):
         """Create an Instruction out of this circuit.
@@ -502,11 +506,11 @@ class QuantumCircuit:
                 qubit = qargs[0]
                 clbit = cargs[0]
                 string_temp += "%s %s[%d] -> %s[%d];\n" % (instruction.qasm(),
-                                                           qubit[0].name, qubit[1],
-                                                           clbit[0].name, clbit[1])
+                                                           qubit.register.name, qubit.index,
+                                                           clbit.register.name, clbit.index)
             else:
                 string_temp += "%s %s;\n" % (instruction.qasm(),
-                                             ",".join(["%s[%d]" % (j[0].name, j[1])
+                                             ",".join(["%s[%d]" % (j.register.name, j.index)
                                                        for j in qargs + cargs]))
         return string_temp
 
@@ -627,7 +631,7 @@ class QuantumCircuit:
                 for ind, reg in enumerate(qargs + cargs):
                     # Add to the stacks of the qubits and
                     # cbits used in the gate.
-                    reg_ints.append(reg_map[reg[0].name] + reg[1])
+                    reg_ints.append(reg_map[reg.register.name] + reg.index)
                     levels.append(op_stack[reg_ints[ind]] + 1)
                 if instr.control:
                     # Controls operate over all bits in the
@@ -719,7 +723,7 @@ class QuantumCircuit:
                                 break
 
                 for item in args:
-                    reg_int = reg_map[item[0].name] + item[1]
+                    reg_int = reg_map[item.register.name] + item.index
                     for k in range(num_sub_graphs):
                         if reg_int in sub_graphs[k]:
                             if k not in graphs_touched:
