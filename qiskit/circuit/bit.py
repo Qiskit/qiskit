@@ -41,6 +41,10 @@ class Bit:
         self.register = register
         self.index = index
 
+    def __repr__(self):
+        """Return the official string representing the bit."""
+        return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
+
     def __getitem__(self, item):
         warn('Accessing a bit register by bit[0] or its index by bit[1] is deprecated. '
              'Go for bit.register and bit.index.', DeprecationWarning)
@@ -60,9 +64,3 @@ class Bit:
         if isinstance(other, tuple):
             return other[1] == self.index and other[0] == self.register
         return False
-
-    @property
-    def __class__(self):
-        warn('Bit-as-tuple is deprecated. Replace isinstance(qr[0], tuple) for '
-             'isinstance(qr[0], Qubit).', DeprecationWarning, stacklevel=2)
-        return tuple
