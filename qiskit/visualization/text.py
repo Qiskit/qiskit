@@ -336,9 +336,9 @@ class Ex(DirectOnQuWire):
     bot:  │     │
     """
 
-    def __init__(self, bot_connect=" ", top_connect=" "):
+    def __init__(self, bot_connect=" ", top_connect=" ", conditional=False):
         super().__init__("X")
-        self.bot_connect = bot_connect
+        self.bot_connect = "│" if conditional else bot_connect
         self.top_connect = top_connect
 
 
@@ -749,12 +749,14 @@ class TextDrawing():
 
         elif instruction.name == 'swap':
             # swap
-            gates = [Ex() for _ in range(len(instruction.qargs))]
+            gates = [Ex(conditional=conditional) for _ in range(len(instruction.qargs))]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'cswap':
             # cswap
-            gates = [Bullet(), Ex(), Ex()]
+            gates = [Bullet(conditional=conditional),
+                     Ex(conditional=conditional),
+                     Ex(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'reset':

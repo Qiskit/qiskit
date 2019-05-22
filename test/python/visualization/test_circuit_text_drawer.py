@@ -1200,6 +1200,63 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_conditional_h(self):
+        """Conditional H with a wire in the middle"""
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.h(qr[0]).c_if(cr, 1)
+
+        expected = '\n'.join(["          ┌───┐ ",
+                              "qr_0: |0>─┤ H ├─",
+                              "          └─┬─┘ ",
+                              "qr_1: |0>───┼───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_swap(self):
+        """Conditional SWAP"""
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.swap(qr[0], qr[1]).c_if(cr, 1)
+
+        expected = '\n'.join(["                ",
+                              "qr_0: |0>───X───",
+                              "            │   ",
+                              "qr_1: |0>───X───",
+                              "            │   ",
+                              "qr_2: |0>───┼───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_cswap(self):
+        """Conditional CSwap """
+        qr = QuantumRegister(4, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cswap(qr[0], qr[1], qr[2]).c_if(cr, 1)
+
+        expected = '\n'.join(["                ",
+                              "qr_0: |0>───■───",
+                              "            │   ",
+                              "qr_1: |0>───X───",
+                              "            │   ",
+                              "qr_2: |0>───X───",
+                              "            │   ",
+                              "qr_3: |0>───┼───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 if __name__ == '__main__':
     unittest.main()
