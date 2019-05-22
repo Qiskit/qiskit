@@ -142,13 +142,16 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         self.device = DeviceSpecification(
             qubits=[
-                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0))
+                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0)),
+                Qubit(1, DriveChannel(1), MeasureChannel(1), AcquireChannel(1)),
             ],
             registers=[
-                RegisterSlot(0)
+                RegisterSlot(0),
+                RegisterSlot(1)
             ],
             mem_slots=[
-                MemorySlot(0)
+                MemorySlot(0),
+                MemorySlot(1)
             ]
         )
 
@@ -191,8 +194,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
                       Kernel(name='test_kern', params={'test_params': 'test'}))
         instruction = cmd(self.device.q, self.device.mem, self.device.c)
 
-        qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0],
-                                    memory_slot=[0], register_slot=[0],
+        qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0, 1],
+                                    memory_slot=[0, 1], register_slot=[0, 1],
                                     kernels=[QobjMeasurementOption(
                                         name='test_kern', params={'test_params': 'test'})],
                                     discriminators=[QobjMeasurementOption(
