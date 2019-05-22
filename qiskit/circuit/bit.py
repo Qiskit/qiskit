@@ -19,8 +19,11 @@ from warnings import warn
 from qiskit.exceptions import QiskitError
 
 
-class Bit:
+class Bit(tuple):
     """Implement a generic bit."""
+
+    def __new__(cls, *args, **kwargs):
+        return tuple.__new__(cls)
 
     def __init__(self, register, index):
         """Create a new generic bit.
@@ -59,12 +62,8 @@ class Bit:
         return hash((self.register, self.index))
 
     def __eq__(self, other):
+        if isinstance(other, Bit):
+            return other.index == self.index and other.register == self.register
         if isinstance(other, tuple):
             return other[1] == self.index and other[0] == self.register
-        return other.index == self.index and other.register == self.register
-
-    @property
-    def __class__(self):
-        warn('Bit-as-tuple is deprecated. Replace isinstance(qr[0], tuple) for '
-             'isinstance(qr[0], Qubit).', DeprecationWarning)
-        return tuple
+        raise QiskitError('%s and %s are not comparable.' % (type(self), type(other)))
