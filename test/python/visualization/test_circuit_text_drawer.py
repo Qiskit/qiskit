@@ -1167,7 +1167,34 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.cx(qr[0], qr[1]).c_if(cr, 1)
 
-        expected = '\n'.join([""])
+        expected = '\n'.join(["                ",
+                              "qr_0: |0>───■───",
+                              "          ┌─┴─┐ ",
+                              "qr_1: |0>─┤ X ├─",
+                              "          └─┬─┘ ",
+                              "qr_2: |0>───┼───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_cx_tc(self):
+        """Conditional CX (target-control) with a wire in the middle"""
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cx(qr[1], qr[0]).c_if(cr, 1)
+
+        expected = '\n'.join(["          ┌───┐ ",
+                              "qr_0: |0>─┤ X ├─",
+                              "          └─┬─┘ ",
+                              "qr_1: |0>───■───",
+                              "            │   ",
+                              "qr_2: |0>───┼───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
@@ -1276,9 +1303,16 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.reset(qr[0]).c_if(cr, 1)
 
-        expected = '\n'.join([""])
+        expected = '\n'.join(["                ",
+                              "qr_0: |0>──|0>──",
+                              "            │   ",
+                              "qr_1: |0>───┼───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 if __name__ == '__main__':
     unittest.main()
