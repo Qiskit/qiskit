@@ -536,152 +536,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.h(qr2)
         self.assertEqual(str(_text_circuit_drawer(circuit, plotbarriers=False)), expected)
 
-    def test_text_conditional_1(self):
-        """ Conditional drawing with 1-bit-length regs."""
-        qasm_string = """
-        OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[1];
-        creg c0[1];
-        creg c1[1];
-        if(c0==1) x q[0];
-        if(c1==1) x q[0];
-        """
-        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
-                              "q_0: |0>─┤ X ├──┤ X ├─",
-                              "        ┌┴─┴─┴┐ └─┬─┘ ",
-                              "c0_0: 0 ╡ = 1 ╞═══╪═══",
-                              "        └─────┘┌──┴──┐",
-                              "c1_0: 0 ═══════╡ = 1 ╞",
-                              "               └─────┘"])
-
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
-    def test_text_conditional_2(self):
-        """ Conditional drawing with 2-bit-length regs."""
-        qasm_string = """
-        OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[1];
-        creg c0[2];
-        creg c1[2];
-        if(c0==2) x q[0];
-        if(c1==2) x q[0];
-        """
-        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
-                              "q_0: |0>─┤ X ├──┤ X ├─",
-                              "        ┌┴─┴─┴┐ └─┬─┘ ",
-                              "c0_0: 0 ╡     ╞═══╪═══",
-                              "        │ = 2 │   │   ",
-                              "c0_1: 0 ╡     ╞═══╪═══",
-                              "        └─────┘┌──┴──┐",
-                              "c1_0: 0 ═══════╡     ╞",
-                              "               │ = 2 │",
-                              "c1_1: 0 ═══════╡     ╞",
-                              "               └─────┘"])
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
-    def test_text_conditional_3(self):
-        """ Conditional drawing with 3-bit-length regs."""
-        qasm_string = """
-        OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[1];
-        creg c0[3];
-        creg c1[3];
-        if(c0==3) x q[0];
-        if(c1==3) x q[0];
-        """
-        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
-                              "q_0: |0>─┤ X ├──┤ X ├─",
-                              "        ┌┴─┴─┴┐ └─┬─┘ ",
-                              "c0_0: 0 ╡     ╞═══╪═══",
-                              "        │     │   │   ",
-                              "c0_1: 0 ╡ = 3 ╞═══╪═══",
-                              "        │     │   │   ",
-                              "c0_2: 0 ╡     ╞═══╪═══",
-                              "        └─────┘┌──┴──┐",
-                              "c1_0: 0 ═══════╡     ╞",
-                              "               │     │",
-                              "c1_1: 0 ═══════╡ = 3 ╞",
-                              "               │     │",
-                              "c1_2: 0 ═══════╡     ╞",
-                              "               └─────┘"])
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
-    def test_text_conditional_4(self):
-        """ Conditional drawing with 4-bit-length regs."""
-        qasm_string = """
-        OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[1];
-        creg c0[4];
-        creg c1[4];
-        if(c0==4) x q[0];
-        if(c1==4) x q[0];
-        """
-        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
-                              "q_0: |0>─┤ X ├──┤ X ├─",
-                              "        ┌┴─┴─┴┐ └─┬─┘ ",
-                              "c0_0: 0 ╡     ╞═══╪═══",
-                              "        │     │   │   ",
-                              "c0_1: 0 ╡     ╞═══╪═══",
-                              "        │ = 4 │   │   ",
-                              "c0_2: 0 ╡     ╞═══╪═══",
-                              "        │     │   │   ",
-                              "c0_3: 0 ╡     ╞═══╪═══",
-                              "        └─────┘┌──┴──┐",
-                              "c1_0: 0 ═══════╡     ╞",
-                              "               │     │",
-                              "c1_1: 0 ═══════╡     ╞",
-                              "               │ = 4 │",
-                              "c1_2: 0 ═══════╡     ╞",
-                              "               │     │",
-                              "c1_3: 0 ═══════╡     ╞",
-                              "               └─────┘"])
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
-    def test_text_conditional_5(self):
-        """ Conditional drawing with 5-bit-length regs."""
-        qasm_string = """
-        OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[1];
-        creg c0[5];
-        creg c1[5];
-        if(c0==5) x q[0];
-        if(c1==5) x q[0];
-        """
-        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
-                              "q_0: |0>─┤ X ├──┤ X ├─",
-                              "        ┌┴─┴─┴┐ └─┬─┘ ",
-                              "c0_0: 0 ╡     ╞═══╪═══",
-                              "        │     │   │   ",
-                              "c0_1: 0 ╡     ╞═══╪═══",
-                              "        │     │   │   ",
-                              "c0_2: 0 ╡ = 5 ╞═══╪═══",
-                              "        │     │   │   ",
-                              "c0_3: 0 ╡     ╞═══╪═══",
-                              "        │     │   │   ",
-                              "c0_4: 0 ╡     ╞═══╪═══",
-                              "        └─────┘┌──┴──┐",
-                              "c1_0: 0 ═══════╡     ╞",
-                              "               │     │",
-                              "c1_1: 0 ═══════╡     ╞",
-                              "               │     │",
-                              "c1_2: 0 ═══════╡ = 5 ╞",
-                              "               │     │",
-                              "c1_3: 0 ═══════╡     ╞",
-                              "               │     │",
-                              "c1_4: 0 ═══════╡     ╞",
-                              "               └─────┘"])
-        circuit = QuantumCircuit.from_qasm_str(qasm_string)
-        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
-
     def test_text_measure_html(self):
         """ The measure operator. HTML representation. """
         expected = '\n'.join(["<pre style=\"word-wrap: normal;"
@@ -1119,6 +973,192 @@ class TestTextDrawerVerticallyExtended(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit,
                                                   justify='right',
                                                   vertically_compressed=False)), expected)
+
+
+class TestTextConditional(QiskitTestCase):
+    """Gates with conditionals"""
+
+    def test_text_conditional_1(self):
+        """ Conditional drawing with 1-bit-length regs."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[1];
+        creg c1[1];
+        if(c0==1) x q[0];
+        if(c1==1) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0_0: 0 ╡ = 1 ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1_0: 0 ═══════╡ = 1 ╞",
+                              "               └─────┘"])
+
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_2(self):
+        """ Conditional drawing with 2-bit-length regs."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[2];
+        creg c1[2];
+        if(c0==2) x q[0];
+        if(c1==2) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0_0: 0 ╡     ╞═══╪═══",
+                              "        │ = 2 │   │   ",
+                              "c0_1: 0 ╡     ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1_0: 0 ═══════╡     ╞",
+                              "               │ = 2 │",
+                              "c1_1: 0 ═══════╡     ╞",
+                              "               └─────┘"])
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_3(self):
+        """ Conditional drawing with 3-bit-length regs."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[3];
+        creg c1[3];
+        if(c0==3) x q[0];
+        if(c1==3) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0_0: 0 ╡     ╞═══╪═══",
+                              "        │     │   │   ",
+                              "c0_1: 0 ╡ = 3 ╞═══╪═══",
+                              "        │     │   │   ",
+                              "c0_2: 0 ╡     ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1_0: 0 ═══════╡     ╞",
+                              "               │     │",
+                              "c1_1: 0 ═══════╡ = 3 ╞",
+                              "               │     │",
+                              "c1_2: 0 ═══════╡     ╞",
+                              "               └─────┘"])
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_4(self):
+        """ Conditional drawing with 4-bit-length regs."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[4];
+        creg c1[4];
+        if(c0==4) x q[0];
+        if(c1==4) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0_0: 0 ╡     ╞═══╪═══",
+                              "        │     │   │   ",
+                              "c0_1: 0 ╡     ╞═══╪═══",
+                              "        │ = 4 │   │   ",
+                              "c0_2: 0 ╡     ╞═══╪═══",
+                              "        │     │   │   ",
+                              "c0_3: 0 ╡     ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1_0: 0 ═══════╡     ╞",
+                              "               │     │",
+                              "c1_1: 0 ═══════╡     ╞",
+                              "               │ = 4 │",
+                              "c1_2: 0 ═══════╡     ╞",
+                              "               │     │",
+                              "c1_3: 0 ═══════╡     ╞",
+                              "               └─────┘"])
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_5(self):
+        """ Conditional drawing with 5-bit-length regs."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[5];
+        creg c1[5];
+        if(c0==5) x q[0];
+        if(c1==5) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "        ┌┴─┴─┴┐ └─┬─┘ ",
+                              "c0_0: 0 ╡     ╞═══╪═══",
+                              "        │     │   │   ",
+                              "c0_1: 0 ╡     ╞═══╪═══",
+                              "        │     │   │   ",
+                              "c0_2: 0 ╡ = 5 ╞═══╪═══",
+                              "        │     │   │   ",
+                              "c0_3: 0 ╡     ╞═══╪═══",
+                              "        │     │   │   ",
+                              "c0_4: 0 ╡     ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1_0: 0 ═══════╡     ╞",
+                              "               │     │",
+                              "c1_1: 0 ═══════╡     ╞",
+                              "               │     │",
+                              "c1_2: 0 ═══════╡ = 5 ╞",
+                              "               │     │",
+                              "c1_3: 0 ═══════╡     ╞",
+                              "               │     │",
+                              "c1_4: 0 ═══════╡     ╞",
+                              "               └─────┘"])
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_cz_2(self):
+        """Conditional CZ"""
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cz(qr[0], qr[1]).c_if(cr, 1)
+
+        expected = '\n'.join(["                ",
+                              "qr_0: |0>───■───",
+                              "            │   ",
+                              "qr_1: |0>───■───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_cz_3(self):
+        """Conditional CZ with a wire in the middle"""
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cz(qr[0], qr[1]).c_if(cr, 1)
+
+        expected = '\n'.join(["                ",
+                              "qr_0: |0>───■───",
+                              "            │   ",
+                              "qr_1: |0>───■───",
+                              "            │   ",
+                              "qr_2: |0>───┼───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
 if __name__ == '__main__':
