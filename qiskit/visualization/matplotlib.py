@@ -620,8 +620,8 @@ class MatplotlibDrawer:
                 q_idxs = []
                 for qarg in op.qargs:
                     for index, reg in self._qreg_dict.items():
-                        if (reg['group'] == qarg[0] and
-                                reg['index'] == qarg[1]):
+                        if (reg['group'] == qarg.register and
+                                reg['index'] == qarg.index):
                             q_idxs.append(index)
                             break
 
@@ -629,8 +629,8 @@ class MatplotlibDrawer:
                 c_idxs = []
                 for carg in op.cargs:
                     for index, reg in self._creg_dict.items():
-                        if (reg['group'] == carg[0] and
-                                reg['index'] == carg[1]):
+                        if (reg['group'] == carg.register and
+                                reg['index'] == carg.index):
                             c_idxs.append(index)
                             break
 
