@@ -120,6 +120,36 @@ class TestInstructionToQobjConverter(QiskitTestCase):
 
         self.assertEqual(converter(0, instruction), valid_qobj)
 
+    def test_acquire_multi_q(self):
+        """Test converted qobj from AcquireInstruction with many qubits."""
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
+        command = Acquire(duration=10)
+        instruction = command(self.device.q, self.device.mem, self.device.c)
+
+        valid_qobj = PulseQobjInstruction(
+            name='acquire',
+            t0=0,
+            duration=10,
+            qubits=[0, 1, 2, 3],
+            memory_slot=[0, 1, 2, 3],
+            register_slot=[0, 1, 2, 3]
+        )
+
+        self.assertEqual(converter(0, instruction), valid_qobj)
+
+        # test without register
+        instruction = command(self.device.q, self.device.mem)
+
+        valid_qobj = PulseQobjInstruction(
+            name='acquire',
+            t0=0,
+            duration=10,
+            qubits=[0],
+            memory_slot=[0]
+        )
+
+        self.assertEqual(converter(0, instruction), valid_qobj)
+
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
