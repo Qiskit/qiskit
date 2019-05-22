@@ -24,6 +24,18 @@ Deprecated
 
 - The gates `U` and `CX` are being deprecated in favor of `u3` and `cx`.
 
+Changed
+-------
+
+- The ``pylatexenc`` and ``pillow`` requirements are now optional. These are
+  only used by the ``latex`` and ``latex_source`` circuit visualization
+  backends. To continue using them ensure these are installed.
+- When adding a register to a circuit, an error will now be raised if a register
+  of the same name is already present. Previously, an error would only be raised
+  if the same register was added twice.
+- Qubits and classical bits are not represented as a tuples anymore, but as
+  instances of ``Qubit`` and ``Clbit`` respectively.
+
 Removed
 -------
 - The previously deprecated functions ``qiksit.visualization.plot_state`` and
@@ -37,6 +49,7 @@ Removed
 - The logging tools in ``qiskit.tools.logging`` are removed. (#2387)
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
+
 
 `0.8.0`_ - 2019-05-02
 =====================

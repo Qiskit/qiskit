@@ -108,9 +108,9 @@ class FakeBackend(BaseBackend):
         job.submit()
         return job
 
-    # pylint: disable=unused-argument
     def run_job(self, job_id, qobj):
         """Main dummy run loop"""
+        del qobj  # unused
         time.sleep(self.time_alive)
 
         return Result.from_dict(

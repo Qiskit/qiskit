@@ -42,5 +42,5 @@ class IndexedId(Node):
 
     def qasm(self, prec=15):
         """Return the corresponding OPENQASM string."""
-        # pylint: disable=unused-argument
+        del prec  # prec ignored
         return self.name + "[%d]" % self.index

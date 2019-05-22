@@ -203,11 +203,11 @@ class MatplotlibDrawer:
         if text:
             disp_text = text
             if subtext:
-                self.ax.text(xpos, ypos + 0.15 * height, disp_text, ha='center',
+                self.ax.text(xpos, ypos + 0.5 * height, disp_text, ha='center',
                              va='center', fontsize=self._style.fs,
                              color=self._style.gt, clip_on=True,
                              zorder=PORDER_TEXT)
-                self.ax.text(xpos, ypos - 0.3 * height, subtext, ha='center',
+                self.ax.text(xpos, ypos + 0.3 * height, subtext, ha='center',
                              va='center', fontsize=self._style.sfs,
                              color=self._style.sc, clip_on=True,
                              zorder=PORDER_TEXT)
@@ -583,6 +583,20 @@ class MatplotlibDrawer:
                                      'noise', 'cswap', 'swap', 'measure'] and len(
                                          op.name) >= 4:
                     box_width = round(len(op.name) / 8)
+                    # handle params/subtext longer than op names
+                    if op.type == 'op' and hasattr(op.op, 'params'):
+                        param = self.param_parse(op.op.params, self._style.pimode)
+                        if len(param) > len(op.name):
+                            box_width = round(len(param) / 8)
+                            # If more than 4 characters min width is 2
+                            if box_width <= 1:
+                                box_width = 2
+                            if layer_width < box_width:
+                                if box_width > 2:
+                                    layer_width = box_width * 2
+                                else:
+                                    layer_width = 2
+                            continue
                     # If more than 4 characters min width is 2
                     if box_width <= 1:
                         box_width = 2
@@ -606,8 +620,8 @@ class MatplotlibDrawer:
                 q_idxs = []
                 for qarg in op.qargs:
                     for index, reg in self._qreg_dict.items():
-                        if (reg['group'] == qarg[0] and
-                                reg['index'] == qarg[1]):
+                        if (reg['group'] == qarg.register and
+                                reg['index'] == qarg.index):
                             q_idxs.append(index)
                             break
 
@@ -615,8 +629,8 @@ class MatplotlibDrawer:
                 c_idxs = []
                 for carg in op.cargs:
                     for index, reg in self._creg_dict.items():
-                        if (reg['group'] == carg[0] and
-                                reg['index'] == carg[1]):
+                        if (reg['group'] == carg.register and
+                                reg['index'] == carg.index):
                             c_idxs.append(index)
                             break
 
@@ -699,13 +713,23 @@ class MatplotlibDrawer:
                     else:
                         # this stop there being blank lines plotted in place of barriers
                         this_anc -= 1
+                elif op.name == 'initialize':
+                    vec = '[%s]' % param
+                    self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                                                 text="|psi>",
+                                                 subtext=vec)
+                elif op.name == 'unitary':
+                    # TODO(mtreinish): Look into adding the unitary to the
+                    # subtext
+                    self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                                                 text="U")
                 #
                 # draw single qubit gates
                 #
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        prm = '{}'.format(param)
+                        prm = '({})'.format(param)
                         if len(prm) < 20:
                             self._gate(q_xy[0], wide=_iswide, text=disp,
                                        subtext=prm)
@@ -840,11 +864,9 @@ class MatplotlibDrawer:
 
     @staticmethod
     def param_parse(v, pimode=False):
-
         # create an empty list to store the parameters in
         param_parts = [None] * len(v)
         for i, e in enumerate(v):
-
             if pimode:
                 try:
                     param_parts[i] = MatplotlibDrawer.format_pi(e)
@@ -884,6 +906,10 @@ class MatplotlibDrawer:
 
     @staticmethod
     def format_numeric(val, tol=1e-5):
+        if isinstance(val, complex):
+            return str(val)
+        elif complex(val).imag != 0:
+            val = complex(val)
         abs_val = abs(val)
         if math.isclose(abs_val, 0.0, abs_tol=1e-100):
             return '0'
@@ -1231,8 +1257,8 @@ class ScheduleDrawer:
 
         return n_valid_waveform, v_max
 
-    # pylint: disable=unused-argument
     def _draw_table(self, figure, channels, dt, n_valid_waveform):
+        del n_valid_waveform  # unused
         # create table
         table_data = []
         if self.style.use_table:

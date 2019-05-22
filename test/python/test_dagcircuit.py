@@ -301,9 +301,8 @@ class TestDagOperations(QiskitTestCase):
         self.assertEqual([7, 8], [i._node_id for i in self.dag.nodes_on_wire(cbit)])
         self.assertEqual([], [i._node_id for i in self.dag.nodes_on_wire(cbit, only_ops=True)])
 
-        (reg, _) = qbit
         with self.assertRaises(DAGCircuitError):
-            next(self.dag.nodes_on_wire((reg, 7)))
+            next(self.dag.nodes_on_wire((qbit.register, 7)))
 
     def test_dag_nodes_on_wire_multiple_successors(self):
         """
