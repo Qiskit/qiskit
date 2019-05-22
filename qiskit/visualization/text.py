@@ -772,35 +772,36 @@ class TextDrawing():
 
         elif instruction.name == 'cy':
             # cy
-            gates = [Bullet(), BoxOnQuWire('Y')]
+            gates = [Bullet(conditional=conditional), BoxOnQuWire('Y')]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'cz':
             # cz
-            gates = [Bullet(), Bullet(conditional=conditional)]
+            gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'ch':
             # ch
-            gates = [Bullet(), BoxOnQuWire('H')]
+            gates = [Bullet(conditional=conditional), BoxOnQuWire('H')]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'cu1':
             # cu1
             connection_label = TextDrawing.params_for_label(instruction)[0]
-            gates = [Bullet(), Bullet()]
+            gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'rzz':
             # rzz
             connection_label = "zz(%s)" % TextDrawing.params_for_label(instruction)[0]
-            gates = [Bullet(), Bullet()]
+            gates = [Bullet(conditional=conditional), Bullet(conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'cu3':
             # cu3
             params = TextDrawing.params_for_label(instruction)
-            gates = [Bullet(), BoxOnQuWire("U3(%s)" % ','.join(params))]
+            gates = [Bullet(conditional=conditional),
+                     BoxOnQuWire("U3(%s)" % ','.join(params), conditional=conditional)]
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'crz':

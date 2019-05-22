@@ -1198,6 +1198,44 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_conditional_cu3_ct(self):
+        """Conditional Cu3 (control-target) with a wire in the middle"""
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cu3(pi / 2, pi / 2, pi / 2, qr[0], qr[1]).c_if(cr, 1)
+
+        expected = '\n'.join(["                                     ",
+                              "qr_0: |0>─────────────■──────────────",
+                              "         ┌────────────┴─────────────┐",
+                              "qr_1: |0>┤ U3(1.5708,1.5708,1.5708) ├",
+                              "         └────────────┬─────────────┘",
+                              "qr_2: |0>─────────────┼──────────────",
+                              "                   ┌──┴──┐           ",
+                              " cr_0: 0 ══════════╡ = 1 ╞═══════════",
+                              "                   └─────┘           "])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_cu3_tc(self):
+        """Conditional Cu3 (target-control) with a wire in the middle"""
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cu3(pi / 2, pi / 2, pi / 2, qr[1], qr[0]).c_if(cr, 1)
+
+        expected = '\n'.join(["         ┌──────────────────────────┐",
+                              "qr_0: |0>┤ U3(1.5708,1.5708,1.5708) ├",
+                              "         └────────────┬─────────────┘",
+                              "qr_1: |0>─────────────■──────────────",
+                              "                      │              ",
+                              "qr_2: |0>─────────────┼──────────────",
+                              "                   ┌──┴──┐           ",
+                              " cr_0: 0 ══════════╡ = 1 ╞═══════════",
+                              "                   └─────┘           "])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_text_conditional_ccx(self):
         """Conditional CCX with a wire in the middle"""
         qr = QuantumRegister(4, 'qr')
