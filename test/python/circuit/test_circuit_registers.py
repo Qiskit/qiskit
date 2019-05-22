@@ -68,6 +68,7 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qr1.size, 10)
         self.assertEqual(type(qr1), QuantumRegister)
 
+    @unittest.expectedFailure
     def test_numpy_array_of_registers(self):
         """Test numpy array of Registers .
         See https://github.com/Qiskit/qiskit-terra/issues/1898
