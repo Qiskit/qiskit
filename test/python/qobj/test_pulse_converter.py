@@ -200,7 +200,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         instruction = cmd(self.device.q, self.device.mem, self.device.c)
 
         qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0, 1],
-                                    memory_slot=[0, 1, 2], register_slot=[0, 1],
+                                    memory_slot=[0, 1], register_slot=[0, 1],
                                     kernels=[QobjMeasurementOption(
                                         name='test_kern', params={'test_params': 'test'})],
                                     discriminators=[QobjMeasurementOption(

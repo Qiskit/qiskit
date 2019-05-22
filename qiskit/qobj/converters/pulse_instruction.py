@@ -405,7 +405,8 @@ class QobjToInstructionConverter:
         if not isinstance(discriminators, list):
             discriminators = [discriminators]
         if any(discriminators[i] != discriminators[0] for i in range(len(discriminators))):
-            warnings.warn("Can currently only support one discriminator per acquire.")
+            warnings.warn("Can currently only support one discriminator per acquire. Defaulting "
+                          "to first discriminator entry.")
         discriminator = discriminators[0]
         if discriminator:
             discriminator = commands.Discriminator(name=discriminators[0].name,
@@ -416,7 +417,8 @@ class QobjToInstructionConverter:
         if not isinstance(kernels, list):
             kernels = [kernels]
         if any(kernels[0] != kernels[i] for i in range(len(kernels))):
-            warnings.warn("Can currently only support one kernel per acquire.")
+            warnings.warn("Can currently only support one kernel per acquire. Defaulting to first "
+                          "kernel entry.")
         kernel = kernels[0]
         if kernel:
             kernel = commands.Kernel(name=kernels[0].name, params=kernels[0].params)
