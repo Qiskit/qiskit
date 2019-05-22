@@ -287,7 +287,7 @@ class BoxOnClWireMid(MultiBox, BoxOnClWire):
 class BoxOnClWireBot(MultiBox, BoxOnClWire):
     """ Draws the bottom part of a conditional box that affects more than one classical wire"""
 
-    def __init__(self, label, input_length, bot_connect='─', wire_label='', **kwargs):
+    def __init__(self, label, input_length, bot_connect='─', wire_label='', **_):
         super().__init__(label)
         self.wire_label = wire_label
         self.top_format = "│ %s │"
