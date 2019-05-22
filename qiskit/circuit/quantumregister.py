@@ -32,6 +32,10 @@ class Qubit(Bit):
             raise QiskitError('Qubit needs a QuantumRegister and %s was provided' %
                               type(register).__name__)
 
+    def __repr__(self):
+        """Return the official string representing the qubit."""
+        return "Qubit(%s, %s)" % (self.register, self.index)
+
 
 class QuantumRegister(Register):
     """Implement a quantum register."""

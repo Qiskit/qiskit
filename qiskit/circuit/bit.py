@@ -41,10 +41,6 @@ class Bit:
         self.register = register
         self.index = index
 
-    def __repr__(self):
-        """Return the official string representing the bit."""
-        return "%s(%s, %s)" % (self.__class__.__name__, self.register, self.index)
-
     def __getitem__(self, item):
         warn('Accessing a bit register by bit[0] or its index by bit[1] is deprecated. '
              'Go for bit.register and bit.index.', DeprecationWarning)

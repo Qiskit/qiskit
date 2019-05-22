@@ -32,6 +32,10 @@ class Clbit(Bit):
             raise QiskitError('Clbit needs a ClassicalRegister and %s was provided' %
                               type(register).__name__)
 
+    def __repr__(self):
+        """Return the official string representing the clbit."""
+        return "Clbit(%s, %s)" % (self.register, self.index)
+
 
 class ClassicalRegister(Register):
     """Implement a classical register."""
