@@ -155,17 +155,18 @@ class TestStochasticSwap(QiskitTestCase):
         self.assertEqual(dag, after)
 
     def test_permute_wires_1(self):
-        """All of the test_permute_wires tests are derived
-        from the basic mapper tests. In this case, the
-        stochastic mapper handles a single
-        layer by qubit label permutations so as not to
-        introduce additional swap gates. The new
-        initial layout is found in pass_.initial_layout.
+        """
          q0:-------
+
          q1:--(+)--
                |
          q2:---.---
          Coupling map: [1]--[0]--[2]
+         q0:-------
+
+         q1:--(+)--
+               |
+         q2:---.---
         """
         coupling = CouplingMap([[0, 1], [0, 2]])
 
@@ -176,6 +177,11 @@ class TestStochasticSwap(QiskitTestCase):
 
         pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
+        from qiskit.converters import dag_to_circuit
+        print(dag_to_circuit(dag))
+        print(dag_to_circuit(after))
+        print(pass_.property_set)
+        print(pass_.initial_layout)
 
         self.assertEqual(dag, after)
 
@@ -198,6 +204,11 @@ class TestStochasticSwap(QiskitTestCase):
 
         pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
+        from qiskit.converters import dag_to_circuit
+        print(dag_to_circuit(dag))
+        print(dag_to_circuit(after))
+        print(pass_.property_set)
+        print(pass_.initial_layout)
 
         self.assertEqual(dag, after)
 
@@ -222,6 +233,11 @@ class TestStochasticSwap(QiskitTestCase):
 
         pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
+        from qiskit.converters import dag_to_circuit
+        print(dag_to_circuit(dag))
+        print(dag_to_circuit(after))
+        print(pass_.property_set)
+        print(pass_.initial_layout)
 
         self.assertEqual(dag, after)
 
@@ -252,6 +268,11 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.h(qr[3])
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
+        from qiskit.converters import dag_to_circuit
+        print(dag_to_circuit(dag))
+        print(dag_to_circuit(after))
+        print(pass_.property_set)
+        print(pass_.initial_layout)
 
         expected = QuantumCircuit(qr)
         expected.h(qr[3])
@@ -284,6 +305,11 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         circuit.h(qr[3])
         dag = circuit_to_dag(circuit)
+        from qiskit.converters import dag_to_circuit
+        print(dag_to_circuit(dag))
+        print(dag_to_circuit(after))
+        print(pass_.property_set)
+        print(pass_.initial_layout)
 
         pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
@@ -312,6 +338,11 @@ class TestStochasticSwap(QiskitTestCase):
 
         pass_ = StochasticSwap(coupling, None, 20, 13)
         after = pass_.run(dag)
+        from qiskit.converters import dag_to_circuit
+        print(dag_to_circuit(dag))
+        print(dag_to_circuit(after))
+        print(pass_.property_set)
+        print(pass_.initial_layout)
 
         self.assertEqual(dag, after)
 
