@@ -17,7 +17,7 @@ reversible circuits.
 """
 import copy
 import numpy as np
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
 def graysynth(cnots, number, nsections):
