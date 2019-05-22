@@ -22,10 +22,10 @@ from qiskit.exceptions import QiskitError
 class Bit(tuple):
     """Implement a generic bit."""
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *_, **__):
         return tuple.__new__(cls)
 
-    def __init__(self, register, index):
+    def __init__(self, register, index):  # pylint: disable=super-init-not-called
         """Create a new generic bit.
         """
         try:
