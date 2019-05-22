@@ -1124,8 +1124,8 @@ class TestTextConditional(QiskitTestCase):
         circuit = QuantumCircuit.from_qasm_str(qasm_string)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    def test_text_conditional_cz_2(self):
-        """Conditional CZ"""
+    def test_text_conditional_cz_no_space(self):
+        """Conditional CZ without space"""
         qr = QuantumRegister(2, 'qr')
         cr = ClassicalRegister(1, 'cr')
         circuit = QuantumCircuit(qr, cr)
@@ -1141,7 +1141,7 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
-    def test_text_conditional_cz_3(self):
+    def test_text_conditional_cz(self):
         """Conditional CZ with a wire in the middle"""
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(1, 'cr')
@@ -1155,6 +1155,46 @@ class TestTextConditional(QiskitTestCase):
                               "            │   ",
                               "qr_2: |0>───┼───",
                               "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_ccx(self):
+        """Conditional CCX with a wire in the middle"""
+        qr = QuantumRegister(4, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
+
+        expected = '\n'.join(["                ",
+                              "qr_0: |0>───■───",
+                              "            │   ",
+                              "qr_1: |0>───■───",
+                              "          ┌─┴─┐ ",
+                              "qr_2: |0>─┤ X ├─",
+                              "          └─┬─┘ ",
+                              "qr_3: |0>───┼───",
+                              "         ┌──┴──┐",
+                              " cr_0: 0 ╡ = 1 ╞",
+                              "         └─────┘"])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_conditional_ccx_no_space(self):
+        """Conditional CCX without space"""
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.ccx(qr[0], qr[1], qr[2]).c_if(cr, 1)
+
+        expected = '\n'.join(["                ",
+                              "qr_0: |0>───■───",
+                              "            │   ",
+                              "qr_1: |0>───■───",
+                              "          ┌─┴─┐ ",
+                              "qr_2: |0>─┤ X ├─",
+                              "         ┌┴─┴─┴┐",
                               " cr_0: 0 ╡ = 1 ╞",
                               "         └─────┘"])
 
