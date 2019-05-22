@@ -36,12 +36,13 @@ class Clbit(Bit):
 
     @property
     def __class__(self):
-        curframe = inspect.currentframe()
-        calframe = inspect.getouterframes(curframe, 2)
-        for context in calframe[1].code_context:
+        # This is for supporting isinstance(cr[0], Clbit)
+        # It should be removed after 0.9
+        code_context = inspect.getouterframes(inspect.currentframe(), 2)[1].code_context
+        for context in code_context:
             if 'tuple' in context:
-                warn('Bit-as-tuple is deprecated. Replace isinstance(qr[0], tuple) for '
-                     'isinstance(qr[0], Qubit).', DeprecationWarning, stacklevel=2)
+                warn('Bit-as-tuple is deprecated. Replace isinstance(cr[0], tuple) for '
+                     'isinstance(cr[0], Clbit).', DeprecationWarning, stacklevel=2)
                 return tuple
         return Clbit
 
