@@ -16,7 +16,7 @@
 import logging
 
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands import PulseInstruction, AcquireInstruction
+from qiskit.pulse.commands import PulseInstruction, AcquireInstruction, SamplePulse
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
@@ -53,21 +53,28 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
 
     # Pack everything into the Qobj
     qobj_schedules = []
-    user_pulselib = set()
+    user_pulselib = {}
     for idx, schedule in enumerate(schedules):
         # instructions
         qobj_instructions = []
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
-            qobj_instructions.append(instruction_converter(shift, instruction))
             if isinstance(instruction, PulseInstruction):
+                name = instruction.command.name
+                if name in user_pulselib and instruction.command != user_pulselib[name]:
+                    name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
+                    instruction = PulseInstruction(
+                        command=SamplePulse(name=name, samples=instruction.command.samples),
+                        name=instruction.name,
+                        channel=instruction.timeslots.channels[0])
                 # add samples to pulse library
-                user_pulselib.add(instruction.command)
+                user_pulselib[name] = instruction.command
             if isinstance(instruction, AcquireInstruction):
                 if meas_map:
                     # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
+            qobj_instructions.append(instruction_converter(shift, instruction))
 
         # experiment header
         qobj_experiment_header = QobjExperimentHeader(
@@ -81,7 +88,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
 
     # setup pulse_library
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
-                                    for pulse in user_pulselib]
+                                    for pulse in user_pulselib.values()]
 
     # create qob experiment field
     experiments = []

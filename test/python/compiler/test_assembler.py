@@ -257,7 +257,8 @@ class TestPulseAssembler(QiskitTestCase):
         self.device = pulse.DeviceSpecification.create_from(FakeOpenPulse2Q())
 
         test_pulse = pulse.SamplePulse(
-            samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128)
+            samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
+            name='pulse0'
         )
         acquire = pulse.Acquire(5)
 
@@ -389,6 +390,24 @@ class TestPulseAssembler(QiskitTestCase):
 
         with self.assertRaises(QiskitError):
             assemble(schedule, meas_map=[[0, 1, 2]])
+
+    def test_pulse_name_conflicts(self):
+        """Test that pulse name conflicts can be resolved."""
+        name_conflict_pulse = pulse.SamplePulse(
+            samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128),
+            name='pulse0'
+        )
+        self.schedule = self.schedule.insert(1, name_conflict_pulse(self.device.q[1].drive))
+        qobj = assemble(self.schedule,
+                        qobj_header=self.header,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        schedule_los=[],
+                        **self.config)
+
+        self.assertNotEqual(qobj.config.pulse_library[1], 'pulse0')
+        self.assertEqual(qobj.experiments[0].instructions[0].name, 'pulse0')
+        self.assertNotEqual(qobj.experiments[0].instructions[1].name, 'pulse0')
 
 
 if __name__ == '__main__':
