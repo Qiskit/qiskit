@@ -260,10 +260,6 @@ class StochasticSwap(TransformationPass):
                 = self._layer_permutation(layer["partition"], layout,
                                           qubit_subset, coupling_graph,
                                           trials)
-            from qiskit.converters import dag_to_circuit
-            print(dag_to_circuit(best_circuit))
-            print("success: ", success_flag)
-            print("best_layout: ", best_layout)
             logger.debug("mapper: layer %d", i)
             logger.debug("mapper: success_flag=%s,best_depth=%s,trivial_flag=%s",
                          success_flag, str(best_depth), trivial_flag)
@@ -324,8 +320,6 @@ class StochasticSwap(TransformationPass):
                                        best_circuit,
                                        layerlist),
                     identity_wire_map)
-                print("permuted----")
-                print(dag_to_circuit(dagcircuit_output))
 
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
