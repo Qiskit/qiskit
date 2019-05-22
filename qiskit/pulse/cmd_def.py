@@ -116,12 +116,14 @@ class CmdDef:
         return False
 
     def get(self, cmd_name: str, qubits: Union[int, Iterable[int]],
-            **params: Dict[str, Union[float, complex]]) -> Schedule:
+            *params: List[Union[float, complex]],
+            **kwparams: Dict[str, Union[float, complex]]) -> Schedule:
         """Get command from command definition.
         Args:
             cmd_name: Name of the command
             qubits: Ordered list of qubits command applies to
-            **params: Command parameters to be used to generate schedule
+            *params: Command parameters to be used to generate schedule
+            **kwparams: Keyworded command parameters to be used to generate schedule
 
         Raises:
             PulseError: If command for qubits is not available
@@ -131,7 +133,7 @@ class CmdDef:
             schedule = self._cmd_dict[cmd_name][qubits]
 
             if isinstance(schedule, ParameterizedSchedule):
-                return schedule.bind_parameters(**params)
+                return schedule.bind_parameters(*params, **kwparams)
 
             return schedule.flatten()
 
@@ -158,13 +160,15 @@ class CmdDef:
                              'in CmdDef'.format(cmd_name, qubits))
 
     def pop(self, cmd_name: str, qubits: Union[int, Iterable[int]],
-            **params: Dict[str, Union[float, complex]]) -> Schedule:
+            *params: List[Union[float, complex]],
+            **kwparams: Dict[str, Union[float, complex]]) -> Schedule:
         """Pop command from command definition.
 
         Args:
             cmd_name: Name of the command
             qubits: Ordered list of qubits command applies to
-            **params: Command parameters to be used to generate schedule
+            *params: Command parameters to be used to generate schedule
+            **kwparams: Keyworded command parameters to be used to generate schedule
 
         Raises:
             PulseError: If command for qubits is not available
@@ -175,7 +179,7 @@ class CmdDef:
             schedule = cmd_dict.pop(qubits)
 
             if isinstance(schedule, ParameterizedSchedule):
-                return schedule.bind_parameters(**params)
+                return schedule.bind_parameters(*params, **kwparams)
 
             return schedule
 
