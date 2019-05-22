@@ -50,7 +50,7 @@ class SamplePulse(Command):
         """Return sample values."""
         return self._samples
 
-    def draw(self, dt: float = 1, style: 'OPStylePulse' = None,
+    def draw(self, dt: float = 1, style: 'PulseStyle' = None,
              filename: str = None, interp_method: Callable = None,
              scaling: float = 1, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
@@ -69,7 +69,7 @@ class SamplePulse(Command):
         """
         # pylint: disable=invalid-name, cyclic-import
 
-        from qiskit.tools import visualization
+        from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style, filename=filename,
                                           interp_method=interp_method, scaling=scaling,

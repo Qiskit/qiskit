@@ -194,7 +194,7 @@ class Instruction(ScheduleComponent):
         """
         return ops.append(self, schedule, buffer=buffer, name=name)
 
-    def draw(self, dt: float = 1, style: 'OPStyleSched' = None,
+    def draw(self, dt: float = 1, style: 'SchedStyle' = None,
              filename: str = None, interp_method: Callable = None, scaling: float = 1,
              channels_to_plot: List[Channel] = None, plot_all: bool = False,
              plot_range: Tuple[float] = None, interactive: bool = False,
@@ -223,7 +223,7 @@ class Instruction(ScheduleComponent):
         """
         # pylint: disable=invalid-name, cyclic-import
 
-        from qiskit.tools import visualization
+        from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,
