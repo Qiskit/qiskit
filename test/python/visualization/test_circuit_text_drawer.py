@@ -1160,6 +1160,17 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_conditional_cx_ct(self):
+        """Conditional CX (control-target) with a wire in the middle"""
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cx(qr[0], qr[1]).c_if(cr, 1)
+
+        expected = '\n'.join([""])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_text_conditional_ccx(self):
         """Conditional CCX with a wire in the middle"""
         qr = QuantumRegister(4, 'qr')

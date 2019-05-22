@@ -766,7 +766,7 @@ class TextDrawing():
 
         elif instruction.name in ['cx', 'CX', 'ccx']:
             # cx/ccx
-            gates = [Bullet() for _ in range(len(instruction.qargs) - 1)]
+            gates = [Bullet(conditional=conditional) for _ in range(len(instruction.qargs) - 1)]
             gates.append(BoxOnQuWire('X', conditional=conditional))
             add_connected_gate(instruction, gates, layer, current_cons)
 
