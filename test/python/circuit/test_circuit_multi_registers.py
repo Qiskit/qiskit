@@ -14,10 +14,10 @@
 
 
 """Test Qiskit's QuantumCircuit class for multiple registers."""
-
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.test import QiskitTestCase
+from qiskit.exceptions import QiskitError
 
 
 class TestCircuitMultiRegs(QiskitTestCase):
@@ -63,3 +63,10 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         self.assertEqual(dag_qc, dag_qc2)
         self.assertEqual(dag_circ, dag_circ2)
+
+    def test_circuit_multi_name_collision(self):
+        """Test circuit multi regs, with name collision.
+        """
+        qreg0 = QuantumRegister(2, 'q')
+        qreg1 = QuantumRegister(3, 'q')
+        self.assertRaises(QiskitError, QuantumCircuit, qreg0, qreg1)

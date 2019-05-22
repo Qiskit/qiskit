@@ -16,6 +16,7 @@
 
 import re
 import math
+import warnings
 
 from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
                                         implicit_multiplication_application,
@@ -298,7 +299,7 @@ def _parse_string_expr(expr):  # pylint: disable=missing-return-type-doc
         raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
     params = sorted(re.findall(_param_regex, expr))
     local_dict = {param: Symbol(param) for param in params}
-    symbols = list(local_dict.keys())
+    symbols = sorted(list(local_dict.keys()))
     transformations = (standard_transformations + (implicit_multiplication_application,) +
                        (function_exponentiation,))
 
@@ -308,14 +309,15 @@ def _parse_string_expr(expr):  # pylint: disable=missing-return-type-doc
         subs = {}
         matched_params = []
         if args:
-            subs.update({symbols[i]: arg for i, arg in enumerate(args)})
+            subs.update({Symbol(symbols[i]): arg for i, arg in enumerate(args)})
             matched_params += list(params[i] for i in range(len(args)))
-        elif kwargs:
+        if kwargs:
             subs.update({local_dict[key]: value for key, value in kwargs.items()
                          if key in local_dict})
             matched_params += list(key for key in kwargs if key in params)
 
-        if not set(matched_params).issuperset(set(params)):
+        if not set(matched_params).issuperset(set(params)) or\
+                not set(subs.keys()).issuperset(set(local_dict.values())):
             raise PulseError('Supplied params ({args}, {kwargs}) do not match '
                              '{params}'.format(args=args, kwargs=kwargs, params=params))
 
@@ -388,44 +390,43 @@ class QobjToInstructionConverter:
         t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
+        qubit_channels = [channels.AcquireChannel(qubit, buffer=self.buffer) for qubit in qubits]
+
+        mem_slots = [channels.MemorySlot(instruction.memory_slot[i]) for i in range(len(qubits))]
+
+        if hasattr(instruction, 'register_slot'):
+            register_slots = [channels.RegisterSlot(instruction.register_slot[i])
+                              for i in range(len(qubits))]
+        else:
+            register_slots = None
+
         discriminators = (instruction.discriminators
                           if hasattr(instruction, 'discriminators') else None)
+        if not isinstance(discriminators, list):
+            discriminators = [discriminators]
+        if any(discriminators[i] != discriminators[0] for i in range(len(discriminators))):
+            warnings.warn("Can currently only support one discriminator per acquire. Defaulting "
+                          "to first discriminator entry.")
+        discriminator = discriminators[0]
+        if discriminator:
+            discriminator = commands.Discriminator(name=discriminators[0].name,
+                                                   params=discriminators[0].params)
 
         kernels = (instruction.kernels
                    if hasattr(instruction, 'kernels') else None)
-
-        mem_slots = instruction.memory_slot
-        reg_slots = (instruction.register_slot
-                     if hasattr(instruction, 'register_slot') else None)
-
-        if not isinstance(discriminators, list):
-            discriminators = [discriminators for _ in range(len(qubits))]
-
         if not isinstance(kernels, list):
-            kernels = [kernels for _ in range(len(qubits))]
+            kernels = [kernels]
+        if any(kernels[0] != kernels[i] for i in range(len(kernels))):
+            warnings.warn("Can currently only support one kernel per acquire. Defaulting to first "
+                          "kernel entry.")
+        kernel = kernels[0]
+        if kernel:
+            kernel = commands.Kernel(name=kernels[0].name, params=kernels[0].params)
 
+        cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
         schedule = Schedule()
-
-        for i, qubit in enumerate(qubits):
-            kernel = kernels[i]
-            if kernel:
-                kernel = commands.Kernel(name=kernel.name,
-                                         params=kernel.params)
-
-            discriminator = discriminators[i]
-            if discriminator:
-                discriminator = commands.Discriminator(name=discriminator.name,
-                                                       params=discriminator.params)
-
-            channel = channels.AcquireChannel(qubit, buffer=self.buffer)
-            if reg_slots:
-                register_slot = channels.RegisterSlot(reg_slots[i])
-            else:
-                register_slot = None
-            memory_slot = channels.MemorySlot(mem_slots[i])
-
-            cmd = commands.Acquire(duration, discriminator=discriminator, kernel=kernel)
-            schedule |= commands.AcquireInstruction(cmd, channel, memory_slot, register_slot) << t0
+        schedule |= commands.AcquireInstruction(cmd, qubit_channels, mem_slots,
+                                                register_slots) << t0
 
         return schedule
 

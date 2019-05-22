@@ -99,7 +99,9 @@ class QiskitTestCase(unittest.TestCase):
             default_value (number): default value for missing keys.
 
         Raises:
-            TypeError: raises TestCase failureException if the test fails.
+            TypeError: if the arguments are not valid (both `delta` and
+                `places` are specified).
+            AssertionError: if the dictionaries are not almost equal.
         """
         def valid_comparison(value):
             """compare value to delta, within places accuracy"""
