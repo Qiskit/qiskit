@@ -1257,6 +1257,17 @@ class TestTextConditional(QiskitTestCase):
 
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    def test_text_reset(self):
+        """ Reset drawing. """
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+
+        circuit = QuantumCircuit(qr, cr)
+        circuit.reset(qr[0]).c_if(cr, 1)
+
+        expected = '\n'.join([""])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 if __name__ == '__main__':
     unittest.main()

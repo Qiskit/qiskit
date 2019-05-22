@@ -345,8 +345,10 @@ class Ex(DirectOnQuWire):
 class Reset(DirectOnQuWire):
     """ Draws a reset gate"""
 
-    def __init__(self):
+    def __init__(self, conditional=False):
         super().__init__("|0>")
+        if conditional:
+            self.bot_connect = "│"
 
 
 class Bullet(DirectOnQuWire):
@@ -760,7 +762,7 @@ class TextDrawing():
             add_connected_gate(instruction, gates, layer, current_cons)
 
         elif instruction.name == 'reset':
-            layer.set_qubit(instruction.qargs[0], Reset())
+            layer.set_qubit(instruction.qargs[0], Reset(conditional=conditional))
 
         elif instruction.name in ['cx', 'CX', 'ccx']:
             # cx/ccx
