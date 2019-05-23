@@ -23,9 +23,14 @@ DEFAULT_STYLE = {AnalysisPass: 'red',
 
 try:
     import subprocess
-    print(subprocess.check_output(['dot', '-V']))
-    HAS_GRAPHVIZ = True
-except FileNotFoundError:
+    proc = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    proc.communicate()
+    if proc.returncode != 0:
+        HAS_GRAPHVIZ = False
+    else:
+        HAS_GRAPHVIZ = True
+except Exception:
     # this is raised when the dot command cannot be found, which means GraphViz
     # isn't installed
     HAS_GRAPHVIZ = False
