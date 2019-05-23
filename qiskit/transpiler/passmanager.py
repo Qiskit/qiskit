@@ -17,6 +17,7 @@ from functools import partial
 from collections import OrderedDict
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.visualization import pass_manager_drawer
 from .propertyset import PropertySet
 from .basepasses import BasePass
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
@@ -148,6 +149,10 @@ class PassManager():
         circuit = dag_to_circuit(dag)
         circuit.name = name
         return circuit
+
+    def draw(self, filename, style=None):
+        """ Draw the pass manager"""
+        pass_manager_drawer(self, filename=filename, style=style)
 
     def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".
