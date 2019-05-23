@@ -21,7 +21,8 @@ from qiskit.test.mock import FakeProvider
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.pulse import (CmdDef, SamplePulse, Schedule, DeviceSpecification,
-                          PulseError, PersistentValue)
+                          PersistentValue)
+from qiskit.exceptions import QiskitError
 
 
 class TestCmdDef(QiskitTestCase):
@@ -63,7 +64,7 @@ class TestCmdDef(QiskitTestCase):
         cmd_def.pop('tmp', 0)
         self.assertFalse(cmd_def.has('tmp', 0))
 
-        with self.assertRaises(PulseError):
+        with self.assertRaises(QiskitError):
             cmd_def.pop('not_there', (0,))
 
     def test_repr(self):
@@ -86,7 +87,7 @@ class TestCmdDef(QiskitTestCase):
         sched = cmd_def.get('pv_test', 0, '0', P2=-1)
         self.assertEqual(sched.instructions[0][-1].command.value, -1)
 
-        with self.assertRaises(PulseError):
+        with self.assertRaises(QiskitError):
             cmd_def.get('pv_test', 0, '0', P1=-1)
 
         sched = cmd_def.pop('pv_test', 0, '0', P2=-1)
