@@ -442,14 +442,14 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None, vertically_compressed=True):
+                 line_length=None, vertical_compression='high'):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
-        self.vertically_compressed = vertically_compressed
+        self.vertical_compression = vertical_compression
 
     def __str__(self):
         return self.single_string()
@@ -550,7 +550,7 @@ class TextDrawing():
         lines = []
         for layer_group in layer_groups:
             wires = [i for i in zip(*layer_group)]
-            lines += TextDrawing.draw_wires(wires, self.vertically_compressed)
+            lines += self.draw_wires(wires)
 
         return lines
 
@@ -576,13 +576,18 @@ class TextDrawing():
 
         return qubit_labels + clbit_labels
 
-    @staticmethod
-    def draw_wires(wires, vertically_compressed=True):
+    def should_compress(self, top_line, bot_line):
+        if self.vertical_compression == 'high':
+            return True
+        if self.vertical_compression == 'low':
+            return False
+
+    def draw_wires(self, wires):
         """
         Given a list of wires, creates a list of lines with the text drawing.
         Args:
             wires (list): A list of wires with instructions.
-            vertically_compressed (bool): Default is `True`. It merges the lines
+            vertical_compression (bool): Default is `True`. It merges the lines
                                      so the drawing will take less vertical room.
         Returns:
             list: A list of lines with the text drawing.
@@ -598,7 +603,7 @@ class TextDrawing():
             if bot_line is None:
                 lines.append(top_line)
             else:
-                if vertically_compressed:
+                if self.should_compress(top_line, bot_line):
                     lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
                 else:
                     lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))

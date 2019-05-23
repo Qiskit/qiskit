@@ -516,7 +516,7 @@ class QuantumCircuit:
 
     def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
-             reverse_bits=False, justify=None):
+             reverse_bits=False, justify=None, vertical_compression='medium'):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -576,7 +576,8 @@ class QuantumCircuit:
                               line_length=line_length,
                               plot_barriers=plot_barriers,
                               reverse_bits=reverse_bits,
-                              justify=justify)
+                              justify=justify,
+                              vertical_compression=vertical_compression)
 
     def size(self):
         """Returns total number of gate operations in circuit.

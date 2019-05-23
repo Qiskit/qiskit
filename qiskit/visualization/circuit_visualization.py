@@ -53,7 +53,8 @@ def circuit_drawer(circuit,
                    line_length=None,
                    plot_barriers=True,
                    reverse_bits=False,
-                   justify=None):
+                   justify=None,
+                   vertical_compression='medium'):
     """Draw a quantum circuit to different formats (set by output parameter):
     0. text: ASCII art TextDrawing that can be printed in the console.
     1. latex: high-quality images, but heavy external software dependencies
@@ -93,7 +94,7 @@ def circuit_drawer(circuit,
             gates should be placed in the output circuit if there is an option.
             `none` results in each gate being placed in its own column. Currently
             only supported by text drawer.
-
+        vertical_compression (string):
     Returns:
         PIL.Image: (output `latex`) an in-memory representation of the image
             of the circuit diagram.
@@ -198,7 +199,8 @@ def circuit_drawer(circuit,
                                     line_length=line_length,
                                     reverse_bits=reverse_bits,
                                     plotbarriers=plot_barriers,
-                                    justify=justify)
+                                    justify=justify,
+                                    vertical_compression=vertical_compression)
     elif output == 'latex':
         image = _latex_circuit_drawer(circuit, scale=scale,
                                       filename=filename, style=style,
@@ -305,7 +307,7 @@ def qx_color_scheme():
 
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
-                         plotbarriers=True, justify=None, vertically_compressed=True):
+                         plotbarriers=True, justify=None, vertical_compression='high'):
     """
     Draws a circuit using ascii art.
     Args:
@@ -320,7 +322,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
         plotbarriers (bool): Draws the barriers when they are there.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
                         the circuit should be justified.
-        vertically_compressed (bool): Default is `True`. It merges the lines so the
+        vertical_compression (string): Default is `high`. It merges the lines so the
                                       drawing will take less vertical room.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
@@ -331,7 +333,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     text_drawing = _text.TextDrawing(qregs, cregs, ops)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
-    text_drawing.vertically_compressed = vertically_compressed
+    text_drawing.vertical_compression = vertical_compression
 
     if filename:
         text_drawing.dump(filename)
