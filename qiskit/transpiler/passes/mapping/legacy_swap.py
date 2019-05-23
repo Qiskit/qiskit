@@ -86,11 +86,11 @@ class LegacySwap(TransformationPass):
             # to an expected dict{(reg,idx): (reg,idx)}
 
             virtual_qubits = self.initial_layout.get_virtual_bits()
-            self.initial_layout = {(v[0].name, v[1]): ('q', self.initial_layout[v]) for v in
-                                   virtual_qubits}
+            self.initial_layout = {(v.register.name, v.index): ('q', self.initial_layout[v]) for v
+                                   in virtual_qubits}
 
             device_register = QuantumRegister(self.coupling_map.size(), 'q')
-            initial_layout = {(dag.qregs[k[0]], k[1]): (device_register, v[1])
+            initial_layout = {dag.qregs[k[0]][k[1]]: device_register[v[1]]
                               for k, v in self.initial_layout.items()}
             # Check the input layout
             circ_qubits = dag.qubits()
@@ -107,7 +107,7 @@ class LegacySwap(TransformationPass):
                                           "CouplingGraph" % (v[0].name, v[1]))
         else:
             # Supply a default layout
-            qubit_subset = [(QuantumRegister(self.coupling_map.size(), 'q'), wire) for wire in
+            qubit_subset = [QuantumRegister(self.coupling_map.size(), 'q')[wire] for wire in
                             self.coupling_map.physical_qubits]
             qubit_subset = qubit_subset[0:dag.width()]
             initial_layout = {a: b for a, b in zip(dag.qubits(), qubit_subset)}
@@ -129,10 +129,10 @@ class LegacySwap(TransformationPass):
         identity_wire_map = {}
         q = QuantumRegister(self.coupling_map.size(), 'q')
         for j in range(self.coupling_map.size()):
-            identity_wire_map[(q, j)] = (q, j)
+            identity_wire_map[q[j]] = q[j]
         for creg in dag.cregs.values():
             for j in range(creg.size):
-                identity_wire_map[(creg, j)] = (creg, j)
+                identity_wire_map[creg[j]] = creg[j]
 
         first_layer = True  # True until first layer is output
 
@@ -244,7 +244,8 @@ class LegacySwap(TransformationPass):
                 gates.append(tuple(layer))
 
         # Can we already apply the gates?
-        dist = sum([self.coupling_map.distance(layout[g[0]][1], layout[g[1]][1]) for g in gates])
+        dist = sum(
+            [self.coupling_map.distance(layout[g[0]].index, layout[g[1]].index) for g in gates])
         if dist == len(gates):
             circ = DAGCircuit()
             circ.add_qreg(QuantumRegister(self.coupling_map.size(), "q"))
@@ -283,7 +284,7 @@ class LegacySwap(TransformationPass):
             circ.add_qreg(QR)
 
             # Identity wire-map for composing the circuits
-            identity_wire_map = {(QR, j): (QR, j) for j in range(n)}
+            identity_wire_map = {QR[j]: QR[j] for j in range(n)}
 
             while d < 2 * n + 1:
                 # Set of available qubits
@@ -297,7 +298,7 @@ class LegacySwap(TransformationPass):
                     progress_made = False
                     # Loop over edges of coupling graph
                     for e in self.coupling_map.get_edges():
-                        e = [(QR, edge) for edge in e]
+                        e = [QR[edge] for edge in e]
                         # Are the qubits available?
                         if e[0] in qubit_set and e[1] in qubit_set:
                             # Try this edge to reduce the cost
@@ -326,15 +327,15 @@ class LegacySwap(TransformationPass):
                         rev_trial_layout = rev_opt_layout
                         circ.apply_operation_back(
                             SwapGate(),
-                            [(opt_edge[0][0], opt_edge[0][1]), (opt_edge[1][0], opt_edge[1][1])],
+                            [opt_edge[0], opt_edge[1]],
                             [])
                     else:
                         break
 
                 # We have either run out of qubits or failed to improve
                 # Compute the coupling graph distance_qubits
-                dist = sum([self.coupling_map.distance(trial_layout[g[0]][1],
-                                                       trial_layout[g[1]][1]) for g in gates])
+                dist = sum([self.coupling_map.distance(trial_layout[g[0]].index,
+                                                       trial_layout[g[1]].index) for g in gates])
                 # If all gates can be applied now, we are finished
                 # Otherwise we need to consider a deeper swap circuit
                 if dist == len(gates):
@@ -345,8 +346,8 @@ class LegacySwap(TransformationPass):
                 d += 1
 
             # Either we have succeeded at some depth d < dmax or failed
-            dist = sum([self.coupling_map.distance(trial_layout[g[0]][1],
-                                                   trial_layout[g[1]][1]) for g in gates])
+            dist = sum([self.coupling_map.distance(trial_layout[g[0]].index,
+                                                   trial_layout[g[1]].index) for g in gates])
             if dist == len(gates):
                 if d < best_d:
                     best_circ = trial_circ
@@ -376,7 +377,7 @@ class LegacySwap(TransformationPass):
         QR = QuantumRegister(self.coupling_map.size(), 'q')
         dagcircuit_output.add_qreg(QR)
         # Identity wire-map for composing the circuits
-        identity_wire_map = {(QR, j): (QR, j) for j in range(self.coupling_map.size())}
+        identity_wire_map = {QR[j]: QR[j] for j in range(self.coupling_map.size())}
 
         # If this is the first layer with multi-qubit gates,
         # output all layers up to this point and ignore any

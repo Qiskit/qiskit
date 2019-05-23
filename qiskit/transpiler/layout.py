@@ -19,8 +19,9 @@ Layout is the relation between virtual (qu)bits and physical (qu)bits.
 Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[2]`.
 Physical (qu)bits are integers.
 """
+from warnings import warn
 
-from qiskit.circuit.register import Register
+from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
 
 
@@ -72,6 +73,8 @@ class Layout():
                      2: qr[2]}
         """
         for key, value in input_dict.items():
+            key = Layout._cast_tuple_to_bit(key)
+            value = Layout._cast_tuple_to_bit(value)
             virtual, physical = Layout.order_based_on_type(key, value)
             self._p2v[physical] = virtual
             if virtual is None:
@@ -81,24 +84,30 @@ class Layout():
     @staticmethod
     def order_based_on_type(value1, value2):
         """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
-        if isinstance(value1, int) and Layout.is_virtual(value2):
+        if isinstance(value1, int) and isinstance(value2, (Qubit, type(None))):
             physical = value1
             virtual = value2
-        elif isinstance(value2, int) and Layout.is_virtual(value1):
+        elif isinstance(value2, int) and isinstance(value1, (Qubit, type(None))):
             physical = value2
             virtual = value1
         else:
-            raise LayoutError('The map (%s -> %s) has to be a ((Register, integer) -> integer)'
+            raise LayoutError('The map (%s -> %s) has to be a (Bit -> integer)'
                               ' or the other way around.' % (type(value1), type(value2)))
         return virtual, physical
 
     @staticmethod
-    def is_virtual(value):
-        """Checks if value has the format of a virtual qubit """
-        return value is None or isinstance(value, tuple) and len(value) == 2 and isinstance(
-            value[0], Register) and isinstance(value[1], int)
+    def _cast_tuple_to_bit(value):
+        if isinstance(value, Qubit):
+            # Remove when Qubit.__class__ gets removed.
+            return value
+        if isinstance(value, tuple):
+            warn('Querying layout with a tuple (i.e. layout[(qr, 0)]) is deprecated. '
+                 'Go for layout[qr[0]].', DeprecationWarning)
+            value = value[0][value[1]]
+        return value
 
     def __getitem__(self, item):
+        item = Layout._cast_tuple_to_bit(item)
         if item in self._p2v:
             return self._p2v[item]
         if item in self._v2p:
@@ -106,6 +115,8 @@ class Layout():
         raise KeyError('The item %s does not exist in the Layout' % (item,))
 
     def __setitem__(self, key, value):
+        key = Layout._cast_tuple_to_bit(key)
+        value = Layout._cast_tuple_to_bit(value)
         virtual, physical = Layout.order_based_on_type(key, value)
         self._set_type_checked_item(virtual, physical)
 
@@ -123,14 +134,12 @@ class Layout():
         if isinstance(key, int):
             del self._p2v[key]
             del self._v2p[self._p2v[key]]
-        elif isinstance(key, tuple) and \
-                len(key) == 2 and \
-                isinstance(key[0], Register) and isinstance(key[1], int):
+        elif isinstance(key, Qubit):
             del self._v2p[key]
             del self._p2v[self._v2p[key]]
         else:
             raise LayoutError('The key to remove should be of the form'
-                              ' (Register, integer) or integer) and %s was provided' % (type(key),))
+                              ' Qubit or integer) and %s was provided' % (type(key),))
 
     def __len__(self):
         return len(self._p2v)
@@ -175,7 +184,7 @@ class Layout():
         Returns:
             List: A list of Register in the layout
         """
-        return {reg for reg, _ in self.get_virtual_bits()}
+        return {bit.register for bit in self.get_virtual_bits()}
 
     def get_virtual_bits(self):
         """
@@ -276,7 +285,7 @@ class Layout():
         main_idx = 0
         for qreg in qregs:
             for idx in range(qreg.size):
-                out[(qreg, idx)] = int_list[main_idx]
+                out[qreg[idx]] = int_list[main_idx]
                 main_idx += 1
         if main_idx != len(int_list):
             for int_item in int_list[main_idx:]:
@@ -288,24 +297,46 @@ class Layout():
         """
         Populates a Layout from a list containing virtual
         qubits---(QuantumRegister, int) tuples---, or None.
-
         Args:
             tuple_list (list):
-                e.g.: [qr[0], None, qr[2], qr[3]]
+                e.g.: [(qr,0), None, (qr,2), (qr,3)]
         Returns:
             Layout: the corresponding Layout object
         Raises:
             LayoutError: If the elements are not (Register, integer) or None
         """
+        warn('Creating a layout with a list of tuples (eg. [(qr,0), None, (qr,2), (qr,3)]) '
+             'is deprecated. Go for [qr[0], None, qr[2], qr[3]].', DeprecationWarning)
+        new_list = []
+        for tuple_ in tuple_list:
+            if tuple_ is None:
+                new_list.append(None)
+            else:
+                new_list.append(tuple_[0][tuple_[1]])
+        return Layout.from_qubit_list(new_list)
+
+    @staticmethod
+    def from_qubit_list(qubit_list):
+        """
+        Populates a Layout from a list containing virtual
+        qubits, Qubit or None.
+
+        Args:
+            qubit_list (list):
+                e.g.: [qr[0], None, qr[2], qr[3]]
+        Returns:
+            Layout: the corresponding Layout object
+        Raises:
+            LayoutError: If the elements are not Qubit or None
+        """
         out = Layout()
-        for physical, virtual in enumerate(tuple_list):
+        for physical, virtual in enumerate(qubit_list):
             if virtual is None:
                 continue
-            elif Layout.is_virtual(virtual):
+            elif isinstance(virtual, Qubit):
                 if virtual in out._v2p:
                     raise LayoutError('Duplicate values not permitted; Layout is bijective.')
                 out[virtual] = physical
             else:
-                raise LayoutError("The list should contain elements of the form"
-                                  " (Register, integer) or None")
+                raise LayoutError("The list should contain elements of the Bits or NoneTypes")
         return out

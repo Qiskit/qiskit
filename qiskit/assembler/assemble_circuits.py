@@ -87,11 +87,11 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
             qargs = op_context[1]
             cargs = op_context[2]
             if qargs:
-                qubit_indices = [qubit_labels.index([qubit[0].name, qubit[1]])
+                qubit_indices = [qubit_labels.index([qubit.register.name, qubit.index])
                                  for qubit in qargs]
                 instruction.qubits = qubit_indices
             if cargs:
-                clbit_indices = [clbit_labels.index([clbit[0].name, clbit[1]])
+                clbit_indices = [clbit_labels.index([clbit.register.name, clbit.index])
                                  for clbit in cargs]
                 instruction.memory = clbit_indices
                 # If the experiment has conditional instructions, assume every
