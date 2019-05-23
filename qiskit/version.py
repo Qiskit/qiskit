@@ -38,14 +38,15 @@ def _minimal_ext_cmd(cmd):
 
 
 def git_version():
+    """Get the current git head sha1."""
     # Determine if we're at master
     try:
         out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
-        GIT_REVISION = out.strip().decode('ascii')
+        git_revision = out.strip().decode('ascii')
     except OSError:
-        GIT_REVISION = "Unknown"
+        git_revision = "Unknown"
 
-    return GIT_REVISION
+    return git_revision
 
 
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
@@ -53,23 +54,24 @@ with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
 
 
 def get_version_info():
+    """Get the full version string."""
     # Adding the git rev number needs to be done inside
     # write_version_py(), otherwise the import of scipy.version messes
     # up the build under Python 3.
-    FULLVERSION = VERSION
+    full_version = VERSION
 
     if not os.path.exists(os.path.join(os.path.dirname(ROOT_DIR), '.git')):
-        return FULLVERSION
+        return full_version
     try:
         release = _minimal_ext_cmd(['git', 'tag', '-l', '--points-at', 'HEAD'])
-    except Exception:
-        return FULLVERSION
+    except Exception:  # pylint: disable=broad-except
+        return full_version
     git_revision = git_version()
 
     if not release:
-        FULLVERSION += '.dev0+' + git_revision[:7]
+        full_version += '.dev0+' + git_revision[:7]
 
-    return FULLVERSION
+    return full_version
 
 
 __version__ = get_version_info()
