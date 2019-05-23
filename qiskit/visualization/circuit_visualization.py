@@ -179,6 +179,8 @@ def circuit_drawer(circuit,
         creglinestyle (str): The style of line to use for classical registers.
             Choices are `'solid'`, `'doublet'`, or any valid matplotlib
             `linestyle` kwarg value. Defaults to `doublet`(`mpl` only)
+        vertical_compression (str): `high`, `medium`, or `low`. It merges the lines
+                    so the drawing will take less vertical room. Default is `high`.
     """
     image = None
     config = user_config.get_config()
@@ -322,8 +324,8 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
         plotbarriers (bool): Draws the barriers when they are there.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
                         the circuit should be justified.
-        vertical_compression (string): Default is `high`. It merges the lines so the
-                                      drawing will take less vertical room.
+        vertical_compression (string): `high`, `medium`, or `low`. It merges the
+            lines so the drawing will take less vertical room. Default is `high`.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
