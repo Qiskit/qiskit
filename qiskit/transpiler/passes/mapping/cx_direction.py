@@ -84,10 +84,10 @@ class CXDirection(TransformationPass):
                     # A flip needs to be done
 
                     # Create the involved registers
-                    if control.register not in subdag.qregs.values():
-                        subdag.add_qreg(control.register)
-                    if target.register not in subdag.qregs.values():
-                        subdag.add_qreg(target.register)
+                    if control[0] not in subdag.qregs.values():
+                        subdag.add_qreg(control[0])
+                    if target[0] not in subdag.qregs.values():
+                        subdag.add_qreg(target[0])
 
                     # Add H gates around
                     subdag.apply_operation_back(U2Gate(0, pi), [target], [])

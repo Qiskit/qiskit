@@ -15,7 +15,7 @@
 """A pass for choosing a Layout of a circuit onto a Backend
 
 This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (Qubit), using calibration data.
+of the circuit (tuple(QuantumRegister, int)), using calibration data.
 
 The pass implements the qubit mapping method from:
 Noise-Adaptive Compiler Mappings for Noisy Intermediate-Scale Quantum Computers
@@ -135,7 +135,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         Converts qarg with name and value to an integer id
         """
-        return self.qarg_to_id[qubit.register.name + str(qubit.index)]
+        return self.qarg_to_id[qubit[0].name + str(qubit[1])]
 
     def _create_program_graph(self, dag):
         """
@@ -146,7 +146,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
         """
         idx = 0
         for q in dag.qubits():
-            self.qarg_to_id[q.register.name + str(q.index)] = idx
+            self.qarg_to_id[q[0].name + str(q[1])] = idx
             idx += 1
         for gate in dag.twoQ_gates():
             qid1 = self._qarg_to_id(gate.qargs[0])
@@ -248,5 +248,5 @@ class NoiseAdaptiveLayout(AnalysisPass):
         for q in dag.qubits():
             pid = self._qarg_to_id(q)
             hwid = self.prog2hw[pid]
-            layout[q] = hwid
+            layout[(q[0], q[1])] = hwid
         self.property_set['layout'] = layout

@@ -184,9 +184,9 @@ class StochasticSwap(TransformationPass):
         logger.debug("layer_update: layout = %s", pformat(layout))
         logger.debug("layer_update: self.initial_layout = %s", pformat(self.initial_layout))
         dagcircuit_output = DAGCircuit()
-        for qubit in layout.get_virtual_bits().keys():
-            if qubit.register not in dagcircuit_output.qregs.values():
-                dagcircuit_output.add_qreg(qubit.register)
+        for register in layout.get_virtual_bits().keys():
+            if register[0] not in dagcircuit_output.qregs.values():
+                dagcircuit_output.add_qreg(register[0])
 
         # If this is the first layer with multi-qubit gates,
         # output all layers up to this point and ignore any
@@ -443,8 +443,8 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
         logger.debug("layer_permutation: nothing to do")
         circ = DAGCircuit()
         for register in layout.get_virtual_bits().keys():
-            if register.register not in circ.qregs.values():
-                circ.add_qreg(register.register)
+            if register[0] not in circ.qregs.values():
+                circ.add_qreg(register[0])
         return True, circ, 0, layout, (not bool(gates))
 
     # Begin loop over trials of randomized algorithm
@@ -463,14 +463,14 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
     int_layout = nlayout_from_layout(layout, qregs, coupling.size())
 
     trial_circuit = DAGCircuit()  # SWAP circuit for this trial
-    for qubit in layout.get_virtual_bits().keys():
-        if qubit.register not in trial_circuit.qregs.values():
-            trial_circuit.add_qreg(qubit.register)
+    for register in layout.get_virtual_bits().keys():
+        if register[0] not in trial_circuit.qregs.values():
+            trial_circuit.add_qreg(register[0])
 
     slice_circuit = DAGCircuit()  # circuit for this swap slice
-    for qubit in layout.get_virtual_bits().keys():
-        if qubit.register not in slice_circuit.qregs.values():
-            slice_circuit.add_qreg(qubit.register)
+    for register in layout.get_virtual_bits().keys():
+        if register[0] not in slice_circuit.qregs.values():
+            slice_circuit.add_qreg(register[0])
     edges = np.asarray(coupling.get_edges(), dtype=np.int32).ravel()
     cdist = coupling._dist_matrix
     for trial in range(trials):
@@ -515,11 +515,13 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
 
 
 def regtuple_to_numeric(items, qregs):
-    """Takes Qubit instances and converts them into an integer array.
+    """Takes (QuantumRegister, int) tuples and converts
+    them into an integer array.
 
     Args:
-        items (list): List of Qubit instances to convert.
-        qregs (dict): List of Qubit instances.
+        items (list): List of tuples of (QuantumRegister, int)
+                      to convert.
+        qregs (dict): List of )QuantumRegister, int) tuples.
     Returns:
         ndarray: Array of integers.
 
@@ -531,7 +533,7 @@ def regtuple_to_numeric(items, qregs):
         regint[qreg] = ind
     out = np.zeros(len(items), dtype=np.int32)
     for idx, val in enumerate(items):
-        out[idx] = reg_idx[regint[val.register]]+val.index
+        out[idx] = reg_idx[regint[val[0]]]+val[1]
     return out
 
 
@@ -539,8 +541,9 @@ def gates_to_idx(gates, qregs):
     """Converts gate tuples into a nested list of integers.
 
     Args:
-        gates (list): List of Qubit instances representing gates.
-        qregs (dict): List of Qubit instances.
+        gates (list): List of (QuantumRegister, int) pairs
+                      representing gates.
+        qregs (dict): List of )QuantumRegister, int) tuples.
 
     Returns:
         list: Nested list of integers for gates.
@@ -552,6 +555,6 @@ def gates_to_idx(gates, qregs):
         regint[qreg] = ind
     out = np.zeros(2*len(gates), dtype=np.int32)
     for idx, gate in enumerate(gates):
-        out[2*idx] = reg_idx[regint[gate[0].register]]+gate[0].index
-        out[2*idx+1] = reg_idx[regint[gate[1].register]]+gate[1].index
+        out[2*idx] = reg_idx[regint[gate[0][0]]]+gate[0][1]
+        out[2*idx+1] = reg_idx[regint[gate[1][0]]]+gate[1][1]
     return out

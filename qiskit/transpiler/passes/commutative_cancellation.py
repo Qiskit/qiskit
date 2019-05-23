@@ -56,7 +56,7 @@ class CommutativeCancellation(TransformationPass):
         cancellation_sets = defaultdict(lambda: [])
 
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
+            wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
             wire_commutation_set = self.property_set['commutation_set'][wire_name]
 
             for com_set_idx, com_set in enumerate(wire_commutation_set):
@@ -69,8 +69,8 @@ class CommutativeCancellation(TransformationPass):
                     if num_qargs == 1 and node.name in ['u1', 'rz', 't', 's']:
                         cancellation_sets[('z_rotation', wire_name, com_set_idx)].append(node)
                     elif num_qargs == 2 and node.qargs[0] == wire:
-                        second_op_name = "{0}[{1}]".format(str(node.qargs[1].register.name),
-                                                           str(node.qargs[1].index))
+                        second_op_name = "{0}[{1}]".format(str(node.qargs[1][0].name),
+                                                           str(node.qargs[1][1]))
                         q2_key = (node.name, wire_name, second_op_name,
                                   self.property_set['commutation_set'][(node, second_op_name)])
                         cancellation_sets[q2_key].append(node)
@@ -104,9 +104,9 @@ class CommutativeCancellation(TransformationPass):
 
                 # Replace the data of the first node in the run
                 new_op = U1Gate(total_angle)
-                new_qarg = QuantumRegister(1, 'q')[0]
+                new_qarg = (QuantumRegister(1, 'q'), 0)
                 new_dag = DAGCircuit()
-                new_dag.add_qreg(new_qarg.register)
+                new_dag.add_qreg(new_qarg[0])
                 new_dag.apply_operation_back(new_op, [new_qarg])
                 dag.substitute_node_with_dag(run[0], new_dag)
 

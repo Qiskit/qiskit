@@ -15,7 +15,7 @@
 """A pass for choosing a Layout of a circuit onto a Coupling graph.
 
 This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (Qubit).
+of the circuit (tuple(QuantumRegister, int)).
 
 Note: even though a 'layout' is not strictly a property of the DAG,
 in the transpiler architecture it is best passed around between passes by
@@ -68,7 +68,7 @@ class DenseLayout(AnalysisPass):
         map_iter = 0
         for qreg in dag.qregs.values():
             for i in range(qreg.size):
-                layout[qreg[i]] = int(best_sub[map_iter])
+                layout[(qreg, i)] = int(best_sub[map_iter])
                 map_iter += 1
         self.property_set['layout'] = layout
 

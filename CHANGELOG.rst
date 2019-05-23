@@ -27,8 +27,6 @@ Added
 Changed
 -------
 
-- Qubits and classical bits are not represented as a tuples anymore, but as
-  instances of ``Qubit`` and ``Clbit`` respectively.
 - The ``pylatexenc`` and ``pillow`` requirements are now optional. These are
   only used by the ``latex`` and ``latex_source`` circuit visualization
   backends. To continue using them ensure these are installed.

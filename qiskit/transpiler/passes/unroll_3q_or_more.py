@@ -46,7 +46,7 @@ class Unroll3qOrMore(TransformationPass):
             # hacky way to build a dag on the same register as the rule is defined
             # TODO: need anonymous rules to address wires by index
             decomposition = DAGCircuit()
-            decomposition.add_qreg(rule[0][1][0].register)
+            decomposition.add_qreg(rule[0][1][0][0])
             for inst in rule:
                 decomposition.apply_operation_back(*inst)
             decomposition = self.run(decomposition)  # recursively unroll

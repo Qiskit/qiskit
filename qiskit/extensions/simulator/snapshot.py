@@ -19,7 +19,7 @@ import warnings
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import CompositeGate
-from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit import QuantumRegister
 from qiskit.circuit import Instruction
 from qiskit.extensions.exceptions import ExtensionError
 
@@ -134,7 +134,7 @@ def snapshot(self,
         for tuple_element in tuples:
             if isinstance(tuple_element, QuantumRegister):
                 for j in range(tuple_element.size):
-                    qubits.append(tuple_element[j])
+                    qubits.append((tuple_element, j))
             else:
                 qubits.append(tuple_element)
     return self.append(

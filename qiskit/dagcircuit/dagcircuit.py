@@ -29,8 +29,8 @@ import itertools
 import warnings
 import networkx as nx
 
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.gate import Gate
 from .exceptions import DAGCircuitError
 from .dagnode import DAGNode
@@ -109,8 +109,8 @@ class DAGCircuit:
         return self.qubits()
 
     def qubits(self):
-        """Return a list of qubits (as a list of Qubit instances)."""
-        return [qubit for qreg in self.qregs.values() for qubit in qreg]
+        """Return a list of qubits as (QuantumRegister, index) pairs."""
+        return [(v, i) for k, v in self.qregs.items() for i in range(v.size)]
 
     def get_bits(self):
         """Deprecated. Use clbits()."""
@@ -119,8 +119,8 @@ class DAGCircuit:
         return self.clbits()
 
     def clbits(self):
-        """Return a list of classical bits (as a list of Clbit instances)."""
-        return [clbit for creg in self.cregs.values() for clbit in creg]
+        """Return a list of bits as (ClassicalRegister, index) pairs."""
+        return [(v, i) for k, v in self.cregs.items() for i in range(v.size)]
 
     @property
     def node_counter(self):
@@ -192,7 +192,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register %s" % qreg.name)
         self.qregs[qreg.name] = qreg
         for j in range(qreg.size):
-            self._add_wire(qreg[j])
+            self._add_wire((qreg, j))
 
     def add_creg(self, creg):
         """Add all wires in a classical register."""
@@ -202,7 +202,7 @@ class DAGCircuit:
             raise DAGCircuitError("duplicate register %s" % creg.name)
         self.cregs[creg.name] = creg
         for j in range(creg.size):
-            self._add_wire(creg[j])
+            self._add_wire((creg, j))
 
     def _add_wire(self, wire):
         """Add a qubit or bit to the circuit.
@@ -222,7 +222,7 @@ class DAGCircuit:
             self._max_node_id += 1
             output_map_wire = self._max_node_id
 
-            wire_name = "%s[%s]" % (wire.register.name, wire.index)
+            wire_name = "%s[%s]" % (wire[0].name, wire[1])
 
             inp_node = DAGNode(data_dict={'type': 'in', 'name': wire_name, 'wire': wire},
                                nid=input_map_wire)
@@ -241,7 +241,7 @@ class DAGCircuit:
                                        outp_node)
 
             self._multi_graph.adj[inp_node][outp_node][0]["name"] \
-                = "%s[%s]" % (wire.register.name, wire.index)
+                = "%s[%s]" % (wire[0].name, wire[1])
             self._multi_graph.adj[inp_node][outp_node][0]["wire"] \
                 = wire
         else:
@@ -286,9 +286,12 @@ class DAGCircuit:
             cond (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
-            list[Clbit]: list of classical bits
+            list[(ClassicalRegister, idx)]: list of bits
         """
-        return [] if cond is None else [cbit for cbit in cond[0]]
+        all_bits = []
+        if cond is not None:
+            all_bits.extend([(cond[0], j) for j in range(self.cregs[cond[0].name].size)])
+        return all_bits
 
     def _add_op_node(self, op, qargs, cargs, condition=None):
         """Add a new operation node to the graph and assign properties.
@@ -319,8 +322,8 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            qargs (list[Qubit]): qubits that op will be applied to
-            cargs (list[Clbit]): cbits that op will be applied to
+            qargs (list[tuple]): qubits that op will be applied to
+            cargs (list[tuple]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, int)
 
         Returns:
@@ -353,10 +356,10 @@ class DAGCircuit:
                 raise DAGCircuitError("output node has multiple in-edges")
 
             self._multi_graph.add_edge(ie[0], self._id_to_node[self._max_node_id],
-                                       name="%s[%s]" % (q.register.name, q.index), wire=q)
+                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self._multi_graph.remove_edge(ie[0], self.output_map[q])
             self._multi_graph.add_edge(self._id_to_node[self._max_node_id], self.output_map[q],
-                                       name="%s[%s]" % (q.register.name, q.index), wire=q)
+                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
         return self._id_to_node[self._max_node_id]
 
@@ -391,10 +394,10 @@ class DAGCircuit:
             if len(ie) != 1:
                 raise DAGCircuitError("input node has multiple out-edges")
             self._multi_graph.add_edge(self._id_to_node[self._max_node_id], ie[0],
-                                       name="%s[%s]" % (q.register.name, q.index), wire=q)
+                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
             self._multi_graph.remove_edge(self.input_map[q], ie[0])
             self._multi_graph.add_edge(self.input_map[q], self._id_to_node[self._max_node_id],
-                                       name="%s[%s]" % (q.register.name, q.index), wire=q)
+                                       name="%s[%s]" % (q[0].name, q[1]), wire=q)
 
         return self._id_to_node[self._max_node_id]
 
@@ -426,8 +429,8 @@ class DAGCircuit:
         for v in keyregs.values():
             reg_frag_chk[v] = {j: False for j in range(len(v))}
         for k in edge_map.keys():
-            if k.register.name in keyregs:
-                reg_frag_chk[k.register][k.index] = True
+            if k[0].name in keyregs:
+                reg_frag_chk[k[0]][k[1]] = True
         for k, v in reg_frag_chk.items():
             s = set(v.values())
             if len(s) == 2:
@@ -442,11 +445,11 @@ class DAGCircuit:
                     # If mapping to a register not in valregs, add it.
                     # (k,0) exists in edge_map because edge_map doesn't
                     # fragment k
-                    if not edge_map[(k, 0)].register.name in valregs:
-                        size = max(map(lambda x: x.index,
-                                       filter(lambda x: x.register == edge_map[(k, 0)].register,
+                    if not edge_map[(k, 0)][0].name in valregs:
+                        size = max(map(lambda x: x[1],
+                                       filter(lambda x: x[0] == edge_map[(k, 0)][0],
                                               edge_map.values())))
-                        qreg = QuantumRegister(size + 1, edge_map[(k, 0)].register.name)
+                        qreg = QuantumRegister(size + 1, edge_map[(k, 0)][0].name)
                         add_regs.add(qreg)
         return add_regs
 
@@ -466,8 +469,8 @@ class DAGCircuit:
             DAGCircuitError: if wire_map not valid
         """
         for k, v in wire_map.items():
-            kname = "%s[%d]" % (k.register.name, k.index)
-            vname = "%s[%d]" % (v.register.name, v.index)
+            kname = "%s[%d]" % (k[0].name, k[1])
+            vname = "%s[%d]" % (v[0].name, v[1])
             if k not in keymap:
                 raise DAGCircuitError("invalid wire mapping key %s" % kname)
             if v not in valmap:
@@ -492,7 +495,7 @@ class DAGCircuit:
             # fragmented by the wire_map (this must have been checked
             # elsewhere)
             bit0 = (condition[0], 0)
-            new_condition = (wire_map.get(bit0, bit0).register, condition[1])
+            new_condition = (wire_map.get(bit0, bit0)[0], condition[1])
         return new_condition
 
     def extend_back(self, dag, edge_map=None):
@@ -828,8 +831,8 @@ class DAGCircuit:
                                                replay_node.cargs, condition=condition)
 
         if wires is None:
-            qwires = [w for w in input_dag.wires if isinstance(w, Qubit)]
-            cwires = [w for w in input_dag.wires if isinstance(w, Clbit)]
+            qwires = [w for w in input_dag.wires if isinstance(w[0], QuantumRegister)]
+            cwires = [w for w in input_dag.wires if isinstance(w[0], ClassicalRegister)]
             wires = qwires + cwires
 
         self._check_wires_list(wires, node)
@@ -888,7 +891,7 @@ class DAGCircuit:
             for q in itertools.chain(*al):
                 self._multi_graph.add_edge(full_pred_map[q],
                                            self._id_to_node[self._max_node_id],
-                                           name="%s[%s]" % (q.register.name, q.index),
+                                           name="%s[%s]" % (q[0].name, q[1]),
                                            wire=q)
                 full_pred_map[q] = self._id_to_node[self._max_node_id]
 
@@ -897,7 +900,7 @@ class DAGCircuit:
         for w in full_pred_map:
             self._multi_graph.add_edge(full_pred_map[w],
                                        full_succ_map[w],
-                                       name="%s[%s]" % (w.register.name, w.index),
+                                       name="%s[%s]" % (w[0].name, w[1]),
                                        wire=w)
             o_pred = list(self._multi_graph.predecessors(self.output_map[w]))
             if len(o_pred) > 1:
@@ -1098,7 +1101,8 @@ class DAGCircuit:
 
         predecessors = []
         for predecessor in self.predecessors(node):
-            if isinstance(self._multi_graph.get_edge_data(predecessor, node, key=0)['wire'], Qubit):
+            if isinstance(self._multi_graph.get_edge_data(predecessor, node, key=0)['wire'][0],
+                          QuantumRegister):
                 predecessors.append(predecessor)
         return predecessors
 
@@ -1147,7 +1151,8 @@ class DAGCircuit:
         successors = []
         for successor in self.successors(node):
             if isinstance(self._multi_graph.get_edge_data(
-                    node, successor, key=0)['wire'], Qubit):
+                    node, successor, key=0)['wire'][0],
+                          QuantumRegister):
                 successors.append(successor)
         return successors
 
@@ -1173,7 +1178,7 @@ class DAGCircuit:
 
         for w in pred_map.keys():
             self._multi_graph.add_edge(pred_map[w], succ_map[w],
-                                       name="%s[%s]" % (w.register.name, w.index), wire=w)
+                                       name="%s[%s]" % (w[0].name, w[1]), wire=w)
 
     def remove_ancestors_of(self, node):
         """Remove all of the ancestor operation nodes of node."""
@@ -1293,7 +1298,7 @@ class DAGCircuit:
             for op_node in op_nodes:
                 args = self._bits_in_condition(op_node.condition) \
                        + op_node.cargs + op_node.qargs
-                arg_ids = (self.input_map[(arg.register, arg.index)] for arg in args)
+                arg_ids = (self.input_map[(arg[0], arg[1])] for arg in args)
                 for arg_id in arg_ids:
                     wires[arg_id], wires[op_node] = op_node, wires[arg_id]
 

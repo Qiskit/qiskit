@@ -21,7 +21,7 @@ from libc.stdlib cimport calloc, free
 from libcpp.vector cimport vector
 
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit import Qubit
+
 
 cdef class EdgeCollection:
     """ A simple contain that contains a C++ vector
@@ -46,7 +46,6 @@ cdef class EdgeCollection:
             int: Size of the edge collection.
         """
         return self._edges.size()
-
     @cython.boundscheck(False)
     def edges(self):
         """ Returns the vector of edges as a NumPy arrau.
@@ -148,7 +147,8 @@ cdef class NLayout:
         """ Converts numeric layout back to Qiskit Layout object.
 
         Args:
-            qregs (OrderedDict): An ordered dict of Qubit instances.
+            qregs (OrderedDict): An ordered dict of (QuantumRegister, int)
+                                 tuples.
         
         Returns:
             Layout: The corresponding Qiskit Layout object.
@@ -158,7 +158,7 @@ cdef class NLayout:
         cdef size_t idx
         for qreg in qregs.values():
             for idx in range(<unsigned int>qreg.size):
-                out[qreg[idx]] = self.logic_to_phys[main_idx]
+                out[(qreg, idx)] = self.logic_to_phys[main_idx]
                 main_idx += 1
         return out
     
@@ -169,7 +169,8 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
 
     Args:
         layout (Layout): A Qiskit Layout instance.
-        qregs (OrderedDict): An ordered dict of Qubit instances.
+        qregs (OrderedDict): An ordered dict of (QuantumRegister, int)
+                                tuples.
         physical_qubits (int): Number of physical qubits.
     Returns:
         NLayout: The corresponding numerical layout.
@@ -187,8 +188,8 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
     cdef object key, val
     cdef dict merged_dict = {**layout._p2v, **layout._v2p}
     for key, val in merged_dict.items():
-        if isinstance(key, Qubit):
-            out.logic_to_phys[reg_idx[regint[key.register]]+key.index] = val
+        if isinstance(key, tuple):
+            out.logic_to_phys[reg_idx[regint[key[0]]]+key[1]] = val
         else:
-            out.phys_to_logic[key] = reg_idx[regint[val.register]]+val.index
+            out.phys_to_logic[key] = reg_idx[regint[val[0]]]+val[1]
     return out

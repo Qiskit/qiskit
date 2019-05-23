@@ -44,14 +44,19 @@ def dag_to_circuit(dag):
     for node in dag.topological_op_nodes():
         qubits = []
         for qubit in node.qargs:
-            qubits.append(qregs[qubit.register.name][qubit.index])
+            qubits.append(qregs[qubit[0].name][qubit[1]])
 
         clbits = []
         for clbit in node.cargs:
-            clbits.append(cregs[clbit.register.name][clbit.index])
+            clbits.append(cregs[clbit[0].name][clbit[1]])
 
         # Get arguments for classical control (if any)
+        if node.condition is None:
+            control = None
+        else:
+            control = (node.condition[0], node.condition[1])
+
         inst = node.op.copy()
-        inst.control = node.condition
+        inst.control = control
         circuit.append(inst, qubits, clbits)
     return circuit
