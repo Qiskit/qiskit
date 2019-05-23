@@ -33,7 +33,12 @@ def _minimal_ext_cmd(cmd):
     env['LANGUAGE'] = 'C'
     env['LANG'] = 'C'
     env['LC_ALL'] = 'C'
-    out = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env).communicate()[0]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, env=env,
+                            cwd=os.path.join(os.path.dirname(ROOT_DIR)))
+    out = proc.communicate()[0]
+    if proc.returncode > 0:
+        raise OSError
     return out
 
 
@@ -67,7 +72,6 @@ def get_version_info():
     except Exception:  # pylint: disable=broad-except
         return full_version
     git_revision = git_version()
-
     if not release:
         full_version += '.dev0+' + git_revision[:7]
 
