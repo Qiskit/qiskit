@@ -22,8 +22,7 @@ import re
 
 import cmath
 
-from qiskit import QiskitError
-from qiskit.pulse.exceptions import PulseError
+from qiskit.exceptions import QiskitError
 
 
 # valid functions
@@ -142,8 +141,8 @@ def parse_string_expr(source):
                                 kwargs.items() if key in params})
 
         if sorted(locals_dict.keys()) != params:
-            raise PulseError('Supplied params ({args}, {kwargs}) do not match '
-                             '{params}'.format(args=args, kwargs=kwargs, params=params))
+            raise QiskitError('Supplied params ({args}, {kwargs}) do not match '
+                              '{params}'.format(args=args, kwargs=kwargs, params=params))
 
         return _eval_expr(expr, locals_dict)
 
