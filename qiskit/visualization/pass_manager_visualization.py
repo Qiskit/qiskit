@@ -23,14 +23,14 @@ DEFAULT_STYLE = {AnalysisPass: 'red',
 
 try:
     import subprocess
-    proc = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-    proc.communicate()
-    if proc.returncode != 0:
+    _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    _PROC.communicate()
+    if _PROC.returncode != 0:
         HAS_GRAPHVIZ = False
     else:
         HAS_GRAPHVIZ = True
-except Exception:
+except Exception:  # pylint: disable=broad-except
     # this is raised when the dot command cannot be found, which means GraphViz
     # isn't installed
     HAS_GRAPHVIZ = False
