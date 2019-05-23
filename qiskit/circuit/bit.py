@@ -59,8 +59,6 @@ class Bit:
         return hash((self.register, self.index))
 
     def __eq__(self, other):
-        if isinstance(other, Bit):
-            return other.index == self.index and other.register == self.register
         if isinstance(other, tuple):
             return other[1] == self.index and other[0] == self.register
-        return False
+        return other.index == self.index and other.register == self.register
