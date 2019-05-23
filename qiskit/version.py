@@ -20,8 +20,59 @@ import sys
 
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _minimal_ext_cmd(cmd):
+    # construct minimal environment
+    env = {}
+    for k in ['SYSTEMROOT', 'PATH']:
+        v = os.environ.get(k)
+        if v is not None:
+            env[k] = v
+    # LANGUAGE is used on win32
+    env['LANGUAGE'] = 'C'
+    env['LANG'] = 'C'
+    env['LC_ALL'] = 'C'
+    out = subprocess.Popen(cmd, stdout=subprocess.PIPE, env=env).communicate()[0]
+    return out
+
+
+def git_version():
+    # Determine if we're at master
+    try:
+        out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        GIT_REVISION = out.strip().decode('ascii')
+    except OSError:
+        GIT_REVISION = "Unknown"
+
+    return GIT_REVISION
+
+
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
-    __version__ = version_file.read().strip()
+    VERSION = version_file.read().strip()
+
+
+def get_version_info():
+    # Adding the git rev number needs to be done inside
+    # write_version_py(), otherwise the import of scipy.version messes
+    # up the build under Python 3.
+    FULLVERSION = VERSION
+
+    if not os.path.exists(os.path.join(os.path.dirname(ROOT_DIR), '.git')):
+        return FULLVERSION
+    try:
+        release = _minimal_ext_cmd(['git', 'tag', '-l', '--points-at', 'HEAD'])
+    except Exception:
+        return FULLVERSION
+    git_revision = git_version()
+
+    if not release:
+        FULLVERSION += '.dev0+' + git_revision[:7]
+
+    return FULLVERSION
+
+
+__version__ = get_version_info()
 
 
 def _get_qiskit_versions():
