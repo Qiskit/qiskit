@@ -591,8 +591,6 @@ class TextDrawing():
         Given a list of wires, creates a list of lines with the text drawing.
         Args:
             wires (list): A list of wires with instructions.
-            vertical_compression (bool): Default is `True`. It merges the lines
-                                     so the drawing will take less vertical room.
         Returns:
             list: A list of lines with the text drawing.
         """
