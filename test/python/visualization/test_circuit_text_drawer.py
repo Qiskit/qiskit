@@ -922,8 +922,8 @@ class TestTextDrawerParams(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
-class TestTextDrawerVerticallyExtended(QiskitTestCase):
-    """Test vertical_compression=False"""
+class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
+    """Test vertical_compression='low' """
 
     def test_text_conditional_1(self):
         """ Conditional drawing with 1-bit-length regs."""
@@ -973,6 +973,34 @@ class TestTextDrawerVerticallyExtended(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit,
                                                   justify='right',
                                                   vertical_compression='low')), expected)
+
+
+class TestTextDrawerVerticalCompressionMedium(QiskitTestCase):
+    """Test vertical_compression='medium' """
+
+    def test_text_conditional_1(self):
+        """ Medium vertical compression avoids box overlap."""
+        qasm_string = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[1];
+        creg c0[1];
+        creg c1[1];
+        if(c0==1) x q[0];
+        if(c1==1) x q[0];
+        """
+        expected = '\n'.join(["         ┌───┐  ┌───┐ ",
+                              "q_0: |0>─┤ X ├──┤ X ├─",
+                              "         └─┬─┘  └─┬─┘ ",
+                              "        ┌──┴──┐   │   ",
+                              "c0_0: 0 ╡ = 1 ╞═══╪═══",
+                              "        └─────┘┌──┴──┐",
+                              "c1_0: 0 ═══════╡ = 1 ╞",
+                              "               └─────┘"])
+
+        circuit = QuantumCircuit.from_qasm_str(qasm_string)
+        self.assertEqual(str(_text_circuit_drawer(circuit,
+                                                  vertical_compression='medium')), expected)
 
 
 class TestTextConditional(QiskitTestCase):

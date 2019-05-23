@@ -581,6 +581,10 @@ class TextDrawing():
             return True
         if self.vertical_compression == 'low':
             return False
+        for top, bot in zip(top_line, bot_line):
+            if top == '┴' and bot == '┬':
+                return False
+        return True
 
     def draw_wires(self, wires):
         """
