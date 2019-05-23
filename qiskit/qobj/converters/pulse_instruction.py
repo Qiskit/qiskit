@@ -15,19 +15,13 @@
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
 import re
-import math
 import warnings
 
-from sympy.parsing.sympy_parser import (parse_expr, standard_transformations,
-                                        implicit_multiplication_application,
-                                        function_exponentiation)
-from sympy import Symbol
-
 from qiskit.pulse import commands, channels
-from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
-from qiskit.exceptions import QiskitError
+from qiskit.tools import parse_string_expr
 
 
 class ConversionMethodBinder:
@@ -228,103 +222,6 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
 
-# pylint: disable=invalid-name
-
-# get math operations valid in python. Presumably these are valid in sympy
-_math_ops = [math_op for math_op in math.__dict__ if not math_op.startswith('__')]
-# only allow valid math ops
-_math_ops_regex = r"(" + ")|(".join(_math_ops) + ")"
-# match consecutive alphanumeric, and single consecutive math ops +-/.()
-# and multiple * for exponentiation
-_allowedchars = re.compile(r'(([+\/\-]?|\*{0,2})?[\(\)\s]*'  # allow to start with math/bracket
-                           r'([a-zA-Z][a-zA-Z\d]*|'  # match word
-                           r'[\d]+(\.\d*)?)[\(\)\s]*)*')  # match decimal and bracket
-# match any sequence of chars and numbers
-_expr_regex = r'([a-zA-Z]+\d*)'
-# and valid params
-_param_regex = r'(P\d+)'
-# only valid sequences are P# for parameters and valid math operations above
-_valid_sub_expr = re.compile(_param_regex+'|'+_math_ops_regex)
-# pylint: enable=invalid-name
-
-
-def _is_math_expr_safe(expr):
-    r"""Verify mathematical expression is sanitized.
-
-    Only allow strings of form 'P\d+' and operations from `math`.
-    Allowed chars are [a-zA-Z]. Allowed math operators are '+*/().'
-    where only '*' are allowed to be consecutive.
-
-    Args:
-        expr (str): Expression to sanitize
-
-    Returns:
-        bool: Whether the string is safe to parse math from
-
-    Raise:
-        QiskitError: If math expression is not sanitized
-    """
-
-    only_allowed_chars = _allowedchars.match(expr)
-    if not only_allowed_chars:
-        return False
-    elif not only_allowed_chars.group(0) == expr:
-        return False
-
-    sub_expressions = re.findall(_expr_regex, expr)
-    if not all([_valid_sub_expr.match(sub_exp) for sub_exp in sub_expressions]):
-        return False
-
-    return True
-
-
-def _parse_string_expr(expr):  # pylint: disable=missing-return-type-doc
-    """Parse a mathematical string expression and extract free parameters.
-
-    Args:
-        expr (str): String expression to parse
-
-    Returns:
-        (Callable, Tuple[str]): Returns a callable function and tuple of string symbols
-
-    Raises:
-        QiskitError: If expression is not safe
-    """
-    # remove these strings from expression and hope sympy knows these math expressions
-    # these are effectively reserved keywords
-    subs = [('numpy.', ''), ('np.', ''), ('math.', '')]
-    for match, sub in subs:
-        expr = expr.replace(match, sub)
-    if not _is_math_expr_safe(expr):
-        raise QiskitError('Expression: "%s" is not safe to evaluate.' % expr)
-    params = sorted(re.findall(_param_regex, expr))
-    local_dict = {param: Symbol(param) for param in params}
-    symbols = sorted(list(local_dict.keys()))
-    transformations = (standard_transformations + (implicit_multiplication_application,) +
-                       (function_exponentiation,))
-
-    parsed_expr = parse_expr(expr, local_dict=local_dict, transformations=transformations)
-
-    def parsed_fun(*args, **kwargs):
-        subs = {}
-        matched_params = []
-        if args:
-            subs.update({Symbol(symbols[i]): arg for i, arg in enumerate(args)})
-            matched_params += list(params[i] for i in range(len(args)))
-        if kwargs:
-            subs.update({local_dict[key]: value for key, value in kwargs.items()
-                         if key in local_dict})
-            matched_params += list(key for key in kwargs if key in params)
-
-        if not set(matched_params).issuperset(set(params)) or\
-                not set(subs.keys()).issuperset(set(local_dict.values())):
-            raise PulseError('Supplied params ({args}, {kwargs}) do not match '
-                             '{params}'.format(args=args, kwargs=kwargs, params=params))
-
-        return complex(parsed_expr.evalf(subs=subs))
-    return parsed_fun, params
-
-
 class QobjToInstructionConverter:
     """Converts Qobj models to pulse Instructions
     """
@@ -445,7 +342,7 @@ class QobjToInstructionConverter:
 
         # This is parameterized
         if isinstance(phase, str):
-            phase_expr, params = _parse_string_expr(phase)
+            phase_expr, params = parse_string_expr(phase)
 
             def gen_fc_sched(*args, **kwargs):
                 phase = abs(phase_expr(*args, **kwargs))
@@ -470,13 +367,13 @@ class QobjToInstructionConverter:
 
         # This is parameterized
         if isinstance(val, str):
-            val_expr, params = _parse_string_expr(val)
+            val_expr, params = parse_string_expr(val)
 
-            def gen_fc_sched(*args, **kwargs):
+            def gen_pv_sched(*args, **kwargs):
                 val = complex(val_expr(*args, **kwargs))
                 return commands.PersistentValue(val)(channel) << t0
 
-            return ParameterizedSchedule(gen_fc_sched, parameters=params)
+            return ParameterizedSchedule(gen_pv_sched, parameters=params)
 
         return commands.PersistentValue(val)(channel) << t0
 
