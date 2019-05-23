@@ -577,6 +577,8 @@ class TextDrawing():
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):
+        """Decides if the top_line and bot_line should be merged,
+        based on `self.vertical_compression`."""
         if self.vertical_compression == 'high':
             return True
         if self.vertical_compression == 'low':

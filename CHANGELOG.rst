@@ -19,6 +19,12 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Added
+-----
+
+- The option `vertical_compression` to the text drawer allows to control how much
+  room the text circuit drawing takes.
+
 Changed
 -------
 
@@ -28,6 +34,8 @@ Changed
 - When adding a register to a circuit, an error will now be raised if a register
   of the same name is already present. Previously, an error would only be raised
   if the same register was added twice.
+- Qubits and classical bits are not represented as a tuples anymore, but as
+  instances of ``Qubit`` and ``Clbit`` respectively.
 
 Removed
 -------
@@ -43,10 +51,6 @@ Removed
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
 
-Changed
--------
-- Qubits and classical bits are not represented as a tuples anymore, but as
-  instances of ``Qubit`` and ``Clbit`` respectively.
 
 `0.8.0`_ - 2019-05-02
 =====================
