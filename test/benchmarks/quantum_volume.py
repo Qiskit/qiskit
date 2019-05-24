@@ -24,7 +24,6 @@ See arXiv:1811.12926 [quant-ph]"""
 import numpy as np
 
 from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit.test.mock import FakeMelbourne
 
 try:
     from qiskit.mapper import two_qubit_kak
@@ -130,7 +129,11 @@ class QuantumVolumeBenchmark:
 
     def time_ibmq_backend_transpile(self, _, __):
         # Run with ibmq_16_melbourne configuration
-        backend = FakeMelbourne()
+        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
+                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
+                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                        [13, 12]]
+
         transpile(self.circuit,
                   basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                  coupling_map=backend.configuration().coupling_map)
+                  coupling_map=coupling_map)
