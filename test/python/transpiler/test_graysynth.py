@@ -17,7 +17,7 @@
 import numpy as np
 from qiskit import BasicAer, execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.transpiler.passes import graysynth
+from qiskit.transpiler.synthesis import graysynth
 from qiskit.test import QiskitTestCase
 
 
