@@ -132,15 +132,15 @@ def is_isometry(m):
     return np.allclose(ct(m).dot(m), np.eye(m.shape[1], m.shape[1]), atol=_EPS)
 
 
- """
-    u = 2*2 unitary (given as a (complex) numpy.ndarray)
-    
-    qubit = qubit the gate is acting on
+"""
+   u = 2*2 unitary (given as a (complex) numpy.ndarray)
 
-    mode - determines the used decomposition by providing the rotation axes
+   qubit = qubit the gate is acting on
 
-    up_to_diagonal - the single-qubit unitary is decomposed up to a diagonal matrix, i.e. a unitary u' is implemented
-                     such that there exists a 2*2 diagonal gate d with u = d.dot(u').
+   mode - determines the used decomposition by providing the rotation axes
+
+   up_to_diagonal - the single-qubit unitary is decomposed up to a diagonal matrix, i.e. a unitary u' is implemented
+                    such that there exists a 2*2 diagonal gate d with u = d.dot(u').
 """
 
 

@@ -23,6 +23,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
+from qiskit.mapper.compiling import euler_angles_1q
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -94,14 +95,17 @@ class UCG(Gate):
         circuit = QuantumCircuit(q)
         # If there is no control, we use the ZYZ decomposition
         if len(q_controls) == 0:
-            if self.up_to_diagonal:
-                squ = SingleQubitUnitary(self.params[0], mode="ZYZ", up_to_diagonal=True)
-                circuit.append(squ, [q_target])
-                return circuit, squ.get_diag()
-            else:
-                squ = SingleQubitUnitary(self.params[0], mode="ZYZ")
-                circuit.append(squ, [q_target])
-                return circuit, diag
+            theta, phi, lamb, _ = euler_angles_1q(self.params[0])
+            circuit.u3(theta, phi, lamb,q)
+            return circuit, diag
+            # if self.up_to_diagonal:
+            #     squ = SingleQubitUnitary(self.params[0], mode="ZYZ", up_to_diagonal=True)
+            #     circuit.append(squ, [q_target])
+            #     return circuit, squ.get_diag()
+            # else:
+            #     squ = SingleQubitUnitary(self.params[0], mode="ZYZ")
+            #     circuit.append(squ, [q_target])
+            #     return circuit, diag
         # If there is at least one control, first, we find the single qubit gates of the decomposition.
         (single_qubit_gates, diag) = self._dec_ucg_help()
         # Now, it is easy to place the C-NOT gates and some Hadamards and Rz(pi/2) gates (which are absorbed into the
