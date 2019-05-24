@@ -240,7 +240,7 @@ class MatplotlibDrawer:
 
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG), width=wid, height=HIG,
-            fc=_fc, ec=None, linewidth=1.5, zorder=PORDER_GATE)
+            fc=_fc, ec=self._style.edge_color, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
         if text:
@@ -387,11 +387,19 @@ class MatplotlibDrawer:
                              linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _tgt_qubit(self, xy, fc=None, ec=None):
+    def _tgt_qubit(self, xy, fc=None, ec=None, ac=None, 
+                   add_width=None):
         if fc is None:
             fc = self._style.dispcol['target']
         if ec is None:
             ec = self._style.lc
+        if ac is None:
+            ac = self._style.lc
+        if add_width is None:
+            add_width = 0.35
+
+        if self._style.dispcol['target'] == '#ffffff':
+            add_width = self._style.colored_add_width
         
         xpos, ypos = xy
 
@@ -400,20 +408,23 @@ class MatplotlibDrawer:
                              zorder=PORDER_GATE)
         self.ax.add_patch(box)
         # add '+' symbol
-        self.ax.plot([xpos, xpos], [ypos - 0.35 * HIG, ypos + 0.35 * HIG],
-                     color=ec, linewidth=2, zorder=PORDER_GATE)
-        self.ax.plot([xpos - 0.35 * HIG, xpos + 0.35 * HIG], [ypos, ypos],
-                     color=ec, linewidth=2, zorder=PORDER_GATE)
+
+        self.ax.plot([xpos, xpos], [ypos - add_width * HIG,
+                                    ypos + add_width * HIG],
+                     color=ac, linewidth=2, zorder=PORDER_GATE+1)
+        self.ax.plot([xpos - add_width * HIG, xpos + add_width * HIG], 
+                     [ypos, ypos], color=ac, linewidth=2, 
+                     zorder=PORDER_GATE+1)
 
     def _swap(self, xy):
         xpos, ypos = xy
-
+        color = self._style.dispcol['swap']
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos - 0.20 * WID, ypos + 0.20 * WID],
-                     color=self._style.lc, linewidth=2, zorder=PORDER_LINE)
+                     color=color, linewidth=3, zorder=PORDER_LINE+1)
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos + 0.20 * WID, ypos - 0.20 * WID],
-                     color=self._style.lc, linewidth=2, zorder=PORDER_LINE)
+                     color=color, linewidth=3, zorder=PORDER_LINE+1)
 
     def _barrier(self, config, anc):
         xys = config['coord']
@@ -765,10 +776,16 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 2:
                     # cx
                     if op.name == 'cx':
+                        if self._style.dispcol['cx'] != '#ffffff':
+                            add_width = self._style.colored_add_width
+                        else:
+                            add_width = None
                         self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['cx'],
                                          ec=self._style.dispcol['cx'])
-                        self._tgt_qubit(q_xy[1], fc=self._style.dispcol['target'],
-                                        ec=self._style.dispcol['cx'])
+                        self._tgt_qubit(q_xy[1], fc=self._style.dispcol['cx'],
+                                        ec=self._style.dispcol['cx'],
+                                        ac=self._style.dispcol['target'],
+                                        add_width=add_width)
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['cx'])
                     # cz for latexmode
@@ -814,7 +831,7 @@ class MatplotlibDrawer:
                         self._swap(q_xy[0])
                         self._swap(q_xy[1])
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t, lc=self._style.dispcol['swap'])
                     # Custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, wide=_iswide,
@@ -825,18 +842,22 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 3:
                     # cswap gate
                     if op.name == 'cswap':
-                        self._ctrl_qubit(q_xy[0])
-                        self._swap(q_xy[1])
-                        self._swap(q_xy[2])
+                        self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['multi'])
+                        self._swap(q_xy[1], fc=self._style.dispcol['multi'])
+                        self._swap(q_xy[2],fc=self._style.dispcol['multi'])
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # ccx gate
                     elif op.name == 'ccx':
-                        self._ctrl_qubit(q_xy[0])
-                        self._ctrl_qubit(q_xy[1])
-                        self._tgt_qubit(q_xy[2])
+                        self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['multi'],
+                        ec=self._style.dispcol['multi'])
+                        self._ctrl_qubit(q_xy[1], fc=self._style.dispcol['multi'],
+                        ec=self._style.dispcol['multi'])
+                        self._tgt_qubit(q_xy[2], fc=self._style.dispcol['multi'],
+                                        ec=self._style.dispcol['multi'],
+                                        ac=self._style.dispcol['target'] )
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, wide=_iswide,

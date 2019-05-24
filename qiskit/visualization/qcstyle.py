@@ -28,9 +28,11 @@ class DefaultStyle:
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
+        self.edge_color = None
         self.math_fs = 15
         self.fs = 13
         self.sfs = 8
+        self.colored_add_width = 0.2
         self.disptex = {
             'id': 'Id',
             'u0': 'U_0',
@@ -51,25 +53,27 @@ class DefaultStyle:
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
-            'id': '#ee538b',
+            'id': '#d0b0ff',
             'u0': '#20d5d2',
             'u1': '#20d5d2',
             'u2': '#20d5d2',
             'u3': '#20d5d2',
-            'x': '#ee538b',
-            'y': '#ee538b',
-            'z': '#ee538b',
+            'x': '#d0b0ff',
+            'y': '#d0b0ff',
+            'z': '#d0b0ff',
             'h': '#30b0ff',
             'cx': '#30b0ff',
             's': '#30b0ff',
             'sdg': '#30b0ff',
-            't': '#d0b0ff',
-            'tdg': '#d0b0ff',
-            'rx': '#d0b0ff',
-            'ry': '#d0b0ff',
-            'rz': '#d0b0ff',
+            't': '#ee538b',
+            'tdg': '#ee538b',
+            'rx': '#ee538b',
+            'ry': '#ee538b',
+            'rz': '#ee538b',
             'reset': '#000000',
             'target': '#ffffff',
+            'swap': '#ee538b',
+            'multi': '#ee538b',
             'meas': '#000000'
         }
         self.latexmode = True
@@ -80,7 +84,7 @@ class DefaultStyle:
         self.index = False
         self.figwidth = -1
         self.dpi = 150
-        self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.margin = [2.0, 0.1, 0.1, 0.3]
         self.cline = 'doublet'
 
     def set_style(self, dic):
@@ -121,8 +125,10 @@ class BWStyle:
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
+        self.edge_color = '#000000'
         self.fs = 13
         self.math_fs = 15
+        self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
             'id': 'Id',
@@ -153,6 +159,7 @@ class BWStyle:
             'y': '#ffffff',
             'z': '#ffffff',
             'h': '#ffffff',
+            'cx': '#000000',
             's': '#ffffff',
             'sdg': '#ffffff',
             't': '#ffffff',
@@ -162,7 +169,9 @@ class BWStyle:
             'rz': '#ffffff',
             'reset': '#ffffff',
             'target': '#ffffff',
-            'meas': '#ffffff'
+            'meas': '#ffffff',
+            'swap': '#000000',
+            'multi': '#000000'
         }
         self.latexmode = True
         self.pimode = False
