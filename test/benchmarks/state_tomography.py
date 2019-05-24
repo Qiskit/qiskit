@@ -18,7 +18,11 @@ import numpy as np
 
 import qiskit
 # import tomography libary and other useful tools
-import qiskit.tools.qcvv.tomography as tomo
+try:
+    import qiskit.tools.qcvv.tomography as tomo
+    NO_TOMO = False
+except ImportError:
+    NO_TOMO = True
 from qiskit.quantum_info import state_fidelity
 from qiskit.tools.qi.qi import random_unitary_matrix, purity
 
@@ -33,6 +37,8 @@ class StateTomographyBench:
             self.use_quantum_program = True
         else:
             self.use_quantum_program = False
+        if NO_TOMO:
+            raise NotImplementedError
 
     # circuit that outputs the target state
     def target_prep(self, state, target, n_qubits, qp=None):

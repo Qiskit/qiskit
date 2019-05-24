@@ -19,7 +19,10 @@ import math
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import BasicAer
-from qiskit import transpiler
+try:
+    from qiskit.compiler import transpile
+except ImportError:
+    from qiskit.transpiler import transpile
 
 
 def build_model_circuit(qreg, circuit=None):
@@ -46,7 +49,7 @@ class QftTranspileBench:
         self.sim_backend = BasicAer.get_backend('qasm_simulator')
 
     def time_simulator_transpile(self, _):
-        transpiler.transpile(self.circuit, self.sim_backend)
+        transpile(self.circuit, self.sim_backend)
 
     def time_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
@@ -54,6 +57,6 @@ class QftTranspileBench:
                         [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
                         [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
                         [13, 12]]
-        transpiler.transpile(self.circuit,
-                             basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                             coupling_map=coupling_map)
+        transpile(self.circuit,
+                  basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                  coupling_map=coupling_map)
