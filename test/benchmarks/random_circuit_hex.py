@@ -20,10 +20,16 @@ import copy
 try:
     from qiskit.mapper import _compiling as compiling
 except ImportError:
-    from qiskit.mapper import compiling
+    try:
+        from qiskit.mapper import compiling
+    except ImportError:
+        from qiskit.quantum_info import synthesis as compiling
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit import BasicAer
-from qiskit import transpiler
+try:
+    from qiskit.compiler import transpile
+except ImportError:
+    from qiskit.transpiler import transpile
 import qiskit.tools.qi.qi as qi
 
 
@@ -67,10 +73,10 @@ class BenchRandomCircuitHex:
         self.sim_backend = BasicAer.get_backend('qasm_simulator')
 
     def time_simulator_transpile(self, _):
-        transpiler.transpile(self.circuit, self.sim_backend)
+        transpile(self.circuit, self.sim_backend)
 
     def track_depth_simulator_transpile(self, _):
-        return transpiler.transpile(self.circuit, self.sim_backend).depth()
+        return transpile(self.circuit, self.sim_backend).depth()
 
     def time_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
@@ -78,9 +84,9 @@ class BenchRandomCircuitHex:
                         [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
                         [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
                         [13, 12]]
-        transpiler.transpile(self.circuit,
-                             basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                             coupling_map=coupling_map)
+        transpile(self.circuit,
+                  basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                  coupling_map=coupling_map)
 
     def track_depth_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
@@ -88,6 +94,6 @@ class BenchRandomCircuitHex:
                         [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
                         [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
                         [13, 12]]
-        return transpiler.transpile(self.circuit,
-                                    basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                                    coupling_map=coupling_map).depth()
+        return transpile(self.circuit,
+                         basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                         coupling_map=coupling_map).depth()
