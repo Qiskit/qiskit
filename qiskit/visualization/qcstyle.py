@@ -16,20 +16,19 @@
 
 
 class DefaultStyle:
-    """A colorblind friendly gate styling modelled
-    after:
-        B. Wang, “Points of view: Color blindness“,
-        Nat. Methods 8, 441 (2011).
+    """IBM Design Style colors
     """
     def __init__(self):
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
+        self.not_gate_lc = '#ffffff'
         self.cc = '#778899'
         self.gc = '#ffffff'
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
+        self.math_fs = 15
         self.fs = 13
         self.sfs = 8
         self.disptex = {
@@ -52,25 +51,26 @@ class DefaultStyle:
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
-            'id': '#F0E442',
-            'u0': '#E7AB3B',
-            'u1': '#E7AB3B',
-            'u2': '#E7AB3B',
-            'u3': '#E7AB3B',
-            'x': '#58C698',
-            'y': '#58C698',
-            'z': '#58C698',
-            'h': '#70B7EB',
-            's': '#E0722D',
-            'sdg': '#E0722D',
-            't': '#E0722D',
-            'tdg': '#E0722D',
-            'rx': '#ffffff',
-            'ry': '#ffffff',
-            'rz': '#ffffff',
-            'reset': '#D188B4',
-            'target': '#70B7EB',
-            'meas': '#D188B4'
+            'id': '#ee538b',
+            'u0': '#20d5d2',
+            'u1': '#20d5d2',
+            'u2': '#20d5d2',
+            'u3': '#20d5d2',
+            'x': '#ee538b',
+            'y': '#ee538b',
+            'z': '#ee538b',
+            'h': '#30b0ff',
+            'cx': '#30b0ff',
+            's': '#30b0ff',
+            'sdg': '#30b0ff',
+            't': '#d0b0ff',
+            'tdg': '#d0b0ff',
+            'rx': '#d0b0ff',
+            'ry': '#d0b0ff',
+            'rz': '#d0b0ff',
+            'reset': '#000000',
+            'target': '#ffffff',
+            'meas': '#000000'
         }
         self.latexmode = True
         self.pimode = False
@@ -115,12 +115,14 @@ class BWStyle:
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
+        self.not_gate_lc = '#000000'
         self.cc = '#778899'
         self.gc = '#ffffff'
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
         self.fs = 13
+        self.math_fs = 15
         self.sfs = 8
         self.disptex = {
             'id': 'Id',
