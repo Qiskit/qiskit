@@ -132,7 +132,19 @@ def is_isometry(m):
     return np.allclose(ct(m).dot(m), np.eye(m.shape[1], m.shape[1]), atol=_EPS)
 
 
-def squ(self, params, qubit, mode="ZYZ", up_to_diagonal=False):
+ """
+    u = 2*2 unitary (given as a (complex) numpy.ndarray)
+    
+    qubit = qubit the gate is acting on
+
+    mode - determines the used decomposition by providing the rotation axes
+
+    up_to_diagonal - the single-qubit unitary is decomposed up to a diagonal matrix, i.e. a unitary u' is implemented
+                     such that there exists a 2*2 diagonal gate d with u = d.dot(u').
+"""
+
+
+def squ(self, u, qubit, mode="ZYZ", up_to_diagonal=False):
     if isinstance(qubit, QuantumRegister):
         qubit = qubit[:]
         if len(qubit) == 1:
@@ -142,7 +154,7 @@ def squ(self, params, qubit, mode="ZYZ", up_to_diagonal=False):
     # Check if there is one target qubit provided
     if not (type(qubit) == tuple and type(qubit[0]) == QuantumRegister):
         raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
-    return self.append(SingleQubitUnitary(params, mode, up_to_diagonal), [qubit], [])
+    return self.append(SingleQubitUnitary(u, mode, up_to_diagonal), [qubit], [])
 
 
 QuantumCircuit.squ = squ
