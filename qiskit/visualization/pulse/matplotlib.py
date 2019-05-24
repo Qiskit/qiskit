@@ -215,13 +215,15 @@ class EventsOutputChannels:
 class SamplePulseDrawer:
     """A class to create figure for sample pulse."""
 
-    def __init__(self, style):
+    def __init__(self, style, interactive):
         """Create new figure.
 
         Args:
             style (PulseStyle): style sheet
+            interactive (bool): when set true show the circuit in a new window
         """
         self.style = style or PulseStyle()
+        self.interactive = interactive
 
     def draw(self, pulse, dt, interp_method, scaling=1):
         """Draw figure.
@@ -265,19 +267,26 @@ class SamplePulseDrawer:
             v_max = max(max(np.abs(re)), max(np.abs(im)))
             ax.set_ylim(-1.2 * v_max, 1.2 * v_max)
 
+        if self.interactive:
+            figure.show()
+        else:
+            plt.close(figure)
+
         return figure
 
 
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
-    def __init__(self, style):
+    def __init__(self, style, interactive):
         """Create new figure.
 
         Args:
             style (SchedStyle): style sheet
+            interactive (bool): when set true show the circuit in a new window
         """
         self.style = style or SchedStyle()
+        self.interactive = interactive
 
     def _build_channels(self, schedule, t0, tf):
         # prepare waveform channels
@@ -585,5 +594,10 @@ class ScheduleDrawer:
         ax.set_xlim(t0 * dt, tf * dt)
         ax.set_ylim(y0, 1)
         ax.set_yticklabels([])
+
+        if self.interactive:
+            figure.show()
+        else:
+            plt.close(figure)
 
         return figure

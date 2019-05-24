@@ -52,10 +52,10 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         VisualizationError: when invalid data is given or lack of information
     """
     if isinstance(data, SamplePulse):
-        drawer = _matplotlib.SamplePulseDrawer(style=style)
+        drawer = _matplotlib.SamplePulseDrawer(style=style, interactive=interactive)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling)
     elif isinstance(data, (Schedule, Instruction)):
-        drawer = _matplotlib.ScheduleDrawer(style=style)
+        drawer = _matplotlib.ScheduleDrawer(style=style, interactive=interactive)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling,
                             plot_range=plot_range, channels_to_plot=channels_to_plot,
                             plot_all=plot_all, table=table, label=label,
@@ -66,6 +66,4 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     if filename:
         image.savefig(filename, dpi=drawer.style.dpi, bbox_inches='tight')
 
-    if image and interactive:
-        image.show()
     return image
