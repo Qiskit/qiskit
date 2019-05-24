@@ -445,7 +445,7 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
         elif is_ibmq_provider(backend):
             # TODO: IBMQJob performs validation during the constructor. the following lines does not
             # skip validation but run as is.
-            from qiskit.providers.ibmq.ibmqjob import IBMQJob
+            from qiskit.providers.ibmq.job import IBMQJob
             job = IBMQJob(backend, None, backend._api, qobj=qobj)
             job._future = job._executor.submit(job._submit_callback)
         else:
