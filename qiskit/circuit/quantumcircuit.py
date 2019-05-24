@@ -36,6 +36,8 @@ from .bit import Bit
 def _is_bit(obj):
     """Determine if obj is a bit"""
     # If there is a bit type this could be replaced by isinstance.
+    if isinstance(obj, Bit):
+        return False
     if isinstance(obj, tuple) and len(obj) == 2:
         if isinstance(obj[0], Register) and isinstance(obj[1], int) and obj[1] < len(obj[0]):
             warn('Referring to a bit as a tuple is being deprecated. '
