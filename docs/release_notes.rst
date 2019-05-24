@@ -6,6 +6,26 @@ Release Notes
 Qiskit 0.10
 ***********
 
+Terra 0.8
+=========
+
+No Change
+
+Aer 0.2
+=======
+
+No Change
+
+Ignis 0.1
+=========
+
+No Change
+
+Aqua 0.5
+========
+
+No Change
+
 IBM Q Provider 0.2
 ==================
 
@@ -17,13 +37,11 @@ New Features
 - Added support for Circuits through the new API :pull_ibmq-provider:`79`.
 
 
-
 Bug Fixes
 ---------
 
 - Fixed incorrect parsing of some API hub URLs :pull_ibmq-provider:`77`.
 - Fixed noise model handling for remote simulators :pull_ibmq-provider:`84`.
-
 
 
 **********
@@ -266,8 +284,8 @@ Compatibility Considerations
 
 
 
-Ignis 0.1.1
-===========
+Ignis 0.1
+=========
 
 New Features
 ------------
@@ -407,7 +425,15 @@ In Qiskit 0.8 we introduced the Qiskit Ignis element. It also includes the
 Qiskit Terra element 0.7.1 release which contains a bug fix for the BasicAer
 Python simulator.
 
+Terra 0.7
+=========
 
+No Change
+
+Aer 0.1
+=======
+
+No Change
 
 Ignis 0.1
 =========
