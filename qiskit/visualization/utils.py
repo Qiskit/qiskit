@@ -14,10 +14,15 @@
 
 """Common visualization utilities."""
 
-import PIL
 import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.visualization.exceptions import VisualizationError
+
+try:
+    import PIL
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
 
 
 def _validate_input_state(quantum_state):
@@ -46,6 +51,10 @@ def _validate_input_state(quantum_state):
 
 def _trim(image):
     """Trim a PIL image and remove white space."""
+    if not HAS_PIL:
+        raise ImportError('The latex drawer needs pillow installed. '
+                          'Run "pip install pillow" before using the '
+                          'latex drawer.')
     background = PIL.Image.new(image.mode, image.size, image.getpixel((0, 0)))
     diff = PIL.ImageChops.difference(image, background)
     diff = PIL.ImageChops.add(diff, diff, 2.0, -100)
