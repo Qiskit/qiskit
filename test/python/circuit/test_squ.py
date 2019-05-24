@@ -5,19 +5,9 @@
 # This source code is licensed under the Apache License, Version 2.0 found in
 # the LICENSE.txt file in the root directory of this source tree.
 import itertools
-
-
-_EPS = 1e-10  # global variable used to chop very small numbers to zero
-
-"""
-Tests for the ZYZ decomposition for single-qubit unitary.
-"""
-
 import unittest
-
 import numpy as np
 from scipy.stats import unitary_group
-
 from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
@@ -26,6 +16,11 @@ from qiskit.test import QiskitTestCase
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 import math
 
+_EPS = 1e-10  # global variable used to chop very small numbers to zero
+
+"""
+Tests for the ZYZ decomposition for single-qubit unitary.
+"""
 
 squs = [np.eye(2, 2), np.array([[0., 1.], [1., 0.]]), 1 / np.sqrt(2) * np.array([[1., 1.], [-1., 1.]]),
          np.array([[np.exp(1j * 5. / 2), 0], [0, np.exp(-1j * 5. / 2)]]), unitary_group.rvs(2)]

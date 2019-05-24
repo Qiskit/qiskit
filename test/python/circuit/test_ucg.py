@@ -23,6 +23,8 @@ import numpy as np
 from qiskit import execute
 from qiskit.test import QiskitTestCase
 from scipy.stats import unitary_group
+from scipy.linalg import block_diag
+import math
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -42,72 +44,33 @@ class TestUCG(QiskitTestCase):
             with self.subTest(single_qubit_unitaries=squs, up_to_diagonal=up_to_diagonal):
                 num_con = int(np.log2(len(squs)))
                 q = QuantumRegister(num_con + 1)
-                # test the UC gate for all possible basis states.
-                for i in range(2 ** (num_con + 1)):
-                    qc = _prepare_basis_state(q, i)
-                    qc.ucg(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
-                    # ToDo: improve efficiency here by allowing to execute circuit on several states in parallel (this would
-                    # ToDo: in particular allow to get out the isometry the circuit is implementing by applying it to the first
-                    # ToDo: few basis vectors
-                    job = execute(qc, BasicAer.get_backend('statevector_simulator'))
-                    result = job.result()
-                    vec_out = result.get_statevector()
-                    if up_to_diagonal:
-                        ucg = UCG(squs, up_to_diagonal=up_to_diagonal)
-                        vec_out = np.array(ucg.get_diagonal()) * vec_out
-                    vec_desired = _apply_squ_to_basis_state(squs, i)
-                    # It is fine if the gate is implemented up to a global phase (however, the phases between the different
-                    # outputs for different bases states must be correct!
-                    if i == 0:
-                        global_phase = _get_global_phase(vec_out, vec_desired)
-                    vec_desired = (global_phase * vec_desired).tolist()
-                    # Remark: We should not take the fidelity to measure the overlap over the states, since the fidelity ignores
-                    # the global phase (and hence the phase relation between the different columns of the unitary that the gate
-                    # should implement)
-                    dist = np.linalg.norm(np.array(vec_desired - vec_out))
-                    self.assertAlmostEqual(dist, 0)
+                qc = QuantumCircuit(q)
+                qc.ucg(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
+                simulator = BasicAer.get_backend('unitary_simulator')
+                result = execute(qc, simulator).result()
+                unitary = result.get_unitary(qc)
+                if up_to_diagonal:
+                    ucg = UCG(squs, up_to_diagonal=up_to_diagonal)
+                    unitary = np.dot(np.diagflat(ucg.get_diagonal()), unitary)
+                unitary_desired = _get_ucg_matrix(squs)
+                self.assertTrue(is_identity_up_to_global_phase(np.dot(ct(unitary), unitary_desired)))
 
 
-def _prepare_basis_state(q, i):
-    num_qubits = len(q)
-    qc = QuantumCircuit(q)
-    # ToDo: Remove this work around after the state vector simulator is fixed (it can't simulate the empty
-    # ToDo: circuit at the moment)
-    qc.iden(q[0])
-    binary_rep = _get_binary_rep_as_list(i, num_qubits)
-    for j in range(len(binary_rep)):
-        if binary_rep[j] == 1:
-            qc.x(q[- (j + 1)])
-    return qc
-
-def _apply_squ_to_basis_state(squs, basis_state):
-    num_qubits = int(np.log2(len(squs)) + 1)
-    sqg = squs[basis_state // 2]
-    state = np.zeros(2 ** num_qubits, dtype=complex)
-    if basis_state/2. == float(basis_state//2):
-        target_state = np.dot(sqg, np.array([[1], [0]]))
-        state[basis_state] = target_state[0, 0]
-        state[basis_state+1] = target_state[1, 0]
-    else:
-        target_state = np.dot(sqg, np.array([[0], [1]]))
-        state[basis_state-1] = target_state[0, 0]
-        state[basis_state] = target_state[1, 0]
-    return state
+def _get_ucg_matrix(squs):
+    return block_diag(*squs)
 
 
-def _get_binary_rep_as_list(n, num_digits):
-    binary_string = np.binary_repr(n).zfill(num_digits)
-    binary = []
-    for line in binary_string:
-        for c in line:
-            binary.append(int(c))
-    return binary
+def is_identity_up_to_global_phase(m):
+    if not abs(abs(m[0, 0])-1) < _EPS:
+        return False
+    phase = m[0, 0]
+    err = np.linalg.norm(1/phase * m - np.eye(m.shape[1], m.shape[1]))
+    return math.isclose(err, 0, abs_tol=_EPS)
 
 
-def _get_global_phase(a, b):
-    for i in range(len(b)):
-        if abs(b[i]) > _EPS:
-            return a[i]/b[i]
+def ct(m):
+    return np.transpose(np.conjugate(m))
+
 
 if __name__ == '__main__':
     unittest.main()
