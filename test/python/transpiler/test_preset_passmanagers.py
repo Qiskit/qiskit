@@ -26,9 +26,9 @@ class TestPresetPassManager(QiskitTestCase):
         """Test that coupling_map can be None"""
         q = QuantumRegister(2, name='q')
         test = QuantumCircuit(q)
-        test.cz(q[0],q[1])
+        test.cz(q[0], q[1])
         for level in [0, 1, 2, 3]:
             with self.subTest(level=level):
-                test2 = transpile(test, basis_gates=['u1','u2','u3','cx'],
+                test2 = transpile(test, basis_gates=['u1', 'u2', 'u3', 'cx'],
                                   optimization_level=level)
                 self.assertIsInstance(test2, QuantumCircuit)
