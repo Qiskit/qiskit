@@ -49,7 +49,7 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         sim = UnitarySimulatorPy()
         result = execute(qc, sim).result()
-        unitary = UnitaryGate(result.get_unitary())
+        unitary = UnitaryGate(result.return_unitary())
         self.assertEqual(len(new_dag.op_nodes()), 1)
         fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)
@@ -120,7 +120,7 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         sim = UnitarySimulatorPy()
         result = execute(qc, sim).result()
-        unitary = UnitaryGate(result.get_unitary())
+        unitary = UnitaryGate(result.return_unitary())
         self.assertEqual(len(new_dag.op_nodes()), 1)
         fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)
@@ -141,7 +141,7 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         sim = UnitarySimulatorPy()
         result = execute(qc, sim).result()
-        unitary = UnitaryGate(result.get_unitary())
+        unitary = UnitaryGate(result.return_unitary())
         self.assertEqual(len(new_dag.op_nodes()), 1)
         fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)

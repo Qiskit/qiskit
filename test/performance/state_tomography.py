@@ -92,7 +92,7 @@ def state_tomography(state, n_qubits, shots):
     # Prepared target state and assess quality
     prep_circ = target_prep(state, target)
     prep_result = execute(prep_circ, backend='statevector_simulator').result()
-    prep_state = prep_result.get_statevector(prep_circ)
+    prep_state = prep_result.return_statevector(prep_circ)
     F_prep = state_fidelity(prep_state, target)
     print('Prepared state fidelity =', F_prep)
 

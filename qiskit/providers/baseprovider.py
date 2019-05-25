@@ -18,6 +18,8 @@ from abc import ABC, abstractmethod
 
 from .exceptions import QiskitBackendNotFoundError
 
+import warnings
+
 
 class BaseProvider(ABC):
     """
