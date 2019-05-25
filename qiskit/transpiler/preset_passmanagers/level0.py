@@ -104,6 +104,5 @@ def level_0_pass_manager(transpile_config):
         # pm0.append(_direction_check)  # TODO
         pm0.append(_direction, condition=_direction_condition)
     pm0.append(_reset)
-    pm0.append(_direction)
 
     return pm0
