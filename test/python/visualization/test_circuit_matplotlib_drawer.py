@@ -23,7 +23,6 @@ from qiskit import visualization
 
 from .visualization import QiskitVisualizationTestCase
 
-
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
     import sys
