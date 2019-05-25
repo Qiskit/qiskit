@@ -50,12 +50,6 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         expected.set_size_inches(2.508333333333333, 0.2508333333333333)
         return expected
 
-    def _make_temp_file(self, plot):
-        tmp = tempfile.NamedTemporaryFile(suffix='.png')
-        self.addCleanup(tmp.close)
-        plot.savefig(tmp.name)
-        return tmp
-
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
     def test_empty_circuit(self):
@@ -76,12 +70,6 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
     def test_plot_barriers(self):
         """Test to see that plotting barriers works - if it is set to False, no
         blank columns are introduced"""
-
-        # Use a different backend as the default backend causes the test to fail.
-        # This is because it adds less whitespace around the image than is present
-        # in the reference image, but only on MacOS
-        if sys.platform == 'darwin':
-            return
 
         # generate a circuit with barriers and other barrier like instructions in
         q = QuantumRegister(2, 'q')
