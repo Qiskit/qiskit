@@ -16,7 +16,6 @@
 
 import os
 import tempfile
-import unittest
 
 from qiskit import exceptions
 from qiskit.test import QiskitTestCase
@@ -32,33 +31,35 @@ class TestUserConfig(QiskitTestCase):
         config.read_config_file()
         self.assertEqual({}, config.settings)
 
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_invalid_circuit_drawer(self):
         test_config = """
         [default]
         circuit_drawer = MSPaint
         circuit_mpl_style = default
         """
-        file_path = tempfile.NamedTemporaryFile(mode='w')
-        self.addCleanup(file_path.close)
-        file_path.write(test_config)
-        file_path.flush()
-        config = user_config.UserConfig(file_path.name)
-        self.assertRaises(exceptions.QiskitUserConfigError,
-                          config.read_config_file)
+        file_path = 'temp.txt'
 
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
+        with open(file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError,
+                              config.read_config_file)
+            os.remove(file_path)
+
     def test_circuit_drawer_valid(self):
         test_config = """
         [default]
         circuit_drawer = latex
         circuit_mpl_style = default
         """
-        file_path = tempfile.NamedTemporaryFile(mode='w')
-        self.addCleanup(file_path.close)
-        file_path.write(test_config)
-        file_path.flush()
-        config = user_config.UserConfig(file_path.name)
-        config.read_config_file()
-        self.assertEqual({'circuit_drawer': 'latex',
-                          'circuit_mpl_style': 'default'}, config.settings)
+        file_path = 'temp.txt'
+
+        with open(file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(file_path)
+            config.read_config_file()
+            self.assertEqual({'circuit_drawer': 'latex',
+                              'circuit_mpl_style': 'default'}, config.settings)
+            os.remove(file_path)

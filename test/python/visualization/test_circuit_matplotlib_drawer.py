@@ -19,14 +19,13 @@ import unittest
 import os
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.test import QiskitTestCase
 from qiskit import visualization
+
+from .visualization import QiskitVisualizationTestCase
 
 
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
-    from matplotlib.testing import compare
-    import matplotlib
     import sys
 
 
@@ -38,7 +37,7 @@ def _this_directory():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-class TestMatplotlibDrawer(QiskitTestCase):
+class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
     def _expected_empty(self):
         # Generate blank
@@ -60,19 +59,21 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_empty_circuit(self):
         qc = QuantumCircuit()
-        res = visualization.circuit_drawer(qc, output='mpl')
-        res_out_file = self._make_temp_file(res)
+        filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
+        visualization.circuit_drawer(qc, output='mpl', filename=filename)
+
+        expected_filename = self._get_resource_path('expected_current_pulse_matplotlib_ref.png')
         expected = self._expected_empty()
-        expected_image_file = self._make_temp_file(expected)
-        self.assertIsNone(compare.compare_images(expected_image_file.name,
-                                                 res_out_file.name, 0.0001))
+        expected.savefig(expected_filename)
+
+        self.assertImagesAreEqual(filename, expected_filename)
+        os.remove(filename)
+        os.remove(expected_filename)
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_plot_barriers(self):
         """Test to see that plotting barriers works - if it is set to False, no
         blank columns are introduced"""
@@ -81,7 +82,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         # This is because it adds less whitespace around the image than is present
         # in the reference image, but only on MacOS
         if sys.platform == 'darwin':
-            matplotlib.use('agg')
+            return
 
         # generate a circuit with barriers and other barrier like instructions in
         q = QuantumRegister(2, 'q')
@@ -100,15 +101,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
         qc.snapshot('1')
 
         # check the barriers plot properly when plot_barriers= True
-        barriers_plot = visualization.circuit_drawer(qc, output='mpl', plot_barriers=True)
-        barriers_plot_file = self._make_temp_file(barriers_plot)
-        self.assertIsNone(compare.compare_images(barriers_plot_file.name,
-                                                 _path_to_reference('matplotlib_barriers_ref.png'),
-                                                 0.0001))
+        filename = self._get_resource_path('visualization/references/current_matplotlib_ref.png')
+
+        visualization.circuit_drawer(qc, output='mpl', plot_barriers=True, filename=filename)
+
+        ref_filename = self._get_resource_path(
+            'visualization/references/matplotlib_barriers_ref.png')
+        self.assertImagesAreEqual(filename, ref_filename)
+        os.remove(filename)
 
         # check that the barrier aren't plotted when plot_barriers = False
-        barriers_no_plot = visualization.circuit_drawer(qc, output='mpl', plot_barriers=False)
-        barriers_no_plot_file = self._make_temp_file(barriers_no_plot)
+        filename = self._get_resource_path('current_matplotlib_ref.png')
+        visualization.circuit_drawer(qc, output='mpl', plot_barriers=False, filename=filename)
 
         # generate the same circuit but without the barrier commands as this is what the
         # circuit should look like when displayed with plot barriers false
@@ -118,8 +122,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
         qc1.h(q1[0])
         qc1.h(q1[1])
 
-        no_barriers = visualization.circuit_drawer(qc1, output='mpl', justify='None',)
-        no_barriers_file = self._make_temp_file(no_barriers)
+        no_barriers_filename = self._get_resource_path('current_no_barriers_matplotlib_ref.png')
+        visualization.circuit_drawer(qc1, output='mpl', justify='None', filename=filename)
 
-        self.assertIsNone(compare.compare_images(barriers_no_plot_file.name,
-                                                 no_barriers_file.name, 0.0001))
+        self.assertImagesAreEqual(filename, no_barriers_filename)
+        os.remove(filename)
+        os.remove(no_barriers_filename)
