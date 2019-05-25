@@ -23,15 +23,29 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 def graysynth(cnots, number, nsections):
     """
     This function is an implementation of the GraySynth algorithm.
-    The algorithm is described in the following paper in section 4:
+
+    GraySynth is a heuristic algorithm for synthesizing small parity networks. It is inspired by
+    Gray codes. Given a set of binary strings S (called "cnots" bellow), the algorithm synthesizes
+    a parity network for S by repeatedly choosing an index ito expand and then effectively
+    recurring on the co-factors S_0 and S_1, consisting of the strings y in S with y_i = 0 or 1,
+    respectively. As a subset S is recursively expanded, CNOT gates are applied so that a
+    designated target bit contains the (partial) parity ksi_y(x) where y_i = 1 if and only if
+    y'_i = 1 for for all y' in S. If S is a singleton {y'}, then y = y', hence the target bit
+    contains the value ksi_y'(x) as desired. Notably, rather than uncomputing this sequence of CNOT
+    gates when a subset S is finished being synthesized, the algorithm maintains the invariant
+    that the remaining parities to be computed are expressed over the current state of bits.
+    This allows the algorithm to avoid the 'backtracking' inherent in uncomputing-based methods.
+
+    The algorithm is described in detail in the following paper in section 4:
     "On the controlled-NOT complexity of controlled-NOT–phase circuits."
     Amy, Matthew, Parsiad Azimzadeh, and Michele Mosca.
     Quantum Science and Technology 4.1 (2018): 015002.
 
     Args:
-        cnots (list): as described in the aforementioned paper.
+        cnots (list): a binary string called "S" (see function description)
         number (int): the number of quantum bits in the circuit
-        nsections (int): the number of sections
+        nsections (int): number of sections, used in lwr_cnot_synth(), in the Patel–Markov–Hayes
+                        algorithm. nsections must be a factor of number.
 
     Returns:
         QuantumCircuit: the quantum circuit
@@ -114,8 +128,10 @@ def graysynth(cnots, number, nsections):
 
 def cnot_synth(qcir, state, qreg, number, nsections):
     """
-    This function is an implementation of the algorithm for optimal synthesis of linear
-    reversible circuits, as described in the following paper:
+    This function is an implementation of the Patel–Markov–Hayes algorithm for optimal synthesis
+    of linear reversible circuits. It takes a quantum circuit "qcir", and uncomputes al CNOT gates.
+
+    The algorithm is described in detail in the following paper:
     "Optimal synthesis of linear reversible circuits."
     Patel, Ketan N., Igor L. Markov, and John P. Hayes.
     Quantum Information & Computation 8.3 (2008): 282-294.
@@ -125,13 +141,16 @@ def cnot_synth(qcir, state, qreg, number, nsections):
         state (numpy.matrix): n by n matrix, describing the state of the input circuit
         qreg (QuantumRegister): a Quantum Register
         number (int): the number of quantum bits in the circuit
-        nsections (int): the number of partitions used in the below algorithm
+        nsections (int): number of sections, used in lwr_cnot_synth(), in the Patel–Markov–Hayes
+                        algorithm. nsections must be a factor of number.
 
     Returns:
         QuantumCircuit: a Quantum Circuit with added C-NOT gates
     """
 
-    state = np.matrix(state)  # Making sure that state is a numpy matrix
+    if not isinstance(state, np.ndarray):
+        print('Error! Variable state is not a numpy.ndarray')
+        break
     # Synthesize lower triangular part
     [state, circuit_l] = lwr_cnot_synth(state, number, nsections)
     state = np.transpose(state)
@@ -148,8 +167,14 @@ def cnot_synth(qcir, state, qreg, number, nsections):
 
 def lwr_cnot_synth(state, number, nsections):
     """
-    This function is a helper function of the algorithm for optimal synthesis of
-    linear reversible circuits, as described in the following paper:
+    This function is a helper function of the algorithm for optimal synthesis of linear reversible
+    circuits (the Patel–Markov–Hayes algorithm). It works like gaussian elimination, except that
+    it works a lot faster, and requires less steps (and therefore less CNOT's). It takes the matrix
+    (state) and splits it into "nsections" sections. Then it eliminates all non-zero sub-rows
+    within each sections, which are the same as a non-zero sub-section above. Once this has been
+    done, it continues with normal gaussian elimination.
+
+    The algorithm is described in detail in the following paper
     "Optimal synthesis of linear reversible circuits."
     Patel, Ketan N., Igor L. Markov, and John P. Hayes.
     Quantum Information & Computation 8.3 (2008): 282-294.
@@ -157,7 +182,7 @@ def lwr_cnot_synth(state, number, nsections):
     Args:
         state (numpy.matrix): n by n matrix, describing the state of the input circuit
         number (int): the number of quantum bits in the circuit
-        nsections (int): the number of partitions used in the below algorithm
+        nsections (int): the number of sections used in the below algorithm (see description)
 
     Returns:
         numpy.matrix: n by n matrix, describing the state of the output circuit
