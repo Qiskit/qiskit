@@ -123,7 +123,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         qc1.h(q1[1])
 
         no_barriers_filename = self._get_resource_path('current_no_barriers_matplotlib_ref.png')
-        visualization.circuit_drawer(qc1, output='mpl', justify='None', filename=filename)
+        visualization.circuit_drawer(qc1, output='mpl', justify='None', filename=no_barriers_filename)
 
         self.assertImagesAreEqual(filename, no_barriers_filename)
         os.remove(filename)
