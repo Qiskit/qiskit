@@ -14,7 +14,6 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-import tempfile
 import unittest
 import os
 
@@ -25,7 +24,6 @@ from .visualization import QiskitVisualizationTestCase
 
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
-    import sys
 
 
 def _path_to_reference(filename):
