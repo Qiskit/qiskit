@@ -15,7 +15,6 @@
 # pylint: disable=missing-docstring
 
 import os
-import tempfile
 
 from qiskit import exceptions
 from qiskit.test import QiskitTestCase
@@ -24,12 +23,30 @@ from qiskit import user_config
 
 class TestUserConfig(QiskitTestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.file_path = 'temp.txt'
+
+    def tearDown(self):
+        if os.path.isfile(self.file_path):
+            os.remove(self.file_path)
+
     def test_empty_file_read(self):
-        file_path = tempfile.NamedTemporaryFile()
-        self.addCleanup(file_path.close)
-        config = user_config.UserConfig(file_path.name)
+        config = user_config.UserConfig(self.file_path)
         config.read_config_file()
         self.assertEqual({}, config.settings)
+
+    def test_invalid_optimization_level(self):
+        test_config = """
+        [default]
+        transpile_optimization_level = 76
+        """
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError,
+                              config.read_config_file)
 
     def test_invalid_circuit_drawer(self):
         test_config = """
@@ -37,15 +54,12 @@ class TestUserConfig(QiskitTestCase):
         circuit_drawer = MSPaint
         circuit_mpl_style = default
         """
-        file_path = 'temp.txt'
-
-        with open(file_path, 'w') as file:
+        with open(self.file_path, 'w') as file:
             file.write(test_config)
             file.flush()
-            config = user_config.UserConfig(file_path)
+            config = user_config.UserConfig(self.file_path)
             self.assertRaises(exceptions.QiskitUserConfigError,
                               config.read_config_file)
-            os.remove(file_path)
 
     def test_circuit_drawer_valid(self):
         test_config = """
@@ -53,13 +67,39 @@ class TestUserConfig(QiskitTestCase):
         circuit_drawer = latex
         circuit_mpl_style = default
         """
-        file_path = 'temp.txt'
-
-        with open(file_path, 'w') as file:
+        with open(self.file_path, 'w') as file:
             file.write(test_config)
             file.flush()
-            config = user_config.UserConfig(file_path)
+            config = user_config.UserConfig(self.file_path)
             config.read_config_file()
             self.assertEqual({'circuit_drawer': 'latex',
                               'circuit_mpl_style': 'default'}, config.settings)
-            os.remove(file_path)
+
+    def test_optimization_level_valid(self):
+        test_config = """
+        [default]
+        transpile_optimization_level = 1
+        """
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({'transpile_optimization_level': 1},
+                             config.settings)
+
+    def test_all_options_valid(self):
+        test_config = """
+        [default]
+        circuit_drawer = latex
+        circuit_mpl_style = default
+        transpile_optimization_level = 3
+        """
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({'circuit_drawer': 'latex',
+                              'circuit_mpl_style': 'default',
+                              'transpile_optimization_level': 3}, config.settings)
