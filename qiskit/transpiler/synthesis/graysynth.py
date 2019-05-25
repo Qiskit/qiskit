@@ -58,7 +58,7 @@ def graysynth(cnots, number, nsections):
 
     range_list = list(range(number))
     epsilon = number
-    sta = Storage()
+    sta = []
     cnots_copy = np.transpose(np.array(copy.deepcopy(cnots)))
     state = np.eye(number).astype('int')  # This matrix keeps track of the state in the algorithm
 
@@ -75,8 +75,8 @@ def graysynth(cnots, number, nsections):
             index += 1
 
     # Implementation of the pseudo-code (Algorithm 1) in the aforementioned paper
-    sta.push([cnots, range_list, epsilon])
-    while not sta.isempty():
+    sta.append([cnots, range_list, epsilon])
+    while sta != []:
         [cnots, ilist, qubit] = sta.pop()
         if cnots == []:
             continue
@@ -98,7 +98,7 @@ def graysynth(cnots, number, nsections):
                                     break
                                 index -= 1
                             index += 1
-                        for x in remove_duplicates(sta.elements() + [[cnots, ilist, qubit]]):
+                        for x in remove_duplicates(sta + [[cnots, ilist, qubit]]):
                             [cnotsp, _, _] = x
                             if cnotsp == []:
                                 continue
@@ -118,10 +118,10 @@ def graysynth(cnots, number, nsections):
         cnots0 = list(map(list, zip(*cnots0)))
         cnots1 = list(map(list, zip(*cnots1)))
         if qubit == epsilon:
-            sta.push([cnots1, list(set(ilist).difference([j])), j])
+            sta.append([cnots1, list(set(ilist).difference([j])), j])
         else:
-            sta.push([cnots1, list(set(ilist).difference([j])), qubit])
-        sta.push([cnots0, list(set(ilist).difference([j])), qubit])
+            sta.append([cnots1, list(set(ilist).difference([j])), qubit])
+        sta.append([cnots0, list(set(ilist).difference([j])), qubit])
     qcir = cnot_synth(qcir, state, qreg, number, nsections)
     return qcir
 
@@ -149,8 +149,8 @@ def cnot_synth(qcir, state, qreg, number, nsections):
     """
 
     if not isinstance(state, np.ndarray):
-        print('Error! Variable state is not a numpy.ndarray')
-        break
+        raise Exception('state should be of type numpy.ndarray, but was of the type {}'.format(type(
+            state)))
     # Synthesize lower triangular part
     [state, circuit_l] = lwr_cnot_synth(state, number, nsections)
     state = np.transpose(state)
@@ -222,39 +222,6 @@ def lwr_cnot_synth(state, number, nsections):
                     state[row, :] ^= state[col, :]
                     circuit.append([col, row])
     return [state, circuit]
-
-
-class Storage:
-    """
-    Implementation of a Storage with the possibility of returning a list of all elements at once
-    """
-
-    def __init__(self):
-        self.items = []
-
-    def elements(self):
-        """
-        Return all elements in Storage
-        """
-        return self.items
-
-    def isempty(self):
-        """
-        Check if Storage is empty
-        """
-        return self.items == []
-
-    def push(self, item):
-        """
-        Add element to Storage
-        """
-        self.items.append(item)
-
-    def pop(self):
-        """
-        Remove and return last element in Storage
-        """
-        return self.items.pop()
 
 
 def remove_duplicates(lists):
