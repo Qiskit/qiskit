@@ -35,194 +35,26 @@ class TestPresetPassManager(QiskitTestCase):
                 self.assertIsInstance(test2, QuantumCircuit)
 
 
-class TestFakeBackendGeneric(QiskitTestCase):
-    """Common resources for all fake backend tests"""
+class TestFakeBackendTranspiling(QiskitTestCase):
+    """Test transpiling on mock backends work properly"""
 
-    @staticmethod
-    def _get_circuit():
+    def setUp(self):
 
         q = QuantumRegister(2)
         c = ClassicalRegister(2)
 
-        circuit = QuantumCircuit(q, c)
-        circuit.h(q[0])
-        circuit.cx(q[0], q[1])
-        circuit.measure(q, c)
+        self._circuit = QuantumCircuit(q, c)
+        self._circuit.h(q[0])
+        self._circuit.cx(q[0], q[1])
+        self._circuit.measure(q, c)
 
-        return circuit
-
-
-class TestFakeBackendTenerife(TestFakeBackendGeneric):
-    """Test transpiler on Tenerife fake backend"""
-
-    def setUp(self):
-        self._circuit = super()._get_circuit()
-        self._tenerife = FakeTenerife()
-
-    def test_optimization_level_0(self):
-        """Test transpiler on Tenerife fake backend with optimization 0"""
-        result = transpile(
-            [self._circuit],
-            backend=self._tenerife,
-            optimization_level=0
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_1(self):
-        """Test transpiler on Tenerife fake backend with optimization 1"""
-        result = transpile(
-            [self._circuit],
-            backend=self._tenerife,
-            optimization_level=1
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_2(self):
-        """Test transpiler on Tenerife fake backend with optimization 2"""
-        result = transpile(
-            [self._circuit],
-            backend=self._tenerife,
-            optimization_level=2
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_3(self):
-        """Test transpiler on Tenerife fake backend with optimization 3"""
-        result = transpile(
-            [self._circuit],
-            backend=self._tenerife,
-            optimization_level=3
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-
-class TestFakeBackendMelbourne(TestFakeBackendGeneric):
-    """Test transpiler on Melbourne fake backend"""
-
-    def setUp(self):
-        self._circuit = super()._get_circuit()
-        self._melbourne = FakeMelbourne()
-
-    def test_optimization_level_0(self):
-        """Test transpiler on Melbourne fake backend with optimization 0"""
-        result = transpile(
-            [self._circuit],
-            backend=self._melbourne,
-            optimization_level=0
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_1(self):
-        """Test transpiler on Melbourne fake backend with optimization 1"""
-        result = transpile(
-            [self._circuit],
-            backend=self._melbourne,
-            optimization_level=1
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_2(self):
-        """Test transpiler on Melbourne fake backend with optimization 2"""
-        result = transpile(
-            [self._circuit],
-            backend=self._melbourne,
-            optimization_level=2
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_3(self):
-        """Test transpiler on Melbourne fake backend with optimization 3"""
-        result = transpile(
-            [self._circuit],
-            backend=self._melbourne,
-            optimization_level=3
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-
-class TestFakeBackendRueschlikon(TestFakeBackendGeneric):
-    """Test transpiler on Rueschlikon fake backend"""
-
-    def setUp(self):
-        self._circuit = super()._get_circuit()
-        self._rueschlikon = FakeRueschlikon()
-
-    def test_optimization_level_0(self):
-        """Test transpiler on Rueschlikon fake backend with optimization 0"""
-        result = transpile(
-            [self._circuit],
-            backend=self._rueschlikon,
-            optimization_level=0
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_1(self):
-        """Test transpiler on Rueschlikon fake backend with optimization 1"""
-        result = transpile(
-            [self._circuit],
-            backend=self._rueschlikon,
-            optimization_level=1
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_2(self):
-        """Test transpiler on Rueschlikon fake backend with optimization 2"""
-        result = transpile(
-            [self._circuit],
-            backend=self._rueschlikon,
-            optimization_level=2
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_3(self):
-        """Test transpiler on Rueschlikon fake backend with optimization 3"""
-        result = transpile(
-            [self._circuit],
-            backend=self._rueschlikon,
-            optimization_level=3
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-
-class TestFakeBackendTokyo(TestFakeBackendGeneric):
-    """Test transpiler on Tokyo fake backend"""
-
-    def setUp(self):
-        self._circuit = super()._get_circuit()
-        self._tokyo = FakeTokyo()
-
-    def test_optimization_level_0(self):
-        """Test transpiler on Tokyo fake backend with optimization 0"""
-        result = transpile(
-            [self._circuit],
-            backend=self._tokyo,
-            optimization_level=0
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_1(self):
-        """Test transpiler on Tokyo fake backend with optimization 1"""
-        result = transpile(
-            [self._circuit],
-            backend=self._tokyo,
-            optimization_level=1
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_2(self):
-        """Test transpiler on Tokyo fake backend with optimization 2"""
-        result = transpile(
-            [self._circuit],
-            backend=self._tokyo,
-            optimization_level=2
-        )
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_optimization_level_3(self):
-        """Test transpiler on Tokyo fake backend with optimization 3"""
-        result = transpile(
-            [self._circuit],
-            backend=self._tokyo,
-            optimization_level=3
-        )
-        self.assertIsInstance(result, QuantumCircuit)
+    def test_optimization_level(self):
+        """Test several backends with all optimization levels"""
+        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo()]:
+            for optimization_level in range(4):
+                result = transpile(
+                    [self._circuit],
+                    backend=backend,
+                    optimization_level=optimization_level
+                )
+                self.assertIsInstance(result, QuantumCircuit)
