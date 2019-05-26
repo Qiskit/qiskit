@@ -67,8 +67,6 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         image.savefig(filename, dpi=drawer.style.dpi, bbox_inches='tight')
 
     _matplotlib.plt.close(image)
-        
     if image and interactive:
         image.show()
-        
     return image
