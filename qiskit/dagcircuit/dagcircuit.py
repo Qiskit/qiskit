@@ -1083,7 +1083,12 @@ class DAGCircuit:
         return self._multi_graph.successors(node)
 
     def predecessors(self, node):
-        """Returns list of the predecessors of a node as DAGNodes."""
+        """Returns list of the predecessors of a node as DAGNodes.
+
+        Returns:
+            List: don't expect an ordered list as a result of this function .
+        Order may change depending on the operations in the list.
+         """
         if isinstance(node, int):
             warnings.warn('Calling predecessors() with a node id is deprecated,'
                           ' use a DAGNode instead',
