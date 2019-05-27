@@ -23,7 +23,7 @@ import numpy as np
 
 import qiskit.extensions.simulator
 from qiskit import BasicAer
-from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit, Qubit, Clbit, Gate
 from qiskit import execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
@@ -367,6 +367,18 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(len(qargs), 2)
             self.assertEqual(qargs[0].index, ind1)
             self.assertEqual(qargs[1].index, ind2)
+
+    def test_4_args_custom_gate_trivial_expansion(self):
+        """test 'expansion' of 4 args in custom gate.
+        See https://github.com/Qiskit/qiskit-terra/issues/2508"""
+        qr = QuantumRegister(4)
+        circ = QuantumCircuit(qr)
+        circ.append(Gate("mcx", 4, []), [qr[0], qr[1], qr[2], qr[3]])
+
+        self.assertEqual(len(circ.data), 1)
+        (gate, qargs, _) = circ.data[0]
+        self.assertEqual(gate.name, 'mcx')
+        self.assertEqual(len(qargs), 4)
 
     def test_4_args_unitary_trivial_expansion(self):
         """test 'expansion' of 4 args in unitary gate.
