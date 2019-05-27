@@ -87,16 +87,58 @@ class FakeBackend(BaseBackend):
 
     def properties(self):
         """Return backend properties"""
+
+        coupling_map = self.configuration().coupling_map
+        unique_qubits = list(set().union(*coupling_map))
+
         properties = {
             'backend_name': self.name(),
             'backend_version': self.configuration().backend_version,
             'last_update_date': '2000-01-01 00:00:00Z',
-            'qubits': [[{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                         'unit': 'TODO', 'value': 0}]],
-            'gates': [{'qubits': [0], 'gate': 'TODO',
-                       'parameters':
-                           [{'name': 'TODO', 'date': '2000-01-01 00:00:00Z',
-                             'unit': 'TODO', 'value': 0}]}],
+            'qubits': [
+                [
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "T1",
+                        "unit": "\u00b5s",
+                        "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "T2",
+                        "unit": "\u00b5s",
+                        "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "frequency",
+                        "unit": "GHz",
+                        "value": 0.0
+                    },
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "readout_error",
+                        "unit": "",
+                        "value": 0.0
+                    }
+                ] for _ in range(len(unique_qubits))
+            ],
+            'gates': [{
+                "gate": "cx",
+                "name": "CX" + str(pair[0]) + "_" + str(pair[1]),
+                "parameters": [
+                    {
+                        "date": "2000-01-01 00:00:00Z",
+                        "name": "gate_error",
+                        "unit": "",
+                        "value": 0.0
+                    }
+                ],
+                "qubits": [
+                    1,
+                    0
+                ]
+            } for pair in coupling_map],
             'general': []
         }
 
@@ -161,8 +203,8 @@ class FakeOpenPulse2Q(FakeBackend):
             n_registers=2,
             n_uchannels=2,
             u_channel_lo=[
-                [UchannelLO(q=0, scale=1.+0.j)],
-                [UchannelLO(q=0, scale=-1.+0.j), UchannelLO(q=1, scale=1.+0.j)]
+                [UchannelLO(q=0, scale=1. + 0.j)],
+                [UchannelLO(q=0, scale=-1. + 0.j), UchannelLO(q=1, scale=1. + 0.j)]
             ],
             meas_level=[1, 2],
             qubit_lo_range=[[4.5, 5.5], [4.5, 5.5]],

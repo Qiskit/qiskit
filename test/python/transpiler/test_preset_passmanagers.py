@@ -16,7 +16,8 @@
 
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo
 
 
 class TestPresetPassManager(QiskitTestCase):
@@ -32,3 +33,28 @@ class TestPresetPassManager(QiskitTestCase):
                 test2 = transpile(test, basis_gates=['u1', 'u2', 'u3', 'cx'],
                                   optimization_level=level)
                 self.assertIsInstance(test2, QuantumCircuit)
+
+
+class TestFakeBackendTranspiling(QiskitTestCase):
+    """Test transpiling on mock backends work properly"""
+
+    def setUp(self):
+
+        q = QuantumRegister(2)
+        c = ClassicalRegister(2)
+
+        self._circuit = QuantumCircuit(q, c)
+        self._circuit.h(q[0])
+        self._circuit.cx(q[0], q[1])
+        self._circuit.measure(q, c)
+
+    def test_optimization_level(self):
+        """Test several backends with all optimization levels"""
+        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo()]:
+            for optimization_level in range(4):
+                result = transpile(
+                    [self._circuit],
+                    backend=backend,
+                    optimization_level=optimization_level
+                )
+                self.assertIsInstance(result, QuantumCircuit)
