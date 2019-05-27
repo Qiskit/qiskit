@@ -32,9 +32,9 @@ class Bit:
                               type(index))
 
         if index < 0:
-            index += register.size
+            index += len(register)
 
-        if index >= register.size:
+        if index > len(register):
             raise QiskitError("index must be under the size of the register: %s was provided" %
                               index)
 

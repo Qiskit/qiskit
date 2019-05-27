@@ -23,7 +23,7 @@ import itertools
 from qiskit.exceptions import QiskitError
 
 
-class Register:
+class Register(list):
     """Implement a generic register."""
 
     # Counter for the number of instances in this class.
@@ -60,45 +60,12 @@ class Register:
                 raise QiskitError("%s is an invalid OPENQASM register name." % name)
 
         self.name = name
-        self.size = size
+        for item in range(size):
+            self.append(self.bit_type(self, item))
 
     def __repr__(self):
         """Return the official string representing the register."""
-        return "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
-
-    def __len__(self):
-        """Return register size"""
-        return self.size
-
-    def __getitem__(self, key):
-        """
-        Arg:
-            bit_type (Qubit or Clbit): a constructor type return element/s.
-            key (int or slice or list): index of the clbit to be retrieved.
-
-        Returns:
-            Qubit or Clbit or list(Qubit) or list(Clbit): a instances Qubit or Clbit if key is int.
-                If key is a slice, return a list of them.
-
-        Raises:
-            QiskitError: if the `key` is not an integer.
-            QiskitIndexError: if the `key` is not in the range `(0, self.size)`.
-        """
-        if not isinstance(key, (int, slice, list)):
-            raise QiskitError("expected integer or slice index into register")
-        if isinstance(key, slice):
-            return [self.bit_type(self, ind) for ind in range(*key.indices(len(self)))]
-        elif isinstance(key, list):  # list of qubit indices
-            if max(key) < len(self):
-                return [self.bit_type(self, ind) for ind in key]
-            else:
-                raise QiskitError('register index out of range')
-        else:
-            return self.bit_type(self, key)
-
-    def __iter__(self):
-        for bit in range(self.size):
-            yield self[bit]
+        return "%s(%d, '%s')" % (self.__class__.__qualname__, len(self), self.name)
 
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
@@ -113,10 +80,6 @@ class Register:
         res = False
         if type(self) is type(other) and \
                 self.name == other.name and \
-                self.size == other.size:
+                len(self) == len(other):
             res = True
         return res
-
-    def __hash__(self):
-        """Make object hashable, based on the name and size to hash."""
-        return hash((type(self), self.name, self.size))
