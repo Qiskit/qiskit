@@ -368,6 +368,33 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(qargs[0].index, ind1)
             self.assertEqual(qargs[1].index, ind2)
 
+    def test_4_args_unitary_trivial_expansion(self):
+        """test 'expansion' of 4 args in unitary gate.
+        See https://github.com/Qiskit/qiskit-terra/issues/2508"""
+        qr = QuantumRegister(4)
+        circ = QuantumCircuit(qr)
+        circ.unitary(np.eye(2 ** 4), [qr[0], qr[1], qr[2], qr[3]])
+
+        self.assertEqual(len(circ.data), 1)
+        (gate, qargs, _) = circ.data[0]
+        self.assertEqual(gate.name, 'unitary')
+        self.assertEqual(len(qargs), 4)
+
+    def test_4_args_unitary_zip_expansion(self):
+        """test zip expansion of 4 args in unitary gate.
+        See https://github.com/Qiskit/qiskit-terra/issues/2508"""
+        qr1 = QuantumRegister(4)
+        qr2 = QuantumRegister(4)
+        qr3 = QuantumRegister(4)
+        qr4 = QuantumRegister(4)
+
+        circ = QuantumCircuit(qr1, qr2, qr3, qr4)
+        circ.unitary(np.eye(2 ** 4), [qr1, qr2, qr3, qr4])
+
+        self.assertEqual(len(circ.data), 4)
+        for (gate, qargs, _) in circ.data:
+            self.assertEqual(gate.name, 'unitary')
+            self.assertEqual(len(qargs), 4)
 
 class TestCircuitBit(QiskitTestCase):
     """QuantumCircuit Registers tests."""
