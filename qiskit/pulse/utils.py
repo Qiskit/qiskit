@@ -72,7 +72,7 @@ def align_measures(schedule: ScheduleComponent, cmd_def: List[Command],
     return new_schedule
 
 
-def replace_implicit_measures(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
+def replace_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
 
