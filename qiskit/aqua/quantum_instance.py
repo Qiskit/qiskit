@@ -199,6 +199,21 @@ class QuantumInstance:
             qubit_index = get_measured_qubits_from_qobj(qobj)
             qubit_index_str = '_'.join([str(x) for x in qubit_index]) + "_{}".format(self._measurement_error_mitigation_shots or self._run_config.shots)
             measurement_error_mitigation_fitter, timestamp = self._measurement_error_mitigation_fitters.get(qubit_index_str, (None, 0))
+
+            if measurement_error_mitigation_fitter is None:
+                # check the asked qubit_index are the subset of build matrices
+                for key in self._measurement_error_mitigation_fitters.keys():
+                    stored_qubit_index = [int(x) for x in key.split("_")[:-1]]
+                    stored_shots = int(key.split("_")[-1])
+                    if len(qubit_index) < len(stored_qubit_index):
+                        tmp = list(set(qubit_index + stored_qubit_index))
+                        if sorted(tmp) == sorted(stored_qubit_index) and self._run_config.shots == stored_shots:
+                            # the qubit used in current job is the subset and shots are the same
+                            measurement_error_mitigation_fitter, timestamp = self._measurement_error_mitigation_fitters.get(key, (None, 0))
+                            measurement_error_mitigation_fitter = measurement_error_mitigation_fitter.subset_fitter(qubit_sublist=qubit_index)
+                            logger.info("The qubits used in the current job is the subset of previous jobs, "
+                                        "reusing the calibration matrix if it is not out-of-date.")
+
             build_cals_matrix = self.maybe_refresh_cals_matrix(timestamp) or measurement_error_mitigation_fitter is None
 
             if build_cals_matrix:
@@ -232,6 +247,7 @@ class QuantumInstance:
                 cals_result = result if self._measurement_error_mitigation_shots is None else cals_result
                 measurement_error_mitigation_fitter = self._measurement_error_mitigation_cls(cals_result,
                                                                                              state_labels,
+                                                                                             qubit_list=qubit_index,
                                                                                              circlabel=circuit_labels)
                 self._measurement_error_mitigation_fitters[qubit_index_str] = (measurement_error_mitigation_fitter, time.time())
             else:
