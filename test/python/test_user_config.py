@@ -33,6 +33,20 @@ class TestUserConfig(QiskitTestCase):
         self.assertEqual({}, config.settings)
 
     @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
+    def test_invalid_optimization_level(self):
+        test_config = """
+        [default]
+        transpile_optimization_level = 76
+        """
+        file_path = tempfile.NamedTemporaryFile(mode='w')
+        self.addCleanup(file_path.close)
+        file_path.write(test_config)
+        file_path.flush()
+        config = user_config.UserConfig(file_path.name)
+        self.assertRaises(exceptions.QiskitUserConfigError,
+                          config.read_config_file)
+
+    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_invalid_circuit_drawer(self):
         test_config = """
         [default]
@@ -62,3 +76,36 @@ class TestUserConfig(QiskitTestCase):
         config.read_config_file()
         self.assertEqual({'circuit_drawer': 'latex',
                           'circuit_mpl_style': 'default'}, config.settings)
+
+    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
+    def test_optimization_level_valid(self):
+        test_config = """
+        [default]
+        transpile_optimization_level = 1
+        """
+        file_path = tempfile.NamedTemporaryFile(mode='w')
+        self.addCleanup(file_path.close)
+        file_path.write(test_config)
+        file_path.flush()
+        config = user_config.UserConfig(file_path.name)
+        config.read_config_file()
+        self.assertEqual({'transpile_optimization_level': 1},
+                         config.settings)
+
+    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
+    def test_all_options_valid(self):
+        test_config = """
+        [default]
+        circuit_drawer = latex
+        circuit_mpl_style = default
+        transpile_optimization_level = 3
+        """
+        file_path = tempfile.NamedTemporaryFile(mode='w')
+        self.addCleanup(file_path.close)
+        file_path.write(test_config)
+        file_path.flush()
+        config = user_config.UserConfig(file_path.name)
+        config.read_config_file()
+        self.assertEqual({'circuit_drawer': 'latex',
+                          'circuit_mpl_style': 'default',
+                          'transpile_optimization_level': 3}, config.settings)
