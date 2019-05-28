@@ -43,8 +43,7 @@ _math_ops = {
     'tan': cmath.tan,
     'tanh': cmath.tanh,
     'pi': cmath.pi,
-    'e': cmath.e,
-    'tau': cmath.tau
+    'e': cmath.e
 }
 
 # valid binary operations
