@@ -71,6 +71,15 @@ class Register(list):
     def size(self):
         return len(self)
 
+    def __getitem__(self, key):
+        if isinstance(key, list):  # list of qubit indices
+            if max(key) < len(self):
+                return [self.bit_type(self, ind) for ind in key]
+            else:
+                raise QiskitError('register index out of range')
+        else:
+            return list.__getitem__(self, key)
+
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
         (i.e. quantum/classical), and have the same name and size.
@@ -87,3 +96,6 @@ class Register(list):
                 len(self) == len(other):
             res = True
         return res
+
+    def __hash__(self):
+        return hash((type(self), self.name, len(self)))
