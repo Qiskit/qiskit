@@ -42,6 +42,7 @@ Fixed
 - Fix for missing cython source files in sdist (#2436)
 - Fix for different pulse schedules created with the same name (#2431)
 - Only create a single AquireInstruction for all qubits (#2485)
+- Stop modifying layout in stochastic swap pass (#2507)
 
 
 `0.8.0`_ - 2019-05-02
