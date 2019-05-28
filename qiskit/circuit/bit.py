@@ -47,7 +47,7 @@ class Bit:
 
     def __getitem__(self, item):
         warn('Accessing a bit register by bit[0] or its index by bit[1] is deprecated. '
-             'Go for bit.register and bit.index.', DeprecationWarning)
+             'Go for bit.register and bit.index.', DeprecationWarning, stacklevel=2)
         if item == 0:
             return self.register
         elif item == 1:
