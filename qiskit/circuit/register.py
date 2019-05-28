@@ -67,6 +67,10 @@ class Register(list):
         """Return the official string representing the register."""
         return "%s(%d, '%s')" % (self.__class__.__qualname__, len(self), self.name)
 
+    @property
+    def size(self):
+        return len(self)
+
     def __eq__(self, other):
         """Two Registers are the same if they are of the same type
         (i.e. quantum/classical), and have the same name and size.

@@ -38,7 +38,7 @@ class TestCircuitRegisters(QiskitTestCase):
         """
         qr1 = QuantumRegister(10, "q")
         self.assertEqual(qr1.name, "q")
-        self.assertEqual(qr1.size, 10)
+        self.assertEqual(len(qr1), 10)
         self.assertEqual(type(qr1), QuantumRegister)
 
     def test_cregs(self):
@@ -46,7 +46,7 @@ class TestCircuitRegisters(QiskitTestCase):
         """
         cr1 = ClassicalRegister(10, "c")
         self.assertEqual(cr1.name, "c")
-        self.assertEqual(cr1.size, 10)
+        self.assertEqual(len(cr1), 10)
         self.assertEqual(type(cr1), ClassicalRegister)
 
     def test_qarg_negative_size(self):
@@ -65,7 +65,7 @@ class TestCircuitRegisters(QiskitTestCase):
         np_int = np.dtype('int').type(10)
         qr1 = QuantumRegister(np_int, "q")
         self.assertEqual(qr1.name, "q")
-        self.assertEqual(qr1.size, 10)
+        self.assertEqual(len(qr1), 10)
         self.assertEqual(type(qr1), QuantumRegister)
 
     def test_numpy_array_of_registers(self):
