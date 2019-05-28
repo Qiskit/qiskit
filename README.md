@@ -31,12 +31,10 @@ $ python
 
 ```python
 >>> from qiskit import *
->>> q = QuantumRegister(2)
->>> c = ClassicalRegister(2)
->>> qc = QuantumCircuit(q, c)
->>> qc.h(q[0])
->>> qc.cx(q[0], q[1])
->>> qc.measure(q, c)
+>>> qc = QuantumCircuit(2, 2)
+>>> qc.h(0)
+>>> qc.cx(0, 1)
+>>> qc.measure([0,1], [0,1])
 >>> backend_sim = BasicAer.get_backend('qasm_simulator')
 >>> result = execute(qc, backend_sim).result()
 >>> print(result.get_counts(qc))
@@ -60,19 +58,16 @@ your IBM Q account:
 
 #### Configure your IBMQ credentials
 
-1. Create an _[IBM Q](https://quantumexperience.ng.bluemix.net) > Account_ if you haven't already done so.
+1. Create an _[IBM Q](https://quantum-computing.ibm.com) > Account_ if you haven't already done so.
 
-2. Get an API token from the IBM Q website under _My Account > Advanced > API Token_. 
+2. Get an API token from the IBM Q website under _My Account > API Token_ and the URL for the account.
 
-3. Take your token from step 2, here called `MY_API_TOKEN`, and run:
+3. Take your token and url from step 2, here called `MY_API_TOKEN`, `MY_URL`, and run:
 
    ```python
    >>> from qiskit import IBMQ
-   >>> IBMQ.save_account('MY_API_TOKEN')
+   >>> IBMQ.save_account('MY_API_TOKEN', 'MY_URL')
     ```
-
-4. If you have access to the IBM Q Network features, you also need to pass the
-   URL listed on your IBM Q account page to `save_account`.
 
 After calling `IBMQ.save_account()`, your credentials will be stored on disk.
 Once they are stored, at any point in the future you can load and use them
