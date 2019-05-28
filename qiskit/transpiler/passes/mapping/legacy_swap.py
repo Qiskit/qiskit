@@ -94,7 +94,8 @@ class LegacySwap(TransformationPass):
                               for k, v in self.initial_layout.items()}
             # Check the input layout
             circ_qubits = dag.qubits()
-            coup_qubits = [(QuantumRegister(self.coupling_map.size(), 'q'), wire) for wire in
+            canonical_reg = QuantumRegister(self.coupling_map.size(), 'q')
+            coup_qubits = [canonical_reg[wire] for wire in
                            self.coupling_map.physical_qubits]
             qubit_subset = []
             for k, v in initial_layout.items():
@@ -268,13 +269,13 @@ class LegacySwap(TransformationPass):
             # Compute Sergey's randomized distance
             xi = {}
             for i in self.coupling_map.physical_qubits:
-                xi[(QR, i)] = {}
+                xi[QR[i]] = {}
             for i in self.coupling_map.physical_qubits:
-                i = (QR, i)
+                i = QR[i]
                 for j in self.coupling_map.physical_qubits:
-                    j = (QR, j)
+                    j = QR[j]
                     scale = 1 + rng.normal(0, 1 / n)
-                    xi[i][j] = scale * self.coupling_map.distance(i[1], j[1]) ** 2
+                    xi[i][j] = scale * self.coupling_map.distance(i.index, j.index) ** 2
                     xi[j][i] = xi[i][j]
 
             # Loop over depths d up to a max depth of 2n+1

@@ -61,6 +61,7 @@ class Register:
 
         self.name = name
         self.size = size
+        self._hash = None
 
     def __repr__(self):
         """Return the official string representing the register."""
@@ -110,13 +111,10 @@ class Register:
         Returns:
             bool: are self and other equal.
         """
-        res = False
-        if type(self) is type(other) and \
-                self.name == other.name and \
-                self.size == other.size:
-            res = True
-        return res
+        return self.name == other.name and self.size == other.size and type(self) is type(other)
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
-        return hash((type(self), self.name, self.size))
+        if self._hash is None:
+            self._hash = hash((type(self), self.name, self.size))
+        return self._hash

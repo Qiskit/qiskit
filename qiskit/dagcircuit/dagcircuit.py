@@ -442,11 +442,11 @@ class DAGCircuit:
                     # If mapping to a register not in valregs, add it.
                     # (k,0) exists in edge_map because edge_map doesn't
                     # fragment k
-                    if not edge_map[(k, 0)].register.name in valregs:
+                    if not edge_map[k[0]].register.name in valregs:
                         size = max(map(lambda x: x.index,
                                        filter(lambda x: x.register == edge_map[(k, 0)].register,
                                               edge_map.values())))
-                        qreg = QuantumRegister(size + 1, edge_map[(k, 0)].register.name)
+                        qreg = QuantumRegister(size + 1, edge_map[k[0]].register.name)
                         add_regs.add(qreg)
         return add_regs
 
@@ -1293,7 +1293,7 @@ class DAGCircuit:
             for op_node in op_nodes:
                 args = self._bits_in_condition(op_node.condition) \
                        + op_node.cargs + op_node.qargs
-                arg_ids = (self.input_map[(arg.register, arg.index)] for arg in args)
+                arg_ids = (self.input_map[arg] for arg in args)
                 for arg_id in arg_ids:
                     wires[arg_id], wires[op_node] = op_node, wires[arg_id]
 
