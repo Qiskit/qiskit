@@ -40,6 +40,7 @@ class Bit:
 
         self.register = register
         self.index = index
+        self._hash = None
 
     def __repr__(self):
         """Return the official string representing the bit."""
@@ -56,11 +57,17 @@ class Bit:
             raise IndexError
 
     def __hash__(self):
-        return hash((self.register, self.index))
+        if self._hash is None:
+            self._hash = hash((self.register, self.index))
+        return self._hash
 
     def __eq__(self, other):
         if isinstance(other, Bit):
-            return other.index == self.index and other.register == self.register
+            return other.index == self.index and \
+                   other.register.name == self.register.name and \
+                   type(self) is type(other)
         if isinstance(other, tuple):
+            warn('Equality check between a tuple and a Bit instances is deprecated. '
+                 'Convert your tuples to a Bit object.', DeprecationWarning, stacklevel=2)
             return other[1] == self.index and other[0] == self.register
         return False

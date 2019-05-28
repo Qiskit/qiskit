@@ -60,6 +60,7 @@ class Register(list):
                 raise QiskitError("%s is an invalid OPENQASM register name." % name)
 
         self.name = name
+        self._hash = None
         for item in range(size):
             self.append(self.bit_type(self, item))
 
@@ -98,4 +99,7 @@ class Register(list):
         return res
 
     def __hash__(self):
-        return hash((type(self), self.name, len(self)))
+        """Make object hashable, based on the name and size to hash."""
+        if self._hash is None:
+            self._hash = hash((type(self), self.name, len(self)))
+        return self._hash
