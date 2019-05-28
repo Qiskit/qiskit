@@ -32,7 +32,7 @@ def align_measures(schedule: ScheduleComponent, cmd_def: List[Command],
                    pulse_library: List[PulseLibraryItem]) -> Schedule:
     """Return a new schedule where measurements occur at the same physical time, with the remaining
     schedules appropriately offset. Minimum measurement wait time (to allow for calibration pulses)
-    are enforced.
+    is enforced.
 
     Args:
         schedule: Schedule to be aligned
@@ -66,7 +66,8 @@ def align_measures(schedule: ScheduleComponent, cmd_def: List[Command],
             extra_delays.update({i: acquire_scheduled_time - time for i in indices})
         else:
             delay = max([extra_delays.get(c.index, 0) for c in inst.timeslots.channels])
-            new_schedule |= inst << max(delay, time)
+            # TODO: increase the delay on the non max channels?
+            new_schedule |= inst << time + delay
 
     return new_schedule
 

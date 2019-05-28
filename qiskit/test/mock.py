@@ -212,7 +212,7 @@ class FakeOpenPulse2Q(FakeBackend):
             dt=1.3333,
             dtm=10.5,
             rep_times=[100, 250, 500, 1000],
-            meas_map=[[0], [1, 2]],
+            meas_map=[[0, 1]],
             channel_bandwidth=[
                 [-0.2, 0.4], [-0.3, 0.3], [-0.3, 0.3],
                 [-0.02, 0.02], [-0.02, 0.02], [-0.02, 0.02]
@@ -235,6 +235,10 @@ class FakeOpenPulse2Q(FakeBackend):
             cmd_def=[Command(name='u1', qubits=[0],
                              sequence=[PulseQobjInstruction(name='fc', ch='d0',
                                                             t0=0, phase='-P1*np.pi')]),
+                     Command(name='u2', qubits=[0],
+                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0)]),
+                     Command(name='u2', qubits=[1],
+                             sequence=[PulseQobjInstruction(name='test_pulse_2', ch='d1', t0=0)]),
                      Command(name='cx', qubits=[0, 1],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0),
                                        PulseQobjInstruction(name='test_pulse_2', ch='u0', t0=10),
