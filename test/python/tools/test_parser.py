@@ -85,6 +85,15 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         self.assertEqual(params, ['P1', 'P2'])
         self.assertEqual(parsed_expr(P1=1.0, P2=2.0), -2.0 + 0j)
 
+    def test_valid_expression8(self):
+        """Parsing valid expression."""
+
+        expr = 'P3-P2*(4+P1)'
+        parsed_expr, params = parse_string_expr(expr)
+
+        self.assertEqual(params, ['P1', 'P2', 'P3'])
+        self.assertEqual(parsed_expr(P1=1, P2=2, P3=3), -7.0 + 0j)
+
     def test_invalid_expressions1(self):
         """Parsing invalid expressions."""
 

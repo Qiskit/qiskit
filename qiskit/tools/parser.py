@@ -18,7 +18,6 @@
 
 import ast
 import operator
-import re
 
 import cmath
 
@@ -26,86 +25,245 @@ from qiskit.exceptions import QiskitError
 
 
 # valid functions
-_math_ops = {key: value for (key, value) in vars(cmath).items() if key[0] != '_'}
+_math_ops = {
+    'acos': cmath.acos,
+    'acosh': cmath.acosh,
+    'asin': cmath.asin,
+    'asinh': cmath.asinh,
+    'atan': cmath.atan,
+    'atanh': cmath.atanh,
+    'cos': cmath.cos,
+    'cosh': cmath.cosh,
+    'exp': cmath.exp,
+    'log': cmath.log,
+    'log10': cmath.log10,
+    'sin': cmath.sin,
+    'sinh': cmath.sinh,
+    'sqrt': cmath.sqrt,
+    'tan': cmath.tan,
+    'tanh': cmath.tanh,
+    'pi': cmath.pi,
+    'e': cmath.e,
+    'tau': cmath.tau
+}
 
-# valid parameters
-_param_regex = r'(P\d+)'
+# valid binary operations
+_binary_ops = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Pow: operator.pow
+}
+
+# valid unary operations
+_unary_ops = {
+    ast.UAdd: operator.pos,
+    ast.USub: operator.neg
+}
 
 
-def _eval_expr(parsed_expr, locals_dict):
-    """ Evaluate expression without python built-in eval function.
-
-    Args:
-        parsed_expr (ast.Expression): Parsed expression to evaluate.
-        locals_dict (dict): Dictionary of user arguments.
-
-    Returns:
-        complex: Evaluated value with given arguments.
-
-    Raises:
-        QiskitError: If expression is not in proper format.
+class QiskitExpression(ast.NodeTransformer):
+    """Expression parser to evaluate parameter values.
     """
+    def __init__(self, source):
+        """Create new evaluator.
 
-    def _visit_node(node):
-        if isinstance(node, ast.UnaryOp):
-            # Unary operation
-            operand = _visit_node(node.operand)
-            if isinstance(node.op, ast.UAdd):
-                opr = operator.add
-            elif isinstance(node.op, ast.USub):
-                opr = operator.sub
+        Args:
+            source (str): String expression of equation to evaluate.
+        """
+        self._locals_dict = {}
+        self._params = set()
+        self.source = source
+
+        self.visit(self._parse(self.source))
+
+    @property
+    def params(self):
+        """Get parameters."""
+        return sorted(self._params.copy())
+
+    def __call__(self, *args, allow_partial_bind=False, **kwargs):
+        """Get evaluated value with given parameters.
+
+        Args:
+            allow_partial_bind (bool): Allow partial binding of parameters.
+            *args: Variable length parameter list.
+            **kwargs: Arbitrary parameters.
+
+        Returns:
+            float or complex or ast: Evaluated value.
+
+        Raises:
+            QiskitError: When parameters are not bound.
+        """
+        self._locals_dict = {}
+
+        if args:
+            for key, val in zip(self.params, args):
+                self._locals_dict[key] = val
+        if kwargs:
+            self._locals_dict.update({key: val for key, val in
+                                      kwargs.items() if key in self.params})
+
+        expr = self.visit(self._parse(self.source))
+
+        if not isinstance(expr, ast.Num):
+            if allow_partial_bind:
+                return expr
             else:
-                raise QiskitError('Operator %s is not supported.' % node.op)
-            return opr(0, operand)
-        elif isinstance(node, ast.BinOp):
-            # Binary operation
-            l_value = _visit_node(node.left)
-            r_value = _visit_node(node.right)
-            if isinstance(node.op, ast.Add):
-                opr = operator.add
-            elif isinstance(node.op, ast.Sub):
-                opr = operator.sub
-            elif isinstance(node.op, ast.Mult):
-                opr = operator.mul
-            elif isinstance(node.op, ast.Div):
-                opr = operator.truediv
-            elif isinstance(node.op, ast.Pow):
-                opr = operator.pow
-            else:
-                raise QiskitError('Operator %s is not supported.' % node.op)
-            return opr(l_value, r_value)
-        elif isinstance(node, ast.Num):
-            # number
+                raise QiskitError('Parameters %s are not bound.' % self.params)
+        return expr.n
+
+    @staticmethod
+    def _parse(expr):
+        """Helper method to generate abstract syntax tree.
+
+        Args:
+            expr (str): String expression of equation to evaluate.
+
+        Returns:
+            ast.Expression: Abstract syntax tree.
+
+        Raises:
+            QiskitError: When unparsable string is specified.
+        """
+        try:
+            tree = ast.parse(expr, mode='eval')
+        except SyntaxError:
+            raise QiskitError('%s is invalid expression.' % expr)
+        return tree
+
+    @staticmethod
+    def _match_ops(opr, opr_dict, *args):
+        """Helper method to apply operators.
+
+        Args:
+            opr (ast): Operator of node.
+            opr_dict (dict[ast, operator]): Mapper from ast to operator.
+            *args: Arguments supplied to operator.
+
+        Returns:
+            float or complex: Evaluated value.
+
+        Raises:
+            QiskitError: When unsupported operation is specified.
+        """
+        for op_type, op_func in opr_dict.items():
+            if isinstance(opr, op_type):
+                return op_func(*args)
+        raise QiskitError('Operator %s is not supported.' % opr.__class__.__name__)
+
+    def visit_Expression(self, node):
+        """Evaluate children nodes of expression.
+
+        Args:
+            node (ast.Expression): Expression to evaluate.
+
+        Returns:
+            ast.Expression: Evaluated value.
+        """
+        return self.visit(node.body)
+
+    def visit_Num(self, node):
+        """Return number as it is.
+
+        Args:
+            node (ast.Num): Number.
+
+        Returns:
+            ast.Num: Number to return.
+        """
+        return node
+
+    def visit_Name(self, node):
+        """Evaluate name and return ast.Num if it is bound.
+
+        Args:
+            node (ast.Name): Name to evaluate.
+
+        Returns:
+            ast.Name or ast.Num: Evaluated value.
+
+        Raises:
+            QiskitError: When parameter value is not a number.
+        """
+        if node.id in _math_ops.keys():
+            val = ast.Num(n=_math_ops[node.id])
+            return ast.copy_location(val, node)
+        elif node.id in self._locals_dict.keys():
+            _val = self._locals_dict[node.id]
             try:
-                return complex(node.n)
+                _val = complex(_val)
+                if not _val.imag:
+                    _val = _val.real
             except ValueError:
-                raise QiskitError('Value %s cannot be converted to complex.' % node.n)
-        elif isinstance(node, ast.Name):
-            # parameter/constant
-            if node.id in _math_ops.keys():
-                return complex(_math_ops[node.id])
-            else:
-                # user defined args/kwargs should be numbers
-                try:
-                    return complex(locals_dict[node.id])
-                except (KeyError, ValueError):
-                    raise QiskitError('Invalid name %s is specified.' % node.id)
-        elif isinstance(node, ast.Call):
-            # function
-            if not isinstance(node.func, ast.Name):
-                raise QiskitError('Unsafe expression %s is specified.' % node.func)
-            call_args = [_visit_node(arg) for arg in node.args]
-            try:
-                return _math_ops[node.func.id](*call_args)
-            except KeyError:
+                raise QiskitError('Invalid parameter value %s = %s is specified.'
+                                  % (node.id, self._locals_dict[node.id]))
+            val = ast.Num(n=_val)
+            return ast.copy_location(val, node)
+        self._params.add(node.id)
+        return node
+
+    def visit_UnaryOp(self, node):
+        """Evaluate unary operation and return ast.Num if operand is bound.
+
+        Args:
+            node (ast.UnaryOp): Unary operation to evaluate.
+
+        Returns:
+            ast.UnaryOp or ast.Num: Evaluated value.
+        """
+        node.operand = self.visit(node.operand)
+        if isinstance(node.operand, ast.Num):
+            val = ast.Num(n=self._match_ops(node.op, _unary_ops, node.operand.n))
+            return ast.copy_location(val, node)
+        return node
+
+    def visit_BinOp(self, node):
+        """Evaluate binary operation and return ast.Num if operands are bound.
+
+        Args:
+            node (ast.BinOp): Binary operation to evaluate.
+
+        Returns:
+            ast.BinOp or ast.Num: Evaluated value.
+        """
+        node.left = self.visit(node.left)
+        node.right = self.visit(node.right)
+        if isinstance(node.left, ast.Num) and isinstance(node.right, ast.Num):
+            val = ast.Num(n=self._match_ops(node.op, _binary_ops, node.left.n, node.right.n))
+            return ast.copy_location(val, node)
+        return node
+
+    def visit_Call(self, node):
+        """Evaluate function and return ast.Num if all arguments are bound.
+
+        Args:
+            node (ast.Call): Function to evaluate.
+
+        Returns:
+            ast.Call or ast.Num: Evaluated value.
+
+        Raises:
+            QiskitError: When unsupported or unsafe function is specified.
+        """
+        if not isinstance(node.func, ast.Name):
+            raise QiskitError('Unsafe expression is detected.')
+        node.args = [self.visit(arg) for arg in node.args]
+        if all(isinstance(arg, ast.Num) for arg in node.args):
+            if node.func.id not in _math_ops.keys():
                 raise QiskitError('Function %s is not supported.' % node.func.id)
-        else:
-            raise QiskitError('Expression is written in invalid format.')
+            _args = [arg.n for arg in node.args]
+            _val = _math_ops[node.func.id](*_args)
+            if not _val.imag:
+                _val = _val.real
+            val = ast.Num(n=_val)
+            return ast.copy_location(val, node)
+        return node
 
-    if not isinstance(parsed_expr, ast.Expression):
-        raise QiskitError('Given expression %s is not valid object.' % parsed_expr)
-
-    return _visit_node(parsed_expr.body)
+    def generic_visit(self, node):
+        raise QiskitError('Unsupported node: %s' % node.__class__.__name__)
 
 
 def parse_string_expr(source):
@@ -115,35 +273,12 @@ def parse_string_expr(source):
         source (str): String expression to parse.
 
     Returns:
-        Tuple[Callable, Tuple[str]]: Returns a callable function and tuple of string symbols.
-
-    Raises:
-        QiskitError: If expression is not parsable.
+        QiskitExpression: Returns a expression object.
     """
-    subs = [('numpy.', ''), ('np.', ''), ('math.', '')]
+    subs = [('numpy.', ''), ('np.', ''), ('math.', ''), ('cmath.', '')]
     for match, sub in subs:
         source = source.replace(match, sub)
 
-    params = sorted(re.findall(_param_regex, source))
-    try:
-        expr = ast.parse(source, mode='eval')
-    except SyntaxError:
-        raise QiskitError('%s is invalid expression.' % source)
+    expression = QiskitExpression(source)
 
-    def evaluated_func(*args, **kwargs):
-        locals_dict = {}
-
-        if args:
-            for key, val in zip(params, args):
-                locals_dict[key] = val
-        if kwargs:
-            locals_dict.update({key: val for key, val in
-                                kwargs.items() if key in params})
-
-        if sorted(locals_dict.keys()) != params:
-            raise QiskitError('Supplied params ({args}, {kwargs}) do not match '
-                              '{params}'.format(args=args, kwargs=kwargs, params=params))
-
-        return _eval_expr(expr, locals_dict)
-
-    return evaluated_func, params
+    return expression, expression.params
