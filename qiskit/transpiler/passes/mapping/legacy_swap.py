@@ -269,13 +269,11 @@ class LegacySwap(TransformationPass):
             # Compute Sergey's randomized distance
             xi = {}
             for i in self.coupling_map.physical_qubits:
-                xi[QR[i]] = {}
+                xi[i] = {}
             for i in self.coupling_map.physical_qubits:
-                i = QR[i]
                 for j in self.coupling_map.physical_qubits:
-                    j = QR[j]
                     scale = 1 + rng.normal(0, 1 / n)
-                    xi[i][j] = scale * self.coupling_map.distance(i.index, j.index) ** 2
+                    xi[i][j] = scale * self.coupling_map.distance(i, j) ** 2
                     xi[j][i] = xi[i][j]
 
             # Loop over depths d up to a max depth of 2n+1
@@ -293,7 +291,7 @@ class LegacySwap(TransformationPass):
                 # While there are still qubits available
                 while qubit_set:
                     # Compute the objective function
-                    min_cost = sum([xi[trial_layout[g[0]]][trial_layout[g[1]]]
+                    min_cost = sum([xi[trial_layout[g[0]].index][trial_layout[g[1]].index]
                                     for g in gates])
                     # Try to decrease objective function
                     progress_made = False
@@ -310,7 +308,7 @@ class LegacySwap(TransformationPass):
                             rev_new_layout[e[0]] = rev_trial_layout[e[1]]
                             rev_new_layout[e[1]] = rev_trial_layout[e[0]]
                             # Compute the objective function
-                            new_cost = sum([xi[new_layout[g[0]]][new_layout[g[1]]]
+                            new_cost = sum([xi[new_layout[g[0]].index][new_layout[g[1]].index]
                                             for g in gates])
                             # Record progress if we succeed
                             if new_cost < min_cost:
