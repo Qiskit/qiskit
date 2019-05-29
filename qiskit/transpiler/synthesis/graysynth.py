@@ -146,6 +146,9 @@ def cnot_synth(qcir, state, qreg, number, nsections):
 
     Returns:
         QuantumCircuit: a Quantum Circuit with added C-NOT gates
+
+        Raises:
+            Exception: when variable "state" isn't of type numpy.matrix
     """
 
     if not isinstance(state, np.ndarray):
