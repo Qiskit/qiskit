@@ -20,6 +20,30 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Fixed
+-----
+
+- Corrected the deprecation warning message for
+  ``qiskit.converters.qobj_to_circuits`` (#2350)
+- Fixed ``execute()`` and ``transpile()`` functions to enable setting
+  optimization level 0. (#2370)
+- Set the swapper with the seed transpiler for optimization level 2 and 3
+  (#2361)
+- Fix default basis gate set for other transpiler passes (#2357)
+- Fix the docstring for transpile to include optimization_level 3 (#2367)
+- Fix spacing in the text circuit drawer (#2382)
+- Fix for too strict math sanitization pulse instructions (#2397)
+- Arugments to ``assemble_schedule`` were not actually optional, ensure
+  they're required (#2398)
+- Fix for framchange instructions being converted to a string instead of a
+  float (#2437)
+- Fix for rep_times as a float, now it's an integer (#2438)
+- Fix type error for integer framechange instructions (#2458)
+- Fix for missing cython source files in sdist (#2436)
+- Fix for different pulse schedules created with the same name (#2431)
+- Only create a single AquireInstruction for all qubits (#2485)
+- Stop modifying layout in stochastic swap pass (#2507)
+
 
 `0.8.0`_ - 2019-05-02
 =====================
