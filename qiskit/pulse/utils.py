@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Schedule utilities.
+Pulse utilities.
 """
 import warnings
 
@@ -26,10 +26,10 @@ from .channels import AcquireChannel, MemorySlot
 from .commands import Acquire, AcquireInstruction
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
+from .cmd_def import CmdDef
 
 
-def align_measures(schedule: ScheduleComponent, cmd_def: List[Command],
-                   pulse_library: List[PulseLibraryItem]) -> Schedule:
+def align_measures(schedule: ScheduleComponent, cmd_def: CmdDef) -> Schedule:
     """Return a new schedule where measurements occur at the same physical time, with the remaining
     schedules appropriately offset. Minimum measurement wait time (to allow for calibration pulses)
     is enforced.
@@ -37,42 +37,40 @@ def align_measures(schedule: ScheduleComponent, cmd_def: List[Command],
     Args:
         schedule: Schedule to be aligned
         cmd_def: Command definition list
-        pulse_library: A list of pulse definitions
+    Raises:
+        ValueError: if an acquire or pulse is encountered on a channel that has already been part
+                    of an acquire
     """
     new_schedule = Schedule()
 
-    pulse_library = {p.name: p.samples for p in pulse_library}
-
     # Need time to allow for calibration pulses to be played for result classification
     max_calibration_duration = 0
-    for cmd in cmd_def:
-        if cmd.name == 'u2':
-            duration = sum([len(pulse_library[pulse.name]) for pulse in cmd.sequence
-                            if pulse.name in pulse_library])
-            max_calibration_duration = max(duration, max_calibration_duration)
+    for qubits in cmd_def.cmd_qubits('u2'):
+        cmd = cmd_def.get('u2', qubits)
+        max_calibration_duration = max(cmd.duration, max_calibration_duration)
 
-    last_acquire = max([time for time, inst in schedule.instructions
-                        if isinstance(inst, AcquireInstruction)])
     # Schedule the acquires to be either at the end of the needed calibration time, or when the
     # last acquire is scheduled, whichever comes later
+    last_acquire = max([time for time, inst in schedule.instructions
+                        if isinstance(inst, AcquireInstruction)])
     acquire_scheduled_time = max(max_calibration_duration, last_acquire)
 
-    # Shift instruction times according to the new scheduled time for the acquires
-    extra_delays = {}
+    # Shift acquires according to the new scheduled time
+    acquired_channels = set()
     for time, inst in schedule.instructions:
+        if any([chan.index in acquired_channels for chan in inst.channels]):
+            raise ValueError("Pulse encountered on channel {0} after acquire on "
+                             "same channel.".format(chan.index))
         if isinstance(inst, AcquireInstruction):
             new_schedule |= inst << acquire_scheduled_time
-            indices = [a.index for a in inst.acquires]
-            extra_delays.update({i: acquire_scheduled_time - time for i in indices})
+            acquired_channels.update({a.index for a in inst.acquires})
         else:
-            delay = max([extra_delays.get(c.index, 0) for c in inst.timeslots.channels])
-            # TODO: increase the delay on the non max channels?
-            new_schedule |= inst << time + delay
+            new_schedule |= inst << time
 
     return new_schedule
 
 
-def replace_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
+def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
     """Return a new schedule with implicit acquires from the measurement mapping replaced by
     explicit ones.
 
@@ -88,18 +86,22 @@ def replace_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[i
 
     for time, inst in schedule.instructions:
         if isinstance(inst, AcquireInstruction):
-            # Get the label of all qubits that are measured with the qubit(s) in this instruction
-            meas_group = [g for g in meas_map if inst.acquires[0].index in g][0]
             if any([acq.index != mem.index for acq, mem in zip(inst.acquires, inst.mem_slots)]):
                 warnings.warn("One of your acquires was mapped to a memory slot which didn't match"
                               " the qubit index. I'm relabeling them to match.")
             cmd = Acquire(inst.duration, inst.command.discriminator, inst.command.kernel)
+            # Get the label of all qubits that are measured with the qubit(s) in this instruction
+            existing_qubits = {chan.index for chan in inst.acquires}
+            all_qubits = []
+            for sublist in meas_map:
+                if existing_qubits.intersection(set(sublist)):
+                    all_qubits.extend(sublist)
             # Replace the old acquire instruction by a new one explicitly acquiring all qubits in
             # the measurement group.
             new_schedule |= AcquireInstruction(
                 cmd,
-                [AcquireChannel(i) for i in meas_group],
-                [MemorySlot(i) for i in meas_group]) << time
+                [AcquireChannel(i) for i in all_qubits],
+                [MemorySlot(i) for i in all_qubits]) << time
         else:
             new_schedule |= inst << time
 
