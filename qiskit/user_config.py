@@ -53,8 +53,10 @@ class UserConfig:
             return
         self.config_parser.read(self.filename)
         if 'default' in self.config_parser.sections():
+            # Parse circuit_drawer
             circuit_drawer = self.config_parser.get('default',
-                                                    'circuit_drawer')
+                                                    'circuit_drawer',
+                                                    fallback=None)
             if circuit_drawer:
                 if circuit_drawer not in ['text', 'mpl', 'latex',
                                           'latex_source', 'auto']:
@@ -64,9 +66,10 @@ class UserConfig:
                         "'latex_source'"
                         % circuit_drawer)
                 self.settings['circuit_drawer'] = circuit_drawer
-
+            # Parse circuit_mpl_style
             circuit_mpl_style = self.config_parser.get('default',
-                                                       'circuit_mpl_style')
+                                                       'circuit_mpl_style',
+                                                       fallback=None)
             if circuit_mpl_style:
                 if circuit_mpl_style not in ['default', 'bw']:
                     raise exceptions.QiskitUserConfigError(
@@ -74,6 +77,17 @@ class UserConfig:
                         "either 'default' or 'bw'"
                         % circuit_mpl_style)
                 self.settings['circuit_mpl_style'] = circuit_mpl_style
+            # Parse transpile_optimization_level
+            transpile_optimization_level = self.config_parser.getint(
+                'default', 'transpile_optimization_level', fallback=-1)
+            if not transpile_optimization_level == -1:
+                if (transpile_optimization_level < 0 or
+                        transpile_optimization_level > 3):
+                    raise exceptions.QiskitUserConfigError(
+                        "%s is not a valid optimization level. Must be "
+                        "0, 1, 2, or 3.")
+                self.settings['transpile_optimization_level'] = (
+                    transpile_optimization_level)
 
 
 def get_config():
