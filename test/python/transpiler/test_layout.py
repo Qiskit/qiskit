@@ -56,8 +56,8 @@ class LayoutTest(QiskitTestCase):
 
     def test_layout_from_dict_hole(self):
         """Constructor from a dict with a hole"""
-        qr0 = QuantumRegister(2)
-        qr1 = QuantumRegister(2)
+        qr0 = QuantumRegister(2, 'q0')
+        qr1 = QuantumRegister(2, 'q1')
 
         layout = Layout({qr0[0]: 0,
                          qr1[0]: 1,
@@ -435,8 +435,8 @@ class LayoutDeprecatedTest(QiskitTestCase):
 
     def test_layout_from_dict_hole(self):
         """Constructor from a dict with a hole"""
-        qr0 = QuantumRegister(2)
-        qr1 = QuantumRegister(2)
+        qr0 = QuantumRegister(2, 'q0')
+        qr1 = QuantumRegister(2, 'q1')
 
         layout = Layout({qr0[0]: 0,
                          qr1[0]: 1,

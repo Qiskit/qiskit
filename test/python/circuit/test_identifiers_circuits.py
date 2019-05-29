@@ -62,7 +62,7 @@ class TestAnonymousIds(QiskitTestCase):
         cr_current = int(cr1.name[1:])
         qr_current = int(qr2.name[1:])
         self.assertEqual(cr_current, cr_index + 1)
-        self.assertEqual(qr_current, qr_index + 2)
+        self.assertEqual(qr_current, qr_index + 1)
 
     def test_create_circuit_noname(self):
         """Create_circuit with no name."""

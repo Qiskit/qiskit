@@ -73,6 +73,11 @@ class Register(list):
             self._name = '%s%i' % (self.prefix, next(self.instances_counter))
         return self._name
 
+    @name.setter
+    def name(self, new_name):
+        """Returns the name of the register"""
+        self._name = new_name
+
     @property
     def size(self):
         """Returns the length of the register"""
