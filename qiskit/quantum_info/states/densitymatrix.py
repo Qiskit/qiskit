@@ -130,7 +130,7 @@ class DensityMatrix(QuantumState):
             other = DensityMatrix(other)
         dims = other.dims() + self.dims()
         data = np.kron(self._data, other._data)
-        return Operator(data, dims)
+        return DensityMatrix(data, dims)
 
     def expand(self, other):
         """Return the tensor product state other ⊗ self.
@@ -148,7 +148,7 @@ class DensityMatrix(QuantumState):
             other = DensityMatrix(other)
         dims = self.dims() + other.dims()
         data = np.kron(other._data, self._data)
-        return Operator(data, dims)
+        return DensityMatrix(data, dims)
 
     def add(self, other):
         """Return the linear combination self + other.
