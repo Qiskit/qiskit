@@ -268,11 +268,11 @@ class LegacySwap(TransformationPass):
             # Compute Sergey's randomized distance
             xi = {}
             for i in self.coupling_map.physical_qubits:
-                xi[(QR, i)] = {}
+                xi[QR[i]] = {}
             for i in self.coupling_map.physical_qubits:
-                i = (QR, i)
+                i = QR[i]
                 for j in self.coupling_map.physical_qubits:
-                    j = (QR, j)
+                    j = QR[j]
                     scale = 1 + rng.normal(0, 1 / n)
                     xi[i][j] = scale * self.coupling_map.distance(i[1], j[1]) ** 2
                     xi[j][i] = xi[i][j]
