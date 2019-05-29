@@ -32,7 +32,7 @@ class Register(list):
     prefix = 'reg'
     bit_type = None
 
-    def __init__(self, size, name=None): # pylint: disable=super-init-not-called
+    def __init__(self, size, name=None):  # pylint: disable=super-init-not-called
         """Create a new generic register.
         """
 
