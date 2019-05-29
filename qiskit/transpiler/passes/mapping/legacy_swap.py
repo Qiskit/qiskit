@@ -94,8 +94,8 @@ class LegacySwap(TransformationPass):
                               for k, v in self.initial_layout.items()}
             # Check the input layout
             circ_qubits = dag.qubits()
-            coup_qubits = [(QuantumRegister(self.coupling_map.size(), 'q'), wire) for wire in
-                           self.coupling_map.physical_qubits]
+            canonical_qreg = QuantumRegister(self.coupling_map.size(), 'q')
+            coup_qubits = [canonical_qreg[wire] for wire in self.coupling_map.physical_qubits]
             qubit_subset = []
             for k, v in initial_layout.items():
                 qubit_subset.append(v)
