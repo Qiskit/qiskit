@@ -274,7 +274,7 @@ class LegacySwap(TransformationPass):
                 for j in self.coupling_map.physical_qubits:
                     j = QR[j]
                     scale = 1 + rng.normal(0, 1 / n)
-                    xi[i][j] = scale * self.coupling_map.distance(i[1], j[1]) ** 2
+                    xi[i][j] = scale * self.coupling_map.distance(i.index, j.index) ** 2
                     xi[j][i] = xi[i][j]
 
             # Loop over depths d up to a max depth of 2n+1
