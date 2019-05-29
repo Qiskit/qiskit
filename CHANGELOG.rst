@@ -22,7 +22,8 @@ The format is based on `Keep a Changelog`_.
 Added
 -----
 
-- The option `vertical_compression` to the text drawer allows to control how much
+- The option ``vertical_compression`` was added to the text drawer and to the
+  ``QuantumCircuit.draw`` method. The option allows to control how much
   room the text circuit drawing takes.
 - Introduced a visualization for the Pass Manager. (#2445)
 
