@@ -32,7 +32,7 @@ class Register(list):
     prefix = 'reg'
     bit_type = None
 
-    def __init__(self, size, name=None):
+    def __init__(self, size, name=None): # pylint: disable=super-init-not-called
         """Create a new generic register.
         """
 
@@ -70,6 +70,7 @@ class Register(list):
 
     @property
     def size(self):
+        """Returns the length of the register"""
         return len(self)
 
     def __getitem__(self, key):
