@@ -20,6 +20,10 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+
+`0.8.1`_ - 2019-05-29
+=====================
+
 Fixed
 -----
 
@@ -43,7 +47,9 @@ Fixed
 - Fix for different pulse schedules created with the same name (#2431)
 - Only create a single AquireInstruction for all qubits (#2485)
 - Stop modifying layout in stochastic swap pass (#2507)
-
+- Only call CXDirection pass on optimization_level=3 if coupling map is
+  provided (#2526)
+- Fix optimization_level=0 without a coupling map (#2509)
 
 `0.8.0`_ - 2019-05-02
 =====================
@@ -1160,7 +1166,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.8.1...HEAD
+.. _0.8.1: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...0.8.1
 .. _0.8.0: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0
 .. _0.7.2: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
 .. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
