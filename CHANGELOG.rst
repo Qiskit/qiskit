@@ -54,6 +54,7 @@ Removed
 - The logging tools in ``qiskit.tools.logging`` are removed. (#2387)
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
+- Removed ``CompositeGate`` class, in favor of adding Instruction objects directly (#2530)
 
 Fixed
 -----
