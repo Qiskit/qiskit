@@ -525,12 +525,12 @@ class MatplotlibDrawer:
         # quantum register
         for qreg in self._qreg_dict.values():
             if n_fold == 0:
-                label = qreg['label'] + ' : $\\left|0\\right\\rangle$'
+                label = qreg['label']
             else:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
             self.ax.text(-0.5, y, label, ha='right', va='center',
-                         fontsize=self._style.fs,
+                         fontsize=1.5*self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
@@ -539,7 +539,7 @@ class MatplotlibDrawer:
         this_creg_dict = {}
         for creg in self._creg_dict.values():
             if n_fold == 0:
-                label = creg['label'] + ' :  0 '
+                label = creg['label'] 
             else:
                 label = creg['label']
             y = creg['y'] - n_fold * (self._cond['n_lines'] + 1)
@@ -560,7 +560,7 @@ class MatplotlibDrawer:
                              clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(-0.5, y, this_creg['label'], ha='right', va='center',
-                         fontsize=self._style.fs,
+                         fontsize=1.5*self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
