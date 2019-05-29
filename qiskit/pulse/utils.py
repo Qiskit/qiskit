@@ -19,9 +19,6 @@ import warnings
 
 from typing import List
 
-from qiskit.providers.models import Command
-from qiskit.qobj import PulseLibraryItem
-
 from .channels import AcquireChannel, MemorySlot
 from .commands import Acquire, AcquireInstruction
 from .interfaces import ScheduleComponent
@@ -58,9 +55,10 @@ def align_measures(schedule: ScheduleComponent, cmd_def: CmdDef) -> Schedule:
     # Shift acquires according to the new scheduled time
     acquired_channels = set()
     for time, inst in schedule.instructions:
-        if any([chan.index in acquired_channels for chan in inst.channels]):
-            raise ValueError("Pulse encountered on channel {0} after acquire on "
-                             "same channel.".format(chan.index))
+        for chan in inst.channels:
+            if chan.index in acquired_channels:
+                raise ValueError("Pulse encountered on channel {0} after acquire on "
+                                 "same channel.".format(chan.index))
         if isinstance(inst, AcquireInstruction):
             new_schedule |= inst << acquire_scheduled_time
             acquired_channels.update({a.index for a in inst.acquires})
