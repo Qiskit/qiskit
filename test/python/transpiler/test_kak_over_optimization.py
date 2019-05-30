@@ -28,7 +28,7 @@ class TestKAKOverOptim(QiskitTestCase):
     def test_cz_optimization(self):
         """ Test that KAK does not run on a cz gate """
         q = QuantumRegister(2)
-        qc = QuantumCircuit(q, c)
+        qc = QuantumCircuit(q)
 
         qc.cz(q[0], q[1])
 
@@ -45,7 +45,7 @@ class TestKAKOverOptim(QiskitTestCase):
         reduces the cx count from two to one.
         """
         q = QuantumRegister(2)
-        qc = QuantumCircuit(q, c)
+        qc = QuantumCircuit(q)
 
         qc.cu1(np.pi, q[0], q[1])
 
