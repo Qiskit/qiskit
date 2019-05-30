@@ -15,7 +15,7 @@
 """Test KAK over optimization"""
 
 import unittest
-
+import numpy as np
 from qiskit import QuantumCircuit, QuantumRegister, transpile
 from qiskit.test import QiskitTestCase
 
@@ -27,10 +27,10 @@ class TestKAKOverOptim(QiskitTestCase):
 
     def test_cz_optimization(self):
         """ Test that KAK does not run on a cz gate """
-        q = QuantumRegister(2)
-        qc = QuantumCircuit(q)
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
 
-        qc.cz(q[0], q[1])
+        qc.cz(qr[0], qr[1])
 
         cz_circ = transpile(qc, None, coupling_map=[[0, 1], [1, 0]],
                             basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
@@ -44,15 +44,15 @@ class TestKAKOverOptim(QiskitTestCase):
         """ Test that KAK does run on a cu1 gate and
         reduces the cx count from two to one.
         """
-        q = QuantumRegister(2)
-        qc = QuantumCircuit(q)
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
 
-        qc.cu1(np.pi, q[0], q[1])
+        qc.cu1(np.pi, qr[0], qr[1])
 
         cu1_circ = transpile(qc, None, coupling_map=[[0, 1], [1, 0]],
                              basis_gates=['u1', 'u2', 'u3', 'id', 'cx'],
                              optimization_level=3)
-        ops = cz_circ.count_ops()
+        ops = cu1_circ.count_ops()
         self.assertEqual(ops['cx'], 1)
 
 
