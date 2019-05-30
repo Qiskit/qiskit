@@ -89,8 +89,8 @@ class ConsolidateBlocks(TransformationPass):
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
                 if self.force_consolidate or unitary.num_qubits > 2 or \
-                    cx_equivalence(unitary.to_matrix()) != cx_count:
-                    
+                        cx_equivalence(unitary.to_matrix()) != cx_count:
+
                     new_dag.apply_operation_back(
                         unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
