@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
-def graysynth(cnots, number, nsections):
+def graysynth(cnots, angels, number, nsections):
     """
     This function is an implementation of the GraySynth algorithm.
 
@@ -43,18 +43,27 @@ def graysynth(cnots, number, nsections):
 
     Args:
         cnots (list): a binary string called "S" (see function description)
+        angels (list): a list containing all the phase-shift gates which are to be applied,
+                       in the same order as in "cnots". A number is interpreted as the angel
+                       of u1(angel), otherwise the elements have to be 't', 'tdg', 's', 'sdg' or 'z'
         number (int): the number of quantum bits in the circuit
         nsections (int): number of sections, used in lwr_cnot_synth(), in the Patel–Markov–Hayes
                         algorithm. nsections must be a factor of number.
 
     Returns:
         QuantumCircuit: the quantum circuit
+
+    Raises:
+        Exception: when dimensions of cnots and angels don't align
     """
 
     # Create a Quantum Register with n quantum bits.
     qreg = QuantumRegister(number, 'q')
     # Create a Quantum Circuit acting on the q register
     qcir = QuantumCircuit(qreg)
+
+    if len(cnots[0]) != len(angels):
+        raise Exception('Size of "cnots" and "angels" do not match.')
 
     range_list = list(range(number))
     epsilon = number
@@ -67,7 +76,19 @@ def graysynth(cnots, number, nsections):
         index = 0
         for icnots in cnots_copy:
             if np.array_equal(icnots, state[qubit]):
-                qcir.t(qreg[qubit])
+                if angels[index] == 't':
+                    qcir.t(qreg[qubit])
+                elif angels[index] == 'tdg':
+                    qcir.tdg(qreg[qubit])
+                elif angels[index] == 's':
+                    qcir.s(qreg[qubit])
+                elif angels[index] == 'sdg':
+                    qcir.sdg(qreg[qubit])
+                elif angels[index] == 'z':
+                    qcir.z(qreg[qubit])
+                else:
+                    qcir.u1(angels[index] % np.pi, qreg[qubit])
+                del angels[index]
                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                 if index == len(cnots_copy):
                     break
@@ -92,7 +113,19 @@ def graysynth(cnots, number, nsections):
                         index = 0
                         for icnots in cnots_copy:
                             if np.array_equal(icnots, state[qubit]):
-                                qcir.t(qreg[qubit])
+                                if angels[index] == 't':
+                                    qcir.t(qreg[qubit])
+                                elif angels[index] == 'tdg':
+                                    qcir.tdg(qreg[qubit])
+                                elif angels[index] == 's':
+                                    qcir.s(qreg[qubit])
+                                elif angels[index] == 'sdg':
+                                    qcir.sdg(qreg[qubit])
+                                elif angels[index] == 'z':
+                                    qcir.z(qreg[qubit])
+                                else:
+                                    qcir.u1(angels[index] % np.pi, qreg[qubit])
+                                del angels[index]
                                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                                 if index == len(cnots_copy):
                                     break
@@ -147,8 +180,8 @@ def cnot_synth(qcir, state, qreg, number, nsections):
     Returns:
         QuantumCircuit: a Quantum Circuit with added C-NOT gates
 
-        Raises:
-            Exception: when variable "state" isn't of type numpy.matrix
+    Raises:
+        Exception: when variable "state" isn't of type numpy.matrix
     """
 
     if not isinstance(state, np.ndarray):

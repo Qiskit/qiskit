@@ -38,13 +38,13 @@ class TestGraySynth(QiskitTestCase):
 
         And should return the following circuit (or an equivalent one):
                           ┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐┌───┐
-        q_0: |0>──────────┤ X ├┤ X ├┤ T ├┤ X ├┤ X ├┤ X ├┤ X ├┤ T ├┤ X ├┤ T ├┤ X ├┤ X ├┤ T ├┤ X ├
+        q_0: |0>──────────┤ X ├┤ X ├┤ T ├┤ X ├┤ X ├┤ X ├┤ X ├┤ T ├┤ X ├┤ T ├┤ X ├┤ X ├┤ Z ├┤ X ├
                           └─┬─┘└─┬─┘└───┘└─┬─┘└─┬─┘└─┬─┘└─┬─┘└───┘└─┬─┘└───┘└─┬─┘└─┬─┘└───┘└─┬─┘
         q_1: |0>────────────┼────┼─────────■────┼────┼────┼─────────┼─────────┼────┼─────────■──
                             │    │              │    │    │         │         │    │
         q_2: |0>───────■────■────┼──────────────■────┼────┼─────────┼────■────┼────┼────────────
                 ┌───┐┌─┴─┐┌───┐  │                   │    │         │  ┌─┴─┐  │    │
-        q_3: |0>┤ T ├┤ X ├┤ T ├──■───────────────────┼────┼─────────■──┤ X ├──┼────┼────────────
+        q_3: |0>┤ S ├┤ X ├┤ S ├──■───────────────────┼────┼─────────■──┤ X ├──┼────┼────────────
                 └───┘└───┘└───┘                      │    │            └───┘  │    │
         q_4: |0>─────────────────────────────────────■────┼───────────────────■────┼────────────
                                                           │                        │
@@ -57,7 +57,8 @@ class TestGraySynth(QiskitTestCase):
         cnots = [[0, 0, 0, 1, 0, 0], [1, 1, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0], [0, 0, 1, 1, 0, 0],
                  [1, 1, 1, 1, 1, 1], [1, 0, 0, 1, 0, 0]]
         cnots = list(map(list, zip(*cnots)))
-        c_gray = graysynth(cnots, n, m)  # Run the graysynth algorithm with S2
+        angels = ['s', 't', 'z', 's', 't', 't']
+        c_gray = graysynth(cnots, angels, n, m)  # Run the graysynth algorithm with S2
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result_gray = execute(c_gray, backend_sim).result()
         unitary_gray = result_gray.get_unitary(c_gray)
@@ -65,9 +66,9 @@ class TestGraySynth(QiskitTestCase):
         # Create the circuit displayed above:
         q = QuantumRegister(n, 'q')  # Create a Quantum Register with n qubits.
         c_compare = QuantumCircuit(q)  # Create a Quantum Circuit acting on the q register
-        c_compare.t(q[3])
+        c_compare.s(q[3])
         c_compare.cx(q[2], q[3])
-        c_compare.t(q[3])
+        c_compare.s(q[3])
         c_compare.cx(q[2], q[0])
         c_compare.cx(q[3], q[0])
         c_compare.t(q[0])
@@ -81,7 +82,7 @@ class TestGraySynth(QiskitTestCase):
         c_compare.cx(q[2], q[3])
         c_compare.cx(q[4], q[0])
         c_compare.cx(q[5], q[0])
-        c_compare.t(q[0])
+        c_compare.z(q[0])
         c_compare.cx(q[1], q[0])
         result_compare = execute(c_compare, backend_sim).result()
         unitary_compare = result_compare.get_unitary(c_compare)
