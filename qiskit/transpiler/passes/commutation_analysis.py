@@ -62,6 +62,7 @@ class CommutationAnalysis(AnalysisPass):
         # Add edges to the dictionary for each qubit
         for node in dag.topological_op_nodes():
             for (_, _, edge_data) in dag.edges(node):
+
                 edge_name = edge_data['name']
                 self.property_set['commutation_set'][(node, edge_name)] = -1
 
@@ -91,46 +92,6 @@ class CommutationAnalysis(AnalysisPass):
                 temp_len = len(current_comm_set)
                 self.property_set['commutation_set'][(current_gate, wire_name)] = temp_len - 1
 
-||||||| merged common ancestors
-"""
-def _commute(node1, node2):
-
-    if node1.type != "op" or node2.type != "op":
-        return False
-
-    new_qreg = []
-
-    for node in [node1, node2]:
-        for wire in node.qargs:
-            if wire not in new_qreg:
-                new_qreg.append(wire)
-
-    new_qr = QuantumRegister(len(new_qreg))
-
-    circ_n1n2 = QuantumCircuit(new_qr)
-    circ_n2n1 = QuantumCircuit(new_qr)
-
-    for node in [node1, node2]:
-        qarg_list = []
-        for wire in node.qargs:
-            qarg_list.append(new_qr[new_qreg.index(wire)])
-        circ_n1n2.append(node.op, qargs=qarg_list)
-
-    for node in [node2, node1]:
-        qarg_list = []
-        for wire in node.qargs:
-            qarg_list.append(new_qr[new_qreg.index(wire)])
-        circ_n2n1.append(node.op, qargs=qarg_list)
-
-    if_commute = np.allclose(Operator(circ_n1n2).data, Operator(circ_n2n1).data,
-                             atol=_CUTOFF_PRECISION)
-
-    return if_commute
-"""
-
-
-=======
->>>>>>> deleted comments
 def _commute(node1, node2):
 
     if node1.type != "op" or node2.type != "op":

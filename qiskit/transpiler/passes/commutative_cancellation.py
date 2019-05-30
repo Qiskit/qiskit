@@ -137,11 +137,6 @@ class CommutativeCancellation(TransformationPass):
                 for current_node in run[1:]:
                     dag.remove_op_node(current_node)
 
-
-                # Delete the other nodes in the run
-                for current_node in run[1:]:
-                    dag.remove_op_node(current_node)
-
                 if np.mod(total_angle, (2 * np.pi)) < _CUTOFF_PRECISION:
                     dag.remove_op_node(run[0])
 
