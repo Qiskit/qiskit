@@ -22,6 +22,7 @@ The blocks are collected by a previous pass, such as Collect2qBlocks.
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
+from qiskit.quantum_info.synthesis.local_invariance import cx_equivalence
 from qiskit.extensions import UnitaryGate
 from qiskit.transpiler.basepasses import TransformationPass
 
@@ -72,12 +73,21 @@ class ConsolidateBlocks(TransformationPass):
                 subcirc = QuantumCircuit(q)
                 block_index_map = self._block_qargs_to_indices(block_qargs,
                                                                global_index_map)
+                cx_count = 0
                 for nd in block:
+                    if nd.op.name == 'cx':
+                        cx_count += 1
                     nodes_seen.add(nd)
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
-                new_dag.apply_operation_back(
-                    unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
+                if unitary.num_qubits > 2 or cx_equivalence(unitary.to_matrix()) < cx_count:
+                    new_dag.apply_operation_back(
+                        unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
+                else:
+                    for nd in block:
+                        nodes_seen.add(nd)
+                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+
                 del blocks[0]
             else:
                 # the node could belong to some future block, but in that case
