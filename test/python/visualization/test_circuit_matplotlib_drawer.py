@@ -60,8 +60,8 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         expected.savefig(expected_filename)
 
         self.assertImagesAreEqual(filename, expected_filename)
-        os.remove(filename)
-        os.remove(expected_filename)
+        self.addCleanup(os.remove, filename)
+        self.addCleanup(os.remove, expected_filename)
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
@@ -93,7 +93,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         ref_filename = self._get_resource_path(
             'visualization/references/matplotlib_barriers_ref.png')
         self.assertImagesAreEqual(filename, ref_filename)
-        os.remove(filename)
+        self.addCleanup(os.remove, filename)
 
         # check that the barrier aren't plotted when plot_barriers = False
         filename = self._get_resource_path('current_matplotlib_ref.png')
@@ -112,5 +112,5 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
                                      filename=no_barriers_filename)
 
         self.assertImagesAreEqual(filename, no_barriers_filename)
-        os.remove(filename)
-        os.remove(no_barriers_filename)
+        self.addCleanup(os.remove, filename)
+        self.addCleanup(os.remove, no_barriers_filename)

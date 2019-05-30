@@ -27,10 +27,6 @@ class TestUserConfig(QiskitTestCase):
     def setUpClass(cls):
         cls.file_path = 'temp.txt'
 
-    def tearDown(self):
-        if os.path.isfile(self.file_path):
-            os.remove(self.file_path)
-
     def test_empty_file_read(self):
         config = user_config.UserConfig(self.file_path)
         config.read_config_file()
@@ -41,6 +37,7 @@ class TestUserConfig(QiskitTestCase):
         [default]
         transpile_optimization_level = 76
         """
+        self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
             file.write(test_config)
             file.flush()
@@ -54,6 +51,7 @@ class TestUserConfig(QiskitTestCase):
         circuit_drawer = MSPaint
         circuit_mpl_style = default
         """
+        self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
             file.write(test_config)
             file.flush()
@@ -67,6 +65,7 @@ class TestUserConfig(QiskitTestCase):
         circuit_drawer = latex
         circuit_mpl_style = default
         """
+        self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
             file.write(test_config)
             file.flush()
@@ -80,6 +79,7 @@ class TestUserConfig(QiskitTestCase):
         [default]
         transpile_optimization_level = 1
         """
+        self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
             file.write(test_config)
             file.flush()
@@ -95,6 +95,7 @@ class TestUserConfig(QiskitTestCase):
         circuit_mpl_style = default
         transpile_optimization_level = 3
         """
+        self.addCleanup(os.remove, self.file_path)
         with open(self.file_path, 'w') as file:
             file.write(test_config)
             file.flush()
