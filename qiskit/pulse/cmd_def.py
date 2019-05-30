@@ -197,7 +197,7 @@ class CmdDef:
         if cmd_name in self._cmd_dict:
             return list(sorted(self._cmd_dict[cmd_name].keys()))
 
-        raise PulseError('Command %s does not exist in CmdDef.' % cmd_name)
+        return []
 
     def __repr__(self):
         return repr(self._cmd_dict)

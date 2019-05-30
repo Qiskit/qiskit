@@ -30,6 +30,9 @@ def align_measures(schedule: ScheduleComponent, cmd_def: CmdDef) -> Schedule:
     """Return a new schedule where measurements occur at the same physical time, with the remaining
     schedules appropriately offset. Minimum measurement wait time (to allow for calibration pulses)
     is enforced.
+    This is only defined for schedules that are acquire-less or acquire-final per channel: a
+    schedule with pulses or acquires occuring on a channel which has already had an acquire will
+    throw an error.
 
     Args:
         schedule: Schedule to be aligned
