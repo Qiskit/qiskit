@@ -181,8 +181,6 @@ def circuit_drawer(circuit,
         creglinestyle (str): The style of line to use for classical registers.
             Choices are `'solid'`, `'doublet'`, or any valid matplotlib
             `linestyle` kwarg value. Defaults to `doublet`(`mpl` only)
-        vertical_compression (str): `high`, `medium`, or `low`. It merges the lines
-                    so the drawing will take less vertical room. Default is `high`.
     """
     image = None
     config = user_config.get_config()
