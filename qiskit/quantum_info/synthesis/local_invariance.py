@@ -16,10 +16,8 @@
 """Routines that use local invariants to compute properties
 of two-qubit unitary operators.
 """
-
 from math import sqrt, sin, cos
 import numpy as np
-from qiskit import QiskitError
 
 INVARIANT_TOL = 1e-12
 
@@ -34,7 +32,7 @@ def two_qubit_local_invariants(U):
         tuple: Tuple of local invariants (g0, g1, g2).
 
     Raises:
-        QiskitError: Input not a 2q unitary.
+        ValueError: Input not a 2q unitary.
 
     Notes:
         Y. Makhlin, Quant. Info. Proc. 1, 243-252 (2002).
@@ -42,7 +40,7 @@ def two_qubit_local_invariants(U):
     """
     U = np.asarray(U)
     if U.shape != (4, 4):
-        raise QiskitError('Unitary must correspond to a two qubit gate.')
+        raise ValueError('Unitary must correspond to a two qubit gate.')
 
     # Bell "Magic" basis
     magic = 1.0/sqrt(2)*np.array([
