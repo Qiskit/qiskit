@@ -35,6 +35,14 @@ class ConsolidateBlocks(TransformationPass):
     Important note: this pass assumes that the 'blocks_list' property that
     it reads is given such that blocks are in topological order.
     """
+    def __init__(self, force_consolidate=False):
+        """
+        Args:
+            force_consolidate (bool): Force block consolidation
+        """
+        super().__init__()
+        self.force_consolidate = force_consolidate
+
     def run(self, dag):
         """iterate over each block and replace it with an equivalent Unitary
         on the same wires.
@@ -80,7 +88,9 @@ class ConsolidateBlocks(TransformationPass):
                     nodes_seen.add(nd)
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
-                if unitary.num_qubits > 2 or cx_equivalence(unitary.to_matrix()) < cx_count:
+                if self.force_consolidate or unitary.num_qubits > 2 or \
+                    cx_equivalence(unitary.to_matrix()) < cx_count:
+                    
                     new_dag.apply_operation_back(
                         unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
