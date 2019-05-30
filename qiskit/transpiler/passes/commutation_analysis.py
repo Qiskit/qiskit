@@ -91,14 +91,19 @@ class CommutationAnalysis(AnalysisPass):
                 temp_len = len(current_comm_set)
                 self.property_set['commutation_set'][(current_gate, wire_name)] = temp_len - 1
 
+||||||| merged common ancestors
 """
 def _commute(node1, node2):
 
     if node1.type != "op" or node2.type != "op":
+        return False
 
     new_qreg = []
 
     for node in [node1, node2]:
+        for wire in node.qargs:
+            if wire not in new_qreg:
+                new_qreg.append(wire)
 
     new_qr = QuantumRegister(len(new_qreg))
 
@@ -115,101 +120,17 @@ def _commute(node1, node2):
         qarg_list = []
         for wire in node.qargs:
             qarg_list.append(new_qr[new_qreg.index(wire)])
+        circ_n2n1.append(node.op, qargs=qarg_list)
 
-        else:
-
-            mat = _gate_master_def(name=node.name, params=node.op.params)
-            node_num = "{0}[{1}]".format(str(node.qargs[0].register.name),
-                                         str(node.qargs[0].index))
-            qstate_list[wires.index(node_num)] = mat
-
-            rt_list = [qstate_list]
-
-        crt = np.zeros([2 ** wire_num, 2 ** wire_num])
-||||||| merged common ancestors
-def _gate_master_def(name, params=None):
-    # pylint: disable=too-many-return-statements
-
-    if name == 'h':
-        return 1. / np.sqrt(2) * np.array([[1.0, 1.0],
-                                           [1.0, -1.0]], dtype=np.complex)
-    if name == 'x':
-        return np.array([[0.0, 1.0],
-                         [1.0, 0.0]], dtype=np.complex)
-    if name == 'y':
-        return np.array([[0.0, -1.0j],
-                         [1.0j, 0.0]], dtype=np.complex)
-    if name == 'cx':
-        return np.array([[1.0, 0.0, 0.0, 0.0],
-                         [0.0, 1.0, 0.0, 0.0],
-                         [0.0, 0.0, 0.0, 1.0],
-                         [0.0, 0.0, 1.0, 0.0]], dtype=np.complex)
-    if name == 'cz':
-        return np.array([[1.0, 0.0, 0.0, 0.0],
-                         [0.0, 1.0, 0.0, 0.0],
-                         [0.0, 0.0, 1.0, 0.0],
-                         [0.0, 0.0, 0.0, -1.0]], dtype=np.complex)
-    if name == 'cy':
-        return np.array([[1.0, 0.0, 0.0, 0.0],
-                         [0.0, 1.0, 0.0, 0.0],
-                         [0.0, 0.0, 0.0, 1.0j],
-                         [0.0, 0.0, -1.0j, 0.0]], dtype=np.complex)
-    if name == 'z':
-        return np.array([[1.0, 0.0],
-                         [0.0, -1.0]], dtype=np.complex)
-    if name == 't':
-        return np.array([[1.0, 0.0],
-                         [0.0, np.exp(1j * np.pi / 4.0)]], dtype=np.complex)
-    if name == 's':
-        return np.array([[1.0, 0.0],
-                         [0.0, np.exp(1j * np.pi / 2.0)]], dtype=np.complex)
-    if name == 'sdag':
-        return np.array([[1.0, 0.0],
-                         [0.0, -np.exp(1j * np.pi / 2.0)]], dtype=np.complex)
-    if name == 'tdag':
-        return np.array([[1.0, 0.0],
-                         [0.0, -np.exp(1j * np.pi / 4.0)]], dtype=np.complex)
-    if name in ('rz', 'u1'):
-        return np.array([[np.exp(-1j * float(params[0]) / 2), 0],
-                         [0, np.exp(1j * float(params[0]) / 2)]], dtype=np.complex)
-    if name == 'rx':
-        return np.array([[np.cos(float(params[0]) / 2), -1j * np.sin(float(params[0]) / 2)],
-                         [-1j * np.sin(float(params[0]) / 2), np.cos(float(params[0]) / 2)]],
-                        dtype=np.complex)
-    if name == 'ry':
-        return np.array([[np.cos(float(params[0]) / 2), - np.sin(float(params[0]) / 2)],
-                         [np.sin(float(params[0]) / 2), np.cos(float(params[0]) / 2)]],
-                        dtype=np.complex)
-    if name == 'u2':
-        return 1. / np.sqrt(2) * np.array(
-            [[1, -np.exp(1j * float(params[1]))],
-             [np.exp(1j * float(params[0])), np.exp(1j * (float(params[0]) + float(params[1])))]],
-            dtype=np.complex)
-
-    if name == 'u3':
-        return 1./np.sqrt(2) * np.array(
-            [[np.cos(float(params[0]) / 2.),
-              -np.exp(1j * float(params[2])) * np.sin(float(params[0]) / 2.)],
-             [np.exp(1j * float(params[1])) * np.sin(float(params[0]) / 2.),
-              np.cos(float(params[0]) / 2.) * np.exp(1j * (float(params[2]) + float(params[1])))]],
-            dtype=np.complex)
-
-    if name == 'P0':
-        return np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex)
-
-    if name == 'P1':
-        return np.array([[0.0, 0.0], [0.0, 1.0]], dtype=np.complex)
-
-    if name == 'Id':
-        return np.identity(2)
-
-    raise TranspilerError("The gate %s isn't supported" % name)
-
+    if_commute = np.allclose(Operator(circ_n1n2).data, Operator(circ_n2n1).data,
+                             atol=_CUTOFF_PRECISION)
 
     return if_commute
 """
 
 
+=======
+>>>>>>> deleted comments
 def _commute(node1, node2):
 
     if node1.type != "op" or node2.type != "op":
