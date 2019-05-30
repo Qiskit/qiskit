@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utilities for using backends."""
+"""Module for Providers, Backends and Jobs."""
 
 import pkgutil
 
