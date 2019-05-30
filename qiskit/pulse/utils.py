@@ -34,6 +34,8 @@ def align_measures(schedule: ScheduleComponent, cmd_def: CmdDef) -> Schedule:
     Args:
         schedule: Schedule to be aligned
         cmd_def: Command definition list
+    Returns:
+        Schedule
     Raises:
         ValueError: if an acquire or pulse is encountered on a channel that has already been part
                     of an acquire
@@ -79,6 +81,8 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     Args:
         schedule: Schedule to be aligned
         meas_map: List of lists of qubits that are measured together
+    Returns:
+        Schedule
     """
     new_schedule = Schedule(name=schedule.name)
 
