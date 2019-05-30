@@ -143,7 +143,7 @@ def transpile(circuits,
                                               backend_properties, initial_layout,
                                               seed_transpiler, optimization_level,
                                               pass_manager)
-    # Check number of virtual qubits vs physical qubits
+    # Check circuit width against number of qubits in coupling_map(s)
     parsed_coupling_maps = list(config.coupling_map for config in transpile_configs)
     for circuit, coupling_map in zip(circuits, parsed_coupling_maps):
         # If coupling_map is not None
@@ -151,10 +151,10 @@ def transpile(circuits,
             n_qubits = len(circuit.qubits)
             max_qubits = coupling_map.size()
             if n_qubits > max_qubits:
-                raise TranspilerError('Number of qubits {} '.format(n_qubits) +
+                raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
                                       'in {} '. format(circuit.name) +
                                       'is greater than maximum ({}) '.format(max_qubits) +
-                                      'for "{}".'.format(backend.name()))
+                                      'in the coupling_map')
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
 
