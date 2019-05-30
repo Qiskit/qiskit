@@ -20,6 +20,7 @@ import numpy as np
 from qiskit import pulse
 from qiskit.pulse.utils import add_implicit_acquires, align_measures
 from qiskit.pulse.cmd_def import CmdDef
+from qiskit.pulse.commands import AcquireInstruction
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
@@ -45,8 +46,9 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(1, acquire(self.device.q[0], self.device.mem[0]))
         sched = sched.insert(10, acquire(self.device.q[1], self.device.mem[1]))
         sched = align_measures(sched, self.cmd_def)
-        self.assertEqual(sched.instructions[1][0], 10)
-        self.assertEqual(sched.instructions[2][0], 10)
+        for time, inst in sched.instructions:
+            if isinstance(inst, AcquireInstruction):
+                self.assertEqual(time, 10)
 
     def test_align_post_u2(self):
         """Test that acquires are scheduled no sooner than the duration of the longest u2 gate.
@@ -56,7 +58,9 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(0, self.short_pulse(self.device.q[0].drive))
         sched = sched.insert(1, acquire(self.device.q[0], self.device.mem[0]))
         sched = align_measures(sched, self.cmd_def)
-        self.assertEqual(sched.instructions[1][0], 4)
+        for time, inst in sched.instructions:
+            if isinstance(inst, AcquireInstruction):
+                self.assertEqual(time, 4)
 
     def test_error_multi_acquire(self):
         """Test that an error is raised if multiple acquires occur on the same channel."""
@@ -102,17 +106,29 @@ class TestAddImplicitAcquires(QiskitTestCase):
     def test_add_implicit(self):
         """Test that implicit acquires are made explicit according to the meas map."""
         sched = add_implicit_acquires(self.sched, [[0, 1]])
-        self.assertEqual({a.index for a in sched.instructions[1][1].acquires}, {0, 1})
+        acquired_qubits = set()
+        for _, inst in sched.instructions:
+            if isinstance(inst, AcquireInstruction):
+                acquired_qubits.update({a.index for a in inst.acquires})
+        self.assertEqual(acquired_qubits, {0, 1})
 
     def test_add_across_meas_map_sublists(self):
         """Test that implicit acquires in separate meas map sublists are all added."""
         sched = add_implicit_acquires(self.sched, [[0, 2], [1, 3]])
-        self.assertEqual({a.index for a in sched.instructions[1][1].acquires}, {0, 2, 1, 3})
+        acquired_qubits = set()
+        for _, inst in sched.instructions:
+            if isinstance(inst, AcquireInstruction):
+                acquired_qubits.update({a.index for a in inst.acquires})
+        self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 
     def test_dont_add_all(self):
         """Test that acquires aren't added if no qubits in the sublist aren't being acquired."""
         sched = add_implicit_acquires(self.sched, [[4, 5], [0, 2], [1, 3]])
-        self.assertEqual({a.index for a in sched.instructions[1][1].acquires}, {0, 2, 1, 3})
+        acquired_qubits = set()
+        for _, inst in sched.instructions:
+            if isinstance(inst, AcquireInstruction):
+                acquired_qubits.update({a.index for a in inst.acquires})
+        self.assertEqual(acquired_qubits, {0, 1, 2, 3})
 
 
 if __name__ == '__main__':
