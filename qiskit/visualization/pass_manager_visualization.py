@@ -36,7 +36,7 @@ except Exception:  # pylint: disable=broad-except
     HAS_GRAPHVIZ = False
 
 
-def pass_manager_drawer(pass_manager, filename, style=None):
+def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     """
     Draws the pass manager.
 
@@ -51,6 +51,8 @@ def pass_manager_drawer(pass_manager, filename, style=None):
             dict can be used to ensure a priority coloring when pass falls into multiple
             categories. Any values not included in the provided dict will be filled in from
             the default dict
+        raw (Bool) : True if you want to save the raw Dot output not an image. The
+            default is False.
 
     Raises:
         ImportError: when nxpd or pydot not installed.
@@ -135,8 +137,11 @@ def pass_manager_drawer(pass_manager, filename, style=None):
         graph.add_subgraph(subgraph)
 
     if filename:
-        # linter says this isn't a method - it is
-        graph.write_png(filename)  # pylint: disable=no-member
+        if not raw:
+            # linter says this isn't a method - it is
+            graph.write_png(filename)  # pylint: disable=no-member
+        else:
+            graph.write(filename, format='raw')
 
 
 def _get_node_color(pss, style):

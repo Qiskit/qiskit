@@ -150,9 +150,9 @@ class PassManager():
         circuit.name = name
         return circuit
 
-    def draw(self, filename, style=None):
+    def draw(self, filename, style=None, raw=False):
         """ Draw the pass manager"""
-        pass_manager_drawer(self, filename=filename, style=style)
+        pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
     def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".

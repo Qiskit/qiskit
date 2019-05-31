@@ -1,0 +1,93 @@
+digraph G {
+subgraph cluster_4851601096 {
+fontname=helvetica;
+label=FlowLinear;
+0 [color=red, fontname=helvetica, label=SetLayout, shape=rectangle];
+1 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=solid];
+1 -> 0;
+}
+
+subgraph cluster_4851613896 {
+fontname=helvetica;
+label=Conditional;
+2 [color=red, fontname=helvetica, label=TrivialLayout, shape=rectangle];
+3 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+3 -> 2;
+0 -> 2;
+}
+
+subgraph cluster_4851616008 {
+fontname=helvetica;
+label=FlowLinear;
+4 [color=red, fontname=helvetica, label=FullAncillaAllocation, shape=rectangle];
+5 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+5 -> 4;
+6 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=dashed];
+6 -> 4;
+2 -> 4;
+7 [color=blue, fontname=helvetica, label=EnlargeWithAncilla, shape=rectangle];
+8 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=dashed];
+8 -> 7;
+4 -> 7;
+}
+
+subgraph cluster_4851616072 {
+fontname=helvetica;
+label=FlowLinear;
+9 [color=blue, fontname=helvetica, label=Unroller, shape=rectangle];
+10 [color=black, fontname=helvetica, fontsize=10, label=basis, shape=ellipse, style=solid];
+10 -> 9;
+7 -> 9;
+}
+
+subgraph cluster_4851616136 {
+fontname=helvetica;
+label=FlowLinear;
+11 [color=red, fontname=helvetica, label=CheckMap, shape=rectangle];
+12 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+12 -> 11;
+13 [color=black, fontname=helvetica, fontsize=10, label=initial_layout, shape=ellipse, style=dashed];
+13 -> 11;
+9 -> 11;
+}
+
+subgraph cluster_4851634824 {
+fontname=helvetica;
+label=Conditional;
+14 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
+11 -> 14;
+15 [color=blue, fontname=helvetica, label=LegacySwap, shape=rectangle];
+16 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+16 -> 15;
+17 [color=black, fontname=helvetica, fontsize=10, label=initial_layout, shape=ellipse, style=dashed];
+17 -> 15;
+18 [color=black, fontname=helvetica, fontsize=10, label=trials, shape=ellipse, style=dashed];
+18 -> 15;
+19 [color=black, fontname=helvetica, fontsize=10, label=seed, shape=ellipse, style=dashed];
+19 -> 15;
+14 -> 15;
+20 [color=blue, fontname=helvetica, label=Decompose, shape=rectangle];
+21 [color=black, fontname=helvetica, fontsize=10, label=gate, shape=ellipse, style=dashed];
+21 -> 20;
+15 -> 20;
+}
+
+subgraph cluster_4851763848 {
+fontname=helvetica;
+label=Conditional;
+22 [color=blue, fontname=helvetica, label=CXDirection, shape=rectangle];
+23 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+23 -> 22;
+24 [color=black, fontname=helvetica, fontsize=10, label=initial_layout, shape=ellipse, style=dashed];
+24 -> 22;
+20 -> 22;
+}
+
+subgraph cluster_4851763976 {
+fontname=helvetica;
+label=FlowLinear;
+25 [color=blue, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
+22 -> 25;
+}
+
+}

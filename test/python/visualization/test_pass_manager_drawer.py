@@ -46,10 +46,10 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
                      'Graphviz not installed.')
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
-        filename = self._get_resource_path('current_l0.png')
-        level_0_pass_manager(self.config).draw(filename=filename)
+        filename = self._get_resource_path('current_l0.dot')
+        level_0_pass_manager(self.config).draw(filename=filename, raw=True)
 
-        self.assertImagesAreEqual(filename, path_to_diagram_reference('pass_manager_l0_ref.png'))
+        self.assertDotFilesAreEqual(filename, path_to_diagram_reference('pass_manager_l0.dot'))
         os.remove(filename)
 
     @unittest.skipIf(not HAS_GRAPHVIZ,
@@ -62,12 +62,42 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
                  EnlargeWithAncilla: 'pink',
                  RemoveResetInZeroState: 'grey'}
 
-        filename = self._get_resource_path('current_l1.png')
-        level_1_pass_manager(self.config).draw(filename=filename, style=style)
+        filename = self._get_resource_path('current_l1.dot')
+        level_1_pass_manager(self.config).draw(filename=filename, style=style, raw=True)
 
-        self.assertImagesAreEqual(filename,
-                                  path_to_diagram_reference('pass_manager_l1_style_ref.png'))
+        self.assertDotFilesAreEqual(filename,
+                                    path_to_diagram_reference('pass_manager_style_l1.dot'))
         os.remove(filename)
+
+    def assertDotFilesAreEqual(self, current, expected):
+        """
+        Asserts that 2 dot files are the same - can't use a straightforward
+        line by line comparison as clusters are named randomly by pydot and
+        so the files will always differ as the cluster names will be different
+        """
+
+        self.assertTrue(os.path.exists(current))
+        self.assertTrue(os.path.exists(expected))
+
+        with open(current) as curr_file, open(expected) as exp_file:
+            curr_lines = curr_file.readlines()
+            exp_lines = exp_file.readlines()
+
+            self.assertTrue(len(curr_lines) == len(exp_lines))
+
+            for index, curr_line in enumerate(curr_lines):
+                exp_line = exp_lines[index]
+
+                # if the lines are the same continue checking
+                if curr_line == exp_line:
+                    continue
+
+                # the only way lines can be different is if they are declaring the subgraph
+                # as these include a randomly generated id
+                self.assertTrue(curr_line.startswith('subgraph')
+                                and exp_line.startswith('subgraph'))
+
+        # all checks have passed so dot files must be equal
 
 
 if __name__ == '__main__':
