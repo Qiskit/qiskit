@@ -17,65 +17,73 @@
 """Helper function to parse string expression given by backends."""
 
 import ast
+import copy
 import operator
+import functools
 
 import cmath
 
 from qiskit.exceptions import QiskitError
 
 
-# valid functions
-_math_ops = {
-    'acos': cmath.acos,
-    'acosh': cmath.acosh,
-    'asin': cmath.asin,
-    'asinh': cmath.asinh,
-    'atan': cmath.atan,
-    'atanh': cmath.atanh,
-    'cos': cmath.cos,
-    'cosh': cmath.cosh,
-    'exp': cmath.exp,
-    'log': cmath.log,
-    'log10': cmath.log10,
-    'sin': cmath.sin,
-    'sinh': cmath.sinh,
-    'sqrt': cmath.sqrt,
-    'tan': cmath.tan,
-    'tanh': cmath.tanh,
-    'pi': cmath.pi,
-    'e': cmath.e
-}
-
-# valid binary operations
-_binary_ops = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.Pow: operator.pow
-}
-
-# valid unary operations
-_unary_ops = {
-    ast.UAdd: operator.pos,
-    ast.USub: operator.neg
-}
-
-
 class PulseExpression(ast.NodeTransformer):
     """Expression parser to evaluate parameter values.
     """
-    def __init__(self, source):
+    # valid functions
+    _math_ops = {
+        'acos': cmath.acos,
+        'acosh': cmath.acosh,
+        'asin': cmath.asin,
+        'asinh': cmath.asinh,
+        'atan': cmath.atan,
+        'atanh': cmath.atanh,
+        'cos': cmath.cos,
+        'cosh': cmath.cosh,
+        'exp': cmath.exp,
+        'log': cmath.log,
+        'log10': cmath.log10,
+        'sin': cmath.sin,
+        'sinh': cmath.sinh,
+        'sqrt': cmath.sqrt,
+        'tan': cmath.tan,
+        'tanh': cmath.tanh,
+        'pi': cmath.pi,
+        'e': cmath.e
+    }
+
+    # valid binary operations
+    _binary_ops = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.Pow: operator.pow
+    }
+
+    # valid unary operations
+    _unary_ops = {
+        ast.UAdd: operator.pos,
+        ast.USub: operator.neg
+    }
+
+    def __init__(self, source, partial_binding=False):
         """Create new evaluator.
 
         Args:
             source (str): String expression of equation to evaluate.
+            partial_binding (bool): Allow partial bind of parameters.
         """
+        self._partial_binding = partial_binding
         self._locals_dict = {}
         self._params = set()
-        self.source = source
+        self._tree = None
 
-        self.visit(self._parse(self.source))
+        try:
+            self._tree = ast.parse(source, mode='eval')
+        except SyntaxError:
+            raise QiskitError('%s is invalid expression.' % source)
+
+        self.visit(self._tree)
 
     @property
     def params(self):
@@ -104,38 +112,23 @@ class PulseExpression(ast.NodeTransformer):
             self._locals_dict.update({key: val for key, val in
                                       kwargs.items() if key in self.params})
 
-        expr = self.visit(self._parse(self.source))
+        expr = self.visit(copy.deepcopy(self._tree))
 
         if not isinstance(expr, ast.Num):
-            return expr
+            if self._partial_binding:
+                partial_bind = functools.partial(self.__call__, **self._locals_dict)
+                return partial_bind
+            else:
+                raise QiskitError('Parameters %s are not all bound.' % self.params)
         return expr.n
-
-    @staticmethod
-    def _parse(expr):
-        """Helper method to generate abstract syntax tree.
-
-        Args:
-            expr (str): String expression of equation to evaluate.
-
-        Returns:
-            ast.Expression: Abstract syntax tree.
-
-        Raises:
-            QiskitError: When unparsable string is specified.
-        """
-        try:
-            tree = ast.parse(expr, mode='eval')
-        except SyntaxError:
-            raise QiskitError('%s is invalid expression.' % expr)
-        return tree
 
     @staticmethod
     def _match_ops(opr, opr_dict, *args):
         """Helper method to apply operators.
 
         Args:
-            opr (ast): Operator of node.
-            opr_dict (dict[ast, operator]): Mapper from ast to operator.
+            opr (ast.AST): Operator of node.
+            opr_dict (dict): Mapper from ast to operator.
             *args: Arguments supplied to operator.
 
         Returns:
@@ -183,8 +176,8 @@ class PulseExpression(ast.NodeTransformer):
         Raises:
             QiskitError: When parameter value is not a number.
         """
-        if node.id in _math_ops.keys():
-            val = ast.Num(n=_math_ops[node.id])
+        if node.id in self._math_ops.keys():
+            val = ast.Num(n=self._math_ops[node.id])
             return ast.copy_location(val, node)
         elif node.id in self._locals_dict.keys():
             _val = self._locals_dict[node.id]
@@ -211,7 +204,8 @@ class PulseExpression(ast.NodeTransformer):
         """
         node.operand = self.visit(node.operand)
         if isinstance(node.operand, ast.Num):
-            val = ast.Num(n=self._match_ops(node.op, _unary_ops, node.operand.n))
+            val = ast.Num(n=self._match_ops(node.op, self._unary_ops,
+                                            node.operand.n))
             return ast.copy_location(val, node)
         return node
 
@@ -227,7 +221,8 @@ class PulseExpression(ast.NodeTransformer):
         node.left = self.visit(node.left)
         node.right = self.visit(node.right)
         if isinstance(node.left, ast.Num) and isinstance(node.right, ast.Num):
-            val = ast.Num(n=self._match_ops(node.op, _binary_ops, node.left.n, node.right.n))
+            val = ast.Num(n=self._match_ops(node.op, self._binary_ops,
+                                            node.left.n, node.right.n))
             return ast.copy_location(val, node)
         return node
 
@@ -247,10 +242,10 @@ class PulseExpression(ast.NodeTransformer):
             raise QiskitError('Unsafe expression is detected.')
         node.args = [self.visit(arg) for arg in node.args]
         if all(isinstance(arg, ast.Num) for arg in node.args):
-            if node.func.id not in _math_ops.keys():
+            if node.func.id not in self._math_ops.keys():
                 raise QiskitError('Function %s is not supported.' % node.func.id)
             _args = [arg.n for arg in node.args]
-            _val = _math_ops[node.func.id](*_args)
+            _val = self._math_ops[node.func.id](*_args)
             if not _val.imag:
                 _val = _val.real
             val = ast.Num(n=_val)
