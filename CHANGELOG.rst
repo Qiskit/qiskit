@@ -19,9 +19,22 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Deprecated
+----------
+
+- The gates ``U`` and ``CX`` are being deprecated in favor of ``u3`` and ``cx``.
+- The decorator ``requires_qe_access`` is being deprecated in favor of ``online_test``.
+
+Added
+-----
+
+- Introduced a visualization for the Pass Manager. (#2445)
+
 Changed
 -------
 
+- Qubits and classical bits are not represented as a tuples anymore, but as
+  instances of ``Qubit`` and ``Clbit`` respectively.
 - The ``pylatexenc`` and ``pillow`` requirements are now optional. These are
   only used by the ``latex`` and ``latex_source`` circuit visualization
   backends. To continue using them ensure these are installed.
@@ -45,9 +58,6 @@ Removed
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
 
-Deprecated
-----------
-- The decorator ``requires_qe_access`` is being deprecated in favor of ``online_test``.
 
 `0.8.0`_ - 2019-05-02
 =====================

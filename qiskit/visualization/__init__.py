@@ -27,6 +27,7 @@ from qiskit.visualization.state_visualization import (plot_state_hinton,
 from .pulse_visualization import pulse_drawer
 from .circuit_visualization import circuit_drawer, qx_color_scheme
 from .dag_visualization import dag_drawer
+from .pass_manager_visualization import pass_manager_drawer
 from .gate_map import plot_gate_map
 
 from .exceptions import VisualizationError

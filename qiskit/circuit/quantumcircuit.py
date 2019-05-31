@@ -271,10 +271,7 @@ class QuantumCircuit:
     def _bit_argument_conversion(bit_representation, in_array):
         ret = None
         try:
-            if _is_bit(bit_representation):
-                # circuit.h((qr, 0)) -> circuit.h([qr[0]])
-                ret = [bit_representation[0][bit_representation[1]]]
-            elif isinstance(bit_representation, Bit):
+            if isinstance(bit_representation, Bit):
                 # circuit.h(qr[0]) -> circuit.h([qr[0]])
                 ret = [bit_representation]
             elif isinstance(bit_representation, Register):
@@ -286,6 +283,9 @@ class QuantumCircuit:
             elif isinstance(bit_representation, slice):
                 # circuit.h(slice(0,2)) -> circuit.h([qr[0], qr[1]])
                 ret = in_array[bit_representation]
+            elif _is_bit(bit_representation):
+                # circuit.h((qr, 0)) -> circuit.h([qr[0]])
+                ret = [bit_representation[0][bit_representation[1]]]
             elif isinstance(bit_representation, list) and \
                     all(_is_bit(bit) for bit in bit_representation):
                 ret = [bit[0][bit[1]] for bit in bit_representation]

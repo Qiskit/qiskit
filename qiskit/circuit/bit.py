@@ -47,7 +47,7 @@ class Bit:
 
     def __getitem__(self, item):
         warn('Accessing a bit register by bit[0] or its index by bit[1] is deprecated. '
-             'Go for bit.register and bit.index.', DeprecationWarning)
+             'Go for bit.register and bit.index.', DeprecationWarning, stacklevel=2)
         if item == 0:
             return self.register
         elif item == 1:
@@ -59,6 +59,8 @@ class Bit:
         return hash((self.register, self.index))
 
     def __eq__(self, other):
+        if isinstance(other, Bit):
+            return other.index == self.index and other.register == self.register
         if isinstance(other, tuple):
             return other[1] == self.index and other[0] == self.register
-        return other.index == self.index and other.register == self.register
+        return False
