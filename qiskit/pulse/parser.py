@@ -72,6 +72,9 @@ class PulseExpression(ast.NodeTransformer):
         Args:
             source (str): String expression of equation to evaluate.
             partial_binding (bool): Allow partial bind of parameters.
+
+        Raises:
+            QiskitError: When invalid string is specified.
         """
         self._partial_binding = partial_binding
         self._locals_dict = {}
@@ -256,11 +259,12 @@ class PulseExpression(ast.NodeTransformer):
         raise QiskitError('Unsupported node: %s' % node.__class__.__name__)
 
 
-def parse_string_expr(source):
+def parse_string_expr(source, partial_binding=False):
     """Safe parsing of string expression.
 
     Args:
         source (str): String expression to parse.
+        partial_binding (bool): Allow partial bind of parameters.
 
     Returns:
         PulseExpression: Returns a expression object.
@@ -269,6 +273,6 @@ def parse_string_expr(source):
     for match, sub in subs:
         source = source.replace(match, sub)
 
-    expression = PulseExpression(source)
+    expression = PulseExpression(source, partial_binding)
 
     return expression, expression.params
