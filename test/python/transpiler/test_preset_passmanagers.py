@@ -12,61 +12,61 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests preset pass manager functionalities"""
+"""Tests preset pass manager API"""
 
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo
 
 
-class TestPresetPassManager(QiskitTestCase):
-    """Test preset passmanagers work as expected."""
+def _create_circuit():
+    """A dummy circuit"""
+    q = QuantumRegister(2, name='q')
+    circuit = QuantumCircuit(q)
+    circuit.cz(q[0], q[1])
+    return circuit
 
-    def setUp(self):
-        q = QuantumRegister(2, name='q')
-        self.circuit = QuantumCircuit(q)
-        self.circuit.cz(q[0], q[1])
-        self.basis_gates = ['u1', 'u2', 'u3', 'cx']
-
-    def test_no_coupling_map_level_0(self):
-        """Test that coupling_map can be None with level 0"""
-        result = transpile(self.circuit, basis_gates=self.basis_gates, optimization_level=0)
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_no_coupling_map_level_1(self):
-        """Test that coupling_map can be None with level 1"""
-        result = transpile(self.circuit, basis_gates=self.basis_gates, optimization_level=1)
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_no_coupling_map_level_2(self):
-        """Test that coupling_map can be None with level 2"""
-        result = transpile(self.circuit, basis_gates=self.basis_gates, optimization_level=2)
-        self.assertIsInstance(result, QuantumCircuit)
-
-    def test_no_coupling_map_level_3(self):
-        """Test that coupling_map can be None with level 3"""
-        result = transpile(self.circuit, basis_gates=self.basis_gates, optimization_level=3)
-        self.assertIsInstance(result, QuantumCircuit)
-
-
-class TestFakeBackends(QiskitTestCase):
-    """Test transpiler on fake backends"""
-
-    def create_circuit(self):
-        q = QuantumRegister(2)
-        c = ClassicalRegister(2)
-        circuit = QuantumCircuit(q, c)
-        circuit.h(q[0])
-        circuit.cx(q[0], q[1])
-        circuit.measure(q, c)
-        return circuit
+class TestDefaultPassManager(QiskitTestCase):
 
     def test_all_optimization_levels_and_all_backends(self):
-        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo()]:
-            for optimization_level in range(4):
-                with self.subTest(optimization_level=optimization_level, backend=backend.name()):
-                    result = transpile(self.create_circuit(),
-                                       backend=backend,
-                                       optimization_level=optimization_level)
-                    self.assertIsInstance(result, QuantumCircuit)
+        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
+            with self.subTest(backend=backend):
+                result = transpile(_create_circuit(), backend=backend)
+                self.assertIsInstance(result, QuantumCircuit)
+
+
+class TestLevel0PassManager(QiskitTestCase):
+
+    def test_all_backends(self):
+        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
+            with self.subTest(backend=backend):
+                result = transpile(_create_circuit(), backend=backend, optimization_level=0)
+                self.assertIsInstance(result, QuantumCircuit)
+
+
+class TestLevel1PassManager(QiskitTestCase):
+
+    def test_all_backends(self):
+        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
+            with self.subTest(backend=backend):
+                result = transpile(_create_circuit(), backend=backend, optimization_level=1)
+                self.assertIsInstance(result, QuantumCircuit)
+
+
+class TestLevel2PassManager(QiskitTestCase):
+
+    def test_all_backends(self):
+        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
+            with self.subTest(backend=backend):
+                result = transpile(_create_circuit(), backend=backend, optimization_level=2)
+                self.assertIsInstance(result, QuantumCircuit)
+
+
+class TestLevel3PassManager(QiskitTestCase):
+
+    def test_all_backends(self):
+        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
+            with self.subTest(backend=backend):
+                result = transpile(_create_circuit(), backend=backend, optimization_level=3)
+                self.assertIsInstance(result, QuantumCircuit)
