@@ -222,6 +222,18 @@ class QCircuitImage:
         """
 
         max_column_widths = []
+        # Determine row spacing before image depth
+        for layer in self.ops:
+            for op in layer:
+                # useful information for determining row spacing
+                boxed_gates = ['u0', 'u1', 'u2', 'u3', 'x', 'y', 'z', 'h', 's',
+                               'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'ch', 'cy',
+                               'crz', 'cu3', 'id']
+                target_gates = ['cx', 'ccx']
+                if op.name in boxed_gates:
+                    self.has_box = True
+                if op.name in target_gates:
+                    self.has_target = True
 
         for layer in self.ops:
 
