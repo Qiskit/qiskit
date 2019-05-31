@@ -24,7 +24,7 @@ import pprint, time
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
 from qiskit import QiskitError
-from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.extensions import SwapGate
 from qiskit.compiler import assemble
 from qiskit.providers.ibmq import least_busy
@@ -49,22 +49,20 @@ except:
              For now, there's only access to local simulator backends...""")
 
 try:
-    qubit_reg = QuantumRegister(4, name='q')
-    clbit_reg = ClassicalRegister(4, name='c')
 
     # Making first circuit: superpositions
-    qc1 = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-    qc1.h(qubit_reg[0])
-    qc1.cx(qubit_reg[0], qubit_reg[1])
-    qc1.measure(qubit_reg, clbit_reg)
+    qc1 = QuantumCircuit(4, 4)
+    qc1.h(0)
+    qc1.cx(0, 1)
+    qc1.measure([0,1], [0,1])
 
     # Making another circuit: GHZ State
-    qc2 = QuantumCircuit(qubit_reg, clbit_reg, name="superposition")
-    qc2.h(qubit_reg)
-    qc2.cx(qubit_reg[0], qubit_reg[1])
-    qc2.cx(qubit_reg[0], qubit_reg[2])
-    qc2.cx(qubit_reg[0], qubit_reg[3])
-    qc2.measure(qubit_reg, clbit_reg)
+    qc2 = QuantumCircuit(4, 4)
+    qc2.h([0,1,2,3])
+    qc2.cx(0, 1)
+    qc2.cx(0, 2)
+    qc2.cx(0, 3)
+    qc2.measure([0,1,2,3], [0,1,2,3])
 
     # Setting up the backend
     print("(Aer Backends)")
@@ -104,13 +102,13 @@ try:
     qc2_new = pm.run(qc2)
 
     print("Bell circuit before passes:")
-    print(qc1.draw())
+    print(qc1)
     print("Bell circuit after passes:")
-    print(qc1_new.draw())
+    print(qc1_new)
     print("Superposition circuit before passes:")
-    print(qc2.draw())
+    print(qc2)
     print("Superposition circuit after passes:")
-    print(qc2_new.draw())
+    print(qc2_new)
 
     # Assemble the two circuits into a runnable qobj
     qobj = assemble([qc1_new, qc2_new], shots=1000)
