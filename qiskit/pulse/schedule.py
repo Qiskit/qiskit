@@ -15,7 +15,9 @@
 """Schedule."""
 
 import itertools
-from typing import List, Tuple, Iterable, Union, Dict, Callable
+import abc
+from functools import reduce
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set
 
 from qiskit.pulse import ops
 from .channels import Channel
@@ -95,7 +97,7 @@ class Schedule(ScheduleComponent):
         return self.timeslots.channels
 
     @property
-    def _children(self) -> Tuple[ScheduleComponent]:
+    def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
         return self.__children
 
     @property
@@ -185,6 +187,87 @@ class Schedule(ScheduleComponent):
     def flatten(self) -> 'ScheduleComponent':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
         return ops.flatten(self)
+
+    def filter(self, *filter_funcs: List[Callable],
+               channels: Iterable[int] = [],
+               instruction_types: Iterable[abc.ABCMeta] = [],
+               intervals: Iterable[Tuple[int, int]] = []) -> 'Schedule':
+        """
+        Return a new Schedule with only the instructions which pass though the provided filters.
+        Custom filters may be provided. If a list of channel indices is provided, only the
+        instructions that involve that channel (and maybe also others) will be included in the new
+        schedule. Similarly for instruction_types, only the instructions which are instances of the
+        provided types will be included. For intervals, instructions will be retained if their
+        timeslots are all wholly contained within *any* of the given intervals.
+
+        If no arguments are provided, this schedule is returned.
+
+        Args:
+            filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
+                          return a bool
+            channels: Channel indices, e.g. {0, 1, 2}
+            instruction_types: For example, [PulseInstruction, AcquireInstruction]
+            intervals: Time intervals to keep, e.g. [(0, 5), (6, 10)]
+        """
+        def only_channels(channels: Set[int]) -> Callable:
+            def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+                return any([chan.index in channels for chan in time_inst[1].channels])
+            return channel_filter
+
+        def only_instruction_types(types: Iterable[abc.ABCMeta]) -> Callable:
+            def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+                return isinstance(time_inst[1], tuple(types))
+            return instruction_filter
+
+        def only_intervals(intervals: Iterable[Tuple[int, int]]) -> Callable:
+            def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
+                for i in intervals:
+                    if all([(i[0] <= ts.interval.shift(time_inst[0]).begin
+                             and ts.interval.shift(time_inst[0]).end <= i[1])
+                            for ts in time_inst[1].timeslots.timeslots]):
+                        return True
+                return False
+            return interval_filter
+
+        filter_funcs = list(filter_funcs)
+        if channels:
+            filter_funcs.append(only_channels(set(channels)))
+        if instruction_types:
+            filter_funcs.append(only_instruction_types(instruction_types))
+        if intervals:
+            filter_funcs.append(only_intervals(intervals))
+
+        if not filter_funcs:
+            return self
+
+        return self._filter(filter_funcs)
+
+    def _filter(self, filter_funcs: List[Callable]) -> 'Schedule':
+        """
+        Return a new Schedule with only the instructions which pass through every filter in
+        filter_funcs (i.e. when each function is applied to it, as described below, the function
+        returns True).
+
+        Expected function signature for each function in filter_funcs:
+            function(time_and_inst_tuple: Tuple[int, Instruction]) -> bool
+
+        For example:
+
+            def only_channel_one(time_and_inst_tuple) -> bool:
+                for chan in time_and_inst_tuple[1].channels:
+                    if chan.index == 1:
+                        return True
+                return False
+
+        Note:
+            The new schedule's name is the previous name appended with "-filtered".
+
+        Args:
+            filter_funcs: A list of Callables which follow the above format
+        """
+        valid_subschedules = reduce(lambda sched, f: list(filter(f, sched)),
+                                    filter_funcs, self.flatten()._children)
+        return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
 
     def draw(self, dt: float = 1, style=None,
              filename: str = None, interp_method: Callable = None, scaling: float = 1,
