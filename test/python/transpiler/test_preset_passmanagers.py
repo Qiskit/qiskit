@@ -27,9 +27,12 @@ def _create_circuit():
     circuit.cz(q[0], q[1])
     return circuit
 
+
 class TestDefaultPassManager(QiskitTestCase):
+    """qiskit/transpiler/preset_passmanagers/default.py"""
 
     def test_all_optimization_levels_and_all_backends(self):
+        """Test transpile API without optimization_level"""
         for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
             with self.subTest(backend=backend):
                 result = transpile(_create_circuit(), backend=backend)
@@ -37,8 +40,10 @@ class TestDefaultPassManager(QiskitTestCase):
 
 
 class TestLevel0PassManager(QiskitTestCase):
+    """qiskit/transpiler/preset_passmanagers/level0.py"""
 
     def test_all_backends(self):
+        """Test transpile API with optimization_level 0"""
         for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
             with self.subTest(backend=backend):
                 result = transpile(_create_circuit(), backend=backend, optimization_level=0)
@@ -46,8 +51,10 @@ class TestLevel0PassManager(QiskitTestCase):
 
 
 class TestLevel1PassManager(QiskitTestCase):
+    """qiskit/transpiler/preset_passmanagers/level1.py"""
 
     def test_all_backends(self):
+        """Test transpile API with optimization_level 1"""
         for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
             with self.subTest(backend=backend):
                 result = transpile(_create_circuit(), backend=backend, optimization_level=1)
@@ -55,8 +62,10 @@ class TestLevel1PassManager(QiskitTestCase):
 
 
 class TestLevel2PassManager(QiskitTestCase):
+    """qiskit/transpiler/preset_passmanagers/level2.py"""
 
     def test_all_backends(self):
+        """Test transpile API with optimization_level 2"""
         for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
             with self.subTest(backend=backend):
                 result = transpile(_create_circuit(), backend=backend, optimization_level=2)
@@ -64,8 +73,10 @@ class TestLevel2PassManager(QiskitTestCase):
 
 
 class TestLevel3PassManager(QiskitTestCase):
+    """qiskit/transpiler/preset_passmanagers/level3.py"""
 
     def test_all_backends(self):
+        """Test transpile API with optimization_level 3"""
         for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), None]:
             with self.subTest(backend=backend):
                 result = transpile(_create_circuit(), backend=backend, optimization_level=3)
