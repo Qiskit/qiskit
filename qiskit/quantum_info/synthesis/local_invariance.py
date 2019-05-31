@@ -29,7 +29,7 @@ def two_qubit_local_invariants(U):
         U (ndarray): Input two qubit unitary.
 
     Returns:
-        tuple: Tuple of local invariants (g0, g1, g2).
+        ndarray: NumPy array of local invariants [g0, g1, g2].
 
     Raises:
         ValueError: Input not a 2q unitary.
@@ -80,7 +80,7 @@ def cx_equivalence(U):
         int: Number of cx gates in local equivalence set.
 
     Notes:
-        The trivial zero and one cx case are in the
+        The trivial zero and one cx cases are in the
         literature.  The space of two cx invariant
         sets seems not to have been explored.
     """
