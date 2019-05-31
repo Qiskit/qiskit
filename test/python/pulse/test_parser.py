@@ -15,7 +15,7 @@
 """Parser Test."""
 
 from qiskit.test import QiskitTestCase
-from qiskit.tools import parse_string_expr
+from qiskit.pulse.parser import parse_string_expr
 from qiskit import QiskitError
 
 

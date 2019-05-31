@@ -19,9 +19,9 @@ import warnings
 
 from qiskit.pulse import commands, channels
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import ParameterizedSchedule, Schedule
 from qiskit.qobj import QobjMeasurementOption
-from qiskit.tools import parse_string_expr
 
 
 class ConversionMethodBinder:

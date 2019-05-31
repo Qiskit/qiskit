@@ -21,4 +21,3 @@ refer to the documentation of each component and use them separately.
 """
 
 from .parallel import parallel_map
-from .parser import parse_string_expr

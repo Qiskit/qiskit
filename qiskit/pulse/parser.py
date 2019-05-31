@@ -62,7 +62,7 @@ _unary_ops = {
 }
 
 
-class QiskitExpression(ast.NodeTransformer):
+class PulseExpression(ast.NodeTransformer):
     """Expression parser to evaluate parameter values.
     """
     def __init__(self, source):
@@ -82,11 +82,10 @@ class QiskitExpression(ast.NodeTransformer):
         """Get parameters."""
         return sorted(self._params.copy())
 
-    def __call__(self, *args, allow_partial_bind=False, **kwargs):
+    def __call__(self, *args, **kwargs):
         """Get evaluated value with given parameters.
 
         Args:
-            allow_partial_bind (bool): Allow partial binding of parameters.
             *args: Variable length parameter list.
             **kwargs: Arbitrary parameters.
 
@@ -108,10 +107,7 @@ class QiskitExpression(ast.NodeTransformer):
         expr = self.visit(self._parse(self.source))
 
         if not isinstance(expr, ast.Num):
-            if allow_partial_bind:
-                return expr
-            else:
-                raise QiskitError('Parameters %s are not bound.' % self.params)
+            return expr
         return expr.n
 
     @staticmethod
@@ -272,12 +268,12 @@ def parse_string_expr(source):
         source (str): String expression to parse.
 
     Returns:
-        QiskitExpression: Returns a expression object.
+        PulseExpression: Returns a expression object.
     """
     subs = [('numpy.', ''), ('np.', ''), ('math.', ''), ('cmath.', '')]
     for match, sub in subs:
         source = source.replace(match, sub)
 
-    expression = QiskitExpression(source)
+    expression = PulseExpression(source)
 
     return expression, expression.params
