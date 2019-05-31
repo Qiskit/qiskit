@@ -56,6 +56,10 @@ Removed
   ``qiskit.exceptions`` instead. (#2399)
 - Removed previously deprecated DAGCircuit methods (#2542)
 
+Fixed
+-----
+-  Possible to decompose SU(4) gate into non-CNOT basis with ``TwoQubitDecomposer``
+
 
 `0.8.0`_ - 2019-05-02
 =====================
