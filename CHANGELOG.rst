@@ -55,6 +55,7 @@ Removed
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
 - Removed previously deprecated DAGCircuit methods (#2542)
+- Removed ``CompositeGate`` class, in favor of adding Instruction objects directly (#2543)
 
 Fixed
 -----
