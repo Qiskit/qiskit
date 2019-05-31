@@ -55,6 +55,10 @@ Removed
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
 
+Fixed
+-----
+-  Possible to decompose SU(4) gate into non-CNOT basis with ``TwoQubitDecomposer``
+
 
 `0.8.0`_ - 2019-05-02
 =====================
