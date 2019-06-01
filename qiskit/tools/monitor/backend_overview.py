@@ -195,3 +195,45 @@ def backend_overview():
 
         print("\n".join(str_list))
         print('\n'*2)
+
+        
+def backend_get_qubit_params(backend):
+    """Return a DataFrame object of all qubit parameters.
+    Typically, these are: 
+        `T1 (us), T2 (us), frequency (GHz), readout_err, u1_err, u2_err, u3_err`
+    
+    Args:
+        backend (IBMQBackend): Backend to monitor.
+    
+    Raises:
+        QiskitError: Input is not a IBMQ backend.
+
+    """
+    # Check that the user has been good 
+    if not isinstance(backend, IBMQBackend):
+        raise QiskitError('Input variable is not of type IBMQBackend.')
+    config = backend.configuration().to_dict()
+    if config['simulator']:
+        print('Warning: A simulator backend was passed in place of a device backend.\
+              These backend properties only apply to devices and not to simulators.')
+    
+    # Extract relevant properties
+    RES  = OrderedDict()
+    props = backend.properties().to_dict()
+    for qnum in range(len(props['qubits'])):
+        RES[qnum] = OrderedDict()
+        for prop in props['qubits'][qnum]:
+            # T1, T2, freq, ro_err
+            RES[qnum][prop['name']] = prop['value']
+            # Gate error -- asumes structure is u1, u2, u3 first for all single q gates
+            gates = props['gates'][3*qnum:3*qnum+3]
+            for gate in gates:
+                RES[qnum][gate['gate']+'_err'] = gate['parameters'][0]['value']
+
+    # Format dataframe
+    df = pd.DataFrame(RES).transpose()
+    df.index.name = 'qnum'
+    df.rename(columns={'readout_error':'readout_err'}, inplace=True)
+    
+    # Return 
+    return df
