@@ -400,7 +400,6 @@ class QuantumCircuit:
 
         return instruction
 
-
     def add_register(self, *regs):
         """Add registers."""
         if not regs:
