@@ -14,7 +14,6 @@
 
 """
 Example showing how to draw a quantum circuit using Qiskit.
-
 """
 
 from qiskit import QuantumCircuit

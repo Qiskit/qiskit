@@ -91,12 +91,24 @@ try:
     print("coupling map: ", coupling_map)
 
     pm = PassManager()
+
+    # Use the trivial layout
     pm.append(TrivialLayout(coupling_map))
+
+    # Extend the the dag/layout with ancillas using the full coupling map
     pm.append(FullAncillaAllocation(coupling_map))
     pm.append(EnlargeWithAncilla())
+
+    # Swap mapper
     pm.append(LookaheadSwap(coupling_map))
+
+    # Expand swaps
     pm.append(Decompose(SwapGate))
+    
+    # Simplify CXs
     pm.append(CXDirection(coupling_map))
+
+    # unroll to single qubit gates
     pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
     qc1_new = pm.run(qc1)
     qc2_new = pm.run(qc2)
