@@ -21,6 +21,7 @@ from inspect import signature
 import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.random import random_circuit
 from qiskit.visualization import utils
 from qiskit.visualization import circuit_drawer
 from qiskit.test import QiskitTestCase
@@ -34,7 +35,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
         filename = self._get_resource_path('test_tiny.tex')
-        qc = self.random_circuit(1, 1, 1)
+        qc = random_circuit(1, 1, 1)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -45,7 +46,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_normal_circuit(self):
         """Test draw normal size circuit."""
         filename = self._get_resource_path('test_normal.tex')
-        qc = self.random_circuit(5, 5, 3)
+        qc = random_circuit(5, 5, 3)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -56,7 +57,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_wide_circuit(self):
         """Test draw wide circuit."""
         filename = self._get_resource_path('test_wide.tex')
-        qc = self.random_circuit(100, 1, 1)
+        qc = random_circuit(100, 1, 1)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -67,7 +68,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_deep_circuit(self):
         """Test draw deep circuit."""
         filename = self._get_resource_path('test_deep.tex')
-        qc = self.random_circuit(1, 100, 1)
+        qc = random_circuit(1, 100, 1)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -78,7 +79,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_huge_circuit(self):
         """Test draw huge circuit."""
         filename = self._get_resource_path('test_huge.tex')
-        qc = self.random_circuit(40, 40, 1)
+        qc = random_circuit(40, 40, 1)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)

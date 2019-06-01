@@ -17,14 +17,14 @@
 from inspect import signature
 import numpy as np
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Measure, Reset
 from qiskit.extensions import *
 from qiskit.test import QiskitTestCase
 
 
 def random_circuit(width, depth, max_operands=3, measure=False,
-                   conditional=False, reset=False, barrier=True, seed=None):
+                   conditional=False, reset=False, seed=None):
     """Generate random circuit of arbitrary size and form.
 
     Args:
@@ -34,7 +34,6 @@ def random_circuit(width, depth, max_operands=3, measure=False,
         measure (bool): if True, measure all qubits at the end
         conditional (bool): if True, insert middle measurements and conditionals
         reset (bool): if True, insert middle resets
-        barrier (bool): if True, insert barriers at arbitrary locations
         seed (int): sets random seed (optional)
 
     Returns:
@@ -46,7 +45,7 @@ def random_circuit(width, depth, max_operands=3, measure=False,
     one_q_ops = [IdGate, U0Gate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
                  HGate, SGate, SdgGate, TGate, TdgGate, RXGate, RYGate, RZGate]
     two_q_ops = [CnotGate, CyGate, CzGate, CHGate, CrzGate,
-                 Cu1Gate, Cu3Gate, SwapGate]
+                 Cu1Gate, Cu3Gate, SwapGate, RZZGate]
     three_q_ops = [ToffoliGate, FredkinGate]
 
     qr = QuantumRegister(width, 'q')
@@ -90,7 +89,7 @@ def random_circuit(width, depth, max_operands=3, measure=False,
             # with some low probability, condition on classical bit values
             if conditional and rng.choice(range(10)) == 0:
                 possible_values = range(pow(2, width))
-                value = rng.choice(possible_values)
+                value = rng.choice(list(possible_values))
                 op.control = (cr, value)
 
             qc.append(op, register_operands)
