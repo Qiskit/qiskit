@@ -216,6 +216,7 @@ def backend_get_qubit_params(backend):
     if config['simulator']:
         print('Warning: A simulator backend was passed in place of a device backend.\
               These backend properties only apply to devices and not to simulators.')
+        return
     
     # Extract relevant properties
     RES  = OrderedDict()
@@ -225,7 +226,7 @@ def backend_get_qubit_params(backend):
         for prop in props['qubits'][qnum]:
             # T1, T2, freq, ro_err
             RES[qnum][prop['name']] = prop['value']
-            # Gate error -- asumes structure is u1, u2, u3 first for all single q gates
+            # Gate error -- assumes structure is u1, u2, u3 first for all single q gates
             gates = props['gates'][3*qnum:3*qnum+3]
             for gate in gates:
                 RES[qnum][gate['gate']+'_err'] = gate['parameters'][0]['value']
