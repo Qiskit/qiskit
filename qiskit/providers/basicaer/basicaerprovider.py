@@ -26,6 +26,7 @@ from qiskit.providers.providerutils import resolve_backend_name, filter_backends
 from .qasm_simulator import QasmSimulatorPy
 from .statevector_simulator import StatevectorSimulatorPy
 from .unitary_simulator import UnitarySimulatorPy
+from .split_statevector_simulator import SplitStatevectorSimulatorPy
 
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,8 @@ logger = logging.getLogger(__name__)
 SIMULATORS = [
     QasmSimulatorPy,
     StatevectorSimulatorPy,
-    UnitarySimulatorPy
+    UnitarySimulatorPy,
+    SplitStatevectorSimulatorPy
 ]
 
 

@@ -113,11 +113,16 @@ class QasmSimulatorPy(BaseBackend):
     # This should be set to True for the statevector simulator
     SHOW_FINAL_STATE = False
 
+    # SSS: Class level variable to determine whether to split the statevector upon measurement
+    # This should be set to True for the split_statevector_simulator
+    SPLIT_STATES = False
+
+
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(
             configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
-
+        
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
         self._classical_memory = 0
@@ -130,8 +135,10 @@ class QasmSimulatorPy(BaseBackend):
         self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
         self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
         self._qobj_config = None
+
         # TEMP
         self._sample_measure = False
+            
 
     def _add_unitary_single(self, gate, qubit):
         """Apply an arbitrary 1-qubit unitary matrix.
@@ -235,8 +242,21 @@ class QasmSimulatorPy(BaseBackend):
             cmembit (int): is the classical memory bit to store outcome in.
             cregbit (int, optional): is the classical register bit to store outcome in.
         """
-        # get measure outcome
-        outcome, probability = self._get_measure_outcome(qubit)
+        # SSS: Checking whether the probabilities are nonzero in order to run the split
+        axis = list(range(self._number_of_qubits))
+        axis.remove(self._number_of_qubits - 1 - qubit)
+        probabilities = np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis))
+        if (self.SPLIT_STATES and probabilities[0] != 0 and probabilities[1] != 0):
+            self._split_statevector(qubit, probabilities, cmembit, cregbit)
+        else:
+            # SSS: moved this part into the refactored function _update_after_measure
+            # get measure outcome
+            outcome, probability = self._get_measure_outcome(qubit)
+            # update classical state
+            self._update_state_after_measure(qubit, cmembit, outcome, probability, cregbit)
+
+    # SSS: Refactor of _add_qasm_measure
+    def _update_state_after_measure(self, qubit, cmembit, outcome, probability, cregbit):
         # update classical state
         membit = 1 << cmembit
         self._classical_memory = (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
@@ -440,6 +460,7 @@ class QasmSimulatorPy(BaseBackend):
 
         return Result.from_dict(result)
 
+    # SSS: Refactored _run_single_shot
     def run_experiment(self, experiment):
         """Run an experiment (circuit) and return a single experiment result.
 
@@ -504,103 +525,8 @@ class QasmSimulatorPy(BaseBackend):
             # Initialize classical memory to all 0
             self._classical_memory = 0
             self._classical_register = 0
-            for operation in experiment.instructions:
-                conditional = getattr(operation, 'conditional', None)
-                if isinstance(conditional, int):
-                    conditional_bit_set = (self._classical_register >> conditional) & 1
-                    if not conditional_bit_set:
-                        continue
-                elif conditional is not None:
-                    mask = int(operation.conditional.mask, 16)
-                    if mask > 0:
-                        value = self._classical_memory & mask
-                        while (mask & 0x1) == 0:
-                            mask >>= 1
-                            value >>= 1
-                        if value != int(operation.conditional.val, 16):
-                            continue
+            self._run_single_shot(experiment, memory)
 
-                # Check if single  gate
-                if operation.name in ('U', 'u1', 'u2', 'u3'):
-                    params = getattr(operation, 'params', None)
-                    qubit = operation.qubits[0]
-                    gate = single_gate_matrix(operation.name, params)
-                    self._add_unitary_single(gate, qubit)
-                # Check if CX gate
-                elif operation.name in ('id', 'u0'):
-                    pass
-                elif operation.name in ('CX', 'cx'):
-                    qubit0 = operation.qubits[0]
-                    qubit1 = operation.qubits[1]
-                    gate = cx_gate_matrix()
-                    self._add_unitary_two(gate, qubit0, qubit1)
-                # Check if reset
-                elif operation.name == 'reset':
-                    qubit = operation.qubits[0]
-                    self._add_qasm_reset(qubit)
-                # Check if barrier
-                elif operation.name == 'barrier':
-                    pass
-                # Check if measure
-                elif operation.name == 'measure':
-                    qubit = operation.qubits[0]
-                    cmembit = operation.memory[0]
-                    cregbit = operation.register[0] if hasattr(operation, 'register') else None
-
-                    if self._sample_measure:
-                        # If sampling measurements record the qubit and cmembit
-                        # for this measurement for later sampling
-                        measure_sample_ops.append((qubit, cmembit))
-                    else:
-                        # If not sampling perform measurement as normal
-                        self._add_qasm_measure(qubit, cmembit, cregbit)
-                elif operation.name == 'bfunc':
-                    mask = int(operation.mask, 16)
-                    relation = operation.relation
-                    val = int(operation.val, 16)
-
-                    cregbit = operation.register
-                    cmembit = operation.memory if hasattr(operation, 'memory') else None
-
-                    compared = (self._classical_register & mask) - val
-
-                    if relation == '==':
-                        outcome = (compared == 0)
-                    elif relation == '!=':
-                        outcome = (compared != 0)
-                    elif relation == '<':
-                        outcome = (compared < 0)
-                    elif relation == '<=':
-                        outcome = (compared <= 0)
-                    elif relation == '>':
-                        outcome = (compared > 0)
-                    elif relation == '>=':
-                        outcome = (compared >= 0)
-                    else:
-                        raise BasicAerError('Invalid boolean function relation.')
-
-                    # Store outcome in register and optionally memory slot
-                    regbit = 1 << cregbit
-                    self._classical_register = \
-                        (self._classical_register & (~regbit)) | (int(outcome) << cregbit)
-                    if cmembit is not None:
-                        membit = 1 << cmembit
-                        self._classical_memory = \
-                            (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
-                else:
-                    backend = self.name()
-                    err_msg = '{0} encountered unrecognized operation "{1}"'
-                    raise BasicAerError(err_msg.format(backend, operation.name))
-
-            # Add final creg data to memory list
-            if self._number_of_cmembits > 0:
-                if self._sample_measure:
-                    # If sampling we generate all shot samples from the final statevector
-                    memory = self._add_sample_measure(measure_sample_ops, self._shots)
-                else:
-                    # Turn classical_memory (int) into bit string and pad zero for unused cmembits
-                    outcome = bin(self._classical_memory)[2:]
-                    memory.append(hex(int(outcome, 2)))
 
         # Add data
         data = {'counts': dict(Counter(memory))}
@@ -610,6 +536,9 @@ class QasmSimulatorPy(BaseBackend):
         # Optionally add final statevector
         if self.SHOW_FINAL_STATE:
             data['statevector'] = self._get_statevector()
+
+            if self.SPLIT_STATES:
+                data['statevector_tree'] = self._generate_data()
             # Remove empty counts and memory for statevector simulator
             if not data['counts']:
                 data.pop('counts')
@@ -625,6 +554,114 @@ class QasmSimulatorPy(BaseBackend):
                 'time_taken': (end - start),
                 'header': experiment.header.as_dict()}
 
+    # SSS: Refactored from existing code to allow flexibility
+    def _run_single_shot(self, experiment, memory, currentOpInd = 0):
+        # SSS: Changing to run with index parameter
+        for i in range(currentOpInd, len(experiment.instructions)):
+            operation = experiment.instructions[i]
+            #for operation in experiment.instructions:
+            conditional = getattr(operation, 'conditional', None)
+            if isinstance(conditional, int):
+                conditional_bit_set = (self._classical_register >> conditional) & 1
+                if not conditional_bit_set:
+                    continue
+            elif conditional is not None:
+                mask = int(operation.conditional.mask, 16)
+                if mask > 0:
+                    value = self._classical_memory & mask
+                    while (mask & 0x1) == 0:
+                        mask >>= 1
+                        value >>= 1
+                    if value != int(operation.conditional.val, 16):
+                        continue
+
+            # Check if single  gate
+            if operation.name in ('U', 'u1', 'u2', 'u3'):
+                params = getattr(operation, 'params', None)
+                qubit = operation.qubits[0]
+                gate = single_gate_matrix(operation.name, params)
+                self._add_unitary_single(gate, qubit)
+            # Check if CX gate
+            elif operation.name in ('id', 'u0'):
+                pass
+            elif operation.name in ('CX', 'cx'):
+                qubit0 = operation.qubits[0]
+                qubit1 = operation.qubits[1]
+                gate = cx_gate_matrix()
+                self._add_unitary_two(gate, qubit0, qubit1)
+            # Check if reset
+            elif operation.name == 'reset':
+                qubit = operation.qubits[0]
+                self._add_qasm_reset(qubit)
+            # Check if barrier
+            elif operation.name == 'barrier':
+                pass
+            # Check if measure
+            elif operation.name == 'measure':
+                qubit = operation.qubits[0]
+                cmembit = operation.memory[0]
+                cregbit = operation.register[0] if hasattr(operation, 'register') else None
+
+                if self._sample_measure:
+                    # If sampling measurements record the qubit and cmembit
+                    # for this measurement for later sampling
+                    measure_sample_ops.append((qubit, cmembit))
+                else:
+                    # If not sampling perform measurement as normal
+                    self._add_qasm_measure(qubit, cmembit, cregbit)
+                # SSS: Checking whether the statevector was split
+                if len(self._substates) != 0:
+                    break
+            elif operation.name == 'bfunc':
+                mask = int(operation.mask, 16)
+                relation = operation.relation
+                val = int(operation.val, 16)
+
+                cregbit = operation.register
+                cmembit = operation.memory if hasattr(operation, 'memory') else None
+
+                compared = (self._classical_register & mask) - val
+
+                if relation == '==':
+                    outcome = (compared == 0)
+                elif relation == '!=':
+                    outcome = (compared != 0)
+                elif relation == '<':
+                    outcome = (compared < 0)
+                elif relation == '<=':
+                    outcome = (compared <= 0)
+                elif relation == '>':
+                    outcome = (compared > 0)
+                elif relation == '>=':
+                    outcome = (compared >= 0)
+                else:
+                    raise BasicAerError('Invalid boolean function relation.')
+
+                # Store outcome in register and optionally memory slot
+                regbit = 1 << cregbit
+                self._classical_register = \
+                    (self._classical_register & (~regbit)) | (int(outcome) << cregbit)
+                if cmembit is not None:
+                    membit = 1 << cmembit
+                    self._classical_memory = \
+                        (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
+            else:
+                backend = self.name()
+                err_msg = '{0} encountered unrecognized operation "{1}"'
+                raise BasicAerError(err_msg.format(backend, operation.name))
+
+        if len(self._substates) != 0:
+            self._substates[0]._run_single_shot(experiment, memory, i + 1)
+            self._substates[1]._run_single_shot(experiment, memory, i + 1)
+        # Add final creg data to memory list
+        if self._number_of_cmembits > 0:
+            if self._sample_measure:
+                # If sampling we generate all shot samples from the final statevector
+                memory = self._add_sample_measure(measure_sample_ops, self._shots)
+            else:
+                # Turn classical_memory (int) into bit string and pad zero for unused cmembits
+                outcome = bin(self._classical_memory)[2:]
+                memory.append(hex(int(outcome, 2)))
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas."""
         n_qubits = qobj.config.n_qubits
