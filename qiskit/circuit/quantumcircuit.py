@@ -400,9 +400,6 @@ class QuantumCircuit:
 
         return instruction
 
-    def _attach(self, instruction, qargs, cargs):
-        """DEPRECATED after 0.8"""
-        self.append(instruction, qargs, cargs)
 
     def add_register(self, *regs):
         """Add registers."""
