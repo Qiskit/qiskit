@@ -17,11 +17,8 @@
 Two-pulse single-qubit gate.
 """
 import numpy
-from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.ubase import UBase
 
 
 class U3Gate(Gate):
@@ -30,15 +27,6 @@ class U3Gate(Gate):
     def __init__(self, theta, phi, lam, label=None):
         """Create new two-pulse single qubit gate."""
         super().__init__("u3", 1, [theta, phi, lam], label=label)
-
-    def _define(self):
-        definition = []
-        q = QuantumRegister(1, "q")
-        rule = [(UBase(self.params[0], self.params[1], self.params[2]), [q[0]],
-                 [])]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate.
@@ -69,4 +57,3 @@ def u3(self, theta, phi, lam, q):
 
 
 QuantumCircuit.u3 = u3
-CompositeGate.u3 = u3

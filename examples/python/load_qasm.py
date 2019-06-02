@@ -19,7 +19,7 @@ from qiskit import QiskitError, execute, BasicAer
 
 try:
     circ = QuantumCircuit.from_qasm_file("examples/qasm/entangled_registers.qasm")
-    print(circ.draw())
+    print(circ)
 
     # See the backend
     sim_backend = BasicAer.get_backend('qasm_simulator')
