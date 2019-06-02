@@ -257,6 +257,18 @@ class QasmSimulatorPy(BaseBackend):
 
     # SSS: Refactor of _add_qasm_measure
     def _update_state_after_measure(self, qubit, cmembit, outcome, probability, cregbit):
+        """Apply a reset instruction to a qubit.
+
+        Args:
+            qubit (int): qubit is the qubit measured.
+            cmembit (int): is the classical memory bit to store outcome in.
+            outcome (int): the outcome of the measurement.
+            probability (int): the probability to have gotten the outcome.
+            cregbit (int, optional): is the classical register bit to store outcome in.
+        This is done by doing a simulating a measurement
+        outcome and projecting onto the outcome state while
+        renormalizing.
+        """    
         # update classical state
         membit = 1 << cmembit
         self._classical_memory = (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
@@ -278,7 +290,7 @@ class QasmSimulatorPy(BaseBackend):
         """Apply a reset instruction to a qubit.
 
         Args:
-            qubit (int): the qubit being rest
+            qubit (int): the qubit being reset
 
         This is done by doing a simulating a measurement
         outcome and projecting onto the outcome state while
@@ -513,11 +525,15 @@ class QasmSimulatorPy(BaseBackend):
         memory = []
         # Check if we can sample measurements, if so we only perform 1 shot
         # and sample all outcomes from the final state vector
+
+        # Store (qubit, cmembit) pairs for all measure ops in circuit to
+        # be sampled
+        # SSS: Moved the assignment into measure_sample_ops out of the condition in order to accomodate the refactor into
+        # _run_single_shot method
+        measure_sample_ops = []
         if self._sample_measure:
             shots = 1
-            # Store (qubit, cmembit) pairs for all measure ops in circuit to
-            # be sampled
-            measure_sample_ops = []
+
         else:
             shots = self._shots
         for _ in range(shots):
@@ -525,9 +541,11 @@ class QasmSimulatorPy(BaseBackend):
             # Initialize classical memory to all 0
             self._classical_memory = 0
             self._classical_register = 0
-            self._run_single_shot(experiment, memory)
+            self._run_single_shot(experiment, memory, measure_sample_ops)
 
-
+        if self._number_of_cmembits > 0 and self._sample_measure:
+            # If sampling we generate all shot samples from the final statevector
+            memory = self._add_sample_measure(measure_sample_ops, self._shots)
         # Add data
         data = {'counts': dict(Counter(memory))}
         # Optionally add memory list
@@ -555,9 +573,17 @@ class QasmSimulatorPy(BaseBackend):
                 'header': experiment.header.as_dict()}
 
     # SSS: Refactored from existing code to allow flexibility
-    def _run_single_shot(self, experiment, memory, currentOpInd = 0):
+    def _run_single_shot(self, experiment, memory, measure_sample_ops, op_idx = 0):
+        """Run a single shot of the experiment circuit.
+
+        Args:
+            experiment (QobjExperiment): experiment from qobj experiments list
+
+        Raises:
+            BasicAerError: if an error occurred.
+        """
         # SSS: Changing to run with index parameter
-        for i in range(currentOpInd, len(experiment.instructions)):
+        for i in range(op_idx, len(experiment.instructions)):
             operation = experiment.instructions[i]
             #for operation in experiment.instructions:
             conditional = getattr(operation, 'conditional', None)
@@ -610,7 +636,7 @@ class QasmSimulatorPy(BaseBackend):
                     # If not sampling perform measurement as normal
                     self._add_qasm_measure(qubit, cmembit, cregbit)
                 # SSS: Checking whether the statevector was split
-                if len(self._substates) != 0:
+                if self.SPLIT_STATES and len(self._substates) != 0:
                     break
             elif operation.name == 'bfunc':
                 mask = int(operation.mask, 16)
@@ -650,9 +676,9 @@ class QasmSimulatorPy(BaseBackend):
                 err_msg = '{0} encountered unrecognized operation "{1}"'
                 raise BasicAerError(err_msg.format(backend, operation.name))
 
-        if len(self._substates) != 0:
-            self._substates[0]._run_single_shot(experiment, memory, i + 1)
-            self._substates[1]._run_single_shot(experiment, memory, i + 1)
+        if self.SPLIT_STATES and len(self._substates) != 0:
+            self._substates[0]._run_single_shot(experiment, memory, measure_sample_ops, op_idx = i + 1)
+            self._substates[1]._run_single_shot(experiment, memory, measure_sample_ops, op_idx = i + 1)
         # Add final creg data to memory list
         if self._number_of_cmembits > 0:
             if self._sample_measure:
@@ -662,6 +688,7 @@ class QasmSimulatorPy(BaseBackend):
                 # Turn classical_memory (int) into bit string and pad zero for unused cmembits
                 outcome = bin(self._classical_memory)[2:]
                 memory.append(hex(int(outcome, 2)))
+    
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas."""
         n_qubits = qobj.config.n_qubits

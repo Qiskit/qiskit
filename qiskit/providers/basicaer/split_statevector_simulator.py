@@ -22,9 +22,9 @@ We advise using the c++ simulator or online simulator for larger size systems.
 
 The input is a qobj dictionary and the output is a Result object.
 
-The input qobj to this simulator has no shots, no measures, no reset, no noise.
+The input qobj to this simulator has no shots, no reset, no noise.
 
-The data object of the result is a dictionary containing a binary tree data structure for the different splits
+The final result is a dictionary containing a binary tree data structure for the different splits, kept under statevector_tree
 """
 
 import logging
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 
 class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
-    """Python statevector simulator."""
+    """Python split statevector simulator."""
 
     # TODO: Set a memory bound which depends on the amount of measurements as well
     MAX_QUBITS_MEMORY = int(log2(local_hardware_info()['memory'] * (1024 ** 3) / 16))
@@ -141,11 +141,14 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         return super().run(qobj, backend_options=backend_options)
 
     # SSS: Getting only the desired result (0 or 1)
-    def _get_single_outcome(self, qubit, wantedState):
-        """Simulate the outcome of measurement of a qubit.
+    def _get_single_outcome(self, qubit, wanted_state):
+        """Simulate the outcome of a determined measurement of a qubit. 
+        This function mainly exists to perserve the existing function division, 
+        replacing _get_measure_outcome which is called for the other simulators
 
         Args:
             qubit (int): the qubit to measure
+            wanted_state (int): the outcome state to return
 
         Return:
             tuple: pair (outcome, probability) where outcome is '0' or '1' and
@@ -157,9 +160,20 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         probabilities = np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis))
         # Compute einsum index string for 1-qubit matrix multiplication
 
-        return str(wantedState), probabilities[wantedState]
+        return str(wanted_state), probabilities[wanted_state]
 
     def _split_statevector(self, qubit, probabilities, cmembit, cregbit=None):
+        """Split the statevector into two substates corresponding to the two measurement options.
+
+        Args:
+            qubit (int): the measured qubit
+            probabilities (list[float]): the probabilities of measuring 0 or 1
+            cmembit (int): the classical memory bit to store outcome in.
+            cregbit (int, optional): is the classical register bit to store outcome in.
+
+        Raises:
+            BasicAerError: if an error occurred.
+        """
         # Getting the data for each split possibility
         outcome0, probability0 = self._get_single_outcome(qubit, 0)
         outcome1, probability1 = self._get_single_outcome(qubit, 1)
@@ -176,6 +190,41 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         self._substates[1]._update_state_after_measure(qubit, cmembit, outcome1, probability1, cregbit)
 
     def _generate_data(self):
+        """Run an experiment (circuit) and return a single experiment result.
+
+        Args:
+            experiment (QobjExperiment): experiment from qobj experiments list
+
+        Returns:
+             data: A result dictionary in the form of a binary tree which looks something like::
+
+                {
+                "value": The statevector of the state at the first measurement
+                "prob_0": The probability to get a measurement of 0 at the first measurement
+                "prob_1": The probability to get a measurement of 1 at the first measurement
+                "path_0": 
+                    {
+                        "value": The statevector evolved from result 0 in the first measurement,
+                                 at the second measurement or at the end of the circuit
+                        "prob_0": The probability to get a measurement of 0 at the second measurement
+                        "prob_1": The probability to get a measurement of 1 at the second measurement
+                        "path_0":
+                            {
+                                ...
+                            }
+                        "path_1":
+                            {
+                                ...
+                            }
+                    }
+                "path_1":
+                    {
+                        ...
+                    }
+                }
+        Raises:
+            BasicAerError: if an error occurred.
+        """    
         if len(self._substates) != 0:
             data = {'value': self._get_statevector(),
                     'path_0': self._substates[0]._generate_data(), 'path_0_probability': self._substate_probabilities[0],

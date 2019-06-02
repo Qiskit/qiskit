@@ -15,7 +15,7 @@
 """Reference circuits used by the tests."""
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
-
+import math
 
 class ReferenceCircuits:
     """Container for reference circuits used by the tests."""
@@ -36,8 +36,47 @@ class ReferenceCircuits:
     def bell_no_measure():
         """Return a Bell circuit."""
         qr = QuantumRegister(2, name='qr')
-        qc = QuantumCircuit(qr, name='bell_no_measure')
+        cr = ClassicalRegister(2, name='cr')
+        qc = QuantumCircuit(qr, cr, name='bell_no_measure')
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
+
+        return qc
+
+    @staticmethod
+    def h_measure_h():
+        """Return circuit with two Hadamard gates and a measurement in between."""
+        qr = QuantumRegister(2, name='qr')
+        cr = ClassicalRegister(2, name='cr')
+        qc = QuantumCircuit(qr, cr, name='h_measure_h')
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+        qc.h(qr[0])
+
+        return qc
+
+    @staticmethod
+    def h_measure_h_double():
+        """Return circuit with two Hadamard gates and a measurement after each one."""
+        qr = QuantumRegister(2, name='qr')
+        cr = ClassicalRegister(2, name='cr')
+        qc = QuantumCircuit(qr, cr, name='h_measure_h_double')
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])        
+        qc.h(qr[0])
+        qc.measure(qr[0], cr[0])
+
+        return qc
+
+    @staticmethod
+    def rx_measure_rx():
+        """Return circuit with two R_x(pi/3) gates and a measurement after each one."""
+        qr = QuantumRegister(2, name='qr')
+        cr = ClassicalRegister(2, name='cr')
+        qc = QuantumCircuit(qr, cr, name='rx_measure_rx')
+        qc.rx(math.pi/3, qr[0])
+        qc.measure(qr[0], cr[0])        
+        qc.rx(math.pi/3, qr[0])
+        qc.measure(qr[0], cr[0])
 
         return qc
