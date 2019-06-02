@@ -94,7 +94,7 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         ]
     }
 
-    # SSS: This should be set to True to use multiverse reperesentation for measurments
+    # This should be set to True to use the split statevector reperesentation for measurments
     SPLIT_STATES = True
 
     
@@ -102,7 +102,7 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         super().__init__(configuration=(
             configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
-        # SSS: Substates field will contain 2 sons to split the statevector into two (parallel universe) statevectors.
+        # _substates field will contain 2 statevectors corresponding to measurement results 0 and 1
         self._substates = []
         self._substate_probabilities = []
 
@@ -140,7 +140,6 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         """
         return super().run(qobj, backend_options=backend_options)
 
-    # SSS: Getting only the desired result (0 or 1)
     def _get_single_outcome(self, qubit, wanted_state):
         """Simulate the outcome of a determined measurement of a qubit. 
         This function mainly exists to perserve the existing function division, 

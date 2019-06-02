@@ -113,7 +113,7 @@ class QasmSimulatorPy(BaseBackend):
     # This should be set to True for the statevector simulator
     SHOW_FINAL_STATE = False
 
-    # SSS: Class level variable to determine whether to split the statevector upon measurement
+    # Class level variable to determine whether to split the statevector upon measurement
     # This should be set to True for the split_statevector_simulator
     SPLIT_STATES = False
 
@@ -242,22 +242,20 @@ class QasmSimulatorPy(BaseBackend):
             cmembit (int): is the classical memory bit to store outcome in.
             cregbit (int, optional): is the classical register bit to store outcome in.
         """
-        # SSS: Checking whether the probabilities are nonzero in order to run the split
+        # Checking whether the probabilities are nonzero in order to run the split
         axis = list(range(self._number_of_qubits))
         axis.remove(self._number_of_qubits - 1 - qubit)
         probabilities = np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis))
         if (self.SPLIT_STATES and probabilities[0] != 0 and probabilities[1] != 0):
             self._split_statevector(qubit, probabilities, cmembit, cregbit)
         else:
-            # SSS: moved this part into the refactored function _update_after_measure
             # get measure outcome
             outcome, probability = self._get_measure_outcome(qubit)
             # update classical state
             self._update_state_after_measure(qubit, cmembit, outcome, probability, cregbit)
 
-    # SSS: Refactor of _add_qasm_measure
     def _update_state_after_measure(self, qubit, cmembit, outcome, probability, cregbit):
-        """Apply a reset instruction to a qubit.
+        """Update the statevector to the collapsed measured state.
 
         Args:
             qubit (int): qubit is the qubit measured.
@@ -472,7 +470,6 @@ class QasmSimulatorPy(BaseBackend):
 
         return Result.from_dict(result)
 
-    # SSS: Refactored _run_single_shot
     def run_experiment(self, experiment):
         """Run an experiment (circuit) and return a single experiment result.
 
@@ -528,12 +525,9 @@ class QasmSimulatorPy(BaseBackend):
 
         # Store (qubit, cmembit) pairs for all measure ops in circuit to
         # be sampled
-        # SSS: Moved the assignment into measure_sample_ops out of the condition in order to accomodate the refactor into
-        # _run_single_shot method
         measure_sample_ops = []
         if self._sample_measure:
             shots = 1
-
         else:
             shots = self._shots
         for _ in range(shots):
@@ -572,7 +566,6 @@ class QasmSimulatorPy(BaseBackend):
                 'time_taken': (end - start),
                 'header': experiment.header.as_dict()}
 
-    # SSS: Refactored from existing code to allow flexibility
     def _run_single_shot(self, experiment, memory, measure_sample_ops, op_idx = 0):
         """Run a single shot of the experiment circuit.
 
@@ -582,7 +575,6 @@ class QasmSimulatorPy(BaseBackend):
         Raises:
             BasicAerError: if an error occurred.
         """
-        # SSS: Changing to run with index parameter
         for i in range(op_idx, len(experiment.instructions)):
             operation = experiment.instructions[i]
             #for operation in experiment.instructions:
@@ -635,7 +627,7 @@ class QasmSimulatorPy(BaseBackend):
                 else:
                     # If not sampling perform measurement as normal
                     self._add_qasm_measure(qubit, cmembit, cregbit)
-                # SSS: Checking whether the statevector was split
+                # Checking whether the statevector was split
                 if self.SPLIT_STATES and len(self._substates) != 0:
                     break
             elif operation.name == 'bfunc':
