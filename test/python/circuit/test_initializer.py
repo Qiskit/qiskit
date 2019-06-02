@@ -210,6 +210,25 @@ class TestInitialize(QiskitTestCase):
             QiskitError,
             qc.initialize, desired_vector, [qr[0], qr[1]])
 
+    def test_wrong_vector_size(self):
+        """Initializing to a vector with a size different to the qubit parameter length.
+        See https://github.com/Qiskit/qiskit-terra/issues/2372 """
+        qr = QuantumRegister(2)
+
+        random_state = [
+            1 / math.sqrt(4) * complex(0, 1),
+            1 / math.sqrt(8) * complex(1, 0),
+            0,
+            1 / math.sqrt(8) * complex(1, 0),
+            1 / math.sqrt(8) * complex(0, 1),
+            0,
+            1 / math.sqrt(4) * complex(1, 0),
+            1 / math.sqrt(8) * complex(1, 0)]
+
+        qc = QuantumCircuit(qr)
+
+        self.assertRaises(QiskitError, qc.initialize, random_state, qr[0:2])
+
     def test_initialize_middle_circuit(self):
         """Reset + initialize gives the correct statevector."""
         desired_vector = [0.5, 0.5, 0.5, 0.5]
