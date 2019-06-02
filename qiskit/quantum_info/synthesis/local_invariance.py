@@ -21,6 +21,13 @@ import numpy as np
 
 INVARIANT_TOL = 1e-12
 
+# Bell "Magic" basis
+MAGIC = 1.0/sqrt(2)*np.array([
+    [1, 0, 0, 1j],
+    [0, 1j, -1, 0],
+    [0, 1j, 1, 0],
+    [1, 0, 0, -1j]], dtype=complex)
+
 
 def two_qubit_local_invariants(U):
     """Computes the local invarants for a two qubit unitary.
@@ -42,15 +49,8 @@ def two_qubit_local_invariants(U):
     if U.shape != (4, 4):
         raise ValueError('Unitary must correspond to a two qubit gate.')
 
-    # Bell "Magic" basis
-    magic = 1.0/sqrt(2)*np.array([
-        [1, 0, 0, 1j],
-        [0, 1j, -1, 0],
-        [0, 1j, 1, 0],
-        [1, 0, 0, -1j]], dtype=complex)
-
     # Transform to bell basis
-    Um = magic.conj().T.dot(U.dot(magic))
+    Um = MAGIC.conj().T.dot(U.dot(MAGIC))
     # Get determinate since +- one is allowed.
     det_um = np.linalg.det(Um)
     M = Um.T.dot(Um)
