@@ -22,7 +22,8 @@ The format is based on `Keep a Changelog`_.
 Deprecated
 ----------
 
-- The gates `U` and `CX` are being deprecated in favor of `u3` and `cx`.
+- The gates ``U`` and ``CX`` are being deprecated in favor of ``u3`` and ``cx``.
+- The decorator ``requires_qe_access`` is being deprecated in favor of ``online_test``.
 
 Added
 -----
@@ -40,6 +41,8 @@ Changed
 - When adding a register to a circuit, an error will now be raised if a register
   of the same name is already present. Previously, an error would only be raised
   if the same register was added twice.
+- Qubits and classical bits are not represented as a tuples anymore, but as
+  instances of ``Qubit`` and ``Clbit`` respectively.
 
 Removed
 -------

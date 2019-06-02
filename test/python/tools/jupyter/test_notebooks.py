@@ -20,7 +20,7 @@ import unittest
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from qiskit.tools.visualization import HAS_MATPLOTLIB
-from qiskit.test import (Path, QiskitTestCase, requires_qe_access, slow_test)
+from qiskit.test import (Path, QiskitTestCase, online_test, slow_test)
 
 
 # Timeout (in seconds) for a single notebook.
@@ -64,7 +64,7 @@ class TestJupyter(QiskitTestCase):
             'notebooks/test_pbar_status.ipynb'))
 
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @requires_qe_access
+    @online_test
     @slow_test
     def test_backend_tools(self, qe_token, qe_url):
         """Test Jupyter backend tools."""
