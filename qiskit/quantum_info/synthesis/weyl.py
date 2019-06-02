@@ -88,25 +88,6 @@ def weyl_coordinates(U):
     test2 = (weyl[0] >= 0.5 and weyl[1] <= 1 - weyl[0]) and weyl[2] <= weyl[1]
     if not (test1 or test2):
         raise ValueError('Point ({}, {}, {}) not in Weyl chamber.'
-                         .format(np.pi*weyl[0], np.pi*weyl[1], np.pi*weyl[2]))
+                         .format(np.pi*weyl[0]/2, np.pi*weyl[1]/2, np.pi*weyl[2]/2))
 
-    return (np.round(weyl, 12) + 0.0)*np.pi
-
-
-def local_equivalence(weyl):
-    """Computes the equivalent local invariants from the
-    Weyl coordinates.
-
-    Args:
-        weyl (ndarray): Weyl coordinates.
-
-    Returns:
-        ndarray: Local equivalent coordinates [g0, g1, g3].
-
-    Notes:
-        This uses Eq. 30 from Zhang et al, PRA 67, 042313 (2003).
-    """
-    g0_equiv = np.prod(np.cos(weyl)**2)-np.prod(np.sin(weyl)**2)
-    g1_equiv = np.prod(np.sin(2*weyl))/4
-    g2_equiv = 4*np.prod(np.cos(weyl)**2)-4*np.prod(np.sin(weyl)**2)-np.prod(np.cos(2*weyl))
-    return np.round([g0_equiv, g1_equiv, g2_equiv], 12) + 0.0
+    return (np.round(weyl, 12) + 0.0)*np.pi/2.0

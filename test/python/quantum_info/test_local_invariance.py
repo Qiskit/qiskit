@@ -23,7 +23,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.synthesis.local_invariance import (two_qubit_local_invariants,
-                                                            maximally_entangling,
+                                                            is_perfect_entangler,
                                                             cx_equivalence)
 
 
@@ -181,26 +181,26 @@ class TestLocalInvariance(QiskitTestCase):
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
         U = execute(qc, sim).result().get_unitary()
-        self.assertFalse(maximally_entangling(U))
+        self.assertFalse(is_perfect_entangler(U))
 
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
         qc.cx(qr[1], qr[0])
         U = execute(qc, sim).result().get_unitary()
-        self.assertTrue(maximally_entangling(U))
+        self.assertTrue(is_perfect_entangler(U))
 
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
         qc.cx(qr[1], qr[0])
         qc.cx(qr[0], qr[1])
         U = execute(qc, sim).result().get_unitary()
-        self.assertTrue(maximally_entangling(U))
+        self.assertTrue(is_perfect_entangler(U))
 
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
         qc.swap(qr[1], qr[0])
         U = execute(qc, sim).result().get_unitary()
-        self.assertFalse(maximally_entangling(U))
+        self.assertFalse(is_perfect_entangler(U))
 
 
 if __name__ == '__main__':

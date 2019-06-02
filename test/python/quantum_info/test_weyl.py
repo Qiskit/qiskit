@@ -20,15 +20,50 @@ import unittest
 import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis.weyl import weyl_coordinates, local_equivalence
-from qiskit.quantum_info.synthesis.local_invariance import two_qubit_local_invariants
+from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
+from qiskit.quantum_info.synthesis.local_invariance import (two_qubit_local_invariants,
+                                                            local_equivalence)
 
 
 class TestWeyl(QiskitTestCase):
     """Test Weyl coordinate routines"""
 
-    def test_weyl_coordinates(self):
-        """Randomly check Weyl coordinates math local invariants.
+    def test_weyl_coordinates_simple(self):
+        """Check Weyl coordinates against known cases.
+        """
+        # Identity [0,0,0]
+        U = np.identity(4)
+        weyl = weyl_coordinates(U)
+        self.assertTrue(np.allclose(weyl, [0, 0, 0]))
+
+        # CNOT [pi/4, 0, 0]
+        U = np.array([[1, 0, 0, 0],
+                      [0, 0, 0, 1],
+                      [0, 0, 1, 0],
+                      [0, 1, 0, 0]], dtype=complex)
+        weyl = weyl_coordinates(U)
+        self.assertTrue(np.allclose(weyl, [np.pi/4, 0, 0]))
+
+        # SWAP [pi/4, pi/4 ,pi/4]
+        U = np.array([[1, 0, 0, 0],
+                      [0, 0, 1, 0],
+                      [0, 1, 0, 0],
+                      [0, 0, 0, 1]], dtype=complex)
+
+        weyl = weyl_coordinates(U)
+        self.assertTrue(np.allclose(weyl, [np.pi/4, np.pi/4, np.pi/4]))
+
+        # SQRT ISWAP [pi/8, pi/8, 0]
+        U = np.array([[1, 0, 0, 0],
+                      [0, 1/np.sqrt(2), 1j/np.sqrt(2), 0],
+                      [0, 1j/np.sqrt(2), 1/np.sqrt(2), 0],
+                      [0, 0, 0, 1]], dtype=complex)
+
+        weyl = weyl_coordinates(U)
+        self.assertTrue(np.allclose(weyl, [np.pi/8, np.pi/8, 0]))
+
+    def test_weyl_coordinates_random(self):
+        """Randomly check Weyl coordinates with local invariants.
         """
         for _ in range(10):
             U = random_unitary(4).data
