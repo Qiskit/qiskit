@@ -57,6 +57,12 @@ Removed
 - The logging tools in ``qiskit.tools.logging`` are removed. (#2387)
 - The ``qiskit.qiskiterror`` module has been removed. Please use
   ``qiskit.exceptions`` instead. (#2399)
+- Removed previously deprecated DAGCircuit methods (#2542)
+- Removed ``CompositeGate`` class, in favor of adding Instruction objects directly (#2543)
+
+Fixed
+-----
+-  Possible to decompose SU(4) gate into non-CNOT basis with ``TwoQubitDecomposer``
 
 
 `0.8.0`_ - 2019-05-02

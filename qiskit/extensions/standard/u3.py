@@ -17,7 +17,6 @@
 Two-pulse single-qubit gate.
 """
 import numpy
-from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 
@@ -58,4 +57,3 @@ def u3(self, theta, phi, lam, q):
 
 
 QuantumCircuit.u3 = u3
-CompositeGate.u3 = u3
