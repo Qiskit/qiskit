@@ -109,4 +109,4 @@ def local_equivalence(weyl):
     g0_equiv = np.prod(np.cos(weyl)**2)-np.prod(np.sin(weyl)**2)
     g1_equiv = np.prod(np.sin(2*weyl))/4
     g2_equiv = 4*np.prod(np.cos(weyl)**2)-4*np.prod(np.sin(weyl)**2)-np.prod(np.cos(2*weyl))
-    return np.array([g0_equiv, g1_equiv, g2_equiv])
+    return np.round([g0_equiv, g1_equiv, g2_equiv], 12) + 0.0
