@@ -81,15 +81,6 @@ class TestDagRegisters(QiskitTestCase):
         cr = ClassicalRegister(2)
         self.assertRaises(DAGCircuitError, dag.add_qreg, cr)
 
-    def test_rename_register(self):
-        """The rename_register() method. """
-        dag = DAGCircuit()
-        qr = QuantumRegister(2, 'qr')
-        dag.add_qreg(qr)
-        dag.rename_register('qr', 'v')
-        self.assertTrue('v' in dag.qregs)
-        self.assertEqual(dag.qregs['v'], qr)
-
 
 class TestDagOperations(QiskitTestCase):
     """Test ops inside the dag"""

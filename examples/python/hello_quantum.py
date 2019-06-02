@@ -15,7 +15,7 @@
 """Example used in the README. In this example a Bell state is made."""
 
 # Import Qiskit
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
+from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, IBMQ, BasicAer
 from qiskit.providers.ibmq import least_busy
 
@@ -28,20 +28,16 @@ except:
              For now, there's only access to local simulator backends...""")
 
 try:
-    # Create a Quantum Register with 2 qubits.
-    q = QuantumRegister(2)
-    # Create a Classical Register with 2 bits.
-    c = ClassicalRegister(2)
     # Create a Quantum Circuit
-    qc = QuantumCircuit(q, c)
+    qc = QuantumCircuit(2, 2)
 
     # Add a H gate on qubit 0, putting this qubit in superposition.
-    qc.h(q[0])
+    qc.h(0)
     # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
     # the qubits in a Bell state.
-    qc.cx(q[0], q[1])
+    qc.cx(0, 1)
     # Add a Measure gate to see the state.
-    qc.measure(q, c)
+    qc.measure([0, 1], [0, 1])
 
     # See a list of available local simulators
     print("BasicAer backends: ", BasicAer.backends())
