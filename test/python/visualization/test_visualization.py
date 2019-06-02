@@ -17,8 +17,6 @@
 import os
 import logging
 import unittest
-from inspect import signature
-import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit.random import random_circuit

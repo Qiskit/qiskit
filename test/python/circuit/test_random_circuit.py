@@ -19,7 +19,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import random_circuit
 from qiskit.converters import circuit_to_dag
-from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
 
 

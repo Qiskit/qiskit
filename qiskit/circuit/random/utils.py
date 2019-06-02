@@ -18,9 +18,14 @@ from inspect import signature
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.circuit import Measure, Reset
-from qiskit.extensions import *
-from qiskit.test import QiskitTestCase
+from qiskit.circuit import Reset
+from qiskit.extensions import (IdGate, U0Gate, U1Gate, U2Gate, U3Gate, XGate,
+                               YGate, ZGate, HGate, SGate, SdgGate, TGate,
+                               TdgGate, RXGate, RYGate, RZGate, CnotGate,
+                               CyGate, CzGate, CHGate, CrzGate, Cu1Gate,
+                               Cu3Gate, SwapGate, RZZGate,
+                               ToffoliGate, FredkinGate)
+from qiskit.exceptions import QiskitError
 
 
 def random_circuit(width, depth, max_operands=3, measure=False,
@@ -38,6 +43,9 @@ def random_circuit(width, depth, max_operands=3, measure=False,
 
     Returns:
         QuantumCircuit: constructed circuit
+
+    Raises:
+        QiskitError: when invalid options given
     """
     if max_operands < 1 or max_operands > 3:
         raise QiskitError("max_operands must be between 1 and 3")
