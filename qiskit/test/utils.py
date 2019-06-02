@@ -33,8 +33,6 @@ class Path(Enum):
     EXAMPLES = os.path.normpath(os.path.join(SDK, '..', 'examples'))
     # Schemas path:     qiskit/schemas
     SCHEMAS = os.path.normpath(os.path.join(SDK, 'schemas'))
-    # VCR cassettes path: qiskit/test/cassettes/
-    CASSETTES = os.path.normpath(os.path.join(TEST, '..', 'cassettes'))
     # Sample QASMs path: qiskit/test/python/qasm
     QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
 
