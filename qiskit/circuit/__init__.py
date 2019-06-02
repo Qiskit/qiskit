@@ -21,6 +21,5 @@ from .instruction import Instruction
 from .instructionset import InstructionSet
 from .measure import Measure
 from .reset import Reset
-from .compositegate import CompositeGate
 from .parameter import Parameter
 from .parametervector import ParameterVector
