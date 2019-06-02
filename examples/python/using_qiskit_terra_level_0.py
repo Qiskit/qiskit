@@ -26,7 +26,7 @@ as a level 1 user.
 import time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister, QiskitError
+from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, IBMQ, BasicAer
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
@@ -40,20 +40,17 @@ except:
              For now, there's only access to local simulator backends...""")
 
 try:
-    # Create a Quantum and Classical Register.
-    qubit_reg = QuantumRegister(2)
-    clbit_reg = ClassicalRegister(2)
 
     # making first circuit: bell state
-    qc1 = QuantumCircuit(qubit_reg, clbit_reg)
-    qc1.h(qubit_reg[0])
-    qc1.cx(qubit_reg[0], qubit_reg[1])
-    qc1.measure(qubit_reg, clbit_reg)
+    qc1 = QuantumCircuit(2, 2)
+    qc1.h(0)
+    qc1.cx(0, 1)
+    qc1.measure([0,1], [0,1])
 
     # making another circuit: superpositions
-    qc2 = QuantumCircuit(qubit_reg, clbit_reg)
-    qc2.h(qubit_reg)
-    qc2.measure(qubit_reg, clbit_reg)
+    qc2 = QuantumCircuit(2, 2)
+    qc2.h([0,1])
+    qc2.measure([0,1], [0,1])
 
     # setting up the backend
     print("(BasicAER Backends)")
