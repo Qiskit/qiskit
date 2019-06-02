@@ -240,6 +240,11 @@ class Initialize(Instruction):
 
     def broadcast_arguments(self, qargs, cargs):
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+
+        if self.num_qubits != len(flat_qargs):
+            raise QiskitError("Initialize parameter vector has %d elements, therefore expects %s "
+                              "qubits. However, %s were provided." %
+                              (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
         yield flat_qargs, []
 
 
