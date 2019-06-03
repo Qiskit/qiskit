@@ -97,12 +97,9 @@ def _get_credentials(test_object, test_options):
         raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
                                 'and is required for executing online tests.')
 
-    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', ''):
-        # Special case: instead of using the standard credentials mechanism,
-        # load them from different environment variables. This assumes they
-        # will always be in place, as is used by the Travis setup.
+    if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
         return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
-    else:
+    elif os.getenv('QISKIT_TESTS_USE_CREDENTIALS_FILE'):
         # Attempt to read the standard credentials.
         discovered_credentials = discover_credentials()
 

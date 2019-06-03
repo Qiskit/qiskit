@@ -190,27 +190,34 @@ Windows:
     C:\..\> set LOG_LEVEL="INFO"
     C:\..\> python -m unittest test/python/circuit/test_circuit_operations.py
 
-Note many of the tests will not be executed unless you have setup an IBMQ
-account. To set this up please go to this
-`page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and
-register an account.
+Online Tests
+''''''''''''
 
-By default if no user credentials are available the tests are skipped. But,
-if user credentials are found, in that cases it use them to make the network
-requests.
+Some tests require that you an IBMQ account configured. By default these tests
+are always skipped. If you want to run these tests locally please go to this
+`page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and
+register an account. Then you can either set the credentials explicitly with
+the ``IBMQ_TOKEN`` and ``IBMQ_URL`` environment variables to specify the token
+and url respectively for the ibmq service. Alternatively, if you already have
+a single set of credentials configured in your environment (using a qiskitrc)
+then you can just set ``QISKIT_TESTS_USE_CREDENTIALS_FILE`` to ``1`` and it
+will use that.
+
+Test Skip Options
+'''''''''''''''''
 
 How and which tests are executed is controlled by an environment variable,
 ``QISKIT_TESTS``:
 
-+-----------------+--------------------------------------------------------------------------------------------------------------------+-----------+
-|  Option         | Description                                                                                                        | Default   |
-+=================+====================================================================================================================+===========+
-| ``skip_online`` | Skips tests that require remote requests (also, no mocked information is used). Does not require user credentials. | ``False`` |
-+-----------------+--------------------------------------------------------------------------------------------------------------------+-----------+
-| ``run_slow``    | It runs tests tagged as *slow*.                                                                                    | ``False`` |
-+-----------------+--------------------------------------------------------------------------------------------------------------------+-----------+
++-----------------+------------------------------------------------------------------------------+-----------+
+|  Option         | Description                                                                  | Default   |
++=================+==============================================================================+===========+
+| ``skip_online`` | Skips tests that require remote requests. Does not require user credentials. | ``False`` |
++-----------------+------------------------------------------------------------------------------+-----------+
+| ``run_slow``    | It runs tests tagged as *slow*.                                              | ``False`` |
++-----------------+------------------------------------------------------------------------------+-----------+
 
-It is possible to provide more than one option separated with commas.
+It is possible to provide more than one option separated with commas. If
 
 Alternatively, the ``make test_ci`` target can be used instead of ``make test``
 in order to run in a setup that replicates the configuration we used in our
