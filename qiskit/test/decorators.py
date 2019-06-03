@@ -108,8 +108,8 @@ def _get_credentials(test_object, test_options):
             if len(discovered_credentials) > 1:
                 raise unittest.SkipTest(
                     "More than 1 credential set found, use: "
-                    "'USE_ALTERNATE_ENV_CREDENTIALS' with IBMQ_TOKEN and "
-                    "IBMQ_URL to set credentials explicitly")
+                    "IBMQ_TOKEN and IBMQ_URL env variables to "
+                    "set credentials explicitly")
 
             # Use the first available credentials.
             return list(discovered_credentials.values())[0]
