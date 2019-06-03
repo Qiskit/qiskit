@@ -29,6 +29,7 @@ together by using ``bind_schema``::
     class Person(BaseModel):
         pass
 """
+import warnings
 
 from functools import wraps
 from types import SimpleNamespace, MethodType
@@ -355,6 +356,8 @@ class BaseModel(SimpleNamespace):
 
     def as_dict(self):
         """Serialize the model into a Python dict of simple types."""
+        warnings.warn('The as_dict() method is deprecated, use to_dict().',
+                      DeprecationWarning)
         return self.to_dict()
 
 
