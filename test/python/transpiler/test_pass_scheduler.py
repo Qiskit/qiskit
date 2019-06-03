@@ -601,7 +601,7 @@ class TestDumpPasses(SchedulerTestCase):
 
 
 class TestLogPasses(QiskitTestCase):
-    """ Testing the log_passes option """
+    """Testing the log_passes option."""
 
     def setUp(self):
         self.circuit = QuantumCircuit(QuantumRegister(1))

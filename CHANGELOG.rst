@@ -47,7 +47,6 @@ Changed
   if the same register was added twice.
 - Qubits and classical bits are not represented as a tuples anymore, but as
   instances of ``Qubit`` and ``Clbit`` respectively.
->>>>>>> 7af9434d5d24501a8bf0bc3ac88a9045bfb12ebd
 
 Removed
 -------
