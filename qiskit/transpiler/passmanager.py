@@ -228,6 +228,7 @@ class PassManager():
 
 class PassManagerContext:
     """ A wrap around the execution of a pass."""
+
     def __init__(self, pm_instance, pass_instance):
         self.pm_instance = pm_instance
         self.pass_instance = pass_instance
@@ -244,7 +245,9 @@ class PassManagerContext:
                 'name': self.pass_instance.name(),
                 'start_time': self.start_time,
                 'end_time': end_time,
-                'running_time': end_time - self.start_time
+                'running_time': end_time - self.start_time,
+                'formatted_time': "%s: %.5f (ms)" % (self.pass_instance.name(),
+                                                   (end_time - self.start_time) * 1000)
             }
             if self.pm_instance.property_set['pass_log'] is None:
                 self.pm_instance.property_set['pass_log'] = []
