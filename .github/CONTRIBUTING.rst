@@ -195,12 +195,12 @@ account. To set this up please go to this
 `page <https://quantumexperience.ng.bluemix.net/qx/account/advanced>`_  and
 register an account.
 
-By default, and if there is no user credentials available.  If user credentials
-are found, in that cases it use them to make the network requests.
+By default if no user credentials are available the tests are skipped. But,
+if user credentials are found, in that cases it use them to make the network
+requests.
 
-How and which tests are executed is controlled by a environment variable
-``QISKIT_TESTS``. The options are (where ``uc_available = True`` if the user
-credentials are available, and ``False`` otherwise):
+How and which tests are executed is controlled by an environment variable,
+``QISKIT_TESTS``:
 
 +-----------------+--------------------------------------------------------------------------------------------------------------------+-----------+
 |  Option         | Description                                                                                                        | Default   |
@@ -211,7 +211,6 @@ credentials are available, and ``False`` otherwise):
 +-----------------+--------------------------------------------------------------------------------------------------------------------+-----------+
 
 It is possible to provide more than one option separated with commas.
-The order of precedence in the options is right to left.
 
 Alternatively, the ``make test_ci`` target can be used instead of ``make test``
 in order to run in a setup that replicates the configuration we used in our
