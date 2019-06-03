@@ -611,13 +611,19 @@ class TestLogPasses(QiskitTestCase):
         passmanager.property_set['pass_log'] match list_of_passes (the names)."""
         transpile(self.circuit, pass_manager=passmanager)
 
-        current_names = [pass_log['name'] for pass_log in passmanager.property_set['pass_log']]
+        current_names = [pass_log['name'] for pass_log in passmanager.property_set['pass_raw_log']]
         self.assertEqual(current_names, list_of_passes)
 
         # All the passes run under the second
         current_running_time = [pass_log['running_time'] < 1 for pass_log in
-                                passmanager.property_set['pass_log']]
+                                passmanager.property_set['pass_raw_log']]
         self.assertTrue(all(current_running_time))
+
+        # The formatted property_set['pass_log']
+        formatted_log = [
+            "%s: %.5f (ms)" % (pass_raw_log['name'], (pass_raw_log['running_time']) * 1000) for
+            pass_raw_log in passmanager.property_set['pass_raw_log']]
+        self.assertEqual(passmanager.property_set['pass_log'], formatted_log)
 
     def test_passes(self):
         """Dump passes in different FlowControllerLinear"""
