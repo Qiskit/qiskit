@@ -25,7 +25,6 @@ environment:
           CIBW_BEFORE_BUILD: pip install -U Cython
           CIBW_SKIP: cp27-* cp34-*
           TWINE_USERNAME: qiskit
-          TWINE_REPOSITORY_URL: https://test.pypi.org/legacy/
           CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
           TAG_SCENARIO: true
 

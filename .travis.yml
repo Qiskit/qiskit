@@ -97,7 +97,6 @@ jobs:
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       if: tag IS present
@@ -112,7 +111,6 @@ jobs:
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       script:
