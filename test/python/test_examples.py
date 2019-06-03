@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 # pylint: disable=invalid-name
 
+"""Test examples scripts."""
+
 import os
 import subprocess
 import sys
@@ -20,9 +22,6 @@ import sys
 import ddt
 
 from qiskit.test import QiskitTestCase, online_test
-
-"""Test examples scripts."""
-
 
 examples_dir = os.path.abspath(os.path.join(
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
@@ -36,14 +35,15 @@ if os.path.isdir(examples_dir):
 
 if os.path.isdir(ibmq_examples_dir):
     ibmq_examples = [
-        x for x in os.listdir(ibmq_examples_dir) if  x.endswith('.py')]
+        x for x in os.listdir(ibmq_examples_dir) if x.endswith('.py')]
+
 
 @ddt.ddt
 class TestPythonExamples(QiskitTestCase):
-
+    """Test example scripts"""
     @ddt.data(*examples)
     def test_all_examples(self, example):
-        """Execute the example python file and pass if it returns 0"""
+        """Execute the example python files and pass if it returns 0."""
         example_path = os.path.join(examples_dir, example)
         cmd = [sys.executable, example_path]
         run_example = subprocess.Popen(cmd, stdout=subprocess.PIPE,
@@ -57,7 +57,8 @@ class TestPythonExamples(QiskitTestCase):
     @online_test
     @ddt.data(*ibmq_examples)
     def test_all_ibmq_examples(self, example, qe_token, qe_url):
-        from qiskit import IBMQ # pylint: disable: import-error
+        """Execute the ibmq example python files and pass if it returns 0."""
+        from qiskit import IBMQ  # pylint: disable: import-error
         IBMQ.save_account(qe_token, qe_url)
         self.addCleanup(IBMQ.delete_accounts, token=qe_token, url=qe_url)
         example_path = os.path.join(ibmq_examples_dir, example)
