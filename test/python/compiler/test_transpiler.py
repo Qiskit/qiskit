@@ -28,6 +28,7 @@ from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.circuit import Parameter
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class TestTranspile(QiskitTestCase):
@@ -590,3 +591,15 @@ class TestTranspile(QiskitTestCase):
         dag_circuit = circuit_to_dag(circuit)
         resources_after = dag_circuit.count_ops()
         self.assertEqual({'u3': 1}, resources_after)
+
+    def test_check_circuit_width(self):
+        """Verify transpilation of circuit with virtual qubits greater than physical qubits raises error"""
+        cmap = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
+                [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
+                [11, 3], [11, 10], [11, 12], [12, 2], [13, 1], [13, 12]]
+        
+        qc = QuantumCircuit(17, 17)
+
+        with self.assertRaises(TranspilerError):
+            transpile(qc, coupling_map=cmap)
+
