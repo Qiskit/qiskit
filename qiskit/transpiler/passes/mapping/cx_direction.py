@@ -18,6 +18,7 @@ compatible with the coupling_map.
 """
 from math import pi
 
+from qiskit.circuit import QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
@@ -64,8 +65,8 @@ class CXDirection(TransformationPass):
         new_dag = DAGCircuit()
 
         if self.layout is None:
-            # LegacySwap renames the register in the DAG and does not match the property set
-            self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
+            # LegacySwap renames the register into a flat register
+            self.layout = Layout.generate_trivial_layout(QuantumRegister(dag.width(), 'q'))
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
