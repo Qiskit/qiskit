@@ -1,46 +1,71 @@
-# Construct an n-qubit, m-clbit circuit
-# Compile at each optimization level, for each device (with more than n-qubits)
-# Simulate and verify results of every transpiled circuit match that of initial circuit
+# -*- coding: utf-8 -*-
+
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+# pylint: disable=invalid-name
+
+"""Randomized tests of transpiler circuit equivalence."""
 
 import os
 
-import numpy as np
-
-from hypothesis import given, settings, Verbosity
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
 import hypothesis.strategies as st
 
-from qiskit import execute, transpile, Aer, BasicAer
+from qiskit import execute, transpile, Aer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Parameter, Measure, Reset
-from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo, FakePoughkeepsie
+from qiskit.circuit import Measure, Reset, Gate
+from qiskit.test.mock import \
+    FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo, FakePoughkeepsie
+
+# pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.extensions.standard import *
 
-# TBD, conditionals, Parameters
+oneQ_gates = [HGate, IdGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate, Reset]
+twoQ_gates = [CnotGate, CyGate, CzGate, SwapGate, CHGate]
+threeQ_gates = [ToffoliGate, FredkinGate]
 
-oneQ_gates = [ HGate, IdGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate, ZGate, Reset ]
-twoQ_gates = [ CnotGate, CyGate, CzGate, SwapGate, CHGate ]
-threeQ_gates = [ ToffoliGate, FredkinGate ]
+oneQ_oneP_gates = [U0Gate, U1Gate, RXGate, RYGate, RZGate]
+oneQ_twoP_gates = [U2Gate]
+oneQ_threeP_gates = [U3Gate]
 
-oneQ_oneP_gates = [ U0Gate, U1Gate, RXGate, RYGate, RZGate ]
-oneQ_twoP_gates = [ U2Gate ]
-oneQ_threeP_gates = [ U3Gate ]
+twoQ_oneP_gates = [CrzGate, RZZGate, Cu1Gate]
+twoQ_threeP_gates = [Cu3Gate]
 
-twoQ_oneP_gates = [ CrzGate, RZZGate, Cu1Gate ]
-twoQ_threeP_gates = [ Cu3Gate ]
+oneQ_oneC_gates = [Measure]
+variadic_gates = [Barrier]
 
-oneQ_oneC_gates = [ Measure ]
-variadic_gates = [ Barrier ]
+mock_backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(),
+                 FakeTokyo(), FakePoughkeepsie()]
 
-mock_backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), FakePoughkeepsie()]
 
 class QCircuitMachine(RuleBasedStateMachine):
+    """Build a Hypothesis rule based state machine for constructing, transpiling
+    and simulating a series of random QuantumCircuits.
+
+    Build circuits with up to QISKIT_RANDOM_QUBITS qubits, apply a random
+    selection of gates from qiskit.extensions.standard with randomly selected
+    qargs, cargs, and parameters. At random intervals, transpile the circuit for
+    a random backend with a random optimization level and simulate both the
+    initial and the transpiled circuits to verify that their counts are the
+    same.
+
+    """
+
     qubits = Bundle('qubits')
     clbits = Bundle('clbits')
 
-    max_qubits = int(os.getenv('QISKIT_RANDOM_QUBITS', 5))
+    max_qubits = int(os.getenv('QISKIT_RANDOM_QUBITS', '5'))
     backends = []
     for backend in mock_backends:
         if backend.configuration().n_qubits >= max_qubits:
@@ -54,6 +79,7 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(target=qubits,
           n=st.integers(min_value=1, max_value=max_qubits))
     def add_qreg(self, n):
+        """Adds a new variable sized qreg to the circuit, up to max_qubits."""
         n = min(n, self.max_qubits - len(self.qc.qubits))
         qreg = QuantumRegister(n)
         self.qc.add_register(qreg)
@@ -62,31 +88,36 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(target=clbits,
           n=st.integers(1, 5))
     def add_creg(self, n):
+        """Add a new variable sized creg to the circuit."""
         creg = ClassicalRegister(n)
         self.qc.add_register(creg)
         return multiple(*list(creg))
 
-    ### Gates of various shapes
+    # Gates of various shapes
 
     @rule(gate=st.sampled_from(oneQ_gates),
           qarg=qubits)
     def add_1q_gate(self, gate, qarg):
+        """Append a random 1q gate on a random qubit."""
         self.qc.append(gate(), [qarg], [])
-    
+
     @rule(gate=st.sampled_from(twoQ_gates),
           qargs=st.lists(qubits, max_size=2, min_size=2, unique=True))
     def add_2q_gate(self, gate, qargs):
+        """Append a random 2q gate across two random qubits."""
         self.qc.append(gate(), qargs)
 
     @rule(gate=st.sampled_from(threeQ_gates),
           qargs=st.lists(qubits, max_size=3, min_size=3, unique=True))
     def add_3q_gate(self, gate, qargs):
+        """Append a random 3q gate across three random qubits."""
         self.qc.append(gate(), qargs)
 
     @rule(gate=st.sampled_from(oneQ_oneP_gates),
           qarg=qubits,
           param=st.floats(allow_nan=False, allow_infinity=False))
     def add_1q1p_gate(self, gate, qarg, param):
+        """Append a random 1q gate with 1 random float parameter."""
         self.qc.append(gate(param), [qarg])
 
     @rule(gate=st.sampled_from(oneQ_twoP_gates),
@@ -95,6 +126,7 @@ class QCircuitMachine(RuleBasedStateMachine):
               st.floats(allow_nan=False, allow_infinity=False),
               min_size=2, max_size=2))
     def add_1q2p_gate(self, gate, qarg, params):
+        """Append a random 1q gate with 2 random float parameters."""
         self.qc.append(gate(*params), [qarg])
 
     @rule(gate=st.sampled_from(oneQ_threeP_gates),
@@ -103,12 +135,14 @@ class QCircuitMachine(RuleBasedStateMachine):
               st.floats(allow_nan=False, allow_infinity=False),
               min_size=3, max_size=3))
     def add_1q3p_gate(self, gate, qarg, params):
+        """Append a random 1q gate with 3 random float parameters."""
         self.qc.append(gate(*params), [qarg])
 
     @rule(gate=st.sampled_from(twoQ_oneP_gates),
           qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
           param=st.floats(allow_nan=False, allow_infinity=False))
     def add_2q1p_gate(self, gate, qargs, param):
+        """Append a random 2q gate with 1 random float parameter."""
         self.qc.append(gate(param), qargs)
 
     @rule(gate=st.sampled_from(twoQ_threeP_gates),
@@ -117,23 +151,27 @@ class QCircuitMachine(RuleBasedStateMachine):
               st.floats(allow_nan=False, allow_infinity=False),
               min_size=3, max_size=3))
     def add_2q3p_gate(self, gate, qargs, params):
+        """Append a random 2q gate with 3 random float parameters."""
         self.qc.append(gate(*params), qargs)
 
     @rule(gate=st.sampled_from(oneQ_oneC_gates),
           qarg=qubits,
           carg=clbits)
     def add_1q1c_gate(self, gate, qarg, carg):
+        """Append a random 1q, 1c gate."""
         self.qc.append(gate(), [qarg], [carg])
 
     @rule(gate=st.sampled_from(variadic_gates),
           qargs=st.lists(qubits, min_size=1, unique=True))
     def add_variQ_gate(self, gate, qargs):
+        """Append a gate with a variable number of qargs."""
         self.qc.append(gate(len(qargs)), qargs)
 
     @precondition(lambda self: len(self.qc.data) > 0)
     @rule(carg=clbits,
           data=st.data())
     def add_c_if_last_gate(self, carg, data):
+        """Modify the last gate to be conditional on a classical register."""
         creg = carg.register
         val = data.draw(st.integers(min_value=0, max_value=2**len(creg)-1))
 
@@ -143,30 +181,45 @@ class QCircuitMachine(RuleBasedStateMachine):
 
     @invariant()
     def qasm(self):
-        # At every step in the process, it should be possible to generate QASM
+        """After each circuit operation, it should be possible to build QASM."""
         self.qc.qasm()
 
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
-    @rule(backend=st.one_of(
-              st.none(),
-              st.sampled_from(backends)),
-          opt_level=st.one_of(
-              st.none(),
-              st.integers(min_value=0, max_value=3)))
+    @rule(
+        backend=st.one_of(
+            st.none(),
+            st.sampled_from(backends)),
+        opt_level=st.one_of(
+            st.none(),
+            st.integers(min_value=0, max_value=3)))
     def equivalent_transpile(self, backend, opt_level):
+        """Simulate, transpile and simulate the present circuit. Verify that the
+        counts are not significantly different before and after transpilation.
+
+        """
+        shots = 4096
+
         aer_qasm_simulator = Aer.get_backend('qasm_simulator')
-        aer_counts = execute(self.qc, backend = aer_qasm_simulator).result().get_counts()
+        aer_counts = execute(self.qc, backend=aer_qasm_simulator,
+                             shots=shots).result().get_counts()
 
         xpiled_qc = transpile(self.qc, backend=backend, optimization_level=opt_level)
-        xpiled_aer_counts = execute(xpiled_qc, backend = aer_qasm_simulator).result().get_counts()
+        xpiled_aer_counts = execute(xpiled_qc, backend=aer_qasm_simulator,
+                                    shots=shots).result().get_counts()
 
-        assert counts_equivalent(aer_counts, xpiled_aer_counts), "Counts not equivalent. Original: {} Transpiled: {}.\nFailing QASM: \n{}".format(aer_counts, xpiled_aer_counts, self.qc.qasm())
+        assert _counts_equivalent(aer_counts, xpiled_aer_counts), \
+            "Counts not equivalent. Original: {} Transpiled: {}.\nFailing QASM: \n{}".format(
+                aer_counts, xpiled_aer_counts, self.qc.qasm())
 
 
-def counts_equivalent(c1, c2):
-    sc1 = np.array(sorted(c1.items(), key=lambda c: c[0]))
-    sc2 = np.array(sorted(c2.items(), key=lambda c: c[0]))
+def _counts_equivalent(c1, c2):
+    for key in c1.keys() | c2.keys():
+        val1 = c1.get(key, 0)
+        val2 = c2.get(key, 0)
 
-    return all(sc1[:,0] == sc2[:,0]) and np.allclose(sc1[:,1].astype(int), sc2[:,1].astype(int))
+        if abs(val1 - val2) > 0.05 * sum(c1.values()):
+            return False
+    return True
+
 
 TestQuantumCircuit = QCircuitMachine.TestCase
