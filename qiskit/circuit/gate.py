@@ -103,19 +103,7 @@ class Gate(Instruction):
                               (qarg0, qarg1))
 
     @staticmethod
-    def _broadcast_3_arguments(qarg0, qarg1, qarg2):
-        if len(qarg0) == len(qarg1) == len(qarg2):
-            # [q[0], q[1]], [r[0], r[1]],  [s[0], s[1]] -> [q[0], r[0], s[0]]
-            #                                           -> [q[1], r[1], s[1]]
-            for arg0, arg1, arg2 in zip(qarg0, qarg1, qarg2):
-                yield [arg0, arg1, arg2], []
-        else:
-            raise QiskitError(
-                'Not sure how to combine these three qubit arguments:\n %s\n %s\n %s' %
-                (qarg0, qarg1, qarg2))
-
-    @staticmethod
-    def _broadcast_4_or_more_args(qargs):
+    def _broadcast_3_or_more_args(qargs):
         if all(len(qarg) == len(qargs[0]) for qarg in qargs):
             for arg in zip(*qargs):
                 yield list(arg), []
@@ -138,9 +126,7 @@ class Gate(Instruction):
                 [[q[0], q[1]], [r[0], r[1]]] -> [q[0], r[0]], [q[1], r[1]]
                 [[q[0]], [r[0], r[1]]]       -> [q[0], r[0]], [q[0], r[1]]
                 [[q[0], q[1]], [r[0]]]       -> [q[0], r[0]], [q[1], r[0]]
-         * If len(qargs) == 3:
-                [q[0], q[1]], [r[0], r[1]],  [s[0], s[1]] -> [q[0], r[0], s[0]], [q[1], r[1], s[1]]
-         * If len(qargs) >= 4:
+         * If len(qargs) >= 3:
                 [q[0], q[1]], [r[0], r[1]],  ...] -> [q[0], r[0], ...], [q[1], r[1], ...]
 
         Args:
@@ -165,9 +151,7 @@ class Gate(Instruction):
             return Gate._broadcast_single_argument(qargs[0])
         elif len(qargs) == 2:
             return Gate._broadcast_2_arguments(qargs[0], qargs[1])
-        elif len(qargs) == 3:
-            return Gate._broadcast_3_arguments(qargs[0], qargs[1], qargs[2])
         elif len(qargs) >= 3:
-            return Gate._broadcast_4_or_more_args(qargs)
+            return Gate._broadcast_3_or_more_args(qargs)
         else:
             raise QiskitError('This gate cannot handle %i arguments' % len(qargs))
