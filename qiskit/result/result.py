@@ -245,17 +245,17 @@ class Result(BaseModel):
         """
         try:
             tree = self.data(experiment)['statevector_tree']
-            self._format_tree(tree)
+            self._format_tree(tree, decimals)
             return tree
         except KeyError:
             raise QiskitError('No statevector for experiment "{0}"'.format(experiment))
 
-    def _format_tree(self, current_node, decimals=None):
+    def _format_tree(self, current_node, decimals):
         current_node['value'] = postprocess.format_statevector(current_node['value'],
                                                                decimals=decimals)
         if 'path_0' in current_node:
-            self._format_tree(current_node['path_0'])
-            self._format_tree(current_node['path_1'])
+            self._format_tree(current_node['path_0'], decimals)
+            self._format_tree(current_node['path_1'], decimals)
 
     def get_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.

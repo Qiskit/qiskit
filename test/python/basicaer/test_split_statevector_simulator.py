@@ -15,7 +15,6 @@
 
 import unittest
 
-import numpy as np
 import math
 
 from qiskit.providers.basicaer.split_statevector_simulator import SplitStatevectorSimulatorPy

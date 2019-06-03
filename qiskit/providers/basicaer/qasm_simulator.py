@@ -33,6 +33,7 @@ field, which is a result of measurements for each shot.
 import uuid
 import time
 import logging
+import copy
 
 from math import log2
 from collections import Counter
@@ -136,6 +137,11 @@ class QasmSimulatorPy(BaseBackend):
         self._qobj_config = None
         # TEMP
         self._sample_measure = False
+
+        if self.SPLIT_STATES:
+            # _substates field will contain 2 statevectors corresponding to measurement results 0 and 1
+            self._substates = []
+            self._substate_probabilities = []
 
     def _add_unitary_single(self, gate, qubit):
         """Apply an arbitrary 1-qubit unitary matrix.
@@ -567,7 +573,11 @@ class QasmSimulatorPy(BaseBackend):
         """Run a single shot of the experiment circuit.
 
         Args:
-            experiment (QobjExperiment): experiment from qobj experiments list
+            experiment (QobjExperiment): experiment from qobj experiments list.
+            memory (list): final counts for all shots.
+            measure_sample_ops (list): stores (qubit, cmembit) pairs for all measure ops
+                                       in circuit to be sampled.
+            op_idx (int): the index of operation from which to start running the shot.
 
         Raises:
             BasicAerError: if an error occurred.
@@ -624,7 +634,7 @@ class QasmSimulatorPy(BaseBackend):
                     # If not sampling perform measurement as normal
                     self._add_qasm_measure(qubit, cmembit, cregbit)
                 # Checking whether the statevector was split
-                if self.SPLIT_STATES and len(self._substates) != 0:
+                if self.SPLIT_STATES and self._substates != []:
                     break
             elif operation.name == 'bfunc':
                 mask = int(operation.mask, 16)
@@ -664,7 +674,7 @@ class QasmSimulatorPy(BaseBackend):
                 err_msg = '{0} encountered unrecognized operation "{1}"'
                 raise BasicAerError(err_msg.format(backend, operation.name))
 
-        if self.SPLIT_STATES and len(self._substates) != 0:
+        if self.SPLIT_STATES and self._substates != []:
             self._substates[0]._run_single_shot(experiment, memory,
                                                 measure_sample_ops, op_idx=i + 1)
             self._substates[1]._run_single_shot(experiment, memory,
@@ -678,6 +688,100 @@ class QasmSimulatorPy(BaseBackend):
                 # Turn classical_memory (int) into bit string and pad zero for unused cmembits
                 outcome = bin(self._classical_memory)[2:]
                 memory.append(hex(int(outcome, 2)))
+
+    def _get_single_outcome(self, qubit, wanted_state):
+        """Simulate the outcome of a determined measurement of a qubit.
+        This function mainly exists to perserve the existing function division,
+        replacing _get_measure_outcome which is called for the other simulators
+
+        Args:
+            qubit (int): the qubit to measure
+            wanted_state (int): the outcome state to return
+
+        Return:
+            tuple: pair (outcome, probability) where outcome is '0' or '1' and
+            probability is the probability of the returned outcome.
+        """
+        # Axis for numpy.sum to compute probabilities
+        axis = list(range(self._number_of_qubits))
+        axis.remove(self._number_of_qubits - 1 - qubit)
+        probabilities = np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis))
+        # Compute einsum index string for 1-qubit matrix multiplication
+
+        return str(wanted_state), probabilities[wanted_state]
+
+    def _split_statevector(self, qubit, probabilities, cmembit, cregbit=None):
+        """Split the statevector into two substates corresponding to the two measurement options.
+
+        Args:
+            qubit (int): the measured qubit
+            probabilities (list[float]): the probabilities of measuring 0 or 1
+            cmembit (int): the classical memory bit to store outcome in.
+            cregbit (int, optional): is the classical register bit to store outcome in.
+
+        Raises:
+            BasicAerError: if an error occurred.
+        """
+        # Getting the data for each split possibility
+        outcome0, probability0 = self._get_single_outcome(qubit, 0)
+        outcome1, probability1 = self._get_single_outcome(qubit, 1)
+
+        # Copying the statevector into its two substates
+        temp = copy.deepcopy(self)
+        self._substates.append(copy.deepcopy(temp))
+        self._substate_probabilities.append(probabilities[0])
+        self._substates.append(copy.deepcopy(temp))
+        self._substate_probabilities.append(probabilities[1])
+
+        # Updating the states after the split
+        self._substates[0]._update_state_after_measure(qubit, cmembit,
+                                                       outcome0, probability0, cregbit)
+        self._substates[1]._update_state_after_measure(qubit, cmembit,
+                                                       outcome1, probability1, cregbit)
+
+    def _generate_data(self):
+        """Generate a binary tree data from a split_statevector result
+
+        Returns:
+             data: A result dictionary in the form of a binary tree which looks something like:
+
+                {
+                "value": The statevector of the state at the first measurement
+                "prob_0": The probability to get a measurement of 0 at the first measurement
+                "prob_1": The probability to get a measurement of 1 at the first measurement
+                "path_0":
+                    {
+                        "value": The statevector evolved from result 0 in the first measurement,
+                                 at the second measurement or at the end of the circuit
+                        "prob_0": The probability for a measurement of 0 at the second measurement
+                        "prob_1": The probability for a measurement of 1 at the second measurement
+                        "path_0":
+                            {
+                                ...
+                            }
+                        "path_1":
+                            {
+                                ...
+                            }
+                    }
+                "path_1":
+                    {
+                        ...
+                    }
+                }
+        Raises:
+            BasicAerError: if an error occurred.
+        """
+        if self._substates != []:
+            data = {'value': self._get_statevector(),
+                    'path_0': self._substates[0]._generate_data(),
+                    'path_0_probability': self._substate_probabilities[0],
+                    'path_1': self._substates[1]._generate_data(),
+                    'path_1_probability': self._substate_probabilities[1]}
+        else:
+            data = {'value': self._get_statevector()}
+
+        return data
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas."""
