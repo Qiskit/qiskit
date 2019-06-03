@@ -39,7 +39,6 @@ from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import CommutativeCancellation
-from qiskit.transpiler.passes import TrivialLayout
 
 
 def level_2_pass_manager(transpile_config):
