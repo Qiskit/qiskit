@@ -22,8 +22,8 @@ The blocks are collected by a previous pass, such as Collect2qBlocks.
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
-from qiskit.quantum_info.synthesis.local_invariance import cx_equivalence
-from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
+from qiskit.extensions import UnitaryGate, CnotGate
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -35,13 +35,15 @@ class ConsolidateBlocks(TransformationPass):
     Important note: this pass assumes that the 'blocks_list' property that
     it reads is given such that blocks are in topological order.
     """
-    def __init__(self, force_consolidate=False):
+    def __init__(self, kak_basis_gate=CnotGate(), force_consolidate=False):
         """
         Args:
+            kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation
         """
         super().__init__()
         self.force_consolidate = force_consolidate
+        self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
 
     def run(self, dag):
         """iterate over each block and replace it with an equivalent Unitary
@@ -81,15 +83,15 @@ class ConsolidateBlocks(TransformationPass):
                 subcirc = QuantumCircuit(q)
                 block_index_map = self._block_qargs_to_indices(block_qargs,
                                                                global_index_map)
-                cx_count = 0
+                basis_count = 0
                 for nd in block:
-                    if nd.op.name == 'cx':
-                        cx_count += 1
+                    if nd.op.name == self.decomposer.gate.name:
+                        basis_count += 1
                     nodes_seen.add(nd)
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
                 if self.force_consolidate or unitary.num_qubits > 2 or \
-                        cx_equivalence(unitary.to_matrix()) != cx_count:
+                        self.decomposer.num_basis_gates(unitary) != basis_count:
 
                     new_dag.apply_operation_back(
                         unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))

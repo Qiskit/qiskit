@@ -24,8 +24,8 @@ INVARIANT_TOL = 1e-12
 # Bell "Magic" basis
 MAGIC = 1.0/sqrt(2)*np.array([
     [1, 0, 0, 1j],
-    [0, 1j, -1, 0],
     [0, 1j, 1, 0],
+    [0, 1j, -1, 0],
     [1, 0, 0, -1j]], dtype=complex)
 
 
