@@ -16,6 +16,7 @@
 
 import math
 import unittest
+from unittest.mock import patch
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
@@ -33,8 +34,6 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 class TestTranspile(QiskitTestCase):
     """Test transpile function."""
-
-    barrier_pass = BarrierBeforeFinalMeasurements()
 
     def test_pass_manager_none(self):
         """Test passing the default (None) pass manager to the transpiler.
@@ -431,16 +430,16 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(expected_qc, transpiled_qc)
 
-    @unittest.mock.patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=barrier_pass.run)
-    def test_final_measurement_barrier_for_devices(self, mock_pass):
+    def test_final_measurement_barrier_for_devices(self):
         """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
 
         circ = QuantumCircuit.from_qasm_file(self._get_resource_path('example.qasm', Path.QASMS))
         layout = Layout.generate_trivial_layout(*circ.qregs)
-        transpile(circ, coupling_map=FakeRueschlikon().configuration().coupling_map,
-                  initial_layout=layout)
-
-        self.assertTrue(mock_pass.called)
+        orig_pass = BarrierBeforeFinalMeasurements()
+        with patch.object(BarrierBeforeFinalMeasurements, 'run', wraps=orig_pass.run) as mock_pass:
+            transpile(circ, coupling_map=FakeRueschlikon().configuration().coupling_map,
+                      initial_layout=layout)
+            self.assertTrue(mock_pass.called)
 
     def test_do_not_run_cxdirection_with_symmetric_cm(self):
         """When the coupling map is symmetric, do not run CXDirection."""
@@ -452,8 +451,8 @@ class TestTranspile(QiskitTestCase):
             coupling_map.append([node1, node2])
             coupling_map.append([node2, node1])
 
-        cxdir_pass = CXDirection(CouplingMap(coupling_map))
-        with unittest.mock.patch.object(CXDirection, 'run', wraps=cxdir_pass.run) as mock_pass:
+        orig_pass = CXDirection(CouplingMap(coupling_map))
+        with patch.object(CXDirection, 'run', wraps=orig_pass.run) as mock_pass:
             transpile(circ, coupling_map=coupling_map, initial_layout=layout)
             self.assertFalse(mock_pass.called)
 
@@ -524,13 +523,13 @@ class TestTranspile(QiskitTestCase):
         qc.initialize([1.0 / math.sqrt(2), -1.0 / math.sqrt(2)], [qr[0]])
 
         expected = QuantumCircuit(qr)
-        expected.u_base(1.5708, 0, 0, qr[0])
-        expected.u_base(0, 0, 0, qr[0])
+        expected.u3(1.5708, 0, 0, qr[0])
+        expected.u3(0, 0, 0, qr[0])
         expected.reset(qr[0])
-        expected.u_base(1.5708, 0, 0, qr[0])
-        expected.u_base(0, 0, 3.1416, qr[0])
+        expected.u3(1.5708, 0, 0, qr[0])
+        expected.u3(0, 0, 3.1416, qr[0])
 
-        after = transpile(qc, basis_gates=['reset', 'U'])
+        after = transpile(qc, basis_gates=['reset', 'u3'])
 
         self.assertEqual(after, expected)
 
