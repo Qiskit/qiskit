@@ -66,6 +66,8 @@ class ConsolidateBlocks(TransformationPass):
         blocks = self.property_set['block_list']
         nodes_seen = set()
 
+        basis_gate_name = self.decomposer.gate.name
+
         for node in dag.topological_op_nodes():
             # skip already-visited nodes or input/output nodes
             if node in nodes_seen or node.type == 'in' or node.type == 'out':
@@ -85,7 +87,7 @@ class ConsolidateBlocks(TransformationPass):
                                                                global_index_map)
                 basis_count = 0
                 for nd in block:
-                    if nd.op.name == self.decomposer.gate.name:
+                    if nd.op.name == basis_gate_name:
                         basis_count += 1
                     nodes_seen.add(nd)
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])

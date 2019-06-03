@@ -79,6 +79,8 @@ def weyl_coordinates(U):
 
     weyl = np.dot(M, S[:3])
 
+    weyl = np.round(weyl, 12) + 0.0
+
     if weyl[2] < 0:
         weyl[0] = 1 - weyl[0]
         weyl[2] *= -1
@@ -90,4 +92,4 @@ def weyl_coordinates(U):
         raise ValueError('Point ({}, {}, {}) not in Weyl chamber.'
                          .format(np.pi*weyl[0]/2, np.pi*weyl[1]/2, np.pi*weyl[2]/2))
 
-    return (np.round(weyl, 12) + 0.0)*np.pi/2.0
+    return weyl*np.pi/2.0
