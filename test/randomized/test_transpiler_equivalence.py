@@ -13,7 +13,7 @@ import hypothesis.strategies as st
 from qiskit import execute, transpile, Aer, BasicAer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Parameter, Measure, Reset
-from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo
+from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo, FakePoughkeepsie
 from qiskit.extensions.standard import *
 
 # TBD, conditionals, Parameters
@@ -33,7 +33,7 @@ oneQ_oneP_gates = [ U0Gate, U1Gate, RXGate, RYGate, RZGate ]
 oneQ_oneC_gates = [ Measure ]
 variadic_gates = [ Barrier ]
 
-backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo()]
+backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), FakePoughkeepsie()]
 
 class QCircuitMachine(RuleBasedStateMachine):
     qubits = Bundle('qubits')
