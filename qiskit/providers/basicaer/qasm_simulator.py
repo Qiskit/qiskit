@@ -117,12 +117,11 @@ class QasmSimulatorPy(BaseBackend):
     # This should be set to True for the split_statevector_simulator
     SPLIT_STATES = False
 
-
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(
             configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
-        
+
         # Define attributes in __init__.
         self._local_random = np.random.RandomState()
         self._classical_memory = 0
@@ -135,10 +134,8 @@ class QasmSimulatorPy(BaseBackend):
         self._initial_statevector = self.DEFAULT_OPTIONS["initial_statevector"]
         self._chop_threshold = self.DEFAULT_OPTIONS["chop_threshold"]
         self._qobj_config = None
-
         # TEMP
         self._sample_measure = False
-            
 
     def _add_unitary_single(self, gate, qubit):
         """Apply an arbitrary 1-qubit unitary matrix.
@@ -266,7 +263,7 @@ class QasmSimulatorPy(BaseBackend):
         This is done by doing a simulating a measurement
         outcome and projecting onto the outcome state while
         renormalizing.
-        """    
+        """
         # update classical state
         membit = 1 << cmembit
         self._classical_memory = (self._classical_memory & (~membit)) | (int(outcome) << cmembit)
@@ -566,7 +563,7 @@ class QasmSimulatorPy(BaseBackend):
                 'time_taken': (end - start),
                 'header': experiment.header.as_dict()}
 
-    def _run_single_shot(self, experiment, memory, measure_sample_ops, op_idx = 0):
+    def _run_single_shot(self, experiment, memory, measure_sample_ops, op_idx=0):
         """Run a single shot of the experiment circuit.
 
         Args:
@@ -577,7 +574,6 @@ class QasmSimulatorPy(BaseBackend):
         """
         for i in range(op_idx, len(experiment.instructions)):
             operation = experiment.instructions[i]
-            #for operation in experiment.instructions:
             conditional = getattr(operation, 'conditional', None)
             if isinstance(conditional, int):
                 conditional_bit_set = (self._classical_register >> conditional) & 1
@@ -669,8 +665,10 @@ class QasmSimulatorPy(BaseBackend):
                 raise BasicAerError(err_msg.format(backend, operation.name))
 
         if self.SPLIT_STATES and len(self._substates) != 0:
-            self._substates[0]._run_single_shot(experiment, memory, measure_sample_ops, op_idx = i + 1)
-            self._substates[1]._run_single_shot(experiment, memory, measure_sample_ops, op_idx = i + 1)
+            self._substates[0]._run_single_shot(experiment, memory,
+                                                measure_sample_ops, op_idx=i + 1)
+            self._substates[1]._run_single_shot(experiment, memory,
+                                                measure_sample_ops, op_idx=i + 1)
         # Add final creg data to memory list
         if self._number_of_cmembits > 0:
             if self._sample_measure:
@@ -680,7 +678,7 @@ class QasmSimulatorPy(BaseBackend):
                 # Turn classical_memory (int) into bit string and pad zero for unused cmembits
                 outcome = bin(self._classical_memory)[2:]
                 memory.append(hex(int(outcome, 2)))
-    
+
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas."""
         n_qubits = qobj.config.n_qubits

@@ -37,7 +37,6 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         result = super().test_run_circuit()
         actual = result.get_statevector_tree()['value']
 
-
         # state is 1/sqrt(2)|00> + 1/sqrt(2)|11>, up to a global phase
         self.assertAlmostEqual((abs(actual[0]))**2, 1 / 2)
         self.assertEqual(actual[1], 0)
@@ -85,7 +84,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         path_01 = actual['path_0']['path_1']['value']
         path_10 = actual['path_1']['path_0']['value']
         path_11 = actual['path_1']['path_1']['value']
-        
+
         prob_0 = actual['path_0_probability']
         prob_1 = actual['path_1_probability']
         prob_00 = actual['path_0']['path_0_probability']
@@ -111,7 +110,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         self.assertAlmostEqual((path_1[0]), 1 / math.sqrt(2))
         self.assertAlmostEqual((path_1[1]), -1 / math.sqrt(2))
         self.assertAlmostEqual((prob_10), 1 / 2)
-        self.assertAlmostEqual((prob_11), 1 / 2)        
+        self.assertAlmostEqual((prob_11), 1 / 2)
         self.assertEqual(path_1[2], 0)
         self.assertEqual(path_1[3], 0)
         # path 00 state |00> up to a global phase
@@ -136,7 +135,8 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         self.assertEqual(path_11[3], 0)
 
     def test_double_measure_split_unequal_probability(self):
-        """Test the result of a single qubit split by two measurements, when each measurement has unequal probabilities for the possible outcomes"""
+        """Test the result of a single qubit split by two measurements,
+        when each measurement has unequal probabilities for the possible outcomes"""
         # Set test circuit
         self.circuit = ReferenceCircuits.rx_measure_rx()
         # Execute
@@ -149,7 +149,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         path_01 = actual['path_0']['path_1']['value']
         path_10 = actual['path_1']['path_0']['value']
         path_11 = actual['path_1']['path_1']['value']
-        
+
         prob_0 = actual['path_0_probability']
         prob_1 = actual['path_1_probability']
         prob_00 = actual['path_0']['path_0_probability']
@@ -173,9 +173,9 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         self.assertEqual(path_0[3], 0)
         # path 1 state is 1/sqrt(2)|00> - 1/sqrt(2)|01>, up to a global phase
         self.assertAlmostEqual((path_1[0]), -0.5)
-        self.assertAlmostEqual((path_1[1]), -1j* (math.sqrt(3) / 2))
+        self.assertAlmostEqual((path_1[1]), -1j * (math.sqrt(3) / 2))
         self.assertAlmostEqual((prob_10), 1 / 4)
-        self.assertAlmostEqual((prob_11), 3 / 4)        
+        self.assertAlmostEqual((prob_11), 3 / 4)
         self.assertEqual(path_1[2], 0)
         self.assertEqual(path_1[3], 0)
         # path 00 state is |00> up to a global phase
@@ -230,6 +230,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         self.assertEqual(path_1[0], 0)
         self.assertEqual(path_1[1], 0)
         self.assertEqual(path_1[2], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

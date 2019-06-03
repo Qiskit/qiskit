@@ -14,8 +14,10 @@
 
 """Reference circuits used by the tests."""
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 import math
+
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
 
 class ReferenceCircuits:
     """Container for reference circuits used by the tests."""
@@ -62,7 +64,7 @@ class ReferenceCircuits:
         cr = ClassicalRegister(2, name='cr')
         qc = QuantumCircuit(qr, cr, name='h_measure_h_double')
         qc.h(qr[0])
-        qc.measure(qr[0], cr[0])        
+        qc.measure(qr[0], cr[0])
         qc.h(qr[0])
         qc.measure(qr[0], cr[0])
 
@@ -75,7 +77,7 @@ class ReferenceCircuits:
         cr = ClassicalRegister(2, name='cr')
         qc = QuantumCircuit(qr, cr, name='rx_measure_rx')
         qc.rx(math.pi/3, qr[0])
-        qc.measure(qr[0], cr[0])        
+        qc.measure(qr[0], cr[0])
         qc.rx(math.pi/3, qr[0])
         qc.measure(qr[0], cr[0])
 

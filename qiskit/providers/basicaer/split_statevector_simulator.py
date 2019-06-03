@@ -13,8 +13,9 @@
 # that they have been altered from the originals.
 
 
-"""Contains a (slow) python statevector simulator which splits for every non-zero probability measurement
+"""Contains a (slow) python split statevector simulator.
 
+The simulator splits for every non-zero probability measurement.
 It simulates the statevector through a quantum circuit. It is exponential in
 the number of qubits, and in the number of non-zero probability measurements within the circuit.
 
@@ -24,7 +25,8 @@ The input is a qobj dictionary and the output is a Result object.
 
 The input qobj to this simulator has no shots, no reset, no noise.
 
-The final result is a dictionary containing a binary tree data structure for the different splits, kept under statevector_tree
+The final result is a dictionary containing a binary tree data structure
+for the different splits, kept under statevector_tree
 """
 
 import logging
@@ -97,7 +99,6 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
     # This should be set to True to use the split statevector reperesentation for measurments
     SPLIT_STATES = True
 
-    
     def __init__(self, configuration=None, provider=None):
         super().__init__(configuration=(
             configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
@@ -141,8 +142,8 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         return super().run(qobj, backend_options=backend_options)
 
     def _get_single_outcome(self, qubit, wanted_state):
-        """Simulate the outcome of a determined measurement of a qubit. 
-        This function mainly exists to perserve the existing function division, 
+        """Simulate the outcome of a determined measurement of a qubit.
+        This function mainly exists to perserve the existing function division,
         replacing _get_measure_outcome which is called for the other simulators
 
         Args:
@@ -185,8 +186,10 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         self._substate_probabilities.append(probabilities[1])
 
         # Updating the states after the split
-        self._substates[0]._update_state_after_measure(qubit, cmembit, outcome0, probability0, cregbit)
-        self._substates[1]._update_state_after_measure(qubit, cmembit, outcome1, probability1, cregbit)
+        self._substates[0]._update_state_after_measure(qubit, cmembit,
+                                                       outcome0, probability0, cregbit)
+        self._substates[1]._update_state_after_measure(qubit, cmembit,
+                                                       outcome1, probability1, cregbit)
 
     def _generate_data(self):
         """Run an experiment (circuit) and return a single experiment result.
@@ -195,18 +198,18 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
             experiment (QobjExperiment): experiment from qobj experiments list
 
         Returns:
-             data: A result dictionary in the form of a binary tree which looks something like::
+             data: A result dictionary in the form of a binary tree which looks something like:
 
                 {
                 "value": The statevector of the state at the first measurement
                 "prob_0": The probability to get a measurement of 0 at the first measurement
                 "prob_1": The probability to get a measurement of 1 at the first measurement
-                "path_0": 
+                "path_0":
                     {
                         "value": The statevector evolved from result 0 in the first measurement,
                                  at the second measurement or at the end of the circuit
-                        "prob_0": The probability to get a measurement of 0 at the second measurement
-                        "prob_1": The probability to get a measurement of 1 at the second measurement
+                        "prob_0": The probability for a measurement of 0 at the second measurement
+                        "prob_1": The probability for a measurement of 1 at the second measurement
                         "path_0":
                             {
                                 ...
@@ -223,13 +226,16 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
                 }
         Raises:
             BasicAerError: if an error occurred.
-        """    
+        """
         if len(self._substates) != 0:
             data = {'value': self._get_statevector(),
-                    'path_0': self._substates[0]._generate_data(), 'path_0_probability': self._substate_probabilities[0],
-                    'path_1': self._substates[1]._generate_data(), 'path_1_probability': self._substate_probabilities[1]}
+                    'path_0': self._substates[0]._generate_data(),
+                    'path_0_probability': self._substate_probabilities[0],
+                    'path_1': self._substates[1]._generate_data(),
+                    'path_1_probability': self._substate_probabilities[1]}
         else:
             data = {'value': self._get_statevector()}
         
         return data
+
     # TODO: Add a _validate method

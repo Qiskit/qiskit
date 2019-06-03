@@ -212,18 +212,19 @@ class Result(BaseModel):
                 If None, does not round.
 
         Returns:
-            dictionary[list[complex]]: The value elements will be of type list of 2^n_qubits complex amplitudes.
+            dictionary[list[complex]]:
+            The value elements will be of type list of 2^n_qubits complex amplitudes.
             The dictionary's structure is:
                 {
                 "value": The statevector of the state at the first measurement
                 "prob_0": The probability to get a measurement of 0 at the first measurement
                 "prob_1": The probability to get a measurement of 1 at the first measurement
-                "path_0": 
+                "path_0":
                     {
                         "value": The statevector evolved from result 0 in the first measurement,
                                  at the second measurement or at the end of the circuit
-                        "prob_0": The probability to get a measurement of 0 at the second measurement
-                        "prob_1": The probability to get a measurement of 1 at the second measurement
+                        "prob_0": The probability for a measurement of 0 at the second measurement
+                        "prob_1": The probability for a measurement of 1 at the second measurement
                         "path_0":
                             {
                                 ...
@@ -237,7 +238,7 @@ class Result(BaseModel):
                     {
                         ...
                     }
-                }            
+                }
 
         Raises:
             QiskitError: if there is no statevector for the experiment.
@@ -251,7 +252,7 @@ class Result(BaseModel):
 
     def _format_tree(self, current_node, decimals=None):
         current_node['value'] = postprocess.format_statevector(current_node['value'],
-                                                  decimals=decimals)
+                                                               decimals=decimals)
         if 'path_0' in current_node:
             self._format_tree(current_node['path_0'])
             self._format_tree(current_node['path_1'])
