@@ -250,7 +250,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         new_pm = PassManager(CommutativeCancellation())
         new_circuit = transpile(circuit, pass_manager=new_pm)
         expected = QuantumCircuit(qr)
-        circuit.rz(sympy.pi / 3, qr[0])
+        expected.rz(sympy.pi / 3, qr[0])
 
         self.assertEqual(expected, new_circuit)
 
