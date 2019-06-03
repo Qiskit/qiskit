@@ -51,7 +51,8 @@ class TestPythonExamples(QiskitTestCase):
         stdout, stderr = run_example.communicate()
         error_string = "Running example %s failed with return code %s\n" % (
             example, run_example.returncode)
-        error_string += "\tstdout:%s\n\tstderr: %s" % (stdout, stderr)
+        error_string += "stdout:%s\nstderr: %s" % (
+            stdout.decode('utf8'), stderr.decode('utf8'))
         self.assertEqual(run_example.returncode, 0, error_string)
 
     @online_test
