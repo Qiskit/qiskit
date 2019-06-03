@@ -24,6 +24,7 @@ Deprecated
 
 - The gates ``U`` and ``CX`` are being deprecated in favor of ``u3`` and ``cx``.
 - The decorator ``requires_qe_access`` is being deprecated in favor of ``online_test``.
+- The ``as_dict`` method of Qobj is deprecated in favor of ``to_dict``.
 
 Added
 -----
