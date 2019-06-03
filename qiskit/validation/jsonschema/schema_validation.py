@@ -88,19 +88,16 @@ def _get_validator(name, schema=None, check_schema=True,
                                         "be provided.")
 
     if name not in _VALIDATORS:
-
         # Resolve JSON spec from schema if needed
         if validator_class is None:
             validator_class = jsonschema.validators.validator_for(schema)
 
         # Generate and store validator in _VALIDATORS
         _VALIDATORS[name] = validator_class(schema, **validator_kwargs)
+        if check_schema:
+            _VALIDATORS[name].check_schema(schema)
 
     validator = _VALIDATORS[name]
-
-    if check_schema:
-        validator.check_schema(schema)
-
     return validator
 
 

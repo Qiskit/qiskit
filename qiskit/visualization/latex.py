@@ -24,7 +24,12 @@ import math
 import operator
 import re
 
-from pylatexenc.latexencode import utf8tolatex
+try:
+    from pylatexenc.latexencode import utf8tolatex
+    HAS_PYLATEX = True
+except ImportError:
+    HAS_PYLATEX = False
+
 import numpy as np
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
@@ -53,7 +58,14 @@ class QCircuitImage:
                registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
+        Raises:
+            ImportError: If pylatexenc is not installed
         """
+        if not HAS_PYLATEX:
+            raise ImportError('The latex and latex_source drawers need '
+                              'pylatexenc installed. Run "pip install '
+                              'pylatexenc" before using the latex or '
+                              'latex_source drawers.')
         # style sheet
         self._style = _qcstyle.BWStyle()
         if style:
@@ -185,7 +197,7 @@ class QCircuitImage:
         return contents
 
     def _initialize_latex_array(self, aliases=None):
-        # pylint: disable=unused-argument
+        del aliases  # unused
         self.img_depth, self.sum_column_widths = self._get_image_depth()
         self.sum_row_heights = self.img_width
         # choose the most compact row spacing, while not squashing them
@@ -256,8 +268,9 @@ class QCircuitImage:
 
         # wires in the beginning and end
         columns = 2
-        # each layer is one column
-        columns += len(self.ops)
+
+        # all gates take up 1 column except from those with labels (cu1) which take 2
+        columns += sum([2 if nd.name == 'cu1' else 1 for layer in self.ops for nd in layer])
 
         # every 3 characters is roughly one extra 'unit' of width in the cell
         # the gate name is 1 extra 'unit'
@@ -328,7 +341,10 @@ class QCircuitImage:
         else:
             qregdata = self.qregs
 
-        for column, layer in enumerate(self.ops, 1):
+        column = 1
+        for layer in self.ops:
+            num_cols_used = 1
+
             for op in layer:
                 if op.condition:
                     mask = self._get_mask(op.condition[0])
@@ -344,8 +360,8 @@ class QCircuitImage:
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     if len(qarglist) == 1:
-                        pos_1 = self.img_regs[(qarglist[0][0],
-                                               qarglist[0][1])]
+                        pos_1 = self.img_regs[(qarglist[0].register,
+                                               qarglist[0].index)]
 
                         if op.condition:
                             mask = self._get_mask(op.condition[0])
@@ -394,8 +410,7 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
                                     op.op.params[0])
                             else:
-                                self._latex[pos_1][column] = (
-                                    "\\gate{%s}" % utf8tolatex(nm))
+                                self._latex[pos_1][column] = ("\\gate{%s}" % utf8tolatex(nm))
 
                             gap = pos_2 - pos_1
                             for i in range(self.cregs[if_reg]):
@@ -454,12 +469,11 @@ class QCircuitImage:
                                     "\\push{\\rule{.6em}{0em}\\ket{0}\\"
                                     "rule{.2em}{0em}} \\qw")
                             else:
-                                self._latex[pos_1][column] = (
-                                    "\\gate{%s}" % utf8tolatex(nm))
+                                self._latex[pos_1][column] = ("\\gate{%s}" % utf8tolatex(nm))
 
                     elif len(qarglist) == 2:
-                        pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
-                        pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
+                        pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
+                        pos_2 = self.img_regs[(qarglist[1].register, qarglist[1].index)]
 
                         if op.condition:
                             pos_3 = self.img_regs[(if_reg, 0)]
@@ -504,12 +518,15 @@ class QCircuitImage:
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (op.op.params[0])
                             elif nm == "cu1":
-                                self._latex[pos_1][column - 1] = "\\ctrl{" + str(
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column - 1] = "\\control\\qw"
-                                self._latex[min(pos_1, pos_2)][column] = \
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "\\dstick{%s}\\qw" % (op.op.params[0])
-                                self._latex[max(pos_1, pos_2)][column] = "\\qw"
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
+                                # this is because this gate takes up 2 columns,
+                                # and we have just written to the next column
+                                num_cols_used = 2
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = \
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
@@ -547,40 +564,40 @@ class QCircuitImage:
                                 self._latex[pos_2][column] = \
                                     "\\gate{R_z(%s)}" % (op.op.params[0])
                             elif nm == "cu1":
-                                self._latex[pos_1][column - 1] = "\\ctrl{" + str(
+                                self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column - 1] = "\\control\\qw"
-                                self._latex[min(pos_1, pos_2)][column] = \
+                                self._latex[pos_2][column] = "\\control \\qw"
+                                self._latex[min(pos_1, pos_2)][column + 1] = \
                                     "\\dstick{%s}\\qw" % (op.op.params[0])
-                                self._latex[max(pos_1, pos_2)][column] = "\\qw"
+                                self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
+                                num_cols_used = 2
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                    op.op.params[0],
-                                    op.op.params[1],
-                                    op.op.params[2]))
+                                self._latex[pos_2][column] = ("\\gate{U_3(%s,%s,%s)}" %
+                                                              (op.op.params[0],
+                                                               op.op.params[1],
+                                                               op.op.params[2]))
                             else:
                                 start_pos = min([pos_1, pos_2])
                                 stop_pos = max([pos_1, pos_2])
                                 if stop_pos - start_pos >= 2:
                                     delta = stop_pos - start_pos
-                                    self._latex[start_pos][column] = (
-                                        "\\multigate{%s}{%s}" % (
-                                            delta, utf8tolatex(nm)))
+                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}"
+                                                                      % (delta, utf8tolatex(nm)))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = (
-                                            "\\ghost{%s}" % utf8tolatex(nm))
+                                        self._latex[i_pos][column] = ("\\ghost{%s}"
+                                                                      % utf8tolatex(nm))
                                 else:
-                                    self._latex[start_pos][column] = (
-                                        "\\multigate{1}{%s}" % utf8tolatex(nm))
-                                    self._latex[stop_pos][column] = (
-                                        "\\ghost{%s}" % utf8tolatex(nm))
+                                    self._latex[start_pos][column] = ("\\multigate{1}{%s}"
+                                                                      % utf8tolatex(nm))
+                                    self._latex[stop_pos][column] = ("\\ghost{%s}" %
+                                                                     utf8tolatex(nm))
 
                     elif len(qarglist) == 3:
-                        pos_1 = self.img_regs[(qarglist[0][0], qarglist[0][1])]
-                        pos_2 = self.img_regs[(qarglist[1][0], qarglist[1][1])]
-                        pos_3 = self.img_regs[(qarglist[2][0], qarglist[2][1])]
+                        pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
+                        pos_2 = self.img_regs[(qarglist[1].register, qarglist[1].index)]
+                        pos_3 = self.img_regs[(qarglist[2].register, qarglist[2].index)]
 
                         if op.condition:
                             pos_4 = self.img_regs[(if_reg, 0)]
@@ -657,19 +674,18 @@ class QCircuitImage:
                                 stop_pos = max([pos_1, pos_2, pos_3])
                                 if stop_pos - start_pos >= 3:
                                     delta = stop_pos - start_pos
-                                    self._latex[start_pos][column] = (
-                                        "\\multigate{%s}{%s}" % (
-                                            delta, utf8tolatex(nm)))
+                                    self._latex[start_pos][column] = ("\\multigate{%s}{%s}" %
+                                                                      (delta, utf8tolatex(nm)))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
-                                        self._latex[i_pos][column] = (
-                                            "\\ghost{%s}" % utf8tolatex(nm))
+                                        self._latex[i_pos][column] = ("\\ghost{%s}" %
+                                                                      utf8tolatex(nm))
                                 else:
-                                    self._latex[pos_1][column] = (
-                                        "\\multigate{2}{%s}" % utf8tolatex(nm))
-                                    self._latex[pos_2][column] = (
-                                        "\\ghost{%s}" % utf8tolatex(nm))
-                                    self._latex[pos_3][column] = (
-                                        "\\ghost{%s}" % utf8tolatex(nm))
+                                    self._latex[pos_1][column] = ("\\multigate{2}{%s}" %
+                                                                  utf8tolatex(nm))
+                                    self._latex[pos_2][column] = ("\\ghost{%s}" %
+                                                                  utf8tolatex(nm))
+                                    self._latex[pos_3][column] = ("\\ghost{%s}" %
+                                                                  utf8tolatex(nm))
 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
@@ -681,12 +697,10 @@ class QCircuitImage:
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
                         delta = pos_stop - pos_start
-                        self._latex[pos_start][column] = (
-                            "\\multigate{%s}{%s}" % (
-                                nbits - 1, utf8tolatex(nm)))
+                        self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
+                                                          (nbits - 1, utf8tolatex(nm)))
                         for pos in range(pos_start + 1, pos_stop + 1):
-                            self._latex[pos][column] = (
-                                "\\ghost{%s}" % utf8tolatex(nm))
+                            self._latex[pos][column] = ("\\ghost{%s}" % utf8tolatex(nm))
 
                 elif op.name == "measure":
                     if (len(op.cargs) != 1
@@ -698,8 +712,10 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")
 
-                    qname, qindex = op.qargs[0]
-                    cname, cindex = op.cargs[0]
+                    qname = op.qargs[0].register
+                    qindex = op.qargs[0].index
+                    cname = op.cargs[0].register
+                    cindex = op.cargs[0].index
                     if aliases:
                         newq = aliases[(qname, qindex)]
                         qname = newq[0]
@@ -742,6 +758,9 @@ class QCircuitImage:
                             span) + "}"
                 else:
                     raise exceptions.VisualizationError("bad node data")
+
+            # increase the number of columns by the number of columns this layer used
+            column += num_cols_used
 
     def _get_qubit_index(self, qubit):
         """Get the index number for a quantum bit

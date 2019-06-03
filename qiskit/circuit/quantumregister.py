@@ -17,7 +17,20 @@ Quantum register reference object.
 """
 import itertools
 
+from qiskit.exceptions import QiskitError
 from .register import Register
+from .bit import Bit
+
+
+class Qubit(Bit):
+    """Implement a quantum bit."""
+
+    def __init__(self, register, index):
+        if isinstance(register, QuantumRegister):
+            super().__init__(register, index)
+        else:
+            raise QiskitError('Qubit needs a QuantumRegister and %s was provided' %
+                              type(register).__name__)
 
 
 class QuantumRegister(Register):
@@ -26,6 +39,7 @@ class QuantumRegister(Register):
     instances_counter = itertools.count()
     # Prefix to use for auto naming.
     prefix = 'q'
+    bit_type = Qubit
 
     def qasm(self):
         """Return OPENQASM string for this register."""

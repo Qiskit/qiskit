@@ -18,7 +18,6 @@
 Diagonal single qubit gate.
 """
 import numpy
-from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -59,4 +58,3 @@ def u1(self, theta, q):
 
 
 QuantumCircuit.u1 = u1
-CompositeGate.u1 = u1

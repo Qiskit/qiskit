@@ -16,8 +16,7 @@
 Barrier instruction.
 """
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import CompositeGate
-from qiskit.circuit import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction
 
 
@@ -46,11 +45,11 @@ def barrier(self, *qargs):
     if not qargs:  # None
         for qreg in self.qregs:
             for j in range(qreg.size):
-                qubits.append((qreg, j))
+                qubits.append(qreg[j])
 
     for qarg in qargs:
         if isinstance(qarg, QuantumRegister):
-            qubits.extend([(qarg, j) for j in range(qarg.size)])
+            qubits.extend([qarg[j] for j in range(qarg.size)])
         elif isinstance(qarg, list):
             qubits.extend(qarg)
         elif isinstance(qarg, range):
@@ -64,4 +63,3 @@ def barrier(self, *qargs):
 
 
 QuantumCircuit.barrier = barrier
-CompositeGate.barrier = barrier
