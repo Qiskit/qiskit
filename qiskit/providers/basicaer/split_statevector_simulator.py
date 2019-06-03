@@ -181,7 +181,7 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         # Copying the statevector into its two substates
         temp = copy.deepcopy(self)
         self._substates.append(copy.deepcopy(temp))
-        self._substate_probabilities.append(probabilities[0]) 
+        self._substate_probabilities.append(probabilities[0])
         self._substates.append(copy.deepcopy(temp))
         self._substate_probabilities.append(probabilities[1])
 
@@ -227,7 +227,7 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
         Raises:
             BasicAerError: if an error occurred.
         """
-        if len(self._substates) != 0:
+        if self._substates != []:
             data = {'value': self._get_statevector(),
                     'path_0': self._substates[0]._generate_data(),
                     'path_0_probability': self._substate_probabilities[0],
@@ -235,7 +235,7 @@ class SplitStatevectorSimulatorPy(StatevectorSimulatorPy):
                     'path_1_probability': self._substate_probabilities[1]}
         else:
             data = {'value': self._get_statevector()}
-        
+
         return data
 
     # TODO: Add a _validate method
