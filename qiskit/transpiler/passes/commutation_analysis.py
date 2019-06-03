@@ -56,7 +56,7 @@ class CommutationAnalysis(AnalysisPass):
         # commutation set that contains node.
 
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
+            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
             self.property_set['commutation_set'][wire_name] = []
 
         # Add edges to the dictionary for each qubit
@@ -68,7 +68,7 @@ class CommutationAnalysis(AnalysisPass):
 
         # Construct the commutation set
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
+            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
 
             for current_gate in dag.nodes_on_wire(wire):
 
@@ -92,11 +92,12 @@ class CommutationAnalysis(AnalysisPass):
                 temp_len = len(current_comm_set)
                 self.property_set['commutation_set'][(current_gate, wire_name)] = temp_len - 1
 
+
 def _commute(node1, node2):
 
     if node1.type != "op" or node2.type != "op":
         return False
-    
+
     qarg = list(set(node1.qargs + node2.qargs))
     qbit_num = len(qarg)
 
