@@ -2,6 +2,8 @@
 # Compile at each optimization level, for each device (with more than n-qubits)
 # Simulate and verify results of every transpiled circuit match that of initial circuit
 
+import os
+
 import numpy as np
 
 from hypothesis import given, settings, Verbosity
@@ -32,21 +34,27 @@ twoQ_threeP_gates = [ Cu3Gate ]
 oneQ_oneC_gates = [ Measure ]
 variadic_gates = [ Barrier ]
 
-backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), FakePoughkeepsie()]
+mock_backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(), FakePoughkeepsie()]
 
 class QCircuitMachine(RuleBasedStateMachine):
     qubits = Bundle('qubits')
     clbits = Bundle('clbits')
 
+    max_qubits = int(os.getenv('QISKIT_RANDOM_QUBITS', 5))
+    backends = []
+    for backend in mock_backends:
+        if backend.configuration().n_qubits >= max_qubits:
+            backends.append(backend)
+
     def __init__(self):
         super().__init__()
         self.qc = QuantumCircuit()
 
-    @precondition(lambda self: len(self.qc.qubits) < 5)
+    @precondition(lambda self: len(self.qc.qubits) < self.max_qubits)
     @rule(target=qubits,
-          n=st.integers(min_value=1, max_value=5))
+          n=st.integers(min_value=1, max_value=max_qubits))
     def add_qreg(self, n):
-        n = max(n, 5 - len(self.qc.qubits))
+        n = min(n, self.max_qubits - len(self.qc.qubits))
         qreg = QuantumRegister(n)
         self.qc.add_register(qreg)
         return multiple(*list(qreg))
