@@ -35,57 +35,52 @@ from qiskit.tools.monitor import job_monitor
 try:
     IBMQ.load_accounts()
 except:
-    print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a file with your personal token?
+    print("""WARNING: No valid IBMQ credentials found on disk. 
+             You must store your credentials using IBMQ.save_account(token, url). 
              For now, there's only access to local simulator backends...""")
 
+# making first circuit: bell state
+qc1 = QuantumCircuit(2, 2)
+qc1.h(0)
+qc1.cx(0, 1)
+qc1.measure([0,1], [0,1])
+
+# making another circuit: superpositions
+qc2 = QuantumCircuit(2, 2)
+qc2.h([0,1])
+qc2.measure([0,1], [0,1])
+
+# setting up the backend
+print("(BasicAER Backends)")
+print(BasicAer.backends())
+
+# running the job
+job_sim = execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
+sim_result = job_sim.result()
+
+# Show the results
+print(sim_result.get_counts(qc1))
+print(sim_result.get_counts(qc2))
+
+# see a list of available remote backends
+print("\n(IBMQ Backends)")
+print(IBMQ.backends())
+
+# Compile and run on a real device backend
 try:
+    # select least busy available device and execute.
+    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+except:
+    print("All devices are currently unavailable.")
 
-    # making first circuit: bell state
-    qc1 = QuantumCircuit(2, 2)
-    qc1.h(0)
-    qc1.cx(0, 1)
-    qc1.measure([0,1], [0,1])
+print("Running on current least busy device: ", least_busy_device)
 
-    # making another circuit: superpositions
-    qc2 = QuantumCircuit(2, 2)
-    qc2.h([0,1])
-    qc2.measure([0,1], [0,1])
+# running the job
+job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
 
-    # setting up the backend
-    print("(BasicAER Backends)")
-    print(BasicAer.backends())
+job_monitor(job_exp)
+exp_result = job_exp.result()
 
-    # running the job
-    job_sim = execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
-    sim_result = job_sim.result()
-
-    # Show the results
-    print(sim_result.get_counts(qc1))
-    print(sim_result.get_counts(qc2))
-
-    # see a list of available remote backends
-    print("\n(IBMQ Backends)")
-    print(IBMQ.backends())
-
-    # Compile and run on a real device backend
-    try:
-        # select least busy available device and execute.
-        least_busy_device = least_busy(IBMQ.backends(simulator=False))
-    except:
-        print("All devices are currently unavailable.")
-
-    print("Running on current least busy device: ", least_busy_device)
-
-    # running the job
-    job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
-
-    job_monitor(job_exp)
-    exp_result = job_exp.result()
-
-    # Show the results
-    print(exp_result.get_counts(qc1))
-    print(exp_result.get_counts(qc2))
-
-except QiskitError as ex:
-    print('There was an error in the circuit!. Error = {}'.format(ex))
+# Show the results
+print(exp_result.get_counts(qc1))
+print(exp_result.get_counts(qc2))
