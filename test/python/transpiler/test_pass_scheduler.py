@@ -600,8 +600,89 @@ class TestDumpPasses(SchedulerTestCase):
         self.assertEqual(expected, passmanager.passes())
 
 
+class TestLogPasses(QiskitTestCase):
+    """Testing the log_passes option."""
+
+    def setUp(self):
+        self.circuit = QuantumCircuit(QuantumRegister(1))
+
+    def assertPassLog(self, passmanager, list_of_passes):
+        """ Runs the passmanager and checks that the elements in
+        passmanager.property_set['pass_log'] match list_of_passes (the names)."""
+        transpile(self.circuit, pass_manager=passmanager)
+
+        current_names = [pass_log['name'] for pass_log in passmanager.property_set['pass_raw_log']]
+        self.assertEqual(current_names, list_of_passes)
+
+        # All the passes run under the second
+        current_running_time = [pass_log['running_time'] < 1 for pass_log in
+                                passmanager.property_set['pass_raw_log']]
+        self.assertTrue(all(current_running_time))
+
+        # The formatted property_set['pass_log']
+        formatted_log = [
+            "%s: %.5f (ms)" % (pass_raw_log['name'], (pass_raw_log['running_time']) * 1000) for
+            pass_raw_log in passmanager.property_set['pass_raw_log']]
+        self.assertEqual(passmanager.property_set['pass_log'], formatted_log)
+
+    def test_passes(self):
+        """Dump passes in different FlowControllerLinear"""
+        passmanager = PassManager()
+        passmanager.log_passes = True
+        passmanager.append(PassC_TP_RA_PA())
+        passmanager.append(PassB_TP_RA_PA())
+
+        self.assertPassLog(passmanager, ['PassA_TP_NR_NP',
+                                         'PassC_TP_RA_PA',
+                                         'PassB_TP_RA_PA'])
+
+    def test_passes_in_linear(self):
+        """Dump passes in the same FlowControllerLinear"""
+        passmanager = PassManager(passes=[
+            PassC_TP_RA_PA(),
+            PassB_TP_RA_PA(),
+            PassD_TP_NR_NP(argument1=[1, 2]),
+            PassB_TP_RA_PA()])
+        passmanager.log_passes = True
+
+        self.assertPassLog(passmanager, ['PassA_TP_NR_NP',
+                                         'PassC_TP_RA_PA',
+                                         'PassB_TP_RA_PA',
+                                         'PassD_TP_NR_NP',
+                                         'PassA_TP_NR_NP',
+                                         'PassB_TP_RA_PA'])
+
+    def test_control_flow_plugin(self):
+        """ Dump passes in a custom flow controller. """
+        passmanager = PassManager()
+        FlowController.add_flow_controller('do_x_times', DoXTimesController)
+        passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
+        passmanager.log_passes = True
+        self.assertPassLog(passmanager, ['PassA_TP_NR_NP',
+                                         'PassB_TP_RA_PA',
+                                         'PassC_TP_RA_PA',
+                                         'PassB_TP_RA_PA',
+                                         'PassC_TP_RA_PA',
+                                         'PassB_TP_RA_PA',
+                                         'PassC_TP_RA_PA'])
+
+    def test_conditional_and_loop(self):
+        """ Dump passes with a conditional and a loop"""
+        passmanager = PassManager()
+        passmanager.append(PassE_AP_NR_NP(True))
+        passmanager.append(
+            [PassK_check_fixed_point_property(),
+             PassA_TP_NR_NP(),
+             PassF_reduce_dag_property()],
+            do_while=lambda property_set: not property_set['property_fixed_point'],
+            condition=lambda property_set: property_set['property_fixed_point'])
+        passmanager.log_passes = True
+        self.assertPassLog(passmanager, ['PassE_AP_NR_NP'])
+
+
 class TestPassManagerReuse(SchedulerTestCase):
     """ The PassManager instance should be resusable"""
+
     def setUp(self):
         self.passmanager = PassManager()
         self.circuit = QuantumCircuit(QuantumRegister(1))
