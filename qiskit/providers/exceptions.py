@@ -12,47 +12,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Exceptions for errors raised while handling backends and jobs.
-"""
+"""Exceptions for errors raised while handling Backends and Jobs."""
 
 from qiskit.exceptions import QiskitError
 
 
 class JobError(QiskitError):
-    """Base class for errors raised by jobs."""
+    """Base class for errors raised by Jobs."""
 
-    def __init__(self, *message):
-        """Set the error message."""
-        super().__init__(*message)
-        self.message = ' '.join(message)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.message)
+    pass
 
 
 class JobTimeoutError(JobError):
     """Base class for timeout errors raised by jobs."""
 
-    def __init__(self, *message):
-        """Set the error message."""
-        super().__init__(*message)
-        self.message = ' '.join(message)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.message)
+    pass
 
 
 class QiskitBackendNotFoundError(QiskitError):
-    """Base class for errors raised while looking up for a backend."""
+    """Base class for errors raised while looking for a backend."""
 
-    def __init__(self, *message):
-        """Set the error message."""
-        super().__init__(*message)
-        self.message = ' '.join(message)
-
-    def __str__(self):
-        """Return the message."""
-        return repr(self.message)
+    pass
