@@ -34,7 +34,7 @@ import pprint, time
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
 from qiskit import QiskitError
-from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
@@ -47,20 +47,17 @@ except:
              For now, there's only access to local simulator backends...""")
 
 try:
-    # Create a Quantum and Classical Register and give them names.
-    qubit_reg = QuantumRegister(2, name='q')
-    clbit_reg = ClassicalRegister(2, name='c')
 
     # Making first circuit: bell state
-    qc1 = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-    qc1.h(qubit_reg[0])
-    qc1.cx(qubit_reg[0], qubit_reg[1])
-    qc1.measure(qubit_reg, clbit_reg)
+    qc1 = QuantumCircuit(2, 2, name="bell")
+    qc1.h(0)
+    qc1.cx(0, 1)
+    qc1.measure([0,1], [0,1])
 
     # Making another circuit: superpositions
-    qc2 = QuantumCircuit(qubit_reg, clbit_reg, name="superposition")
-    qc2.h(qubit_reg)
-    qc2.measure(qubit_reg, clbit_reg)
+    qc2 = QuantumCircuit(2, 2, name="superposition")
+    qc2.h([0,1])
+    qc2.measure([0,1], [0,1])
 
     # Setting up the backend
     print("(Aer Backends)")
@@ -87,13 +84,13 @@ try:
     [qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
 
     print("Bell circuit before transpile:")
-    print(qc1.draw())
+    print(qc1)
     print("Bell circuit after transpile:")
-    print(qc1_new.draw())
+    print(qc1_new)
     print("Superposition circuit before transpile:")
-    print(qc2.draw())
+    print(qc2)
     print("Superposition circuit after transpile:")
-    print(qc2_new.draw())
+    print(qc2_new)
 
     # Assemble the two circuits into a runnable qobj
     qobj = assemble([qc1_new, qc2_new], shots=1000)
