@@ -122,6 +122,15 @@ class QCircuitMachine(RuleBasedStateMachine):
     def add_variQ_gate(self, gate, qargs):
         self.qc.append(gate(len(qargs)), qargs)
 
+    @precondition(lambda self: len(self.qc.data) > 0)
+    @rule(carg=clbits,
+          data=st.data())
+    def add_c_if_last_gate(self, carg, data):
+        creg = carg.register
+        val = data.draw(st.integers(min_value=0, max_value=2**len(creg)-1))
+
+        self.qc.data[-1][0].c_if(creg, val)
+
     # Properties to check
 
     @invariant()
