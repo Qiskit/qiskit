@@ -154,16 +154,15 @@ class QCircuitMachine(RuleBasedStateMachine):
               st.none(),
               st.integers(min_value=0, max_value=3)))
     def equivalent_transpile(self, backend, opt_level):
-        print('Evaluating circuit at level {} on {}:\n{}'.format(opt_level, backend, self.qc.qasm()))
-
         aer_qasm_simulator = Aer.get_backend('qasm_simulator')
         aer_counts = execute(self.qc, backend = aer_qasm_simulator).result().get_counts()
 
         xpiled_qc = transpile(self.qc, backend=backend, optimization_level=opt_level)
         xpiled_aer_counts = execute(xpiled_qc, backend = aer_qasm_simulator).result().get_counts()
 
-        assert counts_equivalent(aer_counts, xpiled_aer_counts), "Counts not equivalent. Original: {} Transpiled: {}".format(aer_counts, xpiled_aer_counts)
-        
+        assert counts_equivalent(aer_counts, xpiled_aer_counts), "Counts not equivalent. Original: {} Transpiled: {}.\nFailing QASM: \n{}".format(aer_counts, xpiled_aer_counts, self.qc.qasm())
+
+
 def counts_equivalent(c1, c2):
     sc1 = np.array(sorted(c1.items(), key=lambda c: c[0]))
     sc2 = np.array(sorted(c2.items(), key=lambda c: c[0]))
