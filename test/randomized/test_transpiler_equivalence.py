@@ -101,7 +101,9 @@ class QCircuitMachine(RuleBasedStateMachine):
         self.qc.qasm()
 
     @precondition(lambda self: any(isinstance(d[0], Measure) for d in self.qc.data))
-    @rule(backend=st.sampled_from(backends),
+    @rule(backend=st.one_of(
+              st.none(),
+              st.sampled_from(backends)),
           opt_level=st.one_of(
               st.none(),
               st.integers(min_value=0, max_value=3)))
