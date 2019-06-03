@@ -68,7 +68,7 @@ class CommutativeCancellation(TransformationPass):
         #    qubits and commutation sets.
 
         for wire in dag.wires:
-            wire_name = "{0}[{1}]".format(str(wire[0].name), str(wire[1]))
+            wire_name = "{0}[{1}]".format(str(wire.register.name), str(wire.index))
             wire_commutation_set = self.property_set['commutation_set'][wire_name]
 
             for com_set_idx, com_set in enumerate(wire_commutation_set):
