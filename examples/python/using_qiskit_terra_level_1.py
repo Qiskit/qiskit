@@ -34,7 +34,7 @@ import pprint, time
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
 from qiskit import QiskitError
-from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
@@ -42,81 +42,73 @@ from qiskit.tools.monitor import job_monitor
 try:
     IBMQ.load_accounts()
 except:
-    print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a file with your personal token?
+    print("""WARNING: No valid IBMQ credentials found on disk. 
+             You must store your credentials using IBMQ.save_account(token, url). 
              For now, there's only access to local simulator backends...""")
 
+# Making first circuit: bell state
+qc1 = QuantumCircuit(2, 2, name="bell")
+qc1.h(0)
+qc1.cx(0, 1)
+qc1.measure([0,1], [0,1])
+
+# Making another circuit: superpositions
+qc2 = QuantumCircuit(2, 2, name="superposition")
+qc2.h([0,1])
+qc2.measure([0,1], [0,1])
+
+# Setting up the backend
+print("(Aer Backends)")
+for backend in BasicAer.backends():
+    print(backend.status())
+qasm_simulator = BasicAer.get_backend('qasm_simulator')
+
+
+# Compile and run the circuit on a real device backend
+# See a list of available remote backends
+print("\n(IBMQ Backends)")
+for backend in IBMQ.backends():
+    print(backend.status())
+
 try:
-    # Create a Quantum and Classical Register and give them names.
-    qubit_reg = QuantumRegister(2, name='q')
-    clbit_reg = ClassicalRegister(2, name='c')
+    # select least busy available device and execute.
+    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+except:
+    print("All devices are currently unavailable.")
 
-    # Making first circuit: bell state
-    qc1 = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
-    qc1.h(qubit_reg[0])
-    qc1.cx(qubit_reg[0], qubit_reg[1])
-    qc1.measure(qubit_reg, clbit_reg)
+print("Running on current least busy device: ", least_busy_device)
 
-    # Making another circuit: superpositions
-    qc2 = QuantumCircuit(qubit_reg, clbit_reg, name="superposition")
-    qc2.h(qubit_reg)
-    qc2.measure(qubit_reg, clbit_reg)
+# Transpile the circuits to make them compatible with the experimental backend
+[qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
 
-    # Setting up the backend
-    print("(Aer Backends)")
-    for backend in BasicAer.backends():
-        print(backend.status())
-    qasm_simulator = BasicAer.get_backend('qasm_simulator')
+print("Bell circuit before transpile:")
+print(qc1)
+print("Bell circuit after transpile:")
+print(qc1_new)
+print("Superposition circuit before transpile:")
+print(qc2)
+print("Superposition circuit after transpile:")
+print(qc2_new)
 
+# Assemble the two circuits into a runnable qobj
+qobj = assemble([qc1_new, qc2_new], shots=1000)
 
-    # Compile and run the circuit on a real device backend
-    # See a list of available remote backends
-    print("\n(IBMQ Backends)")
-    for backend in IBMQ.backends():
-        print(backend.status())
+# Running qobj on the simulator
+sim_job = qasm_simulator.run(qobj)
 
-    try:
-        # select least busy available device and execute.
-        least_busy_device = least_busy(IBMQ.backends(simulator=False))
-    except:
-        print("All devices are currently unavailable.")
+# Getting the result
+sim_result=sim_job.result()
 
-    print("Running on current least busy device: ", least_busy_device)
+# Show the results
+print(sim_result.get_counts(qc1))
+print(sim_result.get_counts(qc2))
 
-    # Transpile the circuits to make them compatible with the experimental backend
-    [qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
+# Running the job.
+exp_job = least_busy_device.run(qobj)
 
-    print("Bell circuit before transpile:")
-    print(qc1.draw())
-    print("Bell circuit after transpile:")
-    print(qc1_new.draw())
-    print("Superposition circuit before transpile:")
-    print(qc2.draw())
-    print("Superposition circuit after transpile:")
-    print(qc2_new.draw())
+job_monitor(exp_job)
+exp_result = exp_job.result()
 
-    # Assemble the two circuits into a runnable qobj
-    qobj = assemble([qc1_new, qc2_new], shots=1000)
-
-    # Running qobj on the simulator
-    sim_job = qasm_simulator.run(qobj)
-
-    # Getting the result
-    sim_result=sim_job.result()
-
-    # Show the results
-    print(sim_result.get_counts(qc1))
-    print(sim_result.get_counts(qc2))
-
-    # Running the job.
-    exp_job = least_busy_device.run(qobj)
-
-    job_monitor(exp_job)
-    exp_result = exp_job.result()
-
-    # Show the results
-    print(exp_result.get_counts(qc1))
-    print(exp_result.get_counts(qc2))
-
-except QiskitError as ex:
-    print('There was an error in the circuit!. Error = {}'.format(ex))
+# Show the results
+print(exp_result.get_counts(qc1))
+print(exp_result.get_counts(qc2))
