@@ -33,6 +33,9 @@ Added
   ``QuantumCircuit.draw`` method. The option allows to control how much
   room the text circuit drawing takes.
 - Introduced a visualization for the Pass Manager. (#2445)
+- The attribute ``PassManager.log_passes`` was added to log and time the passes when they are
+  executed. The results is stored in the attribute ``pass_log`` of the property set as a
+  dictionary.
 
 Changed
 -------
