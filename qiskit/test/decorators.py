@@ -88,9 +88,7 @@ def _get_credentials(test_object, test_options):
         Credentials: set of credentials
 
     Raises:
-        ImportError: if the
-        Exception: when the credential could not be set and they are needed
-            for that set of options
+        SkipTest: when credentials can't be found
     """
     try:
         from qiskit.providers.ibmq.credentials import (Credentials,
@@ -111,11 +109,10 @@ def _get_credentials(test_object, test_options):
         if discovered_credentials:
             # Decide which credentials to use for testing.
             if len(discovered_credentials) > 1:
-                try:
-                    # Attempt to use QE credentials.
-                    return discovered_credentials[dummy_credentials.unique_id()]
-                except KeyError:
-                    pass
+                raise unittest.SkipTest(
+                    "More than 1 credential set found, use: "
+                    "'USE_ALTERNATE_ENV_CREDENTIALS' with IBMQ_TOKEN and "
+                    "IBMQ_URL to set credentials explicitly")
 
             # Use the first available credentials.
             return list(discovered_credentials.values())[0]
