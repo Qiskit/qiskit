@@ -23,12 +23,11 @@ twoQ_gates = [ CnotGate, CyGate, CzGate, SwapGate, CHGate ]
 threeQ_gates = [ ToffoliGate, FredkinGate ]
 
 oneQ_oneP_gates = [ U0Gate, U1Gate, RXGate, RYGate, RZGate ]
-# oneQ_twoP_gates = [ U2Gate ]
-# oneQ_threeP_gates = [ U3Gate ]
+oneQ_twoP_gates = [ U2Gate ]
+oneQ_threeP_gates = [ U3Gate ]
 
-# twoQ_oneP_gates = [ CrzGate, RZZGate, Cu1Gate ]
-# twoQ_twoP_gates = [ Cu2Gate ]
-# twoQ_threeP_gates = [ Cu3Gate ]
+twoQ_oneP_gates = [ CrzGate, RZZGate, Cu1Gate ]
+twoQ_threeP_gates = [ Cu3Gate ]
 
 oneQ_oneC_gates = [ Measure ]
 variadic_gates = [ Barrier ]
@@ -81,6 +80,36 @@ class QCircuitMachine(RuleBasedStateMachine):
           param=st.floats(allow_nan=False, allow_infinity=False))
     def add_1q1p_gate(self, gate, qarg, param):
         self.qc.append(gate(param), [qarg])
+
+    @rule(gate=st.sampled_from(oneQ_twoP_gates),
+          qarg=qubits,
+          params=st.lists(
+              st.floats(allow_nan=False, allow_infinity=False),
+              min_size=2, max_size=2))
+    def add_1q2p_gate(self, gate, qarg, params):
+        self.qc.append(gate(*params), [qarg])
+
+    @rule(gate=st.sampled_from(oneQ_threeP_gates),
+          qarg=qubits,
+          params=st.lists(
+              st.floats(allow_nan=False, allow_infinity=False),
+              min_size=3, max_size=3))
+    def add_1q3p_gate(self, gate, qarg, params):
+        self.qc.append(gate(*params), [qarg])
+
+    @rule(gate=st.sampled_from(twoQ_oneP_gates),
+          qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
+          param=st.floats(allow_nan=False, allow_infinity=False))
+    def add_2q1p_gate(self, gate, qargs, param):
+        self.qc.append(gate(param), qargs)
+
+    @rule(gate=st.sampled_from(twoQ_threeP_gates),
+          qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
+          params=st.lists(
+              st.floats(allow_nan=False, allow_infinity=False),
+              min_size=3, max_size=3))
+    def add_2q3p_gate(self, gate, qargs, params):
+        self.qc.append(gate(*params), qargs)
 
     @rule(gate=st.sampled_from(oneQ_oneC_gates),
           qarg=qubits,
