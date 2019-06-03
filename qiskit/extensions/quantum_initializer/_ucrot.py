@@ -10,7 +10,7 @@
 
 """
 (Abstract) base class for uniformly controlled (also called multiplexed) single-qubit rotations R_t.
-This class provides a basis for the decomposition of uniformly controlled R_y and R_z gates (i.e., for t=y,z).
+This class provides a basis for the decomposition of uniformly controlled R_x,R_y and R_z gates (i.e., for t=x,y,z).
 These gates can have several control qubits and a single target qubit.
 If the k control qubits are in the state ket(i) (in the computational bases),
 a single-qubit rotation R_t(a_i) is applied to the target qubit for a (real) angle a_i.
@@ -35,7 +35,7 @@ class UCRot(Gate):
     Input:
     angle_list = list of (real) rotation angles [a_0,...,a_{2^k-1}]. Must have at least one entry.
 
-    rot_axis = rotation axis for the single qubit rotations (currently, "Z" and "Y" are supported)
+    rot_axis = rotation axis for the single qubit rotations (currently, "X","Y" and "Z" are supported)
     """
 
     def __init__(self, angle_list, rot_axis):
@@ -56,7 +56,7 @@ class UCRot(Gate):
         num_contr = math.log2(len(angle_list))
         if num_contr < 0 or not num_contr.is_integer():
             raise QiskitError("The number of controlled rotation gates is not a non-negative power of 2.")
-        if rot_axis != "Y" and rot_axis != "Z":
+        if rot_axis != "Y" and rot_axis != "Z" and rot_axis != "X":
             raise QiskitError("Rotation axis is not supported.")
         # Create new gate.
         num_qubits = int(num_contr) + 1
@@ -86,24 +86,30 @@ class UCRot(Gate):
         q_target = q[0]
         q_controls = q[1:]
         if len(q_controls) == 0:
-            if self.rot_axes == "Z":
+            if self.rot_axes == "X":
                 if np.abs(self.params[0]) > _EPS:
-                    circuit.rz(self.params[0], q_target)
+                    circuit.rx(self.params[0], q_target)
             if self.rot_axes == "Y":
                 if np.abs(self.params[0]) > _EPS:
                     circuit.ry(self.params[0], q_target)
+            if self.rot_axes == "Z":
+                if np.abs(self.params[0]) > _EPS:
+                    circuit.rz(self.params[0], q_target)
         else:
             # First, we find the rotation angles of the single-qubit rotations acting on the target qubit
             angles = self.params.copy()
             _dec_uc_rotations(angles, 0, len(angles), False)
             # Now, it is easy to place the C-NOT gates to get back the full decomposition.
             for i in range(len(angles)):
-                if self.rot_axes == "Z":
+                if self.rot_axes == "X":
                     if np.abs(angles[i]) > _EPS:
-                        circuit.rz(angles[i], q_target)
+                        circuit.rx(angles[i], q_target)
                 if self.rot_axes == "Y":
                     if np.abs(angles[i]) > _EPS:
                         circuit.ry(angles[i], q_target)
+                if self.rot_axes == "Z":
+                    if np.abs(angles[i]) > _EPS:
+                        circuit.rz(angles[i], q_target)
                 # Determine the index of the qubit we want to control the C-NOT gate. Note that it corresponds
                 # to the number of trailing zeros in the binary representaiton of i+1
                 if not i == len(angles) - 1:
@@ -112,7 +118,14 @@ class UCRot(Gate):
                 else:
                     # Handle special case:
                     q_contr_index = len(q_controls) - 1
+                # For X rotations, we have to additionally place some Ry gates around the C-NOT gates. They change
+                # the basis of the NOT operation, such that the decomposition of for uniformly controlled X rotations
+                # works correctly by symmetry with the decomposition of uniformly controlled Z or Y rotations
+                if self.rot_axes == "X":
+                    circuit.ry(np.pi/2, q_target)
                 circuit.cx(q_controls[q_contr_index], q_target)
+                if self.rot_axes == "X":
+                    circuit.ry(-np.pi/2, q_target)
         return circuit
 
 

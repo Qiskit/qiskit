@@ -11,6 +11,7 @@ from .initializer import InitializeGate
 from .squ import SingleQubitUnitary
 from .ucz import UCZ
 from .ucy import UCY
+from .ucx import UCX
 from .diag import DiagGate
 from .ucg import UCG
 from .isometry import Isometry

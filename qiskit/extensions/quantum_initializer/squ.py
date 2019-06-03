@@ -10,7 +10,6 @@ Decompose an arbitrary 2*2 unitary into three rotation gates: U=R_zR_yR_z. Note 
 a global phase shift.
 (This is a well known decomposition, which can be found for example in Nielsen and Chuang's book
 "Quantum computation and quantum information".)
-# ToDo: Add decomposition mode XYX, which decomposes U into U=R_xR_yR_x
 """
 
 import cmath
