@@ -169,7 +169,7 @@ class TestUnitaryCircuit(QiskitTestCase):
             numpy.array(instr.params).astype(numpy.complex64),
             matrix))
         # check conversion to dict
-        qobj_dict = qobj.as_dict()
+        qobj_dict = qobj.to_dict()
         # check json serialization
         self.assertTrue(isinstance(json.dumps(qobj_dict), str))
 
