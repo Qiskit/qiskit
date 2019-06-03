@@ -139,7 +139,8 @@ class QasmSimulatorPy(BaseBackend):
         self._sample_measure = False
 
         if self.SPLIT_STATES:
-            # _substates field will contain 2 statevectors corresponding to measurement results 0 and 1
+            # _substates field will contain 2 statevectors corresponding to 
+            # measurement results 0 and 1
             self._substates = []
             self._substate_probabilities = []
 
