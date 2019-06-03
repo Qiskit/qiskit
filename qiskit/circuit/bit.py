@@ -64,7 +64,7 @@ class Bit:
     def __eq__(self, other):
         if isinstance(other, Bit):
             return other.index == self.index and \
-                   other.register == self.register and \
+                   other.register.name == self.register.name and \
                    type(self) is type(other)
         if isinstance(other, tuple):
             warn('Equality check between a tuple and a Bit instances is deprecated. '

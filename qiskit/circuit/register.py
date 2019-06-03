@@ -47,7 +47,9 @@ class Register(list):
                               % (type(size).__name__, size))
 
         # validate (or cast) name
-        if name is not None:
+        if name is None:
+            name = '%s%i' % (self.prefix, next(self.instances_counter))
+        else:
             try:
                 name = str(name)
             except Exception:
@@ -57,7 +59,7 @@ class Register(list):
             if name_format.match(name) is None:
                 raise QiskitError("%s is an invalid OPENQASM register name." % name)
 
-        self._name = name
+        self.name = name
         self._hash = None
         for item in range(size):
             self.append(self.bit_type(self, item))
@@ -65,18 +67,6 @@ class Register(list):
     def __repr__(self):
         """Return the official string representing the register."""
         return "%s(%d, '%s')" % (self.__class__.__qualname__, len(self), self.name)
-
-    @property
-    def name(self):
-        """Returns the name of the register"""
-        if self._name is None:
-            self._name = '%s%i' % (self.prefix, next(self.instances_counter))
-        return self._name
-
-    @name.setter
-    def name(self, new_name):
-        """Returns the name of the register"""
-        self._name = new_name
 
     @property
     def size(self):
@@ -102,16 +92,10 @@ class Register(list):
         Returns:
             bool: are self and other equal.
         """
-        if self._name is None:
-            return len(self) == len(other) and type(self) is type(other)
-        else:
-            return self.name == other.name and len(self) == len(other) and type(self) is type(other)
+        return self.name == other.name and len(self) == len(other) and type(self) is type(other)
 
     def __hash__(self):
         """Make object hashable, based on the name and size to hash."""
         if self._hash is None:
-            if self._name is None:
-                self._hash = hash((type(self), len(self)))
-            else:
-                self._hash = hash((type(self), self.name, len(self)))
+            self._hash = hash((type(self), self.name, len(self)))
         return self._hash
