@@ -127,10 +127,10 @@ class CommutativeCancellation(TransformationPass):
                     new_op = RXGate(total_angle)
 
                 if np.mod(total_angle, (2 * np.pi)) > _CUTOFF_PRECISION:
-                    new_qarg = (QuantumRegister(1, 'q'), 0)
+                    new_qarg = QuantumRegister(1, 'q')
                     new_dag = DAGCircuit()
-                    new_dag.add_qreg(new_qarg[0])
-                    new_dag.apply_operation_back(new_op, [new_qarg])
+                    new_dag.add_qreg(new_qarg)
+                    new_dag.apply_operation_back(new_op, [new_qarg[0]])
                     dag.substitute_node_with_dag(run[0], new_dag)
 
                 # Delete the other nodes in the run

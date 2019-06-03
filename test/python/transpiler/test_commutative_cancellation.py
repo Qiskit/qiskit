@@ -254,7 +254,7 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
-    def test_control_bit_of_cnot3(self):
+    def test_control_bit_of_cnot4(self):
         """A simple circuit where the two cnots shoule be cancelled.
 
         qr0:----.------[T]------.--       qr0:---[T]---
