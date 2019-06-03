@@ -449,6 +449,8 @@ class TextDrawing():
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
+        if vertical_compression not in ['high', 'medium', 'low']:
+            raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
         self.vertical_compression = vertical_compression
 
     def __str__(self):
