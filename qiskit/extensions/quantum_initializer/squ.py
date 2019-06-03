@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# Copyright 2019, IBM.
 #
 # This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.ß
+# the LICENSE.txt file in the root directory of this source tree.
 
 """
 Decompose an arbitrary 2*2 unitary into three rotation gates: U=R_zR_yR_z. Note that the decomposition is up to
