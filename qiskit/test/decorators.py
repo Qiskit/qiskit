@@ -96,15 +96,8 @@ def _get_credentials(test_object, test_options):
         from qiskit.providers.ibmq.credentials import (Credentials,
                                                        discover_credentials)
     except ImportError:
-        raise ImportError('qiskit-ibmq-provider could not be found, and is '
-                          'required for mocking or executing online tests.')
-
-    dummy_credentials = Credentials(
-        'dummyapiusersloginWithTokenid01',
-        'https://quantumexperience.ng.bluemix.net/api')
-
-    if test_options['mock_online']:
-        return dummy_credentials
+        raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
+                                'and is required for executing online tests.')
 
     if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', ''):
         # Special case: instead of using the standard credentials mechanism,
@@ -126,16 +119,9 @@ def _get_credentials(test_object, test_options):
 
             # Use the first available credentials.
             return list(discovered_credentials.values())[0]
-
-    # No user credentials were found.
-    if test_options['rec']:
-        raise Exception('Could not locate valid credentials. You need them for '
-                        'recording tests against the remote API.')
-
-    test_object.log.warning('No user credentials were detected. '
-                            'Running with mocked data.')
-    test_options['mock_online'] = True
-    return dummy_credentials
+    raise unittest.SkipTest(
+        'No IBMQ credentials found for running the test. This is required for '
+        'running online tests.')
 
 
 def requires_qe_access(func):
