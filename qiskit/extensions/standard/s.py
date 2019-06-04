@@ -18,7 +18,6 @@
 S=diag(1,i) Clifford phase gate or its inverse.
 """
 import numpy
-from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -98,5 +97,3 @@ def sdg(self, q):
 
 QuantumCircuit.s = s
 QuantumCircuit.sdg = sdg
-CompositeGate.s = s
-CompositeGate.sdg = sdg

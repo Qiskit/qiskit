@@ -19,7 +19,6 @@ import unittest
 import numpy as np
 import scipy.linalg as la
 from qiskit import execute
-from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, U3Gate,
                                         XGate, YGate, ZGate)
@@ -81,10 +80,7 @@ class TestEulerAngles1Q(QiskitTestCase):
         with self.subTest(operator=operator):
             target_unitary = operator.data
             angles = euler_angles_1q(target_unitary)
-            decomp_circuit = QuantumCircuit(1)
-            decomp_circuit.u3(*angles, 0)
-            result = execute(decomp_circuit, UnitarySimulatorPy()).result()
-            decomp_unitary = result.get_unitary()
+            decomp_unitary = U3Gate(*angles).to_matrix()
             target_unitary *= la.det(target_unitary)**(-0.5)
             decomp_unitary *= la.det(decomp_unitary)**(-0.5)
             maxdist = np.max(np.abs(target_unitary - decomp_unitary))
@@ -121,15 +117,16 @@ class TestTwoQubitWeylDecomposition(QiskitTestCase):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         with self.subTest(unitary=target_unitary):
             decomp = TwoQubitWeylDecomposition(target_unitary)
-            q = QuantumRegister(2)
-            decomp_circuit = QuantumCircuit(q)
-            decomp_circuit.append(UnitaryGate(decomp.K2r), [q[0]])
-            decomp_circuit.append(UnitaryGate(decomp.K2l), [q[1]])
-            decomp_circuit.append(UnitaryGate(Ud(decomp.a, decomp.b, decomp.c)), [q[0], q[1]])
-            decomp_circuit.append(UnitaryGate(decomp.K1r), [q[0]])
-            decomp_circuit.append(UnitaryGate(decomp.K1l), [q[1]])
-            result = execute(decomp_circuit, UnitarySimulatorPy()).result()
-            decomp_unitary = result.get_unitary()
+            op = Operator(np.eye(4))
+            for u, qs in (
+                    (decomp.K2r, [0]),
+                    (decomp.K2l, [1]),
+                    (Ud(decomp.a, decomp.b, decomp.c), [0, 1]),
+                    (decomp.K1r, [0]),
+                    (decomp.K1l, [1]),
+            ):
+                op = op.compose(u, qs)
+            decomp_unitary = op.data
             target_unitary *= la.det(target_unitary)**(-0.25)
             decomp_unitary *= la.det(decomp_unitary)**(-0.25)
             maxdists = [np.max(np.abs(target_unitary + phase*decomp_unitary))
@@ -284,8 +281,6 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         with self.subTest(unitary=target_unitary, decomposer=decomposer):
             decomp_circuit = decomposer(target_unitary)
             result = execute(decomp_circuit, UnitarySimulatorPy()).result()
-            decomp_unitary = Operator(result.get_unitary())
-            result = execute(decomp_circuit, UnitarySimulatorPy()).result()
             decomp_unitary = result.get_unitary()
             target_unitary *= la.det(target_unitary)**(-0.25)
             decomp_unitary *= la.det(decomp_unitary)**(-0.25)
@@ -294,7 +289,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
             maxdist = np.min(maxdists)
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
 
-    def test_exact_two_qubit_cnot_decompose_random(self, nsamples=100):
+    def test_exact_two_qubit_cnot_decompose_random(self, nsamples=10):
         """Verify exact CNOT decomposition for random Haar 4x4 unitaries.
         """
         for _ in range(nsamples):
@@ -308,9 +303,7 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         unitary = Operator(pauli_xz)
         self.check_exact_decomposition(unitary.data, two_qubit_cnot_decompose)
 
-    # FIXME: this should not be failing but I ran out of time to debug it
-    @unittest.expectedFailure
-    def test_exact_supercontrolled_decompose_random(self, nsamples=100):
+    def test_exact_supercontrolled_decompose_random(self, nsamples=10):
         """Verify exact decomposition for random supercontrolled basis and random target"""
 
         for _ in range(nsamples):

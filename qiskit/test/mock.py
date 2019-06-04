@@ -135,8 +135,8 @@ class FakeBackend(BaseBackend):
                     }
                 ],
                 "qubits": [
-                    1,
-                    0
+                    pair[0],
+                    pair[1]
                 ]
             } for pair in coupling_map],
             'general': []
