@@ -451,7 +451,7 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
     if skip_qobj_validation:
         job_id = str(uuid.uuid4())
         if is_aer_provider(backend):
-            from qiskit.providers.aer import AerJob
+            from qiskit.providers.aer.aerjob import AerJob
             temp_backend_options = backend_options['backend_options'] if backend_options != {} else None
             temp_noise_config = noise_config['noise_model'] if noise_config != {} else None
             job = AerJob(backend, job_id, backend._run_job, qobj, temp_backend_options, temp_noise_config, False)
@@ -463,7 +463,7 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
         elif is_ibmq_provider(backend):
             # TODO: IBMQJob performs validation during the constructor. the following lines does not
             # skip validation but run as is.
-            from qiskit.providers.ibmq import IBMQJob
+            from qiskit.providers.ibmq.job import IBMQJob
             job = IBMQJob(backend, None, backend._api, qobj=qobj)
             job._future = job._executor.submit(job._submit_callback)
         else:
