@@ -54,14 +54,14 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         qc = QuantumCircuit()
         filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
         visualization.circuit_drawer(qc, output='mpl', filename=filename)
+        self.addCleanup(os.remove, filename)
 
         expected_filename = self._get_resource_path('expected_current_pulse_matplotlib_ref.png')
         expected = self._expected_empty()
         expected.savefig(expected_filename)
+        self.addCleanup(os.remove, expected_filename)
 
         self.assertImagesAreEqual(filename, expected_filename)
-        self.addCleanup(os.remove, filename)
-        self.addCleanup(os.remove, expected_filename)
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
@@ -87,17 +87,17 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
         # check the barriers plot properly when plot_barriers= True
         filename = self._get_resource_path('visualization/references/current_matplotlib_ref.png')
-
         visualization.circuit_drawer(qc, output='mpl', plot_barriers=True, filename=filename)
+        self.addCleanup(os.remove, filename)
 
         ref_filename = self._get_resource_path(
             'visualization/references/matplotlib_barriers_ref.png')
         self.assertImagesAreEqual(filename, ref_filename)
-        self.addCleanup(os.remove, filename)
 
         # check that the barrier aren't plotted when plot_barriers = False
         filename = self._get_resource_path('current_matplotlib_ref.png')
         visualization.circuit_drawer(qc, output='mpl', plot_barriers=False, filename=filename)
+        self.addCleanup(os.remove, filename)
 
         # generate the same circuit but without the barrier commands as this is what the
         # circuit should look like when displayed with plot barriers false
@@ -110,7 +110,6 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         no_barriers_filename = self._get_resource_path('current_no_barriers_matplotlib_ref.png')
         visualization.circuit_drawer(qc1, output='mpl', justify='None',
                                      filename=no_barriers_filename)
+        self.addCleanup(os.remove, no_barriers_filename)
 
         self.assertImagesAreEqual(filename, no_barriers_filename)
-        self.addCleanup(os.remove, filename)
-        self.addCleanup(os.remove, no_barriers_filename)
