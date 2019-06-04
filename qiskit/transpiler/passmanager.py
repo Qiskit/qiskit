@@ -30,8 +30,6 @@ class PassManager():
     """A PassManager schedules the passes"""
 
     def __init__(self, passes=None,
-                 ignore_requires=None,
-                 ignore_preserves=None,
                  max_iteration=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
@@ -39,10 +37,6 @@ class PassManager():
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule. The default is
                 None.
-            ignore_requires (bool): The schedule ignores the requires field in the passes. The
-                default setting in the pass is False.
-            ignore_preserves (bool): The schedule ignores the preserves field in the passes. The
-                default setting in the pass is False.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
         """
@@ -60,9 +54,7 @@ class PassManager():
         self.valid_passes = set()
 
         # pass manager's overriding options for the passes it runs (for debugging)
-        self.passmanager_options = {'ignore_requires': ignore_requires,
-                                    'ignore_preserves': ignore_preserves,
-                                    'max_iteration': max_iteration}
+        self.passmanager_options = {'max_iteration': max_iteration}
 
         # The property log_passes allows to log and time the passes as they run in the pass manager
         self.log_passes = False
@@ -76,21 +68,16 @@ class PassManager():
         passmanager options (set via ``PassManager.__init__()``), which override Default.
         .
         """
-        default = {'ignore_preserves': False,  # Ignore preserves for this pass
-                   'ignore_requires': False,  # Ignore requires for this pass
-                   'max_iteration': 1000}  # Maximum allowed iteration on this pass
+        default = {'max_iteration': 1000}  # Maximum allowed iteration on this pass
 
         passmanager_level = {k: v for k, v in self.passmanager_options.items() if v is not None}
         passset_level = {k: v for k, v in passset_options.items() if v is not None}
         return {**default, **passmanager_level, **passset_level}
 
-    def append(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
-               **flow_controller_conditions):
+    def append(self, passes, max_iteration=None, **flow_controller_conditions):
         """
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule
-            ignore_preserves (bool): ignore the preserves claim of passes. Default: False
-            ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
@@ -107,9 +94,7 @@ class PassManager():
             TranspilerError: if a pass in passes is not a proper pass.
         """
 
-        passset_options = {'ignore_requires': ignore_requires,
-                           'ignore_preserves': ignore_preserves,
-                           'max_iteration': max_iteration}
+        passset_options = {'max_iteration': max_iteration}
 
         options = self._join_options(passset_options)
 
@@ -175,16 +160,15 @@ class PassManager():
         """
 
         # First, do the requires of pass_
-        if not options["ignore_requires"]:
-            for required_pass in pass_.requires:
-                dag = self._do_pass(required_pass, dag, options)
+        for required_pass in pass_.requires:
+            dag = self._do_pass(required_pass, dag, options)
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
             dag = self._run_this_pass(pass_, dag)
 
             # update the valid_passes property
-            self._update_valid_passes(pass_, options['ignore_preserves'])
+            self._update_valid_passes(pass_)
 
         return dag
 
@@ -206,13 +190,10 @@ class PassManager():
             raise TranspilerError("I dont know how to handle this type of pass")
         return dag
 
-    def _update_valid_passes(self, pass_, ignore_preserves):
+    def _update_valid_passes(self, pass_):
         self.valid_passes.add(pass_)
         if not pass_.is_analysis_pass:  # Analysis passes preserve all
-            if ignore_preserves:
-                self.valid_passes.clear()
-            else:
-                self.valid_passes.intersection_update(set(pass_.preserves))
+            self.valid_passes.intersection_update(set(pass_.preserves))
 
     def passes(self):
         """
