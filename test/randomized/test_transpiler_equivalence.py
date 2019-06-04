@@ -28,6 +28,8 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Gate
 from qiskit.test.mock import \
     FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo, FakePoughkeepsie
+from qiskit.test.base import dicts_almost_equal
+
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.extensions.standard import *
@@ -200,6 +202,7 @@ class QCircuitMachine(RuleBasedStateMachine):
         counts are not significantly different before and after transpilation.
 
         """
+
         assume(backend is None or backend.configuration().n_qubits >= len(self.qc.qubits))
 
         shots = 4096
@@ -212,19 +215,10 @@ class QCircuitMachine(RuleBasedStateMachine):
         xpiled_aer_counts = execute(xpiled_qc, backend=self.backend,
                                     shots=shots).result().get_counts()
 
-        assert _counts_equivalent(aer_counts, xpiled_aer_counts), \
-            "Counts not equivalent. Original: {} Transpiled: {}.\nFailing QASM: \n{}".format(
-                aer_counts, xpiled_aer_counts, self.qc.qasm())
+        count_differences = dicts_almost_equal(aer_counts, xpiled_aer_counts, 0.05 * shots)
 
-
-def _counts_equivalent(c1, c2):
-    for key in c1.keys() | c2.keys():
-        val1 = c1.get(key, 0)
-        val2 = c2.get(key, 0)
-
-        if abs(val1 - val2) > 0.05 * sum(c1.values()):
-            return False
-    return True
+        assert count_differences == '', 'Counts not equivalent: {}\n Failing QASM: \n{}'.format(
+            count_differences, self.qc.qasm())
 
 
 TestQuantumCircuit = QCircuitMachine.TestCase
