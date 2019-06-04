@@ -40,6 +40,7 @@ class Case(dict):
     """ A test case, see https://ddt.readthedocs.io/en/latest/example.html MyList."""
     pass
 
+
 def generate_cases(dsc=None, **kwargs):
     """Combines kwargs in cartesian product and creates Case with them"""
     ret = []
