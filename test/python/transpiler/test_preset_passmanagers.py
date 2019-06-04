@@ -38,14 +38,7 @@ def is_swap_mapped():
 
 class Case(dict):
     """ A test case, if an element of the list is callable, call it."""
-    def __init__(self, *args):
-        new = []
-        for key,value in args[0]:
-            if callable(value):
-                value = value()
-            new.append((key,value))
-        dict.__init__(self, new)
-
+    pass
 
 def generate_cases(dsc=None, **kwargs):
     """Combines kwargs in cartesian product and creates Case with them"""
@@ -88,5 +81,5 @@ class TestTranspileLevels(QiskitTestCase):
                               '{level}'))
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
-        result = transpile(circuit, backend=backend, optimization_level=level, seed_transpiler=42)
+        result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
         self.assertIsInstance(result, QuantumCircuit)
