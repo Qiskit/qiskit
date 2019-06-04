@@ -295,7 +295,7 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
 
     The auto-recovery feature is only applied for non-simulator backend.
-    This wraper will try to get the result no matter how long it costs.
+    This wrapper will try to get the result no matter how long it takes.
 
     Args:
         qobj (QasmQobj): qobj to execute
@@ -303,9 +303,10 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
         qjob_config (dict, optional): configuration for quantum job object
         backend_options (dict, optional): configuration for simulator
         noise_config (dict, optional): configuration for noise model
-        skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
+        skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time,
+                                               only works for Aer and BasicAer providers
         job_callback (Callable, optional): callback used in querying info of the submitted job, and
-                                           providing the job object as the argument
+                                           providing the following arguments: job_id, job_status, queue_position, job
 
     Returns:
         Result: Result object
@@ -353,16 +354,22 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
                 # try to get result if possible
                 while True:
                     job_status = _safe_get_job_status(job, job_id)
+                    queue_position = 0
                     if job_status in JOB_FINAL_STATES:
+                        # do callback again after the job is in the final states
+                        if job_callback is not None:
+                            job_callback(job_id, job_status, queue_position, job)
                         break
                     elif job_status == JobStatus.QUEUED:
-                        logger.info("Job id: {} is queued at position {}".format(job_id, job.queue_position()))
+                        queue_position = job.queue_position()
+                        logger.info("Job id: {} is queued at position {}".format(job_id, queue_position))
                     else:
                         logger.info("Job id: {}, status: {}".format(job_id, job_status))
                     if job_callback is not None:
-                        job_callback(job)
+                        job_callback(job_id, job_status, queue_position, job)
                     time.sleep(qjob_config['wait'])
 
+                # get result after the status is DONE
                 if job_status == JobStatus.DONE:
                     while True:
                         result = job.result(**qjob_config)
@@ -376,18 +383,23 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
                                            "from backend again.".format(job_id))
                             job = backend.retrieve_job(job_id)
                     break
-                elif job_status == JobStatus.CANCELLED:
-                    logger.warning("FAILURE: Job id: {} is cancelled. Re-submit the qobj again.".format(job_id))
-                elif job_status == JobStatus.ERROR:
-                    logger.warning("FAILURE: Job id: {} encounters the error. Re-submit the qobj again.".format(job_id))
+                # for other cases, resumbit the qobj until the result is available.
+                # since if there is no result returned, there is no way algorithm can do any process
                 else:
-                    logging.warning("FAILURE: Job id: {}. Unknown status: {}. " 
-                                    "Re-submit the qobj again.".format(job_id, job_status))
+                    # get back the qobj first to avoid for job is consumed
+                    qobj = job.qobj()
+                    if job_status == JobStatus.CANCELLED:
+                        logger.warning("FAILURE: Job id: {} is cancelled. Re-submit the Qobj.".format(job_id))
+                    elif job_status == JobStatus.ERROR:
+                        logger.warning("FAILURE: Job id: {} encounters the error. "
+                                       "Error is : {}. Re-submit the Qobj.".format(job_id, job.error_message()))
+                    else:
+                        logging.warning("FAILURE: Job id: {}. Unknown status: {}. " 
+                                        "Re-submit the Qobj.".format(job_id, job_status))
 
-                qobj = job.qobj()
-                job, job_id = _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation)
-                jobs[idx] = job
-                job_ids[idx] = job_id
+                    job, job_id = _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation)
+                    jobs[idx] = job
+                    job_ids[idx] = job_id
     else:
         results = []
         for job in jobs:

@@ -63,7 +63,7 @@ class QuantumInstance:
             seed_simulator (int, optional): random seed for simulators
             max_credits (int, optional): maximum credits to use
             basis_gates (list[str], optional): list of basis gate names supported by the
-                                                target. Default: ['u1','u2','u3','cx','id']
+                                               target. Default: ['u1','u2','u3','cx','id']
             coupling_map (list[list]): coupling map (perhaps custom) to target in mapping
             initial_layout (dict, optional): initial layout of qubits in mapping
             pass_manager (PassManager, optional): pass manager to handle how to compile the circuits
@@ -74,16 +74,17 @@ class QuantumInstance:
             wait (float, optional): seconds between queries to result
             circuit_caching (bool, optional): USe CircuitCache when calling compile_and_run_circuits
             cache_file(str, optional): filename into which to store the cache as a pickle file
-            skip_qobj_deepcopy (bool, optional): Reuses the same qobj object over and over to avoid deepcopying
+            skip_qobj_deepcopy (bool, optional): Reuses the same Qobj object over and over to avoid deepcopying
             skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
-            measurement_error_mitigation_cls (callable, optional): the approach to mitigate measurement error,
-                                                                CompleteMeasFitter or TensoredMeasFitter
-            cals_matrix_refresh_period (int): how long to refresh the calibration matrix in measurement mitigation,
+            measurement_error_mitigation_cls (Callable, optional): the approach to mitigate measurement error,
+                                                                   CompleteMeasFitter or TensoredMeasFitter
+            cals_matrix_refresh_period (int, optional): how long to refresh the calibration matrix in measurement mitigation,
                                                   unit in minutes
-            measurement_error_mitigation_shots (int): the shot number for building calibration matrix, if None, use
-                                                      the shot number in quantum instance
+            measurement_error_mitigation_shots (int, optional): the shot number for building calibration matrix,
+                                                                if None, use the shot number in quantum instance
             job_callback (Callable, optional): callback used in querying info of the submitted job, and
-                                               providing the job object as the argument
+                                               providing the following arguments: job_id, job_status,
+                                               queue_position, job
         """
         self._backend = backend
         # setup run config
