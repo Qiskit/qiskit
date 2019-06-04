@@ -357,7 +357,7 @@ class BaseModel(SimpleNamespace):
     def as_dict(self):
         """Serialize the model into a Python dict of simple types."""
         warnings.warn('The as_dict() method is deprecated, use to_dict().',
-                      DeprecationWarning)
+                      DeprecationWarning, stacklevel=2)
         return self.to_dict()
 
 
