@@ -47,7 +47,7 @@ def generate_cases(dsc=None, **kwargs):
     vals = kwargs.values()
     for values in product(*vals):
         case = Case(zip(keys, values))
-        setattr(case, "__doc__", dsc.format(**dict(zip(keys, values))))
+        setattr(case, "__doc__", dsc.format(**case))
         ret.append(case)
     return ret
 
