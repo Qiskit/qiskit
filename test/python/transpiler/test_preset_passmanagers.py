@@ -38,6 +38,7 @@ def is_swap_mapped():
 
 class Case(list):
     """ A test case, if an element of the list is callable, call it."""
+
     def __init__(self, originals):
         new = []
         for original in originals:
@@ -74,6 +75,7 @@ class TestPresetPassManager(QiskitTestCase):
         result = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'], optimization_level=level)
         self.assertIsInstance(result, QuantumCircuit)
 
+
 @ddt
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
@@ -83,8 +85,8 @@ class TestTranspileLevels(QiskitTestCase):
                           level=[0, 1, 2, 3],
                           backend=[FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(),
                                    FakePoughkeepsie(), None],
-                          __doc__='Transpiler {circuit.__name__} on {backend} backend at level '
-                                  '{level}'))
+                          dsc='Transpiler {circuit.__name__} on {backend} backend at level '
+                              '{level}'))
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
         result = transpile(circuit, backend=backend, optimization_level=level, seed_transpiler=42)
