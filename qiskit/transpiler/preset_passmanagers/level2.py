@@ -85,7 +85,6 @@ def level_2_pass_manager(transpile_config):
     # 3. Unroll to 1q or 2q gates, swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
-
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
              LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
