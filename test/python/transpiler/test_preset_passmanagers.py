@@ -14,8 +14,8 @@
 
 """Tests preset pass manager functionalities"""
 
-from ddt import ddt, data, unpack
 from itertools import product
+from ddt import ddt, data, unpack
 
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
@@ -37,6 +37,7 @@ def is_swap_mapped():
 
 
 class Case(list):
+    """ A test case, if an element of the list is callable, call it."""
     def __init__(self, originals):
         new = []
         for original in originals:
@@ -46,13 +47,14 @@ class Case(list):
         super().__init__(new)
 
 
-def generate_cases(__doc__=None, **kwargs):
+def generate_cases(dsc=None, **kwargs):
+    """Combines kwargs in cartesian product and creates Case with them"""
     ret = []
     keys = kwargs.keys()
     vals = kwargs.values()
     for values in product(*vals):
         case = Case(values)
-        setattr(case, "__doc__", __doc__.format(**dict(zip(keys, values))))
+        setattr(case, "__doc__", dsc.format(**dict(zip(keys, values))))
         ret.append(case)
     return ret
 
@@ -63,8 +65,9 @@ class TestPresetPassManager(QiskitTestCase):
 
     @unpack
     @data(*generate_cases(level=[0, 1, 2, 3],
-                          __doc__='Test that coupling_map can be None (level={level})'))
+                          dsc='Test that coupling_map can be None (level={level})'))
     def test_no_coupling_map(self, level):
+        """ """
         q = QuantumRegister(2, name='q')
         circuit = QuantumCircuit(q)
         circuit.cz(q[0], q[1])
@@ -83,5 +86,6 @@ class TestTranspileLevels(QiskitTestCase):
                           __doc__='Transpiler {circuit.__name__} on {backend} backend at level '
                                   '{level}'))
     def test(self, circuit, level, backend):
+        """All the levels with all the backends"""
         result = transpile(circuit, backend=backend, optimization_level=level, seed_transpiler=42)
         self.assertIsInstance(result, QuantumCircuit)
