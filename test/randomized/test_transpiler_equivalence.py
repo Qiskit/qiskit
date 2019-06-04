@@ -66,11 +66,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     qubits = Bundle('qubits')
     clbits = Bundle('clbits')
 
-    max_qubits = int(os.getenv('QISKIT_RANDOM_QUBITS', '5'))
-    backends = []
-    for backend in mock_backends:
-        if backend.configuration().n_qubits >= max_qubits:
-            backends.append(backend)
+    backend = Aer.get_backend('qasm_simulator')
+    max_qubits = int(backend.configuration().n_qubits / 2)
 
     def __init__(self):
         super().__init__()
@@ -194,7 +191,7 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(
         backend=st.one_of(
             st.none(),
-            st.sampled_from(backends)),
+            st.sampled_from(mock_backends)),
         opt_level=st.one_of(
             st.none(),
             st.integers(min_value=0, max_value=3)))
@@ -203,14 +200,16 @@ class QCircuitMachine(RuleBasedStateMachine):
         counts are not significantly different before and after transpilation.
 
         """
+        assume(backend is None or backend.configuration().n_qubits >= len(self.qc.qubits))
+
         shots = 4096
 
-        aer_qasm_simulator = Aer.get_backend('qasm_simulator')
-        aer_counts = execute(self.qc, backend=aer_qasm_simulator,
+        aer_qasm_simulator = self.backend
+        aer_counts = execute(self.qc, backend=self.backend,
                              shots=shots).result().get_counts()
 
         xpiled_qc = transpile(self.qc, backend=backend, optimization_level=opt_level)
-        xpiled_aer_counts = execute(xpiled_qc, backend=aer_qasm_simulator,
+        xpiled_aer_counts = execute(xpiled_qc, backend=self.backend,
                                     shots=shots).result().get_counts()
 
         assert _counts_equivalent(aer_counts, xpiled_aer_counts), \
