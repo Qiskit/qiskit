@@ -17,6 +17,7 @@
 
 import os
 
+from hypothesis import assume
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
@@ -175,7 +176,12 @@ class QCircuitMachine(RuleBasedStateMachine):
         creg = carg.register
         val = data.draw(st.integers(min_value=0, max_value=2**len(creg)-1))
 
-        self.qc.data[-1][0].c_if(creg, val)
+        last_gate = self.qc.data[-1]
+
+        # Work around for https://github.com/Qiskit/qiskit-terra/issues/2567
+        assume(not isinstance(last_gate[0], Measure) or creg != last_gate[2][0].register)
+
+        last_gate[0].c_if(creg, val)
 
     # Properties to check
 
