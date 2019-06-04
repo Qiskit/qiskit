@@ -22,7 +22,7 @@ from qiskit.transpiler import Layout
 
 from .utils import (run_qobj, compile_circuits, CircuitCache,
                     get_measured_qubits_from_qobj,
-                    add_measurement_error_mitigation_to_qobj)
+                    build_measurement_error_mitigation_qobj)
 from .utils.backend_utils import (is_aer_provider,
                                   is_ibmq_provider,
                                   is_statevector_backend,
@@ -54,7 +54,7 @@ class QuantumInstance:
                  circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True,
                  skip_qobj_validation=True, measurement_error_mitigation_cls=None,
                  cals_matrix_refresh_period=30,
-                 measurement_error_mitigation_shots=None):
+                 measurement_error_mitigation_shots=None, job_callback=None):
         """Constructor.
 
         Args:
@@ -82,6 +82,8 @@ class QuantumInstance:
                                                   unit in minutes
             measurement_error_mitigation_shots (int): the shot number for building calibration matrix, if None, use
                                                       the shot number in quantum instance
+            job_callback (Callable, optional): callback used in querying info of the submitted job, and
+                                               providing the job object as the argument
         """
         self._backend = backend
         # setup run config
@@ -165,6 +167,7 @@ class QuantumInstance:
                         "Furthermore, Aqua will re-use the calibration matrix for {} minutes "
                         "and re-build it after that.".format(self._cals_matrix_refresh_period))
 
+        self._job_callback = job_callback
         logger.info(self)
 
     def __str__(self):
@@ -210,7 +213,8 @@ class QuantumInstance:
                         if sorted(tmp) == sorted(stored_qubit_index) and self._run_config.shots == stored_shots:
                             # the qubit used in current job is the subset and shots are the same
                             measurement_error_mitigation_fitter, timestamp = self._measurement_error_mitigation_fitters.get(key, (None, 0))
-                            measurement_error_mitigation_fitter = measurement_error_mitigation_fitter.subset_fitter(qubit_sublist=qubit_index)
+                            measurement_error_mitigation_fitter = \
+                                measurement_error_mitigation_fitter.subset_fitter(qubit_sublist=qubit_index)
                             logger.info("The qubits used in the current job is the subset of previous jobs, "
                                         "reusing the calibration matrix if it is not out-of-date.")
 
@@ -218,33 +222,32 @@ class QuantumInstance:
 
             if build_cals_matrix:
                 logger.info("Updating qobj with the circuits for measurement error mitigation.")
-                if self._measurement_error_mitigation_shots is None:
-                    qobj, state_labels, circuit_labels = \
-                        add_measurement_error_mitigation_to_qobj(qobj,
-                                                                 self._measurement_error_mitigation_cls,
-                                                                 self._backend,
-                                                                 self._backend_config,
-                                                                 self._compile_config,
-                                                                 self._run_config)
-                else:
-                    temp_run_config = copy.deepcopy(self._run_config)
+                use_different_shots = not (
+                        self._measurement_error_mitigation_shots is None or self._measurement_error_mitigation_shots == self._run_config.shots)
+                temp_run_config = copy.deepcopy(self._run_config)
+                if use_different_shots:
                     temp_run_config.shots = self._measurement_error_mitigation_shots
-                    cals_qobj, state_labels, circuit_labels = \
-                        add_measurement_error_mitigation_to_qobj(qobj,
-                                                                 self._measurement_error_mitigation_cls,
-                                                                 self._backend,
-                                                                 self._backend_config,
-                                                                 self._compile_config,
-                                                                 temp_run_config,
-                                                                 new_qobj=True)
-                    cals_result = run_qobj(cals_qobj, self._backend, self._qjob_config, self._backend_options, self._noise_config,
-                              self._skip_qobj_validation)
 
-                result = run_qobj(qobj, self._backend, self._qjob_config, self._backend_options, self._noise_config,
-                                  self._skip_qobj_validation)
+                cals_qobj, state_labels, circuit_labels = \
+                    build_measurement_error_mitigation_qobj(qubit_index,
+                                                            self._measurement_error_mitigation_cls,
+                                                            self._backend,
+                                                            self._backend_config,
+                                                            self._compile_config,
+                                                            temp_run_config)
+                if use_different_shots:
+                    cals_result = run_qobj(cals_qobj, self._backend, self._qjob_config, self._backend_options,
+                                           self._noise_config,
+                                           self._skip_qobj_validation, self._job_callback)
+                    result = run_qobj(qobj, self._backend, self._qjob_config, self._backend_options, self._noise_config,
+                                      self._skip_qobj_validation, self._job_callback)
+                else:
+                    qobj.experiments[0:0] = cals_qobj.experiments
+                    result = run_qobj(qobj, self._backend, self._qjob_config, self._backend_options, self._noise_config,
+                                      self._skip_qobj_validation, self._job_callback)
+                    cals_result = result
 
                 logger.info("Building calibration matrix for measurement error mitigation.")
-                cals_result = result if self._measurement_error_mitigation_shots is None else cals_result
                 measurement_error_mitigation_fitter = self._measurement_error_mitigation_cls(cals_result,
                                                                                              state_labels,
                                                                                              qubit_list=qubit_index,
@@ -252,7 +255,7 @@ class QuantumInstance:
                 self._measurement_error_mitigation_fitters[qubit_index_str] = (measurement_error_mitigation_fitter, time.time())
             else:
                 result = run_qobj(qobj, self._backend, self._qjob_config, self._backend_options, self._noise_config,
-                                  self._skip_qobj_validation)
+                                  self._skip_qobj_validation, self._job_callback)
 
             if measurement_error_mitigation_fitter is not None:
                 logger.info("Performing measurement error mitigation.")
@@ -260,7 +263,7 @@ class QuantumInstance:
                                                                           self._measurement_error_mitigation_method)
         else:
             result = run_qobj(qobj, self._backend, self._qjob_config, self._backend_options, self._noise_config,
-                              self._skip_qobj_validation)
+                              self._skip_qobj_validation, self._job_callback)
 
         if self._circuit_summary:
             self._circuit_summary = False

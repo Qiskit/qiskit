@@ -79,18 +79,17 @@ def get_measured_qubits_from_qobj(qobj):
     return qubit_mapping
 
 
-def add_measurement_error_mitigation_to_qobj(qobj, fitter_cls, backend,
-                                             backend_config=None, compile_config=None,
-                                             run_config=None, new_qobj=False):
+def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
+                                            backend_config=None, compile_config=None,
+                                            run_config=None):
     """
         Args:
-            qobj (QasmQobj): QasmQobj of the algorithm
+            qubit_list (list[int]): list of qubits used in the algorithm
             fitter_cls (callable): CompleteMeasFitter or TensoredMeasFitter
             backend (BaseBackend): backend instance
             backend_config (dict, optional): configuration for backend
             compile_config (dict, optional): configuration for compilation
             run_config (RunConfig, optional): configuration for running a circuit
-            new_qobj (bool, optional): whether or not combine qobj to the input qobj
 
         Returns:
             QasmQobj: the Qobj with calibration circuits at the beginning
@@ -102,13 +101,12 @@ def add_measurement_error_mitigation_to_qobj(qobj, fitter_cls, backend,
         """
 
     circlabel = 'mcal'
-    qubits = get_measured_qubits_from_qobj(qobj)
 
-    if len(qubits) == 0:
-        raise AquaError("The measured qubits can not be [].")
+    if len(qubit_list) == 0:
+        raise AquaError("The measured qubit list can not be [].")
 
     if fitter_cls == CompleteMeasFitter:
-        meas_calibs_circuits, state_labels = complete_meas_cal(qubit_list=qubits, circlabel=circlabel)
+        meas_calibs_circuits, state_labels = complete_meas_cal(qubit_list=qubit_list, circlabel=circlabel)
     elif fitter_cls == TensoredMeasFitter:
         # TODO support different calibration
         raise AquaError("Does not support TensoredMeasFitter yet.")
@@ -117,9 +115,4 @@ def add_measurement_error_mitigation_to_qobj(qobj, fitter_cls, backend,
 
     cals_qobj = compile_circuits(meas_calibs_circuits, backend, backend_config, compile_config, run_config)
 
-    if new_qobj:
-        qobj = cals_qobj
-    else:
-        qobj.experiments[0:0] = cals_qobj.experiments
-
-    return qobj, state_labels, circlabel
+    return cals_qobj, state_labels, circlabel
