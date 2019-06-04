@@ -36,16 +36,15 @@ def is_swap_mapped():
     return circuit
 
 
-class Case(list):
+class Case(dict):
     """ A test case, if an element of the list is callable, call it."""
-
-    def __init__(self, originals):
+    def __init__(self, *args):
         new = []
-        for original in originals:
-            if callable(original):
-                original = original()
-            new.append(original)
-        super().__init__(new)
+        for key,value in args[0]:
+            if callable(value):
+                value = value()
+            new.append((key,value))
+        dict.__init__(self, new)
 
 
 def generate_cases(dsc=None, **kwargs):
@@ -54,7 +53,7 @@ def generate_cases(dsc=None, **kwargs):
     keys = kwargs.keys()
     vals = kwargs.values()
     for values in product(*vals):
-        case = Case(values)
+        case = Case(zip(keys, values))
         setattr(case, "__doc__", dsc.format(**dict(zip(keys, values))))
         ret.append(case)
     return ret
