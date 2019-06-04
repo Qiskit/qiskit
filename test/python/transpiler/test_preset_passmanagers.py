@@ -37,7 +37,7 @@ def is_swap_mapped():
 
 
 class Case(dict):
-    """ A test case, if an element of the list is callable, call it."""
+    """ A test case, see https://ddt.readthedocs.io/en/latest/example.html MyList."""
     pass
 
 def generate_cases(dsc=None, **kwargs):
