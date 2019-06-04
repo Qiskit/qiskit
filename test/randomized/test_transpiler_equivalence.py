@@ -211,13 +211,18 @@ class QCircuitMachine(RuleBasedStateMachine):
         aer_counts = execute(self.qc, backend=self.backend,
                              shots=shots).result().get_counts()
 
-        xpiled_qc = transpile(self.qc, backend=backend, optimization_level=opt_level)
+        try:
+            xpiled_qc = transpile(self.qc, backend=backend, optimization_level=opt_level)
+        except Exception as e:
+            print('Exception caught during transpilation of circuit: \n{}'.format(self.qc.qasm()))
+            raise e
+
         xpiled_aer_counts = execute(xpiled_qc, backend=self.backend,
                                     shots=shots).result().get_counts()
 
         count_differences = dicts_almost_equal(aer_counts, xpiled_aer_counts, 0.05 * shots)
 
-        assert count_differences == '', 'Counts not equivalent: {}\n Failing QASM: \n{}'.format(
+        assert count_differences == '', 'Counts not equivalent: {}\nFailing QASM: \n{}'.format(
             count_differences, self.qc.qasm())
 
 
