@@ -68,7 +68,7 @@ class TestPresetPassManager(QiskitTestCase):
     @data(*generate_cases(level=[0, 1, 2, 3],
                           dsc='Test that coupling_map can be None (level={level})'))
     def test_no_coupling_map(self, level):
-        """ """
+        """Test that coupling_map can be None"""
         q = QuantumRegister(2, name='q')
         circuit = QuantumCircuit(q)
         circuit.cz(q[0], q[1])
