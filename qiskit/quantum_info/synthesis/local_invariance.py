@@ -16,7 +16,7 @@
 """Routines that use local invariants to compute properties
 of two-qubit unitary operators.
 """
-from math import sqrt, sin, cos
+from math import sqrt
 import numpy as np
 
 INVARIANT_TOL = 1e-12
@@ -67,68 +67,6 @@ def two_qubit_local_invariants(U):
     # and explore the parameter space.
     # Also do a FP trick -0.0 + 0.0 = 0.0
     return np.round([G1.real, G1.imag, G2.real], 12) + 0.0
-
-
-def cx_equivalence(U):
-    """Returns the number of cx gates in the
-    local equivilent set of U: 0, 1, 2, or 3.
-
-    Args:
-         U (ndarray): Input two qubit unitary.
-
-    Returns:
-        int: Number of cx gates in local equivalence set.
-
-    Notes:
-        The trivial zero and one cx cases are in the
-        literature.  The space of two cx invariant
-        sets seems not to have been explored.
-    """
-    vec = two_qubit_local_invariants(U)
-
-    # We default to 3 here since KAK decomposition
-    # tells us that any 2q gate can be represented
-    # by at most 3 CNOT gates.
-    cx_equiv = 3
-
-    # Locally equiv to a identity
-    if all(np.abs(vec - np.array([1, 0, 3])) < INVARIANT_TOL):
-        cx_equiv = 0
-    # Locally equiv to a cx gate
-    elif all(np.abs(vec - np.array([0, 0, 1])) < INVARIANT_TOL):
-        cx_equiv = 1
-    # Locally equiv to some 2q circuit with 2 cx
-    # This is simply all points with g0 >= 0 and g1 == 0
-    # since we already checked the I and cx points above.
-    elif vec[0] >= 0:
-        # g1 should be zero
-        if abs(vec[1]) < INVARIANT_TOL:
-            cx_equiv = 2
-    return cx_equiv
-
-
-def is_perfect_entangler(U):
-    """Computes whether a two qubit unitary is a perfect
-    entangling gate; It can generate a Bell state with a single
-    application.
-
-    Args:
-        U (ndarray): Input two qubit unitary.
-
-    Returns:
-        bool: True if gate is maximally entangling.
-
-    Notes:
-        From Y. Makhlin, Quant. Info. Proc. 1, 243-252 (2002).
-    """
-    vec = two_qubit_local_invariants(U)
-    angle = np.arctan2(vec[1], vec[0])
-    mod = sqrt(vec[0]**2 + vec[1]**2)
-    max_entangling = False
-    if sin(angle)**2 <= 4*mod:
-        if cos(angle)*(cos(angle)-vec[2]) >= 0:
-            max_entangling = True
-    return max_entangling
 
 
 def local_equivalence(weyl):
