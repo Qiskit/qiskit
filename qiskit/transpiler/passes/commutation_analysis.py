@@ -97,6 +97,9 @@ def _commute(node1, node2):
     if node1.type != "op" or node2.type != "op":
         return False
 
+    if any([nd.name in {"barrier", "snapshot", "measure", "reset", "copy"} for nd in [node1, node2]]):
+        return False 
+
     qarg = list(set(node1.qargs + node2.qargs))
     qbit_num = len(qarg)
 
