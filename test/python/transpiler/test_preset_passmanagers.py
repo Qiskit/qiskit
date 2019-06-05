@@ -14,10 +14,7 @@
 
 """Tests preset pass manager functionalities"""
 
-from itertools import product
-from ddt import ddt, data, unpack
-
-from qiskit.test import QiskitTestCase
+from qiskit.test import QiskitTestCase, ddt, combine
 from qiskit.compiler import transpile
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo,
@@ -36,34 +33,13 @@ def is_swap_mapped():
     return circuit
 
 
-class Case(dict):
-    """ A test case, see https://ddt.readthedocs.io/en/latest/example.html MyList."""
-    pass
-
-
-def generate_cases(dsc=None, name=None, **kwargs):
-    """Combines kwargs in cartesian product and creates Case with them"""
-    ret = []
-    keys = kwargs.keys()
-    vals = kwargs.values()
-    for values in product(*vals):
-        case = Case(zip(keys, values))
-        if dsc is not None:
-            setattr(case, "__doc__", dsc.format(**case))
-        if name is not None:
-            setattr(case, "__name__", name.format(**case))
-        ret.append(case)
-    return ret
-
-
 @ddt
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
 
-    @unpack
-    @data(*generate_cases(level=[0, 1, 2, 3],
-                          dsc='Test that coupling_map can be None (level={level})',
-                          name='coupling_map_none_level{level}'))
+    @combine(level=[0, 1, 2, 3],
+             dsc='Test that coupling_map can be None (level={level})',
+             name='coupling_map_none_level{level}')
     def test_no_coupling_map(self, level):
         """Test that coupling_map can be None"""
         q = QuantumRegister(2, name='q')
@@ -77,14 +53,12 @@ class TestPresetPassManager(QiskitTestCase):
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
 
-    @unpack
-    @data(*generate_cases(circuit=[emptycircuit, is_swap_mapped],
-                          level=[0, 1, 2, 3],
-                          backend=[FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(),
-                                   FakePoughkeepsie(), None],
-                          dsc='Transpiler {circuit.__name__} on {backend} backend at level '
-                              '{level}',
-                          name='{circuit.__name__}_{backend}_level{level}'))
+    @combine(circuit=[emptycircuit, is_swap_mapped],
+             level=[0, 1, 2, 3],
+             backend=[FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(),
+                      FakePoughkeepsie(), None],
+             dsc='Transpiler {circuit.__name__} on {backend} backend at level {level}',
+             name='{circuit.__name__}_{backend}_level{level}')
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
