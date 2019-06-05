@@ -46,10 +46,10 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
                      'Graphviz not installed.')
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
-        filename = self._get_resource_path('current_l0.png')
-        level_0_pass_manager(self.config).draw(filename=filename)
+        filename = self._get_resource_path('current_l0.dot')
+        level_0_pass_manager(self.config).draw(filename=filename, raw=True)
 
-        self.assertImagesAreEqual(filename, path_to_diagram_reference('pass_manager_l0_ref.png'))
+        self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_l0.dot'))
         os.remove(filename)
 
     @unittest.skipIf(not HAS_GRAPHVIZ,
@@ -62,11 +62,11 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
                  EnlargeWithAncilla: 'pink',
                  RemoveResetInZeroState: 'grey'}
 
-        filename = self._get_resource_path('current_l1.png')
-        level_1_pass_manager(self.config).draw(filename=filename, style=style)
+        filename = self._get_resource_path('current_l1.dot')
+        level_1_pass_manager(self.config).draw(filename=filename, style=style, raw=True)
 
-        self.assertImagesAreEqual(filename,
-                                  path_to_diagram_reference('pass_manager_l1_style_ref.png'))
+        self.assertFilesAreEqual(filename,
+                                 path_to_diagram_reference('pass_manager_style_l1.dot'))
         os.remove(filename)
 
 

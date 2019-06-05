@@ -43,8 +43,8 @@ for i in range(num_qubits):
 try:
     IBMQ.load_accounts()
 except:
-    print("""WARNING: There's no connection with the API for remote backends.
-             Have you initialized a file with your personal token?
+    print("""WARNING: No valid IBMQ credentials found on disk. 
+             You must store your credentials using IBMQ.save_account(token, url). 
              For now, there's only access to local simulator backends...""")
 
 # First version: simulator

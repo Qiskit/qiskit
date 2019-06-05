@@ -22,24 +22,32 @@ The format is based on `Keep a Changelog`_.
 Deprecated
 ----------
 
-- The gates `U` and `CX` are being deprecated in favor of `u3` and `cx`.
+- The gates ``U`` and ``CX`` are being deprecated in favor of ``u3`` and ``cx``.
+- The decorator ``requires_qe_access`` is being deprecated in favor of ``online_test``.
+- The ``as_dict`` method of Qobj is deprecated in favor of ``to_dict``.
 
 Added
 -----
 
+- The option ``vertical_compression`` was added to the text drawer and to the
+  ``QuantumCircuit.draw`` method. The option allows to control how much
+  room the text circuit drawing takes.
 - Introduced a visualization for the Pass Manager. (#2445)
+- The attribute ``PassManager.log_passes`` was added to log and time the passes when they are
+  executed. The results is stored in the attribute ``pass_log`` of the property set as a
+  dictionary.
 
 Changed
 -------
 
-- Qubits and classical bits are not represented as a tuples anymore, but as
-  instances of ``Qubit`` and ``Clbit`` respectively.
 - The ``pylatexenc`` and ``pillow`` requirements are now optional. These are
   only used by the ``latex`` and ``latex_source`` circuit visualization
   backends. To continue using them ensure these are installed.
 - When adding a register to a circuit, an error will now be raised if a register
   of the same name is already present. Previously, an error would only be raised
   if the same register was added twice.
+- Qubits and classical bits are not represented as a tuples anymore, but as
+  instances of ``Qubit`` and ``Clbit`` respectively.
 
 Removed
 -------
@@ -56,6 +64,7 @@ Removed
   ``qiskit.exceptions`` instead. (#2399)
 - Removed previously deprecated DAGCircuit methods (#2542)
 - Removed ``CompositeGate`` class, in favor of adding Instruction objects directly (#2543)
+- Removed ``ignore_requires`` and ``ignore_preserves`` options from ``PassManager`` (#2565).
 
 Fixed
 -----
