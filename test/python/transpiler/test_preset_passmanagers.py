@@ -41,14 +41,17 @@ class Case(dict):
     pass
 
 
-def generate_cases(dsc=None, **kwargs):
+def generate_cases(dsc=None, name=None, **kwargs):
     """Combines kwargs in cartesian product and creates Case with them"""
     ret = []
     keys = kwargs.keys()
     vals = kwargs.values()
     for values in product(*vals):
         case = Case(zip(keys, values))
-        setattr(case, "__doc__", dsc.format(**case))
+        if dsc is not None:
+            setattr(case, "__doc__", dsc.format(**case))
+        if name is not None:
+            setattr(case, "__name__", dsc.format(**case))
         ret.append(case)
     return ret
 
@@ -59,7 +62,8 @@ class TestPresetPassManager(QiskitTestCase):
 
     @unpack
     @data(*generate_cases(level=[0, 1, 2, 3],
-                          dsc='Test that coupling_map can be None (level={level})'))
+                          dsc='Test that coupling_map can be None (level={level})',
+                          name='coupling_map_none_level{level}'))
     def test_no_coupling_map(self, level):
         """Test that coupling_map can be None"""
         q = QuantumRegister(2, name='q')
@@ -79,7 +83,8 @@ class TestTranspileLevels(QiskitTestCase):
                           backend=[FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(),
                                    FakePoughkeepsie(), None],
                           dsc='Transpiler {circuit.__name__} on {backend} backend at level '
-                              '{level}'))
+                              '{level}',
+                          name='{circuit.__name__}_{backend.name}_level{level}'))
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
