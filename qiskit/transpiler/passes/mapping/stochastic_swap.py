@@ -175,8 +175,6 @@ class StochasticSwap(TransformationPass):
         that the _mapper method is building.
         """
         layout = best_layout
-        logger.debug("layer_update: layout = %s", pformat(layout))
-        logger.debug("layer_update: self.initial_layout = %s", pformat(self.initial_layout))
         dagcircuit_output = DAGCircuit()
         for qubit in layout.get_virtual_bits().keys():
             if qubit.register not in dagcircuit_output.qregs.values():
@@ -323,10 +321,7 @@ class StochasticSwap(TransformationPass):
 
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
-        logger.debug("mapper: self.initial_layout = %s", pformat(self.initial_layout))
-        logger.debug("mapper: layout = %s", pformat(layout))
         last_edgemap = layout.combine_into_edge_map(self.initial_layout)
-        logger.debug("mapper: last_edgemap = %s", pformat(last_edgemap))
 
         return dagcircuit_output
 
@@ -358,13 +353,6 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
     Raises:
         TranspilerError: if anything went wrong.
      """
-    logger.debug("layer_permutation: layer_partition = %s",
-                 pformat(layer_partition))
-    logger.debug("layer_permutation: layout = %s",
-                 pformat(layout.get_virtual_bits()))
-    logger.debug("layer_permutation: qubit_subset = %s",
-                 pformat(qubit_subset))
-    logger.debug("layer_permutation: trials = %s", trials)
 
     gates = []  # list of lists of tuples [[(register, index), ...], ...]
     for gate_args in layer_partition:
@@ -372,7 +360,6 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
             raise TranspilerError("Layer contains > 2-qubit gates")
         if len(gate_args) == 2:
             gates.append(tuple(gate_args))
-    logger.debug("layer_permutation: gates = %s", pformat(gates))
 
     # Can we already apply the gates? If so, there is no work to do.
     dist = sum([coupling.distance(layout[g[0]], layout[g[1]])
