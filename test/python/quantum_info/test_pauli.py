@@ -23,6 +23,14 @@ import numpy as np
 from qiskit.quantum_info import Pauli, pauli_group
 from qiskit.test import QiskitTestCase
 
+class TestPauliAPI(QiskitTestCase):
+    """Tests for Pauli class API."""
+
+    def test_list(self):
+        """Test creation from pauli label."""
+        pauli = Pauli(x=[1,0], z=[1,0])
+        self.assertIsInstance(pauli, Pauli)
+        self.assertEqual(pauli.numberofqubits, 2)
 
 class TestPauli(QiskitTestCase):
     """Tests for Pauli class."""
