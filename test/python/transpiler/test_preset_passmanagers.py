@@ -51,7 +51,7 @@ def generate_cases(dsc=None, name=None, **kwargs):
         if dsc is not None:
             setattr(case, "__doc__", dsc.format(**case))
         if name is not None:
-            setattr(case, "__name__", dsc.format(**case))
+            setattr(case, "__name__", name.format(**case))
         ret.append(case)
     return ret
 
@@ -84,7 +84,7 @@ class TestTranspileLevels(QiskitTestCase):
                                    FakePoughkeepsie(), None],
                           dsc='Transpiler {circuit.__name__} on {backend} backend at level '
                               '{level}',
-                          name='test{circuit.__name__}_{backend.name}_level{level}'))
+                          name='{circuit.__name__}_{backend}_level{level}'))
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
