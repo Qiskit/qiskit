@@ -246,19 +246,20 @@ class TestDagOperations(QiskitTestCase):
 
         expected = [('qr[0]', []),
                     ('qr[1]', []),
-                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
-                    ('qr[2]', []),
-                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
-                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 2)]),
-                    ('qr[0]', []),
-                    ('qr[1]', []),
                     ('qr[2]', []),
                     ('cr[0]', []),
                     ('cr[0]', []),
                     ('cr[1]', []),
-                    ('cr[1]', [])]
+                    ('cr[1]', []),
+                    ('cx', [self.qubit0, self.qubit1]),
+                    ('h', [self.qubit0]),
+                    ('cx', [self.qubit2, self.qubit1]),
+                    ('qr[1]', []),
+                    ('cx', [self.qubit0, self.qubit2]),
+                    ('qr[0]', []),
+                    ('h', [self.qubit2]),
+                    ('qr[2]', [])]
+
         self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
     def test_topological_op_nodes(self):
