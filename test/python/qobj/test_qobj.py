@@ -69,7 +69,7 @@ class TestQASMQobj(QiskitTestCase):
         self.bad_qobj = copy.deepcopy(self.valid_qobj)
         self.bad_qobj.experiments = None  # set experiments to None to cause the qobj to be invalid
 
-    def test_as_dict_against_schema(self):
+    def test_to_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
         try:
             validate_qobj_against_schema(self.valid_qobj)
@@ -208,7 +208,7 @@ class TestPulseQobj(QiskitTestCase):
             ]
         }
 
-    def test_as_dict_against_schema(self):
+    def test_to_dict_against_schema(self):
         """Test dictionary representation of Qobj against its schema."""
         try:
             validate_qobj_against_schema(self.valid_qobj)
@@ -258,7 +258,7 @@ class TestPulseQobj(QiskitTestCase):
             with self.subTest(msg=str(qobj_class)):
                 self.assertEqual(qobj_item, qobj_class.from_dict(expected_dict))
 
-    def test_as_dict_per_class(self):
+    def test_to_dict_per_class(self):
         """Test converting from Qobj and its subclass representations given a dictionary."""
         test_parameters = {
             PulseQobj: (
@@ -299,7 +299,7 @@ class TestPulseQobj(QiskitTestCase):
 
         for qobj_class, (qobj_item, expected_dict) in test_parameters.items():
             with self.subTest(msg=str(qobj_class)):
-                self.assertEqual(qobj_item.as_dict(), expected_dict)
+                self.assertEqual(qobj_item.to_dict(), expected_dict)
 
 
 def _nop():
