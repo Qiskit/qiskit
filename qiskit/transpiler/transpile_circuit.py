@@ -23,12 +23,13 @@ from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulato
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-def transpile_circuit(circuit, transpile_config):
+def transpile_circuit(circuit, transpile_config, debug=False):
     """Select a PassManager and run a single circuit through it.
 
     Args:
         circuit (QuantumCircuit): circuit to transpile
         transpile_config (TranspileConfig): configuration dictating how to transpile
+        debug (bool): Print the circuit output from each pass as the pass manager runs
 
     Returns:
         QuantumCircuit: transpiled circuit
@@ -59,4 +60,4 @@ def transpile_circuit(circuit, transpile_config):
     else:
         pass_manager = default_pass_manager_simulator(transpile_config)
 
-    return pass_manager.run(circuit)
+    return pass_manager.run(circuit, debug=debug)

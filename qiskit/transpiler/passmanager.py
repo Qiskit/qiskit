@@ -119,11 +119,14 @@ class PassManager():
         self.valid_passes = set()
         self.property_set.clear()
 
-    def run(self, circuit):
+    def run(self, circuit, debug=False):
         """Run all the passes on a QuantumCircuit
 
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
+            debug (bool): When set to true the circuit output of each pass
+            execution will be printed along with the name of the pass that
+            generated it.
 
         Returns:
             QuantumCircuit: Transformed circuit.
@@ -136,6 +139,9 @@ class PassManager():
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
+                if debug:
+                    print(pass_.name + ':\n')
+                    print(dag_to_circuit(dag))
 
         circuit = dag_to_circuit(dag)
         circuit.name = name
