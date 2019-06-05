@@ -189,3 +189,46 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         with self.assertRaises(QiskitError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
+
+    def test_partial_binding(self):
+        """Test partial binding of parameters."""
+
+        expr = 'P1 * P2 + P3 / P4 - P5'
+
+        parsed_expr, params = parse_string_expr(expr, partial_binding=True)
+        self.assertEqual(params, ['P1', 'P2', 'P3', 'P4', 'P5'])
+
+        bound_three = parsed_expr(P1=1, P2=2, P3=3)
+        self.assertEqual(bound_three.params, ['P4', 'P5'])
+
+        self.assertEqual(bound_three(P4=4, P5=5), -2.25)
+        self.assertEqual(bound_three(4, 5), -2.25)
+
+        bound_four = bound_three(P4=4)
+        self.assertEqual(bound_four.params, ['P5'])
+        self.assertEqual(bound_four(P5=5), -2.25)
+        self.assertEqual(bound_four(5), -2.25)
+
+        bound_four_new = bound_three(P4=40)
+        self.assertEqual(bound_four_new.params, ['P5'])
+        self.assertEqual(bound_four_new(P5=5), -2.925)
+        self.assertEqual(bound_four_new(5), -2.925)
+
+    def test_argument_duplication(self):
+        """Test duplication of *args and **kwargs."""
+
+        expr = 'P1+P2'
+        parsed_expr, _ = parse_string_expr(expr, partial_binding=True)
+
+        with self.assertRaises(QiskitError):
+            parsed_expr(1, P1=1)
+
+        self.assertEqual(parsed_expr(1, P2=2), 3.0)
+
+    def test_unexpected_argument(self):
+        """Test unexpected argument error."""
+        expr = 'P1+P2'
+        parsed_expr, _ = parse_string_expr(expr, partial_binding=True)
+
+        with self.assertRaises(QiskitError):
+            parsed_expr(1, 2, P3=3)
