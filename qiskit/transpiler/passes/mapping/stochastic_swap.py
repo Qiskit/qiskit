@@ -17,7 +17,6 @@ A pass implementing the default Qiskit stochastic mapper.
 """
 
 from logging import getLogger
-from pprint import pformat
 from math import inf
 import numpy as np
 
@@ -318,10 +317,6 @@ class StochasticSwap(TransformationPass):
                                        best_circuit,
                                        layerlist),
                     identity_wire_map)
-
-        # This is the final edgemap. We might use it to correctly replace
-        # any measurements that needed to be removed earlier.
-        last_edgemap = layout.combine_into_edge_map(self.initial_layout)
 
         return dagcircuit_output
 
