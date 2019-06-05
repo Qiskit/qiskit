@@ -64,6 +64,7 @@ Removed
   ``qiskit.exceptions`` instead. (#2399)
 - Removed previously deprecated DAGCircuit methods (#2542)
 - Removed ``CompositeGate`` class, in favor of adding Instruction objects directly (#2543)
+- Removed ``ignore_requires`` and ``ignore_preserves`` options from ``PassManager`` (#2565).
 
 Fixed
 -----
