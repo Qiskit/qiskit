@@ -338,11 +338,11 @@ class TestTranspile(QiskitTestCase):
                              coupling_map=cmap,
                              basis_gates=['u2'],
                              initial_layout=layout)
-        mapped_qubits = []
+        mapped_qubits = set()
         for _, qargs, _ in new_circ.data:
-            mapped_qubits.append(qargs[0].index)
+            mapped_qubits.add(qargs[0].index)
 
-        self.assertEqual(mapped_qubits, [10, 4, 6])
+        self.assertEqual(mapped_qubits, set([10, 4, 6]))
 
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs.
