@@ -133,14 +133,14 @@ def is_local_backend(backend):
     return backend.configuration().local
 
 
-def support_noise_model(backend):
+def is_aer_qasm(backend):
     """
-    Return True if backend supports noise model
+    Return True if backend is Aer Qasm simulator
     Args:
         backend (BaseBackend): backend instance
 
     Returns:
-        bool: True is support noise model
+        bool: True is Aer Qasm simulator
     """
     ret = False
     if is_aer_provider(backend):

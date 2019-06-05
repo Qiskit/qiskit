@@ -28,8 +28,8 @@ from .utils.backend_utils import (is_ibmq_provider,
                                   is_statevector_backend,
                                   is_simulator_backend,
                                   is_local_backend,
-                                  support_backend_options,
-                                  support_noise_model)
+                                  is_aer_qasm,
+                                  support_backend_options)
 
 logger = logging.getLogger(__name__)
 
@@ -149,11 +149,12 @@ class QuantumInstance:
         # setup noise config
         self._noise_config = {}
         if noise_model is not None:
-            if support_noise_model(self._backend):
+            if is_aer_qasm(self._backend):
                 self._noise_config = {'noise_model': noise_model}
             else:
-                raise AquaError("The noise model can be only used with Aer qasm simulator "
-                                "but {} ({}) is selected.".format(self.backend_name, self._backend.provider()))
+                raise AquaError("The noise model is not supported on the selected backend {} ({}) only certain "
+                                "backends, such as Aer qasm support noise.".format(self.backend_name,
+                                                                                   self._backend.provider()))
 
         # setup backend options for run
         self._backend_options = {}
@@ -320,9 +321,10 @@ class QuantumInstance:
                             self._backend_options['backend_options'] = {}
                         self._backend_options['backend_options'][k] = v
             elif k in QuantumInstance.NOISE_CONFIG:
-                if not support_noise_model(self._backend):
-                    raise AquaError("The noise model can be only used with Aer qasm simulator "
-                                    "but {} ({}) is selected.".format(self.backend_name, self._backend.provider()))
+                if not is_aer_qasm(self._backend):
+                    raise AquaError("The noise model is not supported on the selected backend {} ({}) only certain "
+                                    "backends, such as Aer qasm support noise.".format(self.backend_name,
+                                                                                       self._backend.provider()))
                 else:
                     self._noise_config[k] = v
 
