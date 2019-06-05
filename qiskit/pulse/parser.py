@@ -19,7 +19,6 @@
 import ast
 import copy
 import operator
-import functools
 
 import cmath
 
@@ -106,24 +105,37 @@ class PulseExpression(ast.NodeTransformer):
         Raises:
             QiskitError: When parameters are not bound.
         """
-        self._locals_dict = {}
+        if isinstance(self._tree.body, ast.Num):
+            return self._tree.body.n
 
+        locals_dict_temp = {}
         if args:
             for key, val in zip(self.params, args):
-                self._locals_dict[key] = val
+                locals_dict_temp[key] = val
         if kwargs:
-            self._locals_dict.update({key: val for key, val in
-                                      kwargs.items() if key in self.params})
+            for key, val in kwargs.items():
+                if key in self.params:
+                    if key not in locals_dict_temp.keys():
+                        locals_dict_temp[key] = val
+                    else:
+                        raise QiskitError("%s got multiple values for argument '%s'"
+                                          % (self.__class__.__name__, key))
+                else:
+                    raise QiskitError("%s got an unexpected keyword argument '%s'"
+                                      % (self.__class__.__name__, key))
 
-        expr = self.visit(copy.deepcopy(self._tree))
+        partial = copy.deepcopy(self)
+        partial._locals_dict.update(locals_dict_temp)
+        partial._params = set()
 
-        if not isinstance(expr, ast.Num):
+        expr = partial.visit(partial._tree)
+
+        if not isinstance(expr.body, ast.Num):
             if self._partial_binding:
-                partial_bind = functools.partial(self.__call__, **self._locals_dict)
-                return partial_bind
+                return partial
             else:
                 raise QiskitError('Parameters %s are not all bound.' % self.params)
-        return expr.n
+        return expr.body.n
 
     @staticmethod
     def _match_ops(opr, opr_dict, *args):
@@ -154,7 +166,8 @@ class PulseExpression(ast.NodeTransformer):
         Returns:
             ast.Expression: Evaluated value.
         """
-        return self.visit(node.body)
+        node.body = self.visit(node.body)
+        return node
 
     def visit_Num(self, node):
         """Return number as it is.
