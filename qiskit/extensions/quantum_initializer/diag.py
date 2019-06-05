@@ -95,16 +95,24 @@ def _extract_rz(phi1, phi2):
 
 
 """
-Input:
+Attach a diagonal gate to a circuit. The decomposition is based on Theorem 7 given in
+"Synthesis of Quantum Logic Circuits" by V. Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
 
-diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least two entries.
-    
-q   =  list of k qubits the diagonal is acting on (the order of the qubits specifies the computational basis in
-        which the diagonal gate is provided: the first element in diag acts on the state where all the qubits
-        in q are in the state 0, the second entry acts on the state where all the qubits q[1],...,q[k-1] are in the
-        state zero and q[0] is in the state 1, and so on.
+    Args:
+        diag (list[number]): list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least 
+            two entries.
+        q (QautnumRegister|list[(QuantumRegister,int)]): list of k qubits the diagonal is acting on (the order of the 
+            qubits specifies the computational basis in which the diagonal gate is provided: the first element in diag 
+            acts on the state where all the qubits in q are in the state 0, the second entry acts on the state where all
+            the qubits q[1],...,q[k-1] are in the state zero and q[0] is in the state 1, and so on.
+
+    Returns:
+        QuantumCircuit: the diagonal gate is attached to the circuit.
+
+    Raises:
+        QiskitError: if the list of the diagonal entries or the qubit list is in bad format;
+            if the number of diagonal entries is not 2^k, where k denotes the number of qubits
 """
-
 
 def diag(self, diag, q):
     if isinstance(q, QuantumRegister):

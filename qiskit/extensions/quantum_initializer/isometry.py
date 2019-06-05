@@ -467,19 +467,29 @@ def diag_is_identity_up_to_global_phase(diag):
 
 
 """
-    q_input =    list of m qubits where the input to the isometry is feeded in (empty list for state preparation)
-                 The qubits are listed with increasing significance.
-            
-    q_ancillas_for_output = list of n-m ancilla qubits that are used for the output of the isometry 
-                    (and which are assumed to start in the zero state). 
-                    The qubits are listed with increasing significance.
-            
-    q_ancillas_zero = list of ancilla qubits (which are assumed to start in the zero state).
-                    The qubits are listed with increasing significance. 
-    
-    q_ancillas_dirty = list of ancilla qubits (which can start in an arbitrary state).
-                    The qubits are listed with increasing significance.
+Attach an arbitrary isometry from m to n qubits to a circuit. In particular, this allows to attach arbitrary
+unitaries on n qubits (m=n) or to prepare any state on n qubits (m=0).
+The decomposition scheme used here was introduced by Iten et al. in https://arxiv.org/abs/1501.06911.
 
+    Args:
+        isometry (ndarray) = an isometry from m to n qubits, i.e., a (complex) ndarray of dimension 2^n×2^m with 
+            orthonormal columns (given in the computational basis specified by the order of the ancillas and the 
+            input qubits, where the ancillas are considered to be more significant than the input qubits.)
+        q_input (QautnumRegister|list[(QuantumRegister,int)]): list of m qubits where the input to the isometry is 
+                feeded in (empty list for state preparation).
+        q_ancillas_for_output (QautnumRegister|list[(QuantumRegister,int)]): list of n-m ancilla qubits that are used
+            for the output of the isometry and which are assumed to start in the zero state. The qubits are 
+            listed with increasing significance.                                      
+        q_ancillas_zero (QautnumRegister|list[(QuantumRegister,int)]): list of ancilla qubits which are assumed to 
+            start in the zero state. Default: q_ancillas_zero = []                                            
+        q_ancillas_dirty (QautnumRegister|list[(QuantumRegister,int)]): list of ancilla qubits which can start in 
+            an arbitrary state. Default: q_ancillas_dirty = []                                       
+            
+    Returns:
+        QuantumCircuit: the isometry is attached to the quantum circuit.
+
+    Raises:
+        QiskitError: if the array is not an isometry of the correct size corresponding to the provided number of qubits.
 """
 
 

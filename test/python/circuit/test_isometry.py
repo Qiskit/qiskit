@@ -32,7 +32,8 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 class TestUCG(QiskitTestCase):
     """Qiskit isometry tests."""
     def test_isometry(self):
-        for iso in [np.eye(2, 2), random_unitary_matrix(2), np.eye(4, 4), random_unitary_matrix(4)[:, 0], np.eye(4, 4)[:, 0:2], random_unitary_matrix(4),
+        for iso in [np.eye(2, 2), random_unitary_matrix(2), np.eye(4, 4), random_unitary_matrix(4)[:, 0],
+                    np.eye(4, 4)[:, 0:2], random_unitary_matrix(4),
                     np.eye(4, 4)[:, np.random.permutation(np.eye(4, 4).shape[1])][:, 0:2],
                     np.eye(8, 8)[:, np.random.permutation(np.eye(8, 8).shape[1])],
                     random_unitary_matrix(8)[:, 0:4], random_unitary_matrix(8), random_unitary_matrix(16),

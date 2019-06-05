@@ -233,16 +233,24 @@ def _is_isometry(m, eps):
 
 
 """
-Input:
-gate_list =     list of two qubit unitaries [U_0,...,U_{2^k-1}], where each single-qubit unitary U_i is a given as 
-                a 2*2 numpy array.
-                    
-q_controls =    list of k control qubits. The qubits are ordered according to their significance 
-                in the computational basis. For example if q_controls=[q[1],q[2]] (with q = QuantumRegister(2)), 
-                the unitary U_0 is performed  if q[1] and q[2] are in the state zero,
-                U_1 is performed if q[2] is in the state zero and q[1] is in the state one, and so on.
-                    
-q_target =      target qubit, where we act on with the single-qubit gates.
+Attach a uniformly controlled gates (also called multiplexed gates) to a circuit. The decomposition was introduced by
+Bergholm et al. in https://arxiv.org/pdf/quant-ph/0410066.pdf.
+
+    Args:
+        gate_list (list[ndarray]): list of two qubit unitaries [U_0,...,U_{2^k-1}], where each single-qubit unitary 
+            U_i is a given as a 2*2 array.
+        q_controls (QautnumRegister|list[(QuantumRegister,int)]): list of k control qubits. The qubits are ordered 
+            according to their significance in the computational basis. For example if q_controls=[q[1],q[2]] 
+            (with q = QuantumRegister(2)), the unitary U_0 is performed if q[1] and q[2] are in the state zero,
+            U_1 is performed if q[2] is in the state zero and q[1] is in the state one, and so on.
+        q_target (QautnumRegister|(QuantumRegister,int)):  target qubit, where we act on with the single-qubit gates.
+        
+    Returns:
+        QuantumCircuit: the uniformly controlled gate is attached to the circuit.
+
+    Raises:
+        QiskitError: if the list number of control qubits does not correspond to the provided number of single-qubit 
+            unitaries; if an input is of the wrong type
 """
 
 
