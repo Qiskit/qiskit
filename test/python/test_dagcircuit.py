@@ -352,7 +352,8 @@ class TestDagOperations(QiskitTestCase):
         in_node = next(self.dag.topological_nodes())
         self.assertRaises(DAGCircuitError, self.dag.remove_op_node, in_node)
 
-    def test_dag_collect_runs_non_overlapping_runs(self):
+    def test_dag_collect_runs(self):
+        """Test the collect_runs method with 3 different gates."""
         self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
         self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
         self.dag.apply_operation_back(U1Gate(3.14), [self.qubit0])
@@ -365,8 +366,8 @@ class TestDagOperations(QiskitTestCase):
             if run[0].name == 'cx':
                 self.assertEqual(len(run), 2)
                 self.assertEqual(['cx'] * 2, [x.name for x in run])
-                self.assertEqual([
-                    [self.qubit2, self.qubit1], [self.qubit1, self.qubit2]],
+                self.assertEqual(
+                    [[self.qubit2, self.qubit1], [self.qubit1, self.qubit2]],
                     [x.qargs for x in run])
             elif run[0].name == 'h':
                 self.assertEqual(len(run), 1)
@@ -382,6 +383,7 @@ class TestDagOperations(QiskitTestCase):
                 self.fail('Unknown run encountered')
 
     def test_dag_collect_runs_start_with_conditional(self):
+        """Test collect runs with a conditional at the start of the run."""
         self.dag.apply_operation_back(
             HGate(), [self.qubit0], condition=self.condition)
         self.dag.apply_operation_back(HGate(), [self.qubit0])
@@ -395,6 +397,7 @@ class TestDagOperations(QiskitTestCase):
                          [x.qargs for x in run])
 
     def test_dag_collect_runs_conditional_in_middle(self):
+        """Test collect_runs with a conditional in the middle of a run."""
         self.dag.apply_operation_back(HGate(), [self.qubit0])
         self.dag.apply_operation_back(
             HGate(), [self.qubit0], condition=self.condition)
