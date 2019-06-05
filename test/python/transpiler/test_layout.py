@@ -35,11 +35,11 @@ class LayoutTest(QiskitTestCase):
         qr1 = QuantumRegister(2, 'qr1')
         layout = Layout.generate_trivial_layout(qr0, qr1)
 
-        self.assertEqual(layout[(qr0, 0)], 0)
-        self.assertEqual(layout[(qr0, 1)], 1)
-        self.assertEqual(layout[(qr0, 2)], 2)
-        self.assertEqual(layout[(qr1, 0)], 3)
-        self.assertEqual(layout[(qr1, 1)], 4)
+        self.assertEqual(layout[qr0[0]], 0)
+        self.assertEqual(layout[qr0[1]], 1)
+        self.assertEqual(layout[qr0[2]], 2)
+        self.assertEqual(layout[qr1[0]], 3)
+        self.assertEqual(layout[qr1[1]], 4)
 
     def test_layout_from_dict(self):
         """Constructor from a dict"""
@@ -143,12 +143,14 @@ class LayoutTest(QiskitTestCase):
     def test_layout_add_register(self):
         """add_register() method"""
         layout = Layout()
-        layout.add_register(QuantumRegister(2, 'q0'))
-        layout.add_register(QuantumRegister(1, 'qr1'))
+        qr0 = QuantumRegister(2, 'q0')
+        qr1 = QuantumRegister(1, 'qr1')
+        layout.add_register(qr0)
+        layout.add_register(qr1)
 
-        self.assertEqual(layout[(QuantumRegister(2, 'q0'), 0)], 0)
-        self.assertEqual(layout[(QuantumRegister(2, 'q0'), 1)], 1)
-        self.assertEqual(layout[(QuantumRegister(1, 'qr1'), 0)], 2)
+        self.assertEqual(layout[qr0[0]], 0)
+        self.assertEqual(layout[qr0[1]], 1)
+        self.assertEqual(layout[qr1[0]], 2)
 
     def test_physical_keyerror(self):
         """When asking for an unexistant physical qubit, KeyError"""
@@ -164,7 +166,7 @@ class LayoutTest(QiskitTestCase):
         layout[self.qr[0]] = 1
 
         with self.assertRaises(KeyError):
-            _ = layout[(self.qr, 1)]
+            _ = layout[self.qr[1]]
 
     def test_layout_swap(self):
         """swap() method"""
@@ -264,7 +266,7 @@ class LayoutTest(QiskitTestCase):
         layout = Layout()
 
         with self.assertRaises(LayoutError):
-            layout[(self.qr, 0)] = (self.qr, 1)
+            layout[self.qr[0]] = [self.qr[1]]
 
         with self.assertRaises(LayoutError):
             layout[0] = 1
