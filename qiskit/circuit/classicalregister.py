@@ -16,8 +16,6 @@
 Classical register reference object.
 """
 import itertools
-from warnings import warn
-import inspect
 
 from qiskit.exceptions import QiskitError
 from .register import Register
@@ -33,18 +31,6 @@ class Clbit(Bit):
         else:
             raise QiskitError('Clbit needs a ClassicalRegister and %s was provided' %
                               type(register).__name__)
-
-    @property
-    def __class__(self):
-        # This is for supporting isinstance(cr[0], Clbit)
-        # It should be removed after 0.9
-        code_context = inspect.getouterframes(inspect.currentframe(), 2)[1].code_context
-        for context in code_context:
-            if 'tuple' in context:
-                warn('Bit-as-tuple is deprecated. Replace isinstance(cr[0], tuple) for '
-                     'isinstance(cr[0], Clbit).', DeprecationWarning, stacklevel=2)
-                return tuple
-        return Clbit
 
 
 class ClassicalRegister(Register):

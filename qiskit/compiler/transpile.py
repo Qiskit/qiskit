@@ -21,6 +21,7 @@ from qiskit.transpiler.transpile_config import TranspileConfig
 from qiskit.transpiler.transpile_circuit import transpile_circuit
 from qiskit.pulse import Schedule
 from qiskit.circuit.quantumregister import Qubit
+from qiskit import user_config
 
 
 def transpile(circuits,
@@ -130,6 +131,10 @@ def transpile(circuits,
     if isinstance(circuits, Schedule) or \
        (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
         return circuits
+
+    if optimization_level is None:
+        config = user_config.get_config()
+        optimization_level = config.get('transpile_optimization_level', None)
 
     # Get TranspileConfig(s) to configure the circuit transpilation job(s)
     circuits = circuits if isinstance(circuits, list) else [circuits]

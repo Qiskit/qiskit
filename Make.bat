@@ -46,7 +46,6 @@ IF errorlevel 9009 GOTO :error
 GOTO :next
 
 :test
-pip install -r requirements.txt
 IF errorlevel 9009 GOTO :error
 python -m unittest discover -v
 IF errorlevel 9009 GOTO :error

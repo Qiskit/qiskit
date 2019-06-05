@@ -15,7 +15,6 @@
 """
 two-qubit ZZ-rotation gate.
 """
-from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -55,6 +54,5 @@ def rzz(self, theta, qubit1, qubit2):
     return self.append(RZZGate(theta), [qubit1, qubit2], [])
 
 
-# Add to QuantumCircuit and CompositeGate classes
+# Add to QuantumCircuit class
 QuantumCircuit.rzz = rzz
-CompositeGate.rzz = rzz
