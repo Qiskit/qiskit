@@ -22,7 +22,7 @@ from qiskit import BasicAer
 import numpy as np
 from qiskit import execute
 from qiskit.test import QiskitTestCase
-from scipy.stats import unitary_group
+from qiskit.tools.qi.qi import random_unitary_matrix
 from scipy.linalg import block_diag
 import math
 
@@ -31,8 +31,8 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 _id = np.eye(2,2)
 _not = np.matrix([[0,1],[1,0]])
 
-squs_list = [[_not],[_id],[_id,_id],[_id,1j*_id],[_id,_not,_id,_not],[unitary_group.rvs(2) for i in range(2**2)],
-         [unitary_group.rvs(2) for i in range(2**3)],[unitary_group.rvs(2) for i in range(2**4)]]
+squs_list = [[_not],[_id],[_id,_id],[_id,1j*_id],[_id,_not,_id,_not],[random_unitary_matrix(2) for i in range(2**2)],
+         [random_unitary_matrix(2) for i in range(2**3)],[random_unitary_matrix(2) for i in range(2**4)]]
 
 up_to_diagonal_list = [True, False]
 

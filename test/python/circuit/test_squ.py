@@ -7,7 +7,7 @@
 import itertools
 import unittest
 import numpy as np
-from scipy.stats import unitary_group
+from qiskit.tools.qi.qi import random_unitary_matrix
 from qiskit import BasicAer
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
@@ -23,7 +23,7 @@ Tests for the ZYZ decomposition for single-qubit unitary.
 """
 
 squs = [np.eye(2, 2), np.array([[0., 1.], [1., 0.]]), 1 / np.sqrt(2) * np.array([[1., 1.], [-1., 1.]]),
-         np.array([[np.exp(1j * 5. / 2), 0], [0, np.exp(-1j * 5. / 2)]]), unitary_group.rvs(2)]
+         np.array([[np.exp(1j * 5. / 2), 0], [0, np.exp(-1j * 5. / 2)]]),  random_unitary_matrix(2)]
 
 up_to_diagonal_list = [True, False]
 

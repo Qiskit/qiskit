@@ -16,7 +16,7 @@ Tests for the decomposition of isometries from m to n qubits.
 import unittest
 
 import numpy as np
-from scipy.stats import unitary_group
+from qiskit.tools.qi.qi import random_unitary_matrix
 
 from qiskit import BasicAer
 from qiskit import QuantumCircuit
@@ -32,11 +32,11 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 class TestUCG(QiskitTestCase):
     """Qiskit isometry tests."""
     def test_isometry(self):
-        for iso in [np.eye(2, 2), unitary_group.rvs(2), np.eye(4, 4), unitary_group.rvs(4)[:, 0], np.eye(4, 4)[:, 0:2], unitary_group.rvs(4),
+        for iso in [np.eye(2, 2), random_unitary_matrix(2), np.eye(4, 4), random_unitary_matrix(4)[:, 0], np.eye(4, 4)[:, 0:2], random_unitary_matrix(4),
                     np.eye(4, 4)[:, np.random.permutation(np.eye(4, 4).shape[1])][:, 0:2],
                     np.eye(8, 8)[:, np.random.permutation(np.eye(8, 8).shape[1])],
-                    unitary_group.rvs(8)[:, 0:4], unitary_group.rvs(8), unitary_group.rvs(16),
-                    unitary_group.rvs(16)[:, 0:8]]:
+                    random_unitary_matrix(8)[:, 0:4], random_unitary_matrix(8), random_unitary_matrix(16),
+                    random_unitary_matrix(16)[:, 0:8]]:
             with self.subTest(iso=iso):
                 if len(iso.shape) == 1:
                     iso = iso.reshape((len(iso), 1))
