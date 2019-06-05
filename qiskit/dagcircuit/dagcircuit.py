@@ -691,7 +691,7 @@ class DAGCircuit:
         Returns:
             generator(DAGNode): node in topological order
         """
-        return nx.lexicographical_topological_sort(self._multi_graph)
+        return nx.lexicographical_topological_sort(self._multi_graph, key=lambda x: x._node_id)
 
     def topological_op_nodes(self):
         """
