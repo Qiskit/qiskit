@@ -240,3 +240,5 @@ def combine(**kwargs):
         return data(*generate_cases(**kwargs))(unpack(func))
 
     return deco
+
+METATEST = ddt
