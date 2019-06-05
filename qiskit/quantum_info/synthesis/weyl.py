@@ -18,11 +18,13 @@
 
 import numpy as np
 import scipy.linalg as la
+from qiskit.exceptions import QiskitError
 
-Y = np.array([[0, -1],
-              [1, 0]], dtype=complex)
-
-YY = np.kron(Y, Y)
+_B = (1.0/np.sqrt(2)) * np.array([[1, 1j, 0, 0],
+                                  [0, 0, 1j, 1],
+                                  [0, 0, 1j, -1],
+                                  [1, -1j, 0, 0]], dtype=complex)
+_Bd = _B.T.conj()
 
 
 def weyl_coordinates(U):
@@ -36,60 +38,55 @@ def weyl_coordinates(U):
         ndarray: Array of Weyl coordinates.
 
     Raises:
-        ValueError: Computed coordinates not in Weyl chamber.
-
-    Notes:
-        Based entirely on A. M. Childs et al.,
-        Phys. Rev. A 68, 052311 (2003).
-
+        QiskitError: Computed coordinates not in Weyl chamber.
     """
-    U = np.asarray(U)
-    if U.shape != (4, 4):
-        raise ValueError('Unitary must correspond to a two qubit gate.')
+    pi2 = np.pi/2
+    pi4 = np.pi/4
 
-    # Eq 13
-    U_tilde = YY.dot(U.T.dot(YY))
-    det_u = la.det(U)
+    U = U / la.det(U)**(0.25)
+    Up = _Bd.dot(U).dot(_B)
+    M2 = Up.T.dot(Up)
 
-    U2 = U.dot(U_tilde)
-    evals = la.eigvals(U2/np.sqrt(det_u))
+    # M2 is a symmetric complex matrix. We need to decompose it as M2 = P D P^T where
+    # P ∈ SO(4), D is diagonal with unit-magnitude elements.
+    # D, P = la.eig(M2)  # this can fail for certain kinds of degeneracy
+    for _ in range(3):  # FIXME: this randomized algorithm is horrendous
+        M2real = np.random.randn()*M2.real + np.random.randn()*M2.imag
+        _, P = la.eigh(M2real)
+        D = P.T.dot(M2).dot(P).diagonal()
+        if np.allclose(P.dot(np.diag(D)).dot(P.T), M2, rtol=1.0e-13, atol=1.0e-13):
+            break
+    else:
+        raise QiskitError("TwoQubitWeylDecomposition: failed to diagonalize M2")
 
-    # Eq 39
-    two_S = np.angle(evals) / np.pi
+    d = -np.angle(D)/2
+    d[3] = -d[0]-d[1]-d[2]
+    cs = np.mod((d[:3]+d[3])/2, 2*np.pi)
 
-    # Eq 40
-    for kk in range(4):
-        if two_S[kk] <= -0.5:
-            two_S[kk] += 2.0
+    # Reorder the eigenvalues to get in the Weyl chamber
+    cstemp = np.mod(cs, pi2)
+    np.minimum(cstemp, pi2-cstemp, cstemp)
+    order = np.argsort(cstemp)[[1, 2, 0]]
+    cs = cs[order]
+    d[:3] = d[order]
 
-    # Sort like Eq 37
-    # Sort increasing then flip to decreasing with slice
-    S = np.sort(two_S/2.0)[::-1]
+    # Flip into Weyl chamber
+    if cs[0] > pi2:
+        cs[0] -= 3*pi2
+    if cs[1] > pi2:
+        cs[1] -= 3*pi2
+    conjs = 0
+    if cs[0] > pi4:
+        cs[0] = pi2-cs[0]
+        conjs += 1
+    if cs[1] > pi4:
+        cs[1] = pi2-cs[1]
+        conjs += 1
+    if cs[2] > pi2:
+        cs[2] -= 3*pi2
+    if conjs == 1:
+        cs[2] = pi2-cs[2]
+    if cs[2] > pi4:
+        cs[2] -= pi2
 
-    # Eq. 42
-    N = int(round(sum(S)))
-
-    # Select values and use to get weyl coordinates
-    # per Eqs 9-12
-    S -= np.array([1]*N+[0]*(4-N))
-    S = np.roll(S, -N)
-    M = np.array([[1, 1, 0],
-                  [1, 0, 1],
-                  [0, 1, 1]])
-
-    weyl = np.dot(M, S[:3])
-
-    weyl = np.round(weyl, 12) + 0.0
-
-    if weyl[2] < 0:
-        weyl[0] = 1 - weyl[0]
-        weyl[2] *= -1
-
-    # Verify that they are in Weyl chamber
-    test1 = (weyl[0] < 0.5 and weyl[1] <= weyl[0]) and (weyl[2] <= weyl[1])
-    test2 = (weyl[0] >= 0.5 and weyl[1] <= 1 - weyl[0]) and weyl[2] <= weyl[1]
-    if not (test1 or test2):
-        raise ValueError('Point ({}, {}, {}) not in Weyl chamber.'
-                         .format(np.pi*weyl[0]/2, np.pi*weyl[1]/2, np.pi*weyl[2]/2))
-
-    return weyl*np.pi/2.0
+    return cs[[1, 0, 2]]
