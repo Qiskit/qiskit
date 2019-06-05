@@ -28,6 +28,7 @@ class TestPauliAPI(QiskitTestCase):
     """Tests for Pauli class API."""
 
     def check(self, result):
+        """checks for result to be a Pauli 'IY' """
         self.assertIsInstance(result, Pauli)
         self.assertEqual(result.numberofqubits, 2)
         self.assertEqual(result.to_label(), 'IY')
@@ -40,6 +41,7 @@ class TestPauliAPI(QiskitTestCase):
         self.check(pauli)
 
     def test_ndarray_int(self):
+        """Test creation from np.int."""
         x = np.asarray([2, 0]).astype(np.int)
         z = np.asarray([2, 0]).astype(np.int)
         pauli = Pauli(x=x, z=z)
