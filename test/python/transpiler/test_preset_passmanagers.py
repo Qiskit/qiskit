@@ -84,7 +84,7 @@ class TestTranspileLevels(QiskitTestCase):
                                    FakePoughkeepsie(), None],
                           dsc='Transpiler {circuit.__name__} on {backend} backend at level '
                               '{level}',
-                          name='{circuit.__name__}_{backend.name}_level{level}'))
+                          name='test{circuit.__name__}_{backend.name}_level{level}'))
     def test(self, circuit, level, backend):
         """All the levels with all the backends"""
         result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
