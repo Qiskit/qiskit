@@ -451,7 +451,7 @@ class TwoQubitBasisDecomposer():
         for i in range(best_nbasis):
             return_circuit.append(U3Gate(*decomposition_angles[2*i]), [q[0]])
             return_circuit.append(U3Gate(*decomposition_angles[2*i+1]), [q[1]])
-            return_circuit.append(CnotGate(), [q[0], q[1]])
+            return_circuit.append(self.gate, [q[0], q[1]])
         return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis]), [q[0]])
         return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis+1]), [q[1]])
 
