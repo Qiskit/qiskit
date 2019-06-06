@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 # pylint: disable=arguments-differ
 
 """Contains a (slow) python simulator.
@@ -33,14 +39,14 @@ from collections import Counter
 import numpy as np
 
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
 from qiskit.providers import BaseBackend
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from .exceptions import BasicAerError
-from ._basicaertools import single_gate_matrix
-from ._basicaertools import cx_gate_matrix
-from ._basicaertools import einsum_vecmul_index
+from .basicaertools import single_gate_matrix
+from .basicaertools import cx_gate_matrix
+from .basicaertools import einsum_vecmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +114,8 @@ class QasmSimulatorPy(BaseBackend):
     SHOW_FINAL_STATE = False
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(configuration or
-                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(configuration=(
+            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         # Define attributes in __init__.
@@ -337,6 +343,12 @@ class QasmSimulatorPy(BaseBackend):
         Args:
             experiment (QobjExperiment): a qobj experiment.
         """
+        # If shots=1 we should disable measure sampling.
+        # This is also required for statevector simulator to return the
+        # correct final statevector without silently dropping final measurements.
+        if self._shots <= 1:
+            self._sample_measure = False
+            return
 
         # Check for config flag
         if hasattr(experiment.config, 'allows_measure_sampling'):
@@ -424,7 +436,7 @@ class QasmSimulatorPy(BaseBackend):
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start),
-                  'header': qobj.header.as_dict()}
+                  'header': qobj.header.to_dict()}
 
         return Result.from_dict(result)
 
@@ -463,16 +475,16 @@ class QasmSimulatorPy(BaseBackend):
         # Validate the dimension of initial statevector if set
         self._validate_initial_statevector()
         # Get the seed looking in circuit, qobj, and then random.
-        if hasattr(experiment.config, 'seed'):
-            seed = experiment.config.seed
-        elif hasattr(self._qobj_config, 'seed'):
-            seed = self._qobj_config.seed
+        if hasattr(experiment.config, 'seed_simulator'):
+            seed_simulator = experiment.config.seed_simulator
+        elif hasattr(self._qobj_config, 'seed_simulator'):
+            seed_simulator = self._qobj_config.seed_simulator
         else:
             # For compatibility on Windows force dyte to be int32
             # and set the maximum value to be (2 ** 31) - 1
-            seed = np.random.randint(2147483647, dtype='int32')
+            seed_simulator = np.random.randint(2147483647, dtype='int32')
 
-        self._local_random.seed(seed=seed)
+        self._local_random.seed(seed=seed_simulator)
         # Check if measure sampling is supported for current circuit
         self._validate_measure_sampling(experiment)
 
@@ -495,7 +507,8 @@ class QasmSimulatorPy(BaseBackend):
             for operation in experiment.instructions:
                 conditional = getattr(operation, 'conditional', None)
                 if isinstance(conditional, int):
-                    if not self._classical_register[-conditional-1]:
+                    conditional_bit_set = (self._classical_register >> conditional) & 1
+                    if not conditional_bit_set:
                         continue
                 elif conditional is not None:
                     mask = int(operation.conditional.mask, 16)
@@ -604,13 +617,13 @@ class QasmSimulatorPy(BaseBackend):
                 data.pop('memory')
         end = time.time()
         return {'name': experiment.header.name,
-                'seed': seed,
+                'seed_simulator': seed_simulator,
                 'shots': self._shots,
                 'data': data,
                 'status': 'DONE',
                 'success': True,
                 'time_taken': (end - start),
-                'header': experiment.header.as_dict()}
+                'header': experiment.header.to_dict()}
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas."""

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=arguments-differ
 
@@ -27,14 +34,14 @@ import time
 from math import log2, sqrt
 import numpy as np
 from qiskit.util import local_hardware_info
-from qiskit.providers.models import BackendConfiguration
+from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.providers import BaseBackend
 from qiskit.providers.basicaer.basicaerjob import BasicAerJob
 from qiskit.result import Result
 from .exceptions import BasicAerError
-from ._basicaertools import single_gate_matrix
-from ._basicaertools import cx_gate_matrix
-from ._basicaertools import einsum_matmul_index
+from .basicaertools import single_gate_matrix
+from .basicaertools import cx_gate_matrix
+from .basicaertools import einsum_matmul_index
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +104,8 @@ class UnitarySimulatorPy(BaseBackend):
     }
 
     def __init__(self, configuration=None, provider=None):
-        super().__init__(configuration=(configuration or
-                                        BackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
+        super().__init__(configuration=(
+            configuration or QasmBackendConfiguration.from_dict(self.DEFAULT_CONFIGURATION)),
                          provider=provider)
 
         # Define attributes inside __init__.
@@ -233,7 +240,7 @@ class UnitarySimulatorPy(BaseBackend):
             matrix. This size of this matrix must be correct for the number
             of qubits inall experiments in the qobj.
 
-            The "chop_threshold" option specifies a trunctation value for
+            The "chop_threshold" option specifies a truncation value for
             setting small values to zero in the output unitary. The default
             value is 1e-15.
 
@@ -278,7 +285,7 @@ class UnitarySimulatorPy(BaseBackend):
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start),
-                  'header': qobj.header.as_dict()}
+                  'header': qobj.header.to_dict()}
 
         return Result.from_dict(result)
 
@@ -347,7 +354,7 @@ class UnitarySimulatorPy(BaseBackend):
                 'status': 'DONE',
                 'success': True,
                 'time_taken': (end - start),
-                'header': experiment.header.as_dict()}
+                'header': experiment.header.to_dict()}
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.
@@ -361,7 +368,7 @@ class UnitarySimulatorPy(BaseBackend):
             raise BasicAerError('Number of qubits {} '.format(n_qubits) +
                                 'is greater than maximum ({}) '.format(max_qubits) +
                                 'for "{}".'.format(self.name()))
-        if qobj.config.shots != 1:
+        if hasattr(qobj.config, 'shots') and qobj.config.shots != 1:
             logger.info('"%s" only supports 1 shot. Setting shots=1.',
                         self.name())
             qobj.config.shots = 1

@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=len-as-condition
+
 """
 Predicates for operators.
 """
@@ -55,10 +63,10 @@ def matrix_equal(mat1,
         # and multiply all entries by the conjugate
         phases1 = np.angle(mat1[mat1 != 0].ravel(order='F'))
         if len(phases1) > 0:
-            mat1 *= np.exp(-1j * phases1[0])
+            mat1 = np.exp(-1j * phases1[0]) * mat1
         phases2 = np.angle(mat2[mat2 != 0].ravel(order='F'))
         if len(phases2) > 0:
-            mat2 *= np.exp(-1j * phases2[0])
+            mat2 = np.exp(-1j * phases2[0]) * mat2
     return np.allclose(mat1, mat2, rtol=rtol, atol=atol)
 
 
@@ -84,7 +92,7 @@ def is_diagonal_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
 
 
 def is_symmetric_matrix(op, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
-    """Test if an array is a symmetrix matrix"""
+    """Test if an array is a symmetric matrix"""
     if atol is None:
         atol = ATOL_DEFAULT
     if rtol is None:
@@ -140,7 +148,7 @@ def is_identity_matrix(mat,
         # remove the phase by multiplying each entry by the complex
         # conjugate of the phase of the [0, 0] entry.
         theta = np.angle(mat[0, 0])
-        mat *= np.exp(-1j * theta)
+        mat = np.exp(-1j * theta) * mat
     # Check if square identity
     iden = np.eye(len(mat))
     return np.allclose(mat, iden, rtol=rtol, atol=atol)

@@ -19,17 +19,85 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+Deprecated
+----------
+
+- The gates ``U`` and ``CX`` are being deprecated in favor of ``u3`` and ``cx``.
+- The decorator ``requires_qe_access`` is being deprecated in favor of ``online_test``.
+- The ``as_dict`` method of Qobj is deprecated in favor of ``to_dict``.
 
 Added
 -----
 
+- The option ``vertical_compression`` was added to the text drawer and to the
+  ``QuantumCircuit.draw`` method. The option allows to control how much
+  room the text circuit drawing takes.
+- Introduced a visualization for the Pass Manager. (#2445)
+- The attribute ``PassManager.log_passes`` was added to log and time the passes when they are
+  executed. The results is stored in the attribute ``pass_log`` of the property set as a
+  dictionary.
+
+Changed
+-------
+
+- The ``pylatexenc`` and ``pillow`` requirements are now optional. These are
+  only used by the ``latex`` and ``latex_source`` circuit visualization
+  backends. To continue using them ensure these are installed.
+- When adding a register to a circuit, an error will now be raised if a register
+  of the same name is already present. Previously, an error would only be raised
+  if the same register was added twice.
+- Qubits and classical bits are not represented as a tuples anymore, but as
+  instances of ``Qubit`` and ``Clbit`` respectively.
+
+Removed
+-------
+- The previously deprecated functions ``qiksit.visualization.plot_state`` and
+  ``qiskit.visualization.iplot_state`` have been removed. Instead use the
+  specific functions for each plot type (#2325).
+- International documentation of outdated readme etc (#2302)
+- Removed deprecated options in execute, transpile, and assemble. Removed deprecated compiler. 
+-  Removed deprecated qcvv in tools. Removed deprecated converters qobj_to_circuits and circuits_to_qobj (#2301)
+- The previously deprecated ``qiskit._util`` module has been removed. Use
+  ``qiskit.util`` instead. (#2329)
+- The logging tools in ``qiskit.tools.logging`` are removed. (#2387)
+- The ``qiskit.qiskiterror`` module has been removed. Please use
+  ``qiskit.exceptions`` instead. (#2399)
+- Removed previously deprecated DAGCircuit methods (#2542)
+- Removed ``CompositeGate`` class, in favor of adding Instruction objects directly (#2543)
+- Removed ``ignore_requires`` and ``ignore_preserves`` options from ``PassManager`` (#2565).
+
+Fixed
+-----
+-  Possible to decompose SU(4) gate into non-CNOT basis with ``TwoQubitDecomposer``
+
+
+`0.8.0`_ - 2019-05-02
+=====================
+
+
+Added
+-----
+
+- Added exact and approximate decomposition of SU(4) to arbitrary supercontrolled basis
+- Introduced schedule lo configuration. (#2115)
+- Introduced pulse schedule assembler. (#2115)
+- Builtin library of continuous pulses and builtin library of discrete pulses which are obtained
+  by sampling continuous pulses with default sampling strategy.
+- Sampler decorator and standard sampler library for conversion of continuous pulses
+  to discrete ``SamplePulse`` (#2042).
 - Core StochasticSwap routine implimented in Cython (#1789).
+- Added QuantumChannel classes SuperOp, Choi, Kraus, Stinespring, PTM, Chi to
+  quantum_info for manipulating quantum channels and CPTP maps.
+- Added Operator object to quantum_info for representing matrix operators.
+- Introduced the backend defaults model and endpoint for pulse backends (#2101).
+- `meas_level` to result schema (#2085).
+- Core StochasticSwap routine implemented in Cython (#1789).
 - New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
   selection pass (#1603).
 - New Unroll2Q pass for unrolling gates down to just 1q or 2q gates (#1614).
 - Added support for register slicing when applying operations to a register (#1643).
-- Added in new parameter ``justify`` to the text circuit drawer to say how the
-  circuit should be aligned. (#1725)
+- Added in new parameter ``justify`` to the text, mpl and latex circuit drawers to say how the
+  circuit should be aligned. (#1725, #1797, #1977)
 - Added function for purity of a mixed state in ``qiskit.quantum_information``
   (#1733)
 - Added parameter to the TextProgressBar to allow the output to be sent to a
@@ -42,19 +110,61 @@ Added
   circuits (e.g. basis_gates, coupling_map, initial_layout) (#1856)
 - Added a ``qiskit.compiler`` namespace for all functions that transpile, schedule
   and assemble circuits and pulses (#1856)
+- Added support for passing a list of ``basis_gates``, ``coupling_map`` etc. to the
+  ``qiskit.compiler.transpile()`` function, each corresponding to one of the circuits (#2163)
 - Added a ``qiskit.compiler.assemble_circuits()`` function to generate qobj from some
   circuits and a RunConfig (#1856)
-- Added an ``execute_circuits()`` function that takes a list of circuits along with a
-  TranspileConfig and RunConfig. The ``execute()`` function remains as a wrapper of this,
-  and later as a wrapper of ``execute_pulses()``.
-- ``execute_circuits()`` and ``assemble_circuits()`` allow setting a qobj_header of type
-  QobjHeader to add extra information to the qobj (and thus result).
+- ``execute()`` and ``assemble()`` allow setting a qobj_header, of type
+  QobjHeader or dict, to add extra information to the qobj (and thus result).
 - Register indexing supports negative indices (#1875)
+- Added new resource estimation passes: ``Depth``, ``Width``, ``Size``, ``CountOps``, and
+  ``NumTensorFactors``, all grouped in the ``ResourceEstimation`` analysis pass.
 - Added ``nodes_on_wire()`` to DAGCircuit which returns an iterator over all the
   operations on the given wire
+- Added new properties to an Instruction:
+  ``num_qubits``, ``num_clbits`` (#1816).
+- Added a ``QuantumCircuit.append`` public method for appending arbitrary instructions
+  to some qubits and clbits in the circuit (#1816).
+- Added an ``Instruction.definition`` property that defines a composite instruction
+  in terms of other, simpler instructions (#1816).
+- Added an ``Instruction.mirror()`` method that mirrors a composite instruction
+  (reverses its sub-instructions) (#1816).
+- Added an ``PassManager.passes()`` method that returns a list of the passes that
+  have been added to the pass manager, including options and flow controllers.
+- Added a ``PassManager.run()`` that transforms a ``QuantumCircuit`` according to its
+  pass schedule and returns a ``QuantumCircuit``.
+- Added a ``qiskit.quantum_info.random`` for generating random states, unitaries, etc (#2119).
+- Added a ``qiskit.quantum_info.synthesis`` for algorithms that synthesize circuits (#2119).
+- Added a ``NoiseAdaptiveLayout`` pass to compute a backend calibration-data aware initial
+  qubit layout. (#2089)
+- Gates and instructions in a circuit accept integers as parameters to refer to
+  wires instead of named bits.
+- Added a ``OptimizeSwapBeforeMeasure`` pass that removes the swap gates when they
+  are followed by a measurement instruction, moving the latter to the proper wire. (#1890)
+- Added a ``RemoveDiagonalGatesBeforeMeasure`` pass that removes the diagonal gates when they
+  are followed by a measurement instruction. (#2208)
+- Added a ``CommutativeCancellation`` pass that cancels self-inverse gates and combines
+  rotations about the Z axis, leveraging previously-found gate commutation relations. (#2012)
+- Add an option for using a user config file to enable changing default
+  settings for various functions in qiskit. Right now it only supports setting
+  the default circuit drawing backend. (#2122)
+- Added a ``Collect2qBlocks`` pass that analyzes the circuit for uninterrupted sequences
+  of gates (blocks) acting on 2 qubits. (#2134)
+- Added a ``ConsolidateBlocks`` that turns previously-collected blocks of any size
+  into equivalent Unitary operators in the circuit. (#2134)
+- Added support for parameterized circuits. (#2103)
+- Added preset PassManagers that offer predetermined pipelines of transpiler passes. (#2163)
 
 Changed
 -------
+
+- require scipy>=1.0, use `scipy.stats.unitary_group.rvs` for `random_unitary()`.
+- two_qubit_kak decomposition works with Operator or raw matrix input objects.
+- process_fidelity works with QuantumChannel and Operator object inputs.
+- Backend defaults values are no longer required (#2101).
+- QuantumCircuit properties more self-consistent and no longer need DAG (#1993).
+- The most connected subset in DenseLayout is now reduced bandwidth (#2021).
+- plot_histogram now allows sorting by Hamming distance from target_string (#2064).
 - FunctionalPulse is no longer a class and instead is a decorator, `functional_pulse`
   that returns a `SamplePulse` when called. (#2043)
 - Changed ``average_data`` to accept observable input in matrix form (#1858)
@@ -93,6 +203,27 @@ Changed
 - The rzz gate is now represented as a line when printed in text (#1957).
 - Text drawer has support for multi-q gates (#1939).
 - Separate ``Qobj`` into ``PulseQobj`` and ``QasmQobj`` (#1969).
+- It is possible to define a layout as a list of integers. This maps the ordered list
+  of virtual circuit qubits to physical qubits as defined by the list of integers (#1946).
+- Instructions no longer have context about where they are in a circuit. Instead,
+  the circuit keeps this context. So Instructions are now light-weight and only
+  have a name, num_qubits, num_clbits and params (#1816).
+- The old syntax for attaching a gate to the circuit then modifying it is no longer
+  supported (e.g. ``circuit.s(qr).inverse()`` or ``circuit.s(qr).c_if(cr, 4)``).
+  Instead, you must first modify the gate then attach it (#1816).
+- ``QuantumCircuit.data`` now contains a list of tuples, where each tuple is a
+  (instruction, qarg, carg) (#1816).
+- The visualization subpackage has moved from ``qiskit.tools.visualization`` to
+  ``qiskit.visualization``. The public API (which was declared stable in
+  the 0.7 release) is still accessible off of ``qiskit.tools.visualization``.
+  (#1878)
+- Layout object can now only be constructed from a dictionary, and must be bijective (#2157).
+- ``transpile()`` accepts ``initial_layout`` in the form of dict, list or Layout (#2157).
+- Not specifying a basis in ``execute()`` or ``transpile()`` no longer defaults to unrolling
+  to the ['u1', 'u2', 'u3', 'cx'] basis. Instead the default behavior is to not unroll,
+  unless specifically requested (#2166).
+- Instruction.copy() is now a shallow copy instead of deep (#2214)
+- Layout and CouplingMap classes are now accessible from qiskit.transpiler (#2222).
 
 Deprecated
 ----------
@@ -106,7 +237,20 @@ Deprecated
 - The ``qiskit.tools.qcvv`` package is deprecated in favor of Qiskit Ignis (#1884).
 - The ``qiskit.compile()`` function is now deprecated in favor of explicitly
   using the ``qiskit.compiler.transpile()`` function to transform a circuit followed
-  by ``qiskit.compiler.assemble_circuits()`` to make a qobj out of it.
+  by ``qiskit.compiler.assemble()`` to make a qobj out of it.
+- ``qiskit.converters.qobj_to_circuits()`` has been deprecated and will be
+  removed in a future release. Instead
+  ``qiskit.compiler.disassemble_circuits()`` should be used to extract
+  ``QuantumCircuit`` objects from a compiled qobj. (#2137)
+- The ``qiskit.transpiler.transpile()`` function is deprecated in favor of
+  ``qiskit.compiler.transpile()`` (#2166).
+- The ``seed_mapper`` argument in ``transpile()`` and ``execute()`` is deprecated in favor of
+  ``seed_transpile()``, which sets the seed for all stochastic stages of the transpiler (#2166).
+- The ``seed`` argument is ``execute()`` is deprecated in favor of ``seed_simulator`` (#2166).
+- The ``pass_manager`` argument in ``transpile()`` is deprecated. Instead, the
+  ``pass_manager.run()`` methdod can be used directly to transform the circuit (#2166).
+- The ``qiskit._util`` module is deprecated and replaced by ``qiskit.util``.
+  ``qiskit._util`` will be removed in the 0.9 release. (#2154)
 
 Fixed
 -----
@@ -125,6 +269,11 @@ Fixed
   coupling map is provided (#1711).
 - Fixed a bug in the definition of the rzz gate (#1940).
 - Fixed a bug in DAGCircuit.collect_runs() that did not exclude conditional gates (#1943).
+- Fixed a mapping issue with layouts on non-adjacent qubits, by adding ancillas (#2023).
+- Fixed a bug in which an `initial_layout` could be changed even if it made the circuit
+  compatible with the device `coupling_map` (#2036).
+- Fixed ``qobj_to_circuits`` for circuits that contain initialize instructions
+  (#2138)
 
 
 Removed
@@ -151,7 +300,7 @@ Removed
 - Removed deprecated ``transpile_dag()`` ``format`` kwarg (#1664)
 - Removed deprecated ``Pauli`` ``v``, ``w``, and ``pauli_group`` case arg as int (#1680)
 - Removed deprecated ``state_fidelity()`` function from ``tools.qi`` (#1681)
-- Removed ``QISKitError`` in favour of ``QiskitError``. (#1684)
+- Removed ``QISKitError`` in favor of ``QiskitError``. (#1684)
 - The IBMQ provider (``qiskit.providers.ibmq``) has been moved to its own
   package (``pip install qiskit-ibmq-provider``). (#1700)
 - ``compiled_circuit_qasm`` has been removed from the Qobj header, since it
@@ -159,6 +308,30 @@ Removed
 - Removed the wigner plotting functions ``plot_wigner_function``,
   ``plot_wigner_curve``, ``plot_wigner_plaquette``, and ``plot_wigner_data``
   (#1860).
+- Removed ``Instruction.reapply()`` method (#1816).
+
+
+`0.7.2`_ - 2019-05-01
+=====================
+
+
+Fixed
+-----
+
+- A potential issue where the backend configuration schema validation would
+  improperly reject valid responses from the API (#2258)
+
+
+`0.7.1`_ - 2019-03-04
+=====================
+
+
+Fixed
+-----
+
+- Fixed a bug with measurement sampling optimization in BasicAer
+  qasm_simulator (#1624).
+
 
 `0.7.0`_ - 2018-12-19
 =====================
@@ -212,6 +385,7 @@ Added
 Changed
 -------
 
+- Schedules and underlying classes are now immutable. (#2186)
 - Evolved pass-based transpiler to support advanced functionality (#1060)
 - `.retrieve_job()` and `.jobs()` no longer returns results by default,
   instead the result must be accessed by the `result()` method on the job
@@ -980,7 +1154,7 @@ Added
 - Add support for ibmqx_hpc_qasm_simulator backend.
 - Add backend interface to Project Q C++ simulator.
     Requires installation of Project Q.
-- Introduce ``InitializeGate`` class.
+- Introduce ``Initialize`` class.
     Generates circuit which initializes qubits in arbitrary state.
 - Introduce ``local_qiskit_simulator`` a C++ simulator with realistic noise.
     Requires C++ build environment for ``make``-based build.
@@ -1012,7 +1186,10 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...HEAD
+.. _0.8.0: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0
+.. _0.7.2: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
+.. _0.7.1: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
 .. _0.7.0: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...0.7.0
 .. _0.6.0: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
 .. _0.5.7: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7

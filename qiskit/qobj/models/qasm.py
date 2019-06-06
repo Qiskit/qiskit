@@ -1,28 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """The qasm qobj models."""
 
-from marshmallow.validate import Range, Length, Regexp
+from marshmallow.validate import Range, Length
 
-from qiskit.validation import bind_schema, BaseSchema, BaseModel
-from qiskit.validation.fields import List, Integer, InstructionParameter, Nested, String
+from qiskit.validation import bind_schema
+from qiskit.validation.fields import List, Integer, InstructionParameter, Nested
 from .base import (QobjInstructionSchema, QobjExperimentConfigSchema, QobjExperimentSchema,
                    QobjConfigSchema, QobjInstruction, QobjExperimentConfig,
                    QobjExperiment, QobjConfig)
-
-
-class QobjConditionalSchema(BaseSchema):
-    """Schema for QobjConditional."""
-
-    # Required properties.
-    mask = String(required=True, validate=Regexp('^0x([0-9A-Fa-f])+$'))
-    type = String(required=True)
-    val = String(required=True, validate=Regexp('^0x([0-9A-Fa-f])+$'))
 
 
 class QasmQobjInstructionSchema(QobjInstructionSchema):
@@ -34,7 +32,7 @@ class QasmQobjInstructionSchema(QobjInstructionSchema):
     params = List(InstructionParameter())
     memory = List(Integer(validate=Range(min=0)),
                   validate=Length(min=1))
-    conditional = Nested(QobjConditionalSchema)
+    conditional = Integer(validate=Range(min=0))
 
 
 class QasmQobjExperimentConfigSchema(QobjExperimentConfigSchema):
@@ -60,27 +58,6 @@ class QasmQobjConfigSchema(QobjConfigSchema):
 
     # Optional properties.
     n_qubits = Integer(validate=Range(min=1))
-
-
-@bind_schema(QobjConditionalSchema)
-class QobjConditional(BaseModel):
-    """Model for QobjConditional.
-
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``QobjConditionalSchema``.
-
-    Attributes:
-        mask (str): hexadecimal mask of the conditional
-        type (str): type of the conditional
-        val (str): hexadecimal value of the conditional
-    """
-    def __init__(self, mask, type, val, **kwargs):
-        # pylint: disable=redefined-builtin
-        self.mask = mask
-        self.type = type
-        self.val = val
-
-        super().__init__(**kwargs)
 
 
 @bind_schema(QasmQobjInstructionSchema)

@@ -1,14 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """PassManager class for the transpiler."""
 
 from functools import partial
 from collections import OrderedDict
+from time import time
+
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.visualization import pass_manager_drawer
 from .propertyset import PropertySet
 from .basepasses import BasePass
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
@@ -16,11 +27,9 @@ from .exceptions import TranspilerError
 
 
 class PassManager():
-    """ A PassManager schedules the passes """
+    """A PassManager schedules the passes"""
 
     def __init__(self, passes=None,
-                 ignore_requires=None,
-                 ignore_preserves=None,
                  max_iteration=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
@@ -28,10 +37,6 @@ class PassManager():
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule. The default is
                 None.
-            ignore_requires (bool): The schedule ignores the requires field in the passes. The
-                default setting in the pass is False.
-            ignore_preserves (bool): The schedule ignores the preserves field in the passes. The
-                default setting in the pass is False.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
         """
@@ -49,33 +54,30 @@ class PassManager():
         self.valid_passes = set()
 
         # pass manager's overriding options for the passes it runs (for debugging)
-        self.passmanager_options = {'ignore_requires': ignore_requires,
-                                    'ignore_preserves': ignore_preserves,
-                                    'max_iteration': max_iteration}
+        self.passmanager_options = {'max_iteration': max_iteration}
+
+        # The property log_passes allows to log and time the passes as they run in the pass manager
+        self.log_passes = False
+
         if passes is not None:
             self.append(passes)
 
     def _join_options(self, passset_options):
-        """ Set the options of each passset, based on precedence rules:
+        """Set the options of each passset, based on precedence rules:
         passset options (set via ``PassManager.append()``) override
         passmanager options (set via ``PassManager.__init__()``), which override Default.
         .
         """
-        default = {'ignore_preserves': False,  # Ignore preserves for this pass
-                   'ignore_requires': False,  # Ignore requires for this pass
-                   'max_iteration': 1000}  # Maximum allowed iteration on this pass
+        default = {'max_iteration': 1000}  # Maximum allowed iteration on this pass
 
         passmanager_level = {k: v for k, v in self.passmanager_options.items() if v is not None}
         passset_level = {k: v for k, v in passset_options.items() if v is not None}
         return {**default, **passmanager_level, **passset_level}
 
-    def append(self, passes, ignore_requires=None, ignore_preserves=None, max_iteration=None,
-               **flow_controller_conditions):
+    def append(self, passes, max_iteration=None, **flow_controller_conditions):
         """
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule
-            ignore_preserves (bool): ignore the preserves claim of passes. Default: False
-            ignore_requires (bool): ignore the requires need of passes. Default: False
             max_iteration (int): max number of iterations of passes. Default: 1000
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
             control flow plugins. Default:
@@ -92,9 +94,7 @@ class PassManager():
             TranspilerError: if a pass in passes is not a proper pass.
         """
 
-        passset_options = {'ignore_requires': ignore_requires,
-                           'ignore_preserves': ignore_preserves,
-                           'max_iteration': max_iteration}
+        passset_options = {'max_iteration': max_iteration}
 
         options = self._join_options(passset_options)
 
@@ -114,19 +114,36 @@ class PassManager():
         self.working_list.append(
             FlowController.controller_factory(passes, options, **flow_controller_conditions))
 
-    def run_passes(self, dag):
-        """Run all the passes on a DAG.
+    def reset(self):
+        """ "Resets the pass manager instance """
+        self.valid_passes = set()
+        self.property_set.clear()
+
+    def run(self, circuit):
+        """Run all the passes on a QuantumCircuit
 
         Args:
-            dag (DAGCircuit): DAG circuit to transform via all the registered passes
+            circuit (QuantumCircuit): circuit to transform via all the registered passes
 
         Returns:
-            DAGCircuit: Transformed DAG.
+            QuantumCircuit: Transformed circuit.
         """
+        name = circuit.name
+        dag = circuit_to_dag(circuit)
+        del circuit
+        self.reset()  # Reset passmanager instance before starting
+
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
-        return dag
+
+        circuit = dag_to_circuit(dag)
+        circuit.name = name
+        return circuit
+
+    def draw(self, filename, style=None, raw=False):
+        """ Draw the pass manager"""
+        pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
     def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".
@@ -143,38 +160,82 @@ class PassManager():
         """
 
         # First, do the requires of pass_
-        if not options["ignore_requires"]:
-            for required_pass in pass_.requires:
-                dag = self._do_pass(required_pass, dag, options)
+        for required_pass in pass_.requires:
+            dag = self._do_pass(required_pass, dag, options)
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
-            if pass_.is_transformation_pass:
-                pass_.property_set = self.fenced_property_set
-                new_dag = pass_.run(dag)
-                if not isinstance(new_dag, DAGCircuit):
-                    raise TranspilerError("Transformation passes should return a transformed dag."
-                                          "The pass %s is returning a %s" % (type(pass_).__name__,
-                                                                             type(new_dag)))
-                dag = new_dag
-            elif pass_.is_analysis_pass:
-                pass_.property_set = self.property_set
-                pass_.run(FencedDAGCircuit(dag))
-            else:
-                raise TranspilerError("I dont know how to handle this type of pass")
+            dag = self._run_this_pass(pass_, dag)
 
             # update the valid_passes property
-            self._update_valid_passes(pass_, options['ignore_preserves'])
+            self._update_valid_passes(pass_)
 
         return dag
 
-    def _update_valid_passes(self, pass_, ignore_preserves):
+    def _run_this_pass(self, pass_, dag):
+        if pass_.is_transformation_pass:
+            pass_.property_set = self.fenced_property_set
+            with PassManagerContext(self, pass_):
+                new_dag = pass_.run(dag)
+            if not isinstance(new_dag, DAGCircuit):
+                raise TranspilerError("Transformation passes should return a transformed dag."
+                                      "The pass %s is returning a %s" % (type(pass_).__name__,
+                                                                         type(new_dag)))
+            dag = new_dag
+        elif pass_.is_analysis_pass:
+            pass_.property_set = self.property_set
+            with PassManagerContext(self, pass_):
+                pass_.run(FencedDAGCircuit(dag))
+        else:
+            raise TranspilerError("I dont know how to handle this type of pass")
+        return dag
+
+    def _update_valid_passes(self, pass_):
         self.valid_passes.add(pass_)
         if not pass_.is_analysis_pass:  # Analysis passes preserve all
-            if ignore_preserves:
-                self.valid_passes.clear()
-            else:
-                self.valid_passes.intersection_update(set(pass_.preserves))
+            self.valid_passes.intersection_update(set(pass_.preserves))
+
+    def passes(self):
+        """
+        Returns a list structure of the appended passes and its options.
+
+        Returns (list): The appended passes.
+        """
+        ret = []
+        for pass_ in self.working_list:
+            ret.append(pass_.dump_passes())
+        return ret
+
+
+class PassManagerContext:
+    """ A wrap around the execution of a pass."""
+
+    def __init__(self, pm_instance, pass_instance):
+        self.pm_instance = pm_instance
+        self.pass_instance = pass_instance
+        self.start_time = None
+
+    def __enter__(self):
+        if self.pm_instance.log_passes:
+            self.start_time = time()
+
+    def __exit__(self, *exc_info):
+        if self.pm_instance.log_passes:
+            end_time = time()
+            raw_log_dict = {
+                'name': self.pass_instance.name(),
+                'start_time': self.start_time,
+                'end_time': end_time,
+                'running_time': end_time - self.start_time
+            }
+            log_dict = "%s: %.5f (ms)" % (self.pass_instance.name(),
+                                          (end_time - self.start_time) * 1000)
+            if self.pm_instance.property_set['pass_raw_log'] is None:
+                self.pm_instance.property_set['pass_raw_log'] = []
+            if self.pm_instance.property_set['pass_log'] is None:
+                self.pm_instance.property_set['pass_log'] = []
+            self.pm_instance.property_set['pass_raw_log'].append(raw_log_dict)
+            self.pm_instance.property_set['pass_log'].append(log_dict)
 
 
 class FlowController():
@@ -184,12 +245,27 @@ class FlowController():
     registered_controllers = OrderedDict()
 
     def __init__(self, passes, options, **partial_controller):
+        self._passes = passes
         self.passes = FlowController.controller_factory(passes, options, **partial_controller)
         self.options = options
 
     def __iter__(self):
         for pass_ in self.passes:
             yield pass_
+
+    def dump_passes(self):
+        """
+        Fetches the passes added to this flow controller.
+
+        Returns (dict): {'options': self.options, 'passes': [passes], 'type': type(self)}
+        """
+        ret = {'options': self.options, 'passes': [], 'type': type(self)}
+        for pass_ in self._passes:
+            if isinstance(pass_, FlowController):
+                ret['passes'].append(pass_.dump_passes())
+            else:
+                ret['passes'].append(pass_)
+        return ret
 
     @classmethod
     def add_flow_controller(cls, name, controller):
@@ -240,20 +316,20 @@ class FlowController():
                     return cls.registered_controllers[registered_controller](passes, options,
                                                                              **partial_controller)
             raise TranspilerError("The controllers for %s are not registered" % partial_controller)
-        else:
-            return FlowControllerLinear(passes, options)
+
+        return FlowControllerLinear(passes, options)
 
 
 class FlowControllerLinear(FlowController):
-    """ The basic controller run the passes one after the other one. """
+    """The basic controller runs the passes one after the other."""
 
     def __init__(self, passes, options):  # pylint: disable=super-init-not-called
-        self.passes = passes
+        self.passes = self._passes = passes
         self.options = options
 
 
 class DoWhileController(FlowController):
-    """Implements a set of passes in a do while loop. """
+    """Implements a set of passes in a do-while loop."""
 
     def __init__(self, passes, options, do_while=None,
                  **partial_controller):
@@ -273,7 +349,7 @@ class DoWhileController(FlowController):
 
 
 class ConditionalController(FlowController):
-    """Implements a set of passes under certain condition. """
+    """Implements a set of passes under a certain condition."""
 
     def __init__(self, passes, options, condition=None,
                  **partial_controller):

@@ -1,19 +1,28 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Persistent value.
 """
 
-from qiskit.pulse.exceptions import CommandsError
-from .pulse_command import PulseCommand
+from qiskit.pulse.channels import PulseChannel
+from qiskit.pulse.exceptions import PulseError
+from .instruction import Instruction
+from .command import Command
 
 
-class PersistentValue(PulseCommand):
+class PersistentValue(Command):
     """Persistent value."""
 
     def __init__(self, value):
@@ -23,15 +32,19 @@ class PersistentValue(PulseCommand):
             value (complex): Complex value to apply, bounded by an absolute value of 1.
                 The allowable precision is device specific.
         Raises:
-            CommandsError: when input value exceed 1.
+            PulseError: when input value exceed 1.
         """
-
-        super(PersistentValue, self).__init__(duration=0, name='pv')
+        super().__init__(duration=0)
 
         if abs(value) > 1:
-            raise CommandsError("Absolute value of PV amplitude exceeds 1.")
+            raise PulseError("Absolute value of PV amplitude exceeds 1.")
 
-        self.value = value
+        self._value = complex(value)
+
+    @property
+    def value(self):
+        """Persistent value amplitude."""
+        return self._value
 
     def __eq__(self, other):
         """Two PersistentValues are the same if they are of the same type
@@ -47,3 +60,18 @@ class PersistentValue(PulseCommand):
                 self.value == other.value:
             return True
         return False
+
+    def __repr__(self):
+        return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
+
+    # pylint: disable=arguments-differ
+    def to_instruction(self, channel: PulseChannel, name=None) -> 'PersistentValueInstruction':
+        return PersistentValueInstruction(self, channel, name=name)
+    # pylint: enable=arguments-differ
+
+
+class PersistentValueInstruction(Instruction):
+    """Instruction to keep persistent value. """
+
+    def __init__(self, command: PersistentValue, channel: PulseChannel, name=None):
+        super().__init__(command, channel, name=name)

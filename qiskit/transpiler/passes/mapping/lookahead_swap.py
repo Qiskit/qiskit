@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Implementation of Sven Jandura's swap mapper submission for the 2018 QISKit
@@ -42,15 +49,14 @@ https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
 
 from copy import deepcopy
 
-from qiskit import QuantumRegister
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.mapper import Layout
+from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGNode
 
-from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 SEARCH_DEPTH = 4
 SEARCH_WIDTH = 4
@@ -70,7 +76,6 @@ class LookaheadSwap(TransformationPass):
         super().__init__()
         self._coupling_map = coupling_map
         self.initial_layout = initial_layout
-        self.requires.append(BarrierBeforeFinalMeasurements())
 
     def run(self, dag):
         """Run one pass of the lookahead mapper on the provided DAG.
@@ -84,7 +89,6 @@ class LookaheadSwap(TransformationPass):
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG
         """
-
         coupling_map = self._coupling_map
         ordered_virtual_gates = list(dag.serial_layers())
 
@@ -118,8 +122,8 @@ class LookaheadSwap(TransformationPass):
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
         mapped_dag = _copy_circuit_metadata(dag, coupling_map)
 
-        for gate in mapped_gates:
-            mapped_dag.apply_operation_back(op=gate.op)
+        for node in mapped_gates:
+            mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
 
         return mapped_dag
 
@@ -282,7 +286,7 @@ def _transform_gate_for_layout(gate, layout):
 
     # Workaround until #1816, apply mapped to qargs to both DAGNode and op
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
-    mapped_qargs = [(device_qreg, layout[a]) for a in mapped_op_node.qargs]
+    mapped_qargs = [device_qreg[layout[a]] for a in mapped_op_node.qargs]
     mapped_op_node.qargs = mapped_op_node.op.qargs = mapped_qargs
 
     mapped_op_node.pop('name')
@@ -294,9 +298,9 @@ def _swap_ops_from_edge(edge, layout):
     """Generate list of ops to implement a SWAP gate along a coupling edge."""
 
     device_qreg = QuantumRegister(len(layout.get_physical_bits()), 'q')
-    qreg_edge = [(device_qreg, i) for i in edge]
+    qreg_edge = [device_qreg[i] for i in edge]
 
     # TODO shouldn't be making other nodes not by the DAG!!
     return [
-        DAGNode({'op': SwapGate(*qreg_edge), 'qargs': qreg_edge, 'type': 'op'})
+        DAGNode({'op': SwapGate(), 'qargs': qreg_edge, 'cargs': [], 'type': 'op'})
     ]

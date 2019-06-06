@@ -1,21 +1,29 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
-The CX direction rearrenges the direction of the cx nodes to make the circuit
+The CX direction rearranges the direction of the cx nodes to make the circuit
 compatible with the coupling_map.
 """
+from math import pi
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout
-from qiskit.extensions.standard import HGate
+from qiskit.transpiler.layout import Layout
+from qiskit.extensions.standard import U2Gate
 
 
 class CXDirection(TransformationPass):
@@ -56,10 +64,8 @@ class CXDirection(TransformationPass):
         new_dag = DAGCircuit()
 
         if self.layout is None:
-            if self.property_set["layout"]:
-                self.layout = self.property_set["layout"]
-            else:
-                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
+            # LegacySwap renames the register in the DAG and does not match the property set
+            self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
@@ -78,16 +84,16 @@ class CXDirection(TransformationPass):
                     # A flip needs to be done
 
                     # Create the involved registers
-                    if control[0] not in subdag.qregs.values():
-                        subdag.add_qreg(control[0])
-                    if target[0] not in subdag.qregs.values():
-                        subdag.add_qreg(target[0])
+                    if control.register not in subdag.qregs.values():
+                        subdag.add_qreg(control.register)
+                    if target.register not in subdag.qregs.values():
+                        subdag.add_qreg(target.register)
 
                     # Add H gates around
-                    subdag.apply_operation_back(HGate(target))
-                    subdag.apply_operation_back(HGate(control))
-                    subdag.apply_operation_front(HGate(target))
-                    subdag.apply_operation_front(HGate(control))
+                    subdag.apply_operation_back(U2Gate(0, pi), [target], [])
+                    subdag.apply_operation_back(U2Gate(0, pi), [control], [])
+                    subdag.apply_operation_front(U2Gate(0, pi), [target], [])
+                    subdag.apply_operation_front(U2Gate(0, pi), [control], [])
 
                     # Flips the CX
                     cnot_node.qargs[0], cnot_node.qargs[1] = target, control

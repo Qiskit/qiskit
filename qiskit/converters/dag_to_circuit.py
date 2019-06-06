@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Helper function for converting a dag to a circuit"""
 import collections
@@ -34,35 +41,17 @@ def dag_to_circuit(dag):
     name = dag.name or None
     circuit = QuantumCircuit(*qregs.values(), *cregs.values(), name=name)
 
-    for node in dag.nodes_in_topological_order():
-        if node.type == 'op':
-            qubits = []
-            for qubit in node.qargs:
-                qubits.append(qregs[qubit[0].name][qubit[1]])
+    for node in dag.topological_op_nodes():
+        qubits = []
+        for qubit in node.qargs:
+            qubits.append(qregs[qubit.register.name][qubit.index])
 
-            clbits = []
-            for clbit in node.cargs:
-                clbits.append(cregs[clbit[0].name][clbit[1]])
+        clbits = []
+        for clbit in node.cargs:
+            clbits.append(cregs[clbit.register.name][clbit.index])
 
-            # Get arguments for classical control (if any)
-            if node.condition is None:
-                control = None
-            else:
-                control = (node.condition[0], node.condition[1])
-
-            def duplicate_instruction(inst):
-                """Create a fresh instruction from an input instruction."""
-                if inst.name == 'barrier':
-                    params = [inst.qargs]
-                elif inst.name == 'snapshot':
-                    params = inst.params + [inst.qargs]
-                else:
-                    params = inst.params + inst.qargs + inst.cargs
-                new_inst = inst.__class__(*params)
-                return new_inst
-
-            inst = duplicate_instruction(node.op)
-            inst.control = control
-            circuit._attach(inst)
-
+        # Get arguments for classical control (if any)
+        inst = node.op.copy()
+        inst.control = node.condition
+        circuit.append(inst, qubits, clbits)
     return circuit

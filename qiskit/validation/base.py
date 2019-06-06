@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Building blocks for Qiskit validated classes.
 
@@ -22,6 +29,7 @@ together by using ``bind_schema``::
     class Person(BaseModel):
         pass
 """
+import warnings
 
 from functools import wraps
 from types import SimpleNamespace, MethodType
@@ -77,7 +85,7 @@ class ModelTypeValidator(_fields.Field):
         else:
             body = 'is not the expected type {}'.format(type_)
 
-        message = 'Value \'{}\' {}'.format(value, body)
+        message = 'Value \'{}\' {}: {}'.format(value, type(value), body)
         return ValidationError(message, **kwargs)
 
 
@@ -184,7 +192,7 @@ class _SchemaBinder:
                 '{}. If you want to reuse the schema, use '
                 'subclassing'.format(self._schema_cls, self._schema_cls.model_cls))
 
-        # Set a reference to the Model in the Schema, and viceversa.
+        # Set a reference to the Model in the Schema, and vice versa.
         self._schema_cls.model_cls = model_cls
         model_cls.schema = self._schema_cls()
 
@@ -348,6 +356,8 @@ class BaseModel(SimpleNamespace):
 
     def as_dict(self):
         """Serialize the model into a Python dict of simple types."""
+        warnings.warn('The as_dict() method is deprecated, use to_dict().',
+                      DeprecationWarning, stacklevel=2)
         return self.to_dict()
 
 

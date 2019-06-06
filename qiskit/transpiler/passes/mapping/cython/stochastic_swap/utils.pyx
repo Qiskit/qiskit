@@ -3,18 +3,25 @@
 #cython: language_level = 3
 #distutils: language = c++
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 cimport cython
 import numpy as np
 from libc.stdlib cimport calloc, free
 from libcpp.vector cimport vector
 
-from qiskit.mapper.layout import Layout
-
+from qiskit.transpiler.layout import Layout
+from qiskit.circuit import Qubit
 
 cdef class EdgeCollection:
     """ A simple contain that contains a C++ vector
@@ -39,6 +46,7 @@ cdef class EdgeCollection:
             int: Size of the edge collection.
         """
         return self._edges.size()
+
     @cython.boundscheck(False)
     def edges(self):
         """ Returns the vector of edges as a NumPy arrau.
@@ -100,7 +108,7 @@ cdef class NLayout:
         """
         cdef size_t kk
         out = np.zeros(self.p2l_len, dtype=np.int32)
-        for kk in range(self.p2l_len):
+        for kk in range(<unsigned int>self.p2l_len):
             out[kk] = self.phys_to_logic[kk]
         return out
     
@@ -113,9 +121,9 @@ cdef class NLayout:
         """
         cdef NLayout out = NLayout(self.l2p_len, self.p2l_len)
         cdef size_t kk
-        for kk in range(self.l2p_len):
+        for kk in range(<unsigned int>self.l2p_len):
             out.logic_to_phys[kk] = self.logic_to_phys[kk]
-        for kk in range(self.p2l_len):
+        for kk in range(<unsigned int>self.p2l_len):
             out.phys_to_logic[kk] = self.phys_to_logic[kk]
         return out
             
@@ -140,8 +148,7 @@ cdef class NLayout:
         """ Converts numeric layout back to Qiskit Layout object.
 
         Args:
-            qregs (OrderedDict): An ordered dict of (QuantumRegister, int)
-                                 tuples.
+            qregs (OrderedDict): An ordered dict of Qubit instances.
         
         Returns:
             Layout: The corresponding Qiskit Layout object.
@@ -150,8 +157,8 @@ cdef class NLayout:
         cdef unsigned int main_idx = 0
         cdef size_t idx
         for qreg in qregs.values():
-            for idx in range(qreg.size):
-                out[(qreg, idx)] = self.logic_to_phys[main_idx]
+            for idx in range(<unsigned int>qreg.size):
+                out[qreg[idx]] = self.logic_to_phys[main_idx]
                 main_idx += 1
         return out
     
@@ -162,8 +169,7 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
 
     Args:
         layout (Layout): A Qiskit Layout instance.
-        qregs (OrderedDict): An ordered dict of (QuantumRegister, int)
-                                tuples.
+        qregs (OrderedDict): An ordered dict of Qubit instances.
         physical_qubits (int): Number of physical qubits.
     Returns:
         NLayout: The corresponding numerical layout.
@@ -181,8 +187,8 @@ cpdef NLayout nlayout_from_layout(object layout, object qregs,
     cdef object key, val
     cdef dict merged_dict = {**layout._p2v, **layout._v2p}
     for key, val in merged_dict.items():
-        if isinstance(key, tuple):
-            out.logic_to_phys[reg_idx[regint[key[0]]]+key[1]] = val
+        if isinstance(key, Qubit):
+            out.logic_to_phys[reg_idx[regint[key.register]]+key.index] = val
         else:
-            out.phys_to_logic[key] = reg_idx[regint[val[0]]]+val[1]
+            out.phys_to_logic[key] = reg_idx[regint[val.register]]+val.index
     return out

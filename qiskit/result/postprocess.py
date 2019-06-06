@@ -1,13 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Post-processing of raw result."""
 
 import numpy as np
+
+from qiskit.exceptions import QiskitError
 
 
 def _hex_to_bin(hexstring):
@@ -31,7 +40,7 @@ def _separate_bitstring(bitstring, creg_sizes):
     return ' '.join(substrings)
 
 
-def format_memory(memory, header):
+def format_counts_memory(shot_memory, header=None):
     """
     Format a single bitstring (memory) from a single shot experiment.
 
@@ -40,25 +49,107 @@ def format_memory(memory, header):
     - Spaces are inserted at register divisions.
 
     Args:
-        memory (str): result of a single experiment.
+        shot_memory (str): result of a single experiment.
         header (dict): the experiment header dictionary containing
-            useful information for postprocessing.
+            useful information for postprocessing. creg_sizes
+            are a nested list where the inner element is a list
+            of creg name, creg size pairs. memory_slots is an integers
+            specifying the number of total memory_slots in the experiment.
 
     Returns:
         dict: a formatted memory
     """
-    creg_sizes = header.get('creg_sizes')
-    memory_slots = header.get('memory_slots')
-    if memory.startswith('0x'):
-        memory = _hex_to_bin(memory)
-    if memory_slots:
-        memory = _pad_zeros(memory, memory_slots)
-    if creg_sizes:
-        memory = _separate_bitstring(memory, creg_sizes)
-    return memory
+    if shot_memory.startswith('0x'):
+        shot_memory = _hex_to_bin(shot_memory)
+    if header:
+        creg_sizes = header.get('creg_sizes', None)
+        memory_slots = header.get('memory_slots', None)
+        if memory_slots:
+            shot_memory = _pad_zeros(shot_memory, memory_slots)
+        if creg_sizes and memory_slots:
+            shot_memory = _separate_bitstring(shot_memory, creg_sizes)
+    return shot_memory
 
 
-def format_counts(counts, header):
+def _list_to_complex_array(complex_list):
+    """Convert nested list of shape (..., 2) to complex numpy array with shape (...)
+
+    Args:
+        complex_list (list): List to convert.
+
+    Returns:
+        np.ndarray: Complex numpy array
+
+    Raises:
+        QiskitError: If inner most array of input nested list is not of length 2.
+    """
+    arr = np.asarray(complex_list, dtype=np.complex_)
+    if not arr.shape[-1] == 2:
+        raise QiskitError('Inner most nested list is not of length 2.')
+
+    return arr[..., 0] + 1j*arr[..., 1]
+
+
+def format_level_0_memory(memory):
+    """ Format an experiment result memory object for measurement level 0.
+
+    Args:
+        memory (list): Memory from experiment with `meas_level==1`. `avg` or
+            `single` will be inferred from shape of result memory.
+
+    Returns:
+        np.ndarray: Measurement level 0 complex numpy array
+
+    Raises:
+        QiskitError: If the returned numpy array does not have 2 (avg) or 3 (single)
+            indices.
+    """
+    formatted_memory = _list_to_complex_array(memory)
+    # infer meas_return from shape of returned data.
+    if not 2 <= len(formatted_memory.shape) <= 3:
+        raise QiskitError('Level zero memory is not of correct shape.')
+    return formatted_memory
+
+
+def format_level_1_memory(memory):
+    """ Format an experiment result memory object for measurement level 1.
+
+    Args:
+        memory (list): Memory from experiment with `meas_level==1`. `avg` or
+            `single` will be inferred from shape of result memory.
+
+    Returns:
+        np.ndarray: Measurement level 1 complex numpy array
+
+    Raises:
+        QiskitError: If the returned numpy array does not have 1 (avg) or 2 (single)
+            indices.
+    """
+    formatted_memory = _list_to_complex_array(memory)
+    # infer meas_return from shape of returned data.
+    if not 1 <= len(formatted_memory.shape) <= 2:
+        raise QiskitError('Level one memory is not of correct shape.')
+    return formatted_memory
+
+
+def format_level_2_memory(memory, header=None):
+    """ Format an experiment result memory object for measurement level 2.
+
+    Args:
+        memory (list): Memory from experiment with `meas_level==2` and `memory==True`.
+        header (dict): the experiment header dictionary containing
+            useful information for postprocessing.
+
+    Returns:
+        list[str]: List of bitstrings
+    """
+    memory_list = []
+    for shot_memory in memory:
+        memory_list.append(format_counts_memory(shot_memory, header))
+    return memory_list
+
+
+def format_counts(counts, header=None):
     """Format a single experiment result coming from backend to present
     to the Qiskit user.
 
@@ -72,7 +163,7 @@ def format_counts(counts, header):
     """
     counts_dict = {}
     for key, val in counts.items():
-        key = format_memory(key, header)
+        key = format_counts_memory(key, header)
         counts_dict[key] = val
     return counts_dict
 

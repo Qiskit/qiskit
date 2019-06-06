@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Transpiler PropertySet testing"""
 
@@ -26,6 +33,16 @@ class TestPropertySet(QiskitTestCase):
         """ Setting and retrieving."""
         self.pset['property'] = 'value'
         self.assertEqual(self.pset['property'], 'value')
+
+    def test_str(self):
+        """ Test __str__ method. """
+        self.pset['property'] = 'value'
+        self.assertEqual(str(self.pset), "{'property': 'value'}")
+
+    def test_repr(self):
+        """ Test __repr__ method. """
+        self.pset['property'] = 'value'
+        self.assertEqual(str(repr(self.pset)), "{'property': 'value'}")
 
 
 if __name__ == '__main__':

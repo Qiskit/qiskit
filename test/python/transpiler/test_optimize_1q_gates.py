@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test the optimize-1q-gate pass"""
 
@@ -12,11 +19,13 @@ import sympy
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
-from qiskit.transpiler import PassManager, transpile
-from qiskit.transpiler.passes import Optimize1qGates
+from qiskit.transpiler import PassManager
+from qiskit.compiler import transpile
+from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeRueschlikon
+from qiskit.circuit import Parameter
 
 
 class TestOptimize1qGates(QiskitTestCase):
@@ -48,6 +57,7 @@ class TestOptimize1qGates(QiskitTestCase):
         expected.u2(0, np.pi, qr[0])
 
         passmanager = PassManager()
+        passmanager.append(Unroller(['u2']))
         passmanager.append(Optimize1qGates())
         result = transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
 
@@ -80,8 +90,8 @@ class TestOptimize1qGates(QiskitTestCase):
         num_u1_gates_remaining = len(simplified_dag.named_nodes('u1'))
         self.assertEqual(num_u1_gates_remaining, 0)
 
-    def test_optimize_1q_gates_symbolic(self):
-        """optimizes single qubit gate sequences with symbolic params.
+    def test_optimize_1q_gates_sympy_expressions(self):
+        """optimizes single qubit gate sequences with sympy expressions.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/172
         """
@@ -162,6 +172,56 @@ class TestOptimize1qGates(QiskitTestCase):
 
         pass_ = Optimize1qGates()
         after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_single_parameterized_circuit(self):
+        """Parameters should be treated as opaque gates."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        theta = Parameter('theta')
+
+        qc.u1(0.3, qr)
+        qc.u1(0.4, qr)
+        qc.u1(theta, qr)
+        qc.u1(0.1, qr)
+        qc.u1(0.2, qr)
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(qr)
+        expected.u1(0.7, qr)
+        expected.u1(theta, qr)
+        expected.u1(0.3, qr)
+
+        after = Optimize1qGates().run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_parameterized_circuits(self):
+        """Parameters should be treated as opaque gates."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        theta = Parameter('theta')
+
+        qc.u1(0.3, qr)
+        qc.u1(0.4, qr)
+        qc.u1(theta, qr)
+        qc.u1(0.1, qr)
+        qc.u1(0.2, qr)
+        qc.u1(theta, qr)
+        qc.u1(0.3, qr)
+        qc.u1(0.2, qr)
+
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(qr)
+        expected.u1(0.7, qr)
+        expected.u1(theta, qr)
+        expected.u1(0.3, qr)
+        expected.u1(theta, qr)
+        expected.u1(0.5, qr)
+
+        after = Optimize1qGates().run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
 

@@ -1,25 +1,30 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Module for the Qobj structure."""
 
-from qiskit.qobj.models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
-                                     QobjExperiment, QobjConfig, QobjHeader)
+from .models.base import (QobjInstruction, QobjExperimentHeader, QobjExperimentConfig,
+                          QobjExperiment, QobjConfig, QobjHeader)
 
-from qiskit.qobj.models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
-                                      PulseQobjExperiment, PulseQobjConfig,
-                                      QobjMeasurementOption, QobjPulseLibrary)
+from .models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
+                           PulseQobjExperiment, PulseQobjConfig,
+                           QobjMeasurementOption, PulseLibraryItem,
+                           PulseLibraryItemSchema, PulseQobjInstructionSchema)
 
-from qiskit.qobj.models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,
-                                     QasmQobjExperiment, QasmQobjConfig,
-                                     QobjConditional)
-
-from ._validation import validate_qobj_against_schema
-
-from .exceptions import QobjValidationError
+from .models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,
+                          QasmQobjExperiment, QasmQobjConfig)
 
 from .qobj import Qobj, QasmQobj, PulseQobj
+
+from .utils import validate_qobj_against_schema

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name,assignment-from-no-return
 
@@ -278,7 +285,7 @@ class Pauli:
 
         Returns:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
-            represnets the pauli.
+            represents the pauli.
         """
         mat = sparse.coo_matrix(1)
         for z, x in zip(self._z, self._x):
@@ -293,6 +300,25 @@ class Pauli:
                 mat = sparse.bmat([[None, -mat], [mat, None]], format='coo')
 
         return mat.tocsr()
+
+    def to_operator(self):
+        """Convert to Operator object."""
+        # Place import here to avoid cyclic import from circuit visualization
+        from qiskit.quantum_info.operators.operator import Operator
+        return Operator(self.to_matrix())
+
+    def to_instruction(self):
+        """Convert to Pauli circuit instruction."""
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate
+        gates = {'I': IdGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
+        label = self.to_label()
+        n_qubits = self.numberofqubits
+        qreg = QuantumRegister(n_qubits)
+        circuit = QuantumCircuit(qreg, name='Pauli:{}'.format(label))
+        for i, pauli in enumerate(reversed(label)):
+            circuit.append(gates[pauli], [qreg[i]])
+        return circuit.to_instruction()
 
     def update_z(self, z, indices=None):
         """
@@ -362,7 +388,7 @@ class Pauli:
             pauli_labels (list[str]): the to-be-inserted or appended pauli label
 
         Note:
-            the indices refers to the localion of original paulis,
+            the indices refers to the location of original paulis,
             e.g. if indices = [0, 2], pauli_labels = ['Z', 'I'] and original pauli = 'ZYXI'
             the pauli will be updated to ZY'I'XI'Z'
             'Z' and 'I' are inserted before the qubit at 0 and 2.
@@ -446,7 +472,7 @@ class Pauli:
 
         Args:
             num_qubits (int): the length of pauli
-            index (int): the qubit index to insert the single qubii
+            index (int): the qubit index to insert the single qubit
             pauli_label (str): pauli
 
         Returns:
@@ -462,7 +488,7 @@ class Pauli:
         return cls(z, x)
 
     def kron(self, other):
-        r"""Kron product of two paulis.
+        r"""Kronecker product of two paulis.
 
         Order is $P_2 (other) \otimes P_1 (self)$
 

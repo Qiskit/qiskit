@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Tests for the wrapper functionality."""
 
@@ -12,8 +19,8 @@ import unittest
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
-from qiskit.tools.visualization._matplotlib import HAS_MATPLOTLIB
-from qiskit.test import (Path, QiskitTestCase, requires_qe_access, slow_test)
+from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.test import (Path, QiskitTestCase, online_test, slow_test)
 
 
 # Timeout (in seconds) for a single notebook.
@@ -57,7 +64,7 @@ class TestJupyter(QiskitTestCase):
             'notebooks/test_pbar_status.ipynb'))
 
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @requires_qe_access
+    @online_test
     @slow_test
     def test_backend_tools(self, qe_token, qe_url):
         """Test Jupyter backend tools."""

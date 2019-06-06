@@ -1,0 +1,2 @@
+[build-system]
+requires = ["Cython>=0.27.1", "setuptools", "wheel"]

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 
 """Test Qiskit's QuantumCircuit class."""
@@ -31,7 +38,7 @@ class TestCircuitOperations(QiskitTestCase):
         new_circuit = qc1 + qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
+        result = execute(new_circuit, backend=backend, shots=shots, seed_simulator=78).result()
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
@@ -49,7 +56,8 @@ class TestCircuitOperations(QiskitTestCase):
         new_circuit = qc1 + qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(new_circuit, backend=backend, shots=shots, seed=78).result()
+        result = execute(new_circuit, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'11': shots}
         self.assertEqual(counts, target)
@@ -83,7 +91,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc1 += qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed=78).result()
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'00': shots / 2, '01': shots / 2}
         threshold = 0.04 * shots
@@ -101,7 +110,8 @@ class TestCircuitOperations(QiskitTestCase):
         qc1 += qc2
         backend = BasicAer.get_backend('qasm_simulator')
         shots = 1024
-        result = execute(qc1, backend=backend, shots=shots, seed=78).result()
+        result = execute(qc1, backend=backend, shots=shots,
+                         seed_simulator=78).result()
         counts = result.get_counts()
         target = {'11': shots}
         self.assertEqual(counts, target)
@@ -147,3 +157,11 @@ class TestCircuitOperations(QiskitTestCase):
         qc.measure(qr[1], cr[1])
 
         self.assertEqual(qc, qc.copy())
+
+
+class TestCircuitBuilding(QiskitTestCase):
+    """QuantumCircuit tests."""
+
+    def test_append_dimension_mismatch(self):
+        """Test appending to incompatible wires.
+        """

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Message broker for the Publisher / Subscriber mechanism
@@ -138,7 +145,7 @@ class Subscriber:
     def subscribe(self, event, callback):
         """ Subscribes to an event, associating a callback function to that event, so
         when the event occurs, the callback will be called.
-        This is a blocking call, so try to keep callbacks as lighweight as possible. """
+        This is a blocking call, so try to keep callbacks as lightweight as possible. """
         return self._broker.subscribe(event, callback)
 
     def unsubscribe(self, event, callback):

@@ -1,7 +1,14 @@
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 notifications:
   email: false
@@ -28,8 +35,8 @@ stage_generic: &stage_generic
     # Install step for jobs that require compilation and qa.
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt -c constraints.txt
-    - pip install qiskit-aer
-    - pip install qiskit-ibmq-provider -c constraints.txt
+    - pip install -e .
+    - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
     # Compile the executables and run the tests.
     - python setup.py build_ext --inplace
@@ -83,15 +90,46 @@ stages:
 # using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
+    # Wheel builds
+    - sudo: required
+      services:
+        - docker
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython"
+        - CIBW_SKIP="cp27-* cp34-*"
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
+      if: tag IS present
+      script:
+        - sudo pip install cibuildwheel==0.10.2
+        - sudo pip install -U twine
+        - cibuildwheel --output-dir wheelhouse
+        - twine upload wheelhouse/*
+    - os: osx
+      language: generic
+      if: tag IS present
+      env:
+        - CIBW_BEFORE_BUILD="pip install -U Cython"
+        - CIBW_SKIP="cp27-* cp34-*"
+        - TWINE_USERNAME=qiskit
+        - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
+      script:
+        - sudo pip2 install cibuildwheel==0.10.2
+        - sudo pip2 install -U twine
+        - cibuildwheel --output-dir wheelhouse
+        - twine upload wheelhouse/*
+
     # "lint and and pure python test" stage
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
+      name: Python Style and Linter
       <<: *stage_linux
       script: make style && make lint
 
     # Run the tests against without compilation (GNU/Linux, Python 3.5)
     - stage: lint and pure python test
+      name: Python 3.5 Tests Linux
       <<: *stage_linux
 
     # "test" stage
@@ -99,11 +137,13 @@ jobs:
 
     # GNU/Linux, Python 3.6
     - stage: test
+      name: Python 3.6 Tests Linux
       <<: *stage_linux
       python: 3.6
 
     # GNU/Linux, Python 3.7
     - stage: test
+      name: Python 3.7 Tests Linux
       <<: *stage_linux
       # Compiling Python 3.7 requires an Ubuntu Xenial distribution
       # and sudo set to true
@@ -116,12 +156,14 @@ jobs:
     # OSX, Python 3.5.6 (via pyenv)
     - stage: test
       <<: *stage_osx
+      name: Python 3.5 Tests OSX
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.5.6
 
     # OSX, Python 3.6.5 (via pyenv)
     - stage: test
+      name: Python 3.6 Tests OSX
       <<: *stage_osx
       env:
         - MPLBACKEND=ps
@@ -129,6 +171,7 @@ jobs:
 
     # OSX, Python 3.7.2 (via pyenv)
     - stage: test
+      name: Python 3.7 Tests OSX
       <<: *stage_osx
       env:
         - MPLBACKEND=ps

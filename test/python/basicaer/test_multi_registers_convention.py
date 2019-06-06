@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test executing multiple-register circuits on BasicAer."""
 
@@ -34,17 +41,17 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         backend_sim = BasicAer.get_backend('qasm_simulator')
 
-        result = execute(qc, backend_sim, seed_mapper=34342).result()
+        result = execute(qc, backend_sim, seed_transpiler=34342).result()
         counts = result.get_counts(qc)
 
         target = {'01 10': 1024}
 
         backend_sim = BasicAer.get_backend('statevector_simulator')
-        result = execute(circ, backend_sim, seed_mapper=3438).result()
+        result = execute(circ, backend_sim, seed_transpiler=3438).result()
         state = result.get_statevector(circ)
 
         backend_sim = BasicAer.get_backend('unitary_simulator')
-        result = execute(circ, backend_sim, seed_mapper=3438).result()
+        result = execute(circ, backend_sim, seed_transpiler=3438).result()
         unitary = result.get_unitary(circ)
 
         self.assertEqual(counts, target)
