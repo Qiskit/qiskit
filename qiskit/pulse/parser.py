@@ -69,7 +69,7 @@ class PulseExpression(ast.NodeTransformer):
         """Create new evaluator.
 
         Args:
-            source (str): String expression of equation to evaluate.
+            source (str or ast.Expression): Expression of equation to evaluate.
             partial_binding (bool): Allow partial bind of parameters.
 
         Raises:
@@ -78,13 +78,16 @@ class PulseExpression(ast.NodeTransformer):
         self._partial_binding = partial_binding
         self._locals_dict = {}
         self._params = set()
-        self._tree = None
 
-        try:
-            self._tree = ast.parse(source, mode='eval')
-        except SyntaxError:
-            raise PulseError('%s is invalid expression.' % source)
+        if isinstance(source, ast.Expression):
+            self._tree = source
+        else:
+            try:
+                self._tree = ast.parse(source, mode='eval')
+            except SyntaxError:
+                raise PulseError('%s is invalid expression.' % source)
 
+        # parse parameters
         self.visit(self._tree)
 
     @property
@@ -108,15 +111,15 @@ class PulseExpression(ast.NodeTransformer):
         if isinstance(self._tree.body, ast.Num):
             return self._tree.body.n
 
-        locals_dict_temp = {}
+        self._locals_dict.clear()
         if args:
             for key, val in zip(self.params, args):
-                locals_dict_temp[key] = val
+                self._locals_dict[key] = val
         if kwargs:
             for key, val in kwargs.items():
                 if key in self.params:
-                    if key not in locals_dict_temp.keys():
-                        locals_dict_temp[key] = val
+                    if key not in self._locals_dict.keys():
+                        self._locals_dict[key] = val
                     else:
                         raise PulseError("%s got multiple values for argument '%s'"
                                          % (self.__class__.__name__, key))
@@ -124,15 +127,11 @@ class PulseExpression(ast.NodeTransformer):
                     raise PulseError("%s got an unexpected keyword argument '%s'"
                                      % (self.__class__.__name__, key))
 
-        partial = copy.deepcopy(self)
-        partial._locals_dict.update(locals_dict_temp)
-        partial._params = set()
-
-        expr = partial.visit(partial._tree)
+        expr = self.visit(self._tree)
 
         if not isinstance(expr.body, ast.Num):
             if self._partial_binding:
-                return partial
+                return PulseExpression(expr, self._partial_binding)
             else:
                 raise PulseError('Parameters %s are not all bound.' % self.params)
         return expr.body.n
@@ -166,8 +165,10 @@ class PulseExpression(ast.NodeTransformer):
         Returns:
             ast.Expression: Evaluated value.
         """
-        node.body = self.visit(node.body)
-        return node
+        tmp_node = copy.deepcopy(node)
+        tmp_node.body = self.visit(tmp_node.body)
+
+        return tmp_node
 
     def visit_Num(self, node):
         """Return number as it is.
