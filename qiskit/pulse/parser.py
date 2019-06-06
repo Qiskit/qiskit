@@ -22,7 +22,7 @@ import operator
 
 import cmath
 
-from qiskit.exceptions import QiskitError
+from qiskit.pulse.exceptions import PulseError
 
 
 class PulseExpression(ast.NodeTransformer):
@@ -73,7 +73,7 @@ class PulseExpression(ast.NodeTransformer):
             partial_binding (bool): Allow partial bind of parameters.
 
         Raises:
-            QiskitError: When invalid string is specified.
+            PulseError: When invalid string is specified.
         """
         self._partial_binding = partial_binding
         self._locals_dict = {}
@@ -83,7 +83,7 @@ class PulseExpression(ast.NodeTransformer):
         try:
             self._tree = ast.parse(source, mode='eval')
         except SyntaxError:
-            raise QiskitError('%s is invalid expression.' % source)
+            raise PulseError('%s is invalid expression.' % source)
 
         self.visit(self._tree)
 
@@ -103,7 +103,7 @@ class PulseExpression(ast.NodeTransformer):
             float or complex or ast: Evaluated value.
 
         Raises:
-            QiskitError: When parameters are not bound.
+            PulseError: When parameters are not bound.
         """
         if isinstance(self._tree.body, ast.Num):
             return self._tree.body.n
@@ -118,11 +118,11 @@ class PulseExpression(ast.NodeTransformer):
                     if key not in locals_dict_temp.keys():
                         locals_dict_temp[key] = val
                     else:
-                        raise QiskitError("%s got multiple values for argument '%s'"
-                                          % (self.__class__.__name__, key))
+                        raise PulseError("%s got multiple values for argument '%s'"
+                                         % (self.__class__.__name__, key))
                 else:
-                    raise QiskitError("%s got an unexpected keyword argument '%s'"
-                                      % (self.__class__.__name__, key))
+                    raise PulseError("%s got an unexpected keyword argument '%s'"
+                                     % (self.__class__.__name__, key))
 
         partial = copy.deepcopy(self)
         partial._locals_dict.update(locals_dict_temp)
@@ -134,7 +134,7 @@ class PulseExpression(ast.NodeTransformer):
             if self._partial_binding:
                 return partial
             else:
-                raise QiskitError('Parameters %s are not all bound.' % self.params)
+                raise PulseError('Parameters %s are not all bound.' % self.params)
         return expr.body.n
 
     @staticmethod
@@ -150,12 +150,12 @@ class PulseExpression(ast.NodeTransformer):
             float or complex: Evaluated value.
 
         Raises:
-            QiskitError: When unsupported operation is specified.
+            PulseError: When unsupported operation is specified.
         """
         for op_type, op_func in opr_dict.items():
             if isinstance(opr, op_type):
                 return op_func(*args)
-        raise QiskitError('Operator %s is not supported.' % opr.__class__.__name__)
+        raise PulseError('Operator %s is not supported.' % opr.__class__.__name__)
 
     def visit_Expression(self, node):
         """Evaluate children nodes of expression.
@@ -190,7 +190,7 @@ class PulseExpression(ast.NodeTransformer):
             ast.Name or ast.Num: Evaluated value.
 
         Raises:
-            QiskitError: When parameter value is not a number.
+            PulseError: When parameter value is not a number.
         """
         if node.id in self._math_ops.keys():
             val = ast.Num(n=self._math_ops[node.id])
@@ -202,8 +202,8 @@ class PulseExpression(ast.NodeTransformer):
                 if not _val.imag:
                     _val = _val.real
             except ValueError:
-                raise QiskitError('Invalid parameter value %s = %s is specified.'
-                                  % (node.id, self._locals_dict[node.id]))
+                raise PulseError('Invalid parameter value %s = %s is specified.'
+                                 % (node.id, self._locals_dict[node.id]))
             val = ast.Num(n=_val)
             return ast.copy_location(val, node)
         self._params.add(node.id)
@@ -252,14 +252,14 @@ class PulseExpression(ast.NodeTransformer):
             ast.Call or ast.Num: Evaluated value.
 
         Raises:
-            QiskitError: When unsupported or unsafe function is specified.
+            PulseError: When unsupported or unsafe function is specified.
         """
         if not isinstance(node.func, ast.Name):
-            raise QiskitError('Unsafe expression is detected.')
+            raise PulseError('Unsafe expression is detected.')
         node.args = [self.visit(arg) for arg in node.args]
         if all(isinstance(arg, ast.Num) for arg in node.args):
             if node.func.id not in self._math_ops.keys():
-                raise QiskitError('Function %s is not supported.' % node.func.id)
+                raise PulseError('Function %s is not supported.' % node.func.id)
             _args = [arg.n for arg in node.args]
             _val = self._math_ops[node.func.id](*_args)
             if not _val.imag:
@@ -269,7 +269,7 @@ class PulseExpression(ast.NodeTransformer):
         return node
 
     def generic_visit(self, node):
-        raise QiskitError('Unsupported node: %s' % node.__class__.__name__)
+        raise PulseError('Unsupported node: %s' % node.__class__.__name__)
 
 
 def parse_string_expr(source, partial_binding=False):

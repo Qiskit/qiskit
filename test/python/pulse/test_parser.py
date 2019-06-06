@@ -16,7 +16,7 @@
 
 from qiskit.test import QiskitTestCase
 from qiskit.pulse.parser import parse_string_expr
-from qiskit import QiskitError
+from qiskit.pulse.exceptions import PulseError
 
 
 class TestInstructionToQobjConverter(QiskitTestCase):
@@ -98,7 +98,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing invalid expressions."""
 
         expr = '2***2'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -106,7 +106,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing invalid expressions."""
 
         expr = 'avdfd*3'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -114,7 +114,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing invalid expressions."""
 
         expr = 'Cos(1+2)'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -122,7 +122,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing invalid expressions."""
 
         expr = 'hello_world'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -130,7 +130,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing invalid expressions."""
 
         expr = '1.1.1.1'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -138,7 +138,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing invalid expressions."""
 
         expr = 'abc.1'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -146,7 +146,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing malicious expressions."""
 
         expr = '__import__("sys").stdout.write("unsafe input.")'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -154,7 +154,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing malicious expressions."""
 
         expr = 'INSERT INTO students VALUES (?,?)'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -162,7 +162,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing malicious expressions."""
 
         expr = 'import math'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -170,7 +170,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing malicious expressions."""
 
         expr = 'complex'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -178,7 +178,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing malicious expressions."""
 
         expr = 'print(1.0)'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -186,7 +186,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Parsing malicious expressions."""
 
         expr = 'eval("()._" + "_class_" + "_._" +  "_bases_" + "_[0]")'
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr, _ = parse_string_expr(expr)
             parsed_expr()
 
@@ -220,7 +220,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         expr = 'P1+P2'
         parsed_expr, _ = parse_string_expr(expr, partial_binding=True)
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr(1, P1=1)
 
         self.assertEqual(parsed_expr(1, P2=2), 3.0)
@@ -230,5 +230,5 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         expr = 'P1+P2'
         parsed_expr, _ = parse_string_expr(expr, partial_binding=True)
 
-        with self.assertRaises(QiskitError):
+        with self.assertRaises(PulseError):
             parsed_expr(1, 2, P3=3)
