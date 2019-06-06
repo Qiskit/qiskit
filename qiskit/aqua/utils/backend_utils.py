@@ -133,6 +133,37 @@ def is_local_backend(backend):
     return backend.configuration().local
 
 
+def is_aer_qasm(backend):
+    """
+    Return True if backend is Aer Qasm simulator
+    Args:
+        backend (BaseBackend): backend instance
+
+    Returns:
+        bool: True is Aer Qasm simulator
+    """
+    ret = False
+    if is_aer_provider(backend):
+        if not is_statevector_backend(backend):
+            ret = True
+    return ret
+
+
+def support_backend_options(backend):
+    """
+    Return True if backend supports backend_options
+    Args:
+        backend (BaseBackend): backend instance
+
+    Returns:
+        bool: True is support backend_options
+    """
+    ret = False
+    if is_basicaer_provider(backend) or is_aer_provider(backend):
+        ret = True
+    return ret
+
+
 def get_aer_backend(backend_name):
     providers = ['qiskit.Aer', 'qiskit.BasicAer']
     for provider in providers:

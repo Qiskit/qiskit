@@ -18,16 +18,18 @@ import time
 
 from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
-from qiskit.transpiler import Layout
+from qiskit.transpiler import Layout, CouplingMap
 
+from .aqua_error import AquaError
 from .utils import (run_qobj, compile_circuits, CircuitCache,
                     get_measured_qubits_from_qobj,
                     build_measurement_error_mitigation_qobj)
-from .utils.backend_utils import (is_aer_provider,
-                                  is_ibmq_provider,
+from .utils.backend_utils import (is_ibmq_provider,
                                   is_statevector_backend,
                                   is_simulator_backend,
-                                  is_local_backend)
+                                  is_local_backend,
+                                  is_aer_qasm,
+                                  support_backend_options)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,7 @@ class QuantumInstance:
     """Quantum Backend including execution setting."""
 
     BACKEND_CONFIG = ['basis_gates', 'coupling_map']
-    COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_transpiler']
+    COMPILE_CONFIG = ['pass_manager', 'initial_layout', 'seed_transpiler', 'optimization_level']
     RUN_CONFIG = ['shots', 'max_credits', 'memory', 'seed_simulator']
     QJOB_CONFIG = ['timeout', 'wait']
     NOISE_CONFIG = ['noise_model']
@@ -47,14 +49,23 @@ class QuantumInstance:
                        "max_parallel_experiments", "statevector_parallel_threshold",
                        "statevector_hpc_gate_opt"] + BACKEND_OPTIONS_QASM_ONLY
 
-    def __init__(self, backend, shots=1024, seed_simulator=None, max_credits=10,
+    def __init__(self, backend,
+                 # run config
+                 shots=1024, seed_simulator=None, max_credits=10,
+                 # backend properties
                  basis_gates=None, coupling_map=None,
-                 initial_layout=None, pass_manager=None, seed_transpiler=None,
-                 backend_options=None, noise_model=None, timeout=None, wait=5,
+                 # transpile
+                 initial_layout=None, pass_manager=None, seed_transpiler=None, optimization_level=None,
+                 # simulation
+                 backend_options=None, noise_model=None,
+                 # job
+                 timeout=None, wait=5,
+                 # others
                  circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True,
-                 skip_qobj_validation=True, measurement_error_mitigation_cls=None,
-                 cals_matrix_refresh_period=30,
-                 measurement_error_mitigation_shots=None, job_callback=None):
+                 skip_qobj_validation=True,
+                 measurement_error_mitigation_cls=None, cals_matrix_refresh_period=30,
+                 measurement_error_mitigation_shots=None,
+                 job_callback=None):
         """Constructor.
 
         Args:
@@ -64,15 +75,17 @@ class QuantumInstance:
             max_credits (int, optional): maximum credits to use
             basis_gates (list[str], optional): list of basis gate names supported by the
                                                target. Default: ['u1','u2','u3','cx','id']
-            coupling_map (list[list]): coupling map (perhaps custom) to target in mapping
-            initial_layout (dict, optional): initial layout of qubits in mapping
+            coupling_map (CouplingMap or list[list]): coupling map (perhaps custom) to target in mapping
+            initial_layout (Layout or dict or list, optional): initial layout of qubits in mapping
             pass_manager (PassManager, optional): pass manager to handle how to compile the circuits
             seed_transpiler (int, optional): the random seed for circuit mapper
+            optimization_level (int, optional): How much optimization to perform on the circuits. Higher levels generate more optimized circuits,
+                                                at the expense of longer transpilation time.
             backend_options (dict, optional): all running options for backend, please refer to the provider.
             noise_model (qiskit.provider.aer.noise.noise_model.NoiseModel, optional): noise model for simulator
             timeout (float, optional): seconds to wait for job. If None, wait indefinitely.
             wait (float, optional): seconds between queries to result
-            circuit_caching (bool, optional): USe CircuitCache when calling compile_and_run_circuits
+            circuit_caching (bool, optional): Use CircuitCache when calling compile_and_run_circuits
             cache_file(str, optional): filename into which to store the cache as a pickle file
             skip_qobj_deepcopy (bool, optional): Reuses the same Qobj object over and over to avoid deepcopying
             skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
@@ -85,43 +98,39 @@ class QuantumInstance:
             job_callback (Callable, optional): callback used in querying info of the submitted job, and
                                                providing the following arguments: job_id, job_status,
                                                queue_position, job
+
+        Raises:
+            AquaError: the shots exceeds the maximum number of shots
+            AquaError: set noise model but the backend does not support that
+            AquaError: set backend_options but the backend does not support that
         """
         self._backend = backend
+
         # setup run config
+        if shots is not None:
+            if self.is_statevector and shots != 1:
+                logger.info("statevector backend only works with shot=1, change "
+                            "shots from {} to 1.".format(shots))
+                shots = 1
+            max_shots = self._backend.configuration().max_shots
+            if max_shots is not None and shots > max_shots:
+                raise AquaError('the maximum shots supported by the selected backend is {} but you specifiy {}'.format(max_shots, shots))
+
         run_config = RunConfig(shots=shots, max_credits=max_credits)
         if seed_simulator:
             run_config.seed_simulator = seed_simulator
-
-        if getattr(run_config, 'shots', None) is not None:
-            if self.is_statevector and run_config.shots != 1:
-                logger.info("statevector backend only works with shot=1, change "
-                            "shots from {} to 1.".format(run_config.shots))
-                run_config.shots = 1
 
         self._run_config = run_config
 
         # setup backend config
         basis_gates = basis_gates or backend.configuration().basis_gates
-        coupling_map = coupling_map or getattr(backend.configuration(),
-                                               'coupling_map', None)
+        coupling_map = coupling_map or getattr(backend.configuration(), 'coupling_map', None)
+        if coupling_map is not None and not isinstance(coupling_map, CouplingMap):
+            coupling_map = CouplingMap(coupling_map)
         self._backend_config = {
             'basis_gates': basis_gates,
             'coupling_map': coupling_map
         }
-
-        # setup noise config
-        noise_config = None
-        if noise_model is not None:
-            if is_aer_provider(self._backend):
-                if not self.is_statevector:
-                    noise_config = noise_model
-                else:
-                    logger.info("The noise model can be only used with Aer qasm simulator. "
-                                "Change it to None.")
-            else:
-                logger.info("The noise model can be only used with Qiskit Aer. "
-                            "Please install it.")
-        self._noise_config = {} if noise_config is None else {'noise_model': noise_config}
 
         # setup compile config
         if initial_layout is not None and not isinstance(initial_layout, Layout):
@@ -129,33 +138,41 @@ class QuantumInstance:
         self._compile_config = {
             'pass_manager': pass_manager,
             'initial_layout': initial_layout,
-            'seed_transpiler': seed_transpiler
+            'seed_transpiler': seed_transpiler,
+            'optimization_level': optimization_level
         }
 
         # setup job config
         self._qjob_config = {'timeout': timeout} if self.is_local \
             else {'timeout': timeout, 'wait': wait}
 
+        # setup noise config
+        self._noise_config = {}
+        if noise_model is not None:
+            if is_aer_qasm(self._backend):
+                self._noise_config = {'noise_model': noise_model}
+            else:
+                raise AquaError("The noise model is not supported on the selected backend {} ({}) only certain "
+                                "backends, such as Aer qasm support noise.".format(self.backend_name,
+                                                                                   self._backend.provider()))
+
         # setup backend options for run
         self._backend_options = {}
-        if is_ibmq_provider(self._backend):
-            logger.info("backend_options can not used with the backends in IBMQ provider.")
-        else:
-            self._backend_options = {} if backend_options is None \
-                else {'backend_options': backend_options}
+        if backend_options is not None:
+            if support_backend_options(self._backend):
+                self._backend_options = {'backend_options': backend_options}
+            else:
+                raise AquaError("backend_options can not used with the backends in IBMQ provider.")
 
-        self._circuit_summary = False
-        self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
-                                           cache_file=cache_file) if circuit_caching else None
-        self._skip_qobj_validation = skip_qobj_validation
-
+        # setup measurement error mitigation
         self._measurement_error_mitigation_cls = None
         if self.is_statevector:
             if measurement_error_mitigation_cls is not None:
-                logger.info("Measurement error mitigation does not work with statevector simulation, disable it.")
+                raise AquaError("Measurement error mitigation does not work with the statevector simulation.")
         else:
             self._measurement_error_mitigation_cls = measurement_error_mitigation_cls
         self._measurement_error_mitigation_fitters = {}
+        # TODO: support different fitting method in error mitigation?
         self._measurement_error_mitigation_method = 'least_squares'
         self._cals_matrix_refresh_period = cals_matrix_refresh_period
         self._measurement_error_mitigation_shots = measurement_error_mitigation_shots
@@ -168,6 +185,15 @@ class QuantumInstance:
                         "Furthermore, Aqua will re-use the calibration matrix for {} minutes "
                         "and re-build it after that.".format(self._cals_matrix_refresh_period))
 
+        # setup others
+        self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
+                                           cache_file=cache_file) if circuit_caching else None
+        if is_ibmq_provider(self._backend):
+            if skip_qobj_validation:
+                logger.warning("The skip Qobj validation does not work for IBMQ provider. Disable it.")
+                skip_qobj_validation = False
+        self._skip_qobj_validation = skip_qobj_validation
+        self._circuit_summary = False
         self._job_callback = job_callback
         logger.info(self)
 
@@ -283,18 +309,25 @@ class QuantumInstance:
             elif k in QuantumInstance.BACKEND_CONFIG:
                 self._backend_config[k] = v
             elif k in QuantumInstance.BACKEND_OPTIONS:
-                if is_ibmq_provider(self._backend):
-                    logger.info("backend_options can not used with the backends in IBMQ provider.")
+                if not support_backend_options(self._backend):
+                    raise AquaError("backend_options can not be used with this backends "
+                                    "{} ({}).".format(self.backend_name, self._backend.provider()))
                 else:
                     if k in QuantumInstance.BACKEND_OPTIONS_QASM_ONLY and self.is_statevector:
-                        logger.info("'{}' is only applicable for qasm simulator but "
-                                    "statevector simulator is used. Skip the setting.")
+                        raise AquaError("'{}' is only applicable for qasm simulator but "
+                                        "statevector simulator is used as the backend.")
                     else:
                         if 'backend_options' not in self._backend_options:
                             self._backend_options['backend_options'] = {}
                         self._backend_options['backend_options'][k] = v
             elif k in QuantumInstance.NOISE_CONFIG:
-                self._noise_config[k] = v
+                if not is_aer_qasm(self._backend):
+                    raise AquaError("The noise model is not supported on the selected backend {} ({}) only certain "
+                                    "backends, such as Aer qasm support noise.".format(self.backend_name,
+                                                                                       self._backend.provider()))
+                else:
+                    self._noise_config[k] = v
+
             else:
                 raise ValueError("unknown setting for the key ({}).".format(k))
 
