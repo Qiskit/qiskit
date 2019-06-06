@@ -37,9 +37,7 @@ class SwapRZ(VariationalForm):
                 'entanglement': {
                     'type': 'string',
                     'default': 'full',
-                    'oneOf': [
-                        {'enum': ['full', 'linear']}
-                    ]
+                    'enum': ['full', 'linear']
                 },
                 'entangler_map': {
                     'type': ['array', 'null'],
