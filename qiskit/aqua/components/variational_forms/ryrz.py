@@ -36,9 +36,7 @@ class RYRZ(VariationalForm):
                 'entanglement': {
                     'type': 'string',
                     'default': 'full',
-                    'oneOf': [
-                        {'enum': ['full', 'linear']}
-                    ]
+                    'enum': ['full', 'linear']
                 },
                 'entangler_map': {
                     'type': ['array', 'null'],
@@ -47,9 +45,7 @@ class RYRZ(VariationalForm):
                 'entanglement_gate': {
                     'type': 'string',
                     'default': 'cz',
-                    'oneOf': [
-                        {'enum': ['cz', 'cx']}
-                    ]
+                    'enum': ['cz', 'cx']
                 },
                 'skip_unentangled_qubits': {
                     'type': 'boolean',
