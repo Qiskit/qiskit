@@ -36,6 +36,9 @@ Added
 - The attribute ``PassManager.log_passes`` was added to log and time the passes when they are
   executed. The results is stored in the attribute ``pass_log`` of the property set as a
   dictionary.
+- Adding ``0`` or ``None`` to an ``Operator`` instance now returns the instance
+  unchanged. This allows the use of Python's ``sum`` function on ``Operator``
+  lists without specifying an initial value. (#2582)
 
 Changed
 -------
