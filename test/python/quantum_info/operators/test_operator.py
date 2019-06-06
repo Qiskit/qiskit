@@ -531,6 +531,10 @@ class TestOperator(OperatorTestCase):
         op2 = Operator(mat2)
         self.assertEqual(op1.add(op2), Operator(mat1 + mat2))
         self.assertEqual(op1 + op2, Operator(mat1 + mat2))
+        self.assertEqual(op1 + 0, op1)
+        self.assertEqual(0 + op1, op1)
+        self.assertEqual(op1 + None, op1)
+        self.assertEqual(None + op1, op1)
 
     def test_add_except(self):
         """Test add method raises exceptions."""

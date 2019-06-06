@@ -391,6 +391,9 @@ class BaseOperator(ABC):
     def __add__(self, other):
         return self.add(other)
 
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __sub__(self, other):
         return self.subtract(other)
 

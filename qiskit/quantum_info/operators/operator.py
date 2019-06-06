@@ -219,15 +219,18 @@ class Operator(BaseOperator):
         """Return the operator self + other.
 
         Args:
-            other (Operator): an operator object.
+            other (Operator, 0 or None): an operator object, 0 or None.
 
         Returns:
-            Operator: the operator self + other.
+            Operator: the operator self + other. If other == 0 or other is
+            None, returns self.
 
         Raises:
-            QiskitError: if other is not an operator, or has incompatible
-            dimensions.
+            QiskitError: if other is not an operator (except 0 or None), or has
+            incompatible dimensions.
         """
+        if other == 0 or other is None:
+            return self
         if not isinstance(other, Operator):
             other = Operator(other)
         if self.dim != other.dim:
