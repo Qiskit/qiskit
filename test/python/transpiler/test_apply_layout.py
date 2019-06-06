@@ -11,7 +11,7 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.converters import circuit_to_dag
-from qiskit.mapper import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes import ApplyLayout
 
@@ -24,21 +24,21 @@ class TestApplyLayout(QiskitTestCase):
         the circuit with physical qubits.
 
         [Circuit with virtual qubits]
-          v0:--X---.---M(v1->c1)
+          v0:--X---.---M(v0->c0)
                |   |
-          v1:--X---|---M(v0->c0)
+          v1:--X---|---M(v1->c1)
                    |
           v2:-----(+)--M(v2->c2)
 
-         Initial layout: [('vq', 0), ('vq', 1), ('vq', 2)]
+         Initial layout: [('v', 0), ('v', 1), ('v', 2)]
          CouplingMap map: [1]--[0]--[2]
 
         [Circuit with physical qubits]
-          q0:--X---.---M(q0->c1)
+          q2:--X---.---M(q2->c0)
                |   |
-          q1:--X---|---M(q1->c0)
+          q1:--X---|---M(q1->c1)
                    |
-          q2:-----(+)--M(q2->c2)
+          q0:-----(+)--M(q0->c2)
         """
         coupling = CouplingMap([[0, 1], [0, 2]])
 
@@ -46,18 +46,20 @@ class TestApplyLayout(QiskitTestCase):
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(v, cr)
         circuit.swap(v[0], v[1])
-        circuit.cx(v[1], v[2])
+        circuit.cx(v[0], v[2])
+        circuit.measure(v[0], cr[0])
         circuit.measure(v[1], cr[1])
         circuit.measure(v[2], cr[2])
 
-        initial_layout = Layout([v[i] for i in range(3)])
+        initial_layout = Layout({v[0]: 2, v[1]: 1, v[2]: 0})
 
         q = QuantumRegister(3, 'q')
         expected = QuantumCircuit(q, cr)
-        expected.swap(q[0], q[1])
-        expected.cx(q[0], q[2])
-        expected.measure(q[0], cr[1])
-        expected.measure(q[2], cr[2])
+        expected.swap(q[2], q[1])
+        expected.cx(q[2], q[0])
+        expected.measure(q[2], cr[0])
+        expected.measure(q[1], cr[1])
+        expected.measure(q[0], cr[2])
 
         dag = circuit_to_dag(circuit)
         pass_ = ApplyLayout(coupling=coupling, initial_layout=initial_layout)

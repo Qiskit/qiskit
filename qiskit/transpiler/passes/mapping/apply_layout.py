@@ -10,7 +10,7 @@ A pass for transforming a circuit with virtual qubits into a circuit with physic
 """
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import Layout, CouplingMap
+from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import TransformationPass
 
 
@@ -49,11 +49,9 @@ class ApplyLayout(TransformationPass):
         new_dag.add_qreg(q)
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
-        for node in dag.nodes_in_topological_order():
+        for node in dag.topological_op_nodes():
             if node.type == 'op':
-                qargs = [q[layout[qarg]] for qarg in node.op.qargs]
-                if node.op.name == "swap":
-                    layout.swap(*node.op.qargs)     # must do before apply_operation_back
+                qargs = [q[layout[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs, node.condition)
 
         return new_dag
