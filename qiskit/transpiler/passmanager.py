@@ -13,6 +13,7 @@
 
 """PassManager class for the transpiler."""
 
+import copy
 from functools import partial
 from collections import OrderedDict
 from time import time
@@ -30,7 +31,8 @@ class PassManager():
     """A PassManager schedules the passes"""
 
     def __init__(self, passes=None,
-                 max_iteration=None):
+                 max_iteration=None,
+                 callback=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
@@ -39,7 +41,11 @@ class PassManager():
                 None.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
+            callback (func): A callback function that will be called after each
+                pass execution. The function will be called with 3 arguments:
+                the pass number, the pass name, and the dag output of the pass.
         """
+        self.callback = callback
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
         self.working_list = []
@@ -119,7 +125,7 @@ class PassManager():
         self.valid_passes = set()
         self.property_set.clear()
 
-    def run(self, circuit, debug=False):
+    def run(self, circuit):
         """Run all the passes on a QuantumCircuit
 
         Args:
@@ -136,12 +142,16 @@ class PassManager():
         del circuit
         self.reset()  # Reset passmanager instance before starting
 
+        count = 0
         for passset in self.working_list:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
-                if debug:
-                    print(pass_.name + ':\n')
-                    print(dag_to_circuit(dag))
+                if self.callback:
+                    # Deepcopy dag to ensure reference doesn't get updated
+                    # if callback func uses the dag after the loop iteration
+                    # continues
+                    self.callback(count, pass_.name(), copy.deepcopy(dag))
+                    count += 1
 
         circuit = dag_to_circuit(dag)
         circuit.name = name
