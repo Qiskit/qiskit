@@ -45,19 +45,19 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(0, self.short_pulse(self.device.q[0].drive))
         sched = sched.insert(1, acquire(self.device.q[0], self.device.mem[0]))
         sched = sched.insert(10, acquire(self.device.q[1], self.device.mem[1]))
-        sched = align_measures(sched, self.cmd_def)
+        sched = align_measures([sched], self.cmd_def)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
 
-    def test_align_post_u2(self):
-        """Test that acquires are scheduled no sooner than the duration of the longest u2 gate.
+    def test_align_post_u3(self):
+        """Test that acquires are scheduled no sooner than the duration of the longest X gate.
         """
         acquire = pulse.Acquire(5)
         sched = pulse.Schedule(name='fake_experiment')
         sched = sched.insert(0, self.short_pulse(self.device.q[0].drive))
         sched = sched.insert(1, acquire(self.device.q[0], self.device.mem[0]))
-        sched = align_measures(sched, self.cmd_def)
+        sched = align_measures([sched], self.cmd_def)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 4)
@@ -70,7 +70,7 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(4, acquire(self.device.q[0], self.device.mem[0]))
         sched = sched.insert(10, acquire(self.device.q[0], self.device.mem[0]))
         with self.assertRaises(ValueError):
-            align_measures(sched, self.cmd_def)
+            align_measures([sched], self.cmd_def)
 
     def test_error_post_acquire_pulse(self):
         """Test that an error is raised if a pulse occurs on a channel after an acquire."""
@@ -80,10 +80,27 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(4, acquire(self.device.q[0], self.device.mem[0]))
         # No error with separate channel
         sched = sched.insert(10, self.short_pulse(self.device.q[1].drive))
-        align_measures(sched, self.cmd_def)
+        align_measures([sched], self.cmd_def)
         sched = sched.insert(10, self.short_pulse(self.device.q[0].drive))
         with self.assertRaises(ValueError):
-            align_measures(sched, self.cmd_def)
+            align_measures([sched], self.cmd_def)
+
+    def test_align_across_schedules(self):
+        """Test that acquires are aligned together across multiple schedules."""
+        acquire = pulse.Acquire(5)
+        sched1 = pulse.Schedule(name='fake_experiment')
+        sched1 = sched1.insert(0, self.short_pulse(self.device.q[0].drive))
+        sched1 = sched1.insert(10, acquire(self.device.q[0], self.device.mem[0]))
+        sched2 = pulse.Schedule(name='fake_experiment')
+        sched2 = sched2.insert(3, self.short_pulse(self.device.q[0].drive))
+        sched2 = sched2.insert(25, acquire(self.device.q[0], self.device.mem[0]))
+        schedules = align_measures([sched1, sched2], self.cmd_def)
+        for time, inst in schedules[0].instructions:
+            if isinstance(inst, AcquireInstruction):
+                self.assertEqual(time, 25)
+        for time, inst in schedules[0].instructions:
+            if isinstance(inst, AcquireInstruction):
+                self.assertEqual(time, 25)
 
 
 class TestAddImplicitAcquires(QiskitTestCase):

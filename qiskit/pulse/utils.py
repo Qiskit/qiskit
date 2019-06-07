@@ -19,6 +19,8 @@ import warnings
 
 from typing import List
 
+import numpy as np
+
 from .channels import AcquireChannel, MemorySlot
 from .commands import Acquire, AcquireInstruction
 from .interfaces import ScheduleComponent
@@ -26,16 +28,15 @@ from .schedule import Schedule
 from .cmd_def import CmdDef
 
 
-def align_measures(schedule: ScheduleComponent, cmd_def: CmdDef) -> Schedule:
-    """Return a new schedule where measurements occur at the same physical time, with the remaining
-    schedules appropriately offset. Minimum measurement wait time (to allow for calibration pulses)
-    is enforced.
+def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef) -> Schedule:
+    """Return new schedules where measurements occur at the same physical time. Minimum measurement
+    wait time (to allow for calibration pulses) is enforced.
     This is only defined for schedules that are acquire-less or acquire-final per channel: a
     schedule with pulses or acquires occuring on a channel which has already had an acquire will
     throw an error.
 
     Args:
-        schedule: Schedule to be aligned
+        schedules: Collection of schedules to be aligned together
         cmd_def: Command definition list
     Returns:
         Schedule
@@ -43,34 +44,39 @@ def align_measures(schedule: ScheduleComponent, cmd_def: CmdDef) -> Schedule:
         ValueError: if an acquire or pulse is encountered on a channel that has already been part
                     of an acquire
     """
-    new_schedule = Schedule()
-
     # Need time to allow for calibration pulses to be played for result classification
     max_calibration_duration = 0
-    for qubits in cmd_def.cmd_qubits('u2'):
-        cmd = cmd_def.get('u2', qubits)
+    for qubits in cmd_def.cmd_qubits('u3'):
+        cmd = cmd_def.get('u3', qubits, np.pi, 0, np.pi)
         max_calibration_duration = max(cmd.duration, max_calibration_duration)
 
     # Schedule the acquires to be either at the end of the needed calibration time, or when the
     # last acquire is scheduled, whichever comes later
-    last_acquire = max([time for time, inst in schedule.instructions
-                        if isinstance(inst, AcquireInstruction)])
-    acquire_scheduled_time = max(max_calibration_duration, last_acquire)
+    acquire_scheduled_time = max_calibration_duration
+    for schedule in schedules:
+        last_acquire = max([time for time, inst in schedule.instructions
+                            if isinstance(inst, AcquireInstruction)])
+        acquire_scheduled_time = max(acquire_scheduled_time, last_acquire)
 
     # Shift acquires according to the new scheduled time
-    acquired_channels = set()
-    for time, inst in schedule.instructions:
-        for chan in inst.channels:
-            if chan.index in acquired_channels:
-                raise ValueError("Pulse encountered on channel {0} after acquire on "
-                                 "same channel.".format(chan.index))
-        if isinstance(inst, AcquireInstruction):
-            new_schedule |= inst << acquire_scheduled_time
-            acquired_channels.update({a.index for a in inst.acquires})
-        else:
-            new_schedule |= inst << time
+    new_schedules = []
+    for schedule in schedules:
+        new_schedule = Schedule()
+        acquired_channels = set()
+        for time, inst in schedule.instructions:
+            for chan in inst.channels:
+                if chan.index in acquired_channels:
+                    raise ValueError("Pulse encountered on channel {0} after acquire on "
+                                     "same channel.".format(chan.index))
+            if isinstance(inst, AcquireInstruction):
+                new_schedule |= inst << acquire_scheduled_time
+                acquired_channels.update({a.index for a in inst.acquires})
+            else:
+                new_schedule |= inst << time
 
-    return new_schedule
+        new_schedules.append(new_schedule)
+
+    return new_schedules
 
 
 def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]) -> Schedule:
