@@ -36,7 +36,7 @@ except Exception:  # pylint: disable=broad-except
     HAS_GRAPHVIZ = False
 
 
-def pass_manager_drawer(pass_manager, filename, style=None):
+def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     """
     Draws the pass manager.
 
@@ -51,6 +51,8 @@ def pass_manager_drawer(pass_manager, filename, style=None):
             dict can be used to ensure a priority coloring when pass falls into multiple
             categories. Any values not included in the provided dict will be filled in from
             the default dict
+        raw (Bool) : True if you want to save the raw Dot output not an image. The
+            default is False.
 
     Raises:
         ImportError: when nxpd or pydot not installed.
@@ -77,7 +79,7 @@ def pass_manager_drawer(pass_manager, filename, style=None):
     # identifiers for nodes need to be unique, so assign an id
     # can't just use python's id in case the exact same pass was
     # appended more than once
-    node_id = 0
+    component_id = 0
 
     prev_node = None
 
@@ -87,18 +89,20 @@ def pass_manager_drawer(pass_manager, filename, style=None):
         label = controller_group['type'].__name__.replace('Controller', '')
 
         # create the subgraph for this controller
-        subgraph = pydot.Cluster(str(id(controller_group)), label=label)
+        subgraph = pydot.Cluster(str(component_id), label=label, fontname='helvetica')
+        component_id += 1
 
         for pass_ in controller_group['passes']:
 
             # label is the name of the pass
-            node = pydot.Node(str(node_id),
+            node = pydot.Node(str(component_id),
                               label=str(type(pass_).__name__),
                               color=_get_node_color(pass_, style),
-                              shape="rectangle")
+                              shape="rectangle",
+                              fontname='helvetica')
 
             subgraph.add_node(node)
-            node_id += 1
+            component_id += 1
 
             # the arguments that were provided to the pass when it was created
             arg_spec = inspect.getfullargspec(pass_.__init__)
@@ -115,13 +119,14 @@ def pass_manager_drawer(pass_manager, filename, style=None):
                 if arg_index >= (len(args) - num_optional):
                     nd_style = 'dashed'
 
-                input_node = pydot.Node(node_id, label=arg,
+                input_node = pydot.Node(component_id, label=arg,
                                         color="black",
                                         shape="ellipse",
                                         fontsize=10,
-                                        style=nd_style)
+                                        style=nd_style,
+                                        fontname='helvetica')
                 subgraph.add_node(input_node)
-                node_id += 1
+                component_id += 1
                 subgraph.add_edge(pydot.Edge(input_node, node))
 
             # if there is a previous node, add an edge between them
@@ -133,8 +138,11 @@ def pass_manager_drawer(pass_manager, filename, style=None):
         graph.add_subgraph(subgraph)
 
     if filename:
-        # linter says this isn't a method - it is
-        graph.write_png(filename)  # pylint: disable=no-member
+        if not raw:
+            # linter says this isn't a method - it is
+            graph.write_png(filename)  # pylint: disable=no-member
+        else:
+            graph.write(filename, format='raw')
 
 
 def _get_node_color(pss, style):

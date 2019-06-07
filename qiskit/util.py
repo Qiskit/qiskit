@@ -97,7 +97,7 @@ def _has_connection(hostname, port):
     """
     try:
         host = socket.gethostbyname(hostname)
-        socket.create_connection((host, port), 2)
+        socket.create_connection((host, port), 2).close()
         return True
     except Exception:  # pylint: disable=broad-except
         return False

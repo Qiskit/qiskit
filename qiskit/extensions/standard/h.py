@@ -19,7 +19,6 @@ Hadamard gate.
 """
 import numpy
 
-from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -63,4 +62,3 @@ def h(self, q):
 
 
 QuantumCircuit.h = h
-CompositeGate.h = h
