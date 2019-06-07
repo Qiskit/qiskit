@@ -49,39 +49,27 @@ class StochasticSwap(TransformationPass):
     Uses a randomized algorithm.
     """
 
-    def __init__(self, coupling_map, initial_layout=None,
-                 trials=20, seed=None):
+    def __init__(self, coupling_map, trials=20, seed=None):
         """
         Map a DAGCircuit onto a `coupling_map` using swap gates.
 
-        If initial_layout is not None, we assume the input circuit
-        has been layed out before running this pass, and that
-        the layout process yields a DAG, coupling map, and layout
-        with the following properties:
-
-        1. All three have the same number of qubits
-        2. The layout a bijection from the DAG qubits to the coupling map
-
-        For this mapping pass, it may also be necessary that
-
-        3. The coupling map is a connected graph
+        The coupling map is a connected graph
 
         If these are not satisfied, the behavior is undefined.
 
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling
                 map.
-            initial_layout (Layout): initial layout of qubits in mapping
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.initial_layout = initial_layout
         self.trials = trials
         self.seed = seed
         self.qregs = None
         self.rng = None
+        self.initial_layout = None
 
     def run(self, dag):
         """
@@ -98,18 +86,14 @@ class StochasticSwap(TransformationPass):
             compatible with the DAG
         """
 
-        if self.initial_layout is None:
-            if self.property_set["layout"]:
-                self.initial_layout = self.property_set["layout"]
-            else:
-                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
+            raise TranspilerError('Basic swap runs on physical circuits only')
 
-        if len(dag.qubits()) != len(self.initial_layout):
+        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
-        if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
-            raise TranspilerError(
-                "Mappers require to have the layout to be the same size as the coupling map")
+        canonical_register = dag.qregs['q']
+        self.initial_layout = Layout.generate_trivial_layout(canonical_register)
 
         self.qregs = dag.qregs
         if self.seed is None:
