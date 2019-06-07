@@ -24,10 +24,6 @@ from qiskit.exceptions import QiskitError
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-# ToDo: We could also input the diagonal gate by only providing the phases of the entries. This would be more efficient,
-# ToDo: however, maybe a bit less user friendly. @Ali: What would you prefer?
-
-
 class DiagGate(Gate):
     """
     diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least two entries.

@@ -132,14 +132,24 @@ def is_isometry(m):
 
 
 """
-   u = 2*2 unitary (given as a (complex) numpy.ndarray)
+Decompose an arbitrary 2*2 unitary into three rotation gates: U=R_zR_yR_z. Note that the decomposition is up to
+a global phase shift.
+(This is a well known decomposition, which can be found for example in Nielsen and Chuang's book
+"Quantum computation and quantum information".)
 
-   qubit = qubit the gate is acting on
+    Args:
+        u (ndarray): 2*2 unitary (given as a (complex) ndarray)
+        qubit (QautnumRegister|(QuantumRegister,int)): the qubit, on which the gate is acting on
+        mode (string): determines the used decomposition by providing the rotation axes. The allowed modes are: 
+            "ZYZ" (default).
+        up_to_diagonal (boolean):  if set to True, the single-qubit unitary is decomposed up to a diagonal matrix, 
+            i.e. a unitary u' is implemented such that there exists a 2*2 diagonal gate d with u = d.dot(u').
+    Returns:
+        QuantumCircuit: the single-qubit unitary (up to a diagonal gate if up_to_diagonal = True) 
+            is attached to the circuit.
 
-   mode - determines the used decomposition by providing the rotation axes
-
-   up_to_diagonal - the single-qubit unitary is decomposed up to a diagonal matrix, i.e. a unitary u' is implemented
-                    such that there exists a 2*2 diagonal gate d with u = d.dot(u').
+    Raises:
+        QiskitError: if the format is wrong; if the array u is not unitary
 """
 
 
