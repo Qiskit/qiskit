@@ -21,7 +21,7 @@ import sys
 
 import ddt
 
-from qiskit.test import QiskitTestCase, online_test
+from qiskit.test import QiskitTestCase, online_test, slow_test
 
 examples_dir = os.path.abspath(os.path.join(
     os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
@@ -56,6 +56,7 @@ class TestPythonExamples(QiskitTestCase):
         self.assertEqual(run_example.returncode, 0, error_string)
 
     @online_test
+    @slow_test
     @ddt.data(*ibmq_examples)
     def test_all_ibmq_examples(self, example, qe_token, qe_url):
         """Execute the ibmq example python files and pass if it returns 0."""
