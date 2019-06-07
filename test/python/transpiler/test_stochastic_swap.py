@@ -476,24 +476,6 @@ class TestStochasticSwap(QiskitTestCase):
         for _2q_gate in after.twoQ_gates():
             self.assertIn(set(_2q_gate.qargs), valid_couplings)
 
-    def test_len_coupling_vs_dag(self):
-        """Test error if coupling map and dag are not the same size."""
-
-        coupling = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]])
-        qr = QuantumRegister(4, 'q')
-        cr = ClassicalRegister(4, 'c')
-        circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[2])
-        circuit.cx(qr[0], qr[3])
-        circuit.measure(qr, cr)
-        dag = circuit_to_dag(circuit)
-
-        pass_ = StochasticSwap(coupling)
-        with self.assertRaises(TranspilerError):
-            _ = pass_.run(dag)
-
     def test_len_cm_vs_dag(self):
         """Test error if the coupling map is smaller than the dag."""
 
