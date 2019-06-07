@@ -29,8 +29,7 @@ def input_state(circ, n):
     """n-qubit input state for QFT that produces output 1."""
     for j in range(n):
         circ.h(j)
-        circ.u1(math.pi/float(2**(j)), j).inverse()
-
+        circ.u1(-math.pi/float(2**(j)), j)
 
 def qft(circ, n):
     """n-qubit QFT on q in circ."""
@@ -95,4 +94,3 @@ result = job.result()
 print(result.get_counts(qft3))
 print(result.get_counts(qft4))
 print(result.get_counts(qft5))
-
