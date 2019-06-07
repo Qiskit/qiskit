@@ -214,7 +214,8 @@ class QCircuitMachine(RuleBasedStateMachine):
         try:
             xpiled_qc = transpile(self.qc, backend=backend, optimization_level=opt_level)
         except Exception as e:
-            failed_qasm = 'Exception caught during transpilation of circuit: \n{}'.format(self.qc.qasm())
+            failed_qasm = 'Exception caught during transpilation of circuit: \n{}'.format(
+                self.qc.qasm())
             raise RuntimeError(failed_qasm) from e
 
         xpiled_aer_counts = execute(xpiled_qc, backend=self.backend,
