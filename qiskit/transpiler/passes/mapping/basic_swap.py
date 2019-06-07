@@ -23,6 +23,7 @@ compatible.
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit import QuantumRegister
 from qiskit.transpiler.layout import Layout
 from qiskit.extensions.standard import SwapGate
 
@@ -32,18 +33,14 @@ class BasicSwap(TransformationPass):
     Maps (with minimum effort) a DAGCircuit onto a `coupling_map` adding swap gates.
     """
 
-    def __init__(self,
-                 coupling_map,
-                 initial_layout=None):
+    def __init__(self, coupling_map):
         """
         Maps a DAGCircuit onto a `coupling_map` using swap gates.
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
-            initial_layout (Layout): initial layout of qubits in mapping
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.initial_layout = initial_layout
 
     def run(self, dag):
         """
@@ -60,20 +57,15 @@ class BasicSwap(TransformationPass):
         """
         new_dag = DAGCircuit()
 
-        if self.initial_layout is None:
-            if self.property_set["layout"]:
-                self.initial_layout = self.property_set["layout"]
-            else:
-                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
+            raise TranspilerError('Basic swap runs on physical circuits only')
 
-        if len(dag.qubits()) != len(self.initial_layout):
+        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
-        if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
-            raise TranspilerError(
-                "Mappers require to have the layout to be the same size as the coupling map")
-
-        current_layout = self.initial_layout.copy()
+        canonical_register = dag.qregs['q']
+        initial_layout = Layout.generate_trivial_layout(canonical_register)
+        current_layout = initial_layout.copy()
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
@@ -104,14 +96,14 @@ class BasicSwap(TransformationPass):
                                                         cargs=[])
 
                     # layer insertion
-                    edge_map = current_layout.combine_into_edge_map(self.initial_layout)
+                    edge_map = current_layout.combine_into_edge_map(initial_layout)
                     new_dag.compose_back(swap_layer, edge_map)
 
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
-            edge_map = current_layout.combine_into_edge_map(self.initial_layout)
+            edge_map = current_layout.combine_into_edge_map(initial_layout)
             new_dag.extend_back(subdag, edge_map)
 
         return new_dag
