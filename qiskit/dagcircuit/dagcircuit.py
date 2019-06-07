@@ -1142,7 +1142,8 @@ class DAGCircuit:
                 s = list(self._multi_graph.successors(node))
                 while len(s) == 1 and \
                         s[0].type == "op" and \
-                        s[0].name in namelist:
+                        s[0].name in namelist and \
+                        s[0].condition is None:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
                     s = list(self._multi_graph.successors(s[0]))
