@@ -75,6 +75,7 @@ class BasicSwap(TransformationPass):
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     # Insert a new layer with the SWAP(s).
                     swap_layer = DAGCircuit()
+                    swap_layer.add_qreg(canonical_register)
 
                     path = self.coupling_map.shortest_undirected_path(physical_q0, physical_q1)
                     for swap in range(len(path) - 2):
@@ -83,11 +84,6 @@ class BasicSwap(TransformationPass):
 
                         qubit_1 = current_layout[connected_wire_1]
                         qubit_2 = current_layout[connected_wire_2]
-
-                        # create qregs
-                        for qreg in current_layout.get_registers():
-                            if qreg not in swap_layer.qregs.values():
-                                swap_layer.add_qreg(qreg)
 
                         # create the swap operation
                         swap_layer.apply_operation_back(SwapGate(),
