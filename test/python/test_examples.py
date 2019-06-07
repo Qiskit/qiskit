@@ -19,8 +19,6 @@ import os
 import subprocess
 import sys
 
-import ddt
-
 from qiskit.test import QiskitTestCase, online_test, slow_test
 
 examples_dir = os.path.abspath(os.path.join(
@@ -28,47 +26,48 @@ examples_dir = os.path.abspath(os.path.join(
                  'examples'),
     'python'))
 ibmq_examples_dir = os.path.join(examples_dir, 'ibmq')
-examples = []
-ibmq_examples = []
-if os.path.isdir(examples_dir):
-    examples = [x for x in os.listdir(examples_dir) if x.endswith('.py')]
-
-if os.path.isdir(ibmq_examples_dir):
-    ibmq_examples = [
-        x for x in os.listdir(ibmq_examples_dir) if x.endswith('.py')]
 
 
-@ddt.ddt
 class TestPythonExamples(QiskitTestCase):
     """Test example scripts"""
-    @ddt.data(*examples)
-    def test_all_examples(self, example):
+
+    def test_all_examples(self):
         """Execute the example python files and pass if it returns 0."""
-        example_path = os.path.join(examples_dir, example)
-        cmd = [sys.executable, example_path]
-        run_example = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-        stdout, stderr = run_example.communicate()
-        error_string = "Running example %s failed with return code %s\n" % (
-            example, run_example.returncode)
-        error_string += "stdout:%s\nstderr: %s" % (
-            stdout.decode('utf8'), stderr.decode('utf8'))
-        self.assertEqual(run_example.returncode, 0, error_string)
+        examples = []
+        if os.path.isdir(examples_dir):
+            examples = [x for x in os.listdir(examples_dir) if x.endswith('.py')]
+        for example in examples:
+            with self.subTest(example=example):
+                example_path = os.path.join(examples_dir, example)
+                cmd = [sys.executable, example_path]
+                run_example = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE)
+                stdout, stderr = run_example.communicate()
+                error_string = "Running example %s failed with return code %s\n" % (
+                    example, run_example.returncode)
+                error_string += "stdout:%s\nstderr: %s" % (
+                    stdout.decode('utf8'), stderr.decode('utf8'))
+                self.assertEqual(run_example.returncode, 0, error_string)
 
     @online_test
     @slow_test
-    @ddt.data(*ibmq_examples)
-    def test_all_ibmq_examples(self, example, qe_token, qe_url):
+    def test_all_ibmq_examples(self, qe_token, qe_url):
         """Execute the ibmq example python files and pass if it returns 0."""
         from qiskit import IBMQ  # pylint: disable: import-error
         IBMQ.save_account(qe_token, qe_url)
         self.addCleanup(IBMQ.delete_accounts, token=qe_token, url=qe_url)
-        example_path = os.path.join(ibmq_examples_dir, example)
-        cmd = [sys.executable, example_path]
-        run_example = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-        stdout, stderr = run_example.communicate()
-        error_string = "Running example %s failed with return code %s\n" % (
-            example, run_example.returncode)
-        error_string += "\tstdout:%s\n\tstderr: %s" % (stdout, stderr)
-        self.assertEqual(run_example.returncode, 0, error_string)
+        ibmq_examples = []
+        if os.path.isdir(ibmq_examples_dir):
+            ibmq_examples = [
+                x for x in os.listdir(ibmq_examples_dir) if x.endswith('.py')]
+        for example in ibmq_examples:
+            with self.subTest(example=example):
+                example_path = os.path.join(ibmq_examples_dir, example)
+                cmd = [sys.executable, example_path]
+                run_example = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                               stderr=subprocess.PIPE)
+                stdout, stderr = run_example.communicate()
+                error_string = "Running example %s failed with return code %s\n" % (
+                    example, run_example.returncode)
+                error_string += "\tstdout:%s\n\tstderr: %s" % (stdout, stderr)
+                self.assertEqual(run_example.returncode, 0, error_string)
