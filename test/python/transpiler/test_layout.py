@@ -16,6 +16,7 @@
 
 import copy
 import unittest
+import warnings
 
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout
@@ -409,6 +410,10 @@ class LayoutDeprecatedTest(QiskitTestCase):
 
     def setUp(self):
         self.qr = QuantumRegister(3, 'qr')
+
+        # Disable specific DeprecationWarning from this TestCase.
+        warnings.filterwarnings('ignore', category=DeprecationWarning,
+                                module='qiskit.transpiler.layout')
 
     def test_default_layout(self):
         """Static method generate_trivial_layout creates a Layout"""
