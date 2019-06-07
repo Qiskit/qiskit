@@ -16,7 +16,7 @@
 
 import numpy as np
 
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
@@ -24,12 +24,12 @@ from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.test.mock import FakeRueschlikon
 from qiskit.test import QiskitTestCase
 
-from qiskit.converters import dag_to_circuit
-
 
 class TestPassManager(QiskitTestCase):
+    """Test Pass maanger logic."""
 
     def test_callback(self):
+        """Test the callback parameter."""
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])

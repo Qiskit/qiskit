@@ -130,9 +130,6 @@ class PassManager():
 
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
-            debug (bool): When set to true the circuit output of each pass
-            execution will be printed along with the name of the pass that
-            generated it.
 
         Returns:
             QuantumCircuit: Transformed circuit.
