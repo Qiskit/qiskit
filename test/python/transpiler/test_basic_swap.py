@@ -16,7 +16,7 @@
 
 import unittest
 from qiskit.transpiler.passes import BasicSwap
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
