@@ -22,3 +22,4 @@ from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
 from .layout import Layout
 from .transpile_circuit import transpile_circuit
+from .passcontext import PassManagerContext
