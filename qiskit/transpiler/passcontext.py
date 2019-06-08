@@ -11,14 +11,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=attribute-defined-outside-init
+
 """PassContext class."""
 
 from time import time
 
 from .basepasses import TransformationPass, AnalysisPass
 
+
 class PassContext:
     """ A wrap around the execution of a pass."""
+
     def __init__(self, pm_instance, pass_instance):
         self.pm_instance = pm_instance
         self.pass_instance = pass_instance
@@ -26,34 +30,35 @@ class PassContext:
     def __enter__(self):
         self.enter()
         if isinstance(self.pass_instance, TransformationPass):
-            self.enterTransformationPass()
+            self.enter_transformation()
         if isinstance(self.pass_instance, AnalysisPass):
-            self.enterAnalysisPass()
+            self.enter_analysis()
 
     def __exit__(self, *exc_info):
         self.exit(*exc_info)
         if isinstance(self.pass_instance, TransformationPass):
-            self.exitTransformationPass()
+            self.exit_transformation()
         if isinstance(self.pass_instance, AnalysisPass):
-            self.exitAnalysisPass()
+            self.exit_analysis()
 
     def enter(self):
         pass
 
-    def exit(self):
+    def exit(self, *exc_info):
         pass
 
-    def enterTransformationPass(self):
+    def enter_transformation(self):
         pass
 
-    def enterAnalysisPass(self):
+    def enter_analysis(self):
         pass
 
-    def exitTransformationPass(self):
+    def exit_transformation(self):
         pass
 
-    def exitAnalysisPass(self):
+    def exit_analysis(self):
         pass
+
 
 class TimeLoggerPassContext(PassContext):
     def enter(self):
@@ -75,4 +80,3 @@ class TimeLoggerPassContext(PassContext):
             self.pm_instance.property_set['pass_log'] = []
         self.pm_instance.property_set['pass_raw_log'].append(raw_log_dict)
         self.pm_instance.property_set['pass_log'].append(log_dict)
-
