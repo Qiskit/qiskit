@@ -25,6 +25,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.tools.qi.qi import random_unitary_matrix
 from scipy.linalg import block_diag
 import math
+from qiskit import transpiler
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -46,6 +47,10 @@ class TestUCG(QiskitTestCase):
                 q = QuantumRegister(num_con + 1)
                 qc = QuantumCircuit(q)
                 qc.ucg(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
+                # Decompose the gate
+                sim_backend = BasicAer.get_backend('qasm_simulator')
+                qc = transpiler.transpile(qc, sim_backend)
+                # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)

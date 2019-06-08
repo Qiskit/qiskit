@@ -23,6 +23,7 @@ from qiskit import execute
 from qiskit.test import QiskitTestCase
 from scipy.linalg import block_diag
 import math
+from qiskit import transpiler
 
 angles_list = [[0], [0.4], [0, 0], [0, 0.8], [0, 0, 1, 1], [0, 1, 0.5, 1],
           (2 * np.pi * np.random.rand(2 ** 3)).tolist(), (2 * np.pi * np.random.rand(2 ** 4)).tolist(),
@@ -45,6 +46,10 @@ class TestUCY(QiskitTestCase):
                     qc.ucy(angles, q[1:num_contr + 1], q[0])
                 else:
                     qc.ucz(angles, q[1:num_contr + 1], q[0])
+                # Decompose the gate
+                sim_backend = BasicAer.get_backend('qasm_simulator')
+                qc = transpiler.transpile(qc, sim_backend)
+                # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)

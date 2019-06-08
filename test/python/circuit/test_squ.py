@@ -15,6 +15,7 @@ from qiskit import execute
 from qiskit.test import QiskitTestCase
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 import math
+from qiskit import transpiler
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -37,6 +38,10 @@ class TestSingleQubitUnitary(QiskitTestCase):
                 qr = QuantumRegister(1, "qr")
                 qc = QuantumCircuit(qr)
                 qc.squ(u, qr[0], up_to_diagonal=up_to_diagonal)
+                # Decompose the gate
+                sim_backend = BasicAer.get_backend('qasm_simulator')
+                qc = transpiler.transpile(qc, sim_backend)
+                # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)

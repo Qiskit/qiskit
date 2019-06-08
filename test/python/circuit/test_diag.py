@@ -18,6 +18,7 @@ import numpy as np
 from qiskit import execute
 from qiskit.test import QiskitTestCase
 import math
+from qiskit import transpiler
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -33,6 +34,10 @@ class TestDiagGate(QiskitTestCase):
                 q = QuantumRegister(num_qubits)
                 qc = QuantumCircuit(q)
                 qc.diag(diag, q[0:num_qubits])
+                # Decompose the gate
+                sim_backend = BasicAer.get_backend('qasm_simulator')
+                qc = transpiler.transpile(qc, sim_backend)
+                # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)
@@ -58,3 +63,4 @@ def ct(m):
 
 if __name__ == '__main__':
     unittest.main()
+
