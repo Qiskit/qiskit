@@ -16,7 +16,7 @@
 from time import time
 
 
-class PassContext:
+class TimeLoggerPassContext:
     """ A wrap around the execution of a pass."""
 
     def __init__(self, pm_instance, pass_instance):
