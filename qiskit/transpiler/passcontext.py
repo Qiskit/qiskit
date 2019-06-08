@@ -68,6 +68,8 @@ class PassContext:
 
 
 class TimeLoggerPassContext(PassContext):
+    """A PassContext for timing pass execution"""
+
     def enter(self):
         """Starts the stopwatch for timing pass execution"""
         self.start_time = time()
