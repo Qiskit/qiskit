@@ -23,7 +23,7 @@ from .propertyset import PropertySet
 from .basepasses import BasePass
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
-from .passcontext import PassManagerContext
+from .passcontext import PassContext
 
 
 class PassManager():
@@ -175,7 +175,7 @@ class PassManager():
     def _run_this_pass(self, pass_, dag):
         if pass_.is_transformation_pass:
             pass_.property_set = self.fenced_property_set
-            with PassManagerContext(self, pass_):
+            with PassContext(self, pass_):
                 new_dag = pass_.run(dag)
             if not isinstance(new_dag, DAGCircuit):
                 raise TranspilerError("Transformation passes should return a transformed dag."
@@ -184,7 +184,7 @@ class PassManager():
             dag = new_dag
         elif pass_.is_analysis_pass:
             pass_.property_set = self.property_set
-            with PassManagerContext(self, pass_):
+            with PassContext(self, pass_):
                 pass_.run(FencedDAGCircuit(dag))
         else:
             raise TranspilerError("I dont know how to handle this type of pass")
