@@ -37,6 +37,8 @@ class PassManager():
                 None.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
+            context (PassContext): A PassContext to hook pre and post pass processing.
+                See qiskit.transpiler.PassContext for details.
         """
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().

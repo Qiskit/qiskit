@@ -43,29 +43,38 @@ class PassContext:
             self.exit_analysis()
 
     def enter(self):
+        """The method runs before executing a pass"""
         pass
 
     def exit(self, *exc_info):
+        """The method runs after executing a pass"""
         pass
 
     def enter_transformation(self):
+        """The method runs before executing a transformation pass"""
         pass
 
     def enter_analysis(self):
+        """The method runs before executing a analysis pass"""
         pass
 
     def exit_transformation(self):
+        """The method runs after executing a transformation pass"""
         pass
 
     def exit_analysis(self):
+        """The method runs after executing an analysis pass"""
         pass
 
 
 class TimeLoggerPassContext(PassContext):
     def enter(self):
+        """Starts the stopwatch for timing pass execution"""
         self.start_time = time()
 
     def exit(self, *exc_info):
+        """Stops the stopwatch for timing pass execution and save the result in
+        property_set['pass_log'] and property_set['pass_raw_log']"""
         end_time = time()
         raw_log_dict = {
             'name': self.current_pass.name(),
