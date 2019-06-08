@@ -174,7 +174,7 @@ class PassManager():
         if pass_.is_transformation_pass:
             pass_.property_set = self.fenced_property_set
             if self.pass_context:
-                with self.pass_context(self, pass_):
+                with self.pass_context(self, pass_, dag):
                     new_dag = pass_.run(dag)
             else:
                 new_dag = pass_.run(dag)
@@ -186,7 +186,7 @@ class PassManager():
         elif pass_.is_analysis_pass:
             pass_.property_set = self.property_set
             if self.pass_context:
-                with self.pass_context(self, pass_):
+                with self.pass_context(self, pass_, dag):
                     pass_.run(FencedDAGCircuit(dag))
             else:
                 pass_.run(FencedDAGCircuit(dag))

@@ -23,22 +23,23 @@ from .basepasses import TransformationPass, AnalysisPass
 class PassContext:
     """ A wrap around the execution of a pass."""
 
-    def __init__(self, pm_instance, pass_instance):
-        self.pm_instance = pm_instance
-        self.pass_instance = pass_instance
+    def __init__(self, pm_instance, pass_instance, dag):
+        self.passmanager = pm_instance
+        self.current_pass = pass_instance
+        self.dag = dag
 
     def __enter__(self):
         self.enter()
-        if isinstance(self.pass_instance, TransformationPass):
+        if isinstance(self.current_pass, TransformationPass):
             self.enter_transformation()
-        if isinstance(self.pass_instance, AnalysisPass):
+        if isinstance(self.current_pass, AnalysisPass):
             self.enter_analysis()
 
     def __exit__(self, *exc_info):
         self.exit(*exc_info)
-        if isinstance(self.pass_instance, TransformationPass):
+        if isinstance(self.current_pass, TransformationPass):
             self.exit_transformation()
-        if isinstance(self.pass_instance, AnalysisPass):
+        if isinstance(self.current_pass, AnalysisPass):
             self.exit_analysis()
 
     def enter(self):
@@ -67,16 +68,16 @@ class TimeLoggerPassContext(PassContext):
     def exit(self, *exc_info):
         end_time = time()
         raw_log_dict = {
-            'name': self.pass_instance.name(),
+            'name': self.current_pass.name(),
             'start_time': self.start_time,
             'end_time': end_time,
             'running_time': end_time - self.start_time
         }
-        log_dict = "%s: %.5f (ms)" % (self.pass_instance.name(),
+        log_dict = "%s: %.5f (ms)" % (self.passmanager.name(),
                                       (end_time - self.start_time) * 1000)
-        if self.pm_instance.property_set['pass_raw_log'] is None:
-            self.pm_instance.property_set['pass_raw_log'] = []
-        if self.pm_instance.property_set['pass_log'] is None:
-            self.pm_instance.property_set['pass_log'] = []
-        self.pm_instance.property_set['pass_raw_log'].append(raw_log_dict)
-        self.pm_instance.property_set['pass_log'].append(log_dict)
+        if self.passmanager.property_set['pass_raw_log'] is None:
+            self.passmanager.property_set['pass_raw_log'] = []
+        if self.passmanager.property_set['pass_log'] is None:
+            self.passmanager.property_set['pass_log'] = []
+        self.passmanager.property_set['pass_raw_log'].append(raw_log_dict)
+        self.passmanager.property_set['pass_log'].append(log_dict)
