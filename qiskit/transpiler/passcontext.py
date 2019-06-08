@@ -28,6 +28,16 @@ class PassContext:
     def __exit__(self, *exc_info):
         self.exit(*exc_info)
 
+    def init(self):
+        pass
+
+    def enter(self):
+        pass
+
+    def exit(self):
+        pass
+
+
 class TimeLoggerPassContext(PassContext):
     def enter(self):
         self.start_time = time()
