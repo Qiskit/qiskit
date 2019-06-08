@@ -15,21 +15,27 @@
 
 from time import time
 
+from .basepasses import TransformationPass, AnalysisPass
+
 class PassContext:
     """ A wrap around the execution of a pass."""
     def __init__(self, pm_instance, pass_instance):
         self.pm_instance = pm_instance
         self.pass_instance = pass_instance
-        self.init()
 
     def __enter__(self):
         self.enter()
+        if isinstance(self.pass_instance, TransformationPass):
+            self.enterTransformationPass()
+        if isinstance(self.pass_instance, AnalysisPass):
+            self.enterAnalysisPass()
 
     def __exit__(self, *exc_info):
         self.exit(*exc_info)
-
-    def init(self):
-        pass
+        if isinstance(self.pass_instance, TransformationPass):
+            self.exitTransformationPass()
+        if isinstance(self.pass_instance, AnalysisPass):
+            self.exitAnalysisPass()
 
     def enter(self):
         pass
@@ -37,6 +43,17 @@ class PassContext:
     def exit(self):
         pass
 
+    def enterTransformationPass(self):
+        pass
+
+    def enterAnalysisPass(self):
+        pass
+
+    def exitTransformationPass(self):
+        pass
+
+    def exitAnalysisPass(self):
+        pass
 
 class TimeLoggerPassContext(PassContext):
     def enter(self):
