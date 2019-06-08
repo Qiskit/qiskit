@@ -25,24 +25,22 @@ class PassContext:
         self.start_time = None
 
     def __enter__(self):
-        if self.pm_instance.log_passes:
-            self.start_time = time()
+        self.start_time = time()
 
     def __exit__(self, *exc_info):
-        if self.pm_instance.log_passes:
-            end_time = time()
-            raw_log_dict = {
-                'name': self.pass_instance.name(),
-                'start_time': self.start_time,
-                'end_time': end_time,
-                'running_time': end_time - self.start_time
-            }
-            log_dict = "%s: %.5f (ms)" % (self.pass_instance.name(),
-                                          (end_time - self.start_time) * 1000)
-            if self.pm_instance.property_set['pass_raw_log'] is None:
-                self.pm_instance.property_set['pass_raw_log'] = []
-            if self.pm_instance.property_set['pass_log'] is None:
-                self.pm_instance.property_set['pass_log'] = []
-            self.pm_instance.property_set['pass_raw_log'].append(raw_log_dict)
-            self.pm_instance.property_set['pass_log'].append(log_dict)
+        end_time = time()
+        raw_log_dict = {
+            'name': self.pass_instance.name(),
+            'start_time': self.start_time,
+            'end_time': end_time,
+            'running_time': end_time - self.start_time
+        }
+        log_dict = "%s: %.5f (ms)" % (self.pass_instance.name(),
+                                      (end_time - self.start_time) * 1000)
+        if self.pm_instance.property_set['pass_raw_log'] is None:
+            self.pm_instance.property_set['pass_raw_log'] = []
+        if self.pm_instance.property_set['pass_log'] is None:
+            self.pm_instance.property_set['pass_log'] = []
+        self.pm_instance.property_set['pass_raw_log'].append(raw_log_dict)
+        self.pm_instance.property_set['pass_log'].append(log_dict)
 

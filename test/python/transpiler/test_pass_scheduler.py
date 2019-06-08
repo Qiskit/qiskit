@@ -23,7 +23,7 @@ from qiskit.transpiler import PassManager
 from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerAccessError, TranspilerError
 from qiskit.transpiler.passmanager import DoWhileController, ConditionalController, \
-    FlowController, FlowControllerLinear
+    FlowController, FlowControllerLinear, PassContext
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
@@ -551,8 +551,8 @@ class TestDumpPasses(SchedulerTestCase):
         self.assertEqual(expected, passmanager.passes())
 
 
-class TestLogPasses(QiskitTestCase):
-    """Testing the log_passes option."""
+class TestPassContext(QiskitTestCase):
+    """Testing the PassContext."""
 
     def setUp(self):
         self.circuit = QuantumCircuit(QuantumRegister(1))
@@ -578,8 +578,7 @@ class TestLogPasses(QiskitTestCase):
 
     def test_passes(self):
         """Dump passes in different FlowControllerLinear"""
-        passmanager = PassManager()
-        passmanager.log_passes = True
+        passmanager = PassManager(context=PassContext)
         passmanager.append(PassC_TP_RA_PA())
         passmanager.append(PassB_TP_RA_PA())
 
@@ -593,8 +592,7 @@ class TestLogPasses(QiskitTestCase):
             PassC_TP_RA_PA(),
             PassB_TP_RA_PA(),
             PassD_TP_NR_NP(argument1=[1, 2]),
-            PassB_TP_RA_PA()])
-        passmanager.log_passes = True
+            PassB_TP_RA_PA()], context=PassContext)
 
         self.assertPassLog(passmanager, ['PassA_TP_NR_NP',
                                          'PassC_TP_RA_PA',
@@ -605,10 +603,9 @@ class TestLogPasses(QiskitTestCase):
 
     def test_control_flow_plugin(self):
         """ Dump passes in a custom flow controller. """
-        passmanager = PassManager()
+        passmanager = PassManager(context=PassContext)
         FlowController.add_flow_controller('do_x_times', DoXTimesController)
         passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
-        passmanager.log_passes = True
         self.assertPassLog(passmanager, ['PassA_TP_NR_NP',
                                          'PassB_TP_RA_PA',
                                          'PassC_TP_RA_PA',
@@ -619,7 +616,7 @@ class TestLogPasses(QiskitTestCase):
 
     def test_conditional_and_loop(self):
         """ Dump passes with a conditional and a loop"""
-        passmanager = PassManager()
+        passmanager = PassManager(context=PassContext)
         passmanager.append(PassE_AP_NR_NP(True))
         passmanager.append(
             [PassK_check_fixed_point_property(),
@@ -627,7 +624,6 @@ class TestLogPasses(QiskitTestCase):
              PassF_reduce_dag_property()],
             do_while=lambda property_set: not property_set['property_fixed_point'],
             condition=lambda property_set: property_set['property_fixed_point'])
-        passmanager.log_passes = True
         self.assertPassLog(passmanager, ['PassE_AP_NR_NP'])
 
 

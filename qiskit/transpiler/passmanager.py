@@ -29,8 +29,7 @@ from .passcontext import PassContext
 class PassManager():
     """A PassManager schedules the passes"""
 
-    def __init__(self, passes=None,
-                 max_iteration=None):
+    def __init__(self, passes=None, max_iteration=None, context=None):
         """
         Initialize an empty PassManager object (with no passes scheduled).
 
@@ -56,8 +55,8 @@ class PassManager():
         # pass manager's overriding options for the passes it runs (for debugging)
         self.passmanager_options = {'max_iteration': max_iteration}
 
-        # The property log_passes allows to log and time the passes as they run in the pass manager
-        self.log_passes = False
+        # The parameter allows hook into the start and end of the passes.
+        self.pass_context = context
 
         if passes is not None:
             self.append(passes)
@@ -175,7 +174,10 @@ class PassManager():
     def _run_this_pass(self, pass_, dag):
         if pass_.is_transformation_pass:
             pass_.property_set = self.fenced_property_set
-            with PassContext(self, pass_):
+            if self.pass_context:
+                with PassContext(self, pass_):
+                    new_dag = pass_.run(dag)
+            else:
                 new_dag = pass_.run(dag)
             if not isinstance(new_dag, DAGCircuit):
                 raise TranspilerError("Transformation passes should return a transformed dag."
@@ -184,7 +186,10 @@ class PassManager():
             dag = new_dag
         elif pass_.is_analysis_pass:
             pass_.property_set = self.property_set
-            with PassContext(self, pass_):
+            if self.pass_context:
+                with PassContext(self, pass_):
+                    pass_.run(FencedDAGCircuit(dag))
+            else:
                 pass_.run(FencedDAGCircuit(dag))
         else:
             raise TranspilerError("I dont know how to handle this type of pass")
