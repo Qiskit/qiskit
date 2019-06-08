@@ -73,7 +73,7 @@ class TimeLoggerPassContext(PassContext):
             'end_time': end_time,
             'running_time': end_time - self.start_time
         }
-        log_dict = "%s: %.5f (ms)" % (self.passmanager.name(),
+        log_dict = "%s: %.5f (ms)" % (self.current_pass.name(),
                                       (end_time - self.start_time) * 1000)
         if self.passmanager.property_set['pass_raw_log'] is None:
             self.passmanager.property_set['pass_raw_log'] = []
