@@ -15,19 +15,24 @@
 
 from time import time
 
-
-class TimeLoggerPassContext:
+class PassContext:
     """ A wrap around the execution of a pass."""
-
     def __init__(self, pm_instance, pass_instance):
         self.pm_instance = pm_instance
         self.pass_instance = pass_instance
-        self.start_time = None
+        self.init()
 
     def __enter__(self):
-        self.start_time = time()
+        self.enter()
 
     def __exit__(self, *exc_info):
+        self.exit(*exc_info)
+
+class TimeLoggerPassContext(PassContext):
+    def enter(self):
+        self.start_time = time()
+
+    def exit(self, *exc_info):
         end_time = time()
         raw_log_dict = {
             'name': self.pass_instance.name(),
