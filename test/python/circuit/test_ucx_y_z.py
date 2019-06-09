@@ -22,7 +22,7 @@ from qiskit import QuantumRegister
 from qiskit import execute
 from qiskit.test import QiskitTestCase
 from scipy.linalg import block_diag
-import math
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler import transpile
 
 angles_list = [[0], [0.4], [0, 0], [0, 0.8], [0, 0, 1, 1], [0, 1, 0.5, 1],
@@ -53,7 +53,7 @@ class TestUCY(QiskitTestCase):
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)
                 unitary_desired = _get_ucr_matrix(angles, rot_axis)
-                self.assertTrue(is_identity_up_to_global_phase(np.dot(ct(unitary), unitary_desired)))
+                self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
 
 def _get_ucr_matrix(angles, rot_axis):
@@ -66,18 +66,6 @@ def _get_ucr_matrix(angles, rot_axis):
     else:
         gates = [np.array([[np.exp(-1.j * angle / 2), 0], [0, np.exp(1.j * angle / 2)]]) for angle in angles]
     return block_diag(*gates)
-
-
-def is_identity_up_to_global_phase(m):
-    if not abs(abs(m[0, 0])-1) < _EPS:
-        return False
-    phase = m[0, 0]
-    err = np.linalg.norm(1/phase * m - np.eye(m.shape[1], m.shape[1]))
-    return math.isclose(err, 0, abs_tol=_EPS)
-
-
-def ct(m):
-    return np.transpose(np.conjugate(m))
 
 
 if __name__ == '__main__':

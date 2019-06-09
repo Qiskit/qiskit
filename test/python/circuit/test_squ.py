@@ -14,10 +14,8 @@ from qiskit import QuantumRegister
 from qiskit import execute
 from qiskit.test import QiskitTestCase
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
-import math
 from qiskit.compiler import transpile
-
-_EPS = 1e-10  # global variable used to chop very small numbers to zero
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 """
 Tests for the ZYZ decomposition for single-qubit unitary.
@@ -48,19 +46,7 @@ class TestSingleQubitUnitary(QiskitTestCase):
                     squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
                     unitary = np.dot(np.diagflat(squ.get_diag()), unitary)
                 unitary_desired = u
-                self.assertTrue(is_identity_up_to_global_phase(np.dot(ct(unitary), unitary_desired)))
-
-
-def is_identity_up_to_global_phase(m):
-    if not abs(abs(m[0, 0])-1) < _EPS:
-        return False
-    phase = m[0, 0]
-    err = np.linalg.norm(1/phase * m - np.eye(m.shape[1], m.shape[1]))
-    return math.isclose(err, 0, abs_tol=_EPS)
-
-
-def ct(m):
-    return np.transpose(np.conjugate(m))
+                self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
 
 if __name__ == '__main__':

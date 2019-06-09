@@ -17,10 +17,8 @@ from qiskit import BasicAer
 import numpy as np
 from qiskit import execute
 from qiskit.test import QiskitTestCase
-import math
 from qiskit.compiler import transpile
-
-_EPS = 1e-10  # global variable used to chop very small numbers to zero
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
 class TestDiagGate(QiskitTestCase):
@@ -41,24 +39,11 @@ class TestDiagGate(QiskitTestCase):
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)
                 unitary_desired = _get_diag_gate_matrix(diag)
-                self.assertTrue(is_identity_up_to_global_phase(np.dot(unitary,ct(unitary_desired))))
+                self.assertTrue(matrix_equal(unitary, unitary_desired, ignore_phase=True))
 
 
 def _get_diag_gate_matrix(diag):
     return np.diagflat(diag)
-
-
-def is_identity_up_to_global_phase(m):
-    if not abs(abs(m[0, 0])-1) < _EPS:
-        return False
-    phase = m[0, 0]
-    err = np.linalg.norm(1/phase * m - np.eye(m.shape[1], m.shape[1]))
-    return math.isclose(err, 0, abs_tol=_EPS)
-
-
-def ct(m):
-    return np.transpose(np.conjugate(m))
-
 
 if __name__ == '__main__':
     unittest.main()
