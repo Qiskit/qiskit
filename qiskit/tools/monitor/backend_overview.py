@@ -115,7 +115,7 @@ def backend_monitor(backend):
         print(offset+qstr)
 
     print()
-    multi_qubit_gates = props['gates'][3*config['n_qubits']:]
+    multi_qubit_gates = [g for g in props['gates'] if len(g['qubits']) > 1]
     multi_header = 'Multi-Qubit Gates [Name / Type / Gate Error]'
     print(multi_header)
     print('-'*len(multi_header))
