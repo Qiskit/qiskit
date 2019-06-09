@@ -113,7 +113,7 @@ class QCircuitImage:
         self.column_separation = 0.5
 
         # em points of separation between circuit row
-        self.row_separation = 0.0
+        self.row_separation = 0
 
         # presence of "box" or "target" determines row spacing
         self.has_box = False
@@ -162,7 +162,7 @@ class QCircuitImage:
 \begin{document}
 \begin{equation*}"""
         qcircuit_line = r"""
-    \Qcircuit @C=%.1fem @R=%.1fem @!R {
+    \Qcircuit @C=%.1fem @R=%.1fem @! {
 """
         output = io.StringIO()
         output.write(header_1)
