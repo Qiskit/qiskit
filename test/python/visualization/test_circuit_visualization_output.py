@@ -85,10 +85,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
         self.assertImagesAreEqual(filename, self.latex_reference)
         os.remove(filename)
 
-    # TODO: Enable for refactoring purposes and enable by default when we can
-    # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_matplotlib_drawer(self):
         filename = self._get_resource_path('current_matplot.png')
         qc = self.sample_circuit()
