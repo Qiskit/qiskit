@@ -342,13 +342,13 @@ class QobjToInstructionConverter:
 
         # This is parameterized
         if isinstance(phase, str):
-            phase_expr, params = parse_string_expr(phase)
+            phase_expr = parse_string_expr(phase, partial_binding=False)
 
             def gen_fc_sched(*args, **kwargs):
                 phase = abs(phase_expr(*args, **kwargs))
                 return commands.FrameChange(phase)(channel) << t0
 
-            return ParameterizedSchedule(gen_fc_sched, parameters=params)
+            return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 
         return commands.FrameChange(phase)(channel) << t0
 
@@ -367,13 +367,13 @@ class QobjToInstructionConverter:
 
         # This is parameterized
         if isinstance(val, str):
-            val_expr, params = parse_string_expr(val)
+            val_expr = parse_string_expr(val, partial_binding=False)
 
             def gen_pv_sched(*args, **kwargs):
                 val = complex(val_expr(*args, **kwargs))
                 return commands.PersistentValue(val)(channel) << t0
 
-            return ParameterizedSchedule(gen_pv_sched, parameters=params)
+            return ParameterizedSchedule(gen_pv_sched, parameters=val_expr.params)
 
         return commands.PersistentValue(val)(channel) << t0
 

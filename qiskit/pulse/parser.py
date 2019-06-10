@@ -289,4 +289,4 @@ def parse_string_expr(source, partial_binding=False):
 
     expression = PulseExpression(source, partial_binding)
 
-    return expression, expression.params
+    return expression
