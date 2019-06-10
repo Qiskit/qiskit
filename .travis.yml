@@ -52,8 +52,9 @@ stage_linux: &stage_linux
   python: 3.5
   before_install:
   - sudo apt-get install -y texlive-latex-base
-  - sudo apt-get install texlive-fonts-recommended
-  - sudo apt-get install texlive-fonts-extra
+  - sudo apt-get install -y texlive-fonts-recommended
+  - sudo apt-get install -y texlive-fonts-extra
+  - sudo apt-get install -y xzdec
   - tlmgr init-usertree
   - tlmgr update qcircuit
 
