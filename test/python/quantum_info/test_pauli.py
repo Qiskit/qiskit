@@ -24,6 +24,45 @@ from qiskit.quantum_info import Pauli, pauli_group
 from qiskit.test import QiskitTestCase
 
 
+class TestPauliAPI(QiskitTestCase):
+    """Tests for Pauli class API."""
+
+    def check(self, result):
+        """checks for result to be a Pauli 'IY' """
+        self.assertIsInstance(result, Pauli)
+        self.assertEqual(result.numberofqubits, 2)
+        self.assertEqual(result.to_label(), 'IY')
+
+    def test_ndarray_bool(self):
+        """Test creation from np.bool."""
+        x = np.asarray([1, 0]).astype(np.bool)
+        z = np.asarray([1, 0]).astype(np.bool)
+        pauli = Pauli(x=x, z=z)
+        self.check(pauli)
+
+    def test_ndarray_int(self):
+        """Test creation from np.int."""
+        x = np.asarray([2, 0]).astype(np.int)
+        z = np.asarray([2, 0]).astype(np.int)
+        pauli = Pauli(x=x, z=z)
+        self.check(pauli)
+
+    def test_list(self):
+        """Test creation from lists."""
+        pauli = Pauli(x=[1, 0], z=[1, 0])
+        self.check(pauli)
+
+    def test_tuple(self):
+        """Test creation from tuples."""
+        pauli = Pauli(x=(1, 0), z=(1, 0))
+        self.check(pauli)
+
+    def test_mix(self):
+        """Test creation from tuples and list."""
+        pauli = Pauli(x=(1, 0), z=[1, 0])
+        self.check(pauli)
+
+
 class TestPauli(QiskitTestCase):
     """Tests for Pauli class."""
 

@@ -27,13 +27,9 @@ from qiskit.exceptions import QiskitError
 
 
 def _make_np_bool(arr):
-
-    if not isinstance(arr, list) and not isinstance(arr, np.ndarray):
-        arr = np.asarray([arr]).astype(np.bool)
-    elif isinstance(arr, list):
-        arr = np.asarray(arr).astype(np.bool)
-    elif arr.dtype != np.bool:
-        arr = arr.astype(np.bool)
+    if not isinstance(arr, (list, np.ndarray, tuple)):
+        arr = [arr]
+    arr = np.asarray(arr).astype(np.bool)
     return arr
 
 
