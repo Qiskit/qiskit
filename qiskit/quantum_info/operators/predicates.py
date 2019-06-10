@@ -61,10 +61,10 @@ def matrix_equal(mat1,
     if ignore_phase:
         # Get phase of first non-zero entry of mat1 and mat2
         # and multiply all entries by the conjugate
-        phases1 = np.angle(mat1[mat1 != 0].ravel(order='F'))
+        phases1 = np.angle(mat1[abs(mat1) > atol].ravel(order='F'))
         if len(phases1) > 0:
             mat1 = np.exp(-1j * phases1[0]) * mat1
-        phases2 = np.angle(mat2[mat2 != 0].ravel(order='F'))
+        phases2 = np.angle(mat2[abs(mat2) > atol].ravel(order='F'))
         if len(phases2) > 0:
             mat2 = np.exp(-1j * phases2[0]) * mat2
     return np.allclose(mat1, mat2, rtol=rtol, atol=atol)
