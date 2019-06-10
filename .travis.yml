@@ -39,7 +39,6 @@ stage_generic: &stage_generic
     - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
     # Compile the executables and run the tests.
-    - sudo apt-get install texlive-latex-base
     - python setup.py build_ext --inplace
     - make test_ci
   after_failure:
@@ -51,6 +50,9 @@ stage_linux: &stage_linux
   dist: trusty
   language: python
   python: 3.5
+  before_install:
+  - sudo apt-get update
+  - sudo apt-get install -y texlive-latex-base
 
 stage_osx: &stage_osx
   <<: *stage_generic
