@@ -27,33 +27,33 @@ subsequent sections:
     simulator = Aer.get_backend('qasm_simulator')
 
     # Create a Quantum Circuit acting on the q register
-    circ = QuantumCircuit(2,2)
+    circuit = QuantumCircuit(2,2)
 
     # Add a H gate on qubit 0
-    circ.h(0)
+    circuit.h(0)
 
     # Add a CX (CNOT) gate on control qubit 0 and target qubit 1
-    circ.cx(0,1)
+    circuit.cx(0,1)
 
     # Map the quantum measurement to the classical bits
-    circ.measure([0,1],[0,1])
+    circuit.measure([0,1],[0,1])
 
     # Execute the circuit on the qasm simulator
-    job = execute(circ, simulator, shots=1024)
+    job = execute(circuit, simulator, shots=1000)
 
     # Grab results from the job
     result = job.result()
 
     # Returns counts
-    counts = result.get_counts(circ)
+    counts = result.get_counts(circuit)
     print("\nTotal count for 00 and 11 are:",counts)
 
     # Draw the circuit
-    circ.draw(output='mpl')
+    circuit.draw(output='mpl')
 
 .. code-block:: text
 
-    Total count for 00 and 11 are: {'00': 487, '11': 537}
+    Total count for 00 and 11 are: {'00': 479, '11': 521}
 
 .. image:: /images/figures/getting_started_1_1.png
    :alt: Quantum Circuit with an H gate and controlled nots.
@@ -194,13 +194,13 @@ circuit will yield either the bit string 00 or 11.
     simulator = Aer.get_backend('qasm_simulator')
     job = execute(circuit, simulator, shots=1000)
     result = job.result()
-    counts = result.get_counts(circ)
+    counts = result.get_counts(circuit)
     print("\nTotal count for 00 and 11 are:",counts)
 
 
 .. code-block:: text
 
-    Total count for 00 and 11 are: {'00': 504, '11': 496}
+    Total count for 00 and 11 are: {'00': 479, '11': 521}
 
 As expected, the output bit string is 00 approximately 50 percent of the time.
 The number of times the circuit is run can be specified via the ``shots``
@@ -224,7 +224,7 @@ the function ``plot_histogram``, to view your results.
 
     plot_histogram(counts)
 
-.. image:: ./images/figures/getting_started_14_0.png
+.. image:: images/figures/getting_started_2_0.png
    :alt: Histogram of results.
 
 The observed probabilities :math:`Pr(00)` and :math:`Pr(11)` are computed by
