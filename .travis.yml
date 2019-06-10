@@ -51,7 +51,6 @@ stage_linux: &stage_linux
   language: python
   python: 3.5
   before_install:
-  - sudo apt-get update
   - sudo apt-get install -y texlive-latex-base
 
 stage_osx: &stage_osx
