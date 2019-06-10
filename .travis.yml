@@ -54,7 +54,8 @@ stage_linux: &stage_linux
   - sudo apt-get install -y texlive-latex-base
   - sudo apt-get install texlive-fonts-recommended
   - sudo apt-get install texlive-fonts-extra
-  - sudo tlmgr update qcircuit
+  - tlmgr init-usertree
+  - tlmgr update qcircuit
 
 stage_osx: &stage_osx
   <<: *stage_generic
