@@ -242,4 +242,3 @@ def combine(**kwargs):
     return deco
 
 
-METATEST = ddt

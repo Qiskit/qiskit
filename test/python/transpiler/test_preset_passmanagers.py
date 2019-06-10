@@ -14,7 +14,9 @@
 
 """Tests preset pass manager functionalities"""
 
-from qiskit.test import QiskitTestCase, METATEST, combine
+from ddt import ddt
+
+from qiskit.test import QiskitTestCase, combine
 from qiskit.compiler import transpile
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo,
@@ -33,7 +35,7 @@ def is_swap_mapped():
     return circuit
 
 
-@METATEST
+@ddt
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
 
@@ -49,7 +51,7 @@ class TestPresetPassManager(QiskitTestCase):
         self.assertIsInstance(result, QuantumCircuit)
 
 
-@METATEST
+@ddt
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
 
