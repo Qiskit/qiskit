@@ -20,7 +20,7 @@ import sys
 import unittest
 from warnings import warn
 from itertools import product
-from ddt import ddt, data, unpack
+from ddt import data, unpack
 
 from qiskit.util import _has_connection
 from .testing_options import get_test_options
@@ -220,5 +220,3 @@ def combine(**kwargs):
         return data(*generate_cases(**kwargs))(unpack(func))
 
     return deco
-
-
