@@ -296,39 +296,42 @@ tr:nth-child(even) {background-color: #f6f6f6;};
 
     for qub in range(left_num):
         gate = multi_qubit_gates[qub]
-        name = gate['name']
+        qubits = gate['qubits']
         ttype = gate['gate']
         error = round(gate['parameters'][0]['value'], 5)
 
         left_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         left_table += "</td><td>%s</td><td>%s</td></tr>"
-        left_table = left_table % (name, ttype, error)
+        left_table = left_table % ("{}{}_{}".format(ttype, qubits[0], qubits[1]),
+                                   ttype, error)
     left_table += gate_footer
 
     middle_table = gate_html
 
     for qub in range(left_num, left_num+mid_num):
         gate = multi_qubit_gates[qub]
-        name = gate['name']
+        qubits = gate['qubits']
         ttype = gate['gate']
         error = round(gate['parameters'][0]['value'], 5)
 
         middle_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         middle_table += "</td><td>%s</td><td>%s</td></tr>"
-        middle_table = middle_table % (name, ttype, error)
+        middle_table = middle_table % ("{}{}_{}".format(ttype, qubits[0], qubits[1]),
+                                       ttype, error)
     middle_table += gate_footer
 
     right_table = gate_html
 
     for qub in range(left_num+mid_num, len(multi_qubit_gates)):
         gate = multi_qubit_gates[qub]
-        name = gate['name']
+        qubits = gate['qubits']
         ttype = gate['gate']
         error = round(gate['parameters'][0]['value'], 5)
 
         right_table += "<tr><td><font style='font-weight:bold'>%s</font>"
         right_table += "</td><td>%s</td><td>%s</td></tr>"
-        right_table = right_table % (name, ttype, error)
+        right_table = right_table % ("{}{}_{}".format(ttype, qubits[0], qubits[1]),
+                                     ttype, error)
     right_table += gate_footer
 
     left_table_widget = widgets.HTML(value=left_table,
