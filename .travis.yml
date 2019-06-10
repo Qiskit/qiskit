@@ -32,7 +32,6 @@ sudo: false
 
 stage_generic: &stage_generic
   install:
-    - apt-get install texlive-latex-base
     # Install step for jobs that require compilation and qa.
     - pip install -U -r requirements.txt
     - pip install -U -r requirements-dev.txt -c constraints.txt
@@ -40,6 +39,7 @@ stage_generic: &stage_generic
     - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
     # Compile the executables and run the tests.
+    - sudo apt-get install texlive-latex-base
     - python setup.py build_ext --inplace
     - make test_ci
   after_failure:
