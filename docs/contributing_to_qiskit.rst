@@ -147,7 +147,7 @@ The following steps show the installation process for Ignis.
   pip install -e qiskit-ignis
 
 Install Terra from Source
---------------------------------
+-------------------------
 Installing from source requires that you have a c++ compiler on your system that supports
 c++-11.  On most Linux platforms, the necessary GCC compiler is already installed.
 
@@ -209,24 +209,26 @@ Install Qiskit Terra
 
     pip install .
 
-
-* To get the examples working, install and run them with the following commands.
+* If you want to install it in editable mode, meaning that code changes to the
+  project don't require a reinstall to be applied you can do this with:
 
 .. code:: sh
 
     pip install -e .
+
+* You can then run the code examples working after installing terra. You can
+  run the example with the following command.
+
+.. code:: sh
+
     python examples/python/using_qiskit_terra_level_0.py
 
 
 After you've installed Terra, you can install Aer as an add-on to run additional simulators.
 
-* `Qiskit Aer <https://github.com/Qiskit/qiskit-aer/blob/master/.github/
+* `Qiskit Aer <https://github.com/Qiskit/qiskit-aer/blob/master/CONTRIBUTING.md>`__
+* `Qiskit Ignis <https://github.com/Qiskit/qiskit-ignis/blob/master/CONTRIBUTING.md>`_
+* `Qiskit Aqua <https://github.com/Qiskit/qiskit-aqua/blob/master/CONTRIBUTING.md>`__
+* `Qiskit Chemistry <https://github.com/Qiskit/qiskit-chemistry/blob/master/CONTRIBUTING.md>`__
+* `Qiskit IBMQ Provider <https://github.com/Qiskit/qiskit-ibmq-provider/blob/master/
   CONTRIBUTING.md>`__
-* `Qiskit Ignis <https://github.com/Qiskit/qiskit-ignis/blob/master/.github/
-  CONTRIBUTING.md>`_
-* `Qiskit Aqua <https://github.com/Qiskit/qiskit-aqua/blob/master/.github/
-  CONTRIBUTING.rst>`__
-* `Qiskit Chemistry <https://github.com/Qiskit/qiskit-chemistry/blob/master/
-  .github/CONTRIBUTING.rst>`__
-* `Qiskit IBMQ Provider <https://github.com/Qiskit/qiskit-ibmq-provider/blob/
-  master/.github/CONTRIBUTING.rst>`__
