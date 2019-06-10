@@ -110,7 +110,7 @@ class QCircuitImage:
         self.sum_row_heights = 0
 
         # em points of separation between circuit columns
-        self.column_separation = 0.5
+        self.column_separation = 1
 
         # em points of separation between circuit row
         self.row_separation = 0
@@ -162,7 +162,7 @@ class QCircuitImage:
 \begin{document}
 \begin{equation*}"""
         qcircuit_line = r"""
-    \Qcircuit @C=%.1fem @R=%.1fem @! {
+    \Qcircuit @C=%.1fem @R=%.1fem @!R {
 """
         output = io.StringIO()
         output.write(header_1)

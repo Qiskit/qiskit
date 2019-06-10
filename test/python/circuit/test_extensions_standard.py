@@ -235,29 +235,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(QiskitError, qc.cx, self.cr, self.qr)
         self.assertRaises(QiskitError, qc.cx, 'a', self.qr[1])
 
-    def test_cxbase(self):
-        self.circuit.cx_base(self.qr[1], self.qr[2])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'CX')
-        self.assertEqual(op.params, [])
-        self.assertEqual(qargs, [self.qr[1], self.qr[2]])
-
-    def test_cxbase_wires(self):
-        self.circuit.cx_base(1, 2)
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'CX')
-        self.assertEqual(op.params, [])
-        self.assertEqual(qargs, [self.qr[1], self.qr[2]])
-
-    def test_cxbase_invalid(self):
-        qc = self.circuit
-        self.assertRaises(QiskitError, qc.cx_base, self.cr[1], self.cr[2])
-        self.assertRaises(QiskitError, qc.cx_base, self.qr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.cx_base, .0, self.qr[0])
-        self.assertRaises(QiskitError, qc.cx_base, (self.qr, 3), self.qr[0])
-        self.assertRaises(QiskitError, qc.cx_base, self.cr, self.qr)
-        self.assertRaises(QiskitError, qc.cx_base, 'a', self.qr[1])
-
     def test_cy(self):
         self.circuit.cy(self.qr[1], self.qr[2])
         op, qargs, _ = self.circuit[0]
@@ -868,52 +845,6 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(op.params, [pi, pi / 2, 0.3 * pi])
         self.assertEqual(qargs, [self.qr[1]])
 
-    def test_ubase(self):
-        self.circuit.u_base(1, 2, 3, self.qr[1])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'U')
-        self.assertEqual(op.params, [1, 2, 3])
-        self.assertEqual(qargs, [self.qr[1]])
-
-    def test_ubase_wires(self):
-        self.circuit.u_base(1, 2, 3, 1)
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'U')
-        self.assertEqual(op.params, [1, 2, 3])
-        self.assertEqual(qargs, [self.qr[1]])
-
-    def test_ubase_invalid(self):
-        qc = self.circuit
-        # TODO self.assertRaises(QiskitError, qc.u_base, 0, self.cr[0], self.qr[0])
-        self.assertRaises(QiskitError, qc.u_base, 0, 0, self.cr[0], self.cr[1])
-        self.assertRaises(QiskitError, qc.u_base, 0, 0, self.qr[1], .0)
-        self.assertRaises(QiskitError, qc.u_base, 0, 0, 0, self.cr[0])
-        self.assertRaises(QiskitError, qc.u_base, 0, 0, 0, .0)
-        self.assertRaises(QiskitError, qc.u_base, 0, 0, self.qr[2], self.qr[1])
-        self.assertRaises(QiskitError, qc.u_base, 0, 0, 0, (self.qr, 3))
-        self.assertRaises(QiskitError, qc.u_base, 0, 0, 0, self.cr)
-        # TODO self.assertRaises(QiskitError, qc.u_base, 0, 0, 'a', self.qr[1])
-        self.assertRaises(QiskitError, qc.u_base, 0, 0, 0, 'a')
-
-    def test_ubase_reg(self):
-        instruction_set = self.circuit.u_base(1, 2, 3, self.qr)
-        self.assertEqual(instruction_set.instructions[0].name, 'U')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [1, 2, 3])
-
-    def test_ubase_reg_inv(self):
-        instruction_set = self.circuit.u_base(1, 2, 3, self.qr).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'U')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [-1, -3, -2])
-
-    def test_ubase_pi(self):
-        self.circuit.u_base(pi, pi / 2, 0.3 * pi, self.qr[1])
-        op, qargs, _ = self.circuit[0]
-        self.assertEqual(op.name, 'U')
-        self.assertEqual(op.params, [pi, pi / 2, 0.3 * pi])
-        self.assertEqual(qargs, [self.qr[1]])
-
     def test_x(self):
         self.circuit.x(self.qr[1])
         op, qargs, _ = self.circuit[0]
@@ -1194,42 +1125,6 @@ class TestStandard2Q(QiskitTestCase):
     def test_cx_bit_reg_inv(self):
         instruction_set = self.circuit.cx(self.qr[1], self.qr2).inverse()
         self.assertEqual(instruction_set.instructions[0].name, 'cx')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [])
-
-    def test_cxbase_reg_reg(self):
-        instruction_set = self.circuit.cx_base(self.qr, self.qr2)
-        self.assertEqual(instruction_set.instructions[0].name, 'CX')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [])
-
-    def test_cxbase_reg_reg_inv(self):
-        instruction_set = self.circuit.cx_base(self.qr, self.qr2).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'CX')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [])
-
-    def test_cxbase_reg_bit(self):
-        instruction_set = self.circuit.cx_base(self.qr, self.qr2[1])
-        self.assertEqual(instruction_set.instructions[0].name, 'CX')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [])
-
-    def test_cxbase_reg_bit_inv(self):
-        instruction_set = self.circuit.cx_base(self.qr, self.qr2[1]).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'CX')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [])
-
-    def test_cxbase_bit_reg(self):
-        instruction_set = self.circuit.cx_base(self.qr[1], self.qr2)
-        self.assertEqual(instruction_set.instructions[0].name, 'CX')
-        self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
-        self.assertEqual(instruction_set.instructions[2].params, [])
-
-    def test_cxbase_bit_reg_inv(self):
-        instruction_set = self.circuit.cx_base(self.qr[1], self.qr2).inverse()
-        self.assertEqual(instruction_set.instructions[0].name, 'CX')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1], self.qr2[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
 
