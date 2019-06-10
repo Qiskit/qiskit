@@ -353,7 +353,6 @@ class TestSchedule(QiskitTestCase):
         only_fc = sched.filter(instruction_types={FrameChangeInstruction})
         self.assertEqual(len(only_fc.instructions), 1)
 
-
     def test_filter_intervals(self):
         """Test filtering on intervals."""
         device = self.two_qubit_device
@@ -367,8 +366,8 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(90, lp0(device.q[0].drive))
 
         intervals_a = sched.filter(intervals=((0, 13),))
-        for t, inst in intervals_a.instructions:
-            self.assertTrue(0 <= t <= 13)
+        for time, inst in intervals_a.instructions:
+            self.assertTrue(0 <= time <= 13)
             self.assertTrue(inst.timeslots.timeslots[0].interval.end <= 13)
         self.assertEqual(len(intervals_a.instructions), 2)
 
@@ -382,7 +381,6 @@ class TestSchedule(QiskitTestCase):
 
         multi_interval = sched.filter(intervals=[(10, 15), (63, 93)])
         self.assertEqual(len(multi_interval.instructions), 2)
-
 
     def test_filter_multiple(self):
         """Test filter composition."""
@@ -420,9 +418,8 @@ class TestSchedule(QiskitTestCase):
         for i in sched._filter([lambda x: True]).instructions:
             self.assertTrue(i in sched.instructions)
         self.assertEqual(len(sched._filter([lambda x: False]).instructions), 0)
-        self.assertEqual(len(sched._filter([lambda x: True if x[0] < 30 else False]).instructions),
+        self.assertEqual(len(sched._filter([lambda x: x[0] < 30]).instructions),
                          2)
-
 
     def test_buffering(self):
         """Test channel buffering."""
