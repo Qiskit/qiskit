@@ -83,7 +83,6 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_pulse_matplotlib_drawer(self):
         filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
         pulse = self.sample_pulse()
@@ -94,7 +93,6 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_instruction_matplotlib_drawer(self):
         filename = self._get_resource_path('current_instruction_matplotlib_ref.png')
         pulse_instruction = self.sample_instruction()
@@ -105,7 +103,6 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
     @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
-    @unittest.skip('Useful for refactoring purposes, skipping by default.')
     def test_schedule_matplotlib_drawer(self):
         filename = self._get_resource_path('current_schedule_matplotlib_ref.png')
         schedule = self.sample_schedule()
