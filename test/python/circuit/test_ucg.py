@@ -27,17 +27,20 @@ from scipy.linalg import block_diag
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-_id = np.eye(2,2)
-_not = np.matrix([[0,1],[1,0]])
+_id = np.eye(2, 2)
+_not = np.matrix([[0, 1], [1, 0]])
 
-squs_list = [[_not],[_id],[_id,_id],[_id,1j*_id],[_id,_not,_id,_not],[random_unitary(2).data for i in range(2**2)],
-         [random_unitary(2).data for i in range(2**3)],[random_unitary(2).data for i in range(2**4)]]
+squs_list = [[_not], [_id], [_id, _id], [_id, 1j * _id], [_id, _not, _id, _not],
+             [random_unitary(2).data for i in range(2 ** 2)],
+             [random_unitary(2).data for i in range(2 ** 3)],
+             [random_unitary(2).data for i in range(2 ** 4)]]
 
 up_to_diagonal_list = [True, False]
 
 
 class TestUCG(QiskitTestCase):
     """Qiskit UCG tests."""
+
     def test_ucg(self):
         for squs, up_to_diagonal in itertools.product(squs_list, up_to_diagonal_list):
             with self.subTest(single_qubit_unitaries=squs, up_to_diagonal=up_to_diagonal):
@@ -60,6 +63,7 @@ class TestUCG(QiskitTestCase):
 
 def _get_ucg_matrix(squs):
     return block_diag(*squs)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -9,8 +9,9 @@
 Tests for the decomposition of isometries from m to n qubits.
 """
 
-# ToDo: It might be worth to add more functionality to the class QiskitTestCase. In particular, the possibility to check
-# ToDo: a gate for a set of possible input vectors (up to a global phase shift). The testing code for UCY,UCZ, UCG and
+# ToDo: It might be worth to add more functionality to the class QiskitTestCase.
+# ToDo: In particular, the possibility to check a gate for a set of possible input vectors
+# ToDo: (up to a global phase shift). The testing code for UCY,UCZ, UCG and
 # ToDo: and SQU could then be simplified.
 
 import unittest
@@ -29,8 +30,10 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 
 class TestUCG(QiskitTestCase):
     """Qiskit isometry tests."""
+
     def test_isometry(self):
-        for iso in [np.eye(2, 2), random_unitary(2).data, np.eye(4, 4), random_unitary(4).data[:, 0],
+        for iso in [np.eye(2, 2), random_unitary(2).data, np.eye(4, 4),
+                    random_unitary(4).data[:, 0],
                     np.eye(4, 4)[:, 0:2], random_unitary(4).data,
                     np.eye(4, 4)[:, np.random.permutation(np.eye(4, 4).shape[1])][:, 0:2],
                     np.eye(8, 8)[:, np.random.permutation(np.eye(8, 8).shape[1])],
@@ -51,7 +54,7 @@ class TestUCG(QiskitTestCase):
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()
                 unitary = result.get_unitary(qc)
-                iso_from_circuit = unitary[::, 0:2**num_q_input]
+                iso_from_circuit = unitary[::, 0:2 ** num_q_input]
                 iso_desired = iso
                 self.assertTrue(matrix_equal(iso_from_circuit, iso_desired, ignore_phase=True))
 

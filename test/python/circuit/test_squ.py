@@ -21,8 +21,9 @@ from qiskit.quantum_info.operators.predicates import matrix_equal
 Tests for the ZYZ decomposition for single-qubit unitary.
 """
 
-squs = [np.eye(2, 2), np.array([[0., 1.], [1., 0.]]), 1 / np.sqrt(2) * np.array([[1., 1.], [-1., 1.]]),
-         np.array([[np.exp(1j * 5. / 2), 0], [0, np.exp(-1j * 5. / 2)]]), random_unitary(2).data]
+squs = [np.eye(2, 2), np.array([[0., 1.], [1., 0.]]),
+        1 / np.sqrt(2) * np.array([[1., 1.], [-1., 1.]]),
+        np.array([[np.exp(1j * 5. / 2), 0], [0, np.exp(-1j * 5. / 2)]]), random_unitary(2).data]
 
 up_to_diagonal_list = [True, False]
 
@@ -32,7 +33,7 @@ class TestSingleQubitUnitary(QiskitTestCase):
 
     def test_squ(self):
         for u, up_to_diagonal in itertools.product(squs, up_to_diagonal_list):
-            with self.subTest(u=u,up_to_diagonal=up_to_diagonal):
+            with self.subTest(u=u, up_to_diagonal=up_to_diagonal):
                 qr = QuantumRegister(1, "qr")
                 qc = QuantumCircuit(qr)
                 qc.squ(u, qr[0], up_to_diagonal=up_to_diagonal)

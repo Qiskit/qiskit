@@ -10,7 +10,7 @@
 
 """
 Decomposes a diagonal matrix into elementary gates using the method described in Theorem 7 in
-"Synthesis of Quantum Logic Circuits" by V. Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
+"Synthesis of Quantum Logic Circuits" by Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
 """
 import cmath
 import math
@@ -26,7 +26,8 @@ _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 class DiagGate(Gate):
     """
-    diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least two entries.
+    diag =  list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at
+    least two entries.
     """
 
     def __init__(self, diag):
@@ -36,15 +37,17 @@ class DiagGate(Gate):
             raise QiskitError("The diagonal entries are not provided in a list.")
 
         """Check input form"""
-        # Check if the right number of diagonal entries is provided and if the diagonal entries have absolute value one.
+        # Check if the right number of diagonal entries is provided and if the diagonal entries
+        # have absolute value one.
         num_action_qubits = math.log2(len(diag))
         if num_action_qubits < 1 or not num_action_qubits.is_integer():
             raise QiskitError("The number of diagonal entries is not a positive power of 2.")
         for z in diag:
             try:
                 complex(z)
-            except:
-                raise QiskitError("Not all of the diagonal entries can be converted to complex numbers.")
+            except TypeError:
+                raise QiskitError("Not all of the diagonal entries can be converted to "
+                                  "complex numbers.")
             if not np.abs(z) - 1 < _EPS:
                 raise QiskitError("A diagonal entry has not absolute value one.")
 
@@ -65,8 +68,8 @@ class DiagGate(Gate):
         """
         q = QuantumRegister(self.num_qubits)
         circuit = QuantumCircuit(q)
-        # Since the diagonal is a unitary, all its entries have absolute value one and the diagonal is fully specified
-        #  by the phases of its entries
+        # Since the diagonal is a unitary, all its entries have absolute value one and the diagonal
+        # is fully specified by the phases of its entries
         diag_phases = [cmath.phase(z) for z in self.params]
         n = len(self.params)
         while n >= 2:
@@ -82,8 +85,8 @@ class DiagGate(Gate):
         return circuit
 
 
-# extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle) is equal to the diagonal matrix
-# with entires exp(1j*ph1) and exp(1j*ph2)
+# extract a Rz rotation (angle given by first output) such that exp(j*phase)*Rz(z_angle)
+# is equal to the diagonal matrix with entires exp(1j*ph1) and exp(1j*ph2)
 def _extract_rz(phi1, phi2):
     phase = (phi1 + phi2) / 2.0
     z_angle = phi2 - phi1
@@ -92,15 +95,16 @@ def _extract_rz(phi1, phi2):
 
 """
 Attach a diagonal gate to a circuit. The decomposition is based on Theorem 7 given in
-"Synthesis of Quantum Logic Circuits" by V. Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
+"Synthesis of Quantum Logic Circuits" by Shende et al. (https://arxiv.org/pdf/quant-ph/0406176.pdf).
 
     Args:
-        diag (list[number]): list of the 2^k diagonal entries (for a diagonal gate on k qubits). Must contain at least 
-            two entries.
-        q (QautnumRegister|list[(QuantumRegister,int)]): list of k qubits the diagonal is acting on (the order of the 
-            qubits specifies the computational basis in which the diagonal gate is provided: the first element in diag 
-            acts on the state where all the qubits in q are in the state 0, the second entry acts on the state where all
-            the qubits q[1],...,q[k-1] are in the state zero and q[0] is in the state 1, and so on.
+        diag (list[number]): list of the 2^k diagonal entries (for a diagonal gate on k qubits).
+            Must contain at least two entries.
+        q (QautnumRegister|list[(QuantumRegister,int)]): list of k qubits the diagonal is acting on
+            (the order of the qubits specifies the computational basis in which the diagonal gate is
+             provided: the first element in diag acts on the state where all the qubits in q are in
+             the state 0, the second entry acts on the state where all the qubits q[1],...,q[k-1]
+             are in the state zero and q[0] is in the state 1, and so on.
 
     Returns:
         QuantumCircuit: the diagonal gate is attached to the circuit.
@@ -110,18 +114,21 @@ Attach a diagonal gate to a circuit. The decomposition is based on Theorem 7 giv
             if the number of diagonal entries is not 2^k, where k denotes the number of qubits
 """
 
+
 def diag(self, diag, q):
     if isinstance(q, QuantumRegister):
         q = q[:]
     # Check if q has type "list"
     if not type(q) == list:
-        raise QiskitError("The qubits must be provided as a list (also if there is only one qubit).")
+        raise QiskitError("The qubits must be provided as a list "
+                          "(also if there is only one qubit).")
     # Check if diag has type "list"
     if not type(diag) == list:
         raise QiskitError("The diagonal entries are not provided in a list.")
     num_action_qubits = math.log2(len(diag))
     if not len(q) == num_action_qubits:
-        raise QiskitError("The number of diagonal entries does not correspond to the number of qubits.")
+        raise QiskitError("The number of diagonal entries does not correspond to"
+                          " the number of qubits.")
     return self.append(DiagGate(diag), q)
 
 
