@@ -192,7 +192,7 @@ circuit will yield either the bit string 00 or 11.
 .. code-block:: python
 
     simulator = Aer.get_backend('qasm_simulator')
-    job = execute(circ, simulator, shots=1000)
+    job = execute(circuit, simulator, shots=1000)
     result = job.result()
     counts = result.get_counts(circ)
     print("\nTotal count for 00 and 11 are:",counts)
@@ -200,7 +200,7 @@ circuit will yield either the bit string 00 or 11.
 
 .. code-block:: text
 
-    Total count for 00 and 11 are: {'00': 514, '11': 510}
+    Total count for 00 and 11 are: {'00': 504, '11': 496}
 
 As expected, the output bit string is 00 approximately 50 percent of the time.
 The number of times the circuit is run can be specified via the ``shots``
