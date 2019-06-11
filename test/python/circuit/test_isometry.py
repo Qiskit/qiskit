@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-"""
-Tests for the decomposition of isometries from m to n qubits.
-"""
-
-# ToDo: It might be worth to add more functionality to the class QiskitTestCase.
-# ToDo: In particular, the possibility to check a gate for a set of possible input vectors
-# ToDo: (up to a global phase shift). The testing code for UCY,UCZ, UCG and
-# ToDo: and SQU could then be simplified.
+"""Isometry tests."""
 
 import unittest
 
@@ -28,10 +28,11 @@ from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
-class TestUCG(QiskitTestCase):
+class TestIsometry(QiskitTestCase):
     """Qiskit isometry tests."""
 
     def test_isometry(self):
+        """Tests for the decomposition of isometries from m to n qubits"""
         for iso in [np.eye(2, 2), random_unitary(2).data, np.eye(4, 4),
                     random_unitary(4).data[:, 0],
                     np.eye(4, 4)[:, 0:2], random_unitary(4).data,

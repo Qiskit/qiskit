@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=unused-variable
 
 """
 Multi controlled single-qubit unitary up to diagonal.
@@ -29,43 +38,30 @@ class MCGupDiag(Gate):
     Decomposes a multi-controlled gate u up to a diagonal d acting on the control and target qubit
     (but not on the  ancilla qubits), i.e., it implements a circuit corresponding to a unitary u'
     such that u=d.u'.
-
-    Input:
-    gate =  a single-qubit unitary U  a given as a 2*2 numpy array.
-
-    num_controls = number of control qubits
-
-    num_ancillas_zero = number of additional ancillas that start in the state ket(0)
-                        (the n-m ancillas required for providing the ouput of the isometry are
-                        not accounted for here).
-
-    num_ancillas_dirty = number of additional ancillas that start in an arbitrary state
-    """
-
-    """
-    Remark: The qubits the gate acts on should be provided in the following order:
-    q=[q_target,q_controls,q_ancilla_zero,q_ancilla_dirty], where
-
-    q_controls =   list of k control qubits.
-                    [The qubits are ordered with increasing significance (this will
-                    determine the basis in which the diagonal gate is stored in)]
-
-    q_target =     target qubit, where we act on with the single-qubit gates.
     """
 
     def __init__(self, gate, num_controls, num_ancillas_zero, num_ancillas_dirty):
+        """
+        Initialize a multi controlled gate.
+            Args:
+                gate (ndarray): 2*2 unitary (given as a (complex) ndarray)
+                num_controls (int): number of control qubits
+                num_ancillas_zero (int): number of ancilla qubits that start in the state zero
+                num_ancillas_dirty (int): number of anxilla qubits that are allowed to start in an
+                    arbitrary state
+            Raises:
+                QiskitError: if the input format is wrong; if the array gate is not unitary
+        """
+
         self.num_controls = num_controls
         self.num_ancillas_zero = num_ancillas_zero
         self.num_ancillas_dirty = num_ancillas_dirty
         # Check if the gate has the right dimension
         if not gate.shape == (2, 2):
             raise QiskitError("The dimension of the controlled gate is not equal to (2,2).")
-
-        """Check if the input has the correct form"""
         # Check if the single-qubit gate is unitary
         if not _is_isometry(gate, _EPS):
             raise QiskitError("The controlled gate is not unitary.")
-
         # Create new gate.
         num_qubits = 1 + num_controls + num_ancillas_zero + num_ancillas_dirty
         super().__init__("MCGupDiag", num_qubits, [gate])
@@ -79,7 +75,7 @@ class MCGupDiag(Gate):
         self.definition = mcg_up_diag_circuit.data
 
     # Returns the diagonal up to which the gate is implemented.
-    def get_diagonal(self):
+    def _get_diagonal(self):
         # Important: for a control list q_controls = [q[0],...,q_[k-1]] the diagonal gate is
         # provided in the computational basis of the qubits q[k-1],...,q[0],q_target, decreasingly
         # ordered with respect to the significance of the qubit in the computational basis
@@ -89,6 +85,8 @@ class MCGupDiag(Gate):
     def _dec_mcg_up_diag(self):
         """
         Call to create a circuit with gates that implement the MCG up to a diagonal gate.
+        Remark: The qubits the gate acts on are ordered in the following way:
+            q=[q_target,q_controls,q_ancilla_zero,q_ancilla_dirty]
         """
         diag = np.ones(2 ** (self.num_controls + 1)).tolist()
         q = QuantumRegister(self.num_qubits)
@@ -104,11 +102,10 @@ class MCGupDiag(Gate):
             gate_list[-1] = self.params[0]
             ucg = UCG(gate_list, up_to_diagonal=True)
             circuit.append(ucg, [q_target] + q_controls)
-            diag = ucg.get_diagonal()
-        else:
+            diag = ucg._get_diagonal()
+            # else:
             # ToDo: Use the best decomposition for MCGs up to diagonal gates here
             # ToDo: (with all available ancillas)
-            None
         return circuit, diag
 
     def _define_qubit_role(self, q):

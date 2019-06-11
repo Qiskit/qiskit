@@ -1,12 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # The structure of the code is based on Emanuel Malvetti's semester thesis at ETH in 2018,
 # which was supervised by Raban Iten and Prof. Renato Renner.
+
+# pylint: disable=invalid-name
 
 """
 (Abstract) base class for uniformly controlled (also called multiplexed) single-qubit rotations R_t.
@@ -42,10 +51,8 @@ class UCRot(Gate):
 
     def __init__(self, angle_list, rot_axis):
         self.rot_axes = rot_axis
-
-        """Check types"""
         # Check if angle_list has type "list"
-        if not type(angle_list) == list:
+        if not isinstance(angle_list, list):
             raise QiskitError("The angles are not provided in a list.")
         # Check if the angles in angle_list are real numbers
         for a in angle_list:
@@ -54,13 +61,11 @@ class UCRot(Gate):
             except TypeError:
                 raise QiskitError(
                     "An angle cannot be converted to type float (real angles are expected).")
-
-        """Check input form"""
         num_contr = math.log2(len(angle_list))
         if num_contr < 0 or not num_contr.is_integer():
             raise QiskitError(
                 "The number of controlled rotation gates is not a non-negative power of 2.")
-        if rot_axis != "Y" and rot_axis != "Z" and rot_axis != "X":
+        if rot_axis not in ("X", "Y", "Z"):
             raise QiskitError("Rotation axis is not supported.")
         # Create new gate.
         num_qubits = int(num_contr) + 1
@@ -81,17 +86,16 @@ class UCRot(Gate):
             ucr_circuit.append(gate, q[:])
         self.definition = ucr_circuit.data
 
-    """
-    finds a decomposition of a UC rotation gate into elementary gates
-    (C-NOTs and single-qubit rotations).
-    """
-
     def _dec_ucrot(self):
+        """
+        finds a decomposition of a UC rotation gate into elementary gates
+        (C-NOTs and single-qubit rotations).
+        """
         q = QuantumRegister(self.num_qubits)
         circuit = QuantumCircuit(q)
         q_target = q[0]
         q_controls = q[1:]
-        if len(q_controls) == 0:
+        if not q_controls:  # equivalent to: if len(q_controls) == 0
             if self.rot_axes == "X":
                 if np.abs(self.params[0]) > _EPS:
                     circuit.rx(self.params[0], q_target)
@@ -106,17 +110,17 @@ class UCRot(Gate):
             #  on the target qubit
             angles = self.params.copy()
             _dec_uc_rotations(angles, 0, len(angles), False)
-            # Now, it is easy to place the C-NOT gates to get back the full decomposition.
-            for i in range(len(angles)):
+            # Now, it is easy to place the C-NOT gates to get back the full decomposition.s
+            for (i, angle) in enumerate(angles):
                 if self.rot_axes == "X":
-                    if np.abs(angles[i]) > _EPS:
-                        circuit.rx(angles[i], q_target)
+                    if np.abs(angle) > _EPS:
+                        circuit.rx(angle, q_target)
                 if self.rot_axes == "Y":
-                    if np.abs(angles[i]) > _EPS:
-                        circuit.ry(angles[i], q_target)
+                    if np.abs(angle) > _EPS:
+                        circuit.ry(angle, q_target)
                 if self.rot_axes == "Z":
-                    if np.abs(angles[i]) > _EPS:
-                        circuit.rz(angles[i], q_target)
+                    if np.abs(angle) > _EPS:
+                        circuit.rz(angle, q_target)
                 # Determine the index of the qubit we want to control the C-NOT gate.
                 # Note that it corresponds
                 # to the number of trailing zeros in the binary representaiton of i+1

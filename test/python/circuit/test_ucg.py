@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=invalid-name
 
 
 """
@@ -14,16 +23,14 @@ import unittest
 
 import itertools
 
+import numpy as np
+from scipy.linalg import block_diag
+
 from qiskit.extensions.quantum_initializer.ucg import UCG
 
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import BasicAer
-import numpy as np
-from qiskit import execute
+from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
-from scipy.linalg import block_diag
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
@@ -42,6 +49,7 @@ class TestUCG(QiskitTestCase):
     """Qiskit UCG tests."""
 
     def test_ucg(self):
+        """Test uniformly controlled gates."""
         for squs, up_to_diagonal in itertools.product(squs_list, up_to_diagonal_list):
             with self.subTest(single_qubit_unitaries=squs, up_to_diagonal=up_to_diagonal):
                 num_con = int(np.log2(len(squs)))
@@ -56,7 +64,7 @@ class TestUCG(QiskitTestCase):
                 unitary = result.get_unitary(qc)
                 if up_to_diagonal:
                     ucg = UCG(squs, up_to_diagonal=up_to_diagonal)
-                    unitary = np.dot(np.diagflat(ucg.get_diagonal()), unitary)
+                    unitary = np.dot(np.diagflat(ucg._get_diagonal()), unitary)
                 unitary_desired = _get_ucg_matrix(squs)
                 self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 

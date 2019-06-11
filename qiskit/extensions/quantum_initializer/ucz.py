@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 Implementation of the abstract class UCRot for uniformly controlled
@@ -35,31 +42,30 @@ class UCZ(UCRot):
         super().__init__(angle_list, "Z")
 
 
-"""
-Attach a uniformly controlled (also called multiplexed gates) Rz rotation gate to a circuit.
-The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
-
-    Args:
-        angle_list (list[numbers): list of (real) rotation angles [a_0,...,a_{2^k-1}]
-        q_controls (QautnumRegister|list[(QuantumRegister,int)]): list of k control qubits
-            (or empty list if no controls). The control qubits are ordered according to their
-            significance in increasing order: For example if q_controls=[q[1],q[2]]
-            (with q = QuantumRegister(2)), the rotation Rz(a_0)is performed if q[1] and q[2] are in
-            the state zero, the rotation  Rz(a_1) is performed if q[1] is in the state one and q[2]
-            is in the state zero, and so on.
-        q_target (QautnumRegister|(QuantumRegister,int)): target qubit, where we act on with
-            the single-qubit rotation gates.
-
-    Returns:
-        QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
-
-    Raises:
-        QiskitError: if the list number of control qubits does not correspond to the provided
-            number of single-qubit unitaries; if an input is of the wrong type
-"""
-
-
 def ucz(self, angle_list, q_controls, q_target):
+    """
+    Attach a uniformly controlled (also called multiplexed gates) Rz rotation gate to a circuit.
+    The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
+
+        Args:
+            angle_list (list[numbers): list of (real) rotation angles [a_0,...,a_{2^k-1}]
+            q_controls (QuantumRegister|list[Qubit]): list of k control qubits
+                (or empty list if no controls). The control qubits are ordered according to their
+                significance in increasing order: For example if q_controls=[q[1],q[2]]
+                (with q = QuantumRegister(2)), the rotation Rz(a_0)is performed if q[1] and q[2]
+                are in the state zero, the rotation  Rz(a_1) is performed if q[1] is in
+                the state one and q[2] is in the state zero, and so on
+            q_target (QuantumRegister|Qubit): target qubit, where we act on with
+                the single-qubit rotation gates
+
+        Returns:
+            QuantumCircuit: the uniformly controlled rotation gate is attached to the circuit.
+
+        Raises:
+            QiskitError: if the list number of control qubits does not correspond to the provided
+                number of single-qubit unitaries; if an input is of the wrong type
+    """
+
     if isinstance(q_controls, QuantumRegister):
         q_controls = q_controls[:]
     if isinstance(q_target, QuantumRegister):
@@ -70,7 +76,7 @@ def ucz(self, angle_list, q_controls, q_target):
             raise QiskitError("The target qubit is a QuantumRegister containing"
                               " more than one qubits.")
     # Check if q_controls has type "list"
-    if not type(angle_list) == list:
+    if not isinstance(angle_list, list):
         raise QiskitError("The angles must be provided as a list.")
     num_contr = math.log2(len(angle_list))
     if num_contr < 0 or not num_contr.is_integer():

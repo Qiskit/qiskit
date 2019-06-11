@@ -1,9 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=invalid-name
 
 """
 Decompose an arbitrary 2*2 unitary into three rotation gates: U=R_zR_yR_z.
@@ -17,9 +26,8 @@ import cmath
 import numpy as np
 
 from qiskit.circuit import Gate
-from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
+from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit, Qubit
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.quantumregister import Qubit
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -36,12 +44,12 @@ class SingleQubitUnitary(Gate):
     """
 
     def __init__(self, u, mode="ZYZ", up_to_diagonal=False):
-        if not mode == "ZYZ":
+        if mode != "ZYZ":
             raise QiskitError("The decomposition mode is not known.")
         # Check if the matrix u has the right dimensions and if it is a unitary
         if not u.shape == (2, 2):
             raise QiskitError("The dimension of the input matrix is not equal to (2,2).")
-        if not is_isometry(u):
+        if not _is_isometry(u):
             raise QiskitError("The 2*2 matrix is not unitary.")
         self.mode = mode
         self.up_to_diagonal = up_to_diagonal
@@ -50,7 +58,7 @@ class SingleQubitUnitary(Gate):
 
     # Returns the diagonal gate D up to which the single-qubit unitary u is implemented,
     # i.e., u=D.u', where u' is the unitary implemented by the found circuit.
-    def get_diag(self):
+    def _get_diag(self):
         _, diag = self._dec_single_qubit_unitary()
         return diag
 
@@ -115,7 +123,7 @@ class SingleQubitUnitary(Gate):
             d = cmath.phase(u00 * np.exp(-1j * c / 2))
             return 0., 0., -c, d
         b = 2 * np.arccos(np.abs(u00))
-        if 0 < np.sin(b / 2) - np.cos(b / 2):
+        if np.sin(b / 2) - np.cos(b / 2) > 0:
             c = cmath.phase(-u00 / u10)
             a = cmath.phase(u00 / u01)
         else:
@@ -128,38 +136,37 @@ class SingleQubitUnitary(Gate):
         return -a, -b, -c, d
 
 
-def ct(m):
+def _ct(m):
     return np.transpose(np.conjugate(m))
 
 
-def is_isometry(m):
-    return np.allclose(ct(m).dot(m), np.eye(m.shape[1], m.shape[1]), atol=_EPS)
-
-
-"""
-Decompose an arbitrary 2*2 unitary into three rotation gates: U=R_zR_yR_z.
-Note that the decomposition is up to a global phase shift.
-(This is a well known decomposition, which can be found for example in Nielsen and Chuang's book
-"Quantum computation and quantum information".)
-
-    Args:
-        u (ndarray): 2*2 unitary (given as a (complex) ndarray)
-        qubit (QautnumRegister|(QuantumRegister,int)): the qubit, on which the gate is acting on
-        mode (string): determines the used decomposition by providing the rotation axes.
-            The allowed modes are: "ZYZ" (default).
-        up_to_diagonal (boolean):  if set to True, the single-qubit unitary is decomposed up to
-            a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
-            diagonal gate d with u = d.dot(u').
-    Returns:
-        QuantumCircuit: the single-qubit unitary (up to a diagonal gate if up_to_diagonal = True)
-            is attached to the circuit.
-
-    Raises:
-        QiskitError: if the format is wrong; if the array u is not unitary
-"""
+def _is_isometry(m):
+    return np.allclose(_ct(m).dot(m), np.eye(m.shape[1], m.shape[1]), atol=_EPS)
 
 
 def squ(self, u, qubit, mode="ZYZ", up_to_diagonal=False):
+    """
+    Decompose an arbitrary 2*2 unitary into three rotation gates: U=R_zR_yR_z.
+    Note that the decomposition is up to a global phase shift.
+    (This is a well known decomposition, which can be found for example in Nielsen and Chuang's book
+    "Quantum computation and quantum information".)
+
+        Args:
+            u (ndarray): 2*2 unitary (given as a (complex) ndarray)
+            qubit (QuantumRegister|Qubit): the qubit, on which the gate is acting on
+            mode (string): determines the used decomposition by providing the rotation axes.
+                The allowed modes are: "ZYZ" (default)
+            up_to_diagonal (bool):  if set to True, the single-qubit unitary is decomposed up to
+                a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
+                diagonal gate d with u = d.dot(u')
+        Returns:
+            QuantumCircuit: the single-qubit unitary (up to a diagonal gate if
+            up_to_diagonal = True) is attached to the circuit.
+
+        Raises:
+            QiskitError: if the format is wrong; if the array u is not unitary
+    """
+
     if isinstance(qubit, QuantumRegister):
         qubit = qubit[:]
         if len(qubit) == 1:
@@ -168,7 +175,7 @@ def squ(self, u, qubit, mode="ZYZ", up_to_diagonal=False):
             raise QiskitError("The target qubit is a QuantumRegister containing more than"
                               " one qubits.")
     # Check if there is one target qubit provided
-    if not (type(qubit) == Qubit):
+    if not isinstance(qubit, Qubit):
         raise QiskitError("The target qubit is not a single qubit from a QuantumRegister.")
     return self.append(SingleQubitUnitary(u, mode, up_to_diagonal), [qubit], [])
 

@@ -1,25 +1,30 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-"""
-Test the decomposition of uniformly controlled rotations.
-"""
+# pylint: disable=invalid-name
+
+"""Tests for uniformly controlled Rx,Ry and Rz gates"""
 
 import itertools
 import unittest
 
 import numpy as np
-
-from qiskit import BasicAer
-from qiskit import QuantumCircuit
-from qiskit import QuantumRegister
-from qiskit import execute
-from qiskit.test import QiskitTestCase
 from scipy.linalg import block_diag
+
+from qiskit import BasicAer, QuantumCircuit, QuantumRegister, execute
+from qiskit.test import QiskitTestCase
+
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler import transpile
 
@@ -31,10 +36,11 @@ angles_list = [[0], [0.4], [0, 0], [0, 0.8], [0, 0, 1, 1], [0, 1, 0.5, 1],
 rot_axis_list = ["X", "Y", "Z"]
 
 
-class TestUCY(QiskitTestCase):
+class TestUCXYZ(QiskitTestCase):
     """Qiskit tests for UCX, UCY and UCZ rotations gates."""
 
     def test_ucy(self):
+        """ Test the decomposition of uniformly controlled rotations."""
         for angles, rot_axis in itertools.product(angles_list, rot_axis_list):
             with self.subTest(angles=angles, rot_axis=rot_axis):
                 num_contr = int(np.log2(len(angles)))

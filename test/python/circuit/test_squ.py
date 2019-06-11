@@ -1,9 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+# pylint: disable=invalid-name
+
+"""Single-qubit unitary tests."""
+
 import itertools
 import unittest
 import numpy as np
@@ -32,6 +44,7 @@ class TestSingleQubitUnitary(QiskitTestCase):
     """Qiskit ZYZ-decomposition tests."""
 
     def test_squ(self):
+        """Tests for single-qubit unitary decomposition."""
         for u, up_to_diagonal in itertools.product(squs, up_to_diagonal_list):
             with self.subTest(u=u, up_to_diagonal=up_to_diagonal):
                 qr = QuantumRegister(1, "qr")
@@ -45,7 +58,7 @@ class TestSingleQubitUnitary(QiskitTestCase):
                 unitary = result.get_unitary(qc)
                 if up_to_diagonal:
                     squ = SingleQubitUnitary(u, up_to_diagonal=up_to_diagonal)
-                    unitary = np.dot(np.diagflat(squ.get_diag()), unitary)
+                    unitary = np.dot(np.diagflat(squ._get_diag()), unitary)
                 unitary_desired = u
                 self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
 
