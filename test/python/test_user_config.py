@@ -15,8 +15,6 @@
 # pylint: disable=missing-docstring
 
 import os
-import tempfile
-import unittest
 
 from qiskit import exceptions
 from qiskit.test import QiskitTestCase
@@ -25,74 +23,71 @@ from qiskit import user_config
 
 class TestUserConfig(QiskitTestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.file_path = 'temp.txt'
+
     def test_empty_file_read(self):
-        file_path = tempfile.NamedTemporaryFile()
-        self.addCleanup(file_path.close)
-        config = user_config.UserConfig(file_path.name)
+        config = user_config.UserConfig(self.file_path)
         config.read_config_file()
         self.assertEqual({}, config.settings)
 
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_invalid_optimization_level(self):
         test_config = """
         [default]
         transpile_optimization_level = 76
         """
-        file_path = tempfile.NamedTemporaryFile(mode='w')
-        self.addCleanup(file_path.close)
-        file_path.write(test_config)
-        file_path.flush()
-        config = user_config.UserConfig(file_path.name)
-        self.assertRaises(exceptions.QiskitUserConfigError,
-                          config.read_config_file)
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError,
+                              config.read_config_file)
 
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_invalid_circuit_drawer(self):
         test_config = """
         [default]
         circuit_drawer = MSPaint
         circuit_mpl_style = default
         """
-        file_path = tempfile.NamedTemporaryFile(mode='w')
-        self.addCleanup(file_path.close)
-        file_path.write(test_config)
-        file_path.flush()
-        config = user_config.UserConfig(file_path.name)
-        self.assertRaises(exceptions.QiskitUserConfigError,
-                          config.read_config_file)
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            self.assertRaises(exceptions.QiskitUserConfigError,
+                              config.read_config_file)
 
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_circuit_drawer_valid(self):
         test_config = """
         [default]
         circuit_drawer = latex
         circuit_mpl_style = default
         """
-        file_path = tempfile.NamedTemporaryFile(mode='w')
-        self.addCleanup(file_path.close)
-        file_path.write(test_config)
-        file_path.flush()
-        config = user_config.UserConfig(file_path.name)
-        config.read_config_file()
-        self.assertEqual({'circuit_drawer': 'latex',
-                          'circuit_mpl_style': 'default'}, config.settings)
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({'circuit_drawer': 'latex',
+                              'circuit_mpl_style': 'default'}, config.settings)
 
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_optimization_level_valid(self):
         test_config = """
         [default]
         transpile_optimization_level = 1
         """
-        file_path = tempfile.NamedTemporaryFile(mode='w')
-        self.addCleanup(file_path.close)
-        file_path.write(test_config)
-        file_path.flush()
-        config = user_config.UserConfig(file_path.name)
-        config.read_config_file()
-        self.assertEqual({'transpile_optimization_level': 1},
-                         config.settings)
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({'transpile_optimization_level': 1},
+                             config.settings)
 
-    @unittest.skipIf(os.name == 'nt', 'tempfile fails on appveyor')
     def test_all_options_valid(self):
         test_config = """
         [default]
@@ -100,12 +95,12 @@ class TestUserConfig(QiskitTestCase):
         circuit_mpl_style = default
         transpile_optimization_level = 3
         """
-        file_path = tempfile.NamedTemporaryFile(mode='w')
-        self.addCleanup(file_path.close)
-        file_path.write(test_config)
-        file_path.flush()
-        config = user_config.UserConfig(file_path.name)
-        config.read_config_file()
-        self.assertEqual({'circuit_drawer': 'latex',
-                          'circuit_mpl_style': 'default',
-                          'transpile_optimization_level': 3}, config.settings)
+        self.addCleanup(os.remove, self.file_path)
+        with open(self.file_path, 'w') as file:
+            file.write(test_config)
+            file.flush()
+            config = user_config.UserConfig(self.file_path)
+            config.read_config_file()
+            self.assertEqual({'circuit_drawer': 'latex',
+                              'circuit_mpl_style': 'default',
+                              'transpile_optimization_level': 3}, config.settings)
