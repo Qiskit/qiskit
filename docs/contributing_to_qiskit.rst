@@ -87,9 +87,9 @@ in the subdirectory `/docs/_build/html/`.
 
 .. _install_install_from_source_label:
 
-*******************
-Install from Source
-*******************
+**********************
+Installing from Source
+**********************
 
 Installing the elements from source allows you to access the most recently
 updated version of Qiskit instead of using the version in the Python Package
@@ -119,6 +119,7 @@ pip version is behind the source versions:
 #. qiskit-aer
 #. qiskit-ignis
 #. qiskit-aqua
+#. qiskit-chemistry
 
 To work with several components and elements simultaneously, use the following
 steps for each element.
@@ -146,15 +147,15 @@ The following steps show the installation process for Ignis.
 
   pip install -e qiskit-ignis
 
-Install Terra from Source
--------------------------
+Installing Terra from Source
+----------------------------
 Installing from source requires that you have a c++ compiler on your system that supports
 c++-11.  On most Linux platforms, the necessary GCC compiler is already installed.
 
-Install a compiler for MacOS
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Installing a Compiler for macOS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you use Apple OSX, you can install the Clang compiler by installing XCode.
+If you use macOS, you can install the Clang compiler by installing XCode.
 Check if you have XCode and clang installed by opening a terminal window and entering the
 following.
 
@@ -168,15 +169,15 @@ Install XCode and clang by using the following command.
 
     xcode-select --install
 
-Install a compiler for Windows
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Installing a Compiler for Windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 On Windows, it is easiest to install the Visual C++ compiler from the
 `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`_.
 You can instead install Visual Studio version 2015 or 2017, making sure to select the
 options for installing the C++ compiler.
 
-Install Qiskit Terra
-^^^^^^^^^^^^^^^^^^^^^
+Installing Qiskit Terra
+^^^^^^^^^^^^^^^^^^^^^^^
 1. Clone the Terra repository.
 
 .. code:: sh
@@ -224,8 +225,8 @@ Install Qiskit Terra
 
 After you've installed Terra, you can install Aer as an add-on to run additional simulators.
 
-Install Aer from Source
------------------------
+Installing Aer from Source
+--------------------------
 
 1. Clone the Aer repository.
 
@@ -451,7 +452,7 @@ example, you could run something like:
     python setup.py bdist_wheel -- -- -j8
 
 This is passing the flag `-j8` to the underlying build system (which in this
-case is `Automake`_) telling it that we want to build in parallel using 8
+case is `Automake`_) telling it that you want to build in parallel using 8
 processes.
 
 .. _Automake: https://www.gnu.org/software/automake/
@@ -504,8 +505,8 @@ A list of common options depending on platform are:
     this is just outlining it's commonly used in that environment. Refer to the
     tool documentation for more information.
 
-Install IBMQ Provider from Source
----------------------------------
+Installing IBMQ Provider from Source
+------------------------------------
 
 1. Clone the qiskit-ibmq-provider repository.
 
@@ -541,8 +542,8 @@ installing from source.
     pip install -e .
 
 
-Install Ignis from Source
--------------------------
+Installing Ignis from Source
+----------------------------
 
 1. Clone the ignis repository.
 
@@ -577,8 +578,8 @@ from source.
 
     pip install -e .
 
-Install Aqua from Source
-------------------------
+Installing Aqua from Source
+---------------------------
 
 1. Clone the Aqua repository.
 
@@ -600,7 +601,7 @@ from source.
 
     pip install -r requirements-dev.txt
 
-4. Install ignis
+4. Install aqua
 
 .. code:: sh
 
@@ -616,7 +617,7 @@ from source.
 Install Chemistry from Source
 -----------------------------
 
-1. Clone the Chemistry repository.
+1. Clone the qiskit-chemistry repository.
 
 .. code:: sh
 
@@ -636,7 +637,7 @@ installing from source.
 
     pip install -r requirements-dev.txt
 
-4. Install chemistry
+4. Install qiskit-chemistry
 
 .. code:: sh
 
