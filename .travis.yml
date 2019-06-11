@@ -57,7 +57,7 @@ stage_linux: &stage_linux
   - sudo apt-get install -y xzdec
   - sudo apt-get install -y latex-beamer
   - tlmgr init-usertree
-  - tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
+  - tlmgr option repository ftp://tug.org/historic/systems/texlive/2019/tlnet-final
   - tlmgr update qcircuit
 
 stage_osx: &stage_osx
