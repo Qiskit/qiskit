@@ -59,7 +59,6 @@ stage_linux: &stage_linux
   - tlmgr init-usertree
   - tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
   - tlmgr install qcircuit
-  - tlmgr install beamerposter
 
 stage_osx: &stage_osx
   <<: *stage_generic
