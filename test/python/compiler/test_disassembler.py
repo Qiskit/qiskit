@@ -117,6 +117,7 @@ class TestAssembler(QiskitTestCase):
         self.assertEqual({}, header)
 
     def test_opaque_instruction(self):
+        """Test the disassembler handles opaque instructions correctly."""
         opaque_inst = Instruction(name='my_inst', num_qubits=4,
                                   num_clbits=2, params=[0.5, 0.4])
         q = QuantumRegister(6, name='q')
