@@ -55,7 +55,7 @@ class TestPassManager(QiskitTestCase):
         passmanager.append(Optimize1qGates())
         transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
         self.assertEqual(len(calls), 2)
-        self.assertEquals(len(calls[0]), 4)
+        self.assertEqual(len(calls[0]), 4)
         self.assertEqual(calls[0][0], 0)
         self.assertEqual(calls[0][1], 'Unroller')
         self.assertEqual(expected_start_dag, calls[0][2])
