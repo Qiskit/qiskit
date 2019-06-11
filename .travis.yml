@@ -85,6 +85,7 @@ stage_osx: &stage_osx
 stages:
   - lint and pure python test
   - test
+  - randomized
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
@@ -181,3 +182,17 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
+
+    # Randomized testing and benchmarks
+    - stage: test
+      name: Randomized tests
+      <<: *stage_linux
+      script:
+      - python setup.py build_ext --inplace
+      - pip install "qiskit-aer"
+      - travis_wait make test_randomized
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  - name: Randomized tests
