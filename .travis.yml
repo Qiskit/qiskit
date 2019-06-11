@@ -55,6 +55,7 @@ stage_linux: &stage_linux
   - sudo apt-get install -y texlive-fonts-recommended
   - sudo apt-get install -y texlive-fonts-extra
   - sudo apt-get install -y xzdec
+  - sudo apt-get install -y latex-beamer
   - tlmgr init-usertree
   - tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
   - tlmgr update qcircuit
