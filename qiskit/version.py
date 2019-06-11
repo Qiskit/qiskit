@@ -83,7 +83,7 @@ __version__ = get_version_info()
 
 def _get_qiskit_versions():
     cmd = [sys.executable, '-m', 'pip', 'freeze']
-    reqs = subprocess.check_output(cmd)
+    reqs = _minimal_ext_cmd(cmd)
     reqs_dict = {}
     for req in reqs.split():
         req_parts = req.decode().split('==')
