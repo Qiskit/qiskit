@@ -388,11 +388,10 @@ def _latex_circuit_drawer(circuit,
                                reverse_bits=reverse_bits, justify=justify)
         image = None
         try:
-            p = subprocess.run(["pdflatex", "-halt-on-error",
+            subprocess.run(["pdflatex", "-halt-on-error",
                             "-output-directory={}".format(tmpdirname),
                             "{}".format(tmpfilename + '.tex')],
-                           stdout=subprocess.STDOUT, stderr=subprocess.STDOUT,
-                           check=True)
+                           subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
         except OSError as ex:
             if ex.errno == errno.ENOENT:
                 logger.warning('WARNING: Unable to compile latex. '
