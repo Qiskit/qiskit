@@ -18,6 +18,7 @@
 import os
 import subprocess
 import sys
+import unittest
 
 from qiskit.test import QiskitTestCase, online_test, slow_test
 
@@ -31,6 +32,7 @@ ibmq_examples_dir = os.path.join(examples_dir, 'ibmq')
 class TestPythonExamples(QiskitTestCase):
     """Test example scripts"""
 
+    @unittest.skipIf(os.name == 'nt', 'Skip on windows until #2616 is fixed')
     def test_all_examples(self):
         """Execute the example python files and pass if it returns 0."""
         examples = []
@@ -49,6 +51,7 @@ class TestPythonExamples(QiskitTestCase):
                     stdout.decode('utf8'), stderr.decode('utf8'))
                 self.assertEqual(run_example.returncode, 0, error_string)
 
+    @unittest.skipIf(os.name == 'nt', 'Skip on windows until #2616 is fixed')
     @online_test
     @slow_test
     def test_all_ibmq_examples(self, qe_token, qe_url):
