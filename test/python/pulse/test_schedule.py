@@ -23,7 +23,7 @@ from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapsh
                                    functional_pulse, Instruction, AcquireInstruction,
                                    PulseInstruction, FrameChangeInstruction)
 from qiskit.pulse import pulse_lib
-from qiskit.pulse.timeslots import TimeslotCollection
+from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
 from qiskit.test import QiskitTestCase
@@ -308,6 +308,28 @@ class TestSchedule(QiskitTestCase):
 
         self.assertEqual(flat_sched.instructions, sched.instructions)
 
+    def test_filter_qubits(self):
+        """Test filtering over qubits."""
+        device = self.two_qubit_device
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
+        acquire = Acquire(5)
+        sched = Schedule(name='fake_experiment')
+        sched = sched.insert(0, lp0(device.q[0].drive))
+        sched = sched.insert(10, lp0(device.q[1].drive))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(device.q[0].drive))
+        sched = sched.insert(60, acquire(device.q, device.mem))
+        sched = sched.insert(90, lp0(device.q[0].drive))
+
+        self.assertEqual(len(sched.filter(qubits={2}).instructions), 0)
+        self.assertEqual(sched.filter(qubits=[0, 1]).instructions, sched.instructions)
+        has_chan_1 = sched.filter(qubits={1})
+        for _, inst in has_chan_1.instructions:
+            self.assertTrue(any([chan.index == 1 for chan in inst.channels]))
+        has_chan_0 = sched.filter(qubits=(0,))
+        self.assertEqual(len(has_chan_0.instructions), 4)
+        for _, inst in has_chan_0.instructions:
+            self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
+
     def test_filter_channels(self):
         """Test filtering over channels."""
         device = self.two_qubit_device
@@ -320,15 +342,11 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(60, acquire(device.q, device.mem))
         sched = sched.insert(90, lp0(device.q[0].drive))
 
-        self.assertEqual(len(sched.filter(channels={2}).instructions), 0)
-        self.assertEqual(sched.filter(channels=[0, 1]).instructions, sched.instructions)
-        has_chan_1 = sched.filter(channels={1})
+        self.assertEqual(len(sched.filter(channels=[AcquireChannel(1)]).instructions), 1)
+        channels = [AcquireChannel(1), DriveChannel(1)]
+        has_chan_1 = sched.filter(channels=channels)
         for _, inst in has_chan_1.instructions:
-            self.assertTrue(any([chan.index == 1 for chan in inst.channels]))
-        has_chan_0 = sched.filter(channels=(0,))
-        self.assertEqual(len(has_chan_0.instructions), 4)
-        for _, inst in has_chan_0.instructions:
-            self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
+            self.assertTrue(any([chan in channels for chan in inst.channels]))
 
     def test_filter_inst_types(self):
         """Test filtering on instruction types."""
@@ -365,21 +383,24 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(60, acquire(device.q, device.mem))
         sched = sched.insert(90, lp0(device.q[0].drive))
 
-        intervals_a = sched.filter(intervals=((0, 13),))
+        intervals_a = sched.filter(time_range=((0, 13),))
         for time, inst in intervals_a.instructions:
             self.assertTrue(0 <= time <= 13)
             self.assertTrue(inst.timeslots.timeslots[0].interval.end <= 13)
         self.assertEqual(len(intervals_a.instructions), 2)
 
-        intervals_b = sched.filter(intervals=[(59, 65)])
+        intervals_b = sched.filter(time_range=[(59, 65)])
         self.assertEqual(len(intervals_b.instructions), 1)
         self.assertEqual(intervals_b.instructions[0][0], 60)
         self.assertIsInstance(intervals_b.instructions[0][1], AcquireInstruction)
 
-        non_full_intervals = sched.filter(intervals=[(0, 2), (8, 11), (61, 70)])
+        non_full_intervals = sched.filter(time_range=[(0, 2), (8, 11), (61, 70)])
         self.assertEqual(len(non_full_intervals.instructions), 0)
 
-        multi_interval = sched.filter(intervals=[(10, 15), (63, 93)])
+        multi_interval = sched.filter(time_range=[(10, 15), (63, 93)])
+        self.assertEqual(len(multi_interval.instructions), 2)
+
+        multi_interval = sched.filter(intervals=[Interval(10, 15), Interval(63, 93)])
         self.assertEqual(len(multi_interval.instructions), 2)
 
     def test_filter_multiple(self):
@@ -395,14 +416,14 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(90, lp0(device.q[0].drive))
 
         filtered = sched.filter(channels={0}, instruction_types=[PulseInstruction],
-                                intervals=[(25, 100)])
+                                time_range=[(25, 100)])
         for time, inst in filtered.instructions:
             self.assertIsInstance(inst, PulseInstruction)
             self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
             self.assertTrue(25 <= time <= 100)
 
         filtered_b = sched.filter(instruction_types=[PulseInstruction, FrameChangeInstruction],
-                                  intervals=[(25, 100), (0, 30)])
+                                  time_range=[(25, 100), (0, 30)])
         for time, inst in filtered_b.instructions:
             self.assertIsInstance(inst, (FrameChangeInstruction, PulseInstruction))
         self.assertTrue(len(filtered_b.instructions), 4)
