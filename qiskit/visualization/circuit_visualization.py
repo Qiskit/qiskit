@@ -388,11 +388,10 @@ def _latex_circuit_drawer(circuit,
                                reverse_bits=reverse_bits, justify=justify)
         image = None
         try:
-
-            subprocess.run(["pdflatex", "-halt-on-error",
+            p = subprocess.run(["pdflatex", "-halt-on-error",
                             "-output-directory={}".format(tmpdirname),
                             "{}".format(tmpfilename + '.tex')],
-                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                           stdout=subprocess.STDOUT, stderr=subprocess.STDOUT,
                            check=True)
         except OSError as ex:
             if ex.errno == errno.ENOENT:
