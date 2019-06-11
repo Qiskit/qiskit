@@ -31,7 +31,7 @@ class TestPassManager(QiskitTestCase):
     def test_callback(self):
         """Test the callback parameter."""
         qr = QuantumRegister(1, 'qr')
-        circuit = QuantumCircuit(qr)
+        circuit = QuantumCircuit(qr, name='MyCircuit')
         circuit.h(qr[0])
         circuit.h(qr[0])
         circuit.h(qr[0])
@@ -55,9 +55,13 @@ class TestPassManager(QiskitTestCase):
         passmanager.append(Optimize1qGates())
         transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
         self.assertEqual(len(calls), 2)
+        self.assertEquals(len(calls[0]), 4)
         self.assertEqual(calls[0][0], 0)
         self.assertEqual(calls[0][1], 'Unroller')
         self.assertEqual(expected_start_dag, calls[0][2])
+        self.assertEqual('MyCircuit', calls[0][3])
+        self.assertEqual(len(calls[1]), 4)
         self.assertEqual(calls[1][0], 1)
         self.assertEqual(calls[1][1], 'Optimize1qGates')
         self.assertEqual(expected_end_dag, calls[1][2])
+        self.assertEqual('MyCircuit', calls[1][3])

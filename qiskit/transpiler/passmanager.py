@@ -43,7 +43,8 @@ class PassManager():
                 max_iteration is reached.
             callback (func): A callback function that will be called after each
                 pass execution. The function will be called with 3 arguments:
-                the pass number, the pass name, and the dag output of the pass.
+                the pass number, the pass name, the dag output of the pass, and
+                the name of the circuit being transpiled.
         """
         self.callback = callback
         # the pass manager's schedule of passes, including any control-flow.
@@ -147,7 +148,8 @@ class PassManager():
                     # Deepcopy dag to ensure reference doesn't get updated
                     # if callback func uses the dag after the loop iteration
                     # continues
-                    self.callback(count, pass_.name(), copy.deepcopy(dag))
+                    self.callback(count, pass_.name(), copy.deepcopy(dag),
+                                  name)
                     count += 1
 
         circuit = dag_to_circuit(dag)
