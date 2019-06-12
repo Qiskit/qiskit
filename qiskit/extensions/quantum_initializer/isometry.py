@@ -14,7 +14,6 @@
 
 # pylint: disable=invalid-name
 # pylint: disable=unused-variable
-# pylint: disable=dangerous-default-value
 
 """
 Generic isometries from m to n qubits.
@@ -505,14 +504,14 @@ def _diag_is_identity_up_to_global_phase(diag):
     return True
 
 
-def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=[], q_ancillas_dirty=[]):
+def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None, q_ancillas_dirty=None):
     """
     Attach an arbitrary isometry from m to n qubits to a circuit. In particular,
     this allows to attach arbitrary unitaries on n qubits (m=n) or to prepare any state
     on n qubits (m=0).
     The decomposition used here was introduced by Iten et al. in https://arxiv.org/abs/1501.06911.
-
-        Args:
+    
+    Args:
             isometry (ndarray): an isometry from m to n qubits, i.e., a (complex) ndarray of
                 dimension 2^n×2^m with orthonormal columns (given in the computational basis
                 specified by the order of the ancillas and the input qubits, where the ancillas
@@ -523,9 +522,9 @@ def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=[], q_an
                 qubits that are used for the output of the isometry and which are assumed to start
                 in the zero state. The qubits are listed with increasing significance.
             q_ancillas_zero (QuantumRegister|list): list of ancilla qubits
-                which are assumed to start in the zero state. Default is q_ancillas_zero = [].
+                which are assumed to start in the zero state. Default is q_ancillas_zero = None.
             q_ancillas_dirty (QuantumRegister|list): list of ancilla qubits
-                which can start in an arbitrary state. Default is q_ancillas_dirty = [].
+                which can start in an arbitrary state. Default is q_ancillas_dirty = None.
 
         Returns:
             QuantumCircuit: the isometry is attached to the quantum circuit.
@@ -534,6 +533,15 @@ def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=[], q_an
             QiskitError: if the array is not an isometry of the correct size corresponding to
              the provided number of qubits.
     """
+
+    if q_input is None:
+        q_input = []
+    if q_ancillas_for_output is None:
+        q_ancillas_for_output = []
+    if q_ancillas_zero is None:
+        q_ancillas_zero = []
+    if q_ancillas_dirty is None:
+        q_ancillas_dirty = []
 
     if isinstance(q_input, QuantumRegister):
         q_input = q_input[:]
