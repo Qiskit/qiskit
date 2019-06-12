@@ -21,19 +21,22 @@ from qiskit.pulse.exceptions import PulseError
 
 from .instruction import Instruction
 
+import re
+import itertools
+
 
 class Command(metaclass=ABCMeta):
     """Super abstract class of command group."""
 
-    pulseIndex = 0
+    # Counter for the number of instances in this class
+    instances_counter = itertools.count(0)
 
     @abstractmethod
-    def __init__(self, duration: int = None, name: str = None):
+    def __init__(self, duration: int = None):
         """Create a new command.
 
         Args:
             duration (int): Duration of this command.
-            name (str): Name of this command.
         Raises:
             PulseError: when duration is not number of points.
         """
@@ -42,11 +45,27 @@ class Command(metaclass=ABCMeta):
         else:
             raise PulseError('Pulse duration should be integer.')
 
-        if name:
-            self._name = name
+        self._name = self._name = self.create_name(name=None, prefix='c', counter=self.instances_counter)
+
+    @staticmethod
+    def create_name(name: str = None, prefix: str = None, counter: itertools.count = None) -> str:
+        """Method to create names for pulse commands."""
+        if name is None:
+            try:
+                name = '%s%i' % (prefix, next(counter))
+            except TypeError:
+                raise PulseError("prefix and counter must be non-None when name is None.")
         else:
-            self._name = 'p%d' % Command.pulseIndex
-            Command.pulseIndex += 1
+            try:
+                name = str(name)
+            except Exception:
+                raise PulseError("The pulse command name should be castable to a string "
+                                 "(or None for autogenerate a name).")
+            name_format = re.compile('[a-z][a-zA-Z0-9_]*')
+            if name_format.match(name) is None:
+                raise PulseError("%s is an invalid OPENQASM register/OpenPulse command name." % name)
+
+        return name
 
     @property
     def duration(self) -> int:

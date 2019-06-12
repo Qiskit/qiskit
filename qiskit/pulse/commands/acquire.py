@@ -22,6 +22,7 @@ from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
 from .command import Command
+import itertools
 
 
 class Acquire(Command):
@@ -29,7 +30,10 @@ class Acquire(Command):
 
     ALIAS = 'acquire'
 
-    def __init__(self, duration, discriminator=None, kernel=None):
+    # Counter for the number of instances in this class
+    instances_counter = itertools.count(0)
+
+    def __init__(self, duration, discriminator=None, kernel=None, name=None):
         """Create new acquire command.
 
         Args:
@@ -39,11 +43,14 @@ class Acquire(Command):
             kernel (Kernel): The data structures defining the measurement kernels
                 to be used (from the list of available kernels) and set of parameters
                 (if applicable) if the measurement level is 1 or 2.
+            name (str): Name of this command.
 
         Raises:
             PulseError: when invalid discriminator or kernel object is input.
         """
         super().__init__(duration=duration)
+
+        self._name = self.create_name(name=name, prefix='acq', counter=self.instances_counter)
 
         if discriminator:
             if isinstance(discriminator, Discriminator):

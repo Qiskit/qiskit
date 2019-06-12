@@ -23,10 +23,14 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .command import Command
+import itertools
 
 
 class SamplePulse(Command):
     """Container for functional pulse."""
+
+    # Counter for the number of instances in this class
+    instances_counter = itertools.count(0)
 
     def __init__(self, samples, name=None):
         """Create new sample pulse command.
@@ -37,12 +41,13 @@ class SamplePulse(Command):
         Raises:
             PulseError: when pulse envelope amplitude exceeds 1.
         """
-        super().__init__(duration=len(samples), name=name)
+        super().__init__(duration=len(samples))
 
         if np.any(np.abs(samples) > 1):
             raise PulseError('Absolute value of pulse envelope amplitude exceeds 1.')
 
         self._samples = np.asarray(samples, dtype=np.complex_)
+        self._name = self.create_name(name=name, prefix='p', counter=self.instances_counter)
 
     @property
     def samples(self):
