@@ -14,13 +14,14 @@
 
 """Disassemble function for a qobj into a list of circuits and it's config"""
 
+import collections
+
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
-# TODO: This is broken for conditionals. Will fix after circuits_2_qobj pr
 def _experiments_to_circuits(qobj):
     """Return a list of QuantumCircuit object(s) from a qobj
 
@@ -40,12 +41,13 @@ def _experiments_to_circuits(qobj):
             circuit = QuantumCircuit(*quantum_registers,
                                      *classical_registers,
                                      name=x.header.name)
-            qreg_dict = {}
-            creg_dict = {}
+            qreg_dict = collections.OrderedDict()
+            creg_dict = collections.OrderedDict()
             for reg in quantum_registers:
                 qreg_dict[reg.name] = reg
             for reg in classical_registers:
                 creg_dict[reg.name] = reg
+            conditional = {}
             for i in x.instructions:
                 name = i.name
                 if i.name == 'id':
@@ -70,20 +72,53 @@ def _experiments_to_circuits(qobj):
                 if hasattr(circuit, name):
                     instr_method = getattr(circuit, name)
                     if i.name in ['snapshot']:
-                        instr_method(
+                        _inst = instr_method(
                             i.label,
                             snapshot_type=i.snapshot_type,
                             qubits=qubits,
                             params=params)
                     elif i.name == 'initialize':
-                        instr_method(params, qubits)
+                        _inst = instr_method(params, qubits)
                     else:
-                        instr_method(*params, *qubits, *clbits)
+                        _inst = instr_method(*params, *qubits, *clbits)
+                elif name == 'bfunc':
+                    conditional['value'] = int(i.val, 16)
+                    full_bit_size = sum([creg_dict[x].size for x in creg_dict])
+                    mask_map = {}
+                    raw_map = {}
+                    raw = []
+
+                    for creg in creg_dict:
+                        size = creg_dict[creg].size
+                        reg_raw = [1] * size
+                        if not raw:
+                            raw = reg_raw
+                        else:
+                            for pos, val in enumerate(raw):
+                                if val == 1:
+                                    raw[pos] = 0
+                            raw = reg_raw + raw
+                        mask = [0] * (full_bit_size - len(raw)) + raw
+                        raw_map[creg] = mask
+                        mask_map[int("".join(str(x) for x in mask), 2)] = creg
+                    creg = mask_map[int(i.mask, 16)]
+                    conditional['register'] = creg_dict[creg]
+                    val = int(i.val, 16)
+                    mask = raw_map[creg]
+                    for j in reversed(mask):
+                        if j == 0:
+                            val = val >> 1
+                        else:
+                            conditional['value'] = val
+                            break
                 else:
-                    temp_opaque_instruction = Instruction(
+                    _inst = temp_opaque_instruction = Instruction(
                         name=name, num_qubits=len(qubits),
                         num_clbits=len(clbits), params=params)
                     circuit.append(temp_opaque_instruction, qubits, clbits)
+                if conditional and name != 'bfunc':
+                    _inst.c_if(conditional['register'], conditional['value'])
+                    conditional = {}
             circuits.append(circuit)
         return circuits
     return None
