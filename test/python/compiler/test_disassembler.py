@@ -19,6 +19,7 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Instruction
 from qiskit.compiler.assemble import assemble
 from qiskit.assembler.disassemble import disassemble
 from qiskit.assembler.run_config import RunConfig
@@ -113,6 +114,79 @@ class TestAssembler(QiskitTestCase):
         self.assertEqual(run_config_out.memory_slots, 0)
         self.assertEqual(len(circuits), 1)
         self.assertEqual(circuits[0], circ)
+        self.assertEqual({}, header)
+
+    def test_opaque_instruction(self):
+        """Test the disassembler handles opaque instructions correctly."""
+        opaque_inst = Instruction(name='my_inst', num_qubits=4,
+                                  num_clbits=2, params=[0.5, 0.4])
+        q = QuantumRegister(6, name='q')
+        c = ClassicalRegister(4, name='c')
+        circ = QuantumCircuit(q, c, name='circ')
+        circ.append(opaque_inst, [q[0], q[2], q[5], q[3]], [c[3], c[0]])
+        qobj = assemble(circ)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 6)
+        self.assertEqual(run_config_out.memory_slots, 4)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], circ)
+        self.assertEqual({}, header)
+
+    def test_circuit_with_conditionals(self):
+        """Verify disassemble sets conditionals correctly."""
+        qr = QuantumRegister(2)
+        cr1 = ClassicalRegister(1)
+        cr2 = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr1, cr2)
+        qc.measure(qr[0], cr1)  # Measure not required for a later conditional
+        qc.measure(qr[1], cr2[1])  # Measure required for a later conditional
+        qc.h(qr[1]).c_if(cr2, 3)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 2)
+        self.assertEqual(run_config_out.memory_slots, 3)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
+    def test_circuit_with_simple_conditional(self):
+        """Verify disassemble handles a simple conditional on the only bits."""
+        qr = QuantumRegister(1)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0]).c_if(cr, 1)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 1)
+        self.assertEqual(run_config_out.memory_slots, 1)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
+        self.assertEqual({}, header)
+
+    def test_multiple_conditionals_multiple_registers(self):
+        """Verify disassemble handles multiple conditionals and registers."""
+        qr = QuantumRegister(3)
+        cr1 = ClassicalRegister(3)
+        cr2 = ClassicalRegister(5)
+        cr3 = ClassicalRegister(6)
+        cr4 = ClassicalRegister(1)
+
+        qc = QuantumCircuit(qr, cr1, cr2, cr3, cr4)
+        qc.x(qr[1])
+        qc.h(qr)
+        qc.cx(qr[1], qr[0]).c_if(cr3, 14)
+        qc.ccx(qr[0], qr[2], qr[1]).c_if(cr4, 1)
+        qc.h(qr).c_if(cr1, 3)
+        qobj = assemble(qc)
+        circuits, run_config_out, header = disassemble(qobj)
+        run_config_out = RunConfig(**run_config_out)
+        self.assertEqual(run_config_out.n_qubits, 3)
+        self.assertEqual(run_config_out.memory_slots, 15)
+        self.assertEqual(len(circuits), 1)
+        self.assertEqual(circuits[0], qc)
         self.assertEqual({}, header)
 
 
