@@ -43,9 +43,6 @@ stage_generic: &stage_generic
     - make test_ci
   after_failure:
     - python tools/report_ci_failure.py
-  after_success:
-    - coverage combine || true
-    - coveralls || true
 
 stage_linux: &stage_linux
   <<: *stage_generic
@@ -145,6 +142,9 @@ jobs:
       python: 3.6
       env:
         - PYTHON="coverage run --source qiskit --parallel-mode"
+      after_success:
+        - coverage combine || true
+        - coveralls || true
 
     # GNU/Linux, Python 3.7
     - stage: test
