@@ -258,10 +258,9 @@ def gates_tab(backend):
     Returns:
         VBox: A VBox widget.
     """
-    config = backend.configuration().to_dict()
     props = backend.properties().to_dict()
 
-    multi_qubit_gates = props['gates'][3*config['n_qubits']:]
+    multi_qubit_gates = [g for g in props['gates'] if len(g['qubits']) > 1]
 
     header_html = "<div><font style='font-weight:bold'>{key}</font>: {value}</div>"
     header_html = header_html.format(key='last_update_date',
