@@ -504,13 +504,14 @@ def _diag_is_identity_up_to_global_phase(diag):
     return True
 
 
-def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None, q_ancillas_dirty=None):
+def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
+        q_ancillas_dirty=None):
     """
     Attach an arbitrary isometry from m to n qubits to a circuit. In particular,
     this allows to attach arbitrary unitaries on n qubits (m=n) or to prepare any state
     on n qubits (m=0).
     The decomposition used here was introduced by Iten et al. in https://arxiv.org/abs/1501.06911.
-    
+
     Args:
             isometry (ndarray): an isometry from m to n qubits, i.e., a (complex) ndarray of
                 dimension 2^n×2^m with orthonormal columns (given in the computational basis

@@ -29,10 +29,6 @@ from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-"""
-Tests for the ZYZ decomposition for single-qubit unitary.
-"""
-
 squs = [np.eye(2, 2), np.array([[0., 1.], [1., 0.]]),
         1 / np.sqrt(2) * np.array([[1., 1.], [-1., 1.]]),
         np.array([[np.exp(1j * 5. / 2), 0], [0, np.exp(-1j * 5. / 2)]]), random_unitary(2).data]
