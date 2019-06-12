@@ -262,7 +262,7 @@ class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
 
     def setUp(self):
-        self.device = pulse.DeviceSpecification.create_from(FakeOpenPulse2Q())
+        self.device = pulse.PulseSpecification.from_device(FakeOpenPulse2Q())
 
         test_pulse = pulse.SamplePulse(
             samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),
@@ -271,10 +271,10 @@ class TestPulseAssembler(QiskitTestCase):
         acquire = pulse.Acquire(5)
 
         self.schedule = pulse.Schedule(name='fake_experiment')
-        self.schedule = self.schedule.insert(0, test_pulse(self.device.q[0].drive))
-        self.schedule = self.schedule.insert(5, acquire(self.device.q, self.device.mem))
+        self.schedule = self.schedule.insert(0, test_pulse(self.device.d[0]))
+        self.schedule = self.schedule.insert(5, acquire(self.device.acq, self.device.mem))
 
-        self.user_lo_config_dict = {self.device.q[0].drive: 4.91}
+        self.user_lo_config_dict = {self.device.d[0]: 4.91}
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
         self.default_qubit_lo_freq = [4.9, 5.0]
@@ -393,7 +393,7 @@ class TestPulseAssembler(QiskitTestCase):
     def test_assemble_meas_map(self):
         """Test assembling a single schedule, no lo config."""
         acquire = pulse.Acquire(5)
-        schedule = acquire(self.device.q, mem_slots=self.device.mem)
+        schedule = acquire(self.device.acq, mem_slots=self.device.mem)
         assemble(schedule, meas_map=[[0], [1]])
 
         with self.assertRaises(QiskitError):
@@ -405,7 +405,7 @@ class TestPulseAssembler(QiskitTestCase):
             samples=np.array([0.02, 0.05, 0.05, 0.05, 0.02], dtype=np.complex128),
             name='pulse0'
         )
-        self.schedule = self.schedule.insert(1, name_conflict_pulse(self.device.q[1].drive))
+        self.schedule = self.schedule.insert(1, name_conflict_pulse(self.device.d[1]))
         qobj = assemble(self.schedule,
                         qobj_header=self.header,
                         qubit_lo_freq=self.default_qubit_lo_freq,

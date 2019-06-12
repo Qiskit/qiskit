@@ -24,8 +24,7 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
 from qiskit.qobj.converters.pulse_instruction import _is_math_expr_safe
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Discriminator, Kernel)
-from qiskit.pulse.channels import (DeviceSpecification, Qubit, AcquireChannel, DriveChannel,
-                                   ControlChannel, MeasureChannel, RegisterSlot, MemorySlot,)
+from qiskit.pulse.channels import (PulseSpecification, DriveChannel, ControlChannel, MeasureChannel)
 from qiskit.pulse.schedule import ParameterizedSchedule
 from qiskit.pulse import LoConfig
 
@@ -34,23 +33,13 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     """Pulse converter tests."""
 
     def setUp(self):
-        self.device = DeviceSpecification(
-            qubits=[
-                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0))
-            ],
-            registers=[
-                RegisterSlot(0)
-            ],
-            mem_slots=[
-                MemorySlot(0)
-            ]
-        )
+        self.device = PulseSpecification(n_drive=1, n_control=1, n_measure=1, n_registers=1)
 
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = SamplePulse(np.arange(0, 0.01), name='linear')
-        instruction = command(self.device.q[0].drive)
+        instruction = command(self.device.d[0])
 
         valid_qobj = PulseQobjInstruction(
             name='linear',
@@ -64,7 +53,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Test converted qobj from FrameChangeInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = FrameChange(phase=0.1)
-        instruction = command(self.device.q[0].drive)
+        instruction = command(self.device.d[0])
 
         valid_qobj = PulseQobjInstruction(
             name='fc',
@@ -79,7 +68,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Test converted qobj from PersistentValueInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = PersistentValue(value=0.1j)
-        instruction = command(self.device.q[0].drive)
+        instruction = command(self.device.d[0])
 
         valid_qobj = PulseQobjInstruction(
             name='pv',
@@ -94,7 +83,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         """Test converted qobj from AcquireInstruction."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         command = Acquire(duration=10)
-        instruction = command(self.device.q, self.device.mem, self.device.c)
+        instruction = command(self.device.acq, self.device.mem, self.device.c)
 
         valid_qobj = PulseQobjInstruction(
             name='acquire',
@@ -108,7 +97,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         self.assertEqual(converter(0, instruction), valid_qobj)
 
         # test without register
-        instruction = command(self.device.q, self.device.mem)
+        instruction = command(self.device.acq, self.device.mem)
 
         valid_qobj = PulseQobjInstruction(
             name='acquire',
@@ -145,20 +134,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         self.converter = QobjToInstructionConverter(self.pulse_library, buffer=0)
 
-        self.device = DeviceSpecification(
-            qubits=[
-                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0)),
-                Qubit(1, DriveChannel(1), MeasureChannel(1), AcquireChannel(1)),
-            ],
-            registers=[
-                RegisterSlot(0),
-                RegisterSlot(1)
-            ],
-            mem_slots=[
-                MemorySlot(0),
-                MemorySlot(1)
-            ]
-        )
+        self.device = PulseSpecification(n_drive=2, n_control=2, n_measure=2, n_registers=2)
 
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
@@ -197,7 +173,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
         """Test converted qobj from AcquireInstruction."""
         cmd = Acquire(10, Discriminator(name='test_disc', params={'test_params': 1.0}),
                       Kernel(name='test_kern', params={'test_params': 'test'}))
-        instruction = cmd(self.device.q, self.device.mem, self.device.c)
+        instruction = cmd(self.device.acq, self.device.mem, self.device.c)
 
         qobj = PulseQobjInstruction(name='acquire', t0=0, duration=10, qubits=[0, 1],
                                     memory_slot=[0, 1], register_slot=[0, 1],
@@ -285,21 +261,11 @@ class TestLoConverter(QiskitTestCase):
     """LO converter tests."""
 
     def setUp(self):
-        self.device = DeviceSpecification(
-            qubits=[
-                Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0))
-            ],
-            registers=[
-                RegisterSlot(0)
-            ],
-            mem_slots=[
-                MemorySlot(0)
-            ]
-        )
+        self.device = PulseSpecification(n_drive=1, n_control=1, n_measure=1, n_registers=1)
 
     def test_qubit_los(self):
         """Test qubit channel configuration."""
-        user_lo_config = LoConfig({self.device.q[0].drive: 1.3})
+        user_lo_config = LoConfig({self.device.d[0]: 1.3})
         converter = LoConfigConverter(PulseQobjExperimentConfig,
                                       [1.2], [3.4], [(0., 5.)], [(0., 5.)])
 
@@ -309,7 +275,7 @@ class TestLoConverter(QiskitTestCase):
 
     def test_meas_los(self):
         """Test measurement channel configuration."""
-        user_lo_config = LoConfig({self.device.q[0].measure: 3.5})
+        user_lo_config = LoConfig({self.device.m[0]: 3.5})
         converter = LoConfigConverter(PulseQobjExperimentConfig,
                                       [1.2], [3.4], [(0., 5.)], [(0., 5.)])
 
