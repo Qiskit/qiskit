@@ -258,7 +258,6 @@ def gates_tab(backend):
     Returns:
         VBox: A VBox widget.
     """
-    config = backend.configuration().to_dict()
     props = backend.properties().to_dict()
 
     multi_qubit_gates = [g for g in props['gates'] if len(g['qubits']) > 1]
