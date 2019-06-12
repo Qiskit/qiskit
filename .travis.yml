@@ -38,7 +38,7 @@ stage_generic: &stage_generic
     - pip install -e .
     - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
-    # Compile the executables and run th tests.
+    # Compile the executables and run the tests.
     - python setup.py build_ext --inplace
     - make test_ci
   after_failure:
@@ -144,7 +144,7 @@ jobs:
       <<: *stage_linux
       python: 3.6
       env:
-        - PYTHON=coverage run --source qiskit --parallel-mode
+        - PYTHON="coverage run --source qiskit --parallel-mode"
 
     # GNU/Linux, Python 3.7
     - stage: test
