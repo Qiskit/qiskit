@@ -50,6 +50,7 @@ MONTH_NAMES = {1: 'Jan.',
                12: 'Dec.'
                }
 
+
 @magics_class
 class BackendMonitor(Magics):
     """A class of status magic functions.
@@ -134,6 +135,7 @@ def _backend_monitor(backend):
                                                   max_height='650px', min_height='650px',
                                                   overflow_y='hidden'))
     display(bmonitor)
+
 
 def config_tab(backend):
     """The backend configuration widget.
