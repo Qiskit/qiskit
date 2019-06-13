@@ -190,11 +190,11 @@ jobs:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
 
-    # GNU/Linux, Python 3.7 
+    # GNU/Linux, visualizations
     - stage: test_visualization
       name: Test visualizations
       <<: *stage_linux_latex
       dist: xenial
-      python: 3.5
+      python: 3.6
       sudo: true
 
