@@ -18,11 +18,13 @@
 Measurement options.
 """
 
+from typing import Optional
+
 
 class MeasOpts:
     """Measurement options."""
 
-    def __init__(self, name: str = None, **params):
+    def __init__(self, name: Optional[str] = None, **params):
         """Create new measurement options.
 
         Parameters:
@@ -64,7 +66,7 @@ class MeasOpts:
 class Discriminator(MeasOpts):
     """Discriminator."""
 
-    def __init__(self, name: str = None, **params):
+    def __init__(self, name: Optional[str] = None, **params):
         """Create new discriminator.
 
         Parameters:
@@ -76,7 +78,7 @@ class Discriminator(MeasOpts):
 class Kernel(MeasOpts):
     """Kernel."""
 
-    def __init__(self, name: str = None, **params):
+    def __init__(self, name: Optional[str] = None, **params):
         """Create new kernel.
 
         Parameters:

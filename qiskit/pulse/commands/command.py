@@ -16,8 +16,11 @@
 Base command.
 """
 from abc import ABCMeta, abstractmethod
+from typing import List, Optional
 
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.timeslots import TimeslotCollection
 
 from .instruction import Instruction
 
@@ -28,7 +31,7 @@ class Command(metaclass=ABCMeta):
     pulseIndex = 0
 
     @abstractmethod
-    def __init__(self, duration: int = None, name: str = None):
+    def __init__(self, duration: Optional[int] = None, name: Optional[str] = None):
         """Create a new command.
 
         Args:
@@ -59,7 +62,9 @@ class Command(metaclass=ABCMeta):
         return self._name
 
     @abstractmethod
-    def to_instruction(self, command, *channels, timeslots=None, name=None) -> Instruction:
+    def to_instruction(self, command, *channels: List[Channel],
+                       timeslots: Optional[TimeslotCollection] = None,
+                       name: Optional[str] = None) -> Instruction:
         """Create an instruction from command."""
         pass
 

@@ -15,7 +15,7 @@
 """
 Acquire.
 """
-from typing import Union, List
+from typing import Union, List, Optional
 
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
@@ -29,7 +29,8 @@ class Acquire(Command):
 
     ALIAS = 'acquire'
 
-    def __init__(self, duration: int, discriminator: Discriminator = None, kernel: Kernel = None):
+    def __init__(self, duration: int, discriminator: Optional[Discriminator] = None,
+                 kernel: Optional[Kernel] = None):
         """Create new acquire command.
 
         Args:
@@ -95,9 +96,9 @@ class Acquire(Command):
     # pylint: disable=arguments-differ
     def to_instruction(self,
                        qubits: Union[Qubit, List[Qubit]],
-                       mem_slots: Union[MemorySlot, List[MemorySlot]] = None,
-                       reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
-                       name=None) -> 'AcquireInstruction':
+                       mem_slots: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
+                       reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                       name: Optional[str] = None) -> 'AcquireInstruction':
         return AcquireInstruction(self, qubits, mem_slots, reg_slots, name=name)
     # pylint: enable=arguments-differ
 
@@ -109,8 +110,8 @@ class AcquireInstruction(Instruction):
                  command: Acquire,
                  qubits: Union[Qubit, AcquireChannel, List[Qubit], List[AcquireChannel]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
-                 name=None):
+                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                 name: Optional[str] = None):
 
         if isinstance(qubits, (Qubit, AcquireChannel)):
             qubits = [qubits]

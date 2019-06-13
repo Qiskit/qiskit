@@ -15,7 +15,7 @@
 """
 Sample pulse.
 """
-from typing import Callable, Union, List
+from typing import Callable, Union, List, Optional
 
 import numpy as np
 
@@ -29,7 +29,7 @@ from .command import Command
 class SamplePulse(Command):
     """Container for functional pulse."""
 
-    def __init__(self, samples: Union[np.ndarray, List[complex]], name: str = None):
+    def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None):
         """Create new sample pulse command.
 
         Args:
@@ -50,8 +50,8 @@ class SamplePulse(Command):
         """Return sample values."""
         return self._samples
 
-    def draw(self, dt: float = 1, style: 'PulseStyle' = None,
-             filename: str = None, interp_method: Callable = None,
+    def draw(self, dt: float = 1, style: Optional['PulseStyle'] = None,
+             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
              scaling: float = 1, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 
@@ -97,7 +97,8 @@ class SamplePulse(Command):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)
 
     # pylint: disable=arguments-differ
-    def to_instruction(self, channel: PulseChannel, name=None) -> 'PulseInstruction':
+    def to_instruction(self, channel: PulseChannel,
+                       name: Optional[str] = None) -> 'PulseInstruction':
         return PulseInstruction(self, channel, name=name)
     # pylint: enable=arguments-differ
 
@@ -105,5 +106,5 @@ class SamplePulse(Command):
 class PulseInstruction(Instruction):
     """Instruction to drive a pulse to an `PulseChannel`."""
 
-    def __init__(self, command: SamplePulse, channel: PulseChannel, name=None):
+    def __init__(self, command: SamplePulse, channel: PulseChannel, name: Optional[str] = None):
         super().__init__(command, channel, name=name)

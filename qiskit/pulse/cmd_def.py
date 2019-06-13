@@ -15,7 +15,7 @@
 """
 Command definition module. Relates circuit gates to pulse commands.
 """
-from typing import List, Tuple, Iterable, Union, Dict
+from typing import List, Tuple, Iterable, Union, Dict, Optional
 
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -50,7 +50,7 @@ def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]) -> Tuple[int]:
 class CmdDef:
     """Command definition class. Relates `Gate`s to `Schedule`s."""
 
-    def __init__(self, schedules: Dict = None):
+    def __init__(self, schedules: Optional[Dict] = None):
         """Create command definition from backend.
 
         Args:

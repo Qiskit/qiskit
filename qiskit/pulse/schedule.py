@@ -15,7 +15,7 @@
 """Schedule."""
 
 import itertools
-from typing import List, Tuple, Iterable, Union, Dict, Callable
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Optional
 
 from qiskit.pulse import ops
 from .channels import Channel
@@ -30,7 +30,7 @@ class Schedule(ScheduleComponent):
     """Schedule of `ScheduleComponent`s. The composite node of a schedule tree."""
     # pylint: disable=missing-type-doc
     def __init__(self, *schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
-                 name: str = None):
+                 name: Optional[str] = None):
         """Create empty schedule.
 
         Args:
@@ -140,7 +140,8 @@ class Schedule(ScheduleComponent):
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
-    def union(self, *schedules: List[ScheduleComponent], name: str = None) -> 'Schedule':
+    def union(self, *schedules: List[ScheduleComponent],
+              name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
@@ -149,7 +150,8 @@ class Schedule(ScheduleComponent):
         """
         return ops.union(self, *schedules, name=name)
 
-    def shift(self: ScheduleComponent, time: int, name: str = None) -> 'Schedule':
+    def shift(self: ScheduleComponent, time: int,
+              name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -159,7 +161,7 @@ class Schedule(ScheduleComponent):
         return ops.shift(self, time, name=name)
 
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
-               name: str = None) -> 'Schedule':
+               name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
@@ -171,7 +173,7 @@ class Schedule(ScheduleComponent):
         return ops.insert(self, start_time, schedule, buffer=buffer, name=name)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = True,
-               name: str = None) -> 'Schedule':
+               name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 
@@ -186,11 +188,11 @@ class Schedule(ScheduleComponent):
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
         return ops.flatten(self)
 
-    def draw(self, dt: float = 1, style: 'SchedStyle' = None,
-             filename: str = None, interp_method: Callable = None, scaling: float = 1,
-             channels_to_plot: List[Channel] = None, plot_all: bool = False,
-             plot_range: Tuple[float] = None, interactive: bool = False,
-             table: bool = True, label: bool = False,
+    def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
+             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
+             scaling: float = 1, channels_to_plot: Optional[List[Channel]] = None,
+             plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
+             interactive: bool = False, table: bool = True, label: bool = False,
              framechange: bool = True):
         """Plot the schedule.
 
@@ -257,7 +259,8 @@ class ParameterizedSchedule:
         into the `Schedule` class.
     """
 
-    def __init__(self, *schedules, parameters=None, name=None):
+    def __init__(self, *schedules, parameters: Optional[Dict[str, Union[float, complex]]] = None,
+                 name: Optional[str] = None):
         full_schedules = []
         parameterized = []
         parameters = parameters or []
@@ -283,7 +286,8 @@ class ParameterizedSchedule:
         """Schedule parameters."""
         return self._parameters
 
-    def bind_parameters(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+    def bind_parameters(self, *args: List[Union[float, complex]],
+                        **kwargs: Dict[str, Union[float, complex]]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
         bound_schedule = Schedule(name=self.name)
         schedules = list(self._schedules)
@@ -297,5 +301,6 @@ class ParameterizedSchedule:
 
         return bound_schedule
 
-    def __call__(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+    def __call__(self, *args: List[Union[float, complex]],
+                 **kwargs: Dict[str, Union[float, complex]]) -> Schedule:
         return self.bind_parameters(*args, **kwargs)

@@ -15,7 +15,7 @@
 """
 Instruction = Leaf node of schedule.
 """
-from typing import Tuple, List, Iterable, Callable
+from typing import Tuple, List, Iterable, Callable, Optional
 
 from qiskit.pulse import ops
 from qiskit.pulse.channels import Channel
@@ -30,7 +30,8 @@ class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
     def __init__(self, command, *channels: List[Channel],
-                 timeslots: TimeslotCollection = None, name=None):
+                 timeslots: Optional[TimeslotCollection] = None,
+                 name: Optional[str] = None):
         """
         Args:
             command: Pulse command to schedule
@@ -152,7 +153,8 @@ class Instruction(ScheduleComponent):
         """Return itself as already single instruction."""
         return self
 
-    def union(self, *schedules: List[ScheduleComponent], name: str = None) -> 'ScheduleComponent':
+    def union(self, *schedules: List[ScheduleComponent],
+              name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
@@ -161,7 +163,8 @@ class Instruction(ScheduleComponent):
         """
         return ops.union(self, *schedules, name=name)
 
-    def shift(self: ScheduleComponent, time: int, name: str = None) -> 'ScheduleComponent':
+    def shift(self: ScheduleComponent, time: int,
+              name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -171,7 +174,7 @@ class Instruction(ScheduleComponent):
         return ops.shift(self, time, name=name)
 
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
-               name: str = None) -> 'ScheduleComponent':
+               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
@@ -183,7 +186,7 @@ class Instruction(ScheduleComponent):
         return ops.insert(self, start_time, schedule, buffer=buffer, name=name)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = True,
-               name: str = None) -> 'ScheduleComponent':
+               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 
@@ -194,12 +197,12 @@ class Instruction(ScheduleComponent):
         """
         return ops.append(self, schedule, buffer=buffer, name=name)
 
-    def draw(self, dt: float = 1, style: 'SchedStyle' = None,
-             filename: str = None, interp_method: Callable = None, scaling: float = 1,
-             channels_to_plot: List[Channel] = None, plot_all: bool = False,
-             plot_range: Tuple[float] = None, interactive: bool = False,
-             table: bool = True, label: bool = False,
-             framechange: bool = True):
+    def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
+             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
+             scaling: float = 1, channels_to_plot: Optional[List[Channel]] = None,
+             plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
+             interactive: bool = False, table: bool = True,
+             label: bool = False, framechange: bool = True):
         """Plot the instruction.
 
         Args:
