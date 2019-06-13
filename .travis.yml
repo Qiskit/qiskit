@@ -54,13 +54,14 @@ stage_linux: &stage_linux
 stage_linux_latex: &stage_linux_latex
   <<: *stage_linux
   before_install:
-  - sudo apt-get install -y texlive-latex-base
-  - sudo apt-get install -y texlive-fonts-recommended
-  - sudo apt-get install -y texlive-fonts-extra
-  - sudo apt-get install -y texlive-latex-extra
-  - sudo apt-get install -y poppler-utils
-  - sudo apt-get install -y texlive-pictures
+    - sudo apt-get install -y texlive-latex-base
+    - sudo apt-get install -y texlive-fonts-recommended
+    - sudo apt-get install -y texlive-fonts-extra
+    - sudo apt-get install -y texlive-latex-extra
+    - sudo apt-get install -y poppler-utils
+    - sudo apt-get install -y texlive-pictures
   script:
+    - wget https://raw.githubusercontent.com/CQuIC/qcircuit/master/qcircuit.sty
     - make test_visualizations
 
 stage_osx: &stage_osx
