@@ -22,10 +22,11 @@ from typing import List, Optional
 import numpy as np
 
 from .channels import AcquireChannel, MemorySlot
+from .cmd_def import CmdDef
 from .commands import Acquire, AcquireInstruction
+from .exceptions import PulseError
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
-from .cmd_def import CmdDef
 
 
 def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef, cal_gate: str = 'u3',
@@ -48,8 +49,10 @@ def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef, cal_gate
     Raises:
         ValueError: if an acquire or pulse is encountered on a channel that has already been part
                     of an acquire
+        PulseError: if align_time is negative
     """
-    assert align_time is None or align_time >= 0, "Align time cannot be negative."
+    if align_time is not None and align_time < 0:
+        raise PulseError("Align time cannot be negative.")
     if align_time is None:
         # Need time to allow for calibration pulses to be played for result classification
         if max_calibration_duration is None:
