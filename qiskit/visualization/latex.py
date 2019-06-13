@@ -110,10 +110,10 @@ class QCircuitImage:
         self.sum_row_heights = 0
 
         # em points of separation between circuit columns
-        self.column_separation = 0.5
+        self.column_separation = 1
 
         # em points of separation between circuit row
-        self.row_separation = 0.0
+        self.row_separation = 0
 
         # presence of "box" or "target" determines row spacing
         self.has_box = False
