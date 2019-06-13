@@ -56,7 +56,11 @@ test:
 	python3 -m unittest discover -s test -v
 
 test_ci:
-	python -m unittest -v test.python.visualization.test_circuit_visualization_output.TestCircuitVisualizationImplementation.test_latex_drawer
+	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"
+	stestr run --concurrency $(CONCURRENCY)
+
+test_visualizations:
+	python -m unittest discover -v test.python.visualization
 
 coverage:
 	coverage3 run --source qiskit -m unittest discover -s test -q
