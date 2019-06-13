@@ -49,6 +49,10 @@ class TestAutoMerge(QiskitTestCase):
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
+        sched = align_measures([sched], self.cmd_def, align_time=20)[0]
+        for time, inst in sched.instructions:
+            if isinstance(inst, AcquireInstruction):
+                self.assertEqual(time, 20)
 
     def test_align_post_u3(self):
         """Test that acquires are scheduled no sooner than the duration of the longest X gate.
@@ -61,6 +65,10 @@ class TestAutoMerge(QiskitTestCase):
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 4)
+        sched = align_measures([sched], self.cmd_def, max_calibration_duration=10)[0]
+        for time, inst in sched.instructions:
+            if isinstance(inst, AcquireInstruction):
+                self.assertEqual(time, 10)
 
     def test_error_multi_acquire(self):
         """Test that an error is raised if multiple acquires occur on the same channel."""

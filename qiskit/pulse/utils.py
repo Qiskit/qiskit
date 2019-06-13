@@ -17,7 +17,7 @@ Pulse utilities.
 """
 import warnings
 
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 
@@ -28,7 +28,9 @@ from .schedule import Schedule
 from .cmd_def import CmdDef
 
 
-def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef) -> Schedule:
+def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef, cal_gate: str = 'u3',
+                   max_calibration_duration: Optional[int] = None,
+                   align_time: Optional[int] = None) -> Schedule:
     """Return new schedules where measurements occur at the same physical time. Minimum measurement
     wait time (to allow for calibration pulses) is enforced.
     This is only defined for schedules that are acquire-less or acquire-final per channel: a
@@ -38,25 +40,31 @@ def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef) -> Sched
     Args:
         schedules: Collection of schedules to be aligned together
         cmd_def: Command definition list
+        cal_gate: The name of the gate to inspect for the calibration time
+        max_calibration_duration: If provided, cmd_def and cal_gate will be ignored
+        align_time: If provided, this will be used as final align time.
     Returns:
         Schedule
     Raises:
         ValueError: if an acquire or pulse is encountered on a channel that has already been part
                     of an acquire
     """
-    # Need time to allow for calibration pulses to be played for result classification
-    max_calibration_duration = 0
-    for qubits in cmd_def.cmd_qubits('u3'):
-        cmd = cmd_def.get('u3', qubits, np.pi, 0, np.pi)
-        max_calibration_duration = max(cmd.duration, max_calibration_duration)
+    assert align_time is None or align_time >= 0, "Align time cannot be negative."
+    if align_time is None:
+        # Need time to allow for calibration pulses to be played for result classification
+        if max_calibration_duration is None:
+            max_calibration_duration = 0
+            for qubits in cmd_def.cmd_qubits(cal_gate):
+                cmd = cmd_def.get(cal_gate, qubits, np.pi, 0, np.pi)
+                max_calibration_duration = max(cmd.duration, max_calibration_duration)
 
-    # Schedule the acquires to be either at the end of the needed calibration time, or when the
-    # last acquire is scheduled, whichever comes later
-    acquire_scheduled_time = max_calibration_duration
-    for schedule in schedules:
-        last_acquire = max([time for time, inst in schedule.instructions
-                            if isinstance(inst, AcquireInstruction)])
-        acquire_scheduled_time = max(acquire_scheduled_time, last_acquire)
+        # Schedule the acquires to be either at the end of the needed calibration time, or when the
+        # last acquire is scheduled, whichever comes later
+        align_time = max_calibration_duration
+        for schedule in schedules:
+            last_acquire = max([time for time, inst in schedule.instructions
+                                if isinstance(inst, AcquireInstruction)])
+            align_time = max(align_time, last_acquire)
 
     # Shift acquires according to the new scheduled time
     new_schedules = []
@@ -69,7 +77,10 @@ def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef) -> Sched
                     raise ValueError("Pulse encountered on channel {0} after acquire on "
                                      "same channel.".format(chan.index))
             if isinstance(inst, AcquireInstruction):
-                new_schedule |= inst << acquire_scheduled_time
+                if time > align_time:
+                    warnings.warn("You provided an align_time which is scheduling an acquire "
+                                  "sooner than it was scheduled for in the original Schedule.")
+                new_schedule |= inst << align_time
                 acquired_channels.update({a.index for a in inst.acquires})
             else:
                 new_schedule |= inst << time
