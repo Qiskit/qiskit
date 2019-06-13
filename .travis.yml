@@ -147,7 +147,7 @@ jobs:
         - coveralls || true
         - coverage xml || true
         - pip install diff-cover || true
-        - diff-cover --compare-branch master coverage_xml || true
+        - diff-cover --compare-branch master coverage.xml || true
 
     # GNU/Linux, Python 3.7
     - stage: test
