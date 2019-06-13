@@ -56,10 +56,7 @@ stage_linux: &stage_linux
   - sudo apt-get install -y texlive-fonts-extra
   - sudo apt-get install -y xzdec
   - sudo apt-get install -y texlive-latex-extra
-  - tlmgr init-usertree
-  - tlmgr option repository ftp://tug.org/historic/systems/texlive/2015/tlnet-final
-  - tlmgr install qcircuit
-  - cat /home/travis/texmf/web2c/tlmgr.log
+  - sudo apt-get install -y texlive-pictures
 
 stage_osx: &stage_osx
   <<: *stage_generic
