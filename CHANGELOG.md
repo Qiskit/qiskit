@@ -93,7 +93,7 @@ The format is based on [Keep a Changelog].
     operators.
 -   Introduced the backend defaults model and endpoint for pulse
     backends (\#2101).
--   [meas\_level]{.title-ref} to result schema (\#2085).
+-   `meas_level` to result schema (\#2085).
 -   Core StochasticSwap routine implemented in Cython (\#1789).
 -   New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
     selection pass (\#1603).
@@ -179,8 +179,8 @@ The format is based on [Keep a Changelog].
 ### Changed
 
 -   require scipy\>=1.0, use
-    [scipy.stats.unitary\_group.rvs]{.title-ref} for
-    [random\_unitary()]{.title-ref}.
+    `scipy.stats.unitary_group.rvs` for
+    `random_unitary()`.
 -   two\_qubit\_kak decomposition works with Operator or raw matrix
     input objects.
 -   process\_fidelity works with QuantumChannel and Operator object
@@ -193,8 +193,8 @@ The format is based on [Keep a Changelog].
 -   plot\_histogram now allows sorting by Hamming distance from
     target\_string (\#2064).
 -   FunctionalPulse is no longer a class and instead is a decorator,
-    [functional\_pulse]{.title-ref} that returns a
-    [SamplePulse]{.title-ref} when called. (\#2043)
+    `functional_pulse` that returns a
+    `SamplePulse` when called. (\#2043)
 -   Changed `average_data` to accept observable input in matrix form
     (\#1858)
 -   Change random\_state to take in dim over number of qubits (\#1857)
@@ -224,7 +224,7 @@ The format is based on [Keep a Changelog].
     (\#1591).
 -   Purity function in `qiskit.tools.qi.qi` calls new version in
     `qiskit.quantum_information` and issues deprecation warning (\#1733)
--   Updated [dag.node\_counter]{.title-ref} to return the current number
+-   Updated `dag.node_counter` to return the current number
     of nodes (\#1763)
 -   The argument `basis_gates` used in `compile`, `execute`, and
     `transpile` is not longer a comma-separated string but a list of
@@ -269,7 +269,7 @@ The format is based on [Keep a Changelog].
 
 ### Deprecated
 
--   The methods prefixed by [\_get]{.title-ref} in the DAGCircuit object
+-   The methods prefixed by `\_get` in the DAGCircuit object
     are being renamed without that prefix (see \#1346)
 -   Changed elements in `couplinglist` of `CouplingMap` from tuples to
     lists (\#1666).
@@ -321,9 +321,9 @@ The format is based on [Keep a Changelog].
     conditional gates (\#1943).
 -   Fixed a mapping issue with layouts on non-adjacent qubits, by adding
     ancillas (\#2023).
--   Fixed a bug in which an [initial\_layout]{.title-ref} could be
+-   Fixed a bug in which an `initial_layout` could be
     changed even if it made the circuit compatible with the device
-    [coupling\_map]{.title-ref} (\#2036).
+    `coupling_map` (\#2036).
 -   Fixed `qobj_to_circuits` for circuits that contain initialize
     instructions (\#2138)
 
@@ -385,25 +385,25 @@ The format is based on [Keep a Changelog].
 -   Added an ASCII art circuit visualizer (\#909)
 -   The QuantumCircuit class now returns an ASCII art visualization when
     treated as a string (\#911)
--   The QuantumCircuit class now has a [draw()]{.title-ref} method which
+-   The QuantumCircuit class now has a `draw()` method which
     behaves the same as the
-    [qiskit.tools.visualization.circuit\_drawer()]{.title-ref} function
+    `qiskit.tools.visualization.circuit_drawer()` function
     for visualizing the quantum circuit (\#911)
--   A new method [hinton]{.title-ref} can be used on
-    [qiskit.tools.visualization.plot\_state()]{.title-ref} to draw a
+-   A new method `hinton` can be used on
+    `qiskit.tools.visualization.plot_state()` to draw a
     hinton diagram (\#1246)
--   Two new constructor methods, [from\_qasm\_str()]{.title-ref} and
-    [from\_qasm\_file()]{.title-ref}, to create a QuantumCircuit object
+-   Two new constructor methods, `from_qasm_str()` and
+    `from_qasm_file()`, to create a QuantumCircuit object
     from OpenQASM were added to the QuantumCircuit class. (\#1172)
 -   New methods in QuantumCircuit for common circuit metrics:
-    [size()]{.title-ref}, [depth()]{.title-ref}, [width()]{.title-ref},
-    [count\_ops()]{.title-ref}, [num\_tensor\_factors()]{.title-ref}
+    `size()`, `depth()`, `width()`,
+    `count_ops()`, `num_tensor_factors()`
     (\#1285)
--   Added [backend\_monitor]{.title-ref} and
-    [backend\_overview]{.title-ref} Jupyter magics, as well as
-    [plot\_coupling\_map]{.title-ref} (\#1231)
--   Added a [Layout]{.title-ref} object (\#1313)
--   New [plot\_bloch\_multivector()]{.title-ref} to plot Bloch vectors
+-   Added `backend_monitor` and
+    `backend_overview` Jupyter magics, as well as
+    `plot_coupling_map` (\#1231)
+-   Added a `Layout` object (\#1313)
+-   New `plot_bloch_multivector()` to plot Bloch vectors
     from a tensored state vector or density matrix. (\#1359)
 -   Per-shot measurement results are available in simulators and select
     devices. Request them by setting `memory=True` in
@@ -438,13 +438,13 @@ The format is based on [Keep a Changelog].
 -   Schedules and underlying classes are now immutable. (\#2186)
 -   Evolved pass-based transpiler to support advanced functionality
     (\#1060)
--   [.retrieve\_job()]{.title-ref} and [.jobs()]{.title-ref} no longer
+-   `.retrieve_job()` and `.jobs()` no longer
     returns results by default, instead the result must be accessed by
-    the [result()]{.title-ref} method on the job objects (\#1082).
--   Make [backend.status()]{.title-ref} dictionary conform with schema.
+    the `result()` method on the job objects (\#1082).
+-   Make `backend.status()` dictionary conform with schema.
 -   The different output backends for the circuit\_drawer()
     visualizations have been moved into separate private modules in
-    [qiskit.tools.visualizations]{.title-ref}. (\#1105, \#1111)
+    `qiskit.tools.visualizations`. (\#1105, \#1111)
 -   DAG nodes contain pointers to Register and Instruction objects,
     rather than their string names (\#1189).
 -   
@@ -453,13 +453,13 @@ The format is based on [Keep a Changelog].
 
     :   -   networkx\>=2.2 (\#1267).
 
--   The [qiskit.tools.visualization.circuit\_drawer()]{.title-ref}
+-   The `qiskit.tools.visualization.circuit_drawer()`
     method now returns a matplotlib.Figure object when the
-    [mpl]{.title-ref} output is used and a [TextDrawer]{.title-ref}
-    object when [text]{.title-ref} output is used. (\#1224, \#1181)
+    `mpl` output is used and a `TextDrawer`
+    object when `text` output is used. (\#1224, \#1181)
 -   Speed up the Pauli class and extended its operators (\#1271 \#1166).
--   [IBMQ.save\_account()]{.title-ref} now takes an
-    [overwrite]{.title-ref} option to replace an existing account on
+-   `IBMQ.save_account()` now takes an
+    `overwrite` option to replace an existing account on
     disk. Default is False (\#1295).
 -   Backend and Provider methods defined in the specification use model
     objects rather than dicts, along with validation against schemas
@@ -472,9 +472,9 @@ The format is based on [Keep a Changelog].
 -   `backend.provider()` is now a method instead of a property (\#1312).
 -   Remove local backend (Aer) fallback (\#1303)
 -   The signatures for the plotting functions in
-    [qiskit.tools.visualization.\_counts\_visualization.py]{.title-ref},
-    [qiskit.tools.visualization.\_state\_visualization.py]{.title-ref},
-    and [qiskit.tools.visualization.interactive]{.title-ref} have been
+    `qiskit.tools.visualization._counts_visualization.py`,
+    `qiskit.tools.visualization._state_visualization.py`,
+    and `qiskit.tools.visualization.interactive` have been
     modified to make them in-line with standard Matplotlib calling
     conventions (\#1359).
 -   Remove local backend (Aer) fallback (\#1303).
@@ -516,22 +516,22 @@ The format is based on [Keep a Changelog].
     :   back on python) is deprecated and will be changed in the future.
         (\#1055)
 
--   The [qiskit.wrapper.load\_qasm\_string()]{.title-ref} and
-    [qiskit.wrapper.load\_qasm\_file()]{.title-ref} functions are
-    deprecated and the [QuantumCircuit.from\_qasm\_str()]{.title-ref}
-    and [QuantumCircuit.from\_qasm\_file()]{.title-ref} contstructor
+-   The `qiskit.wrapper.load_qasm_string()` and
+    `qiskit.wrapper.load_qasm_file()` functions are
+    deprecated and the `QuantumCircuit.from_qasm_str()`
+    and `QuantumCircuit.from_qasm_file()` contstructor
     methods should be used instead (\#1172)
 -   The `plot_barriers` and `reverse_bits` keys in the `style` kwarg
     dict are deprecated, instead the
-    [qiskit.tools.visualization.circuit\_drawer()]{.title-ref} kwargs
+    `qiskit.tools.visualization.circuit_drawer()` kwargs
     `plot_barriers` and `reverse_bits` should be used instead. (\#1180)
 -   The `transpile_dag()` function `format` kwarg for emitting different
     output formats is deprecated (\#1319).
 -   Several methods of `qiskit.Result` have been deprecated (\#1360).
--   The functions [plot\_state()]{.title-ref} and
-    [iplot\_state()]{.title-ref} have been depreciated. Instead the
-    functions [plot\_state\_\*()]{.title-ref} and
-    [iplot\_state\_\*()]{.title-ref} should be called. (\#1359)
+-   The functions `plot_state()` and
+    `iplot_state()` have been depreciated. Instead the
+    functions `plot_state_\*()` and
+    `iplot_state_\*()` should be called. (\#1359)
 -   The `skip_transpiler` arg has been deprecated from `compile()` and
     `execute()` in favor of using the PassManager directly.
 
@@ -545,18 +545,18 @@ The format is based on [Keep a Changelog].
 -   Fixed AerJob status when the submitted Job is in a PENDING state.
     (\#1215)
 -   Add fallback for when CPU count can\'t be determined (\#1214)
--   Fix [random\_state]{.title-ref} from returning nan (\#1258)
--   The Clifford simulator [run()]{.title-ref} method now works
+-   Fix `random_state` from returning nan (\#1258)
+-   The Clifford simulator `run()` method now works
     correctly with the updated AerJob usage (\#1125)
 -   Fixed an edge case when connection checks would raise an unhandled
     exception (\#1226)
 -   Fixed a bug where the transpiler moved middle-of-circuit
     measurements to the end (\#1334)
--   The [number\_to\_keep]{.title-ref} kwarg in `plot_histgram()` now
+-   The `number_to_keep` kwarg in `plot_histgram()` now
     functions correctly (\#1359).
 -   parallel\_map no longer creates a progress bar for a single circuit
     (\#1394).
--   The [timeout]{.title-ref} parameter is now passed into the inner
+-   The `timeout` parameter is now passed into the inner
     `_wait_for_submission` function in `IBMQJob` from `_wait_for_result`
     (\#1542).
 
@@ -605,13 +605,13 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
--   Added [SchemaValidationError]{.title-ref} to be thrown when schema
+-   Added `SchemaValidationError` to be thrown when schema
     validation fails (\#881)
 -   Generalized Qobj schema validation functions for all qiskit schemas
     (\#882).
 -   Added decorator to check for C++ simulator availability (\#662)
 -   It is possible to cancel jobs in non comercial backends (\#687)
--   Introduced new [qiskit.IBMQ]{.title-ref} provider, with centralized
+-   Introduced new `qiskit.IBMQ` provider, with centralized
     handling of IBMQ credentials (qiskitrc file, environment variables).
     (\#547, \#948, \#1000)
 -   Add OpenMP parallelization for Apple builds of the cpp simulator
@@ -626,13 +626,13 @@ The format is based on [Keep a Changelog].
 -   Add a new function `qobj_to_circuits` to convert a Qobj object to a
     list of QuantumCircuit objects (\#877)
 -   Allow selective loading of accounts from disk via hub/group/project
-    filters to [IBMQ.load\_accounts()]{.title-ref}.
--   Add new [job\_monitor]{.title-ref} function to automaically check
+    filters to `IBMQ.load_accounts()`.
+-   Add new `job_monitor` function to automaically check
     the status of a job (\#975).
 
 ### Changed
 
--   Schema tests in [tests/schemas/test\_schemas.py]{.title-ref}
+-   Schema tests in `tests/schemas/test_schemas.py`
     replaced with proper unit test (\#834).
 -   Renamed `QISKit` to `Qiskit` in the documentation. (\#634)
 -   Use `Qobj` as the formally defined schema for sending information to
@@ -737,10 +737,10 @@ The format is based on [Keep a Changelog].
     wrapper (\#575).
 -   Single source of version information (\#581)
 -   Bumped IBMQuantumExperience dependency to 1.9.6 (\#600).
--   For backend status, [status\[\'available\'\]]{.title-ref} is now
-    [status\[\'operational\'\]]{.title-ref} (\#609).
+-   For backend status, `status\[\'available\'\]` is now
+    `status\[\'operational\'\]` (\#609).
 -   Added support for registering third-party providers in
-    [register()]{.title-ref} (\#602).
+    `register()` (\#602).
 -   Order strings in the output of `available_backends()` (\#566)
 
 ### Removed
