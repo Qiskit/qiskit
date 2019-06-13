@@ -20,13 +20,70 @@ import sys
 
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def _minimal_ext_cmd(cmd):
+    # construct minimal environment
+    env = {}
+    for k in ['SYSTEMROOT', 'PATH']:
+        v = os.environ.get(k)
+        if v is not None:
+            env[k] = v
+    # LANGUAGE is used on win32
+    env['LANGUAGE'] = 'C'
+    env['LANG'] = 'C'
+    env['LC_ALL'] = 'C'
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, env=env,
+                            cwd=os.path.join(os.path.dirname(ROOT_DIR)))
+    out = proc.communicate()[0]
+    if proc.returncode > 0:
+        raise OSError
+    return out
+
+
+def git_version():
+    """Get the current git head sha1."""
+    # Determine if we're at master
+    try:
+        out = _minimal_ext_cmd(['git', 'rev-parse', 'HEAD'])
+        git_revision = out.strip().decode('ascii')
+    except OSError:
+        git_revision = "Unknown"
+
+    return git_revision
+
+
 with open(os.path.join(ROOT_DIR, "VERSION.txt"), "r") as version_file:
-    __version__ = version_file.read().strip()
+    VERSION = version_file.read().strip()
+
+
+def get_version_info():
+    """Get the full version string."""
+    # Adding the git rev number needs to be done inside
+    # write_version_py(), otherwise the import of scipy.version messes
+    # up the build under Python 3.
+    full_version = VERSION
+
+    if not os.path.exists(os.path.join(os.path.dirname(ROOT_DIR), '.git')):
+        return full_version
+    try:
+        release = _minimal_ext_cmd(['git', 'tag', '-l', '--points-at', 'HEAD'])
+    except Exception:  # pylint: disable=broad-except
+        return full_version
+    git_revision = git_version()
+    if not release:
+        full_version += '.dev0+' + git_revision[:7]
+
+    return full_version
+
+
+__version__ = get_version_info()
 
 
 def _get_qiskit_versions():
     cmd = [sys.executable, '-m', 'pip', 'freeze']
-    reqs = subprocess.check_output(cmd)
+    reqs = _minimal_ext_cmd(cmd)
     reqs_dict = {}
     for req in reqs.split():
         req_parts = req.decode().split('==')
