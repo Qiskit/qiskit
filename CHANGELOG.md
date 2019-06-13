@@ -15,8 +15,7 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
-Deprecated
-----------
+### Deprecated
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
     `cx`.
@@ -24,8 +23,7 @@ Deprecated
     `online_test`.
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
-Added
------
+### Added
 
 -   The option `vertical_compression` was added to the text drawer and
     to the `QuantumCircuit.draw` method. The option allows to control
@@ -35,8 +33,7 @@ Added
     passes when they are executed. The results is stored in the
     attribute `pass_log` of the property set as a dictionary.
 
-Changed
--------
+### Changed
 
 -   The `pylatexenc` and `pillow` requirements are now optional. These
     are only used by the `latex` and `latex_source` circuit
@@ -48,8 +45,7 @@ Changed
 -   Qubits and classical bits are not represented as a tuples anymore,
     but as instances of `Qubit` and `Clbit` respectively.
 
-Removed
--------
+### Removed
 
 -   The previously deprecated functions
     `qiksit.visualization.plot_state` and
@@ -71,16 +67,14 @@ Removed
 -   Removed `ignore_requires` and `ignore_preserves` options from
     `PassManager` (\#2565).
 
-Fixed
------
+### Fixed
 
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 
 ## [0.8.0] - 2019-05-02
 
-Added
------
+### Added
 
 -   Added exact and approximate decomposition of SU(4) to arbitrary
     supercontrolled basis
@@ -182,8 +176,7 @@ Added
 -   Added preset PassManagers that offer predetermined pipelines of
     transpiler passes. (\#2163)
 
-Changed
--------
+### Changed
 
 -   require scipy\>=1.0, use
     [scipy.stats.unitary\_group.rvs]{.title-ref} for
@@ -274,8 +267,7 @@ Changed
 -   Layout and CouplingMap classes are now accessible from
     qiskit.transpiler (\#2222).
 
-Deprecated
-----------
+### Deprecated
 
 -   The methods prefixed by [\_get]{.title-ref} in the DAGCircuit object
     are being renamed without that prefix (see \#1346)
@@ -307,8 +299,7 @@ Deprecated
     `qiskit.util`. `qiskit._util` will be removed in the 0.9 release.
     (\#2154)
 
-Fixed
------
+### Fixed
 
 -   Fixed \#1892, whereby inheriting from QuantumRegister or
     ClassicalRegister would cause a QiskitError in instruction.py
@@ -336,8 +327,7 @@ Fixed
 -   Fixed `qobj_to_circuits` for circuits that contain initialize
     instructions (\#2138)
 
-Removed
--------
+### Removed
 
 -   The previously deprecated functions `plot_circuit()`,
     `latex_circuit_drawer()`, `generate_latex_source()`, and
@@ -374,24 +364,21 @@ Removed
 
 ## [0.7.2] - 2019-05-01
 
-Fixed
------
+### Fixed
 
 -   A potential issue where the backend configuration schema validation
     would improperly reject valid responses from the API (\#2258)
 
 ## [0.7.1] - 2019-03-04
 
-Fixed
------
+### Fixed
 
 -   Fixed a bug with measurement sampling optimization in BasicAer
     qasm\_simulator (\#1624).
 
 ## [0.7.0] - 2018-12-19
 
-Added
------
+### Added
 
 -   Added DAG visualizer which requires
     [Graphivz](https://www.graphviz.org/) (\#1059)
@@ -446,8 +433,7 @@ Added
 -   New Optimize1QGate pass for combining chains of 1q rotations
     (\#1442).
 
-Changed
--------
+### Changed
 
 -   Schedules and underlying classes are now immutable. (\#2186)
 -   Evolved pass-based transpiler to support advanced functionality
@@ -512,8 +498,7 @@ Changed
     the Python simulators and `LegacySimulators` which provides the old
     C++ simulators in qiskit-terra. (\#1484)
 
-Deprecated
-----------
+### Deprecated
 
 -   
 
@@ -550,8 +535,7 @@ Deprecated
 -   The `skip_transpiler` arg has been deprecated from `compile()` and
     `execute()` in favor of using the PassManager directly.
 
-Fixed
------
+### Fixed
 
 -   Fixed a variety of typos throughout sources (\#1139)
 -   Fixed horizontal spacing when drawing barriers before CCNOT gates in
@@ -576,8 +560,7 @@ Fixed
     `_wait_for_submission` function in `IBMQJob` from `_wait_for_result`
     (\#1542).
 
-Removed
--------
+### Removed
 
 -   Remove register, available\_backends (\#1131).
 -   Remove tools/apps (\#1184).
@@ -620,8 +603,7 @@ Removed
 
 ## [0.6.0] - 2018-10-04
 
-Added
------
+### Added
 
 -   Added [SchemaValidationError]{.title-ref} to be thrown when schema
     validation fails (\#881)
@@ -648,8 +630,7 @@ Added
 -   Add new [job\_monitor]{.title-ref} function to automaically check
     the status of a job (\#975).
 
-Changed
--------
+### Changed
 
 -   Schema tests in [tests/schemas/test\_schemas.py]{.title-ref}
     replaced with proper unit test (\#834).
@@ -678,8 +659,7 @@ Changed
     drawer. This requires having the LaTeX qcircuit package
     version \>=2.6.0 installed (\#764)
 
-Deprecated
-----------
+### Deprecated
 
 -   The `number_to_keep` kwarg on the `plot_histogram()` function is now
     deprecated. A field of the same name should be used in the `option`
@@ -687,13 +667,11 @@ Deprecated
 -   Breaking change: `backend.properties()` instead of
     `backend.calibration()` and `backend.parameters()` (\#870)
 
-Removed
--------
+### Removed
 
 -   Removed the QuantumProgram class. (\#724)
 
-Fixed
------
+### Fixed
 
 -   Fixed `get_ran_qasm` methods on `Result` instances (\#688).
 -   Fixed `probabilities_ket` computation in C++ simulator (\#580).
@@ -715,27 +693,23 @@ Fixed
 
 ## [0.5.7] - 2018-07-19
 
-Changed
--------
+### Changed
 
 -   Add new backend names support, with aliasing for the old ones.
 
 ## [0.5.6] - 2018-07-06
 
-Changed
--------
+### Changed
 
 -   Rename repository to `qiskit-terra` (\#606).
 -   Update Bloch sphere to QuTiP version (\#618).
 -   Adjust margin of matplotlib\_circuit\_drawer (\#632)
 
-Removed
--------
+### Removed
 
 -   Remove OpenQuantumCompiler (\#610).
 
-Fixed
------
+### Fixed
 
 -   Fixed broken process error and simulator slowdown on Windows
     (\#613).
@@ -744,8 +718,7 @@ Fixed
 
 ## [0.5.5] - 2018-07-02
 
-Added
------
+### Added
 
 -   Retrieve IBM Q jobs from server (\#563, \#585).
 -   Add German introductory documentation (`doc/de`) (\#592).
@@ -758,8 +731,7 @@ Added
 -   Introduce Qiskit Transpiler and refactor compilation flow (\#578)
 -   Add CXCancellation pass (\#578)
 
-Changed
--------
+### Changed
 
 -   Remove backend filtering in individual providers, keep only in
     wrapper (\#575).
@@ -771,16 +743,14 @@ Changed
     [register()]{.title-ref} (\#602).
 -   Order strings in the output of `available_backends()` (\#566)
 
-Removed
--------
+### Removed
 
 -   Remove Clifford simulator from default available\_backends, until
     its stable release (\#555).
 -   Remove ProjectQ simulators for moving to new repository (\#553).
 -   Remove QuantumJob class (\#616)
 
-Fixed
------
+### Fixed
 
 -   Fix issue with unintended inversion of initializer gates (\#573).
 -   Fix issue with skip\_transpiler causing some gates to be ignored
@@ -788,8 +758,7 @@ Fixed
 
 ## [0.5.4] - 2018-06-11
 
-Added
------
+### Added
 
 -   
 
@@ -798,8 +767,7 @@ Added
     :   -   remove deepcopies from dagcircuit, and extra check on qasm()
             (\#523).
 
-Changed
--------
+### Changed
 
 -   Rename repository to `qiskit-core` (\#530).
 -   Repository improvements: new changelog format (\#535), updated issue
@@ -808,13 +776,11 @@ Changed
 -   Convert `LocalJob` tests into unit-tests. (\#526)
 -   Move wrapper `load_qasm_*` methods to a submodule (\#533).
 
-Removed
--------
+### Removed
 
 -   Remove Sympy simulators for moving to new repository (\#514)
 
-Fixed
------
+### Fixed
 
 -   Fix erroneous density matrix and probabilities in C++ simulator
     (\#518)
@@ -829,37 +795,31 @@ Fixed
 
 ## [0.5.3] - 2018-05-29
 
-Added
------
+### Added
 
 -   load\_qasm\_file / load\_qasm\_string methods
 
-Changed
--------
+### Changed
 
 -   Dependencies version bumped
 
-Fixed
------
+### Fixed
 
 -   Crash in the cpp simulator for some linux platforms
 -   Fixed some minor bugs
 
 ## [0.5.2] - 2018-05-21
 
-Changed
--------
+### Changed
 
 -   Adding Result.get\_unitary()
 
-Deprecated
-----------
+### Deprecated
 
 -   Deprecating `ibmqx_hpc_qasm_simulator` and `ibmqx_qasm_simulator` in
     favor of `ibmq_qasm_simulator`.
 
-Fixed
------
+### Fixed
 
 -   Fixing a Mapper issue.
 -   Fixing Windows 7 builds.
@@ -877,8 +837,7 @@ Fixed
 
 ## [0.5.0] - 2018-05-11
 
-Improvements
-------------
+### Improvements
 
 -   
 
@@ -957,8 +916,7 @@ Improvements
 -   Allow combining circuits across both depth and width (\#389)
 -   Enforce string token names (\#395)
 
-Fixed
------
+### Fixed
 
 -   Fix coherent error bug in `local_qasm_simulator_cpp` (\#318)
 -   Fix the order and format of result bits obtained from device
@@ -969,8 +927,7 @@ Fixed
     JobProcessor during \#403)
 -   Fix ability to apply all gates on register (\#369)
 
-Deprecated
-----------
+### Deprecated
 
 -   Some methods of `QuantumProgram` are soon to be deprecated. Please
     use the top-level functions instead.
@@ -988,79 +945,67 @@ Deprecated
 
 ## [0.4.15] - 2018-05-07
 
-Fixed
------
+### Fixed
 
 -   Fixed an issue with legacy code that was affecting Developers
     Challenge.
 
 ## [0.4.14] - 2018-04-18
 
-Fixed
------
+### Fixed
 
 -   Fixed an issue about handling Basis Gates parameters on backend
     configurations.
 
 ## [0.4.13] - 2018-04-16
 
-Changed
--------
+### Changed
 
 -   OpenQuantumCompiler.dag2json() restored for backward compatibility.
 
-Fixed
------
+### Fixed
 
 -   Fixes an issue regarding barrier gate misuse in some circumstances.
 
 ## [0.4.12] - 2018-03-11
 
-Changed
--------
+### Changed
 
 -   Improved circuit visualization.
 -   Improvements in infrastructure code, mostly tests and build system.
 -   Better documentation regarding contributors.
 
-Fixed
------
+### Fixed
 
 -   A bunch of minor bugs have been fixed.
 
 ## [0.4.11] - 2018-03-13
 
-Added
------
+### Added
 
 -   More testing :)
 
-Changed
--------
+### Changed
 
 -   Stabilizing code related to external dependencies.
 
-Fixed
------
+### Fixed
 
 -   Fixed bug in circuit drawing where some gates in the standard
     library were not plotting correctly.
 
 ## [0.4.10] - 2018-03-06
 
-Added
------
+### Added
 
 -   Chinese translation of README.
 
-Changed
--------
+### Changed
 
 -   Changes related with infrastructure (linter, tests, automation)
     enhancement.
 
-Fixed
------
+### Fixed
 
 -   Fix installation issue when simulator cannot be built.
 -   Fix bug with auto-generated CNOT coherent error matrix in C++
@@ -1069,44 +1014,38 @@ Fixed
 
 ## [0.4.9] - 2018-02-12
 
-Changed
--------
+### Changed
 
 -   CMake integration.
 -   QASM improvements.
 -   Mapper optimizer improvements.
 
-Fixed
------
+### Fixed
 
 -   Some minor C++ Simulator bug-fixes.
 
 ## [0.4.8] - 2018-01-29
 
-Fixed
------
+### Fixed
 
 -   Fix parsing U\_error matrix in C++ Simulator python helper class.
 -   Fix display of code-blocks on `.rst` pages.
 
 ## [0.4.7] - 2018-01-26
 
-Changed
--------
+### Changed
 
 -   Changes some naming conventions for `amp_error` noise parameters to
     `calibration_error`.
 
-Fixed
------
+### Fixed
 
 -   Fixes several bugs with noise implementations in the simulator.
 -   Fixes many spelling mistakes in simulator README.
 
 ## [0.4.6] - 2018-01-22
 
-Changed
--------
+### Changed
 
 -   We have upgraded some of out external dependencies to:
 
@@ -1120,35 +1059,30 @@ Changed
 
 ## [0.4.4] - 2018-01-09
 
-Changed
--------
+### Changed
 
 -   Update dependencies to more recent versions.
 
-Fixed
------
+### Fixed
 
 -   Fix bug with process tomography reversing qubit preparation order.
 
 ## [0.4.3] - 2018-01-08
 
-Removed
--------
+### Removed
 
 -   Static compilation has been removed because it seems to be failing
     while installing Qiskit via pip on Mac.
 
 ## [0.4.2] - 2018-01-08
 
-Fixed
------
+### Fixed
 
 -   Minor bug fixing related to pip installation process.
 
 ## [0.4.0] - 2018-01-08
 
-Added
------
+### Added
 
 -   
 
@@ -1254,22 +1188,19 @@ Added
 
     :   Requires C++ build environment for `make`-based build.
 
-Changed
--------
+### Changed
 
 -   The standard extension for creating U base gates has been modified
     to be consistent with the rest of the gate APIs (see \#203).
 
-Removed
--------
+### Removed
 
 -   The `silent` parameter has been removed from a number of
     `QuantumProgram` methods. The same behaviour can be achieved now by
     using the `enable_logs()` and `disable_logs()` methods, which use
     the standard Python logging.
 
-Fixed
------
+### Fixed
 
 -   Fix basis gates (\#76).
 -   Enable QASM parser to work in multiuser environments.
