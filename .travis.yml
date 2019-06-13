@@ -52,7 +52,7 @@ stage_linux: &stage_linux
   python: 3.5
 
 stage_linux_latex: &stage_linux_latex
-  <<: *stage_generic
+  <<: *stage_linux
   before_install:
   - sudo apt-get install -y texlive-latex-base
   - sudo apt-get install -y texlive-fonts-recommended
