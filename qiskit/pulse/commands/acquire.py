@@ -15,7 +15,6 @@
 """
 Acquire.
 """
-import itertools
 from typing import Union, List
 
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
@@ -29,9 +28,6 @@ class Acquire(Command):
     """Acquire."""
 
     ALIAS = 'acquire'
-
-    # Counter for the number of instances in this class
-    instances_counter = itertools.count(0)
     prefix = 'acq'
 
     def __init__(self, duration, discriminator=None, kernel=None, name=None):

@@ -15,8 +15,6 @@
 """
 Snapshot.
 """
-import itertools
-
 from qiskit.pulse.channels import SnapshotChannel
 from .instruction import Instruction
 from .command import Command
@@ -25,8 +23,6 @@ from .command import Command
 class Snapshot(Command, Instruction):
     """Snapshot."""
 
-    # Counter for the number of instances in this class
-    instances_counter = itertools.count(0)
     prefix = 'snap'
 
     def __init__(self, name: str, snap_type: str):

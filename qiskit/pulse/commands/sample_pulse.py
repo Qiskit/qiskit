@@ -15,7 +15,6 @@
 """
 Sample pulse.
 """
-import itertools
 from typing import Callable
 
 import numpy as np
@@ -29,8 +28,6 @@ from .command import Command
 class SamplePulse(Command):
     """Container for functional pulse."""
 
-    # Counter for the number of instances in this class
-    instances_counter = itertools.count(0)
     prefix = 'p'
 
     def __init__(self, samples, name=None):

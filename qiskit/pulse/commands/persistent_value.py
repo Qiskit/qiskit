@@ -15,7 +15,6 @@
 """
 Persistent value.
 """
-import itertools
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
@@ -26,8 +25,6 @@ from .command import Command
 class PersistentValue(Command):
     """Persistent value."""
 
-    # Counter for the number of instances in this class
-    instances_counter = itertools.count(0)
     prefix = 'pv'
 
     def __init__(self, value, name=None):

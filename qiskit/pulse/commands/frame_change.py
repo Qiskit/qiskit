@@ -16,8 +16,6 @@
 Frame change pulse.
 """
 
-import itertools
-
 from qiskit.pulse.channels import PulseChannel
 from .instruction import Instruction
 from .command import Command
@@ -26,9 +24,7 @@ from .command import Command
 class FrameChange(Command):
     """Frame change pulse."""
 
-    # Counter for the number of instances in this class
-    instances_counter = itertools.count(0)
-    prefix='fc'
+    prefix = 'fc'
 
     def __init__(self, phase, name=None):
         """Create new frame change pulse.

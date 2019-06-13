@@ -16,7 +16,6 @@
 Base command.
 """
 import re
-import itertools
 
 from abc import ABCMeta, abstractmethod
 
@@ -25,15 +24,22 @@ from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 
 
-class Command(metaclass=ABCMeta):
+class MetaCount(ABCMeta):
+    """Meta class to count class instances."""
+    def __new__(cls, name, bases, attrs):
+        new_cls = super(MetaCount, cls).__new__(cls, name, bases, attrs)
+        new_cls.instances_counter = 0
+        return new_cls
+
+
+class Command(metaclass=MetaCount):
     """Super abstract class of command group."""
 
     # Counter for the number of instances in this class
-    instances_counter = itertools.count(0)
     prefix = 'c'
 
     @abstractmethod
-    def __init__(self, duration: int = None):
+    def __init__(self, duration: int = None, metaclass=MetaCount):
         """Create a new command.
 
         Args:
@@ -46,14 +52,14 @@ class Command(metaclass=ABCMeta):
         else:
             raise PulseError('Pulse duration should be integer.')
 
-        self._name = self._name = Command.create_name()
+        self._name = Command.create_name()
 
     @classmethod
     def create_name(cls, name: str = None) -> str:
         """Method to create names for pulse commands."""
         if name is None:
             try:
-                name = '%s%i' % (cls.prefix, next(cls.instances_counter))
+                name = '%s%i' % (cls.prefix, cls.instances_counter)
             except TypeError:
                 raise PulseError("prefix and counter must be non-None when name is None.")
         else:
@@ -66,7 +72,13 @@ class Command(metaclass=ABCMeta):
             if name_format.match(name) is None:
                 raise PulseError("%s is an invalid OpenPulse command name." % name)
 
+        cls.increment_count()
+
         return name
+
+    @classmethod
+    def increment_count(cls):
+        cls.instances_counter += 1
 
     @property
     def duration(self) -> int:
