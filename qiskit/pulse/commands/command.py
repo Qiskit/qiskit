@@ -26,8 +26,8 @@ from .instruction import Instruction
 
 class MetaCount(ABCMeta):
     """Meta class to count class instances."""
-    def __new__(cls, name, bases, attrs):
-        new_cls = super(MetaCount, cls).__new__(cls, name, bases, attrs)
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        new_cls = super(MetaCount, mcs).__new__(mcs, name, bases, namespace, **kwargs)
         new_cls.instances_counter = 0
         return new_cls
 
@@ -39,7 +39,7 @@ class Command(metaclass=MetaCount):
     prefix = 'c'
 
     @abstractmethod
-    def __init__(self, duration: int = None, metaclass=MetaCount):
+    def __init__(self, duration: int = None):
         """Create a new command.
 
         Args:
@@ -59,7 +59,7 @@ class Command(metaclass=MetaCount):
         """Method to create names for pulse commands."""
         if name is None:
             try:
-                name = '%s%i' % (cls.prefix, cls.instances_counter)
+                name = '%s%i' % (cls.prefix, cls.instances_counter)  # pylint: disable=E1101
             except TypeError:
                 raise PulseError("prefix and counter must be non-None when name is None.")
         else:
@@ -72,13 +72,9 @@ class Command(metaclass=MetaCount):
             if name_format.match(name) is None:
                 raise PulseError("%s is an invalid OpenPulse command name." % name)
 
-        cls.increment_count()
+        cls.instances_counter += 1  # pylint: disable=E1101
 
         return name
-
-    @classmethod
-    def increment_count(cls):
-        cls.instances_counter += 1
 
     @property
     def duration(self) -> int:
