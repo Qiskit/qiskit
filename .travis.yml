@@ -55,12 +55,7 @@ stage_linux: &stage_linux
   - sudo apt-get install -y texlive-fonts-recommended
   - sudo apt-get install -y texlive-fonts-extra
   - sudo apt-get install -y xzdec
-  - tlmgr init-usertree
-  - tlmgr option repository ctan
-  - tlmgr update --self
-  - tlmgr install qcircuit
-  - tlmgr install beamer
-  - tlmgr install beamerposter
+  - sudo apt-get install -y texlive-latex-extra
 
 stage_osx: &stage_osx
   <<: *stage_generic
