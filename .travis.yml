@@ -96,9 +96,9 @@ stage_osx: &stage_osx
 
 # Define the order of the stages.
 stages:
-  - test_visualization
   - lint and pure python test
   - test
+  - test_visualization
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
@@ -191,9 +191,10 @@ jobs:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
 
-    # GNU/Linux, visualizations
+    # GNU/Linux, cron for visualizations
     - stage: test_visualization
       name: Test visualizations
+      if: type = cron
       <<: *stage_linux_latex
       dist: xenial
       python: 3.6

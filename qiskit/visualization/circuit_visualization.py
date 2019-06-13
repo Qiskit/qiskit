@@ -30,7 +30,6 @@ import tempfile
 
 try:
     from PIL import Image
-
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
