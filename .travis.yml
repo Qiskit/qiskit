@@ -57,8 +57,8 @@ stage_linux_latex: &stage_linux_latex
   - sudo apt-get install -y texlive-latex-base
   - sudo apt-get install -y texlive-fonts-recommended
   - sudo apt-get install -y texlive-fonts-extra
-  - sudo apt-get install -y xzdec
   - sudo apt-get install -y texlive-latex-extra
+  - sudo apt-get install -y poppler-utils
   - sudo apt-get install -y texlive-pictures
   script:
     - make test_visualizations
