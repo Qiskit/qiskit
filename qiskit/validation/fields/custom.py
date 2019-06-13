@@ -103,8 +103,8 @@ class InstructionParameter(ModelTypeValidator):
                 return float(value.evalf())
 
         # Fallback for attempting serialization.
-        if hasattr(value, 'as_dict'):
-            return value.as_dict()
+        if hasattr(value, 'to_dict'):
+            return value.to_dict()
 
         return self.fail('format', input=value)
 

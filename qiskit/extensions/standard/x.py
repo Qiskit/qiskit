@@ -18,7 +18,6 @@ Pauli X (bit-flip) gate.
 
 import numpy
 
-from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -64,4 +63,3 @@ def x(self, q):
 
 
 QuantumCircuit.x = x
-CompositeGate.x = x

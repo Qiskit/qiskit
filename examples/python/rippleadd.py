@@ -15,8 +15,6 @@
 """
 Ripple adder example based on Cuccaro et al., quant-ph/0410184.
 
-Note: if you have only cloned the Qiskit repository but not
-used `pip install`, the examples only work from the root directory.
 """
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
