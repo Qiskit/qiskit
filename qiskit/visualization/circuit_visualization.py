@@ -30,9 +30,17 @@ import tempfile
 
 try:
     from PIL import Image
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
+
+from qiskit import user_config
+from qiskit.visualization import exceptions
+from qiskit.visualization import latex as _latex
+from qiskit.visualization import text as _text
+from qiskit.visualization import utils
+from qiskit.visualization import matplotlib as _matplotlib
 
 try:
     _PROC = subprocess.Popen(['pdflatex', '--version'], stdout=subprocess.PIPE,
@@ -44,14 +52,6 @@ try:
         HAS_PDFLATEX = True
 except Exception:  # pylint: disable=broad-except
     HAS_PDFLATEX = False
-
-
-from qiskit import user_config
-from qiskit.visualization import exceptions
-from qiskit.visualization import latex as _latex
-from qiskit.visualization import text as _text
-from qiskit.visualization import utils
-from qiskit.visualization import matplotlib as _matplotlib
 
 logger = logging.getLogger(__name__)
 
@@ -402,7 +402,8 @@ def _latex_circuit_drawer(circuit,
             logger.warning('WARNING: Unable to compile latex. '
                            'Is `pdflatex` installed? '
                            'Skipping latex circuit drawing...')
-            raise
+            raise exceptions.VisualizationError
+
         try:
             subprocess.run(["pdflatex", "-halt-on-error",
                             "-output-directory={}".format(tmpdirname),
