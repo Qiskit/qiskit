@@ -383,21 +383,21 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(60, acquire(device.q, device.mem))
         sched = sched.insert(90, lp0(device.q[0].drive))
 
-        intervals_a = sched.filter(time_range=((0, 13),))
+        intervals_a = sched.filter(time_ranges=((0, 13),))
         for time, inst in intervals_a.instructions:
             self.assertTrue(0 <= time <= 13)
             self.assertTrue(inst.timeslots.timeslots[0].interval.end <= 13)
         self.assertEqual(len(intervals_a.instructions), 2)
 
-        intervals_b = sched.filter(time_range=[(59, 65)])
+        intervals_b = sched.filter(time_ranges=[(59, 65)])
         self.assertEqual(len(intervals_b.instructions), 1)
         self.assertEqual(intervals_b.instructions[0][0], 60)
         self.assertIsInstance(intervals_b.instructions[0][1], AcquireInstruction)
 
-        non_full_intervals = sched.filter(time_range=[(0, 2), (8, 11), (61, 70)])
+        non_full_intervals = sched.filter(time_ranges=[(0, 2), (8, 11), (61, 70)])
         self.assertEqual(len(non_full_intervals.instructions), 0)
 
-        multi_interval = sched.filter(time_range=[(10, 15), (63, 93)])
+        multi_interval = sched.filter(time_ranges=[(10, 15), (63, 93)])
         self.assertEqual(len(multi_interval.instructions), 2)
 
         multi_interval = sched.filter(intervals=[Interval(10, 15), Interval(63, 93)])
@@ -416,14 +416,14 @@ class TestSchedule(QiskitTestCase):
         sched = sched.insert(90, lp0(device.q[0].drive))
 
         filtered = sched.filter(channels={0}, instruction_types=[PulseInstruction],
-                                time_range=[(25, 100)])
+                                time_ranges=[(25, 100)])
         for time, inst in filtered.instructions:
             self.assertIsInstance(inst, PulseInstruction)
             self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
             self.assertTrue(25 <= time <= 100)
 
         filtered_b = sched.filter(instruction_types=[PulseInstruction, FrameChangeInstruction],
-                                  time_range=[(25, 100), (0, 30)])
+                                  time_ranges=[(25, 100), (0, 30)])
         for time, inst in filtered_b.instructions:
             self.assertIsInstance(inst, (FrameChangeInstruction, PulseInstruction))
         self.assertTrue(len(filtered_b.instructions), 4)

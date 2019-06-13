@@ -189,10 +189,9 @@ class Schedule(ScheduleComponent):
         return ops.flatten(self)
 
     def filter(self, *filter_funcs: List[Callable],
-               qubits: Optional[Iterable[int]] = None,
                channels: Optional[Iterable[Channel]] = None,
-               instruction_types: Optional[Iterable[abc.ABCMeta]] = None,
-               time_range: Optional[Iterable[Tuple[int, int]]] = None,
+               instruction_types: Optional[Iterable[typing.Type[Instruction]]] = None,
+               time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
         Return a new Schedule with only the instructions which pass though the provided filters.
@@ -207,17 +206,11 @@ class Schedule(ScheduleComponent):
         Args:
             filter_funcs: A list of Callables which take a (int, ScheduleComponent) tuple and
                           return a bool
-            qubits: Qubit labels on channels, e.g. {0, 1, 2}
             channels: For example, [DriveChannel(0), AcquireChannel(0)]
             instruction_types: For example, [PulseInstruction, AcquireInstruction]
-            time_range: Time intervals to keep, e.g. [(0, 5), (6, 10)]
+            time_ranges: Time intervals to keep, e.g. [(0, 5), (6, 10)]
             intervals: Time intervals to keep, e.g. [Interval(0, 5), Interval(6, 10)]
         """
-        def only_qubits(qubits: Set[int]) -> Callable:
-            def qubit_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
-                return any([chan.index in qubits for chan in time_inst[1].channels])
-            return qubit_filter
-
         def only_channels(channels: Set[Channel]) -> Callable:
             def channel_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return any([chan in channels for chan in time_inst[1].channels])
@@ -227,16 +220,6 @@ class Schedule(ScheduleComponent):
             def instruction_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 return isinstance(time_inst[1], tuple(types))
             return instruction_filter
-
-        def only_times(ranges: Iterable[Tuple[int, int]]) -> Callable:
-            def time_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
-                for i in ranges:
-                    if all([(i[0] <= ts.interval.shift(time_inst[0]).begin
-                             and ts.interval.shift(time_inst[0]).end <= i[1])
-                            for ts in time_inst[1].timeslots.timeslots]):
-                        return True
-                return False
-            return time_filter
 
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
@@ -249,14 +232,12 @@ class Schedule(ScheduleComponent):
             return interval_filter
 
         filter_funcs = list(filter_funcs)
-        if qubits:
-            filter_funcs.append(only_qubits(set(qubits)))
         if channels:
             filter_funcs.append(only_channels(set(channels)))
         if instruction_types:
             filter_funcs.append(only_instruction_types(instruction_types))
-        if time_range:
-            filter_funcs.append(only_times(time_range))
+        if time_ranges:
+            filter_funcs.append(only_intervals([Interval(start, end) for start, end in time_ranges]))
         if intervals:
             filter_funcs.append(only_intervals(intervals))
 
