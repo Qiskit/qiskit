@@ -42,7 +42,7 @@ class QiskitVisualizationTestCase(QiskitTestCase):
                 open(expected, "r", encoding='cp437') as exp:
             self.assertEqual(cur.read(), exp.read())
 
-    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.001):
+    def assertImagesAreEqual(self, current, expected, diff_tolerance=0.01):
         """Checks if both images are similar enough to be considered equal.
         Similarity is controlled by the ```diff_tolerance``` argument."""
         from PIL import Image, ImageChops
