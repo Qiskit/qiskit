@@ -116,7 +116,7 @@ def _load_jobs_data(self, change):
         self.children[4].children = [year, month, week]
         self.children[4].set_title(0, 'Year')
         self.children[4].set_title(1, 'Month')
-        self.children[4]    .set_title(2, 'Week')
+        self.children[4].set_title(2, 'Week')
         self.children[4].selected_index = 1
         _build_job_history(self.children[4], self._backend)
 
