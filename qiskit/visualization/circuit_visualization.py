@@ -391,8 +391,7 @@ def _latex_circuit_drawer(circuit,
             subprocess.run(["pdflatex", "-halt-on-error",
                             "-output-directory={}".format(tmpdirname),
                             "{}".format(tmpfilename + '.tex')],
-                           stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                           check=True)
+                           check=False)
         except OSError as ex:
             if ex.errno == errno.ENOENT:
                 logger.warning('WARNING: Unable to compile latex. '
