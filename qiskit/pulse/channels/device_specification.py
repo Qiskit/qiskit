@@ -19,6 +19,7 @@ from typing import List
 
 from qiskit.validation.exceptions import ModelValidationError
 
+from qiskit.pulse.exceptions import PulseError
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
@@ -52,6 +53,9 @@ class DeviceSpecification:
             PulseError: when an invalid backend is specified
         """
         backend_config = backend.configuration()
+
+        if not backend_config.open_pulse:
+            raise PulseError(backend_config.backend_name + ' does not support OpenPulse.')
 
         # TODO : Remove usage of config.defaults when backend.defaults() is updated.
         try:
