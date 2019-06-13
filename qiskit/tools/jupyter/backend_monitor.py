@@ -17,6 +17,7 @@
 
 import math
 import datetime
+from warnings import warn
 from IPython.display import display                     # pylint: disable=import-error
 from IPython.core.magic import (line_magic,             # pylint: disable=import-error
                                 Magics, magics_class)
@@ -44,6 +45,7 @@ class BackendMonitor(Magics):
     def qiskit_backend_monitor(self, line='', cell=None):
         """A Jupyter magic function to monitor backends.
         """
+        warn('The backend monitor widget is now the backend repr.', DeprecationWarning)
         del cell  # Unused
         backend = self.shell.user_ns[line]
         if not isinstance(backend, IBMQBackend):
@@ -78,6 +80,47 @@ class BackendMonitor(Magics):
 
         display(bmonitor)
 
+
+def _backend_monitor(backend):
+    """ A private function to generate a monitor widget
+    for a IBMQ bakend repr.
+
+    Args:
+        backend (IBMQbackend): The backend.
+
+    Raises:
+        QiskitError: Input is not an IBMQBackend
+    """
+    if not isinstance(backend, IBMQBackend):
+        raise QiskitError('Input variable is not of type IBMQBackend.')
+    title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
+    title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"
+    title_html = "<h1 {style}>{name}</h1>".format(
+        style=title_style, name=backend.name())
+
+    details = [config_tab(backend)]
+
+    tab_contents = ['Configuration']
+
+    if not backend.configuration().simulator:
+        tab_contents.extend(['Qubit Properties', 'Multi-Qubit Gates',
+                             'Error Map', 'Job History'])
+        details.extend([qubits_tab(backend), gates_tab(backend),
+                        detailed_map(backend), job_history(backend)])
+
+    tabs = widgets.Tab(layout=widgets.Layout(overflow_y='scroll'))
+    tabs.children = details
+    for i in range(len(details)):
+        tabs.set_title(i, tab_contents[i])
+
+    title_widget = widgets.HTML(value=title_html,
+                                layout=widgets.Layout(margin='0px 0px 0px 0px'))
+
+    bmonitor = widgets.VBox([title_widget, tabs],
+                            layout=widgets.Layout(border='4px solid #000000',
+                                                  max_height='650px', min_height='650px',
+                                                  overflow_y='hidden'))
+    display(bmonitor)
 
 def config_tab(backend):
     """The backend configuration widget.
