@@ -34,7 +34,7 @@ stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
     - pip install -U -r requirements.txt
-    - pip install -U -r requirements-dev.txt -c constraints.txt
+    - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
     - pip install -e .
     - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
@@ -97,7 +97,6 @@ jobs:
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       if: tag IS present
@@ -112,7 +111,6 @@ jobs:
       env:
         - CIBW_BEFORE_BUILD="pip install -U Cython"
         - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_REPOSITORY_URL=https://test.pypi.org/legacy/
         - TWINE_USERNAME=qiskit
         - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
       script:
@@ -142,6 +140,11 @@ jobs:
       name: Python 3.6 Tests Linux
       <<: *stage_linux
       python: 3.6
+      env:
+        - PYTHON="coverage run --source qiskit --parallel-mode"
+      after_success:
+        - coverage combine || true
+        - coveralls || true
 
     # GNU/Linux, Python 3.7
     - stage: test

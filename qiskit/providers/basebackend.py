@@ -17,9 +17,10 @@
 To create add-on backend modules subclass the Backend class in this module.
 Doing so requires that the required backend interface is implemented.
 """
+
 from abc import ABC, abstractmethod
 
-from qiskit.version import __version__
+from qiskit.version import VERSION as __version__
 from .models import BackendStatus
 
 
@@ -39,15 +40,18 @@ class BaseBackend(ABC):
             provider (BaseProvider): provider responsible for this backend
 
         Raises:
-            FileNotFoundError if backend executable is not available.
-            QiskitError: if there is no name in the configuration
+            QiskitError: if an error occurred when instantiating the backend.
         """
         self._configuration = configuration
         self._provider = provider
 
     @abstractmethod
     def run(self, qobj):
-        """Run a Qobj on the the backend."""
+        """Run a Qobj on the the backend.
+
+        Args:
+            qobj (Qobj): the Qobj to be executed.
+        """
         pass
 
     def configuration(self):
@@ -59,7 +63,7 @@ class BaseBackend(ABC):
         return self._configuration
 
     def properties(self):
-        """Return backend properties.
+        """Return the backend properties.
 
         Returns:
             BackendProperties: the configuration for the backend. If the backend
@@ -76,7 +80,7 @@ class BaseBackend(ABC):
         return self._provider
 
     def status(self):
-        """Return backend status.
+        """Return the backend status.
 
         Returns:
             BackendStatus: the status of the backend.
@@ -88,7 +92,7 @@ class BaseBackend(ABC):
                              status_msg='')
 
     def name(self):
-        """Return backend name.
+        """Return the backend name.
 
         Returns:
             str: the name of the backend.

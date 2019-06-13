@@ -21,6 +21,8 @@ from qiskit.transpiler.transpile_config import TranspileConfig
 from qiskit.transpiler.transpile_circuit import transpile_circuit
 from qiskit.pulse import Schedule
 from qiskit.circuit.quantumregister import Qubit
+from qiskit import user_config
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 def transpile(circuits,
@@ -131,13 +133,28 @@ def transpile(circuits,
        (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
         return circuits
 
+    if optimization_level is None:
+        config = user_config.get_config()
+        optimization_level = config.get('transpile_optimization_level', None)
+
     # Get TranspileConfig(s) to configure the circuit transpilation job(s)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     transpile_configs = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                               backend_properties, initial_layout,
                                               seed_transpiler, optimization_level,
                                               pass_manager)
-
+    # Check circuit width against number of qubits in coupling_map(s)
+    coupling_maps_list = list(config.coupling_map for config in transpile_configs)
+    for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
+        # If coupling_map is not None
+        if isinstance(parsed_coupling_map, CouplingMap):
+            n_qubits = len(circuit.qubits)
+            max_qubits = parsed_coupling_map.size()
+            if n_qubits > max_qubits:
+                raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
+                                      'in {} '. format(circuit.name) +
+                                      'is greater than maximum ({}) '.format(max_qubits) +
+                                      'in the coupling_map')
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
 
