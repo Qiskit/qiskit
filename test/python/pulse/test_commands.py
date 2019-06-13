@@ -63,6 +63,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq_command_a.kernel, None)
         self.assertTrue(acq_command_a.name.startswith('acq'))
         self.assertNotEqual(acq_command_a.name, acq_command_b.name)
+        self.assertEqual(acq_command_b.name, 'acq' + str(int(acq_command_a.name[3:]) + 1))
 
 
 class TestFrameChange(QiskitTestCase):
