@@ -22,7 +22,7 @@ from codecs import encode
 from math import pi
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 
-from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer
+from qiskit.tools.visualization import HAS_MATPLOTLIB, circuit_drawer, HAS_PDFLATEX
 
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
@@ -75,6 +75,7 @@ class TestCircuitVisualizationImplementation(QiskitVisualizationTestCase):
 
         return circuit
 
+    @unittest.skipIf(not HAS_PDFLATEX, 'pdflatex not available')
     def test_latex_drawer(self):
         filename = self._get_resource_path('current_latex.png')
         qc = self.sample_circuit()

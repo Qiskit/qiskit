@@ -34,6 +34,18 @@ try:
 except ImportError:
     HAS_PIL = False
 
+try:
+    _PROC = subprocess.Popen(['pdflatex', '--version'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    _PROC.communicate()
+    if _PROC.returncode != 0:
+        HAS_PDFLATEX = False
+    else:
+        HAS_PDFLATEX = True
+except Exception:  # pylint: disable=broad-except
+    HAS_PDFLATEX = False
+
+
 from qiskit import user_config
 from qiskit.visualization import exceptions
 from qiskit.visualization import latex as _latex
@@ -386,19 +398,17 @@ def _latex_circuit_drawer(circuit,
                                scale=scale, style=style,
                                plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits, justify=justify)
-        image = None
+        if not HAS_PDFLATEX:
+            logger.warning('WARNING: Unable to compile latex. '
+                           'Is `pdflatex` installed? '
+                           'Skipping latex circuit drawing...')
+            raise
         try:
             subprocess.run(["pdflatex", "-halt-on-error",
                             "-output-directory={}".format(tmpdirname),
                             "{}".format(tmpfilename + '.tex')],
                            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                            check=True)
-        except OSError as ex:
-            if ex.errno == errno.ENOENT:
-                logger.warning('WARNING: Unable to compile latex. '
-                               'Is `pdflatex` installed? '
-                               'Skipping latex circuit drawing...')
-            raise
         except subprocess.CalledProcessError as ex:
             with open('latex_error.log', 'wb') as error_file:
                 error_file.write(ex.stdout)
