@@ -447,11 +447,8 @@ The format is based on [Keep a Changelog].
     `qiskit.tools.visualizations`. (\#1105, \#1111)
 -   DAG nodes contain pointers to Register and Instruction objects,
     rather than their string names (\#1189).
--   
-
-    Upgraded some external dependencies to:
-
-    :   -   networkx\>=2.2 (\#1267).
+-   Upgraded some external dependencies to:
+    -   networkx\>=2.2 (\#1267).
 
 -   The `qiskit.tools.visualization.circuit_drawer()`
     method now returns a matplotlib.Figure object when the
@@ -500,22 +497,14 @@ The format is based on [Keep a Changelog].
 
 ### Deprecated
 
--   
-
-    `plot_circuit()`, `latex_circuit_drawer()`, `generate_latex_source()`,
-
-    :   and `matplotlib_circuit_drawer()` from
-        qiskit.tools.visualization are deprecated. Instead the
-        `circuit_drawer()` function from the same module should be used.
-        (\#1055)
-
--   
-
-    The current default output of `circuit_drawer()` (using latex and falling
-
-    :   back on python) is deprecated and will be changed in the future.
-        (\#1055)
-
+-   `plot_circuit()`, `latex_circuit_drawer()`, `generate_latex_source()`,
+    and `matplotlib_circuit_drawer()` from
+    qiskit.tools.visualization are deprecated. Instead the
+    `circuit_drawer()` function from the same module should be used.
+    (\#1055)
+-   The current default output of `circuit_drawer()` (using latex and falling
+    back on python) is deprecated and will be changed in the future.
+    (\#1055)
 -   The `qiskit.wrapper.load_qasm_string()` and
     `qiskit.wrapper.load_qasm_file()` functions are
     deprecated and the `QuantumCircuit.from_qasm_str()`
@@ -760,12 +749,9 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
--   
-
-    Performance improvements:
-
-    :   -   remove deepcopies from dagcircuit, and extra check on qasm()
-            (\#523).
+-   Performance improvements:
+    -   remove deepcopies from dagcircuit, and extra check on qasm()
+        (\#523).
 
 ### Changed
 
@@ -839,38 +825,26 @@ The format is based on [Keep a Changelog].
 
 ### Improvements
 
--   
-
-    Introduce providers and rework backends (\#376).
-
-    :   -   Split backends into `local` and `ibmq`.
-        -   Each provider derives from the following classes for its
-            specific requirements (`BaseProvider`, `BaseBackend`,
-            `BaseJob`).
-        -   Allow querying result by both circuit name and
-            QuantumCircuit instance.
-
--   
-
-    Introduce the Qiskit `wrapper` (\#376).
-
-    :   -   Introduce convenience wrapper functions around commonly used
-            Qiskit components (e.g. `compile` and `execute` functions).
-        -   Introduce the DefaultQISKitProvider, which acts as a context
-            manager for the current session (e.g. providing easy access
-            to all `available_backends`).
-        -   Avoid relying on QuantumProgram (eventual deprecation).
-        -   The functions are also available as top-level functions (for
-            example, `qiskit.get_backend()`).
-
--   
-
-    Introduce `BaseJob` class and asynchronous jobs (\#403).
-
-    :   -   Return `BaseJob` after `run()`.
-        -   Mechanisms for querying `status` and `results`, or to
-            `cancel` a job.
-
+-   Introduce providers and rework backends (\#376).
+    -   Split backends into `local` and `ibmq`.
+    -   Each provider derives from the following classes for its
+        specific requirements (`BaseProvider`, `BaseBackend`,
+        `BaseJob`).
+    -   Allow querying result by both circuit name and
+        QuantumCircuit instance.
+-   Introduce the Qiskit `wrapper` (\#376).
+    -   Introduce convenience wrapper functions around commonly used
+        Qiskit components (e.g. `compile` and `execute` functions).
+    -   Introduce the DefaultQISKitProvider, which acts as a context
+        manager for the current session (e.g. providing easy access
+        to all `available_backends`).
+    -   Avoid relying on QuantumProgram (eventual deprecation).
+    -   The functions are also available as top-level functions (for
+        example, `qiskit.get_backend()`).
+-   Introduce `BaseJob` class and asynchronous jobs (\#403).
+    -   Return `BaseJob` after `run()`.
+    -   Mechanisms for querying `status` and `results`, or to
+        `cancel` a job.
 -   Introduce a `skip_transpiler` flag for `compile()` (\#411).
 -   Introduce schemas for validating interfaces between qiskit and
     backends (\#434)
@@ -881,32 +855,24 @@ The format is based on [Keep a Changelog].
     -   backend\_config\_schema
     -   backend\_props\_schema
     -   backend\_status\_schema
--   
-
-    Improve C++ simulator (\#386)
-
-    :   -   Add `tensor_index.hpp` for multi-partite qubit vector
-            indexing.
-        -   Add `qubit_vector.hpp` for multi-partite qubit vector
-            algebra.
-        -   Rework C++ simulator backends to use QubitVector class
-            instead of `std::vector`.
-
--   
-
-    Improve interface to simulator backends (\#435)
-
-    :   -   Introduce `local_statevector_simulator_py` and
-            `local_statevector_simulator_cpp`.
-        -   Introduce aliased and deprecated backend names and
-            mechanisms for resolving them.
-        -   Introduce optional `compact` flag to query backend names
-            only by unique function.
-        -   Introduce result convenience functions `get_statevector`,
-            `get_unitary`
-        -   Add `snapshot` command for caching a copy of the current
-            simulator state.
-
+-   Improve C++ simulator (\#386)
+    -   Add `tensor_index.hpp` for multi-partite qubit vector
+        indexing.
+    -   Add `qubit_vector.hpp` for multi-partite qubit vector
+        algebra.
+    -   Rework C++ simulator backends to use QubitVector class
+        instead of `std::vector`.
+-   Improve interface to simulator backends (\#435)
+    -   Introduce `local_statevector_simulator_py` and
+        `local_statevector_simulator_cpp`.
+    -   Introduce aliased and deprecated backend names and
+        mechanisms for resolving them.
+    -   Introduce optional `compact` flag to query backend names
+        only by unique function.
+    -   Introduce result convenience functions `get_statevector`,
+        `get_unitary`
+    -   Add `snapshot` command for caching a copy of the current
+        simulator state.
 -   Introduce circuit drawing via `circuit_drawer()` and
     `plot_circuit()` (\#295, \#414)
 -   Introduce benchmark suite for performance testing
@@ -1048,14 +1014,13 @@ The format is based on [Keep a Changelog].
 ### Changed
 
 -   We have upgraded some of out external dependencies to:
-
-    > -   matplotlib \>=2.1,\<2.2
-    > -   networkx\>=1.11,\<2.1
-    > -   numpy\>=1.13,\<1.15
-    > -   ply==3.10
-    > -   scipy\>=0.19,\<1.1
-    > -   Sphinx\>=1.6,\<1.7
-    > -   sympy\>=1.0
+    -   matplotlib \>=2.1,\<2.2
+    -   networkx\>=1.11,\<2.1
+    -   numpy\>=1.13,\<1.15
+    -   ply==3.10
+    -   scipy\>=0.19,\<1.1
+    -   Sphinx\>=1.6,\<1.7
+    -   sympy\>=1.0
 
 ## [0.4.4] - 2018-01-09
 
@@ -1084,36 +1049,20 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
--   
-
-    Job handling improvements.
-
-    :   -   Allow asynchronous job submission.
-        -   New JobProcessor class: utilizes concurrent.futures.
-        -   New QuantumJob class: job description.
-
--   
-
-    Modularize circuit \"compilation\".
-
-    :   Takes quantum circuit and information about backend to transform
+-   Job handling improvements.
+    -   Allow asynchronous job submission.
+    -   New JobProcessor class: utilizes concurrent.futures.
+    -   New QuantumJob class: job description.
+-   Modularize circuit \"compilation\".
+    -   Takes quantum circuit and information about backend to transform
         circuit into one which can run on the backend.
-
--   
-
-    Standardize job description.
-
-    :   All backends take QuantumJob objects which wraps `qobj` program
+-   Standardize job description.
+    -   All backends take QuantumJob objects which wraps `qobj` program
         description.
-
--   
-
-    Simplify addition of backends, where circuits are run/simulated.
-
-    :   -   `qiskit.backends` package added.
-        -   Real devices and simulators are considered \"backends\"
-            which inherent from `BaseBackend`.
-
+-   Simplify addition of backends, where circuits are run/simulated.
+    -   `qiskit.backends` package added.
+    -   Real devices and simulators are considered \"backends\"
+        which inherent from `BaseBackend`.
 -   Reorganize and improve Sphinx documentation.
 -   Improve unittest framework.
 -   Add tools for generating random circuits.
@@ -1122,37 +1071,25 @@ The format is based on [Keep a Changelog].
 -   New utilities for classical optimization and chemistry
     (`qiskit/tools/apps/optimization`).
 -   Randomized benchmarking data handling.
--   
-
-    Quantum tomography (`qiskit/tools/qcvv`).
-
-    :   Added functions for generating, running and fitting process
+-   Quantum tomography (`qiskit/tools/qcvv`).
+    -   Added functions for generating, running and fitting process
         tomography experiments.
-
--   
-
-    Quantum information functions (`qiskit/tools/qi`).
-
-    :   -   Partial trace over subsystems of multi-partite vector.
-        -   Partial trace over subsystems of multi-partite matrix.
-        -   Flatten an operator to a vector in a specified basis.
-        -   Generate random unitary matrix.
-        -   Generate random density matrix.
-        -   Generate normally distributed complex matrix.
-        -   Generate random density matrix from Hilbert-Schmidt metric.
-        -   Generate random density matrix from the Bures metric.
-        -   Compute Shannon entropy of probability vector.
-        -   Compute von Neumann entropy of quantum state.
-        -   Compute mutual information of a bipartite state.
-        -   Compute the entanglement of formation of quantum state.
-
--   
-
-    Visualization improvements (`qiskit/tools`).
-
-    :   -   Wigner function representation.
-        -   Latex figure of circuit.
-
+-   Quantum information functions (`qiskit/tools/qi`).
+    -   Partial trace over subsystems of multi-partite vector.
+    -   Partial trace over subsystems of multi-partite matrix.
+    -   Flatten an operator to a vector in a specified basis.
+    -   Generate random unitary matrix.
+    -   Generate random density matrix.
+    -   Generate normally distributed complex matrix.
+    -   Generate random density matrix from Hilbert-Schmidt metric.
+    -   Generate random density matrix from the Bures metric.
+    -   Compute Shannon entropy of probability vector.
+    -   Compute von Neumann entropy of quantum state.
+    -   Compute mutual information of a bipartite state.
+    -   Compute the entanglement of formation of quantum state.
+-   Visualization improvements (`qiskit/tools`).
+    -   Wigner function representation.
+    -   Latex figure of circuit.
 -   Use python logging facility for info, warnings, etc.
 -   Auto-deployment of sphinx docs to github pages.
 -   Check IBMQuantumExperience version at runtime.
@@ -1164,29 +1101,14 @@ The format is based on [Keep a Changelog].
 -   Add QuantumProgram methods for destroying registers and circuits.
 -   Use Sympy for evaluating expressions.
 -   Add support for ibmqx\_hpc\_qasm\_simulator backend.
--   
-
-    Add backend interface to Project Q C++ simulator.
-
-    :   Requires installation of Project Q.
-
--   
-
-    Introduce `Initialize` class.
-
-    :   Generates circuit which initializes qubits in arbitrary state.
-
--   
-
-    Introduce `local_qiskit_simulator` a C++ simulator with realistic noise.
-
-    :   Requires C++ build environment for `make`-based build.
-
--   
-
-    Introduce `local_clifford_simulator` a C++ Clifford simulator.
-
-    :   Requires C++ build environment for `make`-based build.
+-   Add backend interface to Project Q C++ simulator.
+    -   Requires installation of Project Q.
+-   Introduce `Initialize` class.
+    -   Generates circuit which initializes qubits in arbitrary state.
+-   Introduce `local_qiskit_simulator` a C++ simulator with realistic noise.
+    -   Requires C++ build environment for `make`-based build.
+-   Introduce `local_clifford_simulator` a C++ Clifford simulator.
+    -   Requires C++ build environment for `make`-based build.
 
 ### Changed
 
