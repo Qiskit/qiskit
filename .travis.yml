@@ -50,6 +50,8 @@ stage_linux: &stage_linux
   dist: trusty
   language: python
   python: 3.5
+
+stage_linux_latex: &stage_linux_latex
   before_install:
   - sudo apt-get install -y texlive-latex-base
   - sudo apt-get install -y texlive-fonts-recommended
@@ -90,6 +92,7 @@ stage_osx: &stage_osx
 
 # Define the order of the stages.
 stages:
+  - test_visualization
   - lint and pure python test
   - test
 
@@ -183,3 +186,12 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
+
+    # GNU/Linux, Python 3.7 
+    - stage: test_visualization
+      name: Test visualizations
+      <<: *stage_linux_latex
+      dist: xenial
+      python: 3.5
+      sudo: true
+
