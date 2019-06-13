@@ -13,8 +13,7 @@ The format is based on [Keep a Changelog].
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED]
-=========================================================================
+## [UNRELEASED]
 
 Deprecated
 ----------
@@ -78,8 +77,7 @@ Fixed
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 
-[0.8.0] - 2019-05-02
-==================================================================================
+## [0.8.0] - 2019-05-02
 
 Added
 -----
@@ -374,8 +372,7 @@ Removed
     (\#1860).
 -   Removed `Instruction.reapply()` method (\#1816).
 
-[0.7.2] - 2019-05-01
-==================================================================================
+## [0.7.2] - 2019-05-01
 
 Fixed
 -----
@@ -383,8 +380,7 @@ Fixed
 -   A potential issue where the backend configuration schema validation
     would improperly reject valid responses from the API (\#2258)
 
-[0.7.1] - 2019-03-04
-==================================================================================
+## [0.7.1] - 2019-03-04
 
 Fixed
 -----
@@ -392,8 +388,7 @@ Fixed
 -   Fixed a bug with measurement sampling optimization in BasicAer
     qasm\_simulator (\#1624).
 
-[0.7.0] - 2018-12-19
-==================================================================================
+## [0.7.0] - 2018-12-19
 
 Added
 -----
@@ -623,8 +618,7 @@ Removed
     convert the output with the functions provided in
     `qiskit.converters`.
 
-[0.6.0] - 2018-10-04
-==================================================================================
+## [0.6.0] - 2018-10-04
 
 Added
 -----
@@ -719,16 +713,14 @@ Fixed
 -   Fixed bug in checking that a circuit already matches a coupling map
     (\#1024).
 
-[0.5.7] - 2018-07-19
-==================================================================================
+## [0.5.7] - 2018-07-19
 
 Changed
 -------
 
 -   Add new backend names support, with aliasing for the old ones.
 
-[0.5.6] - 2018-07-06
-==================================================================================
+## [0.5.6] - 2018-07-06
 
 Changed
 -------
@@ -750,8 +742,7 @@ Fixed
 -   Fixed yzy\_to\_zyz bugs (\#520, \#607) by moving to quaternions
     (\#626).
 
-[0.5.5] - 2018-07-02
-==================================================================================
+## [0.5.5] - 2018-07-02
 
 Added
 -----
@@ -795,8 +786,7 @@ Fixed
 -   Fix issue with skip\_transpiler causing some gates to be ignored
     silently (\#562).
 
-[0.5.4] - 2018-06-11
-==================================================================================
+## [0.5.4] - 2018-06-11
 
 Added
 -----
@@ -837,8 +827,7 @@ Fixed
 -   Fix issue with simulator extension commands not reapplying correctly
     (\#556)
 
-[0.5.3] - 2018-05-29
-==================================================================================
+## [0.5.3] - 2018-05-29
 
 Added
 -----
@@ -856,8 +845,7 @@ Fixed
 -   Crash in the cpp simulator for some linux platforms
 -   Fixed some minor bugs
 
-[0.5.2] - 2018-05-21
-==================================================================================
+## [0.5.2] - 2018-05-21
 
 Changed
 -------
@@ -876,8 +864,7 @@ Fixed
 -   Fixing a Mapper issue.
 -   Fixing Windows 7 builds.
 
-[0.5.1] - 2018-05-15
-==================================================================================
+## [0.5.1] - 2018-05-15
 
 -   There are no code changes.
 
@@ -888,8 +875,7 @@ Fixed
     Pypi forces us to bump up the version number if we want to upload a
     new package, so this is basically what have changed.
 
-[0.5.0] - 2018-05-11
-===================================================================================
+## [0.5.0] - 2018-05-11
 
 Improvements
 ------------
@@ -1000,8 +986,7 @@ Deprecated
 -   Move simulator extensions to `qiskit/extensions/simulator`
 -   Move Rzz and CSwap to standard extension library
 
-[0.4.15] - 2018-05-07
-=====================================================================================
+## [0.4.15] - 2018-05-07
 
 Fixed
 -----
@@ -1009,8 +994,7 @@ Fixed
 -   Fixed an issue with legacy code that was affecting Developers
     Challenge.
 
-[0.4.14] - 2018-04-18
-=====================================================================================
+## [0.4.14] - 2018-04-18
 
 Fixed
 -----
@@ -1018,8 +1002,7 @@ Fixed
 -   Fixed an issue about handling Basis Gates parameters on backend
     configurations.
 
-[0.4.13] - 2018-04-16
-=====================================================================================
+## [0.4.13] - 2018-04-16
 
 Changed
 -------
@@ -1031,8 +1014,7 @@ Fixed
 
 -   Fixes an issue regarding barrier gate misuse in some circumstances.
 
-[0.4.12] - 2018-03-11
-=====================================================================================
+## [0.4.12] - 2018-03-11
 
 Changed
 -------
@@ -1046,8 +1028,7 @@ Fixed
 
 -   A bunch of minor bugs have been fixed.
 
-[0.4.11] - 2018-03-13
-=====================================================================================
+## [0.4.11] - 2018-03-13
 
 Added
 -----
@@ -1065,8 +1046,7 @@ Fixed
 -   Fixed bug in circuit drawing where some gates in the standard
     library were not plotting correctly.
 
-[0.4.10] - 2018-03-06
-====================================================================================
+## [0.4.10] - 2018-03-06
 
 Added
 -----
@@ -1087,8 +1067,7 @@ Fixed
     simulator.
 -   Fix a bug in the async code.
 
-[0.4.9] - 2018-02-12
-==================================================================================
+## [0.4.9] - 2018-02-12
 
 Changed
 -------
@@ -1102,8 +1081,7 @@ Fixed
 
 -   Some minor C++ Simulator bug-fixes.
 
-[0.4.8] - 2018-01-29
-==================================================================================
+## [0.4.8] - 2018-01-29
 
 Fixed
 -----
@@ -1111,8 +1089,7 @@ Fixed
 -   Fix parsing U\_error matrix in C++ Simulator python helper class.
 -   Fix display of code-blocks on `.rst` pages.
 
-[0.4.7] - 2018-01-26
-==================================================================================
+## [0.4.7] - 2018-01-26
 
 Changed
 -------
@@ -1126,8 +1103,7 @@ Fixed
 -   Fixes several bugs with noise implementations in the simulator.
 -   Fixes many spelling mistakes in simulator README.
 
-[0.4.6] - 2018-01-22
-==================================================================================
+## [0.4.6] - 2018-01-22
 
 Changed
 -------
@@ -1142,8 +1118,7 @@ Changed
     > -   Sphinx\>=1.6,\<1.7
     > -   sympy\>=1.0
 
-[0.4.4] - 2018-01-09
-==================================================================================
+## [0.4.4] - 2018-01-09
 
 Changed
 -------
@@ -1155,8 +1130,7 @@ Fixed
 
 -   Fix bug with process tomography reversing qubit preparation order.
 
-[0.4.3] - 2018-01-08
-==================================================================================
+## [0.4.3] - 2018-01-08
 
 Removed
 -------
@@ -1164,16 +1138,14 @@ Removed
 -   Static compilation has been removed because it seems to be failing
     while installing Qiskit via pip on Mac.
 
-[0.4.2] - 2018-01-08
-==================================================================================
+## [0.4.2] - 2018-01-08
 
 Fixed
 -----
 
 -   Minor bug fixing related to pip installation process.
 
-[0.4.0] - 2018-01-08
-===================================================================================
+## [0.4.0] - 2018-01-08
 
 Added
 -----
