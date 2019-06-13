@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=invalid-name
 
 """A module for monitoring backends."""
 
@@ -70,12 +71,12 @@ class BackendMonitor(Magics):
         title_widget = widgets.HTML(value=title_html,
                                     layout=widgets.Layout(margin='0px 0px 0px 0px'))
 
-        backend_monitor = widgets.VBox([title_widget, tabs],
-                                       layout=widgets.Layout(border='4px solid #000000',
-                                                             max_height='650px', min_height='650px',
-                                                             overflow_y='hidden'))
+        bmonitor = widgets.VBox([title_widget, tabs],
+                                layout=widgets.Layout(border='4px solid #000000',
+                                                      max_height='650px', min_height='650px',
+                                                      overflow_y='hidden'))
 
-        display(backend_monitor)
+        display(bmonitor)
 
 
 def config_tab(backend):
@@ -94,11 +95,17 @@ def config_tab(backend):
 
     upper_list = ['n_qubits', 'operational',
                   'status_msg', 'pending_jobs',
-                  'basis_gates', 'local', 'simulator']
+                  'backend_version', 'basis_gates',
+                  'local', 'simulator']
 
     lower_list = list(set(config_dict.keys()).difference(upper_list))
     # Remove gates because they are in a different tab
     lower_list.remove('gates')
+    # Look for hamiltonian
+    if 'hamiltonian' in lower_list:
+        htex = config_dict['hamiltonian']['h_latex']
+        config_dict['hamiltonian'] = "$$%s$$" % htex
+
     upper_str = "<table>"
     upper_str += """<style>
 table {
@@ -124,13 +131,13 @@ tr:nth-child(even) {background-color: #f6f6f6;}
             key, config_dict[key])
     upper_str += footer
 
-    upper_table = widgets.HTML(
+    upper_table = widgets.HTMLMath(
         value=upper_str, layout=widgets.Layout(width='100%', grid_area='left'))
 
     image_widget = widgets.Output(
         layout=widgets.Layout(display='flex-inline', grid_area='right',
                               padding='10px 10px 10px 10px',
-                              width='auto', max_height='300px',
+                              width='auto', max_height='325px',
                               align_items='center'))
 
     if not config['simulator']:
@@ -160,15 +167,15 @@ tr:nth-child(even) {background-color: #f6f6f6;}
                 key, config_dict[key])
     lower_str += footer
 
-    lower_table = widgets.HTML(value=lower_str,
-                               layout=widgets.Layout(
-                                   width='auto',
-                                   grid_area='bottom'))
+    lower_table = widgets.HTMLMath(value=lower_str,
+                                   layout=widgets.Layout(
+                                       width='auto',
+                                       grid_area='bottom'))
 
     grid = widgets.GridBox(children=[upper_table, image_widget, lower_table],
                            layout=widgets.Layout(
                                grid_template_rows='auto auto',
-                               grid_template_columns='25% 25% 25% 25%',
+                               grid_template_columns='31% 23% 23% 23%',
                                grid_template_areas='''
                                "left right right right"
                                "bottom bottom bottom bottom"
@@ -217,23 +224,31 @@ tr:nth-child(even) {background-color: #f6f6f6;}
     for qub in range(len(props['qubits'])):
         name = 'Q%s' % qub
         qubit_data = props['qubits'][qub]
-        gate_data = props['gates'][3*qub:3*qub+3]
+        gate_data = [g for g in props['gates'] if g['qubits'] == [qub]]
         t1_info = qubit_data[0]
         t2_info = qubit_data[1]
         freq_info = qubit_data[2]
         readout_info = qubit_data[3]
 
         freq = str(round(freq_info['value'], 5))+' '+freq_info['unit']
-        T1 = str(round(t1_info['value'],  # pylint: disable=invalid-name
+        T1 = str(round(t1_info['value'],
                        5))+' ' + t1_info['unit']
-        T2 = str(round(t2_info['value'],  # pylint: disable=invalid-name
+        T2 = str(round(t2_info['value'],
                        5))+' ' + t2_info['unit']
-        # pylint: disable=invalid-name
-        U1 = str(round(gate_data[0]['parameters'][0]['value'], 5))
-        # pylint: disable=invalid-name
-        U2 = str(round(gate_data[1]['parameters'][0]['value'], 5))
-        # pylint: disable=invalid-name
-        U3 = str(round(gate_data[2]['parameters'][0]['value'], 5))
+
+        for gd in gate_data:
+            if gd['gate'] == 'u1':
+                U1 = str(round(gd['parameters'][0]['value'], 5))
+                break
+
+        for gd in gate_data:
+            if gd['gate'] == 'u2':
+                U2 = str(round(gd['parameters'][0]['value'], 5))
+                break
+        for gd in gate_data:
+            if gd['gate'] == 'u3':
+                U3 = str(round(gd['parameters'][0]['value'], 5))
+                break
 
         readout_error = round(readout_info['value'], 5)
         qubit_html += "<tr><td><font style='font-weight:bold'>%s</font></td><td>%s</td>"

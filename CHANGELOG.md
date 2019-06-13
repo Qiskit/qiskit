@@ -2,8 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a
-Changelog](http://keepachangelog.com/en/1.0.0/).
+The format is based on [Keep a Changelog].
 
 > **Types of changes:**
 >
@@ -14,11 +13,9 @@ Changelog](http://keepachangelog.com/en/1.0.0/).
 > -   **Fixed**: for any bug fixes.
 > -   **Security**: in case of vulnerabilities.
 
-[UNRELEASED](https://github.com/Qiskit/qiskit-terra/compare/0.8.0...HEAD)
-=========================================================================
+## [UNRELEASED]
 
-Deprecated
-----------
+### Deprecated
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
     `cx`.
@@ -26,8 +23,7 @@ Deprecated
     `online_test`.
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
-Added
------
+### Added
 
 -   The option `vertical_compression` was added to the text drawer and
     to the `QuantumCircuit.draw` method. The option allows to control
@@ -37,8 +33,7 @@ Added
     passes when they are executed. The results is stored in the
     attribute `pass_log` of the property set as a dictionary.
 
-Changed
--------
+### Changed
 
 -   The `pylatexenc` and `pillow` requirements are now optional. These
     are only used by the `latex` and `latex_source` circuit
@@ -50,8 +45,7 @@ Changed
 -   Qubits and classical bits are not represented as a tuples anymore,
     but as instances of `Qubit` and `Clbit` respectively.
 
-Removed
--------
+### Removed
 
 -   The previously deprecated functions
     `qiksit.visualization.plot_state` and
@@ -73,17 +67,14 @@ Removed
 -   Removed `ignore_requires` and `ignore_preserves` options from
     `PassManager` (\#2565).
 
-Fixed
------
+### Fixed
 
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 
-[0.8.0](https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0) - 2019-05-02
-==================================================================================
+## [0.8.0] - 2019-05-02
 
-Added
------
+### Added
 
 -   Added exact and approximate decomposition of SU(4) to arbitrary
     supercontrolled basis
@@ -102,7 +93,7 @@ Added
     operators.
 -   Introduced the backend defaults model and endpoint for pulse
     backends (\#2101).
--   [meas\_level]{.title-ref} to result schema (\#2085).
+-   `meas_level` to result schema (\#2085).
 -   Core StochasticSwap routine implemented in Cython (\#1789).
 -   New EnlargeWithAncilla pass for adding ancilla qubits after a Layout
     selection pass (\#1603).
@@ -185,12 +176,11 @@ Added
 -   Added preset PassManagers that offer predetermined pipelines of
     transpiler passes. (\#2163)
 
-Changed
--------
+### Changed
 
 -   require scipy\>=1.0, use
-    [scipy.stats.unitary\_group.rvs]{.title-ref} for
-    [random\_unitary()]{.title-ref}.
+    `scipy.stats.unitary_group.rvs` for
+    `random_unitary()`.
 -   two\_qubit\_kak decomposition works with Operator or raw matrix
     input objects.
 -   process\_fidelity works with QuantumChannel and Operator object
@@ -203,8 +193,8 @@ Changed
 -   plot\_histogram now allows sorting by Hamming distance from
     target\_string (\#2064).
 -   FunctionalPulse is no longer a class and instead is a decorator,
-    [functional\_pulse]{.title-ref} that returns a
-    [SamplePulse]{.title-ref} when called. (\#2043)
+    `functional_pulse` that returns a
+    `SamplePulse` when called. (\#2043)
 -   Changed `average_data` to accept observable input in matrix form
     (\#1858)
 -   Change random\_state to take in dim over number of qubits (\#1857)
@@ -234,7 +224,7 @@ Changed
     (\#1591).
 -   Purity function in `qiskit.tools.qi.qi` calls new version in
     `qiskit.quantum_information` and issues deprecation warning (\#1733)
--   Updated [dag.node\_counter]{.title-ref} to return the current number
+-   Updated `dag.node_counter` to return the current number
     of nodes (\#1763)
 -   The argument `basis_gates` used in `compile`, `execute`, and
     `transpile` is not longer a comma-separated string but a list of
@@ -277,10 +267,9 @@ Changed
 -   Layout and CouplingMap classes are now accessible from
     qiskit.transpiler (\#2222).
 
-Deprecated
-----------
+### Deprecated
 
--   The methods prefixed by [\_get]{.title-ref} in the DAGCircuit object
+-   The methods prefixed by `\_get` in the DAGCircuit object
     are being renamed without that prefix (see \#1346)
 -   Changed elements in `couplinglist` of `CouplingMap` from tuples to
     lists (\#1666).
@@ -310,8 +299,7 @@ Deprecated
     `qiskit.util`. `qiskit._util` will be removed in the 0.9 release.
     (\#2154)
 
-Fixed
------
+### Fixed
 
 -   Fixed \#1892, whereby inheriting from QuantumRegister or
     ClassicalRegister would cause a QiskitError in instruction.py
@@ -333,14 +321,13 @@ Fixed
     conditional gates (\#1943).
 -   Fixed a mapping issue with layouts on non-adjacent qubits, by adding
     ancillas (\#2023).
--   Fixed a bug in which an [initial\_layout]{.title-ref} could be
+-   Fixed a bug in which an `initial_layout` could be
     changed even if it made the circuit compatible with the device
-    [coupling\_map]{.title-ref} (\#2036).
+    `coupling_map` (\#2036).
 -   Fixed `qobj_to_circuits` for circuits that contain initialize
     instructions (\#2138)
 
-Removed
--------
+### Removed
 
 -   The previously deprecated functions `plot_circuit()`,
     `latex_circuit_drawer()`, `generate_latex_source()`, and
@@ -375,54 +362,48 @@ Removed
     (\#1860).
 -   Removed `Instruction.reapply()` method (\#1816).
 
-[0.7.2](https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2) - 2019-05-01
-==================================================================================
+## [0.7.2] - 2019-05-01
 
-Fixed
------
+### Fixed
 
 -   A potential issue where the backend configuration schema validation
     would improperly reject valid responses from the API (\#2258)
 
-[0.7.1](https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1) - 2019-03-04
-==================================================================================
+## [0.7.1] - 2019-03-04
 
-Fixed
------
+### Fixed
 
 -   Fixed a bug with measurement sampling optimization in BasicAer
     qasm\_simulator (\#1624).
 
-[0.7.0](https://github.com/Qiskit/qiskit-terra/compare/0.6.0...0.7.0) - 2018-12-19
-==================================================================================
+## [0.7.0] - 2018-12-19
 
-Added
------
+### Added
 
 -   Added DAG visualizer which requires
     [Graphivz](https://www.graphviz.org/) (\#1059)
 -   Added an ASCII art circuit visualizer (\#909)
 -   The QuantumCircuit class now returns an ASCII art visualization when
     treated as a string (\#911)
--   The QuantumCircuit class now has a [draw()]{.title-ref} method which
+-   The QuantumCircuit class now has a `draw()` method which
     behaves the same as the
-    [qiskit.tools.visualization.circuit\_drawer()]{.title-ref} function
+    `qiskit.tools.visualization.circuit_drawer()` function
     for visualizing the quantum circuit (\#911)
--   A new method [hinton]{.title-ref} can be used on
-    [qiskit.tools.visualization.plot\_state()]{.title-ref} to draw a
+-   A new method `hinton` can be used on
+    `qiskit.tools.visualization.plot_state()` to draw a
     hinton diagram (\#1246)
--   Two new constructor methods, [from\_qasm\_str()]{.title-ref} and
-    [from\_qasm\_file()]{.title-ref}, to create a QuantumCircuit object
+-   Two new constructor methods, `from_qasm_str()` and
+    `from_qasm_file()`, to create a QuantumCircuit object
     from OpenQASM were added to the QuantumCircuit class. (\#1172)
 -   New methods in QuantumCircuit for common circuit metrics:
-    [size()]{.title-ref}, [depth()]{.title-ref}, [width()]{.title-ref},
-    [count\_ops()]{.title-ref}, [num\_tensor\_factors()]{.title-ref}
+    `size()`, `depth()`, `width()`,
+    `count_ops()`, `num_tensor_factors()`
     (\#1285)
--   Added [backend\_monitor]{.title-ref} and
-    [backend\_overview]{.title-ref} Jupyter magics, as well as
-    [plot\_coupling\_map]{.title-ref} (\#1231)
--   Added a [Layout]{.title-ref} object (\#1313)
--   New [plot\_bloch\_multivector()]{.title-ref} to plot Bloch vectors
+-   Added `backend_monitor` and
+    `backend_overview` Jupyter magics, as well as
+    `plot_coupling_map` (\#1231)
+-   Added a `Layout` object (\#1313)
+-   New `plot_bloch_multivector()` to plot Bloch vectors
     from a tensored state vector or density matrix. (\#1359)
 -   Per-shot measurement results are available in simulators and select
     devices. Request them by setting `memory=True` in
@@ -452,34 +433,30 @@ Added
 -   New Optimize1QGate pass for combining chains of 1q rotations
     (\#1442).
 
-Changed
--------
+### Changed
 
 -   Schedules and underlying classes are now immutable. (\#2186)
 -   Evolved pass-based transpiler to support advanced functionality
     (\#1060)
--   [.retrieve\_job()]{.title-ref} and [.jobs()]{.title-ref} no longer
+-   `.retrieve_job()` and `.jobs()` no longer
     returns results by default, instead the result must be accessed by
-    the [result()]{.title-ref} method on the job objects (\#1082).
--   Make [backend.status()]{.title-ref} dictionary conform with schema.
+    the `result()` method on the job objects (\#1082).
+-   Make `backend.status()` dictionary conform with schema.
 -   The different output backends for the circuit\_drawer()
     visualizations have been moved into separate private modules in
-    [qiskit.tools.visualizations]{.title-ref}. (\#1105, \#1111)
+    `qiskit.tools.visualizations`. (\#1105, \#1111)
 -   DAG nodes contain pointers to Register and Instruction objects,
     rather than their string names (\#1189).
--   
+-   Upgraded some external dependencies to:
+    -   networkx\>=2.2 (\#1267).
 
-    Upgraded some external dependencies to:
-
-    :   -   networkx\>=2.2 (\#1267).
-
--   The [qiskit.tools.visualization.circuit\_drawer()]{.title-ref}
+-   The `qiskit.tools.visualization.circuit_drawer()`
     method now returns a matplotlib.Figure object when the
-    [mpl]{.title-ref} output is used and a [TextDrawer]{.title-ref}
-    object when [text]{.title-ref} output is used. (\#1224, \#1181)
+    `mpl` output is used and a `TextDrawer`
+    object when `text` output is used. (\#1224, \#1181)
 -   Speed up the Pauli class and extended its operators (\#1271 \#1166).
--   [IBMQ.save\_account()]{.title-ref} now takes an
-    [overwrite]{.title-ref} option to replace an existing account on
+-   `IBMQ.save_account()` now takes an
+    `overwrite` option to replace an existing account on
     disk. Default is False (\#1295).
 -   Backend and Provider methods defined in the specification use model
     objects rather than dicts, along with validation against schemas
@@ -492,9 +469,9 @@ Changed
 -   `backend.provider()` is now a method instead of a property (\#1312).
 -   Remove local backend (Aer) fallback (\#1303)
 -   The signatures for the plotting functions in
-    [qiskit.tools.visualization.\_counts\_visualization.py]{.title-ref},
-    [qiskit.tools.visualization.\_state\_visualization.py]{.title-ref},
-    and [qiskit.tools.visualization.interactive]{.title-ref} have been
+    `qiskit.tools.visualization._counts_visualization.py`,
+    `qiskit.tools.visualization._state_visualization.py`,
+    and `qiskit.tools.visualization.interactive` have been
     modified to make them in-line with standard Matplotlib calling
     conventions (\#1359).
 -   Remove local backend (Aer) fallback (\#1303).
@@ -518,46 +495,36 @@ Changed
     the Python simulators and `LegacySimulators` which provides the old
     C++ simulators in qiskit-terra. (\#1484)
 
-Deprecated
-----------
+### Deprecated
 
--   
-
-    `plot_circuit()`, `latex_circuit_drawer()`, `generate_latex_source()`,
-
-    :   and `matplotlib_circuit_drawer()` from
-        qiskit.tools.visualization are deprecated. Instead the
-        `circuit_drawer()` function from the same module should be used.
-        (\#1055)
-
--   
-
-    The current default output of `circuit_drawer()` (using latex and falling
-
-    :   back on python) is deprecated and will be changed in the future.
-        (\#1055)
-
--   The [qiskit.wrapper.load\_qasm\_string()]{.title-ref} and
-    [qiskit.wrapper.load\_qasm\_file()]{.title-ref} functions are
-    deprecated and the [QuantumCircuit.from\_qasm\_str()]{.title-ref}
-    and [QuantumCircuit.from\_qasm\_file()]{.title-ref} contstructor
+-   `plot_circuit()`, `latex_circuit_drawer()`, `generate_latex_source()`,
+    and `matplotlib_circuit_drawer()` from
+    qiskit.tools.visualization are deprecated. Instead the
+    `circuit_drawer()` function from the same module should be used.
+    (\#1055)
+-   The current default output of `circuit_drawer()` (using latex and falling
+    back on python) is deprecated and will be changed in the future.
+    (\#1055)
+-   The `qiskit.wrapper.load_qasm_string()` and
+    `qiskit.wrapper.load_qasm_file()` functions are
+    deprecated and the `QuantumCircuit.from_qasm_str()`
+    and `QuantumCircuit.from_qasm_file()` contstructor
     methods should be used instead (\#1172)
 -   The `plot_barriers` and `reverse_bits` keys in the `style` kwarg
     dict are deprecated, instead the
-    [qiskit.tools.visualization.circuit\_drawer()]{.title-ref} kwargs
+    `qiskit.tools.visualization.circuit_drawer()` kwargs
     `plot_barriers` and `reverse_bits` should be used instead. (\#1180)
 -   The `transpile_dag()` function `format` kwarg for emitting different
     output formats is deprecated (\#1319).
 -   Several methods of `qiskit.Result` have been deprecated (\#1360).
--   The functions [plot\_state()]{.title-ref} and
-    [iplot\_state()]{.title-ref} have been depreciated. Instead the
-    functions [plot\_state\_\*()]{.title-ref} and
-    [iplot\_state\_\*()]{.title-ref} should be called. (\#1359)
+-   The functions `plot_state()` and
+    `iplot_state()` have been depreciated. Instead the
+    functions `plot_state_\*()` and
+    `iplot_state_\*()` should be called. (\#1359)
 -   The `skip_transpiler` arg has been deprecated from `compile()` and
     `execute()` in favor of using the PassManager directly.
 
-Fixed
------
+### Fixed
 
 -   Fixed a variety of typos throughout sources (\#1139)
 -   Fixed horizontal spacing when drawing barriers before CCNOT gates in
@@ -567,23 +534,22 @@ Fixed
 -   Fixed AerJob status when the submitted Job is in a PENDING state.
     (\#1215)
 -   Add fallback for when CPU count can\'t be determined (\#1214)
--   Fix [random\_state]{.title-ref} from returning nan (\#1258)
--   The Clifford simulator [run()]{.title-ref} method now works
+-   Fix `random_state` from returning nan (\#1258)
+-   The Clifford simulator `run()` method now works
     correctly with the updated AerJob usage (\#1125)
 -   Fixed an edge case when connection checks would raise an unhandled
     exception (\#1226)
 -   Fixed a bug where the transpiler moved middle-of-circuit
     measurements to the end (\#1334)
--   The [number\_to\_keep]{.title-ref} kwarg in `plot_histgram()` now
+-   The `number_to_keep` kwarg in `plot_histgram()` now
     functions correctly (\#1359).
 -   parallel\_map no longer creates a progress bar for a single circuit
     (\#1394).
--   The [timeout]{.title-ref} parameter is now passed into the inner
+-   The `timeout` parameter is now passed into the inner
     `_wait_for_submission` function in `IBMQJob` from `_wait_for_result`
     (\#1542).
 
-Removed
--------
+### Removed
 
 -   Remove register, available\_backends (\#1131).
 -   Remove tools/apps (\#1184).
@@ -624,19 +590,17 @@ Removed
     convert the output with the functions provided in
     `qiskit.converters`.
 
-[0.6.0](https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0) - 2018-10-04
-==================================================================================
+## [0.6.0] - 2018-10-04
 
-Added
------
+### Added
 
--   Added [SchemaValidationError]{.title-ref} to be thrown when schema
+-   Added `SchemaValidationError` to be thrown when schema
     validation fails (\#881)
 -   Generalized Qobj schema validation functions for all qiskit schemas
     (\#882).
 -   Added decorator to check for C++ simulator availability (\#662)
 -   It is possible to cancel jobs in non comercial backends (\#687)
--   Introduced new [qiskit.IBMQ]{.title-ref} provider, with centralized
+-   Introduced new `qiskit.IBMQ` provider, with centralized
     handling of IBMQ credentials (qiskitrc file, environment variables).
     (\#547, \#948, \#1000)
 -   Add OpenMP parallelization for Apple builds of the cpp simulator
@@ -651,14 +615,13 @@ Added
 -   Add a new function `qobj_to_circuits` to convert a Qobj object to a
     list of QuantumCircuit objects (\#877)
 -   Allow selective loading of accounts from disk via hub/group/project
-    filters to [IBMQ.load\_accounts()]{.title-ref}.
--   Add new [job\_monitor]{.title-ref} function to automaically check
+    filters to `IBMQ.load_accounts()`.
+-   Add new `job_monitor` function to automaically check
     the status of a job (\#975).
 
-Changed
--------
+### Changed
 
--   Schema tests in [tests/schemas/test\_schemas.py]{.title-ref}
+-   Schema tests in `tests/schemas/test_schemas.py`
     replaced with proper unit test (\#834).
 -   Renamed `QISKit` to `Qiskit` in the documentation. (\#634)
 -   Use `Qobj` as the formally defined schema for sending information to
@@ -685,8 +648,7 @@ Changed
     drawer. This requires having the LaTeX qcircuit package
     version \>=2.6.0 installed (\#764)
 
-Deprecated
-----------
+### Deprecated
 
 -   The `number_to_keep` kwarg on the `plot_histogram()` function is now
     deprecated. A field of the same name should be used in the `option`
@@ -694,13 +656,11 @@ Deprecated
 -   Breaking change: `backend.properties()` instead of
     `backend.calibration()` and `backend.parameters()` (\#870)
 
-Removed
--------
+### Removed
 
 -   Removed the QuantumProgram class. (\#724)
 
-Fixed
------
+### Fixed
 
 -   Fixed `get_ran_qasm` methods on `Result` instances (\#688).
 -   Fixed `probabilities_ket` computation in C++ simulator (\#580).
@@ -720,42 +680,34 @@ Fixed
 -   Fixed bug in checking that a circuit already matches a coupling map
     (\#1024).
 
-[0.5.7](https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7) - 2018-07-19
-==================================================================================
+## [0.5.7] - 2018-07-19
 
-Changed
--------
+### Changed
 
 -   Add new backend names support, with aliasing for the old ones.
 
-[0.5.6](https://github.com/Qiskit/qiskit-terra/compare/0.5.5...0.5.6) - 2018-07-06
-==================================================================================
+## [0.5.6] - 2018-07-06
 
-Changed
--------
+### Changed
 
 -   Rename repository to `qiskit-terra` (\#606).
 -   Update Bloch sphere to QuTiP version (\#618).
 -   Adjust margin of matplotlib\_circuit\_drawer (\#632)
 
-Removed
--------
+### Removed
 
 -   Remove OpenQuantumCompiler (\#610).
 
-Fixed
------
+### Fixed
 
 -   Fixed broken process error and simulator slowdown on Windows
     (\#613).
 -   Fixed yzy\_to\_zyz bugs (\#520, \#607) by moving to quaternions
     (\#626).
 
-[0.5.5](https://github.com/Qiskit/qiskit-terra/compare/0.5.4...0.5.5) - 2018-07-02
-==================================================================================
+## [0.5.5] - 2018-07-02
 
-Added
------
+### Added
 
 -   Retrieve IBM Q jobs from server (\#563, \#585).
 -   Add German introductory documentation (`doc/de`) (\#592).
@@ -768,49 +720,40 @@ Added
 -   Introduce Qiskit Transpiler and refactor compilation flow (\#578)
 -   Add CXCancellation pass (\#578)
 
-Changed
--------
+### Changed
 
 -   Remove backend filtering in individual providers, keep only in
     wrapper (\#575).
 -   Single source of version information (\#581)
 -   Bumped IBMQuantumExperience dependency to 1.9.6 (\#600).
--   For backend status, [status\[\'available\'\]]{.title-ref} is now
-    [status\[\'operational\'\]]{.title-ref} (\#609).
+-   For backend status, `status\[\'available\'\]` is now
+    `status\[\'operational\'\]` (\#609).
 -   Added support for registering third-party providers in
-    [register()]{.title-ref} (\#602).
+    `register()` (\#602).
 -   Order strings in the output of `available_backends()` (\#566)
 
-Removed
--------
+### Removed
 
 -   Remove Clifford simulator from default available\_backends, until
     its stable release (\#555).
 -   Remove ProjectQ simulators for moving to new repository (\#553).
 -   Remove QuantumJob class (\#616)
 
-Fixed
------
+### Fixed
 
 -   Fix issue with unintended inversion of initializer gates (\#573).
 -   Fix issue with skip\_transpiler causing some gates to be ignored
     silently (\#562).
 
-[0.5.4](https://github.com/Qiskit/qiskit-terra/compare/0.5.3...0.5.4) - 2018-06-11
-==================================================================================
+## [0.5.4] - 2018-06-11
 
-Added
------
+### Added
 
--   
+-   Performance improvements:
+    -   remove deepcopies from dagcircuit, and extra check on qasm()
+        (\#523).
 
-    Performance improvements:
-
-    :   -   remove deepcopies from dagcircuit, and extra check on qasm()
-            (\#523).
-
-Changed
--------
+### Changed
 
 -   Rename repository to `qiskit-core` (\#530).
 -   Repository improvements: new changelog format (\#535), updated issue
@@ -819,13 +762,11 @@ Changed
 -   Convert `LocalJob` tests into unit-tests. (\#526)
 -   Move wrapper `load_qasm_*` methods to a submodule (\#533).
 
-Removed
--------
+### Removed
 
 -   Remove Sympy simulators for moving to new repository (\#514)
 
-Fixed
------
+### Fixed
 
 -   Fix erroneous density matrix and probabilities in C++ simulator
     (\#518)
@@ -838,47 +779,38 @@ Fixed
 -   Fix issue with simulator extension commands not reapplying correctly
     (\#556)
 
-[0.5.3](https://github.com/Qiskit/qiskit-terra/compare/0.5.2...0.5.3) - 2018-05-29
-==================================================================================
+## [0.5.3] - 2018-05-29
 
-Added
------
+### Added
 
 -   load\_qasm\_file / load\_qasm\_string methods
 
-Changed
--------
+### Changed
 
 -   Dependencies version bumped
 
-Fixed
------
+### Fixed
 
 -   Crash in the cpp simulator for some linux platforms
 -   Fixed some minor bugs
 
-[0.5.2](https://github.com/Qiskit/qiskit-terra/compare/0.5.1...0.5.2) - 2018-05-21
-==================================================================================
+## [0.5.2] - 2018-05-21
 
-Changed
--------
+### Changed
 
 -   Adding Result.get\_unitary()
 
-Deprecated
-----------
+### Deprecated
 
 -   Deprecating `ibmqx_hpc_qasm_simulator` and `ibmqx_qasm_simulator` in
     favor of `ibmq_qasm_simulator`.
 
-Fixed
------
+### Fixed
 
 -   Fixing a Mapper issue.
 -   Fixing Windows 7 builds.
 
-[0.5.1](https://github.com/Qiskit/qiskit-terra/compare/0.5.0...0.5.1) - 2018-05-15
-==================================================================================
+## [0.5.1] - 2018-05-15
 
 -   There are no code changes.
 
@@ -889,44 +821,30 @@ Fixed
     Pypi forces us to bump up the version number if we want to upload a
     new package, so this is basically what have changed.
 
-[0.5.0](https://github.com/Qiskit/qiskit-terra/compare/0.4.15...0.5.0) - 2018-05-11
-===================================================================================
+## [0.5.0] - 2018-05-11
 
-Improvements
-------------
+### Improvements
 
--   
-
-    Introduce providers and rework backends (\#376).
-
-    :   -   Split backends into `local` and `ibmq`.
-        -   Each provider derives from the following classes for its
-            specific requirements (`BaseProvider`, `BaseBackend`,
-            `BaseJob`).
-        -   Allow querying result by both circuit name and
-            QuantumCircuit instance.
-
--   
-
-    Introduce the Qiskit `wrapper` (\#376).
-
-    :   -   Introduce convenience wrapper functions around commonly used
-            Qiskit components (e.g. `compile` and `execute` functions).
-        -   Introduce the DefaultQISKitProvider, which acts as a context
-            manager for the current session (e.g. providing easy access
-            to all `available_backends`).
-        -   Avoid relying on QuantumProgram (eventual deprecation).
-        -   The functions are also available as top-level functions (for
-            example, `qiskit.get_backend()`).
-
--   
-
-    Introduce `BaseJob` class and asynchronous jobs (\#403).
-
-    :   -   Return `BaseJob` after `run()`.
-        -   Mechanisms for querying `status` and `results`, or to
-            `cancel` a job.
-
+-   Introduce providers and rework backends (\#376).
+    -   Split backends into `local` and `ibmq`.
+    -   Each provider derives from the following classes for its
+        specific requirements (`BaseProvider`, `BaseBackend`,
+        `BaseJob`).
+    -   Allow querying result by both circuit name and
+        QuantumCircuit instance.
+-   Introduce the Qiskit `wrapper` (\#376).
+    -   Introduce convenience wrapper functions around commonly used
+        Qiskit components (e.g. `compile` and `execute` functions).
+    -   Introduce the DefaultQISKitProvider, which acts as a context
+        manager for the current session (e.g. providing easy access
+        to all `available_backends`).
+    -   Avoid relying on QuantumProgram (eventual deprecation).
+    -   The functions are also available as top-level functions (for
+        example, `qiskit.get_backend()`).
+-   Introduce `BaseJob` class and asynchronous jobs (\#403).
+    -   Return `BaseJob` after `run()`.
+    -   Mechanisms for querying `status` and `results`, or to
+        `cancel` a job.
 -   Introduce a `skip_transpiler` flag for `compile()` (\#411).
 -   Introduce schemas for validating interfaces between qiskit and
     backends (\#434)
@@ -937,32 +855,24 @@ Improvements
     -   backend\_config\_schema
     -   backend\_props\_schema
     -   backend\_status\_schema
--   
-
-    Improve C++ simulator (\#386)
-
-    :   -   Add `tensor_index.hpp` for multi-partite qubit vector
-            indexing.
-        -   Add `qubit_vector.hpp` for multi-partite qubit vector
-            algebra.
-        -   Rework C++ simulator backends to use QubitVector class
-            instead of `std::vector`.
-
--   
-
-    Improve interface to simulator backends (\#435)
-
-    :   -   Introduce `local_statevector_simulator_py` and
-            `local_statevector_simulator_cpp`.
-        -   Introduce aliased and deprecated backend names and
-            mechanisms for resolving them.
-        -   Introduce optional `compact` flag to query backend names
-            only by unique function.
-        -   Introduce result convenience functions `get_statevector`,
-            `get_unitary`
-        -   Add `snapshot` command for caching a copy of the current
-            simulator state.
-
+-   Improve C++ simulator (\#386)
+    -   Add `tensor_index.hpp` for multi-partite qubit vector
+        indexing.
+    -   Add `qubit_vector.hpp` for multi-partite qubit vector
+        algebra.
+    -   Rework C++ simulator backends to use QubitVector class
+        instead of `std::vector`.
+-   Improve interface to simulator backends (\#435)
+    -   Introduce `local_statevector_simulator_py` and
+        `local_statevector_simulator_cpp`.
+    -   Introduce aliased and deprecated backend names and
+        mechanisms for resolving them.
+    -   Introduce optional `compact` flag to query backend names
+        only by unique function.
+    -   Introduce result convenience functions `get_statevector`,
+        `get_unitary`
+    -   Add `snapshot` command for caching a copy of the current
+        simulator state.
 -   Introduce circuit drawing via `circuit_drawer()` and
     `plot_circuit()` (\#295, \#414)
 -   Introduce benchmark suite for performance testing
@@ -972,8 +882,7 @@ Improvements
 -   Allow combining circuits across both depth and width (\#389)
 -   Enforce string token names (\#395)
 
-Fixed
------
+### Fixed
 
 -   Fix coherent error bug in `local_qasm_simulator_cpp` (\#318)
 -   Fix the order and format of result bits obtained from device
@@ -984,8 +893,7 @@ Fixed
     JobProcessor during \#403)
 -   Fix ability to apply all gates on register (\#369)
 
-Deprecated
-----------
+### Deprecated
 
 -   Some methods of `QuantumProgram` are soon to be deprecated. Please
     use the top-level functions instead.
@@ -1001,214 +909,160 @@ Deprecated
 -   Move simulator extensions to `qiskit/extensions/simulator`
 -   Move Rzz and CSwap to standard extension library
 
-[0.4.15](https://github.com/Qiskit/qiskit-terra/compare/0.4.14...0.4.15) - 2018-05-07
-=====================================================================================
+## [0.4.15] - 2018-05-07
 
-Fixed
------
+### Fixed
 
 -   Fixed an issue with legacy code that was affecting Developers
     Challenge.
 
-[0.4.14](https://github.com/Qiskit/qiskit-terra/compare/0.4.13...0.4.14) - 2018-04-18
-=====================================================================================
+## [0.4.14] - 2018-04-18
 
-Fixed
------
+### Fixed
 
 -   Fixed an issue about handling Basis Gates parameters on backend
     configurations.
 
-[0.4.13](https://github.com/Qiskit/qiskit-terra/compare/0.4.12...0.4.13) - 2018-04-16
-=====================================================================================
+## [0.4.13] - 2018-04-16
 
-Changed
--------
+### Changed
 
 -   OpenQuantumCompiler.dag2json() restored for backward compatibility.
 
-Fixed
------
+### Fixed
 
 -   Fixes an issue regarding barrier gate misuse in some circumstances.
 
-[0.4.12](https://github.com/Qiskit/qiskit-terra/compare/0.4.11...0.4.12) - 2018-03-11
-=====================================================================================
+## [0.4.12] - 2018-03-11
 
-Changed
--------
+### Changed
 
 -   Improved circuit visualization.
 -   Improvements in infrastructure code, mostly tests and build system.
 -   Better documentation regarding contributors.
 
-Fixed
------
+### Fixed
 
 -   A bunch of minor bugs have been fixed.
 
-[0.4.11](https://github.com/Qiskit/qiskit-terra/compare/0.4.10...0.4.11) - 2018-03-13
-=====================================================================================
+## [0.4.11] - 2018-03-13
 
-Added
------
+### Added
 
 -   More testing :)
 
-Changed
--------
+### Changed
 
 -   Stabilizing code related to external dependencies.
 
-Fixed
------
+### Fixed
 
 -   Fixed bug in circuit drawing where some gates in the standard
     library were not plotting correctly.
 
-[0.4.10](https://github.com/Qiskit/qiskit-terra/compare/0.4.9...0.4.10) - 2018-03-06
-====================================================================================
+## [0.4.10] - 2018-03-06
 
-Added
------
+### Added
 
 -   Chinese translation of README.
 
-Changed
--------
+### Changed
 
 -   Changes related with infrastructure (linter, tests, automation)
     enhancement.
 
-Fixed
------
+### Fixed
 
 -   Fix installation issue when simulator cannot be built.
 -   Fix bug with auto-generated CNOT coherent error matrix in C++
     simulator.
 -   Fix a bug in the async code.
 
-[0.4.9](https://github.com/Qiskit/qiskit-terra/compare/0.4.8...0.4.9) - 2018-02-12
-==================================================================================
+## [0.4.9] - 2018-02-12
 
-Changed
--------
+### Changed
 
 -   CMake integration.
 -   QASM improvements.
 -   Mapper optimizer improvements.
 
-Fixed
------
+### Fixed
 
 -   Some minor C++ Simulator bug-fixes.
 
-[0.4.8](https://github.com/Qiskit/qiskit-terra/compare/0.4.7...0.4.8) - 2018-01-29
-==================================================================================
+## [0.4.8] - 2018-01-29
 
-Fixed
------
+### Fixed
 
 -   Fix parsing U\_error matrix in C++ Simulator python helper class.
 -   Fix display of code-blocks on `.rst` pages.
 
-[0.4.7](https://github.com/Qiskit/qiskit-terra/compare/0.4.6...0.4.7) - 2018-01-26
-==================================================================================
+## [0.4.7] - 2018-01-26
 
-Changed
--------
+### Changed
 
 -   Changes some naming conventions for `amp_error` noise parameters to
     `calibration_error`.
 
-Fixed
------
+### Fixed
 
 -   Fixes several bugs with noise implementations in the simulator.
 -   Fixes many spelling mistakes in simulator README.
 
-[0.4.6](https://github.com/Qiskit/qiskit-terra/compare/0.4.5...0.4.6) - 2018-01-22
-==================================================================================
+## [0.4.6] - 2018-01-22
 
-Changed
--------
+### Changed
 
 -   We have upgraded some of out external dependencies to:
+    -   matplotlib \>=2.1,\<2.2
+    -   networkx\>=1.11,\<2.1
+    -   numpy\>=1.13,\<1.15
+    -   ply==3.10
+    -   scipy\>=0.19,\<1.1
+    -   Sphinx\>=1.6,\<1.7
+    -   sympy\>=1.0
 
-    > -   matplotlib \>=2.1,\<2.2
-    > -   networkx\>=1.11,\<2.1
-    > -   numpy\>=1.13,\<1.15
-    > -   ply==3.10
-    > -   scipy\>=0.19,\<1.1
-    > -   Sphinx\>=1.6,\<1.7
-    > -   sympy\>=1.0
+## [0.4.4] - 2018-01-09
 
-[0.4.4](https://github.com/Qiskit/qiskit-terra/compare/0.4.3...0.4.4) - 2018-01-09
-==================================================================================
-
-Changed
--------
+### Changed
 
 -   Update dependencies to more recent versions.
 
-Fixed
------
+### Fixed
 
 -   Fix bug with process tomography reversing qubit preparation order.
 
-[0.4.3](https://github.com/Qiskit/qiskit-terra/compare/0.4.2...0.4.3) - 2018-01-08
-==================================================================================
+## [0.4.3] - 2018-01-08
 
-Removed
--------
+### Removed
 
 -   Static compilation has been removed because it seems to be failing
     while installing Qiskit via pip on Mac.
 
-[0.4.2](https://github.com/Qiskit/qiskit-terra/compare/0.4.1...0.4.2) - 2018-01-08
-==================================================================================
+## [0.4.2] - 2018-01-08
 
-Fixed
------
+### Fixed
 
 -   Minor bug fixing related to pip installation process.
 
-[0.4.0](https://github.com/Qiskit/qiskit-terra/compare/0.3.16...0.4.0) - 2018-01-08
-===================================================================================
+## [0.4.0] - 2018-01-08
 
-Added
------
+### Added
 
--   
-
-    Job handling improvements.
-
-    :   -   Allow asynchronous job submission.
-        -   New JobProcessor class: utilizes concurrent.futures.
-        -   New QuantumJob class: job description.
-
--   
-
-    Modularize circuit \"compilation\".
-
-    :   Takes quantum circuit and information about backend to transform
+-   Job handling improvements.
+    -   Allow asynchronous job submission.
+    -   New JobProcessor class: utilizes concurrent.futures.
+    -   New QuantumJob class: job description.
+-   Modularize circuit \"compilation\".
+    -   Takes quantum circuit and information about backend to transform
         circuit into one which can run on the backend.
-
--   
-
-    Standardize job description.
-
-    :   All backends take QuantumJob objects which wraps `qobj` program
+-   Standardize job description.
+    -   All backends take QuantumJob objects which wraps `qobj` program
         description.
-
--   
-
-    Simplify addition of backends, where circuits are run/simulated.
-
-    :   -   `qiskit.backends` package added.
-        -   Real devices and simulators are considered \"backends\"
-            which inherent from `BaseBackend`.
-
+-   Simplify addition of backends, where circuits are run/simulated.
+    -   `qiskit.backends` package added.
+    -   Real devices and simulators are considered \"backends\"
+        which inherent from `BaseBackend`.
 -   Reorganize and improve Sphinx documentation.
 -   Improve unittest framework.
 -   Add tools for generating random circuits.
@@ -1217,37 +1071,25 @@ Added
 -   New utilities for classical optimization and chemistry
     (`qiskit/tools/apps/optimization`).
 -   Randomized benchmarking data handling.
--   
-
-    Quantum tomography (`qiskit/tools/qcvv`).
-
-    :   Added functions for generating, running and fitting process
+-   Quantum tomography (`qiskit/tools/qcvv`).
+    -   Added functions for generating, running and fitting process
         tomography experiments.
-
--   
-
-    Quantum information functions (`qiskit/tools/qi`).
-
-    :   -   Partial trace over subsystems of multi-partite vector.
-        -   Partial trace over subsystems of multi-partite matrix.
-        -   Flatten an operator to a vector in a specified basis.
-        -   Generate random unitary matrix.
-        -   Generate random density matrix.
-        -   Generate normally distributed complex matrix.
-        -   Generate random density matrix from Hilbert-Schmidt metric.
-        -   Generate random density matrix from the Bures metric.
-        -   Compute Shannon entropy of probability vector.
-        -   Compute von Neumann entropy of quantum state.
-        -   Compute mutual information of a bipartite state.
-        -   Compute the entanglement of formation of quantum state.
-
--   
-
-    Visualization improvements (`qiskit/tools`).
-
-    :   -   Wigner function representation.
-        -   Latex figure of circuit.
-
+-   Quantum information functions (`qiskit/tools/qi`).
+    -   Partial trace over subsystems of multi-partite vector.
+    -   Partial trace over subsystems of multi-partite matrix.
+    -   Flatten an operator to a vector in a specified basis.
+    -   Generate random unitary matrix.
+    -   Generate random density matrix.
+    -   Generate normally distributed complex matrix.
+    -   Generate random density matrix from Hilbert-Schmidt metric.
+    -   Generate random density matrix from the Bures metric.
+    -   Compute Shannon entropy of probability vector.
+    -   Compute von Neumann entropy of quantum state.
+    -   Compute mutual information of a bipartite state.
+    -   Compute the entanglement of formation of quantum state.
+-   Visualization improvements (`qiskit/tools`).
+    -   Wigner function representation.
+    -   Latex figure of circuit.
 -   Use python logging facility for info, warnings, etc.
 -   Auto-deployment of sphinx docs to github pages.
 -   Check IBMQuantumExperience version at runtime.
@@ -1259,48 +1101,61 @@ Added
 -   Add QuantumProgram methods for destroying registers and circuits.
 -   Use Sympy for evaluating expressions.
 -   Add support for ibmqx\_hpc\_qasm\_simulator backend.
--   
+-   Add backend interface to Project Q C++ simulator.
+    -   Requires installation of Project Q.
+-   Introduce `Initialize` class.
+    -   Generates circuit which initializes qubits in arbitrary state.
+-   Introduce `local_qiskit_simulator` a C++ simulator with realistic noise.
+    -   Requires C++ build environment for `make`-based build.
+-   Introduce `local_clifford_simulator` a C++ Clifford simulator.
+    -   Requires C++ build environment for `make`-based build.
 
-    Add backend interface to Project Q C++ simulator.
-
-    :   Requires installation of Project Q.
-
--   
-
-    Introduce `Initialize` class.
-
-    :   Generates circuit which initializes qubits in arbitrary state.
-
--   
-
-    Introduce `local_qiskit_simulator` a C++ simulator with realistic noise.
-
-    :   Requires C++ build environment for `make`-based build.
-
--   
-
-    Introduce `local_clifford_simulator` a C++ Clifford simulator.
-
-    :   Requires C++ build environment for `make`-based build.
-
-Changed
--------
+### Changed
 
 -   The standard extension for creating U base gates has been modified
     to be consistent with the rest of the gate APIs (see \#203).
 
-Removed
--------
+### Removed
 
 -   The `silent` parameter has been removed from a number of
     `QuantumProgram` methods. The same behaviour can be achieved now by
     using the `enable_logs()` and `disable_logs()` methods, which use
     the standard Python logging.
 
-Fixed
------
+### Fixed
 
 -   Fix basis gates (\#76).
 -   Enable QASM parser to work in multiuser environments.
 -   Correct operator precedence when parsing expressions (\#190).
 -   Fix \"math domain error\" in mapping (\#111, \#151).
+
+[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0
+[0.7.2]: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
+[0.7.1]: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
+[0.7.0]: https://github.com/Qiskit/qiskit-terra/compare/0.6.0...0.7.0
+[0.6.0]: https://github.com/Qiskit/qiskit-terra/compare/0.5.7...0.6.0
+[0.5.7]: https://github.com/Qiskit/qiskit-terra/compare/0.5.6...0.5.7
+[0.5.6]: https://github.com/Qiskit/qiskit-terra/compare/0.5.5...0.5.6
+[0.5.5]: https://github.com/Qiskit/qiskit-terra/compare/0.5.4...0.5.5
+[0.5.4]: https://github.com/Qiskit/qiskit-terra/compare/0.5.3...0.5.4
+[0.5.3]: https://github.com/Qiskit/qiskit-terra/compare/0.5.2...0.5.3
+[0.5.2]: https://github.com/Qiskit/qiskit-terra/compare/0.5.1...0.5.2
+[0.5.1]: https://github.com/Qiskit/qiskit-terra/compare/0.5.0...0.5.1
+[0.5.0]: https://github.com/Qiskit/qiskit-terra/compare/0.4.15...0.5.0
+[0.4.15]: https://github.com/Qiskit/qiskit-terra/compare/0.4.14...0.4.15
+[0.4.14]: https://github.com/Qiskit/qiskit-terra/compare/0.4.13...0.4.14
+[0.4.13]: https://github.com/Qiskit/qiskit-terra/compare/0.4.12...0.4.13
+[0.4.12]: https://github.com/Qiskit/qiskit-terra/compare/0.4.11...0.4.12
+[0.4.11]: https://github.com/Qiskit/qiskit-terra/compare/0.4.10...0.4.11
+[0.4.10]: https://github.com/Qiskit/qiskit-terra/compare/0.4.9...0.4.10
+[0.4.9]: https://github.com/Qiskit/qiskit-terra/compare/0.4.8...0.4.9
+[0.4.8]: https://github.com/Qiskit/qiskit-terra/compare/0.4.7...0.4.8
+[0.4.7]: https://github.com/Qiskit/qiskit-terra/compare/0.4.6...0.4.7
+[0.4.6]: https://github.com/Qiskit/qiskit-terra/compare/0.4.5...0.4.6
+[0.4.4]: https://github.com/Qiskit/qiskit-terra/compare/0.4.3...0.4.4
+[0.4.3]: https://github.com/Qiskit/qiskit-terra/compare/0.4.2...0.4.3
+[0.4.2]: https://github.com/Qiskit/qiskit-terra/compare/0.4.1...0.4.2
+[0.4.0]: https://github.com/Qiskit/qiskit-terra/compare/0.3.16...0.4.0
+
+[Keep a Changelog]: http://keepachangelog.com/en/1.0.0/
