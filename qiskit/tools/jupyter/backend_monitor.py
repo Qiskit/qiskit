@@ -36,6 +36,19 @@ try:
 except ImportError:
     pass
 
+MONTH_NAMES = {1: 'Jan.',
+               2: 'Feb.',
+               3: 'Mar.',
+               4: 'Apr.',
+               5: 'May',
+               6: 'June',
+               7: 'July',
+               8: 'Aug.',
+               9: 'Sept.',
+               10: 'Oct.',
+               11: 'Nov.',
+               12: 'Dec.'
+               }
 
 @magics_class
 class BackendMonitor(Magics):
@@ -628,12 +641,12 @@ def plot_job_history(jobs, interval='year'):
               '#7a5195', '#ef5675', '#bc5090']
 
     if interval == 'year':
-        labels = ['{}-{}'.format(str(bins[b].year)[2:], bins[b].month) for b in nz_idx]
+        labels = ['{}-{}'.format(str(bins[b].year)[2:], MONTH_NAMES[bins[b].month]) for b in nz_idx]
     else:
-        labels = ['{}-{}'.format(bins[b].month, bins[b].day) for b in nz_idx]
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))  # pylint: disable=invalid-name
+        labels = ['{}-{}'.format(MONTH_NAMES[bins[b].month], bins[b].day) for b in nz_idx]
+    fig, ax = plt.subplots(1, 1, figsize=(5.5, 5.5))  # pylint: disable=invalid-name
     ax.pie(nz_bins[::-1], labels=labels, colors=colors, textprops={'fontsize': 14},
-           rotatelabels=True, counterclock=False)
+           rotatelabels=True, counterclock=False, radius=1)
     ax.add_artist(Circle((0, 0), 0.7, color='white', zorder=1))
     ax.text(0, 0, total_jobs, horizontalalignment='center',
             verticalalignment='center', fontsize=26)
