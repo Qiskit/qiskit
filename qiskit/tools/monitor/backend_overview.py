@@ -11,7 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
- # pylint: disable=invalid-name
+# pylint: disable=invalid-name
 
 """ A module for viewing the details of all available devices.
 """
