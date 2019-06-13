@@ -15,11 +15,11 @@
 """
 Snapshot.
 """
+import itertools
 
 from qiskit.pulse.channels import SnapshotChannel
 from .instruction import Instruction
 from .command import Command
-import itertools
 
 
 class Snapshot(Command, Instruction):
@@ -27,6 +27,7 @@ class Snapshot(Command, Instruction):
 
     # Counter for the number of instances in this class
     instances_counter = itertools.count(0)
+    prefix = 'snap'
 
     def __init__(self, name: str, snap_type: str):
         """Create new snapshot command.
@@ -40,7 +41,7 @@ class Snapshot(Command, Instruction):
         self._type = snap_type
         self._channel = SnapshotChannel()
         Command.__init__(self, duration=0)
-        self._name = self.create_name(name=name, prefix='snap', counter=self.instances_counter)
+        self._name = Snapshot.create_name(name)
         Instruction.__init__(self, self, self._channel, name=self.name)
         self._buffer = 0
 

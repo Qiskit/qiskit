@@ -15,6 +15,7 @@
 """
 Sample pulse.
 """
+import itertools
 from typing import Callable
 
 import numpy as np
@@ -23,7 +24,6 @@ from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .command import Command
-import itertools
 
 
 class SamplePulse(Command):
@@ -31,6 +31,7 @@ class SamplePulse(Command):
 
     # Counter for the number of instances in this class
     instances_counter = itertools.count(0)
+    prefix = 'p'
 
     def __init__(self, samples, name=None):
         """Create new sample pulse command.
@@ -47,7 +48,7 @@ class SamplePulse(Command):
             raise PulseError('Absolute value of pulse envelope amplitude exceeds 1.')
 
         self._samples = np.asarray(samples, dtype=np.complex_)
-        self._name = self.create_name(name=name, prefix='p', counter=self.instances_counter)
+        self._name = SamplePulse.create_name(name)
 
     @property
     def samples(self):

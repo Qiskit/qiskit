@@ -15,6 +15,7 @@
 """
 Acquire.
 """
+import itertools
 from typing import Union, List
 
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
@@ -22,7 +23,6 @@ from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .meas_opts import Discriminator, Kernel
 from .command import Command
-import itertools
 
 
 class Acquire(Command):
@@ -32,6 +32,7 @@ class Acquire(Command):
 
     # Counter for the number of instances in this class
     instances_counter = itertools.count(0)
+    prefix = 'acq'
 
     def __init__(self, duration, discriminator=None, kernel=None, name=None):
         """Create new acquire command.
@@ -50,7 +51,7 @@ class Acquire(Command):
         """
         super().__init__(duration=duration)
 
-        self._name = self.create_name(name=name, prefix='acq', counter=self.instances_counter)
+        self._name = Acquire.create_name(name)
 
         if discriminator:
             if isinstance(discriminator, Discriminator):

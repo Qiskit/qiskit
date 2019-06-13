@@ -15,12 +15,12 @@
 """
 Persistent value.
 """
+import itertools
 
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
 from .instruction import Instruction
 from .command import Command
-import itertools
 
 
 class PersistentValue(Command):
@@ -28,6 +28,7 @@ class PersistentValue(Command):
 
     # Counter for the number of instances in this class
     instances_counter = itertools.count(0)
+    prefix = 'pv'
 
     def __init__(self, value, name=None):
         """create new persistent value command.
@@ -45,7 +46,7 @@ class PersistentValue(Command):
             raise PulseError("Absolute value of PV amplitude exceeds 1.")
 
         self._value = complex(value)
-        self._name = self.create_name(name=name, prefix='pv', counter=self.instances_counter)
+        self._name = PersistentValue.create_name(name)
 
     @property
     def value(self):

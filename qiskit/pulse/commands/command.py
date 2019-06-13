@@ -15,14 +15,14 @@
 """
 Base command.
 """
+import re
+import itertools
+
 from abc import ABCMeta, abstractmethod
 
 from qiskit.pulse.exceptions import PulseError
 
 from .instruction import Instruction
-
-import re
-import itertools
 
 
 class Command(metaclass=ABCMeta):
@@ -30,6 +30,7 @@ class Command(metaclass=ABCMeta):
 
     # Counter for the number of instances in this class
     instances_counter = itertools.count(0)
+    prefix = 'c'
 
     @abstractmethod
     def __init__(self, duration: int = None):
@@ -45,14 +46,14 @@ class Command(metaclass=ABCMeta):
         else:
             raise PulseError('Pulse duration should be integer.')
 
-        self._name = self._name = self.create_name(name=None, prefix='c', counter=self.instances_counter)
+        self._name = self._name = Command.create_name()
 
-    @staticmethod
-    def create_name(name: str = None, prefix: str = None, counter: itertools.count = None) -> str:
+    @classmethod
+    def create_name(cls, name: str = None) -> str:
         """Method to create names for pulse commands."""
         if name is None:
             try:
-                name = '%s%i' % (prefix, next(counter))
+                name = '%s%i' % (cls.prefix, next(cls.instances_counter))
             except TypeError:
                 raise PulseError("prefix and counter must be non-None when name is None.")
         else:
@@ -63,7 +64,7 @@ class Command(metaclass=ABCMeta):
                                  "(or None for autogenerate a name).")
             name_format = re.compile('[a-z][a-zA-Z0-9_]*')
             if name_format.match(name) is None:
-                raise PulseError("%s is an invalid OPENQASM register/OpenPulse command name." % name)
+                raise PulseError("%s is an invalid OpenPulse command name." % name)
 
         return name
 
