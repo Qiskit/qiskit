@@ -18,11 +18,13 @@ import unittest
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse.utils import add_implicit_acquires, align_measures
 from qiskit.pulse.cmd_def import CmdDef
 from qiskit.pulse.commands import AcquireInstruction
+from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
+
+from qiskit.pulse.utils import add_implicit_acquires, align_measures
 
 
 class TestAutoMerge(QiskitTestCase):
@@ -77,7 +79,7 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(0, self.short_pulse(self.device.q[0].drive))
         sched = sched.insert(4, acquire(self.device.q[0], self.device.mem[0]))
         sched = sched.insert(10, acquire(self.device.q[0], self.device.mem[0]))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(PulseError):
             align_measures([sched], self.cmd_def)
 
     def test_error_post_acquire_pulse(self):
@@ -90,7 +92,7 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(10, self.short_pulse(self.device.q[1].drive))
         align_measures([sched], self.cmd_def)
         sched = sched.insert(10, self.short_pulse(self.device.q[0].drive))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(PulseError):
             align_measures([sched], self.cmd_def)
 
     def test_align_across_schedules(self):
