@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog].
 -   The attribute `PassManager.log_passes` was added to log and time the
     passes when they are executed. The results is stored in the
     attribute `pass_log` of the property set as a dictionary.
+-   New pulse schedule method `Schedule.filter` to filter by instruction
+    channel, time, and type. (\#2597)
 
 ### Changed
 
