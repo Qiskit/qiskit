@@ -31,7 +31,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.ucg import UCG
-from qiskit.extensions.quantum_initializer._mcg_up_to_diagonal import MCGupDiag
+from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

@@ -27,7 +27,7 @@ import math
 
 from qiskit import QuantumRegister, QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.extensions.quantum_initializer._ucrot import UCRot
+from qiskit.extensions.quantum_initializer.ucrot import UCRot
 
 
 class UCX(UCRot):
