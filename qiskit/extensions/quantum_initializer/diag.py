@@ -16,6 +16,8 @@
 # which was supervised by Raban Iten and Prof. Renato Renner.
 
 # pylint: disable=invalid-name
+# pylint: disable=missing-param-doc
+# pylint: disable=missing-type-doc
 
 """
 Decomposes a diagonal matrix into elementary gates using the method described in Theorem 7 in

@@ -12,6 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-param-doc
+# pylint: disable=missing-type-doc
+
 """
 Implementation of the abstract class UCRot for uniformly controlled
 (also called multiplexed) single-qubit rotations around the X-axes

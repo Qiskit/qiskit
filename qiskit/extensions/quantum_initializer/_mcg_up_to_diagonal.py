@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 # pylint: disable=unused-variable
+# pylint: disable=missing-param-doc
+# pylint: disable=missing-type-doc
 
 """
 Multi controlled single-qubit unitary up to diagonal.
@@ -28,7 +30,7 @@ import numpy as np
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.extensions.quantum_initializer import UCG
+from qiskit.extensions.quantum_initializer.ucg import UCG
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 

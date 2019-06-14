@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 # pylint: disable=invalid-name
+# pylint: disable=missing-param-doc
+# pylint: disable=missing-type-doc
 
 """
 Decompose an arbitrary 2*2 unitary into three rotation gates: U=R_zR_yR_z.
