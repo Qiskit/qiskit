@@ -22,7 +22,14 @@ from .progressbar import HTMLProgressBar
 
 if HAS_MATPLOTLIB:
     from .backend_overview import BackendOverview
-    from .backend_monitor import BackendMonitor
+    from .backend_monitor import BackendMonitor, _backend_monitor
+
+try:
+    from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
+    HAS_IBMQ = True
+except ImportError:
+    HAS_IBMQ = False
+
 
 _IP = get_ipython()
 if _IP is not None:
@@ -31,3 +38,7 @@ if _IP is not None:
     if HAS_MATPLOTLIB:
         _IP.register_magics(BackendOverview)
         _IP.register_magics(BackendMonitor)
+        if HAS_IBMQ:
+            HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
+            # Make _backend_monitor the html repr for IBM Q backends
+            HTML_FORMATTER.for_type(IBMQBackend, _backend_monitor)
