@@ -47,9 +47,9 @@ def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef, cal_gate
     Returns:
         Schedule
     Raises:
-        ValueError: if an acquire or pulse is encountered on a channel that has already been part
-                    of an acquire
-        PulseError: if align_time is negative
+        PulseError: if an acquire or pulse is encountered on a channel that has already been part
+                    of an acquire, or
+                    if align_time is negative
     """
     if align_time is not None and align_time < 0:
         raise PulseError("Align time cannot be negative.")
@@ -77,7 +77,7 @@ def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef, cal_gate
         for time, inst in schedule.instructions:
             for chan in inst.channels:
                 if chan.index in acquired_channels:
-                    raise ValueError("Pulse encountered on channel {0} after acquire on "
+                    raise PulseError("Pulse encountered on channel {0} after acquire on "
                                      "same channel.".format(chan.index))
             if isinstance(inst, AcquireInstruction):
                 if time > align_time:
