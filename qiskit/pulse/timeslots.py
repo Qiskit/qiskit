@@ -222,9 +222,10 @@ class TimeslotCollection:
             timeslots: TimeslotCollection to be checked
         """
         for slot in timeslots.timeslots:
-            for interval in self._table[slot.channel]:
-                if slot.interval.has_overlap(interval):
-                    return False
+            if slot.channel in self.channels:
+                for interval in self._table[slot.channel]:
+                    if slot.interval.has_overlap(interval):
+                        return False
         return True
 
     def merged(self, timeslots: 'TimeslotCollection') -> 'TimeslotCollection':
