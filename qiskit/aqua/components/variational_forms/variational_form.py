@@ -113,8 +113,8 @@ class VariationalForm(Pluggable):
         return None
 
     @staticmethod
-    def get_entangler_map(map_type, num_qubits):
-        return get_entangler_map(map_type, num_qubits)
+    def get_entangler_map(map_type, num_qubits, offset=0):
+        return get_entangler_map(map_type, num_qubits, offset)
 
     @staticmethod
     def validate_entangler_map(entangler_map, num_qubits):
