@@ -20,6 +20,19 @@ The format is based on `Keep a Changelog`_.
 `UNRELEASED`_
 =============
 
+`0.8.2`_ - 2019-06-14
+=====================
+
+Fixed
+-----
+
+- Fixed an issue with latex circuit drawer backend that could lead to an empty
+  image output (#2531)
+- Fixes for issues with the backend monitors for recent changes to IBMQ
+  backends (#2637)
+- Fixed an issue where a ``TimeSlotCollection`` object would be mutated by the
+  ``is_mergable_with()`` method (#2639)
+
 
 `0.8.1`_ - 2019-05-29
 =====================
@@ -1166,7 +1179,8 @@ Fixed
 - Correct operator precedence when parsing expressions (#190).
 - Fix "math domain error" in mapping (#111, #151).
 
-.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.8.1...HEAD
+.. _UNRELEASED: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...HEAD
+.. _0.8.2: https://github.com/Qiskit/qiskit-terra/compare/0.8.1...0.8.2
 .. _0.8.1: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...0.8.1
 .. _0.8.0: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0
 .. _0.7.2: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
