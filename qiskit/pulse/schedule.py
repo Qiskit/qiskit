@@ -16,10 +16,10 @@
 
 import itertools
 import abc
-from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional
+from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 
-from qiskit.pulse import ops
-from qiskit.pulse.timeslots import Interval
+from . import ops
+from .timeslots import Interval
 from .channels import Channel
 from .interfaces import ScheduleComponent
 from .timeslots import TimeslotCollection
@@ -190,7 +190,7 @@ class Schedule(ScheduleComponent):
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
-               instruction_types: Optional[Iterable[typing.Type[Instruction]]] = None,
+               instruction_types: Optional[Iterable[Type['Instruction']]] = None,
                time_ranges: Optional[Iterable[Tuple[int, int]]] = None,
                intervals: Optional[Iterable[Interval]] = None) -> 'Schedule':
         """
@@ -237,7 +237,8 @@ class Schedule(ScheduleComponent):
         if instruction_types:
             filter_funcs.append(only_instruction_types(instruction_types))
         if time_ranges:
-            filter_funcs.append(only_intervals([Interval(start, end) for start, end in time_ranges]))
+            filter_funcs.append(
+                only_intervals([Interval(start, end) for start, end in time_ranges]))
         if intervals:
             filter_funcs.append(only_intervals(intervals))
 
@@ -270,8 +271,8 @@ class Schedule(ScheduleComponent):
             filter_funcs: A list of Callables which follow the above format
         """
         valid_subschedules = self.flatten()._children
-        for f_ in filter_funcs:
-            valid_subschedules = [sched for sched in valid_subschedules if f_(sched)]
+        for filter_func in filter_funcs:
+            valid_subschedules = [sched for sched in valid_subschedules if filter_func(sched)]
         return Schedule(*valid_subschedules, name="{name}-filtered".format(name=self.name))
 
     def draw(self, dt: float = 1, style=None,

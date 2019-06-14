@@ -308,28 +308,6 @@ class TestSchedule(QiskitTestCase):
 
         self.assertEqual(flat_sched.instructions, sched.instructions)
 
-    def test_filter_qubits(self):
-        """Test filtering over qubits."""
-        device = self.two_qubit_device
-        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
-        acquire = Acquire(5)
-        sched = Schedule(name='fake_experiment')
-        sched = sched.insert(0, lp0(device.q[0].drive))
-        sched = sched.insert(10, lp0(device.q[1].drive))
-        sched = sched.insert(30, FrameChange(phase=-1.57)(device.q[0].drive))
-        sched = sched.insert(60, acquire(device.q, device.mem))
-        sched = sched.insert(90, lp0(device.q[0].drive))
-
-        self.assertEqual(len(sched.filter(qubits={2}).instructions), 0)
-        self.assertEqual(sched.filter(qubits=[0, 1]).instructions, sched.instructions)
-        has_chan_1 = sched.filter(qubits={1})
-        for _, inst in has_chan_1.instructions:
-            self.assertTrue(any([chan.index == 1 for chan in inst.channels]))
-        has_chan_0 = sched.filter(qubits=(0,))
-        self.assertEqual(len(has_chan_0.instructions), 4)
-        for _, inst in has_chan_0.instructions:
-            self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
-
     def test_filter_channels(self):
         """Test filtering over channels."""
         device = self.two_qubit_device
