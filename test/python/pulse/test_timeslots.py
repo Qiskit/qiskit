@@ -112,6 +112,23 @@ class TestTimeslotCollection(QiskitTestCase):
         expected = TimeslotCollection(Timeslot(Interval(11, 13), AcquireChannel(0)))
         self.assertEqual(expected, actual)
 
+    def test_is_mergeable_does_not_mutate_TimeslotCollection(self):
+        """Test that is_mergeable_with does not mutate the given TimeslotCollection"""
+
+        # Different channel but different interval
+        col1 = TimeslotCollection(Timeslot(Interval(1, 2), AcquireChannel(0)))
+        expected_channels = col1.channels
+        col2 = TimeslotCollection(Timeslot(Interval(3, 4), AcquireChannel(1)))
+        col1.is_mergeable_with(col2)
+        self.assertEqual(col1.channels, expected_channels)
+
+        # Different channel but same interval
+        col1 = TimeslotCollection(Timeslot(Interval(1, 2), AcquireChannel(0)))
+        expected_channels = col1.channels
+        col2 = TimeslotCollection(Timeslot(Interval(1, 2), AcquireChannel(1)))
+        col1.is_mergeable_with(col2)
+        self.assertEqual(col1.channels, expected_channels)
+
 
 if __name__ == '__main__':
     unittest.main()
