@@ -166,6 +166,7 @@ def backend_widget(backend):
                               layout=widgets.Layout())
 
     sum_cx_err = 0
+    num_cx = 0
     for gate in props['gates']:
         if gate['gate'] == 'cx':
             for param in gate['parameters']:
@@ -174,7 +175,7 @@ def backend_widget(backend):
                     if param['value'] != 1.0:
                         sum_cx_err += param['value']
                         num_cx += 1
-    avg_cx_err = round(sum_cx_err/(num_cx), 5)
+    avg_cx_err = round(sum_cx_err/(num_cx), 4)
     cx_widget = widgets.HTML(value="<h5>{cx_err}</h5>".format(cx_err=avg_cx_err),
                              layout=widgets.Layout())
 
@@ -183,7 +184,7 @@ def backend_widget(backend):
         for item in qub:
             if item['name'] == 'readout_error':
                 avg_meas_err += item['value']
-    avg_meas_err = round(avg_meas_err/n_qubits, 5)
+    avg_meas_err = round(avg_meas_err/n_qubits, 4)
     meas_widget = widgets.HTML(value="<h5>{meas_err}</h5>".format(meas_err=avg_meas_err),
                                layout=widgets.Layout())
 
