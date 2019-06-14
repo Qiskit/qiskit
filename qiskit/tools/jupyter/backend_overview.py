@@ -165,13 +165,16 @@ def backend_widget(backend):
                                                                           units=t1_units),
                               layout=widgets.Layout())
 
-    avg_cx_err = 0
+    sum_cx_err = 0
     for gate in props['gates']:
         if gate['gate'] == 'cx':
             for param in gate['parameters']:
                 if param['name'] == 'gate_error':
-                    avg_cx_err += param['value']
-    avg_cx_err = round(avg_cx_err/n_qubits, 5)
+                    # Value == 1.0 means gate effectively off
+                    if param['value'] != 1.0:
+                        sum_cx_err += param['value']
+                        num_cx += 1
+    avg_cx_err = round(sum_cx_err/(num_cx), 5)
     cx_widget = widgets.HTML(value="<h5>{cx_err}</h5>".format(cx_err=avg_cx_err),
                              layout=widgets.Layout())
 
