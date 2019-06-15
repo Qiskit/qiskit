@@ -22,12 +22,10 @@ Generic isometries from m to n qubits.
 """
 
 import itertools
-import math
-
 import numpy as np
 
 from qiskit import QuantumRegister
-from qiskit.circuit import Gate
+from qiskit.circuit import Instruction
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_isometry
@@ -37,7 +35,7 @@ from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
 
-class Isometry(Gate):
+class Isometry(Instruction):
     """
     Decomposition of arbitrary isometries from m to n qubits. In particular, this allows to
     decompose unitaries (m=n) and to do state preparation (m=0).
@@ -66,11 +64,16 @@ class Isometry(Gate):
     # (using: _get_qubits_by_label)
 
     def __init__(self, isometry, num_ancillas_zero, num_ancillas_dirty):
-        self.num_ancillas_zero = num_ancillas_zero
-        self.num_ancillas_dirty = num_ancillas_dirty
+        # Convert to numpy array in case not already an array
+        isometry = np.array(isometry, dtype=complex)
+
         # change a row vector to a column vector (in the case of state preparation)
         if len(isometry.shape) == 1:
             isometry = isometry.reshape(isometry.shape[0], 1)
+
+        self.num_ancillas_zero = num_ancillas_zero
+        self.num_ancillas_dirty = num_ancillas_dirty
+
         # Check if the isometry has the right dimension and if the columns are orthonormal
         n = np.log2(isometry.shape[0])
         m = np.log2(isometry.shape[1])
@@ -86,9 +89,10 @@ class Isometry(Gate):
         if not is_isometry(isometry, _EPS):
             raise QiskitError("The input matrix has non orthonormal columns and hence "
                               "it is not an isometry.")
-        # Create new gate.
+
         num_qubits = int(n) + num_ancillas_zero + num_ancillas_dirty
-        super().__init__("iso", num_qubits, [isometry])
+
+        super().__init__("iso", num_qubits, 0, [isometry])
 
     def _define(self):
         # call to generate the circuit that takes the isometry to the first 2^m columns
@@ -509,14 +513,14 @@ def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
             dimension 2^n×2^m with orthonormal columns (given in the computational basis
             specified by the order of the ancillas and the input qubits, where the ancillas
             are considered to be more significant than the input qubits.).
-        q_input (QuantumRegister|list): list of m qubits where the input
+        q_input (QuantumRegister|list[Qubit]): list of m qubits where the input
             to the isometry is fed in (empty list for state preparation).
-        q_ancillas_for_output (QuantumRegister|list): list of n-m ancilla
+        q_ancillas_for_output (QuantumRegister|list[Qubit]): list of n-m ancilla
             qubits that are used for the output of the isometry and which are assumed to start
             in the zero state. The qubits are listed with increasing significance.
-        q_ancillas_zero (QuantumRegister|list): list of ancilla qubits
+        q_ancillas_zero (QuantumRegister|list[Qubit]): list of ancilla qubits
             which are assumed to start in the zero state. Default is q_ancillas_zero = None.
-        q_ancillas_dirty (QuantumRegister|list): list of ancilla qubits
+        q_ancillas_dirty (QuantumRegister|list[Qubit]): list of ancilla qubits
             which can start in an arbitrary state. Default is q_ancillas_dirty = None.
 
     Returns:
@@ -526,7 +530,6 @@ def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
         QiskitError: if the array is not an isometry of the correct size corresponding to
             the provided number of qubits.
     """
-
     if q_input is None:
         q_input = []
     if q_ancillas_for_output is None:
@@ -545,32 +548,6 @@ def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
     if isinstance(q_ancillas_dirty, QuantumRegister):
         q_ancillas_dirty = q_ancillas_dirty[:]
 
-    # change a row vector to a column vector (in the case of state preparation)
-    if len(isometry.shape) == 1:
-        isometry = isometry.reshape(isometry.shape[0], 1)
-
-    # Check if q_input and q_ancillas_for_output have type "list"
-    if not isinstance(q_input, list):
-        raise QiskitError("The input qubits must be provided as a list.")
-    if not isinstance(q_ancillas_for_output, list):
-        raise QiskitError("The ancilla qubits must be provided as a list.")
-    if not isinstance(q_ancillas_zero, list):
-        raise QiskitError("The ancilla qubits starting in the zero state must be provided"
-                          " as a list.")
-    if not isinstance(q_ancillas_dirty, list):
-        raise QiskitError("The dirty ancilla qubits must be provided as a list.")
-    n = np.log2(isometry.shape[0])
-    m = np.log2(isometry.shape[1])
-    # Check if the number of input qubits corresponds to the provided isometry
-    if len(q_input) != m:
-        raise QiskitError("The number of input qubits is not equal to log2(k), where k is"
-                          " the number of columns of "
-                          "the provided isometry.")
-    # Check if there are enough ancilla qubits
-    if len(q_input) + len(q_ancillas_for_output) != n:
-        raise QiskitError("The number of ancillas for the output of the isometry"
-                          " from m to n qubits is not equal "
-                          "to n-m.")
     return self.append(Isometry(isometry, len(q_ancillas_zero), len(q_ancillas_dirty)),
                        q_input + q_ancillas_for_output + q_ancillas_zero + q_ancillas_dirty)
 
