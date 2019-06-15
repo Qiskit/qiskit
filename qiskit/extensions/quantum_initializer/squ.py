@@ -29,6 +29,7 @@ import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit, Qubit
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -51,7 +52,7 @@ class SingleQubitUnitary(Gate):
         # Check if the matrix u has the right dimensions and if it is a unitary
         if not u.shape == (2, 2):
             raise QiskitError("The dimension of the input matrix is not equal to (2,2).")
-        if not _is_isometry(u):
+        if not is_unitary_matrix(u):
             raise QiskitError("The 2*2 matrix is not unitary.")
         self.mode = mode
         self.up_to_diagonal = up_to_diagonal
@@ -140,10 +141,6 @@ class SingleQubitUnitary(Gate):
 
 def _ct(m):
     return np.transpose(np.conjugate(m))
-
-
-def _is_isometry(m):
-    return np.allclose(_ct(m).dot(m), np.eye(m.shape[1], m.shape[1]), atol=_EPS)
 
 
 def squ(self, u, qubit, mode="ZYZ", up_to_diagonal=False):

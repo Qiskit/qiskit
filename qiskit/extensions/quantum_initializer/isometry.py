@@ -43,17 +43,18 @@ class Isometry(Gate):
 
     The decomposition is based on https://arxiv.org/abs/1501.06911.
 
-    Input:
-    isometry =      an isometry from m to n qubits, i.e., a (complex) np.ndarray of dimension
-                    2^n*2^m with orthonormal columns (given in the computational basis specified
-                    by the order of the ancillas and the input qubits, where the ancillas are
-                    considered to be more significant than the input qubits.)
+    Args:
+        isometry (ndarray): an isometry from m to n qubits, i.e., a (complex)
+            np.ndarray of dimension 2^n*2^m with orthonormal columns (given
+            in the computational basis specified by the order of the ancillas
+            and the input qubits, where the ancillas are considered to be more
+            significant than the input qubits).
 
-    num_ancillas_zero = number of additional ancillas that start in the state ket(0)
-                        (the n-m ancillas required for providing the ouput of the isometry are
-                        not accounted for here).
+        num_ancillas_zero (int): number of additional ancillas that start in the state ket(0)
+            (the n-m ancillas required for providing the ouput of the isometry are
+            not accounted for here).
 
-    num_ancillas_dirty = number of additional ancillas that start in an arbitaray state
+        num_ancillas_dirty (int): number of additional ancillas that start in an arbitaray state
     """
 
     # Notation: In the following decomposition we label the qubit by
@@ -474,13 +475,6 @@ def _k_s(k, s):
         return _get_binary_rep_as_list(k, num_digits)[0]
 
 
-# def does_same_qubit_appears_twice(qubit_list):
-#     qubit_numbers = []
-#     for qubit in qubit_list:
-#         qubit_numbers.append(qubit[1])
-#     return not (len(qubit_numbers) == len(set(qubit_numbers)))
-
-
 # Check if a gate of a special form is equal to the identity gate up to global phase
 
 
@@ -515,26 +509,26 @@ def iso(self, isometry, q_input, q_ancillas_for_output, q_ancillas_zero=None,
     The decomposition used here was introduced by Iten et al. in https://arxiv.org/abs/1501.06911.
 
     Args:
-            isometry (ndarray): an isometry from m to n qubits, i.e., a (complex) ndarray of
-                dimension 2^n×2^m with orthonormal columns (given in the computational basis
-                specified by the order of the ancillas and the input qubits, where the ancillas
-                are considered to be more significant than the input qubits.).
-            q_input (QuantumRegister|list): list of m qubits where the input
-                to the isometry is feeded in (empty list for state preparation).
-            q_ancillas_for_output (QuantumRegister|list): list of n-m ancilla
-                qubits that are used for the output of the isometry and which are assumed to start
-                in the zero state. The qubits are listed with increasing significance.
-            q_ancillas_zero (QuantumRegister|list): list of ancilla qubits
-                which are assumed to start in the zero state. Default is q_ancillas_zero = None.
-            q_ancillas_dirty (QuantumRegister|list): list of ancilla qubits
-                which can start in an arbitrary state. Default is q_ancillas_dirty = None.
+        isometry (ndarray): an isometry from m to n qubits, i.e., a (complex) ndarray of
+            dimension 2^n×2^m with orthonormal columns (given in the computational basis
+            specified by the order of the ancillas and the input qubits, where the ancillas
+            are considered to be more significant than the input qubits.).
+        q_input (QuantumRegister|list): list of m qubits where the input
+            to the isometry is fed in (empty list for state preparation).
+        q_ancillas_for_output (QuantumRegister|list): list of n-m ancilla
+            qubits that are used for the output of the isometry and which are assumed to start
+            in the zero state. The qubits are listed with increasing significance.
+        q_ancillas_zero (QuantumRegister|list): list of ancilla qubits
+            which are assumed to start in the zero state. Default is q_ancillas_zero = None.
+        q_ancillas_dirty (QuantumRegister|list): list of ancilla qubits
+            which can start in an arbitrary state. Default is q_ancillas_dirty = None.
 
-        Returns:
-            QuantumCircuit: the isometry is attached to the quantum circuit.
+    Returns:
+        QuantumCircuit: the isometry is attached to the quantum circuit.
 
-        Raises:
-            QiskitError: if the array is not an isometry of the correct size corresponding to
-             the provided number of qubits.
+    Raises:
+        QiskitError: if the array is not an isometry of the correct size corresponding to
+            the provided number of qubits.
     """
 
     if q_input is None:

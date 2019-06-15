@@ -47,7 +47,7 @@ class UCX(UCRot):
 
 def ucx(self, angle_list, q_controls, q_target):
     """
-    Attach a uniformly controlled (also called multiplexed gates) Rx rotation gate to a circuit.
+    Attach a uniformly controlled (also called multiplexed) Rx rotation gate to a circuit.
     The decomposition is base on https://arxiv.org/pdf/quant-ph/0406176.pdf by Shende et al.
 
         Args:

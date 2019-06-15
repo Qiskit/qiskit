@@ -69,7 +69,7 @@ class UCRot(Gate):
             raise QiskitError("Rotation axis is not supported.")
         # Create new gate.
         num_qubits = int(num_contr) + 1
-        super().__init__("UC" + rot_axis, num_qubits, angle_list)
+        super().__init__("ucrot" + rot_axis, num_qubits, angle_list)
 
     def _define(self):
         ucr_circuit = self._dec_ucrot()
