@@ -156,11 +156,16 @@ def is_identity_matrix(mat,
 
 def is_unitary_matrix(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
     """Test if an array is a unitary matrix."""
-    if atol is None:
-        atol = ATOL_DEFAULT
-    if rtol is None:
-        rtol = RTOL_DEFAULT
     mat = np.array(mat)
     # Compute A^dagger.A and see if it is identity matrix
     mat = np.conj(mat.T).dot(mat)
     return is_identity_matrix(mat, ignore_phase=False, rtol=rtol, atol=atol)
+
+
+def is_isometry(mat, rtol=RTOL_DEFAULT, atol=ATOL_DEFAULT):
+    """Test if an array is an isometry."""
+    mat = np.array(mat)
+    # Compute A^dagger.A and see if it is identity matrix
+    iden = np.eye(mat.shape[1])
+    mat = np.conj(mat.T).dot(mat)
+    return np.allclose(mat, iden, rtol=rtol, atol=atol)

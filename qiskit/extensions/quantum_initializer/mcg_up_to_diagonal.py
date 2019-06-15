@@ -29,6 +29,7 @@ import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
+from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.ucg import UCG
 
@@ -62,7 +63,7 @@ class MCGupDiag(Gate):
         if not gate.shape == (2, 2):
             raise QiskitError("The dimension of the controlled gate is not equal to (2,2).")
         # Check if the single-qubit gate is unitary
-        if not _is_isometry(gate, _EPS):
+        if not is_isometry(gate, _EPS):
             raise QiskitError("The controlled gate is not unitary.")
         # Create new gate.
         num_qubits = 1 + num_controls + num_ancillas_zero + num_ancillas_dirty
@@ -117,8 +118,3 @@ class MCGupDiag(Gate):
         q_ancillas_zero = q[self.num_controls + 1:self.num_controls + 1 + self.num_ancillas_zero]
         q_ancillas_dirty = q[self.num_controls + 1 + self.num_ancillas_zero:]
         return q_target, q_controls, q_ancillas_zero, q_ancillas_dirty
-
-
-def _is_isometry(m, eps):
-    err = np.linalg.norm(np.dot(np.transpose(np.conj(m)), m) - np.eye(m.shape[1], m.shape[1]))
-    return math.isclose(err, 0, abs_tol=eps)

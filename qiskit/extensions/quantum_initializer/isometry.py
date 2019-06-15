@@ -30,6 +30,7 @@ from qiskit import QuantumRegister
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators.predicates import is_isometry
 from qiskit.extensions.quantum_initializer.ucg import UCG
 from qiskit.extensions.quantum_initializer.mcg_up_to_diagonal import MCGupDiag
 
@@ -82,7 +83,7 @@ class Isometry(Gate):
         if m > n:
             raise QiskitError("The input matrix has more columns than rows and hence "
                               "it can't be an isometry.")
-        if not _is_isometry(isometry, _EPS):
+        if not is_isometry(isometry, _EPS):
             raise QiskitError("The input matrix has non orthonormal columns and hence "
                               "it is not an isometry.")
         # Create new gate.
@@ -423,11 +424,6 @@ def _bin_to_int(binary_digits_as_list):
 
 def _ct(m):
     return np.transpose(np.conjugate(m))
-
-
-def _is_isometry(m, eps):
-    err = np.linalg.norm(np.dot(np.transpose(np.conj(m)), m) - np.eye(m.shape[1], m.shape[1]))
-    return math.isclose(err, 0, abs_tol=eps)
 
 
 def _get_binary_rep_as_list(n, num_digits):
