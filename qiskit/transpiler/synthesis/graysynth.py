@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
-def graysynth(cnots, angels, number, nsections):
+def graysynth(cnots, angles, number, nsections):
     """
     This function is an implementation of the GraySynth algorithm.
 
@@ -43,7 +43,7 @@ def graysynth(cnots, angels, number, nsections):
 
     Args:
         cnots (list): a binary string called "S" (see function description)
-        angels (list): a list containing all the phase-shift gates which are to be applied,
+        angles (list): a list containing all the phase-shift gates which are to be applied,
                        in the same order as in "cnots". A number is interpreted as the angel
                        of u1(angel), otherwise the elements have to be 't', 'tdg', 's', 'sdg' or 'z'
         number (int): the number of quantum bits in the circuit
@@ -54,7 +54,7 @@ def graysynth(cnots, angels, number, nsections):
         QuantumCircuit: the quantum circuit
 
     Raises:
-        Exception: when dimensions of cnots and angels don't align
+        Exception: when dimensions of cnots and angles don't align
     """
 
     # Create a Quantum Register with n quantum bits.
@@ -62,8 +62,8 @@ def graysynth(cnots, angels, number, nsections):
     # Create a Quantum Circuit acting on the q register
     qcir = QuantumCircuit(qreg)
 
-    if len(cnots[0]) != len(angels):
-        raise Exception('Size of "cnots" and "angels" do not match.')
+    if len(cnots[0]) != len(angles):
+        raise Exception('Size of "cnots" and "angles" do not match.')
 
     range_list = list(range(number))
     epsilon = number
@@ -76,19 +76,19 @@ def graysynth(cnots, angels, number, nsections):
         index = 0
         for icnots in cnots_copy:
             if np.array_equal(icnots, state[qubit]):
-                if angels[index] == 't':
+                if angles[index] == 't':
                     qcir.t(qreg[qubit])
-                elif angels[index] == 'tdg':
+                elif angles[index] == 'tdg':
                     qcir.tdg(qreg[qubit])
-                elif angels[index] == 's':
+                elif angles[index] == 's':
                     qcir.s(qreg[qubit])
-                elif angels[index] == 'sdg':
+                elif angles[index] == 'sdg':
                     qcir.sdg(qreg[qubit])
-                elif angels[index] == 'z':
+                elif angles[index] == 'z':
                     qcir.z(qreg[qubit])
                 else:
-                    qcir.u1(angels[index] % np.pi, qreg[qubit])
-                del angels[index]
+                    qcir.u1(angles[index] % np.pi, qreg[qubit])
+                del angles[index]
                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                 if index == len(cnots_copy):
                     break
@@ -113,19 +113,19 @@ def graysynth(cnots, angels, number, nsections):
                         index = 0
                         for icnots in cnots_copy:
                             if np.array_equal(icnots, state[qubit]):
-                                if angels[index] == 't':
+                                if angles[index] == 't':
                                     qcir.t(qreg[qubit])
-                                elif angels[index] == 'tdg':
+                                elif angles[index] == 'tdg':
                                     qcir.tdg(qreg[qubit])
-                                elif angels[index] == 's':
+                                elif angles[index] == 's':
                                     qcir.s(qreg[qubit])
-                                elif angels[index] == 'sdg':
+                                elif angles[index] == 'sdg':
                                     qcir.sdg(qreg[qubit])
-                                elif angels[index] == 'z':
+                                elif angles[index] == 'z':
                                     qcir.z(qreg[qubit])
                                 else:
-                                    qcir.u1(angels[index] % np.pi, qreg[qubit])
-                                del angels[index]
+                                    qcir.u1(angles[index] % np.pi, qreg[qubit])
+                                del angles[index]
                                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                                 if index == len(cnots_copy):
                                     break
