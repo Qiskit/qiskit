@@ -161,11 +161,11 @@ def graysynth(cnots, angles, number, nsections):
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir = cnot_synth(qcir, state, qreg, number, nsections)
+    qcir = cnot_synth(qcir, state, number, nsections)
     return qcir
 
 
-def cnot_synth(qcir, state, qreg, number, nsections):
+def cnot_synth(qcir, state, number, nsections):
     """
     This function is an implementation of the Patel–Markov–Hayes algorithm
     for optimal synthesis of linear reversible circuits. It takes a CNOT-only
@@ -179,7 +179,6 @@ def cnot_synth(qcir, state, qreg, number, nsections):
     Args:
         qcir (QuantumCircuit): the initial Quantum Circuit
         state (numpy.matrix): n x n matrix, describing the state of the input circuit
-        qreg (QuantumRegister): a Quantum Register
         number (int): the number of quantum bits in the circuit
         nsections (int): number of sections, used in _lwr_cnot_synth(), in the
             Patel–Markov–Hayes algorithm. nsections must be a factor of number.
@@ -205,7 +204,7 @@ def cnot_synth(qcir, state, qreg, number, nsections):
         i.reverse()
     # Convert the list into a circuit of C-NOT gates
     for i in circuit_l + circuit_u:
-        qcir.cx(qreg[i[0]], qreg[i[1]])
+        qcir.cx(i[0], i[1])
     return qcir
 
 
