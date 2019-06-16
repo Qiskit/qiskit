@@ -54,11 +54,14 @@ class TestGraySynth(QiskitTestCase):
 
         n = 6
         m = 2
-        cnots = [[0, 0, 0, 1, 0, 0], [1, 1, 0, 0, 1, 1], [1, 1, 0, 0, 0, 0], [0, 0, 1, 1, 0, 0],
-                 [1, 1, 1, 1, 1, 1], [1, 0, 0, 1, 0, 0]]
-        cnots = list(map(list, zip(*cnots)))
-        angels = ['s', 't', 'z', 's', 't', 't']
-        c_gray = graysynth(cnots, angels, n, m)  # Run the graysynth algorithm with S2
+        cnots = [[0, 1, 1, 0, 1, 1],
+                 [0, 1, 1, 0, 1, 0],
+                 [0, 0, 0, 1, 1, 0],
+                 [1, 0, 0, 1, 1, 1],
+                 [0, 1, 0, 0, 1, 0],
+                 [0, 1, 0, 0, 1, 0]]
+        angles = ['s', 't', 'z', 's', 't', 't']
+        c_gray = graysynth(cnots, angles, n, m)  # Run the graysynth algorithm with S2
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result_gray = execute(c_gray, backend_sim).result()
         unitary_gray = result_gray.get_unitary(c_gray)

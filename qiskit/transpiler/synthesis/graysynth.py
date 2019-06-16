@@ -23,19 +23,21 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
-def graysynth(cnots, angles, number, nsections):
+def graysynth(cnots, angles, n_sections):
     """
     This function is an implementation of the GraySynth algorithm.
 
     GraySynth is a heuristic algorithm for synthesizing small parity networks.
     It is inspired by Gray codes. Given a set of binary strings S
     (called "cnots" bellow), the algorithm synthesizes a parity network for S by
-    repeatedly choosing an index ito expand and then effectively recurring on the
-    co-factors S_0 and S_1, consisting of the strings y in S with y_i = 0 or 1,
-    respectively. As a subset S is recursively expanded, CNOT gates are applied
-    so that a designated target bit contains the (partial) parity ksi_y(x) where
-    y_i = 1 if and only if y'_i = 1 for for all y' in S. If S is a singleton {y'},
-    then y = y', hence the target bit contains the value ksi_y'(x) as desired.
+    repeatedly choosing an index i to expand and then effectively recursing on
+    the co-factors S_0 and S_1, consisting of the strings y in S,
+    with y_i = 0 or 1 respectively. As a subset S is recursively expanded,
+    CNOT gates are applied so that a designated target bit contains the
+    (partial) parity ksi_y(x) where y_i = 1 if and only if y'_i = 1 for for all
+    y' in S. If S is a singleton {y'}, then y = y', hence the target bit contains
+    the value ksi_y'(x) as desired.
+
     Notably, rather than uncomputing this sequence of CNOT gates when a subset S
     is finished being synthesized, the algorithm maintains the invariant
     that the remaining parities to be computed are expressed over the current state
@@ -48,13 +50,12 @@ def graysynth(cnots, angles, number, nsections):
     Quantum Science and Technology 4.1 (2018): 015002.
 
     Args:
-        cnots (list): a binary string called "S" (see function description)
+        cnots (list[list]): a matrix whose columns are the parities to be synthesized
         angles (list): a list containing all the phase-shift gates which are to be applied,
             in the same order as in "cnots". A number is interpreted as the angle
             of u1(angle), otherwise the elements have to be 't', 'tdg', 's', 'sdg' or 'z'
-        number (int): the number of quantum bits in the circuit
-        nsections (int): number of sections, used in _lwr_cnot_synth(), in the
-            Patel–Markov–Hayes algorithm. nsections must be a factor of number.
+        n_sections (int): number of sections, used in _lwr_cnot_synth(), in the
+            Patel–Markov–Hayes algorithm. n_sections must be a factor of n_qubits.
 
     Returns:
         QuantumCircuit: the quantum circuit
@@ -62,23 +63,23 @@ def graysynth(cnots, angles, number, nsections):
     Raises:
         Exception: when dimensions of cnots and angles don't align
     """
+    n_qubits = len(cnots)
 
-    # Create a Quantum Register with n quantum bits.
-    qreg = QuantumRegister(number, 'q')
-    # Create a Quantum Circuit acting on the q register
+    # Create a quantum circuit on n_qubits
+    qreg = QuantumRegister(n_qubits, 'q')
     qcir = QuantumCircuit(qreg)
 
     if len(cnots[0]) != len(angles):
         raise Exception('Size of "cnots" and "angles" do not match.')
 
-    range_list = list(range(number))
-    epsilon = number
+    range_list = list(range(n_qubits))
+    epsilon = n_qubits
     sta = []
     cnots_copy = np.transpose(np.array(copy.deepcopy(cnots)))
-    state = np.eye(number).astype('int')  # This matrix keeps track of the state in the algorithm
+    state = np.eye(n_qubits).astype('int')  # This matrix keeps track of the state in the algorithm
 
     # Check if some T-gates can be applied, before adding any C-NOT gates
-    for qubit in range(number):
+    for qubit in range(n_qubits):
         index = 0
         for icnots in cnots_copy:
             if np.array_equal(icnots, state[qubit]):
@@ -107,11 +108,11 @@ def graysynth(cnots, angles, number, nsections):
         [cnots, ilist, qubit] = sta.pop()
         if cnots == []:
             continue
-        elif 0 <= qubit < number:
+        elif 0 <= qubit < n_qubits:
             condition = True
             while condition:
                 condition = False
-                for j in range(number):
+                for j in range(n_qubits):
                     if (j != qubit) and (sum(cnots[j]) == len(cnots[j])):
                         condition = True
                         qcir.cx(qreg[j], qreg[qubit])
@@ -137,7 +138,7 @@ def graysynth(cnots, angles, number, nsections):
                                     break
                                 index -= 1
                             index += 1
-                        for x in remove_duplicates(sta + [[cnots, ilist, qubit]]):
+                        for x in _remove_duplicates(sta + [[cnots, ilist, qubit]]):
                             [cnotsp, _, _] = x
                             if cnotsp == []:
                                 continue
@@ -146,6 +147,9 @@ def graysynth(cnots, angles, number, nsections):
         if ilist == []:
             continue
         # See line 18 in pseudo-code of Algorithm 1 in the aforementioned paper
+        # this choice of j maximizes the size of the largest subset (S_0 or S_1)
+        # and the larger a subset, the closer it gets to the ideal in the
+        # Gray code of one CNOT per string.
         j = ilist[np.argmax([[max(row.count(0), row.count(1)) for row in cnots][k] for k in ilist])]
         cnots0 = []
         cnots1 = []
@@ -161,11 +165,11 @@ def graysynth(cnots, angles, number, nsections):
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir = cnot_synth(qcir, state, number, nsections)
+    qcir = cnot_synth(qcir, state, n_sections)
     return qcir
 
 
-def cnot_synth(qcir, state, number, nsections):
+def cnot_synth(qcir, state, n_sections):
     """
     This function is an implementation of the Patel–Markov–Hayes algorithm
     for optimal synthesis of linear reversible circuits. It takes a CNOT-only
@@ -179,9 +183,8 @@ def cnot_synth(qcir, state, number, nsections):
     Args:
         qcir (QuantumCircuit): the initial Quantum Circuit
         state (numpy.matrix): n x n matrix, describing the state of the input circuit
-        number (int): the number of quantum bits in the circuit
-        nsections (int): number of sections, used in _lwr_cnot_synth(), in the
-            Patel–Markov–Hayes algorithm. nsections must be a factor of number.
+        n_sections (int): number of sections, used in _lwr_cnot_synth(), in the
+            Patel–Markov–Hayes algorithm. n_sections must be a factor of n_qubits.
 
     Returns:
         QuantumCircuit: a Quantum Circuit with added CNOT gates which
@@ -195,10 +198,10 @@ def cnot_synth(qcir, state, number, nsections):
         raise Exception('state should be of type numpy.ndarray, but was '
                         'of the type {}'.format(type(state)))
     # Synthesize lower triangular part
-    [state, circuit_l] = _lwr_cnot_synth(state, number, nsections)
+    [state, circuit_l] = _lwr_cnot_synth(state, n_sections)
     state = np.transpose(state)
     # Synthesize upper triangular part
-    [state, circuit_u] = _lwr_cnot_synth(state, number, nsections)
+    [state, circuit_u] = _lwr_cnot_synth(state, n_sections)
     circuit_u.reverse()
     for i in circuit_u:
         i.reverse()
@@ -208,15 +211,18 @@ def cnot_synth(qcir, state, number, nsections):
     return qcir
 
 
-def _lwr_cnot_synth(state, number, nsections):
+def _lwr_cnot_synth(state, n_sections):
     """
     This function is a helper function of the algorithm for optimal synthesis
     of linear reversible circuits (the Patel–Markov–Hayes algorithm). It works
     like gaussian elimination, except that it works a lot faster, and requires
     fewer steps (and therefore fewer CNOTs). It takes the matrix "state" and
-    splits it into "nsections" sections. Then it eliminates all non-zero
-    sub-rows within each sections, which are the same as a non-zero sub-section
+    splits it into "n_sections" sections. Then it eliminates all non-zero
+    sub-rows within each section, which are the same as a non-zero sub-row
     above. Once this has been done, it continues with normal gaussian elimination.
+    The benefit is that with small section sizes (m), most of the sub-rows will
+    be cleared in the first step, resulting in a factor m fewer row row operations
+    during Gaussian elimination.
 
     The algorithm is described in detail in the following paper
     "Optimal synthesis of linear reversible circuits."
@@ -224,25 +230,26 @@ def _lwr_cnot_synth(state, number, nsections):
     Quantum Information & Computation 8.3 (2008): 282-294.
 
     Args:
-        state (numpy.matrix): n by n matrix, describing the state of the input circuit
-        number (int): the number of quantum bits in the circuit
-        nsections (int): the number of sections used in the below algorithm (see description)
+        state (numpy.matrix): n x n matrix, describing a linear quantum circuit
+        n_sections (int): the number of sections to divide the matrix columns intosasdf
 
     Returns:
         numpy.matrix: n by n matrix, describing the state of the output circuit
         list: a k by 2 list of C-NOT operations that need to be applied
     """
-
     circuit = []
-    # If the matrix is already an upper triangular one, there is no need for any transformations
+    n_qubits = state.shape[0]
+
+    # If the matrix is already an upper triangular one,
+    # there is no need for any transformations
     if np.allclose(state, np.triu(state)):
         return [state, circuit]
     # Iterate over column sections
-    for sec in range(1, int(np.ceil(number/nsections)+1)):
+    for sec in range(1, int(np.ceil(n_qubits/n_sections)+1)):
         # Remove duplicate sub-rows in section sec
         patt = {}
-        for row in range((sec-1)*nsections, number):
-            sub_row_patt = copy.deepcopy(state[row, (sec-1)*nsections:sec*nsections])
+        for row in range((sec-1)*n_sections, n_qubits):
+            sub_row_patt = copy.deepcopy(state[row, (sec-1)*n_sections:sec*n_sections])
             if np.sum(sub_row_patt) == 0:
                 continue
             if str(sub_row_patt) not in patt:
@@ -251,13 +258,13 @@ def _lwr_cnot_synth(state, number, nsections):
                 state[row, :] ^= state[patt[str(sub_row_patt)], :]
                 circuit.append([patt[str(sub_row_patt)], row])
         # Use gaussian elimination for remaining entries in column section
-        for col in range((sec-1)*nsections, sec*nsections):
+        for col in range((sec-1)*n_sections, sec*n_sections):
             # Check if 1 on diagonal
             diag_one = 1
             if state[col, col] == 0:
                 diag_one = 0
             # Remove ones in rows below column col
-            for row in range(col+1, number):
+            for row in range(col+1, n_qubits):
                 if state[row, col] == 1:
                     if diag_one == 0:
                         state[col, :] ^= state[row, :]
@@ -268,7 +275,7 @@ def _lwr_cnot_synth(state, number, nsections):
     return [state, circuit]
 
 
-def remove_duplicates(lists):
+def _remove_duplicates(lists):
     """
     Remove duplicates in list
 
