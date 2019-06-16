@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,9 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Implementation of the Gray-Synth algorithm and a efficient synthesis algorithm of linear
-reversible circuits.
 """
+Implementation of the GraySynth algorithm for synthesizing CNOT-Phase
+circuits with efficient CNOT cost, and the Patel-Hayes-Markov algorithm
+for optimal synthesis of linear (CNOT-only) reversible circuits.
+"""
+
 import copy
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -24,17 +27,20 @@ def graysynth(cnots, angles, number, nsections):
     """
     This function is an implementation of the GraySynth algorithm.
 
-    GraySynth is a heuristic algorithm for synthesizing small parity networks. It is inspired by
-    Gray codes. Given a set of binary strings S (called "cnots" bellow), the algorithm synthesizes
-    a parity network for S by repeatedly choosing an index ito expand and then effectively
-    recurring on the co-factors S_0 and S_1, consisting of the strings y in S with y_i = 0 or 1,
-    respectively. As a subset S is recursively expanded, CNOT gates are applied so that a
-    designated target bit contains the (partial) parity ksi_y(x) where y_i = 1 if and only if
-    y'_i = 1 for for all y' in S. If S is a singleton {y'}, then y = y', hence the target bit
-    contains the value ksi_y'(x) as desired. Notably, rather than uncomputing this sequence of CNOT
-    gates when a subset S is finished being synthesized, the algorithm maintains the invariant
-    that the remaining parities to be computed are expressed over the current state of bits.
-    This allows the algorithm to avoid the 'backtracking' inherent in uncomputing-based methods.
+    GraySynth is a heuristic algorithm for synthesizing small parity networks.
+    It is inspired by Gray codes. Given a set of binary strings S
+    (called "cnots" bellow), the algorithm synthesizes a parity network for S by
+    repeatedly choosing an index ito expand and then effectively recurring on the
+    co-factors S_0 and S_1, consisting of the strings y in S with y_i = 0 or 1,
+    respectively. As a subset S is recursively expanded, CNOT gates are applied
+    so that a designated target bit contains the (partial) parity ksi_y(x) where
+    y_i = 1 if and only if y'_i = 1 for for all y' in S. If S is a singleton {y'},
+    then y = y', hence the target bit contains the value ksi_y'(x) as desired.
+    Notably, rather than uncomputing this sequence of CNOT gates when a subset S
+    is finished being synthesized, the algorithm maintains the invariant
+    that the remaining parities to be computed are expressed over the current state
+    of bits. This allows the algorithm to avoid the 'backtracking' inherent in
+    uncomputing-based methods.
 
     The algorithm is described in detail in the following paper in section 4:
     "On the controlled-NOT complexity of controlled-NOT–phase circuits."
@@ -44,11 +50,11 @@ def graysynth(cnots, angles, number, nsections):
     Args:
         cnots (list): a binary string called "S" (see function description)
         angles (list): a list containing all the phase-shift gates which are to be applied,
-                       in the same order as in "cnots". A number is interpreted as the angel
-                       of u1(angel), otherwise the elements have to be 't', 'tdg', 's', 'sdg' or 'z'
+            in the same order as in "cnots". A number is interpreted as the angle
+            of u1(angle), otherwise the elements have to be 't', 'tdg', 's', 'sdg' or 'z'
         number (int): the number of quantum bits in the circuit
-        nsections (int): number of sections, used in lwr_cnot_synth(), in the Patel–Markov–Hayes
-                        algorithm. nsections must be a factor of number.
+        nsections (int): number of sections, used in _lwr_cnot_synth(), in the
+            Patel–Markov–Hayes algorithm. nsections must be a factor of number.
 
     Returns:
         QuantumCircuit: the quantum circuit
@@ -161,8 +167,9 @@ def graysynth(cnots, angles, number, nsections):
 
 def cnot_synth(qcir, state, qreg, number, nsections):
     """
-    This function is an implementation of the Patel–Markov–Hayes algorithm for optimal synthesis
-    of linear reversible circuits. It takes a quantum circuit "qcir", and uncomputes al CNOT gates.
+    This function is an implementation of the Patel–Markov–Hayes algorithm
+    for optimal synthesis of linear reversible circuits. It takes a CNOT-only
+    quantum circuit "qcir", and uncomputes all its CNOT gates in an optimal way.
 
     The algorithm is described in detail in the following paper:
     "Optimal synthesis of linear reversible circuits."
@@ -171,27 +178,28 @@ def cnot_synth(qcir, state, qreg, number, nsections):
 
     Args:
         qcir (QuantumCircuit): the initial Quantum Circuit
-        state (numpy.matrix): n by n matrix, describing the state of the input circuit
+        state (numpy.matrix): n x n matrix, describing the state of the input circuit
         qreg (QuantumRegister): a Quantum Register
         number (int): the number of quantum bits in the circuit
-        nsections (int): number of sections, used in lwr_cnot_synth(), in the Patel–Markov–Hayes
-                        algorithm. nsections must be a factor of number.
+        nsections (int): number of sections, used in _lwr_cnot_synth(), in the
+            Patel–Markov–Hayes algorithm. nsections must be a factor of number.
 
     Returns:
-        QuantumCircuit: a Quantum Circuit with added C-NOT gates
+        QuantumCircuit: a Quantum Circuit with added CNOT gates which
+            unfompute the original circuit
 
     Raises:
         Exception: when variable "state" isn't of type numpy.matrix
     """
 
     if not isinstance(state, np.ndarray):
-        raise Exception('state should be of type numpy.ndarray, but was of the type {}'.format(type(
-            state)))
+        raise Exception('state should be of type numpy.ndarray, but was '
+                        'of the type {}'.format(type(state)))
     # Synthesize lower triangular part
-    [state, circuit_l] = lwr_cnot_synth(state, number, nsections)
+    [state, circuit_l] = _lwr_cnot_synth(state, number, nsections)
     state = np.transpose(state)
     # Synthesize upper triangular part
-    [state, circuit_u] = lwr_cnot_synth(state, number, nsections)
+    [state, circuit_u] = _lwr_cnot_synth(state, number, nsections)
     circuit_u.reverse()
     for i in circuit_u:
         i.reverse()
@@ -201,14 +209,15 @@ def cnot_synth(qcir, state, qreg, number, nsections):
     return qcir
 
 
-def lwr_cnot_synth(state, number, nsections):
+def _lwr_cnot_synth(state, number, nsections):
     """
-    This function is a helper function of the algorithm for optimal synthesis of linear reversible
-    circuits (the Patel–Markov–Hayes algorithm). It works like gaussian elimination, except that
-    it works a lot faster, and requires less steps (and therefore less CNOT's). It takes the matrix
-    (state) and splits it into "nsections" sections. Then it eliminates all non-zero sub-rows
-    within each sections, which are the same as a non-zero sub-section above. Once this has been
-    done, it continues with normal gaussian elimination.
+    This function is a helper function of the algorithm for optimal synthesis
+    of linear reversible circuits (the Patel–Markov–Hayes algorithm). It works
+    like gaussian elimination, except that it works a lot faster, and requires
+    fewer steps (and therefore fewer CNOTs). It takes the matrix "state" and
+    splits it into "nsections" sections. Then it eliminates all non-zero
+    sub-rows within each sections, which are the same as a non-zero sub-section
+    above. Once this has been done, it continues with normal gaussian elimination.
 
     The algorithm is described in detail in the following paper
     "Optimal synthesis of linear reversible circuits."
