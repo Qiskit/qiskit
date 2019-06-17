@@ -15,6 +15,8 @@
 """
 Base command.
 """
+import re
+
 from abc import ABCMeta, abstractmethod
 from typing import List, Optional
 
@@ -25,18 +27,26 @@ from qiskit.pulse.timeslots import TimeslotCollection
 from .instruction import Instruction
 
 
-class Command(metaclass=ABCMeta):
-    """Super abstract class of command group."""
+class MetaCount(ABCMeta):
+    """Meta class to count class instances."""
+    def __new__(mcs, name, bases, namespace, **kwargs):
+        new_cls = super(MetaCount, mcs).__new__(mcs, name, bases, namespace, **kwargs)
+        new_cls.instances_counter = 0
+        return new_cls
 
-    pulseIndex = 0
+
+class Command(metaclass=MetaCount):
+    """Abstract command class."""
+
+    # Counter for the number of instances in this class
+    prefix = 'c'
 
     @abstractmethod
-    def __init__(self, duration: Optional[int] = None, name: Optional[str] = None):
+    def __init__(self, duration: int = None):
         """Create a new command.
 
         Args:
-            duration: Duration of this command
-            name: Name of this command
+            duration: Duration of this command.
         Raises:
             PulseError: when duration is not number of points
         """
@@ -45,11 +55,29 @@ class Command(metaclass=ABCMeta):
         else:
             raise PulseError('Pulse duration should be integer.')
 
-        if name:
-            self._name = name
+        self._name = Command.create_name()
+
+    @classmethod
+    def create_name(cls, name: str = None) -> str:
+        """Autogenerate names for pulse commands."""
+        if name is None:
+            try:
+                name = '%s%i' % (cls.prefix, cls.instances_counter)  # pylint: disable=E1101
+            except TypeError:
+                raise PulseError("prefix and counter must be non-None when name is None.")
         else:
-            self._name = 'p%d' % Command.pulseIndex
-            Command.pulseIndex += 1
+            try:
+                name = str(name)
+            except Exception:
+                raise PulseError("The pulse command name should be castable to a string "
+                                 "(or None for autogenerate a name).")
+            name_format = re.compile('[a-z][a-zA-Z0-9_]*')
+            if name_format.match(name) is None:
+                raise PulseError("%s is an invalid OpenPulse command name." % name)
+
+        cls.instances_counter += 1  # pylint: disable=E1101
+
+        return name
 
     @property
     def duration(self) -> int:

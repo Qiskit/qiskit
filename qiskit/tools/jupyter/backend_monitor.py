@@ -15,8 +15,10 @@
 
 """A module for monitoring backends."""
 
+import types
 import math
 import datetime
+from warnings import warn
 from IPython.display import display                     # pylint: disable=import-error
 from IPython.core.magic import (line_magic,             # pylint: disable=import-error
                                 Magics, magics_class)
@@ -31,9 +33,23 @@ from qiskit.visualization.gate_map import plot_gate_map
 
 try:
     # pylint: disable=import-error
-    from qiskit.providers.ibmq import IBMQ, IBMQBackend
+    from qiskit.providers.ibmq import IBMQBackend
 except ImportError:
     pass
+
+MONTH_NAMES = {1: 'Jan.',
+               2: 'Feb.',
+               3: 'Mar.',
+               4: 'Apr.',
+               5: 'May',
+               6: 'June',
+               7: 'July',
+               8: 'Aug.',
+               9: 'Sept.',
+               10: 'Oct.',
+               11: 'Nov.',
+               12: 'Dec.'
+               }
 
 
 @magics_class
@@ -44,6 +60,7 @@ class BackendMonitor(Magics):
     def qiskit_backend_monitor(self, line='', cell=None):
         """A Jupyter magic function to monitor backends.
         """
+        warn('The backend monitor widget is now the backend repr.', DeprecationWarning)
         del cell  # Unused
         backend = self.shell.user_ns[line]
         if not isinstance(backend, IBMQBackend):
@@ -79,6 +96,85 @@ class BackendMonitor(Magics):
         display(bmonitor)
 
 
+def _load_jobs_data(self, change):
+    """Loads backend jobs data
+    """
+    if change['new'] == 4 and not self._did_jobs:
+        self._did_jobs = True
+        year = widgets.Output(layout=widgets.Layout(display='flex-inline',
+                                                    align_items='center',
+                                                    min_height='400px'))
+
+        month = widgets.Output(layout=widgets.Layout(display='flex-inline',
+                                                     align_items='center',
+                                                     min_height='400px'))
+
+        week = widgets.Output(layout=widgets.Layout(display='flex-inline',
+                                                    align_items='center',
+                                                    min_height='400px'))
+
+        self.children[4].children = [year, month, week]
+        self.children[4].set_title(0, 'Year')
+        self.children[4].set_title(1, 'Month')
+        self.children[4].set_title(2, 'Week')
+        self.children[4].selected_index = 1
+        _build_job_history(self.children[4], self._backend)
+
+
+def _backend_monitor(backend):
+    """ A private function to generate a monitor widget
+    for a IBMQ bakend repr.
+
+    Args:
+        backend (IBMQbackend): The backend.
+
+    Raises:
+        QiskitError: Input is not an IBMQBackend
+    """
+    if not isinstance(backend, IBMQBackend):
+        raise QiskitError('Input variable is not of type IBMQBackend.')
+    title_style = "style='color:#ffffff;background-color:#000000;padding-top: 1%;"
+    title_style += "padding-bottom: 1%;padding-left: 1%; margin-top: 0px'"
+    title_html = "<h1 {style}>{name}</h1>".format(
+        style=title_style, name=backend.name())
+
+    details = [config_tab(backend)]
+
+    tab_contents = ['Configuration']
+
+    # Empty jobs tab widget
+    jobs = widgets.Tab(layout=widgets.Layout(max_height='620px'))
+
+    if not backend.configuration().simulator:
+        tab_contents.extend(['Qubit Properties', 'Multi-Qubit Gates',
+                             'Error Map', 'Job History'])
+
+        details.extend([qubits_tab(backend), gates_tab(backend),
+                        detailed_map(backend), jobs])
+
+    tabs = widgets.Tab(layout=widgets.Layout(overflow_y='scroll'))
+    tabs.children = details
+    for i in range(len(details)):
+        tabs.set_title(i, tab_contents[i])
+
+    # Make backend accesible to tabs widget
+    tabs._backend = backend  # pylint: disable=attribute-defined-outside-init
+    tabs._did_jobs = False
+    # pylint: disable=attribute-defined-outside-init
+    tabs._update = types.MethodType(_load_jobs_data, tabs)
+
+    tabs.observe(tabs._update, names='selected_index')
+
+    title_widget = widgets.HTML(value=title_html,
+                                layout=widgets.Layout(margin='0px 0px 0px 0px'))
+
+    bmonitor = widgets.VBox([title_widget, tabs],
+                            layout=widgets.Layout(border='4px solid #000000',
+                                                  max_height='650px', min_height='650px',
+                                                  overflow_y='hidden'))
+    display(bmonitor)
+
+
 def config_tab(backend):
     """The backend configuration widget.
 
@@ -96,7 +192,7 @@ def config_tab(backend):
     upper_list = ['n_qubits', 'operational',
                   'status_msg', 'pending_jobs',
                   'backend_version', 'basis_gates',
-                  'local', 'simulator']
+                  'max_shots', 'max_experiments']
 
     lower_list = list(set(config_dict.keys()).difference(upper_list))
     # Remove gates because they are in a different tab
@@ -496,22 +592,19 @@ def job_history(backend):
 
 def _build_job_history(tabs, backend):
 
-    backends = IBMQ.backends(backend.name())
     past_year_date = datetime.datetime.now() - datetime.timedelta(days=365)
     date_filter = {'creationDate': {'gt': past_year_date.isoformat()}}
-    jobs = []
-    for back in backends:
-        jobs.extend(back.jobs(limit=None, db_filter=date_filter))
-
-    with tabs.children[1]:
-        month_plot = plot_job_history(jobs, interval='month')
-        display(month_plot)
-        plt.close(month_plot)
+    jobs = backend.jobs(limit=None, db_filter=date_filter)
 
     with tabs.children[0]:
         year_plot = plot_job_history(jobs, interval='year')
         display(year_plot)
         plt.close(year_plot)
+
+    with tabs.children[1]:
+        month_plot = plot_job_history(jobs, interval='month')
+        display(month_plot)
+        plt.close(month_plot)
 
     with tabs.children[2]:
         week_plot = plot_job_history(jobs, interval='week')
@@ -585,12 +678,12 @@ def plot_job_history(jobs, interval='year'):
               '#7a5195', '#ef5675', '#bc5090']
 
     if interval == 'year':
-        labels = ['{}-{}'.format(str(bins[b].year)[2:], bins[b].month) for b in nz_idx]
+        labels = ['{}-{}'.format(str(bins[b].year)[2:], MONTH_NAMES[bins[b].month]) for b in nz_idx]
     else:
-        labels = ['{}-{}'.format(bins[b].month, bins[b].day) for b in nz_idx]
-    fig, ax = plt.subplots(1, 1, figsize=(5, 5))  # pylint: disable=invalid-name
+        labels = ['{}-{}'.format(MONTH_NAMES[bins[b].month], bins[b].day) for b in nz_idx]
+    fig, ax = plt.subplots(1, 1, figsize=(5.5, 5.5))  # pylint: disable=invalid-name
     ax.pie(nz_bins[::-1], labels=labels, colors=colors, textprops={'fontsize': 14},
-           rotatelabels=True, counterclock=False)
+           rotatelabels=True, counterclock=False, radius=1)
     ax.add_artist(Circle((0, 0), 0.7, color='white', zorder=1))
     ax.text(0, 0, total_jobs, horizontalalignment='center',
             verticalalignment='center', fontsize=26)

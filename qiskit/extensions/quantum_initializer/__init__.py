@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,8 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Extensions to quantum circuits."""
+"""Initialize qubit registers to desired arbitrary state."""
 
-from qiskit.extensions.quantum_initializer.initializer import Initialize
-from .standard import *
-from .unitary import UnitaryGate
+from .squ import SingleQubitUnitary
+from .ucz import UCZ
+from .ucy import UCY
+from .ucx import UCX
+from .diag import DiagGate
+from .ucg import UCG
+from .isometry import Isometry

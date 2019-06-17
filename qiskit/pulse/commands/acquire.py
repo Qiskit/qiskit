@@ -28,9 +28,10 @@ class Acquire(Command):
     """Acquire."""
 
     ALIAS = 'acquire'
+    prefix = 'acq'
 
     def __init__(self, duration: int, discriminator: Optional[Discriminator] = None,
-                 kernel: Optional[Kernel] = None):
+                 kernel: Optional[Kernel] = None, name: Optional[str] = None):
         """Create new acquire command.
 
         Args:
@@ -39,12 +40,15 @@ class Acquire(Command):
                 if the measurement level is 2
             kernel: The data structures defining the measurement kernels
                 to be used (from the list of available kernels) and set of parameters
-                (if applicable) if the measurement level is 1 or 2
+                (if applicable) if the measurement level is 1 or 2.
+            name: Name of this command.
 
         Raises:
             PulseError: when invalid discriminator or kernel object is input.
         """
         super().__init__(duration=duration)
+
+        self._name = Acquire.create_name(name)
 
         if discriminator:
             if isinstance(discriminator, Discriminator):

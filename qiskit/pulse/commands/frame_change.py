@@ -15,6 +15,7 @@
 """
 Frame change pulse.
 """
+from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
 from .instruction import Instruction
@@ -24,14 +25,18 @@ from .command import Command
 class FrameChange(Command):
     """Frame change pulse."""
 
-    def __init__(self, phase: float):
+    prefix = 'fc'
+
+    def __init__(self, phase: float, name: Optional[str] = None):
         """Create new frame change pulse.
 
         Args:
             phase: Frame change phase in radians. The allowable precision is device specific
+            name: Name of this framechange command.
         """
         super().__init__(duration=0)
         self._phase = float(phase)
+        self._name = FrameChange.create_name(name)
 
     @property
     def phase(self):
