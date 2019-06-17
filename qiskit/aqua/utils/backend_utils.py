@@ -169,7 +169,7 @@ def get_aer_backend(backend_name):
     for provider in providers:
         try:
             return get_backend_from_provider(provider, backend_name)
-        except:
+        except Exception:
             pass
 
     raise ImportError("Backend '{}' not found in providers {}".format(backend_name, providers))
@@ -201,12 +201,12 @@ def get_backends_from_provider(provider_name):
     try:
         # try as variable containing provider instance
         return [x.name() for x in provider_object.backends() if x.name() not in _UNSUPPORTED_BACKENDS]
-    except:
+    except Exception:
         # try as provider class then
         try:
             provider_instance = provider_object()
             return [x.name() for x in provider_instance.backends() if x.name() not in _UNSUPPORTED_BACKENDS]
-        except:
+        except Exception:
             pass
 
     raise ImportError("'Backends not found for provider '{}'".format(provider_object))
@@ -240,12 +240,12 @@ def get_backend_from_provider(provider_name, backend_name):
         try:
             # try as variable containing provider instance
             backend = provider_object.get_backend(backend_name)
-        except:
+        except Exception:
             # try as provider class then
             try:
                 provider_instance = provider_object()
                 backend = provider_instance.get_backend(backend_name)
-            except:
+            except Exception:
                 pass
 
     if backend is None:
@@ -302,7 +302,7 @@ def get_provider_from_backend(backend):
         try:
             if get_backend_from_provider(provider, backend) is not None:
                 return provider
-        except:
+        except Exception:
             pass
 
     raise ImportError("Backend '{}' not found in providers {}".format(backend, list(known_providers.values())))

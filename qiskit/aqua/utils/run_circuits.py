@@ -229,7 +229,7 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
                 qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
             try:
                 circuit_cache.cache_circuit(qobj, circuits, 0)
-            except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
+            except (TypeError, IndexError, AquaError, AttributeError, KeyError):
                 try:
                     circuit_cache.cache_transpiled_circuits = True
                     circuit_cache.cache_circuit(qobj, transpiled_circuits, 0)
@@ -394,7 +394,7 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
                         logger.warning("FAILURE: Job id: {} encounters the error. "
                                        "Error is : {}. Re-submit the Qobj.".format(job_id, job.error_message()))
                     else:
-                        logging.warning("FAILURE: Job id: {}. Unknown status: {}. " 
+                        logging.warning("FAILURE: Job id: {}. Unknown status: {}. "
                                         "Re-submit the Qobj.".format(job_id, job_status))
 
                     job, job_id = _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation)
