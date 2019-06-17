@@ -22,6 +22,7 @@ from qiskit.aqua import Preferences
 logger = logging.getLogger(__name__)
 
 try:
+    # pylint: disable=no-name-in-module, import-error
     from qiskit.providers.ibmq import IBMQProvider
     HAS_IBMQ = True
 except Exception as e:
@@ -343,6 +344,7 @@ def enable_ibmq_account(url, token, proxies):
         token = token or ''
         proxies = proxies or {}
         if url != '' and token != '':
+            # pylint: disable=no-name-in-module, import-error
             from qiskit import IBMQ
             from qiskit.providers.ibmq.credentials import Credentials
             credentials = Credentials(token, url, proxies=proxies)
@@ -371,6 +373,7 @@ def disable_ibmq_account(url, token, proxies):
         token = token or ''
         proxies = proxies or {}
         if url != '' and token != '':
+            # pylint: disable=no-name-in-module, import-error
             from qiskit import IBMQ
             from qiskit.providers.ibmq.credentials import Credentials
             credentials = Credentials(token, url, proxies=proxies)
