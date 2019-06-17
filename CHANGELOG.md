@@ -32,6 +32,14 @@ The format is based on [Keep a Changelog].
 -   The attribute `PassManager.log_passes` was added to log and time the
     passes when they are executed. The results is stored in the
     attribute `pass_log` of the property set as a dictionary.
+-   New pulse schedule method `Schedule.filter` to filter by instruction
+    channel, time, and type. (\#2597)
+-   Decomposition of arbitrary isometries (\#2600)
+-   Decomposition of diagonal gates (\#2600)
+-   Decomposition of multiplexed rotation gates (\#2600)
+-   Decomposition of multiplexed single-qubit unitaries (Option: decompose
+    up to a diagonal gate) (\#2600)
+-   ZYZ decomposition for single-qubit unitaries (\#2600)
 
 ### Changed
 
