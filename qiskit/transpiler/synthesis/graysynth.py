@@ -191,7 +191,8 @@ def cnot_synth(state, n_sections=2):
     Quantum Information & Computation 8.3 (2008): 282-294.
 
     Args:
-        state (numpy.matrix): n x n matrix, describing the state of the input circuit
+        state (list[list] or ndarray): n x n matrix, describing the state
+            of the input circuit
         n_sections (int): number of sections, used in _lwr_cnot_synth(), in the
             Patel–Markov–Hayes algorithm. n_sections must be a factor of n_qubits.
 
@@ -202,9 +203,10 @@ def cnot_synth(state, n_sections=2):
     Raises:
         QiskitError: when variable "state" isn't of type numpy.matrix
     """
-    if not isinstance(state, np.ndarray):
-        raise QiskitError('state should be of type numpy.ndarray, but was '
-                          'of the type {}'.format(type(state)))
+    if not isinstance(state, (list, np.ndarray)):
+        raise QiskitError('state should be of type list or numpy.ndarray, '
+                          'but was of the type {}'.format(type(state)))
+    state = np.array(state)
     # Synthesize lower triangular part
     [state, circuit_l] = _lwr_cnot_synth(state, n_sections)
     state = np.transpose(state)
@@ -239,7 +241,7 @@ def _lwr_cnot_synth(state, n_sections):
     Quantum Information & Computation 8.3 (2008): 282-294.
 
     Args:
-        state (numpy.matrix): n x n matrix, describing a linear quantum circuit
+        state (ndarray): n x n matrix, describing a linear quantum circuit
         n_sections (int): the number of sections to divide the matrix columns intosasdf
 
     Returns:

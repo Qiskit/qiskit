@@ -188,7 +188,6 @@ class TestPatelMarkovHayes(QiskitTestCase):
                  [1, 1, 1, 1, 1, 1],
                  [1, 1, 0, 1, 1, 1],
                  [0, 0, 1, 1, 1, 0]]
-        state = np.array(state)
         c_patel = cnot_synth(state)
 
         # Create the circuit displayed above:
