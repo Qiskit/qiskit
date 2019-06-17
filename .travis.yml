@@ -184,3 +184,21 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
+
+    # Randomized testing
+    - stage: test
+      name: Randomized tests
+      <<: *stage_linux
+      cache:
+        pip: true
+        directories:
+        - .hypothesis
+      script:
+      - python setup.py build_ext --inplace
+      - pip install "qiskit-aer"
+      - travis_wait make test_randomized
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  - name: Randomized tests
