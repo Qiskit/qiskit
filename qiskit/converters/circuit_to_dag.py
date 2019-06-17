@@ -34,13 +34,6 @@ def circuit_to_dag(circuit):
         dagcircuit.add_creg(register)
 
     for instruction, qargs, cargs in circuit.data:
-        # Get arguments for classical control (if any)
-        if instruction.control is None:
-            control = None
-        else:
-            control = (instruction.control[0], instruction.control[1])
-
-        dagcircuit.apply_operation_back(instruction.copy(),
-                                        qargs, cargs, control)
+        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs, instruction.control)
 
     return dagcircuit

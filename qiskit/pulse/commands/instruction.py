@@ -200,7 +200,7 @@ class Instruction(ScheduleComponent):
 
         Args:
             dt: Time interval of samples
-            style (OPStyleSched): A style sheet to configure plot appearance
+            style (SchedStyle): A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
             scaling (float): Relative visual scaling of waveform amplitudes
@@ -219,7 +219,7 @@ class Instruction(ScheduleComponent):
         """
         # pylint: disable=invalid-name, cyclic-import
 
-        from qiskit.tools import visualization
+        from qiskit import visualization
 
         return visualization.pulse_drawer(self, dt=dt, style=style,
                                           filename=filename, interp_method=interp_method,

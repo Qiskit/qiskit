@@ -32,7 +32,7 @@ else
 	CONCURRENCY := $(shell echo "$(NPROCS) 2" | awk '{printf "%.0f", $$1 / $$2}')
 endif
 
-.PHONY: env lint test test_record test_mock test_ci
+.PHONY: env lint test test_ci
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -54,13 +54,6 @@ style:
 # otherwise the QuantumCircuit header will be modified during the discovery.
 test:
 	python3 -m unittest discover -s test -v
-
-test_mock:
-	env QISKIT_TESTS=mock_online python3 -m unittest discover -s test -v
-
-test_recording:
-	-rm test/cassettes/*
-	env QISKIT_TESTS=rec python3 -m unittest discover -s test -v
 
 test_ci:
 	echo "Detected $(NPROCS) CPUs running with $(CONCURRENCY) workers"

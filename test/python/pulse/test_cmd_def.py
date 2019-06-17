@@ -83,8 +83,16 @@ class TestCmdDef(QiskitTestCase):
         cmd_def.add('pv_test', 0, converted_instruction)
         self.assertEqual(cmd_def.get_parameters('pv_test', 0), ('P1', 'P2'))
 
-        sched = cmd_def.get('pv_test', 0, P1='0', P2=-1)
+        sched = cmd_def.get('pv_test', 0, 0, P2=-1)
         self.assertEqual(sched.instructions[0][-1].command.value, -1)
+
+        with self.assertRaises(PulseError):
+            cmd_def.get('pv_test', 0, 0, P1=-1)
+
+        sched = cmd_def.pop('pv_test', 0, 0, P2=-1)
+        self.assertEqual(sched.instructions[0][-1].command.value, -1)
+
+        self.assertFalse(cmd_def.has('pv_test', 0))
 
     def test_build_cmd_def(self):
         """Test building of parameterized cmd_def from defaults."""

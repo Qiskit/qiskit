@@ -94,9 +94,8 @@ class TestUnitaryCircuit(QiskitTestCase):
         dnode = dag_nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
-            self.assertTrue(qubit[1] in [0, 1])
-        self.assertTrue(numpy.allclose(dnode.op.to_matrix(),
-                                       matrix))
+            self.assertTrue(qubit.index in [0, 1])
+        self.assertTrue(numpy.allclose(dnode.op.to_matrix(), matrix))
 
     def test_2q_unitary(self):
         """test 2 qubit unitary matrix"""
@@ -123,7 +122,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
-            self.assertTrue(qubit[1] in [0, 1])
+            self.assertTrue(qubit.index in [0, 1])
         self.assertTrue(numpy.allclose(dnode.op.to_matrix(),
                                        matrix))
         qc3 = dag_to_circuit(dag)
@@ -148,7 +147,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
-            self.assertTrue(qubit[1] in [0, 1, 3])
+            self.assertTrue(qubit.index in [0, 1, 3])
         self.assertTrue(numpy.allclose(dnode.op.to_matrix(),
                                        matrix))
 
@@ -170,7 +169,7 @@ class TestUnitaryCircuit(QiskitTestCase):
             numpy.array(instr.params).astype(numpy.complex64),
             matrix))
         # check conversion to dict
-        qobj_dict = qobj.as_dict()
+        qobj_dict = qobj.to_dict()
         # check json serialization
         self.assertTrue(isinstance(json.dumps(qobj_dict), str))
 

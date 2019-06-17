@@ -19,17 +19,13 @@ from unittest.mock import patch
 from io import StringIO
 
 from qiskit.tools.monitor import backend_overview, backend_monitor
-from qiskit.test import QiskitTestCase, requires_qe_access
-from qiskit.util import _has_connection
-# Check if internet connection exists
-HAS_NET_CONNECTION = _has_connection('qiskit.org', 443)
+from qiskit.test import QiskitTestCase, online_test
 
 
 class TestBackendOverview(QiskitTestCase):
     """Tools test case."""
 
-    @unittest.skipIf(not HAS_NET_CONNECTION, "requries internet connection.")
-    @requires_qe_access
+    @online_test
     def test_backend_overview(self, qe_token, qe_url):
         """Test backend_overview"""
         from qiskit import IBMQ  # pylint: disable: import-error
@@ -42,8 +38,7 @@ class TestBackendOverview(QiskitTestCase):
         self.assertIn('Avg. T1:', stdout)
         self.assertIn('Num. Qubits:', stdout)
 
-    @unittest.skipIf(not HAS_NET_CONNECTION, "requries internet connection.")
-    @requires_qe_access
+    @online_test
     def test_backend_monitor(self, qe_token, qe_url):
         """Test backend_monitor"""
         from qiskit import IBMQ  # pylint: disable: import-error
