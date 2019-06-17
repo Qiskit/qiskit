@@ -36,7 +36,6 @@ qc.barrier()
 for i in range(num_qubits):
     qc.measure(i, i)
 
-# First version: simulator
 sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
