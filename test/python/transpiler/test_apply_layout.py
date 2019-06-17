@@ -27,7 +27,7 @@ from qiskit.transpiler.passes import ApplyLayout
 class TestApplyLayout(QiskitTestCase):
     """ Tests the ApplyLayout pass."""
 
-    def test_single_swap_case(self):
+    def test_circuit_with_swap_gate(self):
         """Test if the circuit with virtual qubits is transformed into
         the circuit with physical qubits.
 
@@ -38,7 +38,7 @@ class TestApplyLayout(QiskitTestCase):
                    |
           v2:-----(+)--M(v2->c2)
 
-         Initial layout: [('v', 0), ('v', 1), ('v', 2)]
+         Initial layout: {v[0]: 2, v[1]: 1, v[2]: 0}
          CouplingMap map: [1]--[0]--[2]
 
         [Circuit with physical qubits]
