@@ -52,7 +52,9 @@ mock_backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(),
                  FakeTokyo(), FakePoughkeepsie()]
 
 
-@settings(report_multiple_bugs=False, max_examples=50)
+@settings(report_multiple_bugs=False,
+          max_examples=50,
+          deadline=None)
 class QCircuitMachine(RuleBasedStateMachine):
     """Build a Hypothesis rule based state machine for constructing, transpiling
     and simulating a series of random QuantumCircuits.
