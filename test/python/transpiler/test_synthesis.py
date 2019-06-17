@@ -13,12 +13,11 @@
 # that they have been altered from the originals.
 
 """Test synthesis algorithms"""
-import unittest
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators import Operator
 from qiskit.extensions.unitary import UnitaryGate
-from qiskit.transpiler.synthesis import graysynth
+from qiskit.transpiler.synthesis import graysynth, cnot_synth
 from qiskit.test import QiskitTestCase
 
 
@@ -39,7 +38,7 @@ class TestGraySynth(QiskitTestCase):
 
         Along with some rotation angles:
         ['s', 't', 'z', 's', 't', 't'])
-        
+
         which together specify the Fourier expansion in the sum-over-paths representation
         of a quantum circuit.
 
@@ -94,11 +93,10 @@ class TestGraySynth(QiskitTestCase):
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_gray, unitary_compare)
 
-    #@unittest.skip('failing currently')
     def test_paper_example(self):
         """Test synthesis of a diagonal operator from the paper.
 
-        The diagonal operator in Example 4.2 
+        The diagonal operator in Example 4.2
             U|x> = e^(2.pi.i.f(x))|x>,
         where
             f(x) = 1/8*(x1^x2 + x0 + x0^x3 + x0^x1^x2 + x0^x1^x3 + x0^x1)
@@ -116,9 +114,9 @@ class TestGraySynth(QiskitTestCase):
         q_0: |0>┤ T ├┤ X ├─────┤ T ├┤ X ├┤ X ├┤ T ├┤ X ├┤ T ├┤ X ├┤ T ├┤ X ├─────┤ X ├
                 ├───┤└─┬─┘┌───┐└───┘└─┬─┘└─┬─┘└───┘└─┬─┘└───┘└─┬─┘└───┘└─┬─┘┌───┐└─┬─┘
         q_1: |0>┤ X ├──┼──┤ T ├───────■────┼─────────┼─────────┼─────────■──┤ X ├──┼──
-                └─┬─┘  │  └───┘            │         │         │            └─┬─┘  │  
+                └─┬─┘  │  └───┘            │         │         │            └─┬─┘  │
         q_2: |0>──■────┼───────────────────┼─────────■─────────┼──────────────■────┼──
-                       │                   │                   │                   │  
+                       │                   │                   │                   │
         q_3: |0>───────■───────────────────■───────────────────■───────────────────■──
         """
         cnots = [[0, 1, 1, 1, 1, 1],
@@ -151,3 +149,66 @@ class TestGraySynth(QiskitTestCase):
 
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_gray, unitary_compare)
+
+
+class TestPatelMarkovHayes(QiskitTestCase):
+    """Test the Patel-Markov-Hayes algorithm for synthesizing linear
+    CNOT-only circuits."""
+
+    def test_patel_markov_hayes(self):
+        """Test synthesis of a small linear circuit
+        (example from paper, Figure 3).
+
+        The algorithm should take the following matrix as an input:
+        S = [[1, 1, 0, 0, 0, 0],
+             [1, 0, 0, 1, 1, 0],
+             [0, 1, 0, 0, 1, 0],
+             [1, 1, 1, 1, 1, 1],
+             [1, 1, 0, 1, 1, 1],
+             [0, 0, 1, 1, 1, 0]]
+
+        And should return the following circuit (or an equivalent one):
+                          ┌───┐
+        q_0: |0>──────────┤ X ├──────────────────────────────────────────■────■────■──
+                          └─┬─┘┌───┐                                   ┌─┴─┐  │    │
+        q_1: |0>────────────■──┤ X ├────────────────────────────────■──┤ X ├──┼────┼──
+                     ┌───┐     └─┬─┘┌───┐          ┌───┐          ┌─┴─┐└───┘  │    │
+        q_2: |0>─────┤ X ├───────┼──┤ X ├───────■──┤ X ├───────■──┤ X ├───────┼────┼──
+                ┌───┐└─┬─┘       │  └─┬─┘┌───┐┌─┴─┐└─┬─┘       │  └───┘       │  ┌─┴─┐
+        q_3: |0>┤ X ├──┼─────────■────┼──┤ X ├┤ X ├──■────■────┼──────────────┼──┤ X ├
+                └─┬─┘  │              │  └─┬─┘├───┤       │  ┌─┴─┐          ┌─┴─┐└───┘
+        q_4: |0>──■────┼──────────────■────■──┤ X ├───────┼──┤ X ├──────────┤ X ├─────
+                       │                      └─┬─┘     ┌─┴─┐└───┘          └───┘
+        q_5: |0>───────■────────────────────────■───────┤ X ├─────────────────────────
+                                                        └───┘
+        """
+        state = [[1, 1, 0, 0, 0, 0],
+                 [1, 0, 0, 1, 1, 0],
+                 [0, 1, 0, 0, 1, 0],
+                 [1, 1, 1, 1, 1, 1],
+                 [1, 1, 0, 1, 1, 1],
+                 [0, 0, 1, 1, 1, 0]]
+        state = np.array(state)
+        c_patel = cnot_synth(state)
+
+        # Create the circuit displayed above:
+        q = QuantumRegister(6, 'q')
+        c_compare = QuantumCircuit(q)
+        c_compare.cx(q[4], q[3])
+        c_compare.cx(q[5], q[2])
+        c_compare.cx(q[1], q[0])
+        c_compare.cx(q[3], q[1])
+        c_compare.cx(q[4], q[2])
+        c_compare.cx(q[4], q[3])
+        c_compare.cx(q[5], q[4])
+        c_compare.cx(q[2], q[3])
+        c_compare.cx(q[3], q[2])
+        c_compare.cx(q[3], q[5])
+        c_compare.cx(q[2], q[4])
+        c_compare.cx(q[1], q[2])
+        c_compare.cx(q[0], q[1])
+        c_compare.cx(q[0], q[4])
+        c_compare.cx(q[0], q[3])
+
+        # Check if the two circuits are equivalent
+        self.assertEqual(c_patel, c_compare)

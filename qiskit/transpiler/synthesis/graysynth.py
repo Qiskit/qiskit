@@ -20,7 +20,7 @@ for optimal synthesis of linear (CNOT-only) reversible circuits.
 
 import copy
 import numpy as np
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 
 
@@ -210,14 +210,13 @@ def cnot_synth(state, n_sections=2):
     state = np.transpose(state)
     # Synthesize upper triangular part
     [state, circuit_u] = _lwr_cnot_synth(state, n_sections)
-    circuit_u.reverse()
+    circuit_l.reverse()
     for i in circuit_u:
         i.reverse()
     # Convert the list into a circuit of C-NOT gates
     circ = QuantumCircuit(state.shape[0])
-    for i in circuit_l + circuit_u:
+    for i in circuit_u + circuit_l:
         circ.cx(i[0], i[1])
-        print('adding cx ', i[0], i[1])
     return circ
 
 

@@ -15,4 +15,4 @@
 """Module containing transpiler synthesize."""
 
 
-from .graysynth import graysynth
+from .graysynth import graysynth, cnot_synth
