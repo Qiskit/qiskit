@@ -18,8 +18,6 @@ A pass for transforming a circuit with virtual qubits into a circuit with physic
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.coupling import CouplingMap
-from qiskit.transpiler.layout import Layout
 
 
 class ApplyLayout(TransformationPass):
@@ -45,7 +43,7 @@ class ApplyLayout(TransformationPass):
         Args:
             dag (DAGCircuit): DAG to map.
         Returns:
-            A mapped DAG (with physical qubits).
+            DAGCircuit: A mapped DAG (with physical qubits).
         """
         if not self._initial_layout:
             self._initial_layout = self.property_set["layout"]
