@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 
 
-def graysynth(cnots, angles, n_sections):
+def graysynth(cnots, angles, n_sections=2):
     """
     This function is an implementation of the GraySynth algorithm.
 
@@ -51,9 +51,19 @@ def graysynth(cnots, angles, n_sections):
 
     Args:
         cnots (list[list]): a matrix whose columns are the parities to be synthesized
-        angles (list): a list containing all the phase-shift gates which are to be applied,
-            in the same order as in "cnots". A number is interpreted as the angle
-            of u1(angle), otherwise the elements have to be 't', 'tdg', 's', 'sdg' or 'z'
+            e.g.
+                [[0, 1, 1, 1, 1, 1],
+                 [1, 0, 0, 1, 1, 1],
+                 [1, 0, 0, 1, 0, 0],
+                 [0, 0, 1, 0, 1, 0]]
+            corresponds to:
+                 x1^x2 + x0 + x0^x3 + x0^x1^x2 + x0^x1^x3 + x0^x1
+
+        angles (list): a list containing all the phase-shift gates which are
+            to be applied, in the same order as in "cnots". A number is
+            interpreted as the angle of u1(angle), otherwise the elements
+            have to be 't', 'tdg', 's', 'sdg' or 'z'.
+
         n_sections (int): number of sections, used in _lwr_cnot_synth(), in the
             Patel–Markov–Hayes algorithm. n_sections must be a factor of n_qubits.
 
@@ -169,7 +179,7 @@ def graysynth(cnots, angles, n_sections):
     return qcir
 
 
-def cnot_synth(qcir, state, n_sections):
+def cnot_synth(qcir, state, n_sections=2):
     """
     This function is an implementation of the Patel–Markov–Hayes algorithm
     for optimal synthesis of linear reversible circuits. It takes a CNOT-only
@@ -188,7 +198,7 @@ def cnot_synth(qcir, state, n_sections):
 
     Returns:
         QuantumCircuit: a Quantum Circuit with added CNOT gates which
-            unfompute the original circuit
+            uncomputes the original circuit
 
     Raises:
         Exception: when variable "state" isn't of type numpy.matrix
