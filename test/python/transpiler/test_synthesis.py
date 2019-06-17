@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """Test synthesis algorithms"""
-import numpy as np
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators import Operator
 from qiskit.extensions.unitary import UnitaryGate
