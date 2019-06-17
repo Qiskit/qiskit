@@ -76,8 +76,7 @@ def graysynth(cnots, angles, n_sections=2):
     n_qubits = len(cnots)
 
     # Create a quantum circuit on n_qubits
-    qreg = QuantumRegister(n_qubits, 'q')
-    qcir = QuantumCircuit(qreg)
+    qcir = QuantumCircuit(n_qubits)
 
     if len(cnots[0]) != len(angles):
         raise Exception('Size of "cnots" and "angles" do not match.')
@@ -94,17 +93,17 @@ def graysynth(cnots, angles, n_sections=2):
         for icnots in cnots_copy:
             if np.array_equal(icnots, state[qubit]):
                 if angles[index] == 't':
-                    qcir.t(qreg[qubit])
+                    qcir.t(qubit)
                 elif angles[index] == 'tdg':
-                    qcir.tdg(qreg[qubit])
+                    qcir.tdg(qubit)
                 elif angles[index] == 's':
-                    qcir.s(qreg[qubit])
+                    qcir.s(qubit)
                 elif angles[index] == 'sdg':
-                    qcir.sdg(qreg[qubit])
+                    qcir.sdg(qubit)
                 elif angles[index] == 'z':
-                    qcir.z(qreg[qubit])
+                    qcir.z(qubit)
                 else:
-                    qcir.u1(angles[index] % np.pi, qreg[qubit])
+                    qcir.u1(angles[index] % np.pi, qubit)
                 del angles[index]
                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                 if index == len(cnots_copy):
@@ -125,23 +124,23 @@ def graysynth(cnots, angles, n_sections=2):
                 for j in range(n_qubits):
                     if (j != qubit) and (sum(cnots[j]) == len(cnots[j])):
                         condition = True
-                        qcir.cx(qreg[j], qreg[qubit])
+                        qcir.cx(j, qubit)
                         state[qubit] ^= state[j]
                         index = 0
                         for icnots in cnots_copy:
                             if np.array_equal(icnots, state[qubit]):
                                 if angles[index] == 't':
-                                    qcir.t(qreg[qubit])
+                                    qcir.t(qubit)
                                 elif angles[index] == 'tdg':
-                                    qcir.tdg(qreg[qubit])
+                                    qcir.tdg(qubit)
                                 elif angles[index] == 's':
-                                    qcir.s(qreg[qubit])
+                                    qcir.s(qubit)
                                 elif angles[index] == 'sdg':
-                                    qcir.sdg(qreg[qubit])
+                                    qcir.sdg(qubit)
                                 elif angles[index] == 'z':
-                                    qcir.z(qreg[qubit])
+                                    qcir.z(qubit)
                                 else:
-                                    qcir.u1(angles[index] % np.pi, qreg[qubit])
+                                    qcir.u1(angles[index] % np.pi, qubit)
                                 del angles[index]
                                 cnots_copy = np.delete(cnots_copy, index, axis=0)
                                 if index == len(cnots_copy):
@@ -218,6 +217,7 @@ def cnot_synth(qcir, state, n_sections=2):
     # Convert the list into a circuit of C-NOT gates
     for i in circuit_l + circuit_u:
         qcir.cx(i[0], i[1])
+        print('adding cx ', i[0], i[1])
     return qcir
 
 
