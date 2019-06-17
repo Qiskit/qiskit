@@ -372,13 +372,15 @@ class ParameterizedSchedule:
         """Schedule parameters."""
         return self._parameters
 
-    def bind_parameters(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+    def bind_parameters(self, **kwargs: Dict[str, float]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
         bound_schedule = Schedule(name=self.name)
         schedules = list(self._schedules)
+
         for param_sched in self._parameterized:
             # recursively call until based callable is reached
-            schedules.append(param_sched(*args, **kwargs))
+            sub_params = {key: val for key, val in kwargs.items() if key in self.parameters}
+            schedules.append(param_sched(**sub_params))
 
         # construct evaluated schedules
         for sched in schedules:
@@ -386,5 +388,5 @@ class ParameterizedSchedule:
 
         return bound_schedule
 
-    def __call__(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
-        return self.bind_parameters(*args, **kwargs)
+    def __call__(self, **kwargs: Dict[str, float]) -> Schedule:
+        return self.bind_parameters(**kwargs)
