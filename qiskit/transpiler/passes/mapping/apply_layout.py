@@ -27,23 +27,23 @@ class ApplyLayout(TransformationPass):
     Transform a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits.
     """
 
-    def __init__(self, coupling: CouplingMap, initial_layout: Layout = None):
+    def __init__(self, coupling, initial_layout=None):
         """
         Transform a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits
-        defined in the coupling by applying a given `initial_layout`.
+        defined in the `coupling` by applying a given `initial_layout`.
         Args:
-            coupling: initial layout to be applied
-            initial_layout: initial layout to be applied
+            coupling (CouplingMap): coupling graph to which the circuit is mapped
+            initial_layout (Layout): initial layout to be applied
         """
         super().__init__()
         self._coupling = coupling
         self._initial_layout = initial_layout
 
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
+    def run(self, dag):
         """
         Runs the ApplyLayout pass on `dag`.
         Args:
-            dag: DAG to map.
+            dag (DAGCircuit): DAG to map.
         Returns:
             A mapped DAG (with physical qubits).
         """
