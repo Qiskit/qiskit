@@ -27,9 +27,66 @@ from qiskit.transpiler.passes import ApplyLayout
 class TestApplyLayout(QiskitTestCase):
     """ Tests the ApplyLayout pass."""
 
+    def test_trivial(self):
+        """Test if the bell circuit with virtual qubits is transformed into
+        the circuit with physical qubits under trivial coupling graph and initial layout.
+        """
+        v = QuantumRegister(2, 'v')
+        circuit = QuantumCircuit(v)
+        circuit.h(v[0])
+        circuit.cx(v[0], v[1])
+
+        q = QuantumRegister(2, 'q')
+        expected = QuantumCircuit(q)
+        expected.h(q[0])
+        expected.cx(q[0], q[1])
+
+        dag = circuit_to_dag(circuit)
+        pass_ = ApplyLayout(coupling=CouplingMap([[0, 1]]),
+                            initial_layout=Layout({v[0]: 0, v[1]: 1}))
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_more_physical_qubits_than_virtual_qubits(self):
+        """Test if a circuit with 2 virtual qubits is transformed into
+        a circuit with 2 out of 3 physical qubits.
+
+        [Circuit with virtual qubits]
+          v0:--H---.---
+                   |
+          v1:-----(+)--
+
+         Initial layout: {v[0]: 2, v[1]: 1}
+         CouplingMap map: [1]--[0]--[2]
+
+        [Circuit with physical qubits]
+          q2:--H---.---
+                   |
+          q1:-----(+)--
+        """
+        v = QuantumRegister(2, 'v')
+        circuit = QuantumCircuit(v)
+        circuit.h(v[0])
+        circuit.cx(v[0], v[1])
+
+        coupling = CouplingMap([[0, 1], [0, 2]])
+        initial_layout = Layout({v[0]: 2, v[1]: 1})
+
+        q = QuantumRegister(3, 'q')
+        expected = QuantumCircuit(q)
+        expected.h(q[2])
+        expected.cx(q[2], q[1])
+
+        dag = circuit_to_dag(circuit)
+        pass_ = ApplyLayout(coupling=coupling, initial_layout=initial_layout)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
     def test_circuit_with_swap_gate(self):
-        """Test if the circuit with virtual qubits is transformed into
-        the circuit with physical qubits.
+        """Test if a virtual circuit with one swap gate is transformed into
+        a circuit with physical qubits.
 
         [Circuit with virtual qubits]
           v0:--X---.---M(v0->c0)
@@ -48,8 +105,6 @@ class TestApplyLayout(QiskitTestCase):
                    |
           q0:-----(+)--M(q0->c2)
         """
-        coupling = CouplingMap([[0, 1], [0, 2]])
-
         v = QuantumRegister(3, 'v')
         cr = ClassicalRegister(3, 'c')
         circuit = QuantumCircuit(v, cr)
@@ -59,6 +114,7 @@ class TestApplyLayout(QiskitTestCase):
         circuit.measure(v[1], cr[1])
         circuit.measure(v[2], cr[2])
 
+        coupling = CouplingMap([[0, 1], [0, 2]])
         initial_layout = Layout({v[0]: 2, v[1]: 1, v[2]: 0})
 
         q = QuantumRegister(3, 'q')
