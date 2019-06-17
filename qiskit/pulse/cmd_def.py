@@ -85,14 +85,14 @@ class CmdDef:
 
         return cmd_def
 
-    def _bind_keys(self, parameters: Tuple[str],
+    def _bind_keys(self, schedule_parameters: Tuple[str],
                    *params: List[Union[int, float, complex]],
                    **kwparams: Dict[str, Union[int, float, complex]]) \
             -> Dict[str, Union[int, float, complex]]:
         """Bind key to parameter arguments and check duplication of parameters.
 
         Args:
-            parameters: Parameter names in schedule.
+            schedule_parameters: Parameter names in schedule.
             *params: Command parameters to be used to generate schedule
             **kwparams: Keyworded command parameters to be used to generate schedule
 
@@ -101,11 +101,11 @@ class CmdDef:
         """
         dict_parameters = {}
         if params:
-            for key, val in zip(parameters, params):
+            for key, val in zip(schedule_parameters, params):
                 dict_parameters[key] = val
         if kwparams:
             for key, val in kwparams.items():
-                if key in parameters:
+                if key in schedule_parameters:
                     if key not in dict_parameters.keys():
                         dict_parameters[key] = val
                     else:
