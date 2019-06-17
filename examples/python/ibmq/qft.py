@@ -18,8 +18,7 @@ Quantum Fourier Transform examples.
 
 import math
 from qiskit import QuantumCircuit
-from qiskit import execute, BasicAer
-
+from qiskit.providers.ibmq import least_busy, IBMQ
 
 ###############################################################
 # make the qft
@@ -30,12 +29,14 @@ def input_state(circ, n):
         circ.h(j)
         circ.u1(-math.pi/float(2**(j)), j)
 
+
 def qft(circ, n):
     """n-qubit QFT on q in circ."""
     for j in range(n):
         for k in range(j):
             circ.cu1(math.pi/float(2**(j-k)), j, k)
         circ.h(j)
+
 
 qft3 = QuantumCircuit(5, 5, name="qft3")
 qft4 = QuantumCircuit(5, 5, name="qft4")
@@ -66,9 +67,16 @@ print(qft3)
 print(qft4)
 print(qft5)
 
-print('Qasm simulator')
-sim_backend = BasicAer.get_backend('qasm_simulator')
-job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
+###############################################################
+# Set up the API and execute the program.
+###############################################################
+IBMQ.load_accounts()
+
+# Second version: real device
+least_busy_device = least_busy(IBMQ.backends(simulator=False,
+                                             filters=lambda x: x.configuration().n_qubits > 4))
+print("Running on current least busy device: ", least_busy_device)
+job = execute([qft3, qft4, qft5], least_busy_device, shots=1024)
 result = job.result()
 print(result.get_counts(qft3))
 print(result.get_counts(qft4))
