@@ -162,12 +162,12 @@ class RY(VariationalForm):
                     offset=block)
 
             for src, targ in self._entangler_map:
-                if self._entanglement_gate.lower() == 'cz':
+                if self._entanglement_gate == 'cz':
                     circuit.u2(0.0, np.pi, q[targ])  # h
                     circuit.cx(q[src], q[targ])
                     circuit.u2(0.0, np.pi, q[targ])  # h
 
-                elif self._entanglement_gate.lower() == 'crx':
+                elif self._entanglement_gate == 'crx':
                     circuit.cu3(parameters[param_idx], -np.pi / 2, np.pi / 2,
                                 q[src], q[targ])  # crx
                     param_idx += 1
