@@ -21,6 +21,7 @@ for optimal synthesis of linear (CNOT-only) reversible circuits.
 import copy
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.exceptions import QiskitError
 
 
 def graysynth(cnots, angles, n_sections=2):
@@ -71,7 +72,7 @@ def graysynth(cnots, angles, n_sections=2):
         QuantumCircuit: the quantum circuit
 
     Raises:
-        Exception: when dimensions of cnots and angles don't align
+        QiskitError: when dimensions of cnots and angles don't align
     """
     n_qubits = len(cnots)
 
@@ -79,7 +80,7 @@ def graysynth(cnots, angles, n_sections=2):
     qcir = QuantumCircuit(n_qubits)
 
     if len(cnots[0]) != len(angles):
-        raise Exception('Size of "cnots" and "angles" do not match.')
+        raise QiskitError('Size of "cnots" and "angles" do not match.')
 
     range_list = list(range(n_qubits))
     epsilon = n_qubits
@@ -174,15 +175,15 @@ def graysynth(cnots, angles, n_sections=2):
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir = cnot_synth(qcir, state, n_sections)
+    qcir += cnot_synth(state, n_sections)
     return qcir
 
 
-def cnot_synth(qcir, state, n_sections=2):
+def cnot_synth(state, n_sections=2):
     """
     This function is an implementation of the Patel–Markov–Hayes algorithm
-    for optimal synthesis of linear reversible circuits. It takes a CNOT-only
-    quantum circuit "qcir", and uncomputes all its CNOT gates in an optimal way.
+    for optimal synthesis of linear reversible circuits, as specified by an
+    n x n matrix.
 
     The algorithm is described in detail in the following paper:
     "Optimal synthesis of linear reversible circuits."
@@ -190,22 +191,20 @@ def cnot_synth(qcir, state, n_sections=2):
     Quantum Information & Computation 8.3 (2008): 282-294.
 
     Args:
-        qcir (QuantumCircuit): the initial Quantum Circuit
         state (numpy.matrix): n x n matrix, describing the state of the input circuit
         n_sections (int): number of sections, used in _lwr_cnot_synth(), in the
             Patel–Markov–Hayes algorithm. n_sections must be a factor of n_qubits.
 
     Returns:
-        QuantumCircuit: a Quantum Circuit with added CNOT gates which
-            uncomputes the original circuit
+        QuantumCircuit: a CNOT-only circuit implementing the
+            desired linear transformation
 
     Raises:
-        Exception: when variable "state" isn't of type numpy.matrix
+        QiskitError: when variable "state" isn't of type numpy.matrix
     """
-
     if not isinstance(state, np.ndarray):
-        raise Exception('state should be of type numpy.ndarray, but was '
-                        'of the type {}'.format(type(state)))
+        raise QiskitError('state should be of type numpy.ndarray, but was '
+                          'of the type {}'.format(type(state)))
     # Synthesize lower triangular part
     [state, circuit_l] = _lwr_cnot_synth(state, n_sections)
     state = np.transpose(state)
@@ -215,10 +214,11 @@ def cnot_synth(qcir, state, n_sections=2):
     for i in circuit_u:
         i.reverse()
     # Convert the list into a circuit of C-NOT gates
+    circ = QuantumCircuit(state.shape[0])
     for i in circuit_l + circuit_u:
-        qcir.cx(i[0], i[1])
+        circ.cx(i[0], i[1])
         print('adding cx ', i[0], i[1])
-    return qcir
+    return circ
 
 
 def _lwr_cnot_synth(state, n_sections):
