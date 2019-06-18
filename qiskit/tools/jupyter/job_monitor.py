@@ -52,11 +52,8 @@ def _job_checker(job, status):
                 queue_pos = job.queue_position()
                 if queue_pos != prev_queue_pos:
 
-                    update_info = (job.job_id(),
-                                   status.name,
-                                   queue_pos,
-                                   status.value
-                                  )
+                    update_info = (job.job_id(), status.name,
+                                   queue_pos, status.value)
 
                     Publisher().publish("ibmq.job.update", update_info)
                     interval = max(queue_pos, 5)

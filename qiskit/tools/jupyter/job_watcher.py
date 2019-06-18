@@ -59,7 +59,7 @@ class JobWatcher(Subscriber):
             update_info (tuple): Updated job info.
         """
         job_wid = self.jobs[idx]
-        #update status
+        # update status
         if update_info[1] == 'DONE':
             stat = "<font style='color:#34BC6E'>{}</font>".format(update_info[1])
         elif update_info[1] == 'ERROR':
@@ -69,13 +69,13 @@ class JobWatcher(Subscriber):
         else:
             stat = update_info[1]
         job_wid.children[3].value = stat
-        #update queue
+        # update queue
         if update_info[2] == 0:
             queue = '-'
         else:
             queue = str(update_info[2])
         job_wid.children[4].value = queue
-        #update msg
+        # update msg
         job_wid.children[5].value = update_info[3]
 
     def remove_job(self, job_id):
@@ -142,4 +142,3 @@ class JobWatcher(Subscriber):
                 self.update_single_job(ind, update_info)
 
         self.subscribe("ibmq.job.update", _status_change)
-        

@@ -46,10 +46,12 @@ if _IP is not None:
 # The Jupyter job watcher instance
 _JOB_WATCHER = JobWatcher()
 
+
 def disable_job_watcher():
     """Disables the job watcher.
     """
     _JOB_WATCHER.stop_viewer()
+
 
 def enable_job_watcher():
     """Enables the job watcher.

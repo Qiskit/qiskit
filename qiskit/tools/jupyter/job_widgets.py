@@ -34,7 +34,6 @@ def make_clear_button(watcher):
                               grid_area='right',
                               padding="0px 0px 0px 0px"))
 
-
     def on_clear_button_clicked(_):
         watcher.clear_done()
 
@@ -65,7 +64,6 @@ def make_labels():
     labels3 = widgets.HTML(value='<h5>Queue</h5>',
                            layout=widgets.Layout(width='70px'))
     labels4 = widgets.HTML(value='<h5>Message</h5>')
-
 
     labels = widgets.HBox(children=[labels0, labels1, labels2, labels3, labels4],
                           layout=widgets.Layout(width='560px',
@@ -115,8 +113,7 @@ def create_job_widget(watcher, job_id, backend, status='', queue_pos=None, msg='
     job_grid = widgets.HBox(children=[close_button, id_label, backend_label,
                                       status_label, queue_label, msg_label],
                             layout=widgets.Layout(min_width='600px',
-                                                  max_width='600px')
-                           )
+                                                  max_width='600px'))
     job_grid.job_id = job_id
     return job_grid
 
@@ -143,7 +140,7 @@ def build_job_viewer():
         .detach()
         .appendTo($('#header'))
         .css({
-            'z-index': 999, 
+            'z-index': 999,
              'position': 'fixed',
             'box-shadow': '5px 5px 5px -3px black',
             'opacity': 0.95,
