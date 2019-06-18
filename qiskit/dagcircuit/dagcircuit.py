@@ -413,7 +413,7 @@ class DAGCircuit:
             # Map the register name, using fact that registers must not be
             # fragmented by the wire_map (this must have been checked
             # elsewhere)
-            bit0 = (condition[0], 0)
+            bit0 = condition[0][0]
             new_condition = (wire_map.get(bit0, bit0).register, condition[1])
         return new_condition
 

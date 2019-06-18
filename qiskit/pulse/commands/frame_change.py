@@ -24,15 +24,19 @@ from .command import Command
 class FrameChange(Command):
     """Frame change pulse."""
 
-    def __init__(self, phase):
+    prefix = 'fc'
+
+    def __init__(self, phase, name=None):
         """Create new frame change pulse.
 
         Args:
             phase (float): Frame change phase in radians.
                 The allowable precision is device specific.
+            name (str): Name of this command.
         """
         super().__init__(duration=0)
         self._phase = float(phase)
+        self._name = FrameChange.create_name(name)
 
     @property
     def phase(self):
