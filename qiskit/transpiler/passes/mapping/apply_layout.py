@@ -18,24 +18,15 @@ A pass for transforming a circuit with virtual qubits into a circuit with physic
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class ApplyLayout(TransformationPass):
     """
-    Transform a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits.
+    Transforms a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits
+    by applying the Layout given in `property_set`.
+    Requires either of passes to set/select Layout, e.g. `SetLayout`, `TrivialLayout`.
     """
-
-    def __init__(self, coupling, initial_layout=None):
-        """
-        Transform a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits
-        defined in the `coupling` by applying a given `initial_layout`.
-        Args:
-            coupling (CouplingMap): coupling graph to which the circuit is mapped
-            initial_layout (Layout): initial layout to be applied
-        """
-        super().__init__()
-        self._coupling = coupling
-        self._initial_layout = initial_layout
 
     def run(self, dag):
         """
@@ -44,13 +35,17 @@ class ApplyLayout(TransformationPass):
             dag (DAGCircuit): DAG to map.
         Returns:
             DAGCircuit: A mapped DAG (with physical qubits).
+        Raises:
+            TranspilerError: if no layout is found in `property_set`.
         """
-        if not self._initial_layout:
-            self._initial_layout = self.property_set["layout"]
+        layout = self.property_set["layout"]
+        if not layout:
+            raise TranspilerError(
+                "No 'layout' found in property_set. Please run a Layout pass in advance.")
 
-        q = QuantumRegister(self._coupling.size(), 'q')
+        n_physical_qubits = 1 + max(layout.get_physical_bits())
+        q = QuantumRegister(n_physical_qubits, 'q')
 
-        layout = self._initial_layout
         new_dag = DAGCircuit()
         new_dag.add_qreg(q)
         for creg in dag.cregs.values():

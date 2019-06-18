@@ -19,9 +19,9 @@ import unittest
 from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class TestApplyLayout(QiskitTestCase):
@@ -29,7 +29,7 @@ class TestApplyLayout(QiskitTestCase):
 
     def test_trivial(self):
         """Test if the bell circuit with virtual qubits is transformed into
-        the circuit with physical qubits under trivial coupling graph and initial layout.
+        the circuit with physical qubits under trivial layout.
         """
         v = QuantumRegister(2, 'v')
         circuit = QuantumCircuit(v)
@@ -42,11 +42,24 @@ class TestApplyLayout(QiskitTestCase):
         expected.cx(q[0], q[1])
 
         dag = circuit_to_dag(circuit)
-        pass_ = ApplyLayout(coupling=CouplingMap([[0, 1]]),
-                            initial_layout=Layout({v[0]: 0, v[1]: 1}))
+        pass_ = ApplyLayout()
+        pass_.property_set['layout'] = Layout({v[0]: 0, v[1]: 1})
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_raise_when_no_layout_is_supplied(self):
+        """Test error is raised if no layout is found in property_set.
+        """
+        v = QuantumRegister(2, 'v')
+        circuit = QuantumCircuit(v)
+        circuit.h(v[0])
+        circuit.cx(v[0], v[1])
+
+        dag = circuit_to_dag(circuit)
+        pass_ = ApplyLayout()
+        with self.assertRaises(TranspilerError):
+            pass_.run(dag)
 
     def test_more_physical_qubits_than_virtual_qubits(self):
         """Test if a circuit with 2 virtual qubits is transformed into
@@ -58,7 +71,6 @@ class TestApplyLayout(QiskitTestCase):
           v1:-----(+)--
 
          Initial layout: {v[0]: 2, v[1]: 1}
-         CouplingMap map: [1]--[0]--[2]
 
         [Circuit with physical qubits]
           q2:--H---.---
@@ -70,16 +82,14 @@ class TestApplyLayout(QiskitTestCase):
         circuit.h(v[0])
         circuit.cx(v[0], v[1])
 
-        coupling = CouplingMap([[0, 1], [0, 2]])
-        initial_layout = Layout({v[0]: 2, v[1]: 1})
-
         q = QuantumRegister(3, 'q')
         expected = QuantumCircuit(q)
         expected.h(q[2])
         expected.cx(q[2], q[1])
 
         dag = circuit_to_dag(circuit)
-        pass_ = ApplyLayout(coupling=coupling, initial_layout=initial_layout)
+        pass_ = ApplyLayout()
+        pass_.property_set['layout'] = Layout({v[0]: 2, v[1]: 1})
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
@@ -96,7 +106,6 @@ class TestApplyLayout(QiskitTestCase):
           v2:-----(+)--M(v2->c2)
 
          Initial layout: {v[0]: 2, v[1]: 1, v[2]: 0}
-         CouplingMap map: [1]--[0]--[2]
 
         [Circuit with physical qubits]
           q2:--X---.---M(q2->c0)
@@ -114,9 +123,6 @@ class TestApplyLayout(QiskitTestCase):
         circuit.measure(v[1], cr[1])
         circuit.measure(v[2], cr[2])
 
-        coupling = CouplingMap([[0, 1], [0, 2]])
-        initial_layout = Layout({v[0]: 2, v[1]: 1, v[2]: 0})
-
         q = QuantumRegister(3, 'q')
         expected = QuantumCircuit(q, cr)
         expected.swap(q[2], q[1])
@@ -126,7 +132,8 @@ class TestApplyLayout(QiskitTestCase):
         expected.measure(q[0], cr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = ApplyLayout(coupling=coupling, initial_layout=initial_layout)
+        pass_ = ApplyLayout()
+        pass_.property_set['layout'] = Layout({v[0]: 2, v[1]: 1, v[2]: 0})
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
