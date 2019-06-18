@@ -118,7 +118,17 @@ class TestCmdDef(QiskitTestCase):
         with self.assertRaises(PulseError):
             cmd_def.get('inst_seq', 0, 1, 2, 3, P1=1)
 
-        sched = cmd_def.pop('inst_seq', 0, 1, 2, 3, 4)
+        sched = cmd_def.get('inst_seq', 0, 1, 2, 3)
+        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
+        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
+        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+
+        sched = cmd_def.get('inst_seq', 0, P1=1, P2=2, P3=3)
+        self.assertEqual(sched.instructions[0][-1].command.phase, 1)
+        self.assertEqual(sched.instructions[1][-1].command.phase, 2)
+        self.assertEqual(sched.instructions[2][-1].command.phase, 3)
+
+        sched = cmd_def.get('inst_seq', 0, 1, 2, P3=3)
         self.assertEqual(sched.instructions[0][-1].command.phase, 1)
         self.assertEqual(sched.instructions[1][-1].command.phase, 2)
         self.assertEqual(sched.instructions[2][-1].command.phase, 3)
