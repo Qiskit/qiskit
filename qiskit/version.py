@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=no-name-in-module,broad-except,cyclic-import
+
 """Contains the terra version."""
 
 import os
@@ -86,7 +88,7 @@ def _get_qiskit_versions():
     out_dict['qiskit-terra'] = __version__
     try:
         from qiskit.providers import aer
-        out_dict['qiskit-aer'] = aer_version = aer.__version__
+        out_dict['qiskit-aer'] = aer.__version__
     except Exception:
         pass
     try:
