@@ -80,6 +80,48 @@ The format is based on [Keep a Changelog].
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 
+
+## [0.8.2] - 2019-06-14
+
+### Fixed
+
+-   Fixed an issue with latex circuit drawer backend that could lead to an
+    empty image output (\#2531)
+-   Fixes for issues with the backend monitors for recent changes to IBMQ
+    backends (\#2637)
+-   Fixed an issue where a `TimeSlotCollection` object would be mutated by
+    the `is_mergable_with()` method (\#2639)
+
+
+## [0.8.1] - 2019-05-29
+
+### Fixed
+
+-   Corrected the deprecation warning message for
+    `qiskit.converters.qobj_to_circuits` (\#2350)
+-   Fixed `execute()` and `transpile()` functions to enable setting
+    optimization level 0. (\#2370)
+-   Set the swapper with the seed transpiler for optimization level 2 and 3
+    (\#2361)
+-   Fix default basis gate set for other transpiler passes (\#2357)
+-   Fix the docstring for transpile to include optimization_level 3 (\#2367)
+-   Fix spacing in the text circuit drawer (\#2382)
+-   Fix for too strict math sanitization pulse instructions (\#2397)
+-   Arguments to `assemble_schedule` were not actually optional, ensure
+    they're required (\#2398)
+-   Fix for framechange instructions being converted to a string instead of a
+    float (\#2437)
+-   Fix for rep_times as a float, now it's an integer (\#2438)
+-   Fix type error for integer framechange instructions (\#2458)
+-   Fix for missing cython source files in sdist (\#2436)
+-   Fix for different pulse schedules created with the same name (\#2431)
+-   Only create a single AquireInstruction for all qubits (\#2485)
+-   Stop modifying layout in stochastic swap pass (\#2507)
+-   Only call CXDirection pass on optimization_level=3 if coupling map is
+    provided (\#2526)
+-   Fix `optimization_level=0` without a coupling map (\#2509)
+
+
 ## [0.8.0] - 2019-05-02
 
 ### Added
@@ -1137,7 +1179,9 @@ The format is based on [Keep a Changelog].
 -   Correct operator precedence when parsing expressions (\#190).
 -   Fix \"math domain error\" in mapping (\#111, \#151).
 
-[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...HEAD
+[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...HEAD
+[0.8.2]: https://github.com/Qiskit/qiskit-terra/compare/0.8.1...0.8.2
+[0.8.1]: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0
 [0.7.2]: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1
