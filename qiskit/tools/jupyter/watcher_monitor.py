@@ -19,7 +19,7 @@ import threading
 from qiskit.tools.events.pubsub import Publisher
 
 
-def job_monitor(job, status):
+def _job_monitor(job, status):
     """Monitor the status of a IBMQJob instance.
 
     Args:

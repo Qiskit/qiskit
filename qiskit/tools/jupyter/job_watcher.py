@@ -17,7 +17,7 @@
 from qiskit.tools.events.pubsub import Subscriber
 from .job_widgets import (build_job_viewer, make_clear_button,
                           make_labels, create_job_widget)
-from .job_monitor import job_monitor
+from .watcher_monitor import _job_monitor
 
 
 class JobWatcher(Subscriber):
@@ -125,7 +125,7 @@ class JobWatcher(Subscriber):
                                            status.value)
             self.jobs.append(job_widget)
             self.refresh_viewer()
-            job_monitor(job, status)
+            _job_monitor(job, status)
 
         self.subscribe("ibmq.job.start", _add_job)
 
