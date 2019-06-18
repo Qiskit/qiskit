@@ -61,38 +61,19 @@ class TestApplyLayout(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             pass_.run(dag)
 
-    def test_more_physical_qubits_than_virtual_qubits(self):
-        """Test if a circuit with 2 virtual qubits is transformed into
-        a circuit with 2 out of 3 physical qubits.
-
-        [Circuit with virtual qubits]
-          v0:--H---.---
-                   |
-          v1:-----(+)--
-
-         Initial layout: {v[0]: 2, v[1]: 1}
-
-        [Circuit with physical qubits]
-          q2:--H---.---
-                   |
-          q1:-----(+)--
+    def test_raise_when_no_full_layout_is_given(self):
+        """Test error is raised if no full layout is given.
         """
         v = QuantumRegister(2, 'v')
         circuit = QuantumCircuit(v)
         circuit.h(v[0])
         circuit.cx(v[0], v[1])
 
-        q = QuantumRegister(3, 'q')
-        expected = QuantumCircuit(q)
-        expected.h(q[2])
-        expected.cx(q[2], q[1])
-
         dag = circuit_to_dag(circuit)
         pass_ = ApplyLayout()
         pass_.property_set['layout'] = Layout({v[0]: 2, v[1]: 1})
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
+        with self.assertRaises(TranspilerError):
+            pass_.run(dag)
 
     def test_circuit_with_swap_gate(self):
         """Test if a virtual circuit with one swap gate is transformed into
