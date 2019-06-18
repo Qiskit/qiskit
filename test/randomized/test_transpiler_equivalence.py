@@ -17,7 +17,7 @@
 
 import os
 
-from hypothesis import assume
+from hypothesis import assume, settings
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
@@ -52,6 +52,9 @@ mock_backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(),
                  FakeTokyo(), FakePoughkeepsie()]
 
 
+@settings(report_multiple_bugs=False,
+          max_examples=50,
+          deadline=None)
 class QCircuitMachine(RuleBasedStateMachine):
     """Build a Hypothesis rule based state machine for constructing, transpiling
     and simulating a series of random QuantumCircuits.

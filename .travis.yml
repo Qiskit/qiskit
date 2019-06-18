@@ -196,7 +196,7 @@ jobs:
       script:
       - python setup.py build_ext --inplace
       - pip install "qiskit-aer"
-      - travis_wait make test_randomized
+      - travis_wait 45 make test_randomized
 
 matrix:
   fast_finish: true
