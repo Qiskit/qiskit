@@ -38,6 +38,6 @@ def validate_qobj_against_schema(qobj):
         qobj (Qobj): Qobj to be validated.
     """
     validate_json_against_schema(
-        qobj.as_dict(), 'qobj',
+        qobj.to_dict(), 'qobj',
         err_msg='Qobj failed validation. Set Qiskit log level to DEBUG '
                 'for further information.')

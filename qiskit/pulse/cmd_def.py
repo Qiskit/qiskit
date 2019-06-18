@@ -116,8 +116,8 @@ class CmdDef:
         return False
 
     def get(self, cmd_name: str, qubits: Union[int, Iterable[int]],
-            *params: List[Union[float, complex]],
-            **kwparams: Dict[str, Union[float, complex]]) -> Schedule:
+            *params: List[Union[int, float, complex]],
+            **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """Get command from command definition.
         Args:
             cmd_name: Name of the command
@@ -160,8 +160,8 @@ class CmdDef:
                              'in CmdDef'.format(cmd_name, qubits))
 
     def pop(self, cmd_name: str, qubits: Union[int, Iterable[int]],
-            *params: List[Union[float, complex]],
-            **kwparams: Dict[str, Union[float, complex]]) -> Schedule:
+            *params: List[Union[int, float, complex]],
+            **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """Pop command from command definition.
 
         Args:
@@ -197,7 +197,7 @@ class CmdDef:
         if cmd_name in self._cmd_dict:
             return list(sorted(self._cmd_dict[cmd_name].keys()))
 
-        raise PulseError('Command %s does not exist in CmdDef.' % cmd_name)
+        return []
 
     def __repr__(self):
         return repr(self._cmd_dict)

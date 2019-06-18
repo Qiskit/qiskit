@@ -436,7 +436,7 @@ class QasmSimulatorPy(BaseBackend):
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start),
-                  'header': qobj.header.as_dict()}
+                  'header': qobj.header.to_dict()}
 
         return Result.from_dict(result)
 
@@ -623,7 +623,7 @@ class QasmSimulatorPy(BaseBackend):
                 'status': 'DONE',
                 'success': True,
                 'time_taken': (end - start),
-                'header': experiment.header.as_dict()}
+                'header': experiment.header.to_dict()}
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas."""

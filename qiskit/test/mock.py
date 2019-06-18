@@ -135,8 +135,8 @@ class FakeBackend(BaseBackend):
                     }
                 ],
                 "qubits": [
-                    1,
-                    0
+                    pair[0],
+                    pair[1]
                 ]
             } for pair in coupling_map],
             'general': []
@@ -212,7 +212,7 @@ class FakeOpenPulse2Q(FakeBackend):
             dt=1.3333,
             dtm=10.5,
             rep_times=[100, 250, 500, 1000],
-            meas_map=[[0], [1, 2]],
+            meas_map=[[0, 1]],
             channel_bandwidth=[
                 [-0.2, 0.4], [-0.3, 0.3], [-0.3, 0.3],
                 [-0.02, 0.02], [-0.02, 0.02], [-0.02, 0.02]
@@ -231,10 +231,16 @@ class FakeOpenPulse2Q(FakeBackend):
             meas_freq_est=[6.5, 6.6],
             buffer=10,
             pulse_library=[PulseLibraryItem(name='test_pulse_1', samples=[0.j, 0.1j]),
-                           PulseLibraryItem(name='test_pulse_2', samples=[0.j, 0.1j, 1j])],
+                           PulseLibraryItem(name='test_pulse_2', samples=[0.j, 0.1j, 1j]),
+                           PulseLibraryItem(name='test_pulse_3',
+                                            samples=[0.j, 0.1j, 1j, 0.5 + 0j])],
             cmd_def=[Command(name='u1', qubits=[0],
                              sequence=[PulseQobjInstruction(name='fc', ch='d0',
                                                             t0=0, phase='-P1*np.pi')]),
+                     Command(name='u3', qubits=[0],
+                             sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0)]),
+                     Command(name='u3', qubits=[1],
+                             sequence=[PulseQobjInstruction(name='test_pulse_3', ch='d1', t0=0)]),
                      Command(name='cx', qubits=[0, 1],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='d0', t0=0),
                                        PulseQobjInstruction(name='test_pulse_2', ch='u0', t0=10),
@@ -396,6 +402,35 @@ class FakeTokyo(FakeBackend):
             open_pulse=False,
             memory=False,
             max_shots=65536,
+            gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
+            coupling_map=cmap,
+        )
+
+        super().__init__(configuration)
+
+
+class FakePoughkeepsie(FakeBackend):
+    """A fake Poughkeepsie backend."""
+
+    def __init__(self):
+        cmap = [[0, 1], [0, 5], [1, 0], [1, 2], [2, 1], [2, 3], [3, 2], [3, 4], [4, 3], [4, 9],
+                [5, 0], [5, 6], [5, 10], [6, 5], [6, 7], [7, 6], [7, 8], [7, 12], [8, 7], [8, 9],
+                [9, 4], [9, 8], [9, 14], [10, 5], [10, 11], [10, 15], [11, 10], [11, 12], [12, 7],
+                [12, 11], [12, 13], [13, 12], [13, 14], [14, 9], [14, 13], [14, 19], [15, 10],
+                [15, 16], [16, 15], [16, 17], [17, 16], [17, 18], [18, 17], [18, 19], [19, 14],
+                [19, 18]]
+
+        configuration = QasmBackendConfiguration(
+            backend_name='fake_poughkeepsie',
+            backend_version='0.0.0',
+            n_qubits=20,
+            basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+            simulator=False,
+            local=True,
+            conditional=False,
+            open_pulse=False,
+            memory=True,
+            max_shots=8192,
             gates=[GateConfig(name='TODO', parameters=[], qasm_def='TODO')],
             coupling_map=cmap,
         )
