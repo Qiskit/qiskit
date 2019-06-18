@@ -137,7 +137,7 @@ jobs:
 
     # GNU/Linux, Python 3.6
     - stage: test
-      name: Python 3.6 Tests Linux
+      name: Python 3.6 Tests and Coverage Linux
       <<: *stage_linux
       python: 3.6
       env:
