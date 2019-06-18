@@ -372,7 +372,9 @@ class ParameterizedSchedule:
         """Schedule parameters."""
         return self._parameters
 
-    def bind_parameters(self, *args, **kwargs: Dict[str, float]) -> Schedule:
+    def bind_parameters(self,
+                        *args: List[Union[int, float, complex]],
+                        **kwargs: Dict[str, Union[int, float, complex]]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
         bound_schedule = Schedule(name=self.name)
         schedules = list(self._schedules)
@@ -409,5 +411,8 @@ class ParameterizedSchedule:
 
         return bound_schedule
 
-    def __call__(self, *args, **kwargs: Dict[str, float]) -> Schedule:
+    def __call__(self,
+                 *args: List[Union[int, float, complex]],
+                 **kwargs: Dict[str, Union[int, float, complex]]) -> Schedule:
+
         return self.bind_parameters(*args, **kwargs)
