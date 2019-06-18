@@ -85,38 +85,6 @@ class CmdDef:
 
         return cmd_def
 
-    def _bind_keys(self, schedule_parameters: Tuple[str],
-                   *params: List[Union[int, float, complex]],
-                   **kwparams: Dict[str, Union[int, float, complex]]) \
-            -> Dict[str, Union[int, float, complex]]:
-        """Bind key to parameter arguments and check duplication of parameters.
-
-        Args:
-            schedule_parameters: Parameter names in schedule.
-            *params: Command parameters to be used to generate schedule
-            **kwparams: Keyworded command parameters to be used to generate schedule
-
-        Raises:
-            PulseError: When parameters are duplicated or not exist in schedule.
-        """
-        dict_parameters = {}
-        if params:
-            for key, val in zip(schedule_parameters, params):
-                dict_parameters[key] = val
-        if kwparams:
-            for key, val in kwparams.items():
-                if key in schedule_parameters:
-                    if key not in dict_parameters.keys():
-                        dict_parameters[key] = val
-                    else:
-                        raise PulseError("%s got multiple values for argument '%s'"
-                                         % (self.__class__.__name__, key))
-                else:
-                    raise PulseError("%s got an unexpected keyword argument '%s'"
-                                     % (self.__class__.__name__, key))
-
-        return dict_parameters
-
     def add(self, cmd_name: str, qubits: Union[int, Iterable[int]],
             schedule: Union[ParameterizedSchedule, Schedule]):
         """Add a command to the `CommandDefinition`
@@ -165,8 +133,7 @@ class CmdDef:
             schedule = self._cmd_dict[cmd_name][qubits]
 
             if isinstance(schedule, ParameterizedSchedule):
-                named_parameters = self._bind_keys(schedule.parameters, *params, **kwparams)
-                return schedule.bind_parameters(**named_parameters)
+                return schedule.bind_parameters(*params, **kwparams)
 
             return schedule.flatten()
 
@@ -212,8 +179,7 @@ class CmdDef:
             schedule = cmd_dict.pop(qubits)
 
             if isinstance(schedule, ParameterizedSchedule):
-                named_parameters = self._bind_keys(schedule.parameters, *params, **kwparams)
-                return schedule.bind_parameters(**named_parameters)
+                return schedule.bind_parameters(*params, **kwparams)
 
             return schedule
 
