@@ -13,20 +13,10 @@
 # that they have been altered from the originals.
 
 """
-Example showing how to use Qiskit at level 1 (intermediate).
+Example showing how to use Qiskit at level 2 (advanced).
 
-This example shows how an intermediate user interacts with Terra.
-It builds some circuits and transpiles them with transpile options.
-It then makes a qobj object which is just a container to be run on a backend.
-The same qobj can be submitted to many backends (as shown).
-It is the user's responsibility to make sure it can be run (i.e. it conforms
-to the restrictions of the backend, if any).
-This is useful when you want to compare the same
-circuit on different backends without recompiling the whole circuit,
-or just want to change some runtime parameters.
-
-To control the passes that transform the circuit, we have a pass manager
-for the level 2 user.
+This example shows how an advanced user interacts with Terra.
+It builds some circuits and transpiles them with the pass_manager.
 """
 
 import pprint, time
@@ -35,27 +25,36 @@ import pprint, time
 from qiskit import IBMQ, BasicAer
 from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit
-from qiskit.compiler import transpile, assemble
+from qiskit.extensions import SwapGate
+from qiskit.compiler import assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 
-try:
-    IBMQ.load_accounts()
-except:
-    print("""WARNING: No valid IBMQ credentials found on disk. 
-             You must store your credentials using IBMQ.save_account(token, url). 
-             For now, there's only access to local simulator backends...""")
+from qiskit.transpiler import PassManager
+from qiskit.transpiler import CouplingMap
+from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import FullAncillaAllocation
+from qiskit.transpiler.passes import EnlargeWithAncilla
+from qiskit.transpiler.passes import TrivialLayout
+from qiskit.transpiler.passes import Decompose
+from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import LookaheadSwap
 
-# Making first circuit: bell state
-qc1 = QuantumCircuit(2, 2, name="bell")
+
+IBMQ.load_accounts()
+# Making first circuit: superpositions
+qc1 = QuantumCircuit(4, 4)
 qc1.h(0)
 qc1.cx(0, 1)
 qc1.measure([0,1], [0,1])
 
-# Making another circuit: superpositions
-qc2 = QuantumCircuit(2, 2, name="superposition")
-qc2.h([0,1])
-qc2.measure([0,1], [0,1])
+# Making another circuit: GHZ State
+qc2 = QuantumCircuit(4, 4)
+qc2.h([0,1,2,3])
+qc2.cx(0, 1)
+qc2.cx(0, 2)
+qc2.cx(0, 3)
+qc2.measure([0,1,2,3], [0,1,2,3])
 
 # Setting up the backend
 print("(Aer Backends)")
@@ -78,22 +77,48 @@ except:
 
 print("Running on current least busy device: ", least_busy_device)
 
-# Transpile the circuits to make them compatible with the experimental backend
-[qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
 
-print("Bell circuit before transpile:")
+# making a pass manager to compile the circuits
+coupling_map = CouplingMap(least_busy_device.configuration().coupling_map)
+print("coupling map: ", coupling_map)
+
+pm = PassManager()
+
+# Use the trivial layout
+pm.append(TrivialLayout(coupling_map))
+
+# Extend the the dag/layout with ancillas using the full coupling map
+pm.append(FullAncillaAllocation(coupling_map))
+pm.append(EnlargeWithAncilla())
+
+# Swap mapper
+pm.append(LookaheadSwap(coupling_map))
+
+# Expand swaps
+pm.append(Decompose(SwapGate))
+
+# Simplify CXs
+pm.append(CXDirection(coupling_map))
+
+# unroll to single qubit gates
+pm.append(Unroller(['u1', 'u2', 'u3', 'id', 'cx']))
+qc1_new = pm.run(qc1)
+qc2_new = pm.run(qc2)
+
+print("Bell circuit before passes:")
 print(qc1)
-print("Bell circuit after transpile:")
+print("Bell circuit after passes:")
 print(qc1_new)
-print("Superposition circuit before transpile:")
+print("Superposition circuit before passes:")
 print(qc2)
-print("Superposition circuit after transpile:")
+print("Superposition circuit after passes:")
 print(qc2_new)
 
 # Assemble the two circuits into a runnable qobj
 qobj = assemble([qc1_new, qc2_new], shots=1000)
 
 # Running qobj on the simulator
+print("Running on simulator:")
 sim_job = qasm_simulator.run(qobj)
 
 # Getting the result
@@ -104,6 +129,7 @@ print(sim_result.get_counts(qc1))
 print(sim_result.get_counts(qc2))
 
 # Running the job.
+print("Running on device:")
 exp_job = least_busy_device.run(qobj)
 
 job_monitor(exp_job)
