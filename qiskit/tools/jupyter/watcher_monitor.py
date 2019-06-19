@@ -16,26 +16,27 @@
 import sys
 import time
 import threading
-from qiskit.tools.events.pubsub import Publisher
 
 
-def _job_monitor(job, status):
+def _job_monitor(job, status, watcher):
     """Monitor the status of a IBMQJob instance.
 
     Args:
         job (BaseJob): Job to monitor.
         status (Enum): Job status.
+        watcher (JobWatcher): Job watcher instance
     """
-    thread = threading.Thread(target=_job_checker, args=(job, status))
+    thread = threading.Thread(target=_job_checker, args=(job, status, watcher))
     thread.start()
 
 
-def _job_checker(job, status):
+def _job_checker(job, status, watcher):
     """A simple job status checker
 
     Args:
         job (BaseJob): The job to check.
         status (Enum): Job status.
+        watcher (JobWatcher): Job watcher instance
 
     """
     prev_status_name = None
@@ -55,7 +56,7 @@ def _job_checker(job, status):
                     update_info = (job.job_id(), status.name,
                                    queue_pos, status.value)
 
-                    Publisher().publish("ibmq.job.update", update_info)
+                    watcher.update_single_job(update_info)
                     interval = max(queue_pos, 5)
                     prev_queue_pos = queue_pos
             elif status.name != prev_status_name:
@@ -66,7 +67,7 @@ def _job_checker(job, status):
 
                 update_info = (job.job_id(), status.name, 0, msg)
 
-                Publisher().publish("ibmq.job.update", update_info)
+                watcher.update_single_job(update_info)
                 interval = 5
                 prev_status_name = status.name
 
@@ -75,5 +76,5 @@ def _job_checker(job, status):
             exception_count += 1
             if exception_count == 5:
                 update_info = (job.job_id(), 'NA', 0, "Could not query job.")
-                Publisher().publish("ibmq.job.update", update_info)
+                watcher.update_single_job(update_info)
                 sys.exit()

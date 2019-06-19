@@ -51,32 +51,40 @@ class JobWatcher(Subscriber):
         self.job_viewer = build_job_viewer()
         self.refresh_viewer()
 
-    def update_single_job(self, idx, update_info):
+    def update_single_job(self, update_info):
         """Update a single job instance
 
         Args:
-            idx (int): The job indedx to update.
             update_info (tuple): Updated job info.
         """
-        job_wid = self.jobs[idx]
-        # update status
-        if update_info[1] == 'DONE':
-            stat = "<font style='color:#34BC6E'>{}</font>".format(update_info[1])
-        elif update_info[1] == 'ERROR':
-            stat = "<font style='color:#DC267F'>{}</font>".format(update_info[1])
-        elif update_info[1] == 'CANCELLED':
-            stat = "<font style='color:#FFB000'>{}</font>".format(update_info[1])
-        else:
-            stat = update_info[1]
-        job_wid.children[3].value = stat
-        # update queue
-        if update_info[2] == 0:
-            queue = '-'
-        else:
-            queue = str(update_info[2])
-        job_wid.children[4].value = queue
-        # update msg
-        job_wid.children[5].value = update_info[3]
+        job_id = update_info[0]
+        found_job = False
+        ind = None
+        for idx, job in enumerate(self.jobs):
+            if job.job_id == job_id:
+                found_job = True
+                ind = idx
+                break
+        if found_job:
+            job_wid = self.jobs[ind]
+            # update status
+            if update_info[1] == 'DONE':
+                stat = "<font style='color:#34BC6E'>{}</font>".format(update_info[1])
+            elif update_info[1] == 'ERROR':
+                stat = "<font style='color:#DC267F'>{}</font>".format(update_info[1])
+            elif update_info[1] == 'CANCELLED':
+                stat = "<font style='color:#FFB000'>{}</font>".format(update_info[1])
+            else:
+                stat = update_info[1]
+            job_wid.children[3].value = stat
+            # update queue
+            if update_info[2] == 0:
+                queue = '-'
+            else:
+                queue = str(update_info[2])
+            job_wid.children[4].value = queue
+            # update msg
+            job_wid.children[5].value = update_info[3]
 
     def remove_job(self, job_id):
         """Removes a job from the watcher
@@ -125,20 +133,6 @@ class JobWatcher(Subscriber):
                                            status.value)
             self.jobs.append(job_widget)
             self.refresh_viewer()
-            _job_monitor(job, status)
+            _job_monitor(job, status, self)
 
         self.subscribe("ibmq.job.start", _add_job)
-
-        def _status_change(update_info):
-            job_id = update_info[0]
-            found_job = False
-            ind = None
-            for idx, job in enumerate(self.jobs):
-                if job.job_id == job_id:
-                    found_job = True
-                    ind = idx
-                    break
-            if found_job:
-                self.update_single_job(ind, update_info)
-
-        self.subscribe("ibmq.job.update", _status_change)
