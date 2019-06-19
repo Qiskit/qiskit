@@ -43,6 +43,7 @@ def _job_checker(job, status, watcher):
     prev_queue_pos = None
     interval = 5
     exception_count = 0
+
     while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
         time.sleep(interval)
         try:
@@ -59,13 +60,9 @@ def _job_checker(job, status, watcher):
                     watcher.update_single_job(update_info)
                     interval = max(queue_pos, 5)
                     prev_queue_pos = queue_pos
-            elif status.name != prev_status_name:
-                if status.name == 'ERROR':
-                    msg = job.error_message()
-                else:
-                    msg = status.value
 
-                update_info = (job.job_id(), status.name, 0, msg)
+            elif status.name != prev_status_name:
+                update_info = (job.job_id(), status.name, 0, status.value)
 
                 watcher.update_single_job(update_info)
                 interval = 5
