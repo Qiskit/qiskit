@@ -25,7 +25,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeTenerife, FakeRueschlikon
 
 
-class TestDenseLayout(QiskitTestCase):
+class TestTrivialLayout(QiskitTestCase):
     """Tests the TrivialLayout pass"""
 
     def setUp(self):
