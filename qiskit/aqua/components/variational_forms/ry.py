@@ -37,7 +37,7 @@ class RY(VariationalForm):
                 'entanglement': {
                     'type': 'string',
                     'default': 'full',
-                    'enum': ['full', 'linear', 'circular']
+                    'enum': ['full', 'linear', 'sca']
                 },
                 'entangler_map': {
                     'type': ['array', 'null'],
@@ -82,7 +82,7 @@ class RY(VariationalForm):
                                         [source, target], or None for full entanglement.
                                         Note that the order is the list is the order of
                                         applying the two-qubit gate.
-            entanglement (str): 'full', 'linear' or 'circular'
+            entanglement (str): 'full', 'linear' or 'sca'
             initial_state (InitialState): an initial state object
             entanglement_gate (str): cz or cx
             skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
@@ -155,7 +155,7 @@ class RY(VariationalForm):
 
         for block in range(self._depth):
             circuit.barrier(q)
-            if self._entanglement == 'circular':
+            if self._entanglement == 'sca':
                 self._entangler_map = VariationalForm.get_entangler_map(
                     self._entanglement,
                     self._num_qubits,
