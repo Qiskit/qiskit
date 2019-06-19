@@ -99,8 +99,8 @@ class QuantumCircuit:
         # Parameter table tracks instructions with variable parameters.
         self._parameter_table = ParameterTable()
 
-    def __str__(self):
-        return str(self.draw(output='text'))
+#    def __str__(self):
+#        return str(self.draw(output='text'))
 
     def __eq__(self, other):
         # TODO: remove the DAG from this function
@@ -774,6 +774,7 @@ class QuantumCircuit:
           QuantumCircuit: a deepcopy of the current circuit, with the name updated if
                           it was provided
         """
+        print("copy-step")
         cpy = deepcopy(self)
         if name:
             cpy.name = name

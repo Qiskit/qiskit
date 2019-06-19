@@ -32,22 +32,36 @@ from qiskit import execute, BasicAer
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
 qc1.h(0)
+breakpoint1 = QuantumCircuit(2,2)
+breakpoint1 = qc1.assertclassical([1],0, [0,1], [0,1])
+breakpoint1.measure([0,1], [0,1])
+
+#executing early to see if results are the same
+job_sim1 = execute([breakpoint1], BasicAer.get_backend('qasm_simulator'))
+sim_result1 = job_sim1.result()
+print(sim_result1.get_counts(breakpoint1))
+
+#qc1.h(0)
+
 qc1.cx(0, 1)
+print(breakpoint1.data)
+print(qc1.data)
 qc1.measure([0,1], [0,1])
+print(qc1.data)
 
 # making another circuit: superpositions
-qc2 = QuantumCircuit(2, 2)
-qc2.h([0,1])
-qc2.measure([0,1], [0,1])
+#qc2 = QuantumCircuit(2, 2)
+#qc2.h([0,1])
+#qc2.measure([0,1], [0,1])
 
 # setting up the backend
 print("(BasicAER Backends)")
 print(BasicAer.backends())
 
 # running the job
-job_sim = execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
+job_sim = execute([qc1, breakpoint1], BasicAer.get_backend('qasm_simulator'))
 sim_result = job_sim.result()
 
 # Show the results
 print(sim_result.get_counts(qc1))
-print(sim_result.get_counts(qc2))
+print(sim_result.get_counts(breakpoint1))
