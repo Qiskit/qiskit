@@ -19,7 +19,6 @@ Quantum Fourier Transform examples.
 import math
 from qiskit import QuantumCircuit
 from qiskit import execute, BasicAer
-from qiskit.providers.ibmq import least_busy, IBMQ
 
 
 ###############################################################
@@ -67,29 +66,9 @@ print(qft3)
 print(qft4)
 print(qft5)
 
-###############################################################
-# Set up the API and execute the program.
-###############################################################
-try:
-    IBMQ.load_accounts()
-except:
-    print("""WARNING: No valid IBMQ credentials found on disk. 
-             You must store your credentials using IBMQ.save_account(token, url). 
-             For now, there's only access to local simulator backends...""")
-
 print('Qasm simulator')
 sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
-result = job.result()
-print(result.get_counts(qft3))
-print(result.get_counts(qft4))
-print(result.get_counts(qft5))
-
-# Second version: real device
-least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration().n_qubits > 4))
-print("Running on current least busy device: ", least_busy_device)
-job = execute([qft3, qft4, qft5], least_busy_device, shots=1024)
 result = job.result()
 print(result.get_counts(qft3))
 print(result.get_counts(qft4))

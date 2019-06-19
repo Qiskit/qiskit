@@ -34,7 +34,7 @@ stage_generic: &stage_generic
   install:
     # Install step for jobs that require compilation and qa.
     - pip install -U -r requirements.txt
-    - pip install -U -r requirements-dev.txt -c constraints.txt
+    - pip install -U -r requirements-dev.txt coveralls -c constraints.txt
     - pip install -e .
     - pip install "qiskit-ibmq-provider" -c constraints.txt
   script:
@@ -140,6 +140,14 @@ jobs:
       name: Python 3.6 Tests Linux
       <<: *stage_linux
       python: 3.6
+      env:
+        - PYTHON="coverage run --source qiskit --parallel-mode"
+      after_success:
+        - coverage combine || true
+        - coveralls || true
+        - coverage xml || true
+        - pip install diff-cover || true
+        - diff-cover --compare-branch master coverage.xml || true
 
     # GNU/Linux, Python 3.7
     - stage: test
@@ -176,3 +184,21 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.2
+
+    # Randomized testing
+    - stage: test
+      name: Randomized tests
+      <<: *stage_linux
+      cache:
+        pip: true
+        directories:
+        - .hypothesis
+      script:
+      - python setup.py build_ext --inplace
+      - pip install "qiskit-aer"
+      - travis_wait 45 make test_randomized
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  - name: Randomized tests
