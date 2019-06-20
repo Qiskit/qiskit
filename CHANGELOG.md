@@ -77,8 +77,8 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
--   Possible to decompose SU(4) gate into non-CNOT basis with
-    `TwoQubitDecomposer`
+-   Fixes a bug that removed `id` gates from circuit. id gates are
+    like a `wait` command and will never be removed (\#2663)
 
 
 ## [0.8.2] - 2019-06-14
@@ -225,6 +225,8 @@ The format is based on [Keep a Changelog].
 -   Added support for parameterized circuits. (\#2103)
 -   Added preset PassManagers that offer predetermined pipelines of
     transpiler passes. (\#2163)
+-   Possible to decompose SU(4) gate into non-CNOT basis with
+    `TwoQubitDecomposer`
 
 ### Changed
 
