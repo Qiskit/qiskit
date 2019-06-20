@@ -66,7 +66,7 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(expected, result)
 
-    def test_optimize_1q_gates_collapse_identity(self):
+    def test_optimize_1q_gates_collapse_identity_equivalent(self):
         """test optimize_1q_gates removes u1(2*pi) rotations.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/159

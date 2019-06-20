@@ -26,22 +26,12 @@ class IdGate(Gate):
     """Identity gate.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
-    and should not be optimized.
+    and should not be optimized or unrolled (it is an opaque gate).
     """
 
     def __init__(self, label=None):
         """Create new Identity gate."""
         super().__init__("id", 1, [], label=label)
-
-    def _define(self):
-        definition = []
-        q = QuantumRegister(1, "q")
-        rule = [
-            (U3Gate(0, 0, 0), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
@@ -57,7 +47,7 @@ def iden(self, q):
     """Apply Identity to q.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
-    and should not be optimized.
+    and should not be optimized or unrolled (it is an opaque gate).
     """
     return self.append(IdGate(), [q], [])
 
