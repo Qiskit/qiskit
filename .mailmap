@@ -1,3 +1,15 @@
+# Entries in this file are made for two reasons: 
+# 1) to merge multiple git commit authors that correspond to a single author
+# 2) to change the canonical name and/or email address of an author.
+#
+# Format is:
+#     Canonical Name <Canonical@email> commit name <commit@email>
+#     \--------------+---------------/ \----------+-------------/
+#                 replace                       find
+# See also: 'git shortlog --help' and 'git check-mailmap --help'.
+#
+# If you don't like the way your name is cited by qiskit, please feel free to 
+# open a pull request against this file to set your preferred naming.
 Abdón Rodríguez Davila <a@abdonrd.com> <a@abdonrd.com>
 Abigail J. Cross <across@us.ibm.com>
 Albert Frisch <albert.frisch@de.ibm.com>
@@ -6,16 +18,18 @@ Ali Javadi-Abhari <ajavadia@users.noreply.github.com> <ajavadia@princeton.edu>
 Andrew W. Cross <awcross@us.ibm.com>
 Andrew W. Cross <awcross@us.ibm.com> <awcross@Andrews-MacBook-Pro.local>
 Andrew W. Cross <awcross@us.ibm.com> <awcross@andrews-mbp.watson.ibm.com>
+Anna Phan <9410731+attp@users.noreply.github.com> <anna.phan@au1.ibm.com> 
 Antonio D. Córcoles-Gonzales <adcorcol@us.ibm.com>
-Antonio Mezzacapo <amezzac@us.ibm.com>
-Antonio Mezzacapo <amezzac@us.ibm.com> <30698465+antoniomezzacapo@users.noreply.github.com>
+Antonio Mezzacapo <30698465+antoniomezzacapo@users.noreply.github.com> <amezzac@us.ibm.com> 
 Chris Culver <chris.cb.culver@gmail.com>
+Christian Claus <cclauss@bluewin.ch>
 Christophe Vuillot <c.vuillot@tudelft.nl>
 Christopher J. Wood <cjwood@us.ibm.com>
+Daniel Egger <38065505+eggerdj@users.noreply.github.com>
 Diego M. Rodríguez <diego.plan9@gmail.com>
 Erick Winston <ewinston@us.ibm.com>
-Fran Cabrera <fcabrera@us.ibm.com> <francabrera@Frans-MacBook-Pro.local>
-Fran Cabrera <fcabrera@us.ibm.com> <francabrera@users.noreply.github.com>
+Fran Cabrera <francabrera@users.noreply.github.com> <fcabrera@us.ibm.com> 
+Fran Cabrera <francabrera@users.noreply.github.com> <francabrera@Frans-MacBook-Pro.local>
 Ismael Faro Sertage <ismael.faro1@ibm.com> <ismael.faro.sertage@gmail.com>
 Ismael Faro Sertage <ismael.faro1@ibm.com> <ismael.faro1@ibm.com>
 Ismail Yunus Akhalwaya <ismaila@za.ibm.com>
@@ -23,17 +37,19 @@ Ismail Yunus Akhalwaya <ismaila@za.ibm.com> <30803146+ismaila-at-za-ibm@users.no
 Jay M. Gambetta <jay.gambetta@us.ibm.com>
 Jerry M. Chow <chowmj@us.ibm.com>
 Jesús Pérez <jesusper@us.ibm.com> <jesusprubio@gmail.com>
-Jonathan A. Wildstrom <jwildstr@us.ibm.com> <34069155+jwildstr-ibm@users.noreply.github.com>
+Jonathan A. Wildstrom <34069155+jwildstr-ibm@users.noreply.github.com>
+Jonathan A. Wildstrom <34069155+jwildstr-ibm@users.noreply.github.com> <jwildstr@us.ibm.com>
 Jorge Carballo <carballo@us.ibm.com> <jelcaf@gmail.com>
 Juan Cruz-Benito <juan.cruz@ibm.com>
-Juan Gomez-Mosquera <atilag@gmail.com> <Juan.Gomez1@ibm.com>
 Juan Gomez-Mosquera <atilag@gmail.com>
+Juan Gomez-Mosquera <atilag@gmail.com> <Juan.Gomez1@ibm.com>
 Kevin Krsulich <kevin.krsulich@ibm.com> <kevin@krsulich.net>
 Lev S. Bishop <18673315+levbishop@users.noreply.github.com>
 Luciano Bello <luciano.bello@ibm.com> <lbello@gmail.com>
 Luciano Bello <luciano.bello@ibm.com> <luciano.bello@ibm.com>
 Luciano Bello <luciano.bello@ibm.com> <luciano@debian.org>
 Martin Sandberg <martinos@us.ibm.com>
+Matt Stypulkoski <50181769+Matt-Stypulkoski@users.noreply.github.com>
 Peng Liu <34400304+liupibm@users.noreply.github.com>
 Prakash Murali <prakashmurali@gmail.com>
 Rafal Wieczorek <kenorb@users.noreply.github.com>
@@ -41,12 +57,4 @@ Rudy Raymond <rudyhar@jp.ibm.com> <rudyhar@jp.ibm.com>
 Salvador de la Puente González <neo.salvador@gmail.com> <salva@unoyunodiez.com>
 Thomas Alexander <talexander@ibm.com> <thomasalexander2718@gmail.com>
 Toshinari Itoko <itoko@jp.ibm.com>
-Christian Claus <cclauss@bluewin.ch>
-unknown-gadial <gadial@gmail.com>
-unknown-mtillet <50137038+mtillet@users.noreply.github.com>
-unknown-nkanazawa <39517270+nkanazawa1989@users.noreply.github.com>
-unknown-npdeep <npdeep@users.noreply.github.com>
-unknown-sathayen <sathayen@users.noreply.github.com>
-unknown-yang.luh <34480044+LuhangYang@users.noreply.github.com>
-unknown-Raphaël <49641842+rfclambert@users.noreply.github.com>
 Yael Ben-Haim <yaelbh@il.ibm.com>
