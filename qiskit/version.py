@@ -108,7 +108,10 @@ def _get_qiskit_versions():
         pass
 
     cmd = [sys.executable, '-m', 'pip', 'freeze']
-    reqs = _minimal_ext_cmd(cmd)
+    try:
+        reqs = _minimal_ext_cmd(cmd)
+    except Exception:
+        return out_dict
     reqs_dict = {}
     for req in reqs.split():
         req_parts = req.decode().split('==')
