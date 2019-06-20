@@ -53,7 +53,7 @@ class TestUCXYZ(QiskitTestCase):
                 else:
                     qc.ucz(angles, q[1:num_contr + 1], q[0])
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx'])
+                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
                 # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()

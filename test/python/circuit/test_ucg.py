@@ -57,7 +57,7 @@ class TestUCG(QiskitTestCase):
                 qc = QuantumCircuit(q)
                 qc.ucg(squs, q[1:], q[0], up_to_diagonal=up_to_diagonal)
                 # Decompose the gate
-                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx'])
+                qc = transpile(qc, basis_gates=['u1', 'u3', 'u2', 'cx', 'id'])
                 # Simulate the decomposed gate
                 simulator = BasicAer.get_backend('unitary_simulator')
                 result = execute(qc, simulator).result()

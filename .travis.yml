@@ -137,7 +137,7 @@ jobs:
 
     # GNU/Linux, Python 3.6
     - stage: test
-      name: Python 3.6 Tests Linux
+      name: Python 3.6 Tests and Coverage Linux
       <<: *stage_linux
       python: 3.6
       env:
@@ -196,9 +196,28 @@ jobs:
       script:
       - python setup.py build_ext --inplace
       - pip install "qiskit-aer"
-      - travis_wait 45 make test_randomized
+      - make test_randomized
+
+    - stage: test
+      name: Benchmarks
+      <<: *stage_linux
+      script:
+      - python setup.py build_ext --inplace
+      - pip install "qiskit-aer"
+      - pip install "asv"
+      - git clone "https://www.github.com/Qiskit/qiskit" meta-qiskit
+      - >-
+        sed -i
+        -e 's/"repo": "https:\/\/github.com\/Qiskit\/qiskit-terra.git",/"repo": "..",/'
+        meta-qiskit/asv.conf.json
+      - cat meta-qiskit/asv.conf.json
+      - echo $TRAVIS_BRANCH
+      - echo $TRAVIS_PULL_REQUEST_BRANCH
+      - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
+      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography)\.' $TRAVIS_BRANCH HEAD
 
 matrix:
   fast_finish: true
   allow_failures:
   - name: Randomized tests
+  - name: Benchmarks
