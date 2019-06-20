@@ -23,7 +23,11 @@ from qiskit.extensions.standard.u3 import U3Gate
 
 
 class IdGate(Gate):
-    """Identity gate."""
+    """Identity gate.
+
+    Identity gate corresponds to a single-qubit gate wait cycle,
+    and should not be optimized.
+    """
 
     def __init__(self, label=None):
         """Create new Identity gate."""
@@ -50,7 +54,11 @@ class IdGate(Gate):
 
 
 def iden(self, q):
-    """Apply Identity to q."""
+    """Apply Identity to q.
+
+    Identity gate corresponds to a single-qubit gate wait cycle,
+    and should not be optimized.
+    """
     return self.append(IdGate(), [q], [])
 
 
