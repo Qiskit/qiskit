@@ -79,6 +79,8 @@ The format is based on [Keep a Changelog].
 
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
+-   Fixes a bug that removed `id` gates from circuit. id gates are
+    like a `wait` command and will never be removed (\#2663)
 
 
 ## [0.8.2] - 2019-06-14
