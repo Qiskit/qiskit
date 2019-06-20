@@ -30,7 +30,7 @@ class U0Gate(Gate):
 
     def __init__(self, m):
         """Create new u0 gate."""
-        warnings.warn("The u0 gate is deprecated in Qiskit Terra 0.9+. "
+        warnings.warn("The u0 gate is deprecated and will be removed after Qiskit Terra 0.10. "
                       "Use the iden gate to insert delays.", DeprecationWarning)
         super().__init__("u0", 1, [m])
 
