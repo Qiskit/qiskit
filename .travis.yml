@@ -209,13 +209,12 @@ jobs:
       - >-
         sed -i
         -e 's/"repo": "https:\/\/github.com\/Qiskit\/qiskit-terra.git",/"repo": "..",/'
-        -e 's/"pythons": \["3.5", "3.6", "3.7"\],/"pythons": ["3.5"],/'
         meta-qiskit/asv.conf.json
       - cat meta-qiskit/asv.conf.json
       - echo $TRAVIS_BRANCH
       - echo $TRAVIS_PULL_REQUEST_BRANCH
       - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
-      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --bench '^(qft|transpiler_benchmarks|state_tomography)\.' $TRAVIS_BRANCH HEAD
+      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography)\.' $TRAVIS_BRANCH HEAD
 
 matrix:
   fast_finish: true
