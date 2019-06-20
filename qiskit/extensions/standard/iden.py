@@ -18,8 +18,6 @@ Identity gate.
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u3 import U3Gate
 
 
 class IdGate(Gate):
