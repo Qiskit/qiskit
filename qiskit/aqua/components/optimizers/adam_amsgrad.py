@@ -121,7 +121,7 @@ class ADAM(Optimizer):
         self._noise_factor = noise_factor
         self._eps = eps
         self._amsgrad = amsgrad
-        self._t = 0  #time steps
+        self._t = 0  # time steps
         self._m = np.zeros(1)
         self._v = np.zeros(1)
         if self._amsgrad:
@@ -151,7 +151,7 @@ class ADAM(Optimizer):
                 writer.writerow({'v': self._v, 'm': self._m, 't': self._t})
 
     def load_params(self, load_dir):
-        with open(os.path.join(load_dir,'adam_params.csv'), mode='r') as csv_file:
+        with open(os.path.join(load_dir, 'adam_params.csv'), mode='r') as csv_file:
             if self._amsgrad:
                 fieldnames = ['v', 'v_eff', 'm', 't']
             else:
@@ -160,7 +160,7 @@ class ADAM(Optimizer):
             for line in reader:
                 v = line['v']
                 if self._amsgrad:
-                 v_eff = line['v_eff']
+                    v_eff = line['v_eff']
                 m = line['m']
                 t = line['t']
 
@@ -230,4 +230,3 @@ class ADAM(Optimizer):
 
         point, value, nfev = self.minimize(objective_function, initial_point, gradient_function)
         return point, value, nfev
-
