@@ -31,9 +31,10 @@ from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.passes import LegacySwap
+from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
+from qiskit.transpiler.passes import ApplyLayout
 
 
 def default_pass_manager(transpile_config):
@@ -67,13 +68,14 @@ def default_pass_manager(transpile_config):
     # Extend the the dag/layout with ancillas using the full coupling map
     pass_manager.append(FullAncillaAllocation(coupling_map))
     pass_manager.append(EnlargeWithAncilla())
+    pass_manager.append(ApplyLayout())
 
     # Circuit must only contain 1- or 2-qubit interactions for swapper to work
     pass_manager.append(Unroll3qOrMore())
 
     # Swap mapper
     pass_manager.append(BarrierBeforeFinalMeasurements())
-    pass_manager.append(LegacySwap(coupling_map, trials=20, seed=seed_transpiler))
+    pass_manager.append(BasicSwap(coupling_map))
 
     # Expand swaps
     pass_manager.append(Decompose(SwapGate))
