@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog].
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
     `cx`.
+-   The gate `u0` is being deprecated in favor of using multiple `id` gates
+    to insert delays (\#2664)
 -   The decorator `requires_qe_access` is being deprecated in favor of
     `online_test`.
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
