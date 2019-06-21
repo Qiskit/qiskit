@@ -252,6 +252,28 @@ class TestStochasticSwap(QiskitTestCase):
         expected.h(qr[2])
 
         self.assertEqual(circuit_to_dag(expected), after)
+        
+    def test_all_single_qubit(self):
+        """Test all trivial layers."""
+        coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(qr, cr)
+        circ.h(qr)
+        circ.z(qr)
+        circ.s(qr)
+        circ.t(qr)
+        circ.tdg(qr)
+        circ.measure(qr[0], cr[0])  # intentional duplicate
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(qr[2], cr[2])
+        circ.measure(qr[3], cr[3])
+        dag = circuit_to_dag(circ)
+
+        pass_ = StochasticSwap(coupling, 20, 13)
+        after = pass_.run(dag)
+        self.assertEqual(dag, after)
 
     def test_overoptimization_case(self):
         """Check mapper overoptimization.
@@ -408,9 +430,9 @@ class TestStochasticSwap(QiskitTestCase):
         #                 │  └───┘┌─┐        ┌───┐      └─┬─┘┌─┐└╥┘
         #  q_1: |0>──■────X────■──┤M├──────X─┤ X ├─X──────■──┤M├─╫─
         #          ┌─┴─┐┌───┐  │  └╥┘      │ └─┬─┘ │ ┌─┐     └╥┘ ║
-        #  a_0: |0>┤ X ├┤ H ├──┼───╫───────┼───■───┼─┤M├──────╫──╫─
+        #  q_2: |0>┤ X ├┤ H ├──┼───╫───────┼───■───┼─┤M├──────╫──╫─
         #          └───┘└───┘┌─┴─┐ ║ ┌───┐ │ ┌───┐ │ └╥┘ ┌─┐  ║  ║
-        #  a_1: |0>──────────┤ X ├─╫─┤ H ├─X─┤ H ├─X──╫──┤M├──╫──╫─
+        #  q_3: |0>──────────┤ X ├─╫─┤ H ├─X─┤ H ├─X──╫──┤M├──╫──╫─
         #                    └───┘ ║ └───┘   └───┘    ║  └╥┘  ║  ║
         #   c_0: 0 ════════════════╩══════════════════╬═══╬═══╩══╬═
         #                                             ║   ║      ║
@@ -419,11 +441,6 @@ class TestStochasticSwap(QiskitTestCase):
         #   c_2: 0 ═══════════════════════════════════╩═══╬════════
         #                                                 ║
         #   c_3: 0 ═══════════════════════════════════════╩════════
-        # Layout from mapper:
-        # {qr[0]: 0,
-        #  qr[1]: 1,
-        #  ar[0]: 2,
-        #  ar[1]: 3}
         #
         #     2
         #     |
