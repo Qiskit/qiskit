@@ -36,6 +36,7 @@ from .collect_2q_blocks import Collect2qBlocks
 from .consolidate_blocks import ConsolidateBlocks
 from .mapping.full_ancilla_allocation import FullAncillaAllocation
 from .mapping.enlarge_with_ancilla import EnlargeWithAncilla
+from .mapping.apply_layout import ApplyLayout
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
 from .mapping.check_cx_direction import CheckCXDirection
