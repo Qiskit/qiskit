@@ -64,7 +64,7 @@ class CXDirection(TransformationPass):
         new_dag = DAGCircuit()
 
         if self.layout is None:
-            # LegacySwap renames the register in the DAG and does not match the property set
+            # StochasticSwap renames the register in the DAG and does not match the property set
             self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         for layer in dag.serial_layers():
