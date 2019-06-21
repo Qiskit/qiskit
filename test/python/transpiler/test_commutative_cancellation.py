@@ -522,7 +522,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.measure(0, 0)
         circuit.cx(1, 2)
         circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
-        circuit.measure([1, 2],[0, 1])
+        circuit.measure([1, 2], [0, 1])
 
         new_pm = PassManager(CommutativeCancellation())
         new_circuit = transpile(circuit, pass_manager=new_pm)
