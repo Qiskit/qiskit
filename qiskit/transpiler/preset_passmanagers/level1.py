@@ -75,18 +75,13 @@ def level_1_pass_manager(transpile_config):
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
     _layout_check = CheckMap(coupling_map)
 
-    def _improve_layout_condition(property_set):
-        return not property_set['is_swap_mapped']
-
-    _improve_layout = DenseLayout(coupling_map)
-
-    # 2. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 3. Unroll to the basis
+    # 4. Unroll to the basis
     _unroll = Unroller(basis_gates)
 
-    # 4. Swap to fit the coupling map
+    # 5. Swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
@@ -96,16 +91,16 @@ def level_1_pass_manager(transpile_config):
              StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
-    # 5. Fix any bad CX directions
+    # 6. Fix any bad CX directions
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
     def _direction_condition(property_set):
         return not coupling_map.is_symmetric and not property_set['is_direction_mapped']
     _direction = [CXDirection(coupling_map)]
 
-    # 6. Remove zero-state reset
+    # 7. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
-    # 7. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
+    # 8. Merge 1q rotations and cancel CNOT gates iteratively until no more change in depth
     _depth_check = [Depth(), FixedPoint('depth')]
 
     def _opt_control(property_set):
@@ -118,7 +113,6 @@ def level_1_pass_manager(transpile_config):
         pm1.append(_given_layout)
         pm1.append(_choose_layout, condition=_choose_layout_condition)
         pm1.append(_layout_check)
-        pm1.append(_improve_layout, condition=_improve_layout_condition)
         pm1.append(_embed)
     pm1.append(_unroll)
     if coupling_map:

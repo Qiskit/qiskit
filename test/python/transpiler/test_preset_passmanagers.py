@@ -15,7 +15,7 @@
 """Tests preset pass manager functionalities"""
 
 from qiskit.test import QiskitTestCase
-from qiskit.compiler import transpile
+from qiskit.compiler import transpile, assemble
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo
 
@@ -58,3 +58,29 @@ class TestFakeBackendTranspiling(QiskitTestCase):
                     optimization_level=optimization_level
                 )
                 self.assertIsInstance(result, QuantumCircuit)
+
+    def test_compile_with_initial_layout(self):
+        """Test that a user-given initial layout is respected.
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/1711
+        """
+        # build a circuit which works as-is on the coupling map, using the initial layout
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+        qc = QuantumCircuit(qr, cr)
+        qc.cx(qr[2], qr[1])
+        qc.cx(qr[2], qr[0])
+        initial_layout = {0: qr[1], 2: qr[0], 15: qr[2]}
+        backend = FakeRueschlikon()
+
+        # TODO: improve test with ddt
+        for optimization_level in range(4):
+            qc_b = transpile(qc, backend, initial_layout=initial_layout,
+                             optimization_level=optimization_level)
+            qobj = assemble(qc_b)
+
+            compiled_ops = qobj.experiments[0].instructions
+            for operation in compiled_ops:
+                if operation.name == 'cx':
+                    self.assertIn(operation.qubits, backend.configuration().coupling_map)
+                    self.assertIn(operation.qubits, [[15, 0], [15, 2]])
