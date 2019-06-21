@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog].
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
     `cx`.
+-   The gate `u0` is being deprecated in favor of using multiple `id` gates
+    to insert delays (\#2664)
 -   The decorator `requires_qe_access` is being deprecated in favor of
     `online_test`.
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
@@ -81,6 +83,7 @@ The format is based on [Keep a Changelog].
     `TwoQubitDecomposer`
 -   Fixes a bug that removed `id` gates from circuit. id gates are
     like a `wait` command and will never be removed (\#2663)
+-   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
 
 
 ## [0.8.2] - 2019-06-14

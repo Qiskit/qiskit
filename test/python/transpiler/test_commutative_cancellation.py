@@ -515,6 +515,20 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         self.assertEqual(expected, new_circuit)
 
+    def test_conditional_gates_dont_commute(self):
+        """Conditional gates do not commute and do not cancel"""
+        circuit = QuantumCircuit(3, 2)
+        circuit.h(0)
+        circuit.measure(0, 0)
+        circuit.cx(1, 2)
+        circuit.cx(1, 2).c_if(circuit.cregs[0], 0)
+        circuit.measure([1, 2], [0, 1])
+
+        new_pm = PassManager(CommutativeCancellation())
+        new_circuit = transpile(circuit, pass_manager=new_pm)
+
+        self.assertEqual(circuit, new_circuit)
+
 
 if __name__ == '__main__':
     unittest.main()
