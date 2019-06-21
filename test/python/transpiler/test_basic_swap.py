@@ -111,9 +111,9 @@ class TestBasicSwap(QiskitTestCase):
         """ Swapper in a bigger coupling map
          q0:-------
 
-         q1:--(+)--
+         q1:---.---
                |
-         q2:---.---
+         q2:--(+)--
 
          CouplingMap map: [1]--[0]--[2]--[3]
 
