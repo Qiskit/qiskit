@@ -252,7 +252,7 @@ class TestStochasticSwap(QiskitTestCase):
         expected.h(qr[2])
 
         self.assertEqual(circuit_to_dag(expected), after)
-        
+
     def test_all_single_qubit(self):
         """Test all trivial layers."""
         coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
