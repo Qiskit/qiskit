@@ -36,6 +36,7 @@ from qiskit.transpiler.passes import FixedPoint
 from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
+from qiskit.transpiler.passes import ApplyLayout
 
 
 def level_1_pass_manager(transpile_config):
@@ -80,7 +81,7 @@ def level_1_pass_manager(transpile_config):
     _improve_layout = DenseLayout(coupling_map)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
+    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 3. Unroll to the basis
     _unroll = Unroller(basis_gates)

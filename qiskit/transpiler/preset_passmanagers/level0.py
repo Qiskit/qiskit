@@ -31,6 +31,7 @@ from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.transpiler.passes import ApplyLayout
 
 
 def level_0_pass_manager(transpile_config):
@@ -65,7 +66,7 @@ def level_0_pass_manager(transpile_config):
     _choose_layout = TrivialLayout(coupling_map)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
+    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 3. Unroll to the basis
     _unroll = Unroller(basis_gates)

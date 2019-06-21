@@ -41,6 +41,7 @@ from qiskit.transpiler.passes import OptimizeSwapBeforeMeasure
 from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
+from qiskit.transpiler.passes import ApplyLayout
 
 
 def level_3_pass_manager(transpile_config):
@@ -82,7 +83,7 @@ def level_3_pass_manager(transpile_config):
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
+    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 3. Unroll to 1q or 2q gates, swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
