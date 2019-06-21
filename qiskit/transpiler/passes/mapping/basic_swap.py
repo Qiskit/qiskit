@@ -13,11 +13,11 @@
 # that they have been altered from the originals.
 
 """
-A pass implementing a basic mapper.
+A pass implementing a basic swapper.
 
-The basic mapper is a minimum effort to insert swap gates to map the DAG into a coupling map. When
-a cx is not in the coupling map possibilities, it inserts one or more swaps in front to make it
-compatible.
+The basic mapper is a minimum effort to insert swap gates to map the DAG onto
+a coupling map. When a cx is not in the coupling map possibilities, it inserts
+one or more swaps in front to make it compatible.
 """
 
 from qiskit.transpiler.basepasses import TransformationPass
@@ -35,6 +35,7 @@ class BasicSwap(TransformationPass):
     def __init__(self, coupling_map):
         """
         Maps a DAGCircuit onto a `coupling_map` using swap gates.
+
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
         """
@@ -44,6 +45,7 @@ class BasicSwap(TransformationPass):
     def run(self, dag):
         """
         Runs the BasicSwap pass on `dag`.
+
         Args:
             dag (DAGCircuit): DAG to map.
 
@@ -63,8 +65,8 @@ class BasicSwap(TransformationPass):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
         canonical_register = dag.qregs['q']
-        initial_layout = Layout.generate_trivial_layout(canonical_register)
-        current_layout = initial_layout.copy()
+        trivial_layout = Layout.generate_trivial_layout(canonical_register)
+        current_layout = trivial_layout.copy()
 
         for layer in dag.serial_layers():
             subdag = layer['graph']
@@ -91,14 +93,14 @@ class BasicSwap(TransformationPass):
                                                         cargs=[])
 
                     # layer insertion
-                    edge_map = current_layout.combine_into_edge_map(initial_layout)
+                    edge_map = current_layout.combine_into_edge_map(trivial_layout)
                     new_dag.compose_back(swap_layer, edge_map)
 
                     # update current_layout
                     for swap in range(len(path) - 2):
                         current_layout.swap(path[swap], path[swap + 1])
 
-            edge_map = current_layout.combine_into_edge_map(initial_layout)
+            edge_map = current_layout.combine_into_edge_map(trivial_layout)
             new_dag.extend_back(subdag, edge_map)
 
         return new_dag
