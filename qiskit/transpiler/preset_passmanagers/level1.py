@@ -21,13 +21,13 @@ from qiskit.transpiler.passmanager import PassManager
 from qiskit.extensions.standard import SwapGate
 
 from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import Unroll3qOrMore
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
-from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
@@ -88,6 +88,7 @@ def level_1_pass_manager(transpile_config):
         return not property_set['is_swap_mapped']
 
     _swap = [BarrierBeforeFinalMeasurements(),
+             Unroll3qOrMore(),
              StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
