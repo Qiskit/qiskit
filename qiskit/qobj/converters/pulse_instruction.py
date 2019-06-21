@@ -214,9 +214,9 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         command_dict = {
-            'name': 'snapshot',
+            'name': instruction.name,
             't0': shift+instruction.start_time,
-            'label': instruction.name,
+            'label': instruction.label,
             'type': instruction.type
         }
         return self._qobj_model(**command_dict)
@@ -409,4 +409,4 @@ class QobjToInstructionConverter:
             Schedule: Converted and scheduled Snapshot
         """
         t0 = instruction.t0
-        return commands.Snapshot(instruction.label, instruction.type) << t0
+        return commands.Snapshot(instruction.label, instruction.type, instruction.name) << t0

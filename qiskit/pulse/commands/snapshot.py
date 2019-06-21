@@ -25,21 +25,33 @@ class Snapshot(Command, Instruction):
 
     prefix = 'snap'
 
-    def __init__(self, name: str, snap_type: str):
+    def __init__(self, label: str, snapshot_type: str = 'statevector', name: str = None):
         """Create new snapshot command.
 
         Args:
-            name (str): Snapshot name which is used to identify the snapshot in the output.
-            snap_type (str): Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
+            label (str): Snapshot label which is used to identify the snapshot in the output.
+            snapshot_type (str): Type of snapshot, e.g., “state”: take snapshot of quantum state.
                 The types of snapshots offered are defined in a separate specification
                 document for simulators.
+            name (str): Snapshot name which defaults to label, but can be different than label.
         """
-        self._type = snap_type
+        self._type = snapshot_type
         self._channel = SnapshotChannel()
         Command.__init__(self, duration=0)
-        self._name = Snapshot.create_name(name)
+        self._label = Snapshot.create_name(label)
+
+        if name is not None:
+            self._name = Snapshot.create_name(name)
+        else:
+            self._name = self._label
+
         Instruction.__init__(self, self, self._channel, name=self.name)
         self._buffer = 0
+
+    @property
+    def label(self) -> str:
+        """Label of snapshot."""
+        return self._label
 
     @property
     def type(self) -> str:
@@ -48,7 +60,7 @@ class Snapshot(Command, Instruction):
 
     def __eq__(self, other):
         """Two Snapshots are the same if they are of the same type
-        and have the same name and type.
+        and have the same label, type, and name.
 
         Args:
             other (Snapshot): other Snapshot,
@@ -57,8 +69,9 @@ class Snapshot(Command, Instruction):
             bool: are self and other equal.
         """
         if (type(self) is type(other) and
-                self.name == other.name and
-                self.type == other.type):
+                self.label == other.label and
+                self.type == other.type and
+                self.name == other.name):
             return True
         return False
 
@@ -68,5 +81,9 @@ class Snapshot(Command, Instruction):
     # pylint: enable=arguments-differ
 
     def __repr__(self):
-        return '%s(%s, %s) -> %s' % (self.__class__.__name__, self.name,
-                                     self.type, self.channels)
+        if self.label == self.name:
+            return '%s(%s, %s) -> %s' % (self.__class__.__name__, self.label,
+                                         self.type, self.channels)
+        else:
+            return '%s(%s, %s, %s) -> %s' % (self.__class__.__name__, self.label,
+                                             self.type, self.name, self.channels)

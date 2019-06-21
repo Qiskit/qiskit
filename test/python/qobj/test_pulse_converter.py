@@ -122,7 +122,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Snapshot(name='label', snap_type='type')
+        instruction = Snapshot(label='label', snapshot_type='type', name='snapshot')
 
         valid_qobj = PulseQobjInstruction(
             name='snapshot',
@@ -211,7 +211,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
     def test_snapshot(self):
         """Test converted qobj from SnapShot."""
-        cmd = Snapshot(name='label', snap_type='type')
+        cmd = Snapshot(label='label', snapshot_type='type', name='snapshot')
         instruction = cmd << 10
 
         qobj = PulseQobjInstruction(name='snapshot', t0=10, label='label', type='type')
