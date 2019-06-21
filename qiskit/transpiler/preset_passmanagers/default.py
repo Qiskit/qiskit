@@ -75,7 +75,7 @@ def default_pass_manager(transpile_config):
 
     # Swap mapper
     pass_manager.append(BarrierBeforeFinalMeasurements())
-    pass_manager.append(BasicSwap(coupling_map))
+    pass_manager.append(StochasticSwap(coupling_map, trials=20, seed=seed_transpiler))
 
     # Expand swaps
     pass_manager.append(Decompose(SwapGate))

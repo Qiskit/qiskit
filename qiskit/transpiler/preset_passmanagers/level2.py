@@ -31,7 +31,7 @@ from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.passes import LegacySwap
+from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
@@ -90,7 +90,7 @@ def level_2_pass_manager(transpile_config):
 
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
-             LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
+             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
     # 4. Unroll to the basis

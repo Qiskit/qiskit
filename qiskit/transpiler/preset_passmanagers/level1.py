@@ -29,7 +29,7 @@ from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.passes import LegacySwap
+from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
@@ -92,7 +92,7 @@ def level_1_pass_manager(transpile_config):
         return not property_set['is_swap_mapped']
 
     _swap = [BarrierBeforeFinalMeasurements(),
-             LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
+             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
     # 5. Fix any bad CX directions

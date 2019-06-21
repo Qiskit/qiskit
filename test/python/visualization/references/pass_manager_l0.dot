@@ -56,7 +56,7 @@ fontname=helvetica;
 label=Conditional;
 20 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
 16 -> 20;
-21 [color=blue, fontname=helvetica, label=LegacySwap, shape=rectangle];
+21 [color=blue, fontname=helvetica, label=StochasticSwap, shape=rectangle];
 22 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
 22 -> 21;
 23 [color=black, fontname=helvetica, fontsize=10, label=initial_layout, shape=ellipse, style=dashed];
