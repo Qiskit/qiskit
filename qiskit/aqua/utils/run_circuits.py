@@ -229,7 +229,7 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
                 qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
             try:
                 circuit_cache.cache_circuit(qobj, circuits, 0)
-            except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
+            except (TypeError, IndexError, AquaError, AttributeError, KeyError):
                 try:
                     circuit_cache.cache_transpiled_circuits = True
                     circuit_cache.cache_circuit(qobj, transpiled_circuits, 0)
@@ -394,7 +394,7 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
                         logger.warning("FAILURE: Job id: {} encounters the error. "
                                        "Error is : {}. Re-submit the Qobj.".format(job_id, job.error_message()))
                     else:
-                        logging.warning("FAILURE: Job id: {}. Unknown status: {}. " 
+                        logging.warning("FAILURE: Job id: {}. Unknown status: {}. "
                                         "Re-submit the Qobj.".format(job_id, job_status))
 
                     job, job_id = _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation)
@@ -463,6 +463,7 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
         elif is_ibmq_provider(backend):
             # TODO: IBMQJob performs validation during the constructor. the following lines does not
             # skip validation but run as is.
+            # pylint: disable=no-name-in-module, import-error
             from qiskit.providers.ibmq.job import IBMQJob
             job = IBMQJob(backend, None, backend._api, qobj=qobj)
             job._future = job._executor.submit(job._submit_callback)
