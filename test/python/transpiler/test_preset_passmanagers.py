@@ -90,7 +90,7 @@ class TestFakeBackendTranspiling(QiskitTestCase):
                     self.assertIn(operation.qubits, [[15, 0], [15, 2]])
 
     # TODO: make these tests more compact with ddt
-    def test_initial_layout_1(self):
+    def test_initial_layout_2(self):
         """Test that a user-given initial layout is respected,
         in the transpiled circuit.
 
@@ -101,7 +101,7 @@ class TestFakeBackendTranspiling(QiskitTestCase):
         cr = ClassicalRegister(2)
         qc = QuantumCircuit(qr, cr)
         qc.cx(qr[2], qr[4])
-        initial_layout = {qr[2]:11, qr[4]:3,  # map to [11, 3] connection
+        initial_layout = {qr[2]: 11, qr[4]: 3,  # map to [11, 3] connection
                           qr[0]: 1, qr[1]: 5, qr[3]: 9}
         backend = FakeMelbourne()
 
@@ -109,13 +109,13 @@ class TestFakeBackendTranspiling(QiskitTestCase):
             qc_b = transpile(qc, backend, initial_layout=initial_layout,
                              optimization_level=optimization_level)
 
-            for gate, qubits, clbits in qc_b:
+            for gate, qubits, _ in qc_b:
                 if gate.name == 'cx':
                     for qubit in qubits:
                         self.assertIn(qubit.index, [11, 3])
 
     # TODO: make these tests more compact with ddt
-    def test_initial_layout_2(self):
+    def test_initial_layout_3(self):
         """Test that a user-given initial layout is respected,
         even if cnots are not in the coupling map.
 
@@ -129,7 +129,7 @@ class TestFakeBackendTranspiling(QiskitTestCase):
         qc.u2(0.4, 0.5, qr[2])
         qc.barrier()
         qc.cx(qr[0], qr[2])
-        initial_layout = [6,7,12]
+        initial_layout = [6, 7, 12]
         backend = FakePoughkeepsie()
 
         for optimization_level in range(4):
