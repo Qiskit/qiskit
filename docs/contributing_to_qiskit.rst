@@ -65,14 +65,14 @@ You can build a local copy of the documentation from your local clone of the
 
    .. code-block:: sh
 
-     pip install sphinx_materialdesign_theme
+      pip install sphinx_materialdesign_theme
 
 4. Build the documentation by navigating to your local clone of `Qiskit/qiskit`
    and running the following command in a terminal window:
 
    .. code-block:: sh
 
-     make doc
+      make doc
 
 As you make changes to your local RST files, you can update your
 HTML files by navigating to `/doc/` and running the following in a terminal
@@ -80,7 +80,7 @@ window:
 
 .. code-block:: sh
 
-  make html
+   make html
 
 This will build a styled, HTML version of your local documentation repository
 in the subdirectory `/docs/_build/html/`.
@@ -128,358 +128,405 @@ The following steps show the installation process for Ignis.
 
 1. Clone the Qiskit element repository.
 
-.. code-block:: sh
+   .. code-block:: sh
 
-    git clone https://github.com/Qiskit/qiskit-ignis.git
+       git clone https://github.com/Qiskit/qiskit-ignis.git
 
 2. Create a virtual development environment.
 
-.. code-block:: sh
+   .. code-block:: sh
 
-    conda create -y -n QiskitDevenv python=3
-    conda activate QiskitDevenv
+       conda create -y -n QiskitDevenv python=3
+       conda activate QiskitDevenv
 
 3. Install the package in `editable mode <https://pip.pypa.io/en/stable/
    reference/pip_install/#editable-installs>`_ from the root directory of the
    repository. The following example shows the installation for Ignis.
 
-.. code:: sh
+   .. code:: sh
 
-  pip install -e qiskit-ignis
+      pip install -e qiskit-ignis
 
 Installing Terra from Source
 ----------------------------
 Installing from source requires that you have a c++ compiler on your system that supports
-c++-11.  On most Linux platforms, the necessary GCC compiler is already installed.
+c++-11.
 
-Installing a Compiler for macOS
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. tabs::
 
-If you use macOS, you can install the Clang compiler by installing XCode.
-Check if you have XCode and clang installed by opening a terminal window and entering the
-following.
+   .. tab:: Compiler for Linux
 
-.. code:: sh
+      On most Linux platforms, the necessary GCC compiler is already installed.
 
-  clang --version
+   .. tab:: Compiler for macOS
 
-Install XCode and clang by using the following command.
+      If you use macOS, you can install the Clang compiler by installing XCode.
+      Check if you have XCode and clang installed by opening a terminal window and entering the
+      following.
 
-.. code:: sh
+      .. code:: sh
 
-    xcode-select --install
+            clang --version
 
-Installing a Compiler for Windows
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-On Windows, it is easiest to install the Visual C++ compiler from the
-`Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`_.
-You can instead install Visual Studio version 2015 or 2017, making sure to select the
-options for installing the C++ compiler.
+      Install XCode and clang by using the following command.
 
-Installing Qiskit Terra
-^^^^^^^^^^^^^^^^^^^^^^^
+      .. code:: sh
+
+            xcode-select --install
+
+   .. tab:: Compiler for Windows
+
+      On Windows, it is easiest to install the Visual C++ compiler from the
+      `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`_.
+      You can instead install Visual Studio version 2015 or 2017, making sure to select the
+      options for installing the C++ compiler.
+
+Once the compilers are installed, you are ready to install Qiskit Terra.
+
 1. Clone the Terra repository.
 
-.. code:: sh
+   .. code:: sh
 
-  git clone https://github.com/Qiskit/qiskit-terra.git
+      git clone https://github.com/Qiskit/qiskit-terra.git
 
 2. Cloning the repository creates a local folder called ``qiskit-terra``.
 
-.. code:: sh
+   .. code:: sh
 
-  cd qiskit-terra
+      cd qiskit-terra
 
 3. Install the Python requirements libraries from your ``qiskit-terra`` directory.
 
-.. code:: sh
+   .. code:: sh
 
-    pip install cython
+      pip install cython
 
-* If you want to run tests or linting checks, install the developer requirements.
+.. tabs::
 
-.. code:: sh
+   .. tab:: Run Tests
 
-    pip install -r requirements-dev.txt
+      If you want to run tests or linting checks, install the developer requirements.
 
-4. Install ``qiskit-terra``.
+      .. code:: sh
 
-.. code:: sh
+         pip install -r requirements-dev.txt
 
-    pip install .
+      4. Install ``qiskit-terra``.
 
-* If you want to install it in editable mode, meaning that code changes to the
-  project don't require a reinstall to be applied you can do this with:
+         .. code:: sh
+
+            pip install .
+
+   .. tab:: Editable Mode
+
+      If you want to install it in editable mode, meaning that code changes to the
+      project don't require a reinstall to be applied you can do this with:
+
+      .. code:: sh
+
+          pip install -e .
+
+   .. tab:: Run Examples
+
+      You can then run the code examples working after installing terra. You can
+      run the example with the following command.
+
+      .. code:: sh
+
+         python examples/python/using_qiskit_terra_level_0.py
+
+
+After you've installed Terra, you can install Aer as an add-on to run additional simulators.
+
+Installing IBMQ Provider from Source
+------------------------------------
+
+1. Clone the qiskit-ibmq-provider repository.
+
+   .. code:: sh
+
+      git clone https://github.com/Qiskit/qiskit-ibmq-provider.git
+
+2. Cloning the repository creates a local directory called ``qiskit-ibmq-provider``.
+
+   .. code:: sh
+
+      cd qiskit-ibmq-provider
+
+3. If you want to run tests or linting checks, install the developer requirements.
+   This is not required to install or use the qiskit-ibmq-provider package when
+   installing from source.
+
+   .. code:: sh
+
+      pip install -r requirements-dev.txt
+
+4. Install qiskit-ibmq-provider
+
+   .. code:: sh
+
+      pip install .
+
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied you can do this with:
 
 .. code:: sh
 
     pip install -e .
-
-* You can then run the code examples working after installing terra. You can
-  run the example with the following command.
-
-.. code:: sh
-
-    python examples/python/using_qiskit_terra_level_0.py
-
-
-After you've installed Terra, you can install Aer as an add-on to run additional simulators.
 
 Installing Aer from Source
 --------------------------
 
 1. Clone the Aer repository.
 
-.. code:: sh
+   .. code:: sh
 
-    git clone https://github.com/Qiskit/qiskit-aer
+      git clone https://github.com/Qiskit/qiskit-aer
 
 2. Install build requirements.
 
-.. code:: sh
+   .. code:: sh
 
-    pip install cmake scikit-build cython
+      pip install cmake scikit-build cython
 
 After this the steps to install Aer depend on which operating system you are
 using. Since Aer is a compiled C++ program with a python interface there are
 non-python dependencies for building the Aer binary which can't be installed
 universally depending on operating system.
 
-Linux
-^^^^^
+.. tabs::
 
-3. Install compiler requirements.
+   .. tab:: Linux
 
-   Building Aer requires a C++ compiler and development headers
+      3. Install compiler requirements.
 
-   If you're using Ubuntu>=16.04 or an equivalent Debian Linux distribution
-   you can install this with:
+         Building Aer requires a C++ compiler and development headers
 
-.. code:: sh
+         If you're using Ubuntu>=16.04 or an equivalent Debian Linux distribution
+         you can install this with:
 
-    sudo apt install build-essential
+         .. code:: sh
 
-4. Install OpenBLAS development headers.
+            sudo apt install build-essential
 
-If you're using Ubuntu>=16.04 or an equivalent Debian Linux distribution,
-you can install this with:
+      4. Install OpenBLAS development headers.
 
-.. code:: sh
+         If you're using Ubuntu>=16.04 or an equivalent Debian Linux distribution,
+         you can install this with:
 
-    sudo apt install libopenblas-dev
+         .. code:: sh
 
+            sudo apt install libopenblas-dev
 
-5. Build and install qiskit-aer directly
 
-If you have pip <19.0.0 installed and your environment doesn't require a
-custom build options you can just run:
+      5. Build and install qiskit-aer directly
 
-.. code:: sh
+         If you have pip <19.0.0 installed and your environment doesn't require a
+         custom build options you can just run:
 
-    cd qiskit-aer
-    pip install .
+         .. code:: sh
 
-This will both build the binaries and install Aer.
+            cd qiskit-aer
+            pip install .
 
-Alternatively if you have a newer pip installed, or have some custom requirement
-you can build a python wheel manually.
+         This will both build the binaries and install Aer.
 
-.. code:: sh
+         Alternatively if you have a newer pip installed, or have some custom requirement
+         you can build a python wheel manually.
 
-    cd qiskit-aer
-    python ./setup.py bdist_wheel
+         .. code:: sh
 
-If you need to set a custom option during the wheel build you can refer to
-:ref:`aer_wheel_build_options`.
+            cd qiskit-aer
+            python ./setup.py bdist_wheel
 
-After you build the python wheel it will be stored in the ``dist/`` dir in the
-Aer repository. The exact version will depend
+         If you need to set a custom option during the wheel build you can refer to
+         :ref:`aer_wheel_build_options`.
 
-.. code:: sh
+         After you build the python wheel it will be stored in the ``dist/`` dir in the
+         Aer repository. The exact version will depend
 
-    cd dist
-    pip install qiskit_aer-*.whl
+         .. code:: sh
 
-The exact filename of the output wheel file depends on the current version of
-Aer under development.
+             cd dist
+             pip install qiskit_aer-*.whl
 
-macOS
-^^^^^
+         The exact filename of the output wheel file depends on the current version of
+         Aer under development.
 
-3. Install dependencies.
+   .. tab:: macOS
 
-To use the `Clang`_ compiler on macOS, you need to install an extra library for
-supporting `OpenMP`_.  You can use `brew`_ to install this and other
-dependencies.
+      3. Install dependencies.
 
-.. _brew: https://brew.sh/
-.. _Clang: https://clang.llvm.org/
-.. _OpenMP: https://www.openmp.org/
+         To use the `Clang`_ compiler on macOS, you need to install an extra library for
+         supporting `OpenMP`_.  You can use `brew`_ to install this and other
+         dependencies.
 
-.. code:: sh
+         .. _brew: https://brew.sh/
+         .. _Clang: https://clang.llvm.org/
+         .. _OpenMP: https://www.openmp.org/
 
-    brew install libomp
+         .. code:: sh
 
-You then also have to install a BLAS implementation, `OpenBLAS`_ is the
-default choice.
+            brew install libomp
 
-.. code:: sh
+         You then also have to install a BLAS implementation, `OpenBLAS`_ is the
+         default choice.
 
-    brew install openblas
+         .. code:: sh
 
-.. _OpenBlas: https://www.openblas.net/
+            brew install openblas
 
-You also need to have ``Xcode Command Line Tools`` installed.
+         .. _OpenBlas: https://www.openblas.net/
 
-.. code:: sh
+         You also need to have ``Xcode Command Line Tools`` installed.
 
-    xcode-select --install
+         .. code:: sh
 
-4. Build and install qiskit
+            xcode-select --install
 
-If you have pip <19.0.0 installed and your environment doesn't require a
-custom build options you can just run:
+      4. Build and install qiskit
 
-.. code:: sh
+         If you have pip <19.0.0 installed and your environment doesn't require a
+         custom build options you can just run:
 
-    cd qiskit-aer
-    pip install .
+         .. code:: sh
 
-This will both build the binaries and install aer.
+            cd qiskit-aer
+            pip install .
 
-Alternatively if you have a newer pip installed, or need to set custom options
-for your environment you can build a python wheel manually.
+         This will both build the binaries and install aer.
 
-.. code:: sh
+         Alternatively if you have a newer pip installed, or need to set custom options
+         for your environment you can build a python wheel manually.
 
-    cd qiskit-aer
-    python ./setup.py bdist_wheel
+         .. code:: sh
 
-If you need to set a custom option during the wheel build you can refer to
-:ref:`aer_wheel_build_options`.
+            cd qiskit-aer
+            python ./setup.py bdist_wheel
 
-After you build the python wheel it will be stored in the ``dist/`` dir in the
-Aer repository. The exact version will depend
+         If you need to set a custom option during the wheel build you can refer to
+         :ref:`aer_wheel_build_options`.
 
-.. code:: sh
+         After you build the python wheel it will be stored in the ``dist/`` dir in the
+         Aer repository. The exact version will depend
 
-    cd dist
-    pip install qiskit_aer-*.whl
+         .. code:: sh
 
-The exact filename of the output wheel file depends on the current version of
-Aer under development.
+            cd dist
+            pip install qiskit_aer-*.whl
 
-Windows
-^^^^^^^
+         The exact filename of the output wheel file depends on the current version of
+         Aer under development.
 
-On Windows you need to use `Anaconda3`_ or `Miniconda3`_ to install all the
-dependencies.
+   .. tab:: Windows
 
-.. _Anaconda3: https://www.anaconda.com/distribution/#windows
-.. _Miniconda3: https://docs.conda.io/en/latest/miniconda.html
+      On Windows you need to use `Anaconda3`_ or `Miniconda3`_ to install all the
+      dependencies.
 
-3. Install compiler requirements
+      .. _Anaconda3: https://www.anaconda.com/distribution/#windows
+      .. _Miniconda3: https://docs.conda.io/en/latest/miniconda.html
 
-.. code:: sh
+      3. Install compiler requirements
 
-    conda install --update-deps vs2017_win-64 vs2017_win-32 msvc_runtime
+         .. code:: sh
 
-4. Install binary and build dependencies
+            conda install --update-deps vs2017_win-64 vs2017_win-32 msvc_runtime
 
-.. code:: sh
+      4. Install binary and build dependencies
 
-    conda install --update-deps -c conda-forge -y openblas cmake
+         .. code:: sh
 
-5. Install the package
+            conda install --update-deps -c conda-forge -y openblas cmake
 
-If you have pip <19.0.0 installed you can just run
+      5. Install the package
 
-.. code:: sh
+         If you have pip <19.0.0 installed you can just run
 
-    cd qiskit-aer
-    pip install .
+         .. code:: sh
 
-if you're using pip >=19.0.0 then you can manually build a wheel file and install
-that instead.
+            cd qiskit-aer
+            pip install .
 
-.. code:: sh
+         if you're using pip >=19.0.0 then you can manually build a wheel file and install
+         that instead.
 
-    cd qiskit-aer
-    python setup.py bdist_wheel
+         .. code:: sh
 
-If you need to set a custom option during the wheel build you can refer to
-:ref:`aer_wheel_build_options`.
+             cd qiskit-aer
+             python setup.py bdist_wheel
 
-After you build the python wheel it will be stored in the ``dist/`` dir in the
-Aer repository. The exact version will depend
+         If you need to set a custom option during the wheel build you can refer to
+         :ref:`aer_wheel_build_options`.
 
-.. code:: sh
+         After you build the python wheel it will be stored in the ``dist/`` dir in the
+         Aer repository. The exact version will depend
 
-    cd dist
-    pip install qiskit_aer-*.whl
+         .. code:: sh
 
-The exact filename of the output wheel file depends on the current version of
-Aer under development.
+             cd dist
+             pip install qiskit_aer-*.whl
 
-.. _aer_wheel_build_options:
+         The exact filename of the output wheel file depends on the current version of
+         Aer under development.
 
-Custom options during wheel builds
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         .. _aer_wheel_build_options:
 
-The Aer build system uses `scikit-build`_ to run the compilation when building
-it with the python interface. It acts as an interface for `setuptools`_ to
-call `CMake`_ and compile the binaries for your local system.
+   .. tab:: Custom options during wheel builds
 
-.. _scikit-build: https://scikit-build.readthedocs.io/en/latest/index.html
-.. _setuptools: https://setuptools.readthedocs.io/en/latest/
-.. _CMake: https://cmake.org/
+      The Aer build system uses `scikit-build`_ to run the compilation when building
+      it with the python interface. It acts as an interface for `setuptools`_ to
+      call `CMake`_ and compile the binaries for your local system.
 
-Due to the complexity of compiling the binaries you may need to pass options
-to a certain part of the build process. The way to pass variables is:
+      .. _scikit-build: https://scikit-build.readthedocs.io/en/latest/index.html
+      .. _setuptools: https://setuptools.readthedocs.io/en/latest/
+      .. _CMake: https://cmake.org/
 
-.. code:: sh
+      Due to the complexity of compiling the binaries you may need to pass options
+      to a certain part of the build process. The way to pass variables is:
 
-    python setup.py bdist_wheel [skbuild_opts] [-- [cmake_opts] [-- build_tool_opts]]
+      .. code:: sh
 
-where the elements within square brackets `[]` are optional, and
-``skbuild_opts``, ``cmake_opts``, ``build_tool_opts`` are to be replaced by
-flags of your choice. A list of *CMake* options is available here:
-https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options . For
-example, you could run something like:
+          python setup.py bdist_wheel [skbuild_opts] [-- [cmake_opts] [-- build_tool_opts]]
 
-.. code:: sh
+      where the elements within square brackets `[]` are optional, and
+      ``skbuild_opts``, ``cmake_opts``, ``build_tool_opts`` are to be replaced by
+      flags of your choice. A list of *CMake* options is available here:
+      https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options . For
+      example, you could run something like:
 
-    python setup.py bdist_wheel -- -- -j8
+      .. code:: sh
 
-This is passing the flag `-j8` to the underlying build system (which in this
-case is `Automake`_) telling it that you want to build in parallel using 8
-processes.
+          python setup.py bdist_wheel -- -- -j8
 
-.. _Automake: https://www.gnu.org/software/automake/
+      This is passing the flag `-j8` to the underlying build system (which in this
+      case is `Automake`_) telling it that you want to build in parallel using 8
+      processes.
 
-For example, a common use case for these flags on linux is to specify a
-specific version of the C++ compiler to use (normally if the default is too
-old).
+      .. _Automake: https://www.gnu.org/software/automake/
 
-.. code:: sh
+      For example, a common use case for these flags on linux is to specify a
+      specific version of the C++ compiler to use (normally if the default is too
+      old).
 
-    python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7
+      .. code:: sh
 
-which will tell CMake to use the g++-7 command instead of the default g++ when
-compiling Aer
+          python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7
 
-Another common use case for this, depending on your environment, is that you may
-need to specify your platform name and turn off static linking.
+      which will tell CMake to use the g++-7 command instead of the default g++ when
+      compiling Aer
 
-.. code:: sh
+      Another common use case for this, depending on your environment, is that you may
+      need to specify your platform name and turn off static linking.
 
-    python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 \
-    -- -DSTATIC_LINKING=False -- -j8
+      .. code:: sh
 
-Here ``--plat-name`` is a flag to setuptools, to specify the platform name to
-use in the package metadata, ``-DSTATIC_LINKING`` is a flag to CMake being used
-to disable static linking, and ``-j8`` is a flag to Automake being used to use
-8 processes for compilation.
+          python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 \
+          -- -DSTATIC_LINKING=False -- -j8
+
+      Here ``--plat-name`` is a flag to setuptools, to specify the platform name to
+      use in the package metadata, ``-DSTATIC_LINKING`` is a flag to CMake being used
+      to disable static linking, and ``-j8`` is a flag to Automake being used to use
+      8 processes for compilation.
 
 A list of common options depending on platform are:
 
@@ -505,74 +552,38 @@ A list of common options depending on platform are:
     this is just outlining it's commonly used in that environment. Refer to the
     tool documentation for more information.
 
-Installing IBMQ Provider from Source
-------------------------------------
-
-1. Clone the qiskit-ibmq-provider repository.
-
-.. code:: sh
-
-  git clone https://github.com/Qiskit/qiskit-ibmq-provider.git
-
-2. Cloning the repository creates a local directory called ``qiskit-ibmq-provider``.
-
-.. code:: sh
-
-  cd qiskit-ibmq-provider
-
-3. If you want to run tests or linting checks, install the developer requirements.
-This is not required to install or use the qiskit-ibmq-provider package when
-installing from source.
-
-.. code:: sh
-
-    pip install -r requirements-dev.txt
-
-4. Install qiskit-ibmq-provider
-
-.. code:: sh
-
-    pip install .
-
-* If you want to install it in editable mode, meaning that code changes to the
-  project don't require a reinstall to be applied you can do this with:
-
-.. code:: sh
-
-    pip install -e .
-
 
 Installing Ignis from Source
 ----------------------------
 
 1. Clone the ignis repository.
 
-.. code:: sh
+   .. code:: sh
 
-  git clone https://github.com/Qiskit/qiskit-ignis.git
+      git clone https://github.com/Qiskit/qiskit-ignis.git
 
 2. Cloning the repository creates a local directory called ``qiskit-ignis``.
 
-.. code:: sh
+   .. code:: sh
 
-  cd qiskit-ignis
+      cd qiskit-ignis
 
 3. If you want to run tests or linting checks, install the developer requirements.
-This is not required to install or use the qiskit-ignis package when installing
-from source.
+   This is not required to install or use the qiskit-ignis package when installing
+   from source.
 
-.. code:: sh
+   .. code:: sh
 
-    pip install -r requirements-dev.txt
+      pip install -r requirements-dev.txt
 
 4. Install ignis
 
-.. code:: sh
+   .. code:: sh
 
-    pip install .
+      pip install .
 
-* If you want to install it in editable mode, meaning that code changes to the
-  project don't require a reinstall to be applied you can do this with:
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied you can do this with:
 
 .. code:: sh
 
@@ -583,32 +594,32 @@ Installing Aqua from Source
 
 1. Clone the Aqua repository.
 
-.. code:: sh
+   .. code:: sh
 
-  git clone https://github.com/Qiskit/qiskit-aqua.git
+      git clone https://github.com/Qiskit/qiskit-aqua.git
 
 2. Cloning the repository creates a local directory called ``qiskit-aqua``.
 
-.. code:: sh
+   .. code:: sh
 
-  cd qiskit-aqua
+      cd qiskit-aqua
 
 3. If you want to run tests or linting checks, install the developer requirements.
-This is not required to install or use the qiskit-aqua package when installing
-from source.
+   This is not required to install or use the qiskit-aqua package when installing
+   from source.
 
-... code:: sh
+   .. code:: sh
 
-    pip install -r requirements-dev.txt
+      pip install -r requirements-dev.txt
 
 4. Install aqua
 
-.. code:: sh
+   .. code:: sh
 
-    pip install .
+      pip install .
 
-* If you want to install it in editable mode, meaning that code changes to the
-  project don't require a reinstall to be applied you can do this with:
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied you can do this with:
 
 .. code:: sh
 
@@ -619,32 +630,32 @@ Install Chemistry from Source
 
 1. Clone the qiskit-chemistry repository.
 
-.. code:: sh
+   .. code:: sh
 
-  git clone https://github.com/Qiskit/qiskit-chemistry.git
+     git clone https://github.com/Qiskit/qiskit-chemistry.git
 
 2. Cloning the repository creates a local directory called ``qiskit-chemistry``.
 
-.. code:: sh
+   .. code:: sh
 
-  cd qiskit-chemistry
+      cd qiskit-chemistry
 
 3. If you want to run tests or linting checks, install the developer requirements.
-This is not required to install or use the qiskit-chemistry package when
-installing from source.
+   This is not required to install or use the qiskit-chemistry package when
+   installing from source.
 
-.. code:: sh
+   .. code:: sh
 
-    pip install -r requirements-dev.txt
+      pip install -r requirements-dev.txt
 
 4. Install qiskit-chemistry
 
-.. code:: sh
+   .. code:: sh
 
-    pip install .
+      pip install .
 
-* If you want to install it in editable mode, meaning that code changes to the
-  project don't require a reinstall to be applied you can do this with:
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied you can do this with:
 
 .. code:: sh
 
