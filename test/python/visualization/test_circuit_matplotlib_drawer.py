@@ -66,8 +66,8 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
     def test_plot_barriers(self):
-        """Test to see that plotting barriers works - if it is set to False, no
-        blank columns are introduced"""
+        """Test to see that plotting barriers works.
+        If it is set to False, no blank columns are introduced"""
 
         # generate a circuit with barriers and other barrier like instructions in
         q = QuantumRegister(2, 'q')
