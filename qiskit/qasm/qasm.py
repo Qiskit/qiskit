@@ -15,10 +15,10 @@
 """
 OPENQASM circuit object.
 """
+import warnings
+
 from .exceptions import QasmError
 from .qasmparser import QasmParser
-
-import warnings
 
 
 class Qasm:
@@ -42,8 +42,6 @@ class Qasm:
         """Deprecated. Use generate_tokens()."""
         warnings.warn('The method get_tokens() is being replaced by generate_tokens()',
                       DeprecationWarning, 2)
-
-        """Returns a generator of the tokens."""
         if self._filename:
             with open(self._filename) as ifile:
                 self._data = ifile.read()

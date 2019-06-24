@@ -17,6 +17,7 @@
 import os
 import shutil
 import tempfile
+import warnings
 
 import ply.yacc as yacc
 import sympy
