@@ -28,6 +28,8 @@ from .command import Command
 class SamplePulse(Command):
     """Container for functional pulse."""
 
+    prefix = 'p'
+
     def __init__(self, samples, name=None):
         """Create new sample pulse command.
 
@@ -37,12 +39,13 @@ class SamplePulse(Command):
         Raises:
             PulseError: when pulse envelope amplitude exceeds 1.
         """
-        super().__init__(duration=len(samples), name=name)
+        super().__init__(duration=len(samples))
 
         if np.any(np.abs(samples) > 1):
             raise PulseError('Absolute value of pulse envelope amplitude exceeds 1.')
 
         self._samples = np.asarray(samples, dtype=np.complex_)
+        self._name = SamplePulse.create_name(name)
 
     @property
     def samples(self):

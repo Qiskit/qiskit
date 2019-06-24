@@ -20,9 +20,10 @@ import numpy as np
 from qiskit.pulse.channels import (DeviceSpecification, Qubit, RegisterSlot, MemorySlot,
                                    DriveChannel, AcquireChannel, ControlChannel, MeasureChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot,
-                                   functional_pulse, Instruction)
+                                   functional_pulse, Instruction, AcquireInstruction,
+                                   PulseInstruction, FrameChangeInstruction)
 from qiskit.pulse import pulse_lib
-from qiskit.pulse.timeslots import TimeslotCollection
+from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
 from qiskit.test import QiskitTestCase
@@ -306,6 +307,118 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(len(flat_sched._children), 10)
 
         self.assertEqual(flat_sched.instructions, sched.instructions)
+
+    def test_filter_channels(self):
+        """Test filtering over channels."""
+        device = self.two_qubit_device
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
+        acquire = Acquire(5)
+        sched = Schedule(name='fake_experiment')
+        sched = sched.insert(0, lp0(device.q[0].drive))
+        sched = sched.insert(10, lp0(device.q[1].drive))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(device.q[0].drive))
+        sched = sched.insert(60, acquire(device.q, device.mem))
+        sched = sched.insert(90, lp0(device.q[0].drive))
+
+        self.assertEqual(len(sched.filter(channels=[AcquireChannel(1)]).instructions), 1)
+        channels = [AcquireChannel(1), DriveChannel(1)]
+        has_chan_1 = sched.filter(channels=channels)
+        for _, inst in has_chan_1.instructions:
+            self.assertTrue(any([chan in channels for chan in inst.channels]))
+
+    def test_filter_inst_types(self):
+        """Test filtering on instruction types."""
+        device = self.two_qubit_device
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
+        acquire = Acquire(5)
+        sched = Schedule(name='fake_experiment')
+        sched = sched.insert(0, lp0(device.q[0].drive))
+        sched = sched.insert(10, lp0(device.q[1].drive))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(device.q[0].drive))
+        sched = sched.insert(60, acquire(device.q, device.mem))
+        sched = sched.insert(90, lp0(device.q[0].drive))
+
+        only_acquires = sched.filter(instruction_types=[AcquireInstruction])
+        for _, inst in only_acquires.instructions:
+            self.assertIsInstance(inst, AcquireInstruction)
+        only_pulse_and_fc = sched.filter(instruction_types=[PulseInstruction,
+                                                            FrameChangeInstruction])
+        for _, inst in only_pulse_and_fc.instructions:
+            self.assertIsInstance(inst, (PulseInstruction, FrameChangeInstruction))
+        self.assertEqual(len(only_pulse_and_fc.instructions), 4)
+        only_fc = sched.filter(instruction_types={FrameChangeInstruction})
+        self.assertEqual(len(only_fc.instructions), 1)
+
+    def test_filter_intervals(self):
+        """Test filtering on intervals."""
+        device = self.two_qubit_device
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
+        acquire = Acquire(5)
+        sched = Schedule(name='fake_experiment')
+        sched = sched.insert(0, lp0(device.q[0].drive))
+        sched = sched.insert(10, lp0(device.q[1].drive))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(device.q[0].drive))
+        sched = sched.insert(60, acquire(device.q, device.mem))
+        sched = sched.insert(90, lp0(device.q[0].drive))
+
+        intervals_a = sched.filter(time_ranges=((0, 13),))
+        for time, inst in intervals_a.instructions:
+            self.assertTrue(0 <= time <= 13)
+            self.assertTrue(inst.timeslots.timeslots[0].interval.end <= 13)
+        self.assertEqual(len(intervals_a.instructions), 2)
+
+        intervals_b = sched.filter(time_ranges=[(59, 65)])
+        self.assertEqual(len(intervals_b.instructions), 1)
+        self.assertEqual(intervals_b.instructions[0][0], 60)
+        self.assertIsInstance(intervals_b.instructions[0][1], AcquireInstruction)
+
+        non_full_intervals = sched.filter(time_ranges=[(0, 2), (8, 11), (61, 70)])
+        self.assertEqual(len(non_full_intervals.instructions), 0)
+
+        multi_interval = sched.filter(time_ranges=[(10, 15), (63, 93)])
+        self.assertEqual(len(multi_interval.instructions), 2)
+
+        multi_interval = sched.filter(intervals=[Interval(10, 15), Interval(63, 93)])
+        self.assertEqual(len(multi_interval.instructions), 2)
+
+    def test_filter_multiple(self):
+        """Test filter composition."""
+        device = self.two_qubit_device
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
+        acquire = Acquire(5)
+        sched = Schedule(name='fake_experiment')
+        sched = sched.insert(0, lp0(device.q[0].drive))
+        sched = sched.insert(10, lp0(device.q[1].drive))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(device.q[0].drive))
+        sched = sched.insert(60, acquire(device.q, device.mem))
+        sched = sched.insert(90, lp0(device.q[0].drive))
+
+        filtered = sched.filter(channels={0}, instruction_types=[PulseInstruction],
+                                time_ranges=[(25, 100)])
+        for time, inst in filtered.instructions:
+            self.assertIsInstance(inst, PulseInstruction)
+            self.assertTrue(any([chan.index == 0 for chan in inst.channels]))
+            self.assertTrue(25 <= time <= 100)
+
+        filtered_b = sched.filter(instruction_types=[PulseInstruction, FrameChangeInstruction],
+                                  time_ranges=[(25, 100), (0, 30)])
+        for time, inst in filtered_b.instructions:
+            self.assertIsInstance(inst, (FrameChangeInstruction, PulseInstruction))
+        self.assertTrue(len(filtered_b.instructions), 4)
+
+    def test__filter(self):
+        """Test _filter method."""
+        device = self.two_qubit_device
+        lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
+        sched = Schedule(name='fake_experiment')
+        sched = sched.insert(0, lp0(device.q[0].drive))
+        sched = sched.insert(10, lp0(device.q[1].drive))
+        sched = sched.insert(30, FrameChange(phase=-1.57)(device.q[0].drive))
+        for i in sched._filter([lambda x: True]).instructions:
+            self.assertTrue(i in sched.instructions)
+        self.assertEqual(len(sched._filter([lambda x: False]).instructions), 0)
+        self.assertEqual(len(sched._filter([lambda x: x[0] < 30]).instructions),
+                         2)
 
     def test_buffering(self):
         """Test channel buffering."""
