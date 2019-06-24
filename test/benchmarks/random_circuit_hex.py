@@ -30,11 +30,16 @@ try:
     from qiskit.compiler import transpile
 except ImportError:
     from qiskit.transpiler import transpile
-import qiskit.tools.qi.qi as qi
+try:
+    from qiskit.quantum_info.random import random_unitary
+    HAS_RANDOM_UNITARY = True
+except ImportError:
+    from qiskit.tools.qi.qi import random_unitary_matrix
+    HAS_RANDOM_UNITARY = False
 
 
 # Make a random circuit on a ring
-def make_circuit_ring(nq, depth):
+def make_circuit_ring(nq, depth, seed):
     assert int(nq / 2) == nq / 2  # for now size of ring must be even
     # Create a Quantum Register
     q = QuantumRegister(nq)
@@ -51,7 +56,11 @@ def make_circuit_ring(nq, depth):
             k = i * 2 + offset + j % 2  # j%2 makes alternating rounds overlap
             qc.cx(q[k % nq], q[(k + 1) % nq])
         for i in range(nq):  # round of single-qubit unitaries
-            u = qi.random_unitary_matrix(2)
+            if HAS_RANDOM_UNITARY:
+                u = random_unitary(2, seed).data
+            else:
+                u = random_unitary_matrix(2)
+
             angles = compiling.euler_angles_1q(u)
             qc.u3(angles[0], angles[1], angles[2], q[i])
 
@@ -65,18 +74,20 @@ def make_circuit_ring(nq, depth):
 class BenchRandomCircuitHex:
     params = [2 * i for i in range(2, 8)]
     param_names = ['n_qubits']
-    version = 2
+    version = 3
 
     def setup(self, n):
         depth = 2 * n
-        self.circuit = make_circuit_ring(n, depth)[0]
+        self.seed = 0
+        self.circuit = make_circuit_ring(n, depth, self.seed)[0]
         self.sim_backend = BasicAer.get_backend('qasm_simulator')
 
     def time_simulator_transpile(self, _):
-        transpile(self.circuit, self.sim_backend)
+        transpile(self.circuit, self.sim_backend, seed_transpiler=self.seed)
 
     def track_depth_simulator_transpile(self, _):
-        return transpile(self.circuit, self.sim_backend).depth()
+        return transpile(self.circuit, self.sim_backend,
+                         seed_transpiler=self.seed).depth()
 
     def time_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
@@ -86,7 +97,8 @@ class BenchRandomCircuitHex:
                         [13, 12]]
         transpile(self.circuit,
                   basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                  coupling_map=coupling_map)
+                  coupling_map=coupling_map,
+                  seed_transpiler=self.seed)
 
     def track_depth_ibmq_backend_transpile(self, _):
         # Run with ibmq_16_melbourne configuration
@@ -96,4 +108,5 @@ class BenchRandomCircuitHex:
                         [13, 12]]
         return transpile(self.circuit,
                          basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                         coupling_map=coupling_map).depth()
+                         coupling_map=coupling_map,
+                         seed_transpiler=self.seed).depth()
