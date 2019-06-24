@@ -22,19 +22,18 @@ from qiskit.exceptions import QiskitError
 from random import randint
 
 
-class AssertClassical(Measure):
+class AssertSuperposition(Measure):
     """Quantum measurement in the computational basis."""
-    ExpectedValues = {}
     def __init__(self):
         """Create new measurement instruction."""
         super().__init__()
 
 
-def assertclassical(self, expval, qubit, cbit):
-    """Create classical assertion
+def assertsuperposition(self, qubit, cbit):
+#not sure if this should go here but just outlining what it should look like
+    """Create superposition assertion.
 
     Args:
-        expval: integer
         qubit (QuantumRegister|list|tuple): quantum register
         cbit (ClassicalRegister|list|tuple): classical register
 
@@ -47,8 +46,8 @@ def assertclassical(self, expval, qubit, cbit):
     """
     randString = str(randint(0, 1000000000))
     theClone = self.copy("breakpoint"+randString)
-    AssertClassical.ExpectedValues[theClone.name] = expval
-    theClone.append(AssertClassical(), [qubit], [cbit])
+    theClone.append(AssertSuperposition(), [qubit], [cbit])
     return theClone
 
-QuantumCircuit.assertclassical = assertclassical
+QuantumCircuit.assertsuperposition = assertsuperposition
+

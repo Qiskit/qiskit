@@ -22,21 +22,23 @@ from qiskit.exceptions import QiskitError
 from random import randint
 
 
-class AssertClassical(Measure):
+class AssertProduct(Measure):
     """Quantum measurement in the computational basis."""
-    ExpectedValues = {}
+    ExpectedProductStates = {}
     def __init__(self):
         """Create new measurement instruction."""
         super().__init__()
 
 
-def assertclassical(self, expval, qubit, cbit):
-    """Create classical assertion
+def assertproduct(self, qubit0, cbit0, qubit1, cbit1):
+    """Create product assertion
 
     Args:
-        expval: integer
-        qubit (QuantumRegister|list|tuple): quantum register
-        cbit (ClassicalRegister|list|tuple): classical register
+        qubit0 (QuantumRegister|list|tuple): quantum register
+        cbit0 (ClassicalRegister|list|tuple): classical register
+        qubit1 (QuantumRegister|list|tuple): quantum register
+        cbit1 (ClassicalRegister|list|tuple): classical register
+
 
     Returns:
         qiskit.QuantumCircuit: copy of quantum circuit at the assert point.
@@ -47,8 +49,9 @@ def assertclassical(self, expval, qubit, cbit):
     """
     randString = str(randint(0, 1000000000))
     theClone = self.copy("breakpoint"+randString)
-    AssertClassical.ExpectedValues[theClone.name] = expval
-    theClone.append(AssertClassical(), [qubit], [cbit])
+    AssertProduct.ExpectedProductStates[theClone.name] = [qubit0, cbit0, qubit1, cbit1]
+    theClone.append(AssertProduct(), [qubit0.extend(qubit1)], [cbit0.extend(cbit1)])
     return theClone
 
-QuantumCircuit.assertclassical = assertclassical
+QuantumCircuit.assertproduct = assertproduct
+

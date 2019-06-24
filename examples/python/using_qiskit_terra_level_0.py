@@ -23,30 +23,28 @@ as a level 1 user.
 
 """
 
-import time
+#import time
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
+from qiskit.circuit.assertclassical import AssertClassical #can remove later
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
 qc1.h(0)
-breakpoint1 = QuantumCircuit(2,2)
-breakpoint1 = qc1.assertclassical([1],0, [0,1], [0,1])
-breakpoint1.measure([0,1], [0,1])
-
-#executing early to see if results are the same
-job_sim1 = execute([breakpoint1], BasicAer.get_backend('qasm_simulator'))
-sim_result1 = job_sim1.result()
-print(sim_result1.get_counts(breakpoint1))
-
-#qc1.h(0)
-
+print("AssertClassical.ExpectedValues = ")
+print(AssertClassical.ExpectedValues)
+breakpoint1 = qc1.assertclassical(0, [1], [1])
+print("AssertClassical.ExpectedValues after bkpt1 = ")
+print(AssertClassical.ExpectedValues)
 qc1.cx(0, 1)
+print("breakpoint1.data = ")
 print(breakpoint1.data)
+print("qc1.data = ")
 print(qc1.data)
 qc1.measure([0,1], [0,1])
+print("qc1.data after measuring = ")
 print(qc1.data)
 
 # making another circuit: superpositions
@@ -63,5 +61,7 @@ job_sim = execute([qc1, breakpoint1], BasicAer.get_backend('qasm_simulator'))
 sim_result = job_sim.result()
 
 # Show the results
+print("sim_result.get_counts(qc1) = ")
 print(sim_result.get_counts(qc1))
+print("sim_result.get_counts(breakpoint1) = ")
 print(sim_result.get_counts(breakpoint1))
