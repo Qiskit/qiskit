@@ -17,7 +17,6 @@
 import unittest
 import os
 
-from qiskit.transpiler.transpile_config import TranspileConfig
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passmanager import PassManager
 from qiskit import QuantumRegister
