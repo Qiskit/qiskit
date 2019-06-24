@@ -22,6 +22,7 @@ from typing import List
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .qubit import Qubit
+from .device_topology import DeviceTopology
 
 
 class PulseSpecification:
@@ -78,12 +79,9 @@ class PulseSpecification:
         self._mem_slots = [MemorySlot(idx) for idx in range(n_qubits)]
         self._reg_slots = [RegisterSlot(idx) for idx in range(n_registers)]
 
-        # TODO: allow for more flexible mapping of channels by using device Hamiltonian.
-        self._qubits = []
-        for ii, (drive, measure, acquire) in enumerate(zip(self._drives,
-                                                           self._measures,
-                                                           self._acquires)):
-            self._qubits.append(Qubit(ii, drive, measure, acquire))
+        # create mapping information from channels
+        self._topology = DeviceTopology(self._drives, self.controls,
+                                        self.measures, self.acquires)
 
     @classmethod
     def from_device(cls, backend):
@@ -131,7 +129,7 @@ class PulseSpecification:
     @property
     def qubits(self) -> List[Qubit]:
         """Return qubits in this device."""
-        return self._qubits
+        return self._topology.qubit
 
     @property
     def registers(self) -> List[RegisterSlot]:

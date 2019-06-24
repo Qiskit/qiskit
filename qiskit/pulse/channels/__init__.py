@@ -16,6 +16,7 @@
 
 from .device_specification import DeviceSpecification
 from .pulse_specification import PulseSpecification
+from .device_topology import DeviceTopology
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .pulse_channels import PulseChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
