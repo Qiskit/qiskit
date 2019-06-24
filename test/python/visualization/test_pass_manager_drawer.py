@@ -44,12 +44,6 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         basis_gates = ['u1', 'u3', 'u2', 'cx']
         qr = QuantumRegister(7, 'q')
         layout = Layout({qr[i]: i for i in range(coupling_map.size())})
-        self.config = TranspileConfig(optimization_level=1,
-                                      basis_gates=basis_gates,
-                                      initial_layout=layout,
-                                      coupling_map=coupling_map,
-                                      seed_transpiler=987,
-                                      backend_properties=None)
 
         # Create a pass manager with a variety of passes and flow control structures
         self.pass_manager = PassManager()
