@@ -20,6 +20,7 @@ from .qasmparser import QasmParser
 
 import warnings
 
+
 class Qasm:
     """OPENQASM circuit object."""
 
