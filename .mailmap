@@ -13,7 +13,7 @@
 #
 # Note that each qiskit element uses its own mailmap so it may be necessary to
 # propagate changes in other repos for consistency.
-
+#
 Abdón Rodríguez Davila <a@abdonrd.com> <a@abdonrd.com>
 Abigail J. Cross <across@us.ibm.com>
 Albert Frisch <albert.frisch@de.ibm.com>
@@ -40,6 +40,7 @@ Ismael Faro Sertage <ismael.faro1@ibm.com> <ismael.faro.sertage@gmail.com>
 Ismael Faro Sertage <ismael.faro1@ibm.com> <ismael.faro1@ibm.com>
 Ismail Yunus Akhalwaya <ismaila@za.ibm.com>
 Ismail Yunus Akhalwaya <ismaila@za.ibm.com> <30803146+ismaila-at-za-ibm@users.noreply.github.com>
+Jack J. Woehr <4604036+jwoehr@users.noreply.github.com>
 Jay M. Gambetta <jay.gambetta@us.ibm.com>
 Jerry M. Chow <chowmj@us.ibm.com>
 Jesús Pérez <jesusper@us.ibm.com> <jesusprubio@gmail.com>
@@ -54,11 +55,15 @@ Lev S. Bishop <18673315+levbishop@users.noreply.github.com>
 Luciano Bello <luciano.bello@ibm.com> <lbello@gmail.com>
 Luciano Bello <luciano.bello@ibm.com> <luciano.bello@ibm.com>
 Luciano Bello <luciano.bello@ibm.com> <luciano@debian.org>
+Maddy Tod <40489777+maddy-tod@users.noreply.github.com>
 Marco Pistoia <pistoia@us.ibm.com> <mpistoia@gmail.com>
 Martin Sandberg <martinos@us.ibm.com>
 Mathieu Tillet <50137038+mtillet@users.noreply.github.com>
+Matthew Treinish <mtreinish@kortar.org>
 Matt Stypulkoski <50181769+Matt-Stypulkoski@users.noreply.github.com>
+Max Reuter <Max.Reuter@ibm.com>
 Naoki Kanazawa <39517270+nkanazawa1989@users.noreply.github.com>
+Paul Nation <nonhermitian@gmail.com>
 Peng Liu <34400304+liupibm@users.noreply.github.com>
 Pradeep Niroula <niroulapradeep@gmail.com> <npdeep@users.noreply.github.com>
 Prakash Murali <prakashmurali@gmail.com>
