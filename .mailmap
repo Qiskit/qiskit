@@ -1,4 +1,4 @@
-# Entries in this file are made for two reasons: 
+# Entries in this file are made for two reasons:
 # 1) to merge multiple git commit authors that correspond to a single author
 # 2) to change the canonical name and/or email address of an author.
 #
@@ -8,10 +8,10 @@
 #                 replace                       find
 # See also: 'git shortlog --help' and 'git check-mailmap --help'.
 #
-# If you don't like the way your name is cited by qiskit, please feel free to 
+# If you don't like the way your name is cited by qiskit, please feel free to
 # open a pull request against this file to set your preferred naming.
 #
-# Note that each qiskit element uses its own mailmap so it may be necessary to 
+# Note that each qiskit element uses its own mailmap so it may be necessary to
 # propagate changes in other repos for consistency.
 
 Abdón Rodríguez Davila <a@abdonrd.com> <a@abdonrd.com>
@@ -54,6 +54,7 @@ Lev S. Bishop <18673315+levbishop@users.noreply.github.com>
 Luciano Bello <luciano.bello@ibm.com> <lbello@gmail.com>
 Luciano Bello <luciano.bello@ibm.com> <luciano.bello@ibm.com>
 Luciano Bello <luciano.bello@ibm.com> <luciano@debian.org>
+Marco Pistoia <pistoia@us.ibm.com> <mpistoia@gmail.com>
 Martin Sandberg <martinos@us.ibm.com>
 Mathieu Tillet <50137038+mtillet@users.noreply.github.com>
 Matt Stypulkoski <50181769+Matt-Stypulkoski@users.noreply.github.com>
