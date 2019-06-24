@@ -22,7 +22,7 @@ from qiskit.exceptions import QiskitError
 from random import randint
 
 
-class AssertClassical(Measure):
+class AssertClassical(Assert):
     """Quantum measurement in the computational basis."""
     ExpectedValues = {}
     def __init__(self):

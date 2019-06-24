@@ -22,7 +22,7 @@ from qiskit.exceptions import QiskitError
 from random import randint
 
 
-class AssertProduct(Measure):
+class AssertProduct(Assert):
     """Quantum measurement in the computational basis."""
     ExpectedProductStates = {}
     def __init__(self):
