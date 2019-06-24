@@ -14,7 +14,7 @@
 
 """Module for Pulses."""
 
-from .channels import (PulseSpecification, DriveChannel, MeasureChannel, AcquireChannel,
+from .channels import (DeviceSpecification, DriveChannel, MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
                        SamplePulse, Snapshot, Kernel, Discriminator, functional_pulse)

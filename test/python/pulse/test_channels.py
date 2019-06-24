@@ -17,7 +17,7 @@
 import unittest
 
 from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from qiskit.pulse.channels import PulseSpecification, Qubit
+from qiskit.pulse.channels import DeviceSpecification, Qubit
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -128,11 +128,16 @@ class TestDeviceSpecification(QiskitTestCase):
     def test_default(self):
         """Test default device specification.
         """
-        spec = PulseSpecification(n_drive=2, n_control=2, n_measure=2, n_registers=2)
+        qubits = [
+            Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0)),
+            Qubit(1, DriveChannel(1), MeasureChannel(1), AcquireChannel(1))
+        ]
+        registers = [RegisterSlot(i) for i in range(2)]
+        mem_slots = [MemorySlot(i) for i in range(2)]
+        spec = DeviceSpecification(qubits, registers, mem_slots)
 
-        self.assertEqual(spec.d[0], DriveChannel(0))
-        self.assertEqual(spec.u[0], ControlChannel(0))
-        self.assertEqual(spec.acq[1], AcquireChannel(1))
+        self.assertEqual(spec.q[0].drive, DriveChannel(0))
+        self.assertEqual(spec.q[1].acquire, AcquireChannel(1))
         self.assertEqual(spec.mem[0], MemorySlot(0))
         self.assertEqual(spec.c[1], RegisterSlot(1))
 
@@ -141,14 +146,9 @@ class TestDeviceSpecification(QiskitTestCase):
         """
         backend = FakeOpenPulse2Q()
 
-        device = PulseSpecification.from_device(backend)
+        device = DeviceSpecification.create_from(backend)
 
-        self.assertEqual(device.d[0], DriveChannel(0))
-
-
-class TestHamiltonianParsing(QiskitTestCase):
-    """Create qubit from hamiltonian."""
-    pass
+        self.assertEqual(device.q[0].drive, DriveChannel(0))
 
 
 if __name__ == '__main__':
