@@ -14,6 +14,6 @@
 
 """Extensions to quantum circuits."""
 
+from qiskit.extensions.quantum_initializer.initializer import Initialize
 from .standard import *
-from .initializer import Initialize
 from .unitary import UnitaryGate
