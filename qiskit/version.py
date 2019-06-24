@@ -19,6 +19,7 @@
 import os
 import subprocess
 import sys
+import warnings
 
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -111,7 +112,8 @@ def _get_qiskit_versions():
     cmd = [sys.executable, '-m', 'pip', 'freeze']
     try:
         reqs = _minimal_ext_cmd(cmd)
-    except Exception:
+    except Exception as e:
+        warnings.warn(str(e))
         return out_dict
     reqs_dict = {}
     for req in reqs.split():
