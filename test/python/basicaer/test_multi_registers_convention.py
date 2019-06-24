@@ -48,11 +48,11 @@ class TestCircuitMultiRegs(QiskitTestCase):
 
         backend_sim = BasicAer.get_backend('statevector_simulator')
         result = execute(circ, backend_sim, seed_transpiler=3438).result()
-        state = result.get_statevector(circ)
+        state = result.return_statevector(circ)
 
         backend_sim = BasicAer.get_backend('unitary_simulator')
         result = execute(circ, backend_sim, seed_transpiler=3438).result()
-        unitary = result.get_unitary(circ)
+        unitary = result.return_unitary(circ)
 
         self.assertEqual(counts, target)
         self.assertAlmostEqual(state_fidelity(basis_state('0110', 4), state), 1.0, places=7)

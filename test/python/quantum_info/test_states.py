@@ -82,7 +82,7 @@ class TestStates(QiskitTestCase):
         qc = QuantumCircuit(q)
         qc.initialize(state, [q[0], q[1], q[2]])
         backend = BasicAer.get_backend('statevector_simulator')
-        qc_state = execute(qc, backend).result().get_statevector(qc)
+        qc_state = execute(qc, backend).result().return_statevector(qc)
         self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
 
     def test_random_state(self):
@@ -101,7 +101,7 @@ class TestStates(QiskitTestCase):
         qc = QuantumCircuit(q)
         qc.initialize(state, [q[0], q[1], q[2]])
         backend = BasicAer.get_backend('statevector_simulator')
-        qc_state = execute(qc, backend).result().get_statevector(qc)
+        qc_state = execute(qc, backend).result().return_statevector(qc)
         self.assertAlmostEqual(state_fidelity(qc_state, state), 1.0, places=7)
 
     def test_purity_list_input(self):

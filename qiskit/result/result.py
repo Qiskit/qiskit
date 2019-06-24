@@ -22,6 +22,7 @@ from qiskit.validation.base import BaseModel, bind_schema
 from qiskit.result import postprocess
 from .models import ResultSchema
 
+import warnings
 
 @bind_schema(ResultSchema)
 class Result(BaseModel):
@@ -154,6 +155,23 @@ class Result(BaseModel):
             raise QiskitError('No memory for experiment "{0}".'.format(experiment))
 
     def get_counts(self, experiment=None):
+        """Deprecated. Use histogram_data()."""
+        warnings.warn('The method get_counts() is being replaced by histogram_data()',
+                      DeprecationWarning, 2)
+
+        try:
+            exp = self._get_experiment(experiment)
+            try:
+                header = exp.header.to_dict()
+            except (AttributeError, QiskitError):  # header is not available
+                header = None
+
+            return postprocess.format_counts(self.data(experiment)['counts'],
+                                             header)
+        except KeyError:
+            raise QiskitError('No counts for experiment "{0}"'.format(experiment))
+
+    def histogram_data(self, experiment=None):
         """Get the histogram data of an experiment.
 
         Args:
@@ -182,6 +200,19 @@ class Result(BaseModel):
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
     def get_statevector(self, experiment=None, decimals=None):
+        """Deprecated. Use return_statevector()."""
+        warnings.warn('The method get_statevector() is being replaced by return_statevector()',
+                      DeprecationWarning, 2)
+
+        try:
+            return postprocess.format_statevector(self.data(experiment)['statevector'],
+                                                  decimals=decimals)
+        except KeyError:
+            raise QiskitError('No statevector for experiment "{0}"'.format(experiment))
+
+
+
+    def return_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
 
         Args:
@@ -203,6 +234,18 @@ class Result(BaseModel):
             raise QiskitError('No statevector for experiment "{0}"'.format(experiment))
 
     def get_unitary(self, experiment=None, decimals=None):
+        """Deprecated. Use return_unitary()."""
+        warnings.warn('The method get_unitary() is being replaced by return_unitary()',
+                      DeprecationWarning, 2)
+
+        try:
+            return postprocess.format_unitary(self.data(experiment)['unitary'],
+                                              decimals=decimals)
+        except KeyError:
+            raise QiskitError('No unitary for experiment "{0}"'.format(experiment))
+
+
+    def return_unitary(self, experiment=None, decimals=None):
         """Get the final unitary of an experiment.
 
         Args:

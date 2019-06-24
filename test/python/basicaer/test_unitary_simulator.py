@@ -35,7 +35,7 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         """Test unitary simulator."""
         circuits = self._test_circuits()
         job = execute(circuits, backend=self.backend)
-        sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]
+        sim_unitaries = [job.result().return_unitary(circ) for circ in circuits]
         reference_unitaries = self._reference_unitaries()
         norms = [np.trace(np.dot(np.transpose(np.conj(target)), actual))
                  for target, actual in zip(reference_unitaries, sim_unitaries)]
