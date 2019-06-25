@@ -112,8 +112,8 @@ def _get_qiskit_versions():
     cmd = [sys.executable, '-m', 'pip', 'freeze']
     try:
         reqs = _minimal_ext_cmd(cmd)
-    except Exception as e:
-        warnings.warn(str(e))
+    except Exception as exc:
+        warnings.warn(str(exc))
         return out_dict
     reqs_dict = {}
     for req in reqs.split():
