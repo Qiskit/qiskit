@@ -39,6 +39,10 @@ jobs:
 
 - job: 'Windows Wheel Builds'
   pool: {vmImage: 'vs2017-win2016'}
+  trigger:
+    tags:
+      include:
+        - '*'
   variables:
     CIBW_BEFORE_BUILD: pip install -U Cython
     CIBW_SKIP: cp27-* cp34-*
