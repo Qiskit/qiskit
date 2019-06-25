@@ -108,10 +108,11 @@ def execute(experiments, backend,
                 1: light optimization
                 2: heavy optimization
 
-        pass_manager (PassManager):
+        pass_manager (PassManager or FunctionType):
             The pass manager to use during transpilation. If this arg is present,
             auto-selection of pass manager based on the transpile options will be
-            turned off and this pass manager will be used directly.
+            turned off and this pass manager will be used directly.If FunctionType,
+            the function takes a TranspileConfig as its sole argument.
 
         qobj_id (str):
             String identifier to annotate the Qobj

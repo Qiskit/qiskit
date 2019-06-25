@@ -114,11 +114,13 @@ def transpile(circuits,
                 2: heavy optimization
                 3: even heavier optimization
 
-        pass_manager (PassManager):
+        pass_manager (PassManager or FunctionType):
             The pass manager to use for a custom pipeline of transpiler passes.
             If this arg is present, all other args will be ignored and the
             pass manager will be used directly (Qiskit will not attempt to
-            auto-select a pass manager based on transpile options).
+            auto-select a pass manager based on transpile options). If
+            FunctionType, the function takes a TranspileConfig as its
+            sole argument.
 
 
     Returns:

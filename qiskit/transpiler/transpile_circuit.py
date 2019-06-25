@@ -14,6 +14,8 @@
 
 """Circuit transpile function"""
 
+import types
+from functools import partial
 from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
                                                    default_pass_manager,
                                                    level_0_pass_manager,
@@ -38,7 +40,12 @@ def transpile_circuit(circuit, transpile_config):
     """
     # if the pass manager is not already selected, choose an appropriate one.
     if transpile_config.pass_manager:
-        pass_manager = transpile_config.pass_manager
+        if isinstance(transpile_config.pass_manager, (types.FunctionType,
+                                                      types.BuiltinFunctionType,
+                                                      partial)):
+            pass_manager = transpile_config.pass_manager(transpile_config)
+        else:
+            pass_manager = transpile_config.pass_manager
 
     elif transpile_config.optimization_level is not None:
         level = transpile_config.optimization_level
