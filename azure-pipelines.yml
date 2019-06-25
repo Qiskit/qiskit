@@ -3,11 +3,8 @@
 # Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
-trigger:
-- master
-
-jobs:
-- job: 'Windows Tests'
+stages:
+- stage: 'Windows Tests'
   pool: {vmImage: 'vs2017-win2016'}
   strategy:
     matrix:
@@ -17,7 +14,6 @@ jobs:
         python.version: '3.6'
       Python37:
         python.version: '3.7'
-
   steps:
     - task: UsePythonVersion@0
       inputs:
@@ -37,7 +33,7 @@ jobs:
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
 
-- job: 'Windows Wheel Builds'
+- stage: 'Windows Wheel Builds'
   pool: {vmImage: 'vs2017-win2016'}
   trigger:
     tags:
