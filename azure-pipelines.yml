@@ -65,6 +65,8 @@ jobs:
         pip install cibuildwheel==0.11.1
         pip install -U twine
         cibuildwheel --output-dir wheelhouse
-        #twine upload wheelhouse\*
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
+    - task: UploadToPyPI
+      bash: |
+        twine upload wheelhouse\*
