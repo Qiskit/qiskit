@@ -464,7 +464,7 @@ class TextDrawing():
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit[0].name, qubit[1]))
+            qubits.append("%s_%s" % (qubit.register.name, qubit.index))
         return qubits
 
     def _get_clbit_labels(self):
