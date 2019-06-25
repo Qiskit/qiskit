@@ -25,7 +25,7 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.aqua.components.variational_forms import VariationalForm
 from qiskit.aqua.components.potentials.harmonic import Harmonic
 from qiskit.aqua.components.qfts.standard import Standard as StandardQFT
-from qiskit.aqua.components.qfts.swap import Swap
+#from qiskit.aqua.components.qfts.swap import Swap
 from qiskit.aqua.components.iqfts.standard import Standard as StandardIQFT
 
 class Gaussian(VariationalForm):

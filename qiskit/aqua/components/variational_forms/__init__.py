@@ -22,6 +22,6 @@ from .spin_boson import SpinBoson
 __all__ = ['VariationalForm',
            'RY',
            'RYRZ',
-           'SwapRZ',
-           'Gaussian',
-           'SpinBoson']
+           'SwapRZ']
+           #'Gaussian',
+           #'SpinBoson']
