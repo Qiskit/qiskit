@@ -87,14 +87,8 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
 
     dag = circuit_to_dag(circuit)
     ops = []
-    qregs = []
-    cregs = []
-
-    for qreg in dag.qregs.values():
-        qregs += [(qreg, bitno) for bitno in range(qreg.size)]
-
-    for creg in dag.cregs.values():
-        cregs += [(creg, bitno) for bitno in range(creg.size)]
+    qregs = dag.qubits()
+    cregs = dag.clbits()
 
     if justify == 'none':
         for node in dag.topological_op_nodes():
