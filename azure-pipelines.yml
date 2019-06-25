@@ -7,7 +7,7 @@ trigger:
 - master
 
 jobs:
-- job: 'Tests'
+- job: 'Windows Tests'
   pool: {vmImage: 'vs2017-win2016'}
   strategy:
     matrix:
@@ -37,7 +37,7 @@ jobs:
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
 
-- job: windows
+- job: 'Windows Wheel Builds'
   pool: {vmImage: 'vs2017-win2016'}
   variables:
     CIBW_BEFORE_BUILD: pip install -U Cython
