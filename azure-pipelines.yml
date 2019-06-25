@@ -12,7 +12,7 @@ trigger:
     include:
       - '*'
 jobs:
-- job: 'Windows Tests'
+- job: 'Windows_Tests'
   pool: {vmImage: 'vs2017-win2016'}
   condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
   strategy:
@@ -43,7 +43,7 @@ jobs:
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
 
-- job: 'Windows Wheel Builds'
+- job: 'Windows_Wheel_Builds'
   pool: {vmImage: 'vs2017-win2016'}
   condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
   variables:
