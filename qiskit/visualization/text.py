@@ -470,7 +470,7 @@ class TextDrawing():
     def _get_clbit_labels(self):
         clbits = []
         for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit[0].name, clbit[1]))
+            clbits.append("%s_%s" % (clbit.register.name, clbit.index))
         return clbits
 
     def single_string(self):

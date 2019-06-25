@@ -64,7 +64,7 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
+def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
     """
     Given a circuit, return a tuple (qregs, cregs, ops) where
     qregs and cregs are the quantum and classical registers
@@ -181,6 +181,13 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
     if reverse_bits:
         qregs.reverse()
         cregs.reverse()
+
+    if not idle_wires:
+        for wire in dag.idle_wires():
+            if wire in qregs:
+                qregs.remove(wire)
+            if wire in cregs:
+                cregs.remove(wire)
 
     return qregs, cregs, ops
 
