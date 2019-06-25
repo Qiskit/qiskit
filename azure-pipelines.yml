@@ -1,0 +1,39 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+- master
+
+pool:
+  vmImage: 'vs2017-win2016'
+strategy:
+  matrix:
+    Python35:
+      python.version: '3.5'
+    Python36:
+      python.version: '3.6'
+    Python37:
+      python.version: '3.7'
+
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '$(python.version)'
+  displayName: 'Use Python $(python.version)'
+
+- script: |
+    python -m pip install --upgrade pip
+    python -m venv venv
+    venv\Scripts\activate.bat
+    pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+    pip install -e .
+    pip install "qiskit-ibmq-provider" -c constraints.txt
+    python setup.py build_ext --inplace
+  displayName: 'Install dependencies'
+
+- script: |
+    stestr run
+    stestr last --subunit > test_results.subunit
+  displayName: 'Run tests'
