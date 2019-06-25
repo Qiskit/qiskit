@@ -327,6 +327,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
                         the circuit should be justified.
         vertical_compression (string): `high`, `medium`, or `low`. It merges the
             lines so the drawing will take less vertical room. Default is `high`.
+        idle_wires (bool): Include idle wires. Default is True.
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """

@@ -76,6 +76,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
             reversed.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
+        idle_wires (bool): Include idle wires. Default is True.
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """

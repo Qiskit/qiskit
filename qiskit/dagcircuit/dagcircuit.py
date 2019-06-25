@@ -562,12 +562,12 @@ class DAGCircuit:
     def idle_wires(self):
         """Return idle wires.
 
-        Returns:
-            generator(Bit): Bit in idle wire.
+        Yields:
+            Bit: Bit in idle wire.
         """
         for wire in self.wires:
             nodes = self.nodes_on_wire(wire, only_ops=False)
-            if len([ i for i in nodes]) == 2:
+            if len([i for i in nodes]) == 2:
                 yield wire
 
     def size(self):
