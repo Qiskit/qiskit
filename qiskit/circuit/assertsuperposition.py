@@ -17,12 +17,13 @@ Quantum measurement in the computational basis.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from random import randint
 from scipy.stats import chisquare
 
-class AssertSuperposition(Assert):
+class AssertSuperposition(Asserts):
     """Quantum measurement in the computational basis."""
     def __init__(self):
         """Create new measurement instruction."""
@@ -50,7 +51,7 @@ def assertsuperposition(self, qubit, cbit):
 
 def stat_test(self, counts):
     chisq, p = chisquare(counts.values)
-    Assert.StatOutput[self.name] = {"type" : "Superposition", "chisq": chisq, "p": p}}
+    Asserts.StatOutput[self.name] = {"type" : "Superposition", "chisq": chisq, "p": p}
     return 0
 
 QuantumCircuit.assertsuperposition = assertsuperposition

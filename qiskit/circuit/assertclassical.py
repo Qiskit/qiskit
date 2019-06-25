@@ -17,12 +17,13 @@ Quantum measurement in the computational basis.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from random import randint
 
 
-class AssertClassical(Assert):
+class AssertClassical(Asserts):
     """Quantum measurement in the computational basis."""
     ExpectedValues = {}
     def __init__(self):
