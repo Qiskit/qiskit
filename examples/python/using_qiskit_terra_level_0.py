@@ -29,15 +29,16 @@ as a level 1 user.
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
 from qiskit.circuit.assertclassical import AssertClassical #can remove later
+from qiskit.circuit.asserts import stat_test, Asserts
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
 qc1.h(0)
-print("AssertClassical.ExpectedValues = ")
-print(AssertClassical.ExpectedValues)
+print("Asserts.StatOutputs = ")
+print(Asserts.StatOutputs)
 breakpoint1 = qc1.assertclassical(0, [1], [1])
-print("AssertClassical.ExpectedValues after bkpt1 = ")
-print(AssertClassical.ExpectedValues)
+#print("AssertClassical.ExpectedValues after bkpt1 = ")
+#print(AssertClassical.ExpectedValues)
 qc1.cx(0, 1)
 print("breakpoint1.data = ")
 print(breakpoint1.data)
@@ -71,3 +72,6 @@ print(sim_result.get_counts(qc2))
 print("sim_result.get_counts(breakpoint2) = ")
 print(sim_result.get_counts(breakpoint2))
 
+job_stats = stat_test([breakpoint2], sim_result)
+print("job_stats = ")
+print(job_stats)

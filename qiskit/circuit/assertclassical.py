@@ -25,7 +25,7 @@ from random import randint
 
 class AssertClassical(Asserts):
     """Quantum measurement in the computational basis."""
-    ExpectedValues = {}
+    #ExpectedValues = {}
     def __init__(self):
         """Create new measurement instruction."""
         super().__init__()
@@ -48,7 +48,7 @@ def assertclassical(self, expval, qubit, cbit):
     """
     randString = str(randint(0, 1000000000))
     theClone = self.copy("breakpoint"+randString)
-    AssertClassical.ExpectedValues[theClone.name] = expval
+    Asserts.StatOutputs[theClone.name] = {"type": "Classical", "expval": expval}
     theClone.append(AssertClassical(), [qubit], [cbit])
     return theClone
 

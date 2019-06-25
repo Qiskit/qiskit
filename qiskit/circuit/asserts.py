@@ -20,6 +20,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from random import randint
+from scipy.stats import chisquare
 
 
 class Asserts(Measure):
@@ -31,12 +32,11 @@ class Asserts(Measure):
         super().__init__()
 
 
-#not yet implemented
-def stat_test(self, counts):
-#dictionary: breakpoint.stat_test()
+def stat_test(experiments, results):
+#need to fix comments on functions
     """Create classical assertion
 
-    Args:
+    Args: #fix these!
         expval: integer
         qubit (QuantumRegister|list|tuple): quantum register
         cbit (ClassicalRegister|list|tuple): classical register
@@ -48,7 +48,26 @@ def stat_test(self, counts):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    return 0
+    for exp in experiments:
+        exp_results = results.get_counts(exp)
+        print(list(exp_results.values()))        
+        exptype = Asserts.StatOutputs[exp.name]["type"]
+        #print(exptype)
+        #
+        #splitting by type here, we can change how this is done later
+        if exptype == "Classical":
+            c, p = (chisquare(list(exp_results.values()))) #placeholder, this should be replaced by a call to assertclassical.stat_test
+        elif exptype == "Superposition":
+            c, p = (chisquare(list(exp_results.values()))) #this is what should be implemented here, but by a call to assertsuperposition.stat_test
+        elif exptype == "Product":
+            c, p = (chisquare(list(exp_results.values())))  #placeholder, this should be replaced by a call to assertclassical.stat_test
+        else: print("Error in asserts.stat_test: experiment doesn't have a recorded type")
+        #
+        print(c, p)
+        Asserts.StatOutputs[exp.name]["chisq"] = c
+        Asserts.StatOutputs[exp.name]["p"] = p
+        #now the dict StatOutputs should map each breakpoint.name to another dictionary containing type, chisq, p, as well as other inputs like expval
+    return Asserts.StatOutputs
 
 
 

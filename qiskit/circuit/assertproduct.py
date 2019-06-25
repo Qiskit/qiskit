@@ -25,7 +25,7 @@ from random import randint
 
 class AssertProduct(Asserts):
     """Quantum measurement in the computational basis."""
-    ExpectedProductStates = {}
+    #ExpectedProductStates = {} #remove later
     def __init__(self):
         """Create new measurement instruction."""
         super().__init__()
@@ -50,7 +50,7 @@ def assertproduct(self, qubit0, cbit0, qubit1, cbit1):
     """
     randString = str(randint(0, 1000000000))
     theClone = self.copy("breakpoint"+randString)
-    AssertProduct.ExpectedProductStates[theClone.name] = [qubit0, cbit0, qubit1, cbit1]
+    Asserts.StatOutputs[theClone.name] = {"type": "Product", "expproductregs":[qubit0, cbit0, qubit1, cbit1]}
     theClone.append(AssertProduct(), [qubit0.extend(qubit1)], [cbit0.extend(cbit1)])
     return theClone
 

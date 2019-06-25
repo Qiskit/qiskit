@@ -46,7 +46,8 @@ def assertsuperposition(self, qubit, cbit):
     """
     randString = str(randint(0, 1000000000))
     theClone = self.copy("breakpoint"+randString)
-    theClone.append(AssertSuperposition(), [qubit], [cbit])
+    theClone.append(AssertSuperposition(), [qubit], [cbit])    
+    Asserts.StatOutputs[theClone.name] = {"type": "Superposition"}
     return theClone
 
 def stat_test(self, counts):
