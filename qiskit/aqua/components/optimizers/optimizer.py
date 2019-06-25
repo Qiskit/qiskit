@@ -71,7 +71,6 @@ class Optimizer(Pluggable):
         self._options = {}
         self._max_evals_grouped = 1
 
-
     @classmethod
     def init_params(cls, params):
         """Initialize with a params dictionary.
@@ -132,26 +131,25 @@ class Optimizer(Pluggable):
         chunk = []
         chunks = []
         length = len(todos)
-        for i in range(length): # split all points to chunks, where each chunk has batch_size points
+        for i in range(length):  # split all points to chunks, where each chunk has batch_size points
             x = todos[i]
             chunk.append(x)
-            counter+=1
-            if counter == max_evals_grouped or i == length-1: # the last one does not have to reach batch_size
+            counter += 1
+            if counter == max_evals_grouped or i == length-1:  # the last one does not have to reach batch_size
                 chunks.append(chunk)
                 chunk = []
                 counter = 0
 
-        for chunk in chunks: # eval the chunks in order
+        for chunk in chunks:  # eval the chunks in order
             parallel_parameters = np.concatenate(chunk)
-            todos_results = f(parallel_parameters) # eval the points in a chunk (order preserved)
-            if isinstance(todos_results,float):
+            todos_results = f(parallel_parameters)  # eval the points in a chunk (order preserved)
+            if isinstance(todos_results, float):
                 grad.append((todos_results - forig) / epsilon)
             else:
                 for todor in todos_results:
                     grad.append((todor - forig) / epsilon)
 
         return np.array(grad)
-
 
     @staticmethod
     def wrap_function(function, args):
