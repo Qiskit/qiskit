@@ -67,6 +67,5 @@ jobs:
         cibuildwheel --output-dir wheelhouse
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
-    - displayName: 'Upload to PyPI'
-      bash: |
+    - bash: |
         twine upload wheelhouse\*
