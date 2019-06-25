@@ -194,7 +194,6 @@ class Schedule(ScheduleComponent):
         time = self.ch_stop_time(*common_channels)
         return self.insert(time, schedule, buffer=buffer, name=name)
 
-
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
         return Schedule(*self.instructions, name=self.name)
