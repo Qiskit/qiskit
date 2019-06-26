@@ -244,3 +244,4 @@ matrix:
   allow_failures:
   - name: Randomized tests
   - name: Benchmarks
+  - name: Test visualizations
