@@ -88,7 +88,7 @@ def graysynth(cnots, angles, n_sections=2):
     cnots_copy = np.transpose(np.array(copy.deepcopy(cnots)))
     state = np.eye(n_qubits).astype('int')  # This matrix keeps track of the state in the algorithm
 
-    # Check if some T-gates can be applied, before adding any C-NOT gates
+    # Check if some phase-shift gates can be applied, before adding any C-NOT gates
     for qubit in range(n_qubits):
         index = 0
         for icnots in cnots_copy:
