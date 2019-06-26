@@ -15,7 +15,7 @@
 """
 Instruction = Leaf node of schedule.
 """
-from typing import Tuple, List, Iterable, Callable
+from typing import Tuple, List, Iterable, Callable, Optional
 
 from qiskit.pulse import ops
 from qiskit.pulse.channels import Channel
@@ -30,13 +30,18 @@ class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
     def __init__(self, command, *channels: List[Channel],
-                 timeslots: TimeslotCollection = None, name=None):
+                 timeslots: Optional[TimeslotCollection] = None,
+                 name: Optional[str] = None):
         """
-        command (Command): Pulse command to schedule
-        *channels: List of pulse channels to schedule with command
-        timeslots: Optional list of timeslots. If channels are supplied timeslots
-            cannot also be given
-        name: Name of Instruction
+        Args:
+            command: Pulse command to schedule
+            *channels: List of pulse channels to schedule with command
+            timeslots: Optional list of timeslots. If channels are supplied timeslots
+                cannot also be given
+            name: Name of Instruction
+
+        Raises:
+            PulseError: If both channels and timeslots are supplied
         """
         self._command = command
         self._name = name if name else self._command.name
@@ -75,17 +80,17 @@ class Instruction(ScheduleComponent):
 
     @property
     def timeslots(self) -> TimeslotCollection:
-        """Occupied time slots by this instruction. """
+        """Occupied time slots by this instruction."""
         return self._timeslots
 
     @property
     def start_time(self) -> int:
-        """Relative begin time of this instruction. """
+        """Relative begin time of this instruction."""
         return self.timeslots.start_time
 
     @property
     def stop_time(self) -> int:
-        """Relative end time of this instruction. """
+        """Relative end time of this instruction."""
         return self.timeslots.stop_time
 
     @property
@@ -100,7 +105,7 @@ class Instruction(ScheduleComponent):
 
     @property
     def _children(self) -> Tuple[ScheduleComponent]:
-        """Instruction has no child nodes. """
+        """Instruction has no child nodes."""
         return ()
 
     @property
@@ -140,7 +145,7 @@ class Instruction(ScheduleComponent):
 
         Yields:
             Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
-                at and the flattened `ScheduleComponent`.
+                at and the flattened `ScheduleComponent`
         """
         yield (time, self)
 
@@ -148,16 +153,18 @@ class Instruction(ScheduleComponent):
         """Return itself as already single instruction."""
         return self
 
-    def union(self, *schedules: List[ScheduleComponent], name: str = None) -> 'ScheduleComponent':
+    def union(self, *schedules: List[ScheduleComponent],
+              name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
-            *schedules: Schedules to be take the union with the parent `Schedule`.
+            *schedules: Schedules to be take the union with the parent `Schedule`
             name: Name of the new schedule. Defaults to name of parent
         """
         return ops.union(self, *schedules, name=name)
 
-    def shift(self: ScheduleComponent, time: int, name: str = None) -> 'ScheduleComponent':
+    def shift(self: ScheduleComponent, time: int,
+              name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
 
         Args:
@@ -167,7 +174,7 @@ class Instruction(ScheduleComponent):
         return ops.shift(self, time, name=name)
 
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
-               name: str = None) -> 'ScheduleComponent':
+               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
@@ -179,7 +186,7 @@ class Instruction(ScheduleComponent):
         return ops.insert(self, start_time, schedule, buffer=buffer, name=name)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = True,
-               name: str = None) -> 'ScheduleComponent':
+               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 
@@ -190,20 +197,20 @@ class Instruction(ScheduleComponent):
         """
         return ops.append(self, schedule, buffer=buffer, name=name)
 
-    def draw(self, dt: float = 1, style=None,
-             filename: str = None, interp_method: Callable = None, scaling: float = 1,
-             channels_to_plot: List[Channel] = None, plot_all: bool = False,
-             plot_range: Tuple[float] = None, interactive: bool = False,
-             table: bool = True, label: bool = False,
-             framechange: bool = True):
+    def draw(self, dt: float = 1, style: Optional['SchedStyle'] = None,
+             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
+             scaling: float = 1, channels_to_plot: Optional[List[Channel]] = None,
+             plot_all: bool = False, plot_range: Optional[Tuple[float]] = None,
+             interactive: bool = False, table: bool = True,
+             label: bool = False, framechange: bool = True):
         """Plot the instruction.
 
         Args:
             dt: Time interval of samples
-            style (SchedStyle): A style sheet to configure plot appearance
+            style: A style sheet to configure plot appearance
             filename: Name required to save pulse image
             interp_method: A function for interpolation
-            scaling (float): Relative visual scaling of waveform amplitudes
+            scaling: Relative visual scaling of waveform amplitudes
             channels_to_plot: A list of channel names to plot
             plot_all: Plot empty channels
             plot_range: A tuple of time range to plot
@@ -215,7 +222,7 @@ class Instruction(ScheduleComponent):
 
 
         Returns:
-            matplotlib.figure: A matplotlib figure object of the pulse schedule.
+            matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=invalid-name, cyclic-import
 

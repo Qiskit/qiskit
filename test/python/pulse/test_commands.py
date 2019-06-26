@@ -50,15 +50,20 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq_command.discriminator.params, discriminator_opts)
         self.assertEqual(acq_command.kernel.name, 'boxcar')
         self.assertEqual(acq_command.kernel.params, kernel_opts)
+        self.assertTrue(acq_command.name.startswith('acq'))
 
     def test_can_construct_acquire_command_with_default_values(self):
         """Test if an acquire command can be constructed with default discriminator and kernel.
         """
-        acq_command = Acquire(duration=10)
+        acq_command_a = Acquire(duration=10)
+        acq_command_b = Acquire(duration=10)
 
-        self.assertEqual(acq_command.duration, 10)
-        self.assertEqual(acq_command.discriminator, None)
-        self.assertEqual(acq_command.kernel, None)
+        self.assertEqual(acq_command_a.duration, 10)
+        self.assertEqual(acq_command_a.discriminator, None)
+        self.assertEqual(acq_command_a.kernel, None)
+        self.assertTrue(acq_command_a.name.startswith('acq'))
+        self.assertNotEqual(acq_command_a.name, acq_command_b.name)
+        self.assertEqual(acq_command_b.name, 'acq' + str(int(acq_command_a.name[3:]) + 1))
 
 
 class TestFrameChange(QiskitTestCase):
@@ -71,6 +76,7 @@ class TestFrameChange(QiskitTestCase):
 
         self.assertEqual(fc_command.phase, 1.57)
         self.assertEqual(fc_command.duration, 0)
+        self.assertTrue(fc_command.name.startswith('fc'))
 
 
 class TestFunctionalPulse(QiskitTestCase):
@@ -107,6 +113,7 @@ class TestPersistentValue(QiskitTestCase):
 
         self.assertEqual(pv_command.value, 0.5-0.5j)
         self.assertEqual(pv_command.duration, 0)
+        self.assertTrue(pv_command.name.startswith('pv'))
 
 
 class TestSnapshot(QiskitTestCase):
