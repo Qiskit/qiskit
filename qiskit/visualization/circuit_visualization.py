@@ -363,7 +363,7 @@ def _latex_circuit_drawer(circuit,
                           plot_barriers=True,
                           reverse_bits=False,
                           justify=None,
-                          idle_wires=idle_wires):
+                          idle_wires=True):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Requires version >=2.6.0 of the qcircuit LaTeX package.
@@ -443,7 +443,7 @@ def _latex_circuit_drawer(circuit,
 
 def _generate_latex_source(circuit, filename=None,
                            scale=0.7, style=None, reverse_bits=False,
-                           plot_barriers=True, justify=None, idle_wires=idle_wires):
+                           plot_barriers=True, justify=None, idle_wires=True):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -489,7 +489,7 @@ def _matplotlib_circuit_drawer(circuit,
                                plot_barriers=True,
                                reverse_bits=False,
                                justify=None,
-                               idle_wires=idle_wires):
+                               idle_wires=True):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
