@@ -24,7 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 
 
-def graysynth(cnots, angles, n_sections=2):
+def graysynth(cnots, angles, section_size=2):
     """
     This function is an implementation of the GraySynth algorithm.
 
@@ -65,8 +65,8 @@ def graysynth(cnots, angles, n_sections=2):
             interpreted as the angle of u1(angle), otherwise the elements
             have to be 't', 'tdg', 's', 'sdg' or 'z'.
 
-        n_sections (int): number of sections, used in _lwr_cnot_synth(), in the
-            Patel–Markov–Hayes algorithm. n_sections must be a factor of n_qubits.
+        section_size (int): the size of every section, used in _lwr_cnot_synth(), in the
+            Patel–Markov–Hayes algorithm. section_size must be a factor of n_qubits.
 
     Returns:
         QuantumCircuit: the quantum circuit
@@ -175,11 +175,11 @@ def graysynth(cnots, angles, n_sections=2):
         else:
             sta.append([cnots1, list(set(ilist).difference([j])), qubit])
         sta.append([cnots0, list(set(ilist).difference([j])), qubit])
-    qcir += cnot_synth(state, n_sections)
+    qcir += cnot_synth(state, section_size)
     return qcir
 
 
-def cnot_synth(state, n_sections=2):
+def cnot_synth(state, section_size=2):
     """
     This function is an implementation of the Patel–Markov–Hayes algorithm
     for optimal synthesis of linear reversible circuits, as specified by an
@@ -193,8 +193,8 @@ def cnot_synth(state, n_sections=2):
     Args:
         state (list[list] or ndarray): n x n matrix, describing the state
             of the input circuit
-        n_sections (int): number of sections, used in _lwr_cnot_synth(), in the
-            Patel–Markov–Hayes algorithm. n_sections must be a factor of n_qubits.
+        section_size (int): the size of each section, used in _lwr_cnot_synth(), in the
+            Patel–Markov–Hayes algorithm. section_size must be a factor of n_qubits.
 
     Returns:
         QuantumCircuit: a CNOT-only circuit implementing the
@@ -208,10 +208,10 @@ def cnot_synth(state, n_sections=2):
                           'but was of the type {}'.format(type(state)))
     state = np.array(state)
     # Synthesize lower triangular part
-    [state, circuit_l] = _lwr_cnot_synth(state, n_sections)
+    [state, circuit_l] = _lwr_cnot_synth(state, section_size)
     state = np.transpose(state)
     # Synthesize upper triangular part
-    [state, circuit_u] = _lwr_cnot_synth(state, n_sections)
+    [state, circuit_u] = _lwr_cnot_synth(state, section_size)
     circuit_l.reverse()
     for i in circuit_u:
         i.reverse()
@@ -222,13 +222,13 @@ def cnot_synth(state, n_sections=2):
     return circ
 
 
-def _lwr_cnot_synth(state, n_sections):
+def _lwr_cnot_synth(state, section_size):
     """
     This function is a helper function of the algorithm for optimal synthesis
     of linear reversible circuits (the Patel–Markov–Hayes algorithm). It works
     like gaussian elimination, except that it works a lot faster, and requires
     fewer steps (and therefore fewer CNOTs). It takes the matrix "state" and
-    splits it into "n_sections" sections. Then it eliminates all non-zero
+    splits it into sections of size section_size. Then it eliminates all non-zero
     sub-rows within each section, which are the same as a non-zero sub-row
     above. Once this has been done, it continues with normal gaussian elimination.
     The benefit is that with small section sizes (m), most of the sub-rows will
@@ -242,7 +242,7 @@ def _lwr_cnot_synth(state, n_sections):
 
     Args:
         state (ndarray): n x n matrix, describing a linear quantum circuit
-        n_sections (int): the number of sections to divide the matrix columns intosasdf
+        section_size (int): the section size the matrix columns are divided into
 
     Returns:
         numpy.matrix: n by n matrix, describing the state of the output circuit
@@ -256,11 +256,11 @@ def _lwr_cnot_synth(state, n_sections):
     if np.allclose(state, np.triu(state)):
         return [state, circuit]
     # Iterate over column sections
-    for sec in range(1, int(np.ceil(n_qubits/n_sections)+1)):
+    for sec in range(1, int(np.ceil(n_qubits/section_size)+1)):
         # Remove duplicate sub-rows in section sec
         patt = {}
-        for row in range((sec-1)*n_sections, n_qubits):
-            sub_row_patt = copy.deepcopy(state[row, (sec-1)*n_sections:sec*n_sections])
+        for row in range((sec-1)*section_size, n_qubits):
+            sub_row_patt = copy.deepcopy(state[row, (sec-1)*section_size:sec*section_size])
             if np.sum(sub_row_patt) == 0:
                 continue
             if str(sub_row_patt) not in patt:
@@ -269,7 +269,7 @@ def _lwr_cnot_synth(state, n_sections):
                 state[row, :] ^= state[patt[str(sub_row_patt)], :]
                 circuit.append([patt[str(sub_row_patt)], row])
         # Use gaussian elimination for remaining entries in column section
-        for col in range((sec-1)*n_sections, sec*n_sections):
+        for col in range((sec-1)*section_size, sec*section_size):
             # Check if 1 on diagonal
             diag_one = 1
             if state[col, col] == 0:
