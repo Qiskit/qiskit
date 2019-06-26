@@ -32,12 +32,12 @@ class PulseChannelSpec:
 
     1. When you have BaseBackend object of the target quantum device.
         ```python
-        system = PulseSpecification.from_device(backend)
+        system = PulseChannelSpec.from_device(backend)
         ```
 
     2. When you know the number of elements constituting the target quantum device.
         ```python
-        system = PulseSpecification(n_qubits=5, n_control=6, n_registers=1, buffer=10)
+        system = PulseChannelSpec(n_qubits=5, n_control=6, n_registers=1, buffer=10)
         ```
 
     Within Qiskit a quantum system at the level of pulses is abstracted as a combination of multiple
