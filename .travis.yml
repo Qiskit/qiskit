@@ -99,7 +99,7 @@ stages:
   - lint and pure python test
   - multiple envs
   - visualizations
-  - other test
+  - other
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
@@ -209,7 +209,7 @@ jobs:
       sudo: true
 
     # Randomized testing
-    - stage: other test
+    - stage: other
       name: Randomized tests
       <<: *stage_linux
       cache:
@@ -221,7 +221,7 @@ jobs:
       - pip install "qiskit-aer"
       - make test_randomized
 
-    - stage: other test
+    - stage: other
       name: Benchmarks
       <<: *stage_linux
       script:
