@@ -19,12 +19,13 @@
 import os
 import unittest
 
-from qiskit.tools.visualization import HAS_MATPLOTLIB, pulse_drawer
+from qiskit.tools.visualization import pulse_drawer
 from qiskit.pulse.channels import DeviceSpecification, Qubit, RegisterSlot, MemorySlot
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel, MeasureChannel
 from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib
+from qiskit.test import mpl_test
 
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
@@ -80,9 +81,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         sched |= Snapshot("snapshot_2", "snap_type") << 120
         return sched
 
-    # TODO: Enable for refactoring purposes and enable by default when we can
-    # decide if the backend is available or not.
-    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @mpl_test
     def test_pulse_matplotlib_drawer(self):
         filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
         pulse = self.sample_pulse()
@@ -90,9 +89,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         self.assertImagesAreEqual(filename, self.pulse_matplotlib_reference)
         os.remove(filename)
 
-    # TODO: Enable for refactoring purposes and enable by default when we can
-    # decide if the backend is available or not.
-    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @mpl_test
     def test_instruction_matplotlib_drawer(self):
         filename = self._get_resource_path('current_instruction_matplotlib_ref.png')
         pulse_instruction = self.sample_instruction()
@@ -100,9 +97,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         self.assertImagesAreEqual(filename, self.instr_matplotlib_reference)
         os.remove(filename)
 
-    # TODO: Enable for refactoring purposes and enable by default when we can
-    # decide if the backend is available or not.
-    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @mpl_test
     def test_schedule_matplotlib_drawer(self):
         filename = self._get_resource_path('current_schedule_matplotlib_ref.png')
         schedule = self.sample_schedule()

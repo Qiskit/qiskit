@@ -33,7 +33,8 @@ def get_test_options(option_var='QISKIT_TESTS'):
         'skip_online': False,
         'mock_online': False,
         'run_slow': False,
-        'rec': False
+        'rec': False,
+        'force_visualization': False
     }
 
     def turn_false(option):

@@ -14,11 +14,10 @@
 
 # pylint: disable=missing-docstring
 
-import unittest
 from unittest.mock import patch
 
 from qiskit import QuantumCircuit
-from qiskit.test import QiskitTestCase
+from qiskit.test import QiskitTestCase, mpl_test
 from qiskit import visualization
 from qiskit.visualization import text
 
@@ -34,8 +33,7 @@ class TestCircuitDrawer(QiskitTestCase):
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, text.TextDrawing)
 
-    @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
-                         'Skipped because matplotib is not available')
+    @mpl_test
     def test_user_config_default_output(self):
         with patch('qiskit.user_config.get_config', return_value={'circuit_drawer': 'mpl'}):
             circuit = QuantumCircuit()
@@ -48,16 +46,14 @@ class TestCircuitDrawer(QiskitTestCase):
             out = visualization.circuit_drawer(circuit)
             self.assertIsInstance(out, text.TextDrawing)
 
-    @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
-                         'Skipped because matplotib is not available')
+    @mpl_test
     def test_kwarg_priority_over_user_config_default_output(self):
         with patch('qiskit.user_config.get_config', return_value={'circuit_drawer': 'latex'}):
             circuit = QuantumCircuit()
             out = visualization.circuit_drawer(circuit, output='mpl')
             self.assertIsInstance(out, figure.Figure)
 
-    @unittest.skipUnless(visualization.HAS_MATPLOTLIB,
-                         'Skipped because matplotib is not available')
+    @mpl_test
     def test_default_backend_auto_output_with_mpl(self):
         with patch('qiskit.user_config.get_config', return_value={'circuit_drawer': 'auto'}):
             circuit = QuantumCircuit()

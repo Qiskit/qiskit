@@ -193,6 +193,7 @@ Option | Description | Default
 ------ | ----------- | -------
 `skip_online` | Skips tests that require remote requests. Does not require user credentials. | `False`
 `run_slow` | It runs tests tagged as *slow*. | `False`
+`force_visualization` | It runs tests tagged as *mpl* and *latex* | `False`
 
 It is possible to provide more than one option separated with commas.
 

@@ -14,13 +14,14 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-import unittest
 import os
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import visualization
+from qiskit.test import mpl_test
 
 from .visualization import QiskitVisualizationTestCase
+
 
 if visualization.HAS_MATPLOTLIB:
     from matplotlib import pyplot as plt
@@ -48,8 +49,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         expected.set_size_inches(2.508333333333333, 0.2508333333333333)
         return expected
 
-    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
-                     'matplotlib not available.')
+    @mpl_test
     def test_empty_circuit(self):
         qc = QuantumCircuit()
         filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
@@ -63,8 +63,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
         self.assertImagesAreEqual(filename, expected_filename)
 
-    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
-                     'matplotlib not available.')
+    @mpl_test
     def test_plot_barriers(self):
         """Test to see that plotting barriers works - if it is set to False, no
         blank columns are introduced"""

@@ -60,7 +60,7 @@ test_ci:
 	stestr run --concurrency $(CONCURRENCY)
 
 test_visualizations:
-	python -m unittest discover -v test.python.visualization
+	 QISKIT_TESTS='force_visualization' python -m unittest discover -v test.python.visualization
 
 test_randomized:
 	python3 -m unittest discover -s test/randomized -v

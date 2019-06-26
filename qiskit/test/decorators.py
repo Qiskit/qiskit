@@ -20,6 +20,7 @@ import sys
 import unittest
 from warnings import warn
 
+from qiskit import visualization, QiskitError
 from qiskit.util import _has_connection
 from .testing_options import get_test_options
 
@@ -67,10 +68,57 @@ def slow_test(func):
 
     @functools.wraps(func)
     def _wrapper(*args, **kwargs):
-        skip_slow = not TEST_OPTIONS['run_slow']
-        if skip_slow:
+        if not TEST_OPTIONS['run_slow']:
             raise unittest.SkipTest('Skipping slow tests')
 
+        return func(*args, **kwargs)
+
+    return _wrapper
+
+
+def latex_test(func):
+    """Decorator that signals that the test requires LaTeX to run.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+
+    @functools.wraps(func)
+    def _wrapper(*args, **kwargs):
+        if TEST_OPTIONS['force_visualization']:
+            if visualization.HAS_PDFLATEX:
+                return func(*args, **kwargs)
+            else:
+                raise QiskitError('Forced test requires pdflatex.')
+        if not visualization.HAS_PDFLATEX:
+            raise unittest.SkipTest('Skipped because pdflatex is not available')
+        return func(*args, **kwargs)
+
+    return _wrapper
+
+
+def mpl_test(func):
+    """Decorator that signals that the test requires matplotlib to run.
+
+    Args:
+        func (callable): test function to be decorated.
+
+    Returns:
+        callable: the decorated function.
+    """
+
+    @functools.wraps(func)
+    def _wrapper(*args, **kwargs):
+        if TEST_OPTIONS['force_visualization']:
+            if visualization.HAS_MATPLOTLIB:
+                return func(*args, **kwargs)
+            else:
+                raise QiskitError('Forced test requires matplotlib.')
+        if not visualization.HAS_MATPLOTLIB:
+            raise unittest.SkipTest('Skipped because matplotlib is not available')
         return func(*args, **kwargs)
 
     return _wrapper

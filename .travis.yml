@@ -202,6 +202,7 @@ jobs:
     # visualizations
     - stage: visualizations
       name: Test visualizations
+      if: type = cron
       <<: *stage_linux_latex
       dist: xenial
       python: 3.6
