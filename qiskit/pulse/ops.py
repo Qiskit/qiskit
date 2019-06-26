@@ -15,7 +15,7 @@
 """
 Schedule operations.
 """
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 
 from .interfaces import ScheduleComponent
 from .schedule import Schedule  # pylint: disable=cyclic-import
@@ -24,7 +24,7 @@ from .schedule import Schedule  # pylint: disable=cyclic-import
 
 
 def union(*schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
-          name: str = None) -> Schedule:
+          name: Optional[str] = None) -> Schedule:
     """Create a union (and also shift if desired) of all input `Schedule`s.
 
     Args:
@@ -42,7 +42,7 @@ def union(*schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent
 # pylint: enable=missing-type-doc
 
 
-def flatten(schedule: ScheduleComponent, name: str = None) -> Schedule:
+def flatten(schedule: ScheduleComponent, name: Optional[str] = None) -> Schedule:
     """Create a flattened schedule.
 
     Args:
@@ -55,7 +55,7 @@ def flatten(schedule: ScheduleComponent, name: str = None) -> Schedule:
     return Schedule(*schedule.instructions, name=name)
 
 
-def shift(schedule: ScheduleComponent, time: int, name: str = None) -> Schedule:
+def shift(schedule: ScheduleComponent, time: int, name: Optional[str] = None) -> Schedule:
     """Return schedule shifted by `time`.
 
     Args:
@@ -68,8 +68,8 @@ def shift(schedule: ScheduleComponent, time: int, name: str = None) -> Schedule:
     return union((time, schedule), name=name)
 
 
-def insert(parent: ScheduleComponent, time: int, child: ScheduleComponent, buffer: bool = False,
-           name: str = None) -> Schedule:
+def insert(parent: ScheduleComponent, time: int, child: ScheduleComponent,
+           buffer: bool = False, name: Optional[str] = None) -> Schedule:
     """Return a new schedule with the `child` schedule inserted into the `parent` at `start_time`.
 
     Args:
@@ -84,8 +84,8 @@ def insert(parent: ScheduleComponent, time: int, child: ScheduleComponent, buffe
     return union(parent, (time, child), name=name)
 
 
-def append(parent: ScheduleComponent, child: ScheduleComponent, buffer: bool = True,
-           name: str = None) -> Schedule:
+def append(parent: ScheduleComponent, child: ScheduleComponent,
+           buffer: bool = True, name: Optional[str] = None) -> Schedule:
     r"""Return a new schedule with by appending `child` to `parent` at
        the last time of the `parent` schedule's channels
        over the intersection of the parent and child schedule's channels.

@@ -15,7 +15,7 @@
 """
 Configurations for pulse experiments.
 """
-from typing import Dict, Union, Tuple
+from typing import Dict, Union, Tuple, Optional
 
 from .channels import PulseChannel, DriveChannel, MeasureChannel
 from .exceptions import PulseError
@@ -74,8 +74,8 @@ class LoRange:
 class LoConfig:
     """Pulse channel LO frequency container."""
 
-    def __init__(self, channel_los: Dict[PulseChannel, float] = None,
-                 lo_ranges: Dict[PulseChannel, Union[LoRange, Tuple[int]]] = None):
+    def __init__(self, channel_los: Optional[Dict[PulseChannel, float]] = None,
+                 lo_ranges: Optional[Dict[PulseChannel, Union[LoRange, Tuple[int]]]] = None):
         """Lo channel configuration data structure.
 
         Args:
