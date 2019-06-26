@@ -15,7 +15,7 @@
 """
 Acquire.
 """
-from typing import Union, List
+from typing import Union, List, Optional
 
 from qiskit.pulse.channels import Qubit, MemorySlot, RegisterSlot, AcquireChannel
 from qiskit.pulse.exceptions import PulseError
@@ -30,17 +30,18 @@ class Acquire(Command):
     ALIAS = 'acquire'
     prefix = 'acq'
 
-    def __init__(self, duration, discriminator=None, kernel=None, name=None):
+    def __init__(self, duration: int, discriminator: Optional[Discriminator] = None,
+                 kernel: Optional[Kernel] = None, name: Optional[str] = None):
         """Create new acquire command.
 
         Args:
-            duration (int): Duration of acquisition.
-            discriminator (Discriminator): Discriminators to be used
-                (from the list of available discriminator) if the measurement level is 2.
-            kernel (Kernel): The data structures defining the measurement kernels
+            duration: Duration of acquisition
+            discriminator: Discriminators to be used (from the list of available discriminator)
+                if the measurement level is 2
+            kernel: The data structures defining the measurement kernels
                 to be used (from the list of available kernels) and set of parameters
                 (if applicable) if the measurement level is 1 or 2.
-            name (str): Name of this command.
+            name: Name of this command.
 
         Raises:
             PulseError: when invalid discriminator or kernel object is input.
@@ -75,12 +76,12 @@ class Acquire(Command):
         """Return discrimination settings."""
         return self._discriminator
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Acquire'):
         """Two Acquires are the same if they are of the same type
         and have the same kernel and discriminator.
 
         Args:
-            other (Acquire): Other Acquire
+            other: Other Acquire
 
         Returns:
             bool: are self and other equal.
@@ -99,22 +100,22 @@ class Acquire(Command):
     # pylint: disable=arguments-differ
     def to_instruction(self,
                        qubits: Union[Qubit, List[Qubit]],
-                       mem_slots: Union[MemorySlot, List[MemorySlot]] = None,
-                       reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
-                       name=None) -> 'AcquireInstruction':
+                       mem_slots: Optional[Union[MemorySlot, List[MemorySlot]]] = None,
+                       reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                       name: Optional[str] = None) -> 'AcquireInstruction':
         return AcquireInstruction(self, qubits, mem_slots, reg_slots, name=name)
     # pylint: enable=arguments-differ
 
 
 class AcquireInstruction(Instruction):
-    """Pulse to acquire measurement result. """
+    """Pulse to acquire measurement result."""
 
     def __init__(self,
                  command: Acquire,
                  qubits: Union[Qubit, AcquireChannel, List[Qubit], List[AcquireChannel]],
                  mem_slots: Union[MemorySlot, List[MemorySlot]],
-                 reg_slots: Union[RegisterSlot, List[RegisterSlot]] = None,
-                 name=None):
+                 reg_slots: Optional[Union[RegisterSlot, List[RegisterSlot]]] = None,
+                 name: Optional[str] = None):
 
         if isinstance(qubits, (Qubit, AcquireChannel)):
             qubits = [qubits]
@@ -151,15 +152,15 @@ class AcquireInstruction(Instruction):
 
     @property
     def acquires(self):
-        """Acquire channels to be acquired on. """
+        """Acquire channels to be acquired on."""
         return self._acquires
 
     @property
     def mem_slots(self):
-        """MemorySlots. """
+        """MemorySlots."""
         return self._mem_slots
 
     @property
     def reg_slots(self):
-        """RegisterSlots. """
+        """RegisterSlots."""
         return self._reg_slots
