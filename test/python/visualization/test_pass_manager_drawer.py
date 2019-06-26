@@ -17,11 +17,18 @@
 import unittest
 import os
 
-from qiskit.transpiler.transpile_config import TranspileConfig
 from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler.passmanager import PassManager
 from qiskit import QuantumRegister
-from qiskit.transpiler.preset_passmanagers import level_0_pass_manager, level_1_pass_manager
-from qiskit.transpiler.passes import SetLayout, CheckMap, EnlargeWithAncilla, RemoveResetInZeroState
+from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import CheckMap
+from qiskit.transpiler.passes import CXDirection
+from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import TrivialLayout
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.passes import FullAncillaAllocation
+from qiskit.transpiler.passes import EnlargeWithAncilla
+from qiskit.transpiler.passes import RemoveResetInZeroState
 
 from qiskit.visualization.pass_manager_visualization import HAS_GRAPHVIZ
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
@@ -33,23 +40,30 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
     def setUp(self):
         coupling = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]]
         coupling_map = CouplingMap(couplinglist=coupling)
+        basis_gates = ['u1', 'u3', 'u2', 'cx']
         qr = QuantumRegister(7, 'q')
         layout = Layout({qr[i]: i for i in range(coupling_map.size())})
-        self.config = TranspileConfig(optimization_level=1,
-                                      basis_gates=['u1', 'u3', 'u2', 'cx'],
-                                      initial_layout=layout,
-                                      coupling_map=coupling_map,
-                                      seed_transpiler=987,
-                                      backend_properties=None)
+
+        # Create a pass manager with a variety of passes and flow control structures
+        self.pass_manager = PassManager()
+        self.pass_manager.append(SetLayout(layout))
+        self.pass_manager.append(TrivialLayout(coupling_map), condition=lambda x: True)
+        self.pass_manager.append(FullAncillaAllocation(coupling_map))
+        self.pass_manager.append(EnlargeWithAncilla())
+        self.pass_manager.append(Unroller(basis_gates))
+        self.pass_manager.append(CheckMap(coupling_map))
+        self.pass_manager.append(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
+        self.pass_manager.append(CXDirection(coupling_map))
+        self.pass_manager.append(RemoveResetInZeroState())
 
     @unittest.skipIf(not HAS_GRAPHVIZ,
                      'Graphviz not installed.')
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
-        filename = self._get_resource_path('current_l0.dot')
-        level_0_pass_manager(self.config).draw(filename=filename, raw=True)
+        filename = self._get_resource_path('current_standard.dot')
+        self.pass_manager.draw(filename=filename, raw=True)
 
-        self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_l0.dot'))
+        self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_standard.dot'))
         os.remove(filename)
 
     @unittest.skipIf(not HAS_GRAPHVIZ,
@@ -62,11 +76,11 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
                  EnlargeWithAncilla: 'pink',
                  RemoveResetInZeroState: 'grey'}
 
-        filename = self._get_resource_path('current_l1.dot')
-        level_1_pass_manager(self.config).draw(filename=filename, style=style, raw=True)
+        filename = self._get_resource_path('current_style.dot')
+        self.pass_manager.draw(filename=filename, style=style, raw=True)
 
         self.assertFilesAreEqual(filename,
-                                 path_to_diagram_reference('pass_manager_style_l1.dot'))
+                                 path_to_diagram_reference('pass_manager_style.dot'))
         os.remove(filename)
 
 
