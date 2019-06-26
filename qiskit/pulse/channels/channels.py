@@ -25,7 +25,7 @@ class Channel(metaclass=ABCMeta):
 
     prefix = None
 
-    def __init__(self, index: int = None, buffer: int = 0):
+    def __init__(self, index: int, buffer: int = 0):
         """Channel class.
 
         Args:

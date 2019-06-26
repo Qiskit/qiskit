@@ -15,7 +15,7 @@
 """
 Physical qubit.
 """
-from typing import Tuple
+from typing import Tuple, Optional
 
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel
@@ -28,7 +28,7 @@ class Qubit:
                  drive_channel: DriveChannel,
                  measure_channel: MeasureChannel,
                  acquire_channel: AcquireChannel,
-                 control_channels: Tuple[ControlChannel] = None):
+                 control_channels: Optional[Tuple[ControlChannel]] = None):
         self._index = index
         self._drive = drive_channel
         self._controls = tuple(control_channels) if control_channels else tuple()
