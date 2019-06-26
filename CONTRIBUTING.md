@@ -51,10 +51,6 @@ course, but we recommend taking a look at the \"Good first
 contribution\" label into the issues and pick one. We would love to
 mentor you!
 
-### Doc
-
-Review the parts of the documentation regarding the new changes and
-update it if it\'s needed.
 
 ### Pull requests
 
