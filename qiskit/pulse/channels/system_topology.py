@@ -33,7 +33,7 @@ class SystemTopology:
                  controls: List[ControlChannel],
                  measures: List[MeasureChannel],
                  acquires: List[AcquireChannel]):
-        """Create new device topology.
+        """Create new system topology.
 
         Args:
             drives: List of drive channels.
@@ -51,5 +51,5 @@ class SystemTopology:
 
     @property
     def qubits(self) -> List[Qubit]:
-        """Return list of qubit in this device."""
+        """Return list of qubit in this system."""
         return self._qubits

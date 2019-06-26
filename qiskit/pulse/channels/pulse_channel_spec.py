@@ -22,7 +22,7 @@ from typing import List
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .qubit import Qubit
-from .device_topology import SystemTopology
+from .system_topology import SystemTopology
 from qiskit.pulse.exceptions import PulseError
 
 
@@ -32,12 +32,12 @@ class PulseChannelSpec:
 
     1. When you have BaseBackend object of the target quantum device.
         ```python
-        device = PulseSpecification.from_device(backend)
+        system = PulseSpecification.from_device(backend)
         ```
 
     2. When you know the number of elements constituting the target quantum device.
         ```python
-        device = PulseSpecification(n_qubits=5, n_control=6, n_registers=1, buffer=10)
+        system = PulseSpecification(n_qubits=5, n_control=6, n_registers=1, buffer=10)
         ```
 
     Within Qiskit a quantum system at the level of pulses is abstracted as a combination of multiple
@@ -57,11 +57,11 @@ class PulseChannelSpec:
 
     For example, the zeroth drive channel may be accessed by
         ```python
-        device.drives[0]
+        system.drives[0]
         ```
     or if the channel is connected to the first qubit,
         ```python
-        device.qubits[0].drive
+        system.qubits[0].drive
         ```
     In the above example, both commands refer to the same object.
     """
