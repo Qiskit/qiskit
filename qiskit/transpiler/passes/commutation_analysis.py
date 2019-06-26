@@ -101,6 +101,9 @@ def _commute(node1, node2):
             for nd in [node1, node2]]):
         return False
 
+    if node1.condition or node2.condition:
+        return False
+
     qarg = list(set(node1.qargs + node2.qargs))
     qbit_num = len(qarg)
 

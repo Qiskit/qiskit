@@ -31,19 +31,22 @@ from qiskit.circuit import Parameter
 class TestOptimize1qGates(QiskitTestCase):
     """Test for 1q gate optimizations. """
 
-    def test_optimize_id(self):
-        """ qr0:--[id]-- == qr0:------ """
+    def test_dont_optimize_id(self):
+        """Identity gates are like 'wait' commands.
+        They should never be optimized (even without barriers).
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/2373
+        """
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr)
         circuit.iden(qr)
         circuit.iden(qr)
         dag = circuit_to_dag(circuit)
-        expected = QuantumCircuit(qr)
 
         pass_ = Optimize1qGates()
         after = pass_.run(dag)
 
-        self.assertEqual(circuit_to_dag(expected), after)
+        self.assertEqual(dag, after)
 
     def test_optimize_h_gates_pass_manager(self):
         """Transpile: qr:--[H]-[H]-[H]-- == qr:--[u2]-- """
@@ -63,7 +66,7 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(expected, result)
 
-    def test_optimize_1q_gates_collapse_identity(self):
+    def test_optimize_1q_gates_collapse_identity_equivalent(self):
         """test optimize_1q_gates removes u1(2*pi) rotations.
 
         See: https://github.com/Qiskit/qiskit-terra/issues/159

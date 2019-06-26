@@ -16,7 +16,7 @@
 
 import unittest
 from qiskit.transpiler.passes import BasicSwap
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -92,6 +92,39 @@ class TestBasicSwap(QiskitTestCase):
 
         """
         coupling = CouplingMap([[0, 1], [0, 2]])
+
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[2])
+        dag = circuit_to_dag(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.swap(qr[1], qr[0])
+        expected.cx(qr[0], qr[2])
+
+        pass_ = BasicSwap(coupling)
+        after = pass_.run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_a_single_swap_bigger_cm(self):
+        """ Swapper in a bigger coupling map
+         q0:-------
+
+         q1:---.---
+               |
+         q2:--(+)--
+
+         CouplingMap map: [1]--[0]--[2]--[3]
+
+         q0:--X---.---
+              |   |
+         q1:--X---|---
+                  |
+         q2:-----(+)--
+
+        """
+        coupling = CouplingMap([[0, 1], [0, 2], [2, 3]])
 
         qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
@@ -183,28 +216,28 @@ class TestBasicSwap(QiskitTestCase):
 
     def test_far_swap_with_gate_the_front(self):
         """ A far swap with a gate in the front.
-         qr0:------(+)--
-                    |
-         qr1:-------|---
-                    |
-         qr2:-------|---
-                    |
-         qr3:--[H]--.---
+         q0:------(+)--
+                   |
+         q1:-------|---
+                   |
+         q2:-------|---
+                   |
+         q3:--[H]--.---
 
          CouplingMap map: [0]--[1]--[2]--[3]
 
-         qr0:-----------(+)--
-                         |
-         qr1:---------X--.---
-                      |
-         qr2:------X--X------
-                   |
-         qr3:-[H]--X---------
+         q0:-----------(+)--
+                        |
+         q1:---------X--.---
+                     |
+         q2:------X--X------
+                  |
+         q3:-[H]--X---------
 
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
-        qr = QuantumRegister(4, 'qr')
+        qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
         circuit.h(qr[3])
         circuit.cx(qr[3], qr[0])
@@ -223,28 +256,28 @@ class TestBasicSwap(QiskitTestCase):
 
     def test_far_swap_with_gate_the_back(self):
         """ A far swap with a gate in the back.
-         qr0:--(+)------
-                |
-         qr1:---|-------
-                |
-         qr2:---|-------
-                |
-         qr3:---.--[H]--
+         q0:--(+)------
+               |
+         q1:---|-------
+               |
+         q2:---|-------
+               |
+         q3:---.--[H]--
 
          CouplingMap map: [0]--[1]--[2]--[3]
 
-         qr0:-------(+)------
-                     |
-         qr1:-----X--.--[H]--
-                  |
-         qr2:--X--X----------
-               |
-         qr3:--X-------------
+         q0:-------(+)------
+                    |
+         q1:-----X--.--[H]--
+                 |
+         q2:--X--X----------
+              |
+         q3:--X-------------
 
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
-        qr = QuantumRegister(4, 'qr')
+        qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[3], qr[0])
         circuit.h(qr[3])
@@ -263,28 +296,28 @@ class TestBasicSwap(QiskitTestCase):
 
     def test_far_swap_with_gate_the_middle(self):
         """ A far swap with a gate in the middle.
-         qr0:--(+)-------.--
-                |        |
-         qr1:---|--------|--
-                |
-         qr2:---|--------|--
-                |        |
-         qr3:---.--[H]--(+)-
+         q0:--(+)-------.--
+               |        |
+         q1:---|--------|--
+               |
+         q2:---|--------|--
+               |        |
+         q3:---.--[H]--(+)-
 
          CouplingMap map: [0]--[1]--[2]--[3]
 
-         qr0:-------(+)-------.---
-                     |        |
-         qr1:-----X--.--[H]--(+)--
-                  |
-         qr2:--X--X---------------
-               |
-         qr3:--X------------------
+         q0:-------(+)-------.---
+                    |        |
+         q1:-----X--.--[H]--(+)--
+                 |
+         q2:--X--X---------------
+              |
+         q3:--X------------------
 
         """
         coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
 
-        qr = QuantumRegister(4, 'qr')
+        qr = QuantumRegister(4, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[3], qr[0])
         circuit.h(qr[3])
@@ -299,112 +332,6 @@ class TestBasicSwap(QiskitTestCase):
         expected.cx(qr[0], qr[1])
 
         pass_ = BasicSwap(coupling)
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
-
-    def test_swap_between_qregs(self):
-        """ Adding a swap affecting different qregs
-        virtual  physical
-         qr0_0:    [0] -------
-
-         qr1_0:    [1] --(+)--
-                          |
-         qr1_1:    [2] ---.---
-
-         CouplingMap map: [1]--[0]--[2]
-
-        virtual  physical
-         qr0_0:    [0] --X-(+)--
-                         |  |
-         qr1_0:    [1] --X--|---
-                            |
-         qr1_1:    [2] -----.---
-
-        """
-        coupling = CouplingMap([[0, 1], [0, 2]])
-
-        qr0 = QuantumRegister(1, 'qr0')
-        qr1 = QuantumRegister(2, 'qr1')
-
-        circuit = QuantumCircuit(qr0, qr1)
-        circuit.cx(qr1[0], qr1[1])
-        dag = circuit_to_dag(circuit)
-
-        expected = QuantumCircuit(qr0, qr1)
-        expected.swap(qr1[0], qr0[0])
-        expected.cx(qr0[0], qr1[1])
-
-        pass_ = BasicSwap(coupling)
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
-
-    def test_initial_layout(self):
-        """ Using an initial_layout
-         0:q1:--(+)--
-                 |
-         1:q0:---|---
-                 |
-         2:q2:---.---
-
-         CouplingMap map: [0]--[1]--[2]
-
-         0:q1:--X-------
-                |
-         1:q0:--X---.---
-                    |
-         2:q2:-----(+)--
-
-        """
-        coupling = CouplingMap([[0, 1], [1, 2]])
-
-        qr = QuantumRegister(3, 'q')
-        circuit = QuantumCircuit(qr)
-        circuit.cx(qr[1], qr[2])
-        dag = circuit_to_dag(circuit)
-        layout = Layout({qr[1]: 0, qr[0]: 1, qr[2]: 2})
-
-        expected = QuantumCircuit(qr)
-        expected.swap(qr[1], qr[0])
-        expected.cx(qr[0], qr[2])
-
-        pass_ = BasicSwap(coupling, initial_layout=layout)
-        after = pass_.run(dag)
-
-        self.assertEqual(circuit_to_dag(expected), after)
-
-    def test_initial_layout_in_different_qregs(self):
-        """ Using an initial_layout, and with several qregs
-         0:q1_0:--(+)--
-                   |
-         1:q0_0:---|---
-                   |
-         2:q2_0:---.---
-
-         CouplingMap map: [0]--[1]--[2]
-
-         0:q1_0:--X-------
-                  |
-         1:q0_0:--X---.---
-                      |
-         2:q2_0:-----(+)--
-        """
-        coupling = CouplingMap([[0, 1], [1, 2]])
-
-        qr0 = QuantumRegister(1, 'q0')
-        qr1 = QuantumRegister(1, 'q1')
-        qr2 = QuantumRegister(1, 'q2')
-        circuit = QuantumCircuit(qr0, qr1, qr2)
-        circuit.cx(qr1[0], qr2[0])
-        dag = circuit_to_dag(circuit)
-        layout = Layout({qr1[0]: 0, qr0[0]: 1, qr2[0]: 2})
-
-        expected = QuantumCircuit(qr0, qr1, qr2)
-        expected.swap(qr1[0], qr0[0])
-        expected.cx(qr0[0], qr2[0])
-
-        pass_ = BasicSwap(coupling, initial_layout=layout)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)

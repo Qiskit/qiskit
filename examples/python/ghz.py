@@ -17,8 +17,7 @@ GHZ state example. It also compares running on experiment and simulator.
 """
 
 from qiskit import QuantumCircuit
-from qiskit import IBMQ, BasicAer, execute
-from qiskit.providers.ibmq import least_busy
+from qiskit import BasicAer, execute
 
 
 ###############################################################
@@ -37,28 +36,8 @@ qc.barrier()
 for i in range(num_qubits):
     qc.measure(i, i)
 
-###############################################################
-# Set up the API and execute the program.
-###############################################################
-try:
-    IBMQ.load_accounts()
-except:
-    print("""WARNING: No valid IBMQ credentials found on disk. 
-             You must store your credentials using IBMQ.save_account(token, url). 
-             For now, there's only access to local simulator backends...""")
-
-# First version: simulator
 sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute(qc, sim_backend, shots=1024)
 result = job.result()
 print('Qasm simulator : ')
-print(result.get_counts(qc))
-
-# Second version: real device
-least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration().n_qubits > 4))
-print("Running on current least busy device: ", least_busy_device)
-job = execute(qc, least_busy_device, shots=1024)
-result = job.result()
-print('Physical device (%s) : ' % least_busy_device)
 print(result.get_counts(qc))

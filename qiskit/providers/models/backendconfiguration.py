@@ -72,10 +72,8 @@ class BackendConfigurationSchema(BaseSchema):
     backend_version = String(required=True,
                              validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
     n_qubits = Integer(required=True, validate=Range(min=1))
-    basis_gates = List(String(), required=True,
-                       validate=Length(min=1))
-    gates = Nested(GateConfigSchema, required=True, many=True,
-                   validate=Length(min=1))
+    basis_gates = List(String(), required=True)
+    gates = Nested(GateConfigSchema, required=True, many=True)
     local = Boolean(required=True)
     simulator = Boolean(required=True)
     conditional = Boolean(required=True)
