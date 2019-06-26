@@ -17,7 +17,7 @@
 import unittest
 
 from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from qiskit.pulse.channels import DeviceSpecification, PulseSpecification, Qubit
+from qiskit.pulse.channels import DeviceSpecification, PulseChannelSpec, Qubit
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -128,7 +128,7 @@ class TestPulseSpecification(QiskitTestCase):
     def test_default(self):
         """Test default device specification.
         """
-        spec = PulseSpecification(n_qubits=2, n_control=0, n_registers=2)
+        spec = PulseChannelSpec(n_qubits=2, n_control=0, n_registers=2)
 
         self.assertEqual(spec.drives[0], DriveChannel(0))
         self.assertEqual(spec.acquires[1], AcquireChannel(1))
@@ -140,7 +140,7 @@ class TestPulseSpecification(QiskitTestCase):
         """
         backend = FakeOpenPulse2Q()
 
-        device = PulseSpecification.from_device(backend)
+        device = PulseChannelSpec.from_device(backend)
 
         self.assertEqual(device.drives[0], DriveChannel(0))
         self.assertEqual(device.controls[0], ControlChannel(0))

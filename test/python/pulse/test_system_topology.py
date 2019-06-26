@@ -16,12 +16,12 @@
 
 from qiskit.test import QiskitTestCase
 
-from qiskit.pulse.channels import DeviceTopology
+from qiskit.pulse.channels import SystemTopology
 from qiskit.pulse import DriveChannel, AcquireChannel, ControlChannel, MeasureChannel
 
 
-class TestDeviceTopology(QiskitTestCase):
-    """Tests for device topology."""
+class TestSystemTopology(QiskitTestCase):
+    """Tests for system topology."""
 
     def setUp(self):
         self.drives = [DriveChannel(ii) for ii in range(2)]
@@ -31,12 +31,12 @@ class TestDeviceTopology(QiskitTestCase):
 
     def test_construction_from_channels(self):
         """Test construction of device topology from channels."""
-        topology = DeviceTopology(drives=self.drives,
+        topology = SystemTopology(drives=self.drives,
                                   controls=self.controls,
                                   measures=self.measures,
                                   acquires=self.acquires)
 
-        self.assertEqual(topology.qubit[0].drive, DriveChannel(0))
-        self.assertEqual(topology.qubit[0].measure, MeasureChannel(0))
-        self.assertEqual(topology.qubit[0].acquire, AcquireChannel(0))
-        self.assertEqual(topology.qubit[0].controls[0], ControlChannel(0))
+        self.assertEqual(topology.qubits[0].drive, DriveChannel(0))
+        self.assertEqual(topology.qubits[0].measure, MeasureChannel(0))
+        self.assertEqual(topology.qubits[0].acquire, AcquireChannel(0))
+        self.assertEqual(topology.qubits[0].controls[0], ControlChannel(0))

@@ -17,7 +17,7 @@ import unittest
 
 import numpy as np
 
-from qiskit.pulse.channels import (DeviceSpecification, PulseSpecification, Qubit, RegisterSlot,
+from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit, RegisterSlot,
                                    MemorySlot, DriveChannel, AcquireChannel, ControlChannel,
                                    MeasureChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot,
@@ -40,7 +40,7 @@ class TestSchedule(QiskitTestCase):
             return slope * x + intercept
 
         self.linear = linear
-        self.two_qubit_device = PulseSpecification(n_qubits=2, n_control=1, n_registers=2)
+        self.two_qubit_device = PulseChannelSpec(n_qubits=2, n_control=1, n_registers=2)
 
     def test_append_an_instruction_to_empty_schedule(self):
         """Test append instructions to an empty schedule."""

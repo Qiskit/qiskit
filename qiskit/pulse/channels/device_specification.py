@@ -42,8 +42,8 @@ class DeviceSpecification:
         self._reg_slots = registers
         self._mem_slots = mem_slots
 
-        warn('DeviceSpecification is being deprecated.'
-             'Instead of DeviceSpecification, use PulseSpecification.', DeprecationWarning)
+        warn('DeviceSpecification is deprecated.'
+             'Instead of DeviceSpecification, use PulseChannelSpec.', DeprecationWarning)
 
     @classmethod
     def create_from(cls, backend):

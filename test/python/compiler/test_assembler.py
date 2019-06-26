@@ -262,7 +262,7 @@ class TestPulseAssembler(QiskitTestCase):
     """Tests for assembling schedules to qobj."""
 
     def setUp(self):
-        self.device = pulse.PulseSpecification.from_device(FakeOpenPulse2Q())
+        self.device = pulse.PulseChannelSpec.from_device(FakeOpenPulse2Q())
 
         test_pulse = pulse.SamplePulse(
             samples=np.array([0.02739068, 0.05, 0.05, 0.05, 0.02739068], dtype=np.complex128),

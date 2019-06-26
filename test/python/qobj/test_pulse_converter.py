@@ -23,7 +23,7 @@ from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructio
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
                                    Discriminator, Kernel)
-from qiskit.pulse.channels import (DeviceSpecification, PulseSpecification, Qubit, AcquireChannel,
+from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit, AcquireChannel,
                                    DriveChannel, ControlChannel, MeasureChannel, RegisterSlot,
                                    MemorySlot)
 from qiskit.pulse.schedule import ParameterizedSchedule
@@ -34,7 +34,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     """Pulse converter tests."""
 
     def setUp(self):
-        self.device = PulseSpecification(n_qubits=1, n_control=0, n_registers=1)
+        self.device = PulseChannelSpec(n_qubits=1, n_control=0, n_registers=1)
 
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
@@ -137,7 +137,7 @@ class TestQobjToInstructionConverter(QiskitTestCase):
 
         self.converter = QobjToInstructionConverter(self.pulse_library, buffer=0)
 
-        self.device = PulseSpecification(n_qubits=2, n_control=0, n_registers=2)
+        self.device = PulseChannelSpec(n_qubits=2, n_control=0, n_registers=2)
 
     def test_drive_instruction(self):
         """Test converted qobj from PulseInstruction."""
@@ -237,7 +237,7 @@ class TestLoConverter(QiskitTestCase):
     """LO converter tests."""
 
     def setUp(self):
-        self.device = PulseSpecification(n_qubits=1, n_control=0, n_registers=1)
+        self.device = PulseChannelSpec(n_qubits=1, n_control=0, n_registers=1)
 
     def test_qubit_los(self):
         """Test qubit channel configuration."""

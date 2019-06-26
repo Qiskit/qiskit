@@ -20,7 +20,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeProvider
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj import PulseQobjInstruction
-from qiskit.pulse import (CmdDef, SamplePulse, Schedule, PulseSpecification,
+from qiskit.pulse import (CmdDef, SamplePulse, Schedule, PulseChannelSpec,
                           DeviceSpecification, PulseError, PersistentValue)
 from qiskit.pulse.schedule import ParameterizedSchedule
 
@@ -31,7 +31,7 @@ class TestCmdDef(QiskitTestCase):
     def setUp(self):
         self.provider = FakeProvider()
         self.backend = self.provider.get_backend('fake_openpulse_2q')
-        self.device = PulseSpecification.from_device(self.backend)
+        self.device = PulseChannelSpec.from_device(self.backend)
 
     def test_get_backend(self):
         """Test that backend is fetchable with cmd def present."""

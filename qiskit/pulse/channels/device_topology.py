@@ -15,7 +15,7 @@
 # pylint: disable=invalid-name
 
 """
-Topology of device.
+Topology of system.
 """
 from typing import List
 
@@ -24,9 +24,8 @@ from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .qubit import Qubit
 
 
-class DeviceTopology:
-    """Helper class to store mapping between elements and channels.
-    Currently only qubit is supported as a basic element.
+class SystemTopology:
+    """Helper class to store the system mapping between qubits and channels.
     """
 
     def __init__(self,
@@ -51,6 +50,6 @@ class DeviceTopology:
         ]
 
     @property
-    def qubit(self) -> List[Qubit]:
+    def qubits(self) -> List[Qubit]:
         """Return list of qubit in this device."""
         return self._qubits

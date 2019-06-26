@@ -20,7 +20,7 @@ import os
 import unittest
 
 from qiskit.tools.visualization import HAS_MATPLOTLIB, pulse_drawer
-from qiskit.pulse.channels import (DeviceSpecification, PulseSpecification, Qubit,
+from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit,
                                    RegisterSlot, MemorySlot)
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel, MeasureChannel
 from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot
@@ -39,7 +39,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
 
     def setUp(self):
         self.schedule = Schedule()
-        self.device = PulseSpecification(n_qubits=2, n_control=1, n_registers=2)
+        self.device = PulseChannelSpec(n_qubits=2, n_control=1, n_registers=2)
 
     def sample_pulse(self):
         """Generate a sample pulse."""
