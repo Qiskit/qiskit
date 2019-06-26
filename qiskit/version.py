@@ -19,6 +19,7 @@
 import os
 import subprocess
 import sys
+import warnings
 
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,10 +39,11 @@ def _minimal_ext_cmd(cmd):
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, env=env,
                             cwd=os.path.join(os.path.dirname(ROOT_DIR)))
-    out = proc.communicate()[0]
+    stdout, stderr = proc.communicate()
     if proc.returncode > 0:
-        raise OSError
-    return out
+        raise OSError('Command {} exited with code {}: {}'.format(
+            cmd, proc.returncode, stderr.strip().decode('ascii')))
+    return stdout
 
 
 def git_version():
@@ -110,7 +112,8 @@ def _get_qiskit_versions():
     cmd = [sys.executable, '-m', 'pip', 'freeze']
     try:
         reqs = _minimal_ext_cmd(cmd)
-    except Exception:
+    except Exception as exc:
+        warnings.warn(str(exc))
         return out_dict
     reqs_dict = {}
     for req in reqs.split():
