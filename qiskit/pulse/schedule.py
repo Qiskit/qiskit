@@ -372,13 +372,38 @@ class ParameterizedSchedule:
         """Schedule parameters."""
         return self._parameters
 
-    def bind_parameters(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+    def bind_parameters(self,
+                        *args: List[Union[int, float, complex]],
+                        **kwargs: Dict[str, Union[int, float, complex]]) -> Schedule:
         """Generate the Schedule from params to evaluate command expressions"""
         bound_schedule = Schedule(name=self.name)
         schedules = list(self._schedules)
+
+        named_parameters = {}
+        if args:
+            for key, val in zip(self.parameters, args):
+                named_parameters[key] = val
+        if kwargs:
+            for key, val in kwargs.items():
+                if key in self.parameters:
+                    if key not in named_parameters.keys():
+                        named_parameters[key] = val
+                    else:
+                        raise PulseError("%s got multiple values for argument '%s'"
+                                         % (self.__class__.__name__, key))
+                else:
+                    raise PulseError("%s got an unexpected keyword argument '%s'"
+                                     % (self.__class__.__name__, key))
+
         for param_sched in self._parameterized:
             # recursively call until based callable is reached
-            schedules.append(param_sched(*args, **kwargs))
+            if isinstance(param_sched, type(self)):
+                predefined = param_sched.parameters
+            else:
+                # assuming no other parametrized instructions
+                predefined = self.parameters
+            sub_params = {k: v for k, v in named_parameters.items() if k in predefined}
+            schedules.append(param_sched(**sub_params))
 
         # construct evaluated schedules
         for sched in schedules:
@@ -386,5 +411,8 @@ class ParameterizedSchedule:
 
         return bound_schedule
 
-    def __call__(self, *args: List[float], **kwargs: Dict[str, float]) -> Schedule:
+    def __call__(self,
+                 *args: List[Union[int, float, complex]],
+                 **kwargs: Dict[str, Union[int, float, complex]]) -> Schedule:
+
         return self.bind_parameters(*args, **kwargs)

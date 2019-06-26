@@ -36,20 +36,13 @@ contributions.
 When you contribute to the Qiskit Terra project with a new pull request,
 a bot will evaluate whether you have signed the CLA. If required, the
 bot will comment on the pull request, including a link to accept the
-agreement. The [individual
-CLA](https://qiskit.org/license/qiskit-cla.pdf) document is available
-for review as a PDF.
+agreement. The [individual CLA] document is available for review as a PDF.
 
-::: {.note}
-::: {.admonition-title}
-Note
-:::
+**Note**:
+> If you work for a company that wants to allow you to contribute your
+> work, then you\'ll need to sign a [corporate CLA] and email it to us
+> at <qiskit@us.ibm.com>.
 
-If you work for a company that wants to allow you to contribute your
-work, then you\'ll need to sign a [corporate
-CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) and email it
-to us at <qiskit@us.ibm.com>.
-:::
 
 ### Good first contributions
 
@@ -196,16 +189,12 @@ environment (using a qiskitrc) then you can just set
 How and which tests are executed is controlled by an environment
 variable, `QISKIT_TESTS`:
 
-  -----------------------------------------------------------------------------
-  Option          Description                                         Default
-  --------------- --------------------------------------------------- ---------
-  `skip_online`   Skips tests that require remote requests. Does not  `False`
-                  require user credentials.                           
+Option | Description | Default
+------ | ----------- | -------
+`skip_online` | Skips tests that require remote requests. Does not require user credentials. | `False`
+`run_slow` | It runs tests tagged as *slow*. | `False`
 
-  `run_slow`      It runs tests tagged as *slow*.                     `False`
-  -----------------------------------------------------------------------------
-
-It is possible to provide more than one option separated with commas. If
+It is possible to provide more than one option separated with commas.
 
 Alternatively, the `make test_ci` target can be used instead of
 `make test` in order to run in a setup that replicates the configuration
@@ -358,3 +347,7 @@ The PR against the stable branch should include [\[stable\]]{.title-ref}
 in the title, as a sign that setting the target branch as stable was not
 a mistake. Also, reference to the PR number in master that you are
 porting.
+
+
+[individual CLA]: https://qiskit.org/license/qiskit-cla.pdf
+[corporate CLA]: https://qiskit.org/license/qiskit-corporate-cla.pdf

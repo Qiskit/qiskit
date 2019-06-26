@@ -25,12 +25,15 @@ from .command import Command
 class PersistentValue(Command):
     """Persistent value."""
 
-    def __init__(self, value):
+    prefix = 'pv'
+
+    def __init__(self, value, name=None):
         """create new persistent value command.
 
         Args:
             value (complex): Complex value to apply, bounded by an absolute value of 1.
                 The allowable precision is device specific.
+            name (str): Name of this command.
         Raises:
             PulseError: when input value exceed 1.
         """
@@ -40,6 +43,7 @@ class PersistentValue(Command):
             raise PulseError("Absolute value of PV amplitude exceeds 1.")
 
         self._value = complex(value)
+        self._name = PersistentValue.create_name(name)
 
     @property
     def value(self):
