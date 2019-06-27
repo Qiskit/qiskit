@@ -13,20 +13,20 @@
 # that they have been altered from the originals.
 
 """
-Quantum measurement in the computational basis.
+Assertion of classical states.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from random import randint
 
 
-class AssertClassical(Measure):
-    """Quantum measurement in the computational basis."""
-    ExpectedValues = {}
+class AssertClassical(Asserts):
+    """Assertion of classical states
+       and Quantum measurement in the computational basis."""
     def __init__(self):
-        """Create new measurement instruction."""
         super().__init__()
 
 
@@ -47,7 +47,7 @@ def assertclassical(self, expval, qubit, cbit):
     """
     randString = str(randint(0, 1000000000))
     theClone = self.copy("breakpoint"+randString)
-    AssertClassical.ExpectedValues[theClone.name] = expval
+    Asserts.StatOutputs[theClone.name] = {"type": "Classical", "expval": expval}
     theClone.append(AssertClassical(), [qubit], [cbit])
     return theClone
 
