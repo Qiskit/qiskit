@@ -394,7 +394,7 @@ universally depending on operating system.
             cd qiskit-aer
             pip install .
 
-         This will both build the binaries and install aer.
+         This will both build the binaries and install Aer.
 
          Alternatively if you have a newer pip installed, or need to set custom options
          for your environment you can build a python wheel manually.
