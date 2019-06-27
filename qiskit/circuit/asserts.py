@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Quantum measurement in the computational basis.
+Superclass for all Assertions.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
@@ -22,51 +22,70 @@ from qiskit.exceptions import QiskitError
 from random import randint
 from scipy.stats import chisquare
 
-
 class Asserts(Measure):
     wantcsv = True
     StatOutputs = {}
-    """Quantum measurement in the computational basis."""
+    """Superclass for all the asserts, subclass of Measure"""
     def __init__(self):
-        """Create new measurement instruction."""
         super().__init__()
 
 
 def stat_test(experiments, results):
 #need to fix comments on functions
-    """Create classical assertion
+    """Does statistical tests for each assertion
 
-    Args: #fix these!
-        expval: integer
-        qubit (QuantumRegister|list|tuple): quantum register
-        cbit (ClassicalRegister|list|tuple): classical register
+    Args:
+        experiments (QuantumCircuit or list[QuantumCircuit]): Circuit(s) to execute
+        results: results object (output.results from output of execute function)
 
     Returns:
-        qiskit.QuantumCircuit: copy of quantum circuit at the assert point.
+        dictionary containing each breakpoint.name as keys and another dictionary for its values that contains the type of assertion and chisq and p values.
 
     Raises:
-        QiskitError: if qubit is not in this circuit or bad format;
-            if cbit is not in this circuit or not creg.
+        Error if input experiment hasn't been recorded as an assertion.
     """
     for exp in experiments:
         exp_results = results.get_counts(exp)
+        print("list(exp_results.values()) = ")
         print(list(exp_results.values()))        
-        exptype = Asserts.StatOutputs[exp.name]["type"]
-        #print(exptype)
-        #
+        exp_type = Asserts.StatOutputs[exp.name]["type"]
+        print("exp_type = ")
+        print(exp_type)
+
         #splitting by type here, we can change how this is done later
-        if exptype == "Classical":
-            c, p = (chisquare(list(exp_results.values()))) #placeholder, this should be replaced by a call to assertclassical.stat_test
-        elif exptype == "Superposition":
-            c, p = (chisquare(list(exp_results.values()))) #this is what should be implemented here, but by a call to assertsuperposition.stat_test
-        elif exptype == "Product":
-            c, p = (chisquare(list(exp_results.values())))  #placeholder, this should be replaced by a call to assertclassical.stat_test
+        #in future we can change to a switch statement in which
+        #for each type we call its respective stat_test funtion 
+        if exp_type == "Classical":
+            res_list = []
+            exp_list = []
+            numshots = sum(list(exp_results.values()))
+            for key, value in exp_results.items():
+                res_list.append(value)
+                if int(key) == Asserts.StatOutputs[exp.name]["expval"]:
+                    exp_list.append(numshots)
+                else:
+                    exp_list.append(0)
+            print("exp_list =")
+            print(exp_list)
+            print("res_list = ")
+            print(res_list)
+            c, p = (chisquare(res_list, f_exp = exp_list)) 
+
+        elif exp_type == "Superposition":
+            c, p = (chisquare(list(exp_results.values())))
+
+        elif exp_type == "Product":
+            c, p = (chisquare(list(exp_results.values()))) 
+            #placeholder, this should be replaced by the stat_test for Product
+
         else: print("Error in asserts.stat_test: experiment doesn't have a recorded type")
-        #
+
+        print("c, p =")
         print(c, p)
         Asserts.StatOutputs[exp.name]["chisq"] = c
         Asserts.StatOutputs[exp.name]["p"] = p
-        #now the dict StatOutputs should map each breakpoint.name to another dictionary containing type, chisq, p, as well as other inputs like expval
+        #the dict StatOutputs should map each breakpoint.name to 
+        #another dictionary containing type, chisq, p, other inputs like expval
     return Asserts.StatOutputs
 
 

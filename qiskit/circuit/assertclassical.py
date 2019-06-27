@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Quantum measurement in the computational basis.
+Assertion of classical states.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
@@ -24,10 +24,9 @@ from random import randint
 
 
 class AssertClassical(Asserts):
-    """Quantum measurement in the computational basis."""
-    #ExpectedValues = {}
+    """Assertion of classical states
+       and Quantum measurement in the computational basis."""
     def __init__(self):
-        """Create new measurement instruction."""
         super().__init__()
 
 

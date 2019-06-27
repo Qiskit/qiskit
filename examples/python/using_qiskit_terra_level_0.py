@@ -72,6 +72,6 @@ print(sim_result.get_counts(qc2))
 print("sim_result.get_counts(breakpoint2) = ")
 print(sim_result.get_counts(breakpoint2))
 
-job_stats = stat_test([breakpoint2], sim_result)
+job_stats = stat_test([breakpoint1, breakpoint2], sim_result)
 print("job_stats = ")
 print(job_stats)
