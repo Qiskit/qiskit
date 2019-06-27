@@ -15,12 +15,17 @@
 """
 Schedule operations.
 """
+import warnings
+
 from typing import List, Union, Tuple, Optional
 
 from .interfaces import ScheduleComponent
 from .schedule import Schedule  # pylint: disable=cyclic-import
 
 # pylint: disable=missing-return-doc,missing-type-doc
+
+warnings.warn("Using functions in ops.py is deprecated and will be removed in a following release."
+              " Use methods from a Schedule or Instruction instance directly.")
 
 
 def union(*schedules: List[Union[ScheduleComponent, Tuple[int, ScheduleComponent]]],
