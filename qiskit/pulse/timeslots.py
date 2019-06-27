@@ -98,6 +98,13 @@ class Interval:
             return True
         return False
 
+    def __repr__(self):
+        """Return a readable representation of Interval Object"""
+        start_time = self._begin
+        end_time = self._end
+        rep = self.__class__.__name__ + "({}, {})".format(start_time, end_time)
+        return rep
+
 
 class Timeslot:
     """Named tuple of (Interval, Channel)."""
@@ -133,6 +140,12 @@ class Timeslot:
         if self.interval == other.interval and self.channel == other.channel:
             return True
         return False
+
+    def __repr__(self):
+        interval = self._interval
+        channel = self._channel
+        rep = self.__class__.__name__ + "({}, {})".format(channel, (interval.begin, interval.end))
+        return rep
 
 
 class TimeslotCollection:
@@ -254,3 +267,9 @@ class TimeslotCollection:
         if self.timeslots == other.timeslots:
             return True
         return False
+
+    def __repr__(self):
+        rep = dict()
+        for key, val in self._table.items():
+            rep[key] = [(interval.begin, interval.end) for interval in val]
+        return self.__class__.__name__ + str(rep)
