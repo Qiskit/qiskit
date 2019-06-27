@@ -43,13 +43,13 @@ class TestApplyLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = ApplyLayout()
-        pass_.property_set['layout'] = Layout({v[0]: 0, v[1]: 1})
+        dag.layout = Layout({v[0]: 0, v[1]: 1})
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
 
     def test_raise_when_no_layout_is_supplied(self):
-        """Test error is raised if no layout is found in property_set.
+        """Test error is raised if no layout is found in dag.
         """
         v = QuantumRegister(2, 'v')
         circuit = QuantumCircuit(v)
@@ -114,7 +114,7 @@ class TestApplyLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = ApplyLayout()
-        pass_.property_set['layout'] = Layout({v[0]: 2, v[1]: 1, v[2]: 0})
+        dag.layout = Layout({v[0]: 2, v[1]: 1, v[2]: 0})
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)
