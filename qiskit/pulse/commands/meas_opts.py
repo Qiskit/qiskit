@@ -18,15 +18,17 @@
 Measurement options.
 """
 
+from typing import Optional
+
 
 class MeasOpts:
     """Measurement options."""
 
-    def __init__(self, name=None, **params):
+    def __init__(self, name: Optional[str] = None, **params):
         """Create new measurement options.
 
         Parameters:
-            name (str): Name of measurement option to be used.
+            name: Name of measurement option to be used.
         """
         self._name = name
         self._params = params
@@ -41,15 +43,15 @@ class MeasOpts:
         """Return parameter dict."""
         return self._params
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'MeasOpts'):
         """Two measurement options are the same if they are of the same type
         and have the same name and params.
 
         Args:
-            other (MeasOpts): Other Discriminator/Kernel.
+            other: Other Discriminator/Kernel
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if type(self) is type(other) and \
                 self._name == other._name and \
@@ -64,11 +66,11 @@ class MeasOpts:
 class Discriminator(MeasOpts):
     """Discriminator."""
 
-    def __init__(self, name=None, **params):
+    def __init__(self, name: Optional[str] = None, **params):
         """Create new discriminator.
 
         Parameters:
-            name (str): Name of discriminator to be used.
+            name: Name of discriminator to be used
         """
         super().__init__(name, **params)
 
@@ -76,10 +78,10 @@ class Discriminator(MeasOpts):
 class Kernel(MeasOpts):
     """Kernel."""
 
-    def __init__(self, name=None, **params):
+    def __init__(self, name: Optional[str] = None, **params):
         """Create new kernel.
 
         Parameters:
-            name (str): Name of kernel to be used.
+            name: Name of kernel to be used
         """
         super().__init__(name, **params)
