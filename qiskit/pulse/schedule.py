@@ -169,7 +169,7 @@ class Schedule(ScheduleComponent):
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
-            start_time: Time to insert the schedule schedule
+            start_time: Time to insert the schedule
             schedule: Schedule to insert
             buffer: Whether to obey buffer when inserting
             name: Name of the new schedule. Defaults to name of self
