@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 -   Set default repetition time to be the first available.
+-   Pulse commands may now start with capitalized letters.
 -   The `pylatexenc` and `pillow` requirements are now optional. These
     are only used by the `latex` and `latex_source` circuit
     visualization backends. To continue using them ensure these are
