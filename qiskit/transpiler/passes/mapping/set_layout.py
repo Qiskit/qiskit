@@ -23,7 +23,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 
 class SetLayout(TransformationPass):
-    """Sets property_set['layout'] to layout."""
+    """Sets dag.layout to layout."""
 
     def __init__(self, layout):
         """

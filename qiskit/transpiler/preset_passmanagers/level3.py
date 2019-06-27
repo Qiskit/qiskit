@@ -72,14 +72,12 @@ def level_3_pass_manager(transpile_config):
     backend_properties = transpile_config.backend_properties
 
     # 1. Layout on good qubits if calibration info available, otherwise on dense links
-    _given_layout = SetLayout(initial_layout)
-
-    def _choose_layout_condition(property_set):
-        return not property_set['layout']
-
-    _choose_layout = DenseLayout(coupling_map)
-    if backend_properties:
-        _choose_layout = NoiseAdaptiveLayout(backend_properties)
+    if initial_layout:
+        _layout_setting = SetLayout(initial_layout)
+    elif backend_properties:
+        _layout_setting = NoiseAdaptiveLayout(backend_properties)
+    else:
+        _layout_setting = DenseLayout(coupling_map)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
@@ -115,8 +113,7 @@ def level_3_pass_manager(transpile_config):
 
     pm3 = PassManager()
     if coupling_map:
-        pm3.append(_given_layout)
-        pm3.append(_choose_layout, condition=_choose_layout_condition)
+        pm3.append(_layout_setting)
         pm3.append(_embed)
     pm3.append(_unroll)
     if coupling_map:

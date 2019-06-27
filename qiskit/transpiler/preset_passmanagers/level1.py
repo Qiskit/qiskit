@@ -64,12 +64,10 @@ def level_1_pass_manager(transpile_config):
     seed_transpiler = transpile_config.seed_transpiler
 
     # 1. Use trivial layout if no layout given
-    _given_layout = SetLayout(initial_layout)
-
-    def _choose_layout_condition(property_set):
-        return not property_set['layout']
-
-    _choose_layout = TrivialLayout(coupling_map)
+    if initial_layout:
+        _layout_setting = SetLayout(initial_layout)
+    else:
+        _layout_setting = TrivialLayout(coupling_map)
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
     _layout_check = CheckMap(coupling_map)
@@ -114,8 +112,7 @@ def level_1_pass_manager(transpile_config):
 
     pm1 = PassManager()
     if coupling_map:
-        pm1.append(_given_layout)
-        pm1.append(_choose_layout, condition=_choose_layout_condition)
+        pm1.append(_layout_setting)
         pm1.append(_layout_check)
         pm1.append(_improve_layout, condition=_improve_layout_condition)
         pm1.append(_embed)

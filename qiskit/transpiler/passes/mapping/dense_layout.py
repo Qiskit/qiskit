@@ -17,9 +17,6 @@
 This pass associates a physical qubit (int) to each virtual qubit
 of the circuit (Qubit).
 
-Note: even though a 'layout' is not strictly a property of the DAG,
-in the transpiler architecture it is best passed around between passes by
-being set in `property_set`.
 """
 
 import numpy as np
@@ -27,11 +24,11 @@ import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class DenseLayout(AnalysisPass):
+class DenseLayout(TransformationPass):
     """
     Chooses a Layout by finding the most connected subset of qubits.
     """
@@ -52,7 +49,7 @@ class DenseLayout(AnalysisPass):
     def run(self, dag):
         """
         Pick a convenient layout depending on the best matching
-        qubit connectivity, and set the property `layout`.
+        qubit connectivity, and set dag.layout.
 
         Args:
             dag (DAGCircuit): DAG to find layout for.
@@ -70,7 +67,8 @@ class DenseLayout(AnalysisPass):
             for i in range(qreg.size):
                 layout[qreg[i]] = int(best_sub[map_iter])
                 map_iter += 1
-        self.property_set['layout'] = layout
+        dag.layout = layout
+        return dag
 
     def _best_subset(self, n_qubits):
         """Computes the qubit mapping with the best connectivity.

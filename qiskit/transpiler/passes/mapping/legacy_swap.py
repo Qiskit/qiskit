@@ -78,8 +78,8 @@ class LegacySwap(TransformationPass):
         # Schedule the input circuit
         layerlist = list(dag.layers())
 
-        if self.initial_layout is None and self.property_set["layout"]:
-            self.initial_layout = self.property_set["layout"]
+        if self.initial_layout is None and dag.layout:
+            self.initial_layout = dag.layout
 
         if self.initial_layout is not None:
             # update initial_layout from a user given dict{(regname,idx): (regname,idx)}

@@ -24,7 +24,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 class ApplyLayout(TransformationPass):
     """
     Transforms a DAGCircuit with virtual qubits into a DAGCircuit with physical qubits
-    by applying the Layout given in `property_set`.
+    by applying the Layout given in dag.layout.
     Requires either of passes to set/select Layout, e.g. `SetLayout`, `TrivialLayout`.
     Assumes the Layout has full physical qubits.
     """
@@ -37,12 +37,12 @@ class ApplyLayout(TransformationPass):
         Returns:
             DAGCircuit: A mapped DAG (with physical qubits).
         Raises:
-            TranspilerError: if no layout is found in `property_set` or no full physical qubits.
+            TranspilerError: if no layout is found in dag.layout or no full physical qubits.
         """
-        layout = self.property_set["layout"]
+        layout = dag.layout
         if not layout:
             raise TranspilerError(
-                "No 'layout' is found in property_set. Please run a Layout pass in advance.")
+                "No 'layout' is found in dag.layout. Please run a Layout pass in advance.")
         if len(layout) != (1 + max(layout.get_physical_bits())):
             raise TranspilerError(
                 "The 'layout' must be full (with ancilla).")

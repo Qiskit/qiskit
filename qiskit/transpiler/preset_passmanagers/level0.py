@@ -57,12 +57,10 @@ def level_0_pass_manager(transpile_config):
     seed_transpiler = transpile_config.seed_transpiler
 
     # 1. Use trivial layout if no layout given
-    _given_layout = SetLayout(initial_layout)
-
-    def _choose_layout_condition(property_set):
-        return not property_set['layout']
-
-    _choose_layout = TrivialLayout(coupling_map)
+    if initial_layout:
+        _layout_setting = SetLayout(initial_layout)
+    else:
+        _layout_setting = TrivialLayout(coupling_map)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
@@ -92,8 +90,7 @@ def level_0_pass_manager(transpile_config):
 
     pm0 = PassManager()
     if coupling_map:
-        pm0.append(_given_layout)
-        pm0.append(_choose_layout, condition=_choose_layout_condition)
+        pm0.append(_layout_setting)
         pm0.append(_embed)
     pm0.append(_unroll)
     if coupling_map:

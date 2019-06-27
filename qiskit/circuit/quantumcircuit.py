@@ -53,7 +53,7 @@ class QuantumCircuit:
     header = "OPENQASM 2.0;"
     extension_lib = "include \"qelib1.inc\";"
 
-    def __init__(self, *regs, name=None):
+    def __init__(self, *regs, name=None, layout=None):
         """Create a new circuit.
         A circuit is a list of instructions bound to some registers.
         Args:
@@ -69,6 +69,7 @@ class QuantumCircuit:
                           QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits
             name (str or None): the name of the quantum circuit. If
                 None, an automatically generated string will be assigned.
+            layout (Layout): Layout for the circuit
 
         Raises:
             QiskitError: if the circuit name, if given, is not valid.
@@ -86,6 +87,7 @@ class QuantumCircuit:
                               "(or None to auto-generate a name).")
 
         self.name = name
+        self.layout = layout
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
