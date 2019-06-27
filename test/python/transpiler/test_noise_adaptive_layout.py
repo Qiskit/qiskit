@@ -59,9 +59,8 @@ class TestNoiseAdaptiveLayout(QiskitTestCase):
                                   general=[])
         nalayout = NoiseAdaptiveLayout(bprop)
         nalayout.run(dag)
-        initial_layout = nalayout.property_set['layout']
-        self.assertNotEqual(initial_layout[qr[0]], 0)
-        self.assertNotEqual(initial_layout[qr[1]], 0)
+        self.assertNotEqual(dag.layout[qr[0]], 0)
+        self.assertNotEqual(dag.layout[qr[1]], 0)
 
     def test_bad_readout(self):
         """Test that the mapper avoids bad readout unit"""
@@ -84,9 +83,8 @@ class TestNoiseAdaptiveLayout(QiskitTestCase):
                                   general=[])
         nalayout = NoiseAdaptiveLayout(bprop)
         nalayout.run(dag)
-        initial_layout = nalayout.property_set['layout']
-        self.assertNotEqual(initial_layout[qr[0]], 2)
-        self.assertNotEqual(initial_layout[qr[1]], 2)
+        self.assertNotEqual(dag.layout[qr[0]], 2)
+        self.assertNotEqual(dag.layout[qr[1]], 2)
 
     def test_grid_layout(self):
         """
@@ -125,10 +123,9 @@ class TestNoiseAdaptiveLayout(QiskitTestCase):
                                   general=[])
         nalayout = NoiseAdaptiveLayout(bprop)
         nalayout.run(dag)
-        initial_layout = nalayout.property_set['layout']
         for qid in range(4):
             for qloc in [0, 2]:
-                self.assertNotEqual(initial_layout[qr[qid]], qloc)
+                self.assertNotEqual(dag.layout[qr[qid]], qloc)
 
 
 if __name__ == '__main__':
