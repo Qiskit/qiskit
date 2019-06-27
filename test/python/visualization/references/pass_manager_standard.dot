@@ -2,7 +2,7 @@ digraph G {
 subgraph cluster_0 {
 fontname=helvetica;
 label=FlowLinear;
-1 [color=red, fontname=helvetica, label=SetLayout, shape=rectangle];
+1 [color=blue, fontname=helvetica, label=SetLayout, shape=rectangle];
 2 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=solid];
 2 -> 1;
 }
@@ -10,7 +10,7 @@ label=FlowLinear;
 subgraph cluster_3 {
 fontname=helvetica;
 label=Conditional;
-4 [color=red, fontname=helvetica, label=TrivialLayout, shape=rectangle];
+4 [color=blue, fontname=helvetica, label=TrivialLayout, shape=rectangle];
 5 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
 5 -> 4;
 1 -> 4;
@@ -19,7 +19,7 @@ label=Conditional;
 subgraph cluster_6 {
 fontname=helvetica;
 label=FlowLinear;
-7 [color=red, fontname=helvetica, label=FullAncillaAllocation, shape=rectangle];
+7 [color=blue, fontname=helvetica, label=FullAncillaAllocation, shape=rectangle];
 8 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
 8 -> 7;
 9 [color=black, fontname=helvetica, fontsize=10, label=layout, shape=ellipse, style=dashed];
