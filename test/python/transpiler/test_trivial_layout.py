@@ -44,10 +44,9 @@ class TestTrivialLayout(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = TrivialLayout(CouplingMap(self.cmap5))
         pass_.run(dag)
-        layout = pass_.property_set['layout']
 
         for i in range(3):
-            self.assertEqual(layout[qr[i]], i)
+            self.assertEqual(dag.layout[qr[i]], i)
 
     def test_9q_circuit_16q_coupling(self):
         """Test finds trivial layout for 9q circuit with 2 registers on 16q device.
@@ -65,12 +64,11 @@ class TestTrivialLayout(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = TrivialLayout(CouplingMap(self.cmap16))
         pass_.run(dag)
-        layout = pass_.property_set['layout']
 
         for i in range(4):
-            self.assertEqual(layout[qr0[i]], i)
+            self.assertEqual(dag.layout[qr0[i]], i)
         for i in range(5):
-            self.assertEqual(layout[qr1[i]], i+4)
+            self.assertEqual(dag.layout[qr1[i]], i+4)
 
     def test_raises_wider_circuit(self):
         """Test error is raised if the circuit is wider than coupling map.
