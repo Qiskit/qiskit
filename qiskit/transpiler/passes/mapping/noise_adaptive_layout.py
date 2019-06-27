@@ -39,20 +39,18 @@ In the end if there are unmapped qubits (which don't
 participate in any CNOT), map them to any available
 hardware qubit.
 
-Note: even though a 'layout' is not strictly a property of the DAG,
-in the transpiler architecture it is best passed around between passes by
-being set in `property_set`.
+
 """
 
 import math
 import networkx as nx
 
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class NoiseAdaptiveLayout(AnalysisPass):
+class NoiseAdaptiveLayout(TransformationPass):
     """
     Chooses a noise-adaptive Layout based on current calibration
     data for the backend.
@@ -250,4 +248,5 @@ class NoiseAdaptiveLayout(AnalysisPass):
             pid = self._qarg_to_id(q)
             hwid = self.prog2hw[pid]
             layout[q] = hwid
-        self.property_set['layout'] = layout
+        dag.layout = layout
+        return dag

@@ -13,21 +13,21 @@
 # that they have been altered from the originals.
 
 """
-Sets property_set['layout'] to layout.
+Sets dag.layout to layout.
 
 This pass associates a physical qubit (int) to each virtual qubit
 of the circuit (Qubit) in increasing order.
 """
 
-from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import TransformationPass
 
 
-class SetLayout(AnalysisPass):
+class SetLayout(TransformationPass):
     """Sets property_set['layout'] to layout."""
 
     def __init__(self, layout):
         """
-        Sets property_set['layout'] to layout.
+        Sets dag.layout to layout.
 
         Args:
             layout (Layout): the layout to set.
@@ -36,5 +36,5 @@ class SetLayout(AnalysisPass):
         self.layout = layout
 
     def run(self, dag):
-        self.property_set['layout'] = self.layout
+        dag.layout = self.layout
         return dag

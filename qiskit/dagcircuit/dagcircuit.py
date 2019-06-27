@@ -82,6 +82,8 @@ class DAGCircuit:
         # TO REMOVE WHEN NODE IS HAVE BEEN REMOVED FULLY
         self._id_to_node = {}
 
+        self.layout = None
+
     def to_networkx(self):
         """Returns a copy of the DAGCircuit in networkx format."""
         return copy.deepcopy(self._multi_graph)

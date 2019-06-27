@@ -22,11 +22,11 @@ A separate transformation pass must add those virtual qubits to the circuit.
 """
 
 from qiskit.circuit import QuantumRegister
-from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class FullAncillaAllocation(AnalysisPass):
+class FullAncillaAllocation(TransformationPass):
     """
     Allocates all idle nodes from the coupling map as ancilla on the layout.
     """
@@ -64,10 +64,10 @@ class FullAncillaAllocation(AnalysisPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        self.layout = self.layout or self.property_set.get('layout')
+        self.layout = self.layout or dag.layout
 
         if self.layout is None:
-            raise TranspilerError("FullAncilla pass requires property_set[\"layout\"] or"
+            raise TranspilerError("FullAncilla pass requires dag.layout or"
                                   " \"layout\" parameter to run")
 
         layout_physical_qubits = self.layout.get_physical_bits().keys()
@@ -85,6 +85,6 @@ class FullAncillaAllocation(AnalysisPass):
                 qreg = QuantumRegister(len(idle_physical_qubits), name=self.ancilla_name)
 
         for idx, idle_q in enumerate(idle_physical_qubits):
-            self.property_set['layout'][idle_q] = qreg[idx]
+            dag.layout[idle_q] = qreg[idx]
 
         return dag

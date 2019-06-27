@@ -20,11 +20,11 @@ of the circuit (Qubit) in increasing order.
 """
 
 from qiskit.transpiler.layout import Layout
-from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class TrivialLayout(AnalysisPass):
+class TrivialLayout(TransformationPass):
     """
     Chooses a Layout by assigning n circuit qubits to device qubits 0, .., n-1.
 
@@ -57,4 +57,5 @@ class TrivialLayout(AnalysisPass):
         num_dag_qubits = sum([qreg.size for qreg in dag.qregs.values()])
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError('Number of qubits greater than device.')
-        self.property_set['layout'] = Layout.generate_trivial_layout(*dag.qregs.values())
+        dag.layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        return dag

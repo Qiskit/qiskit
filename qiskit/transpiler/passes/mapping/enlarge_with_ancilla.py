@@ -46,10 +46,10 @@ class EnlargeWithAncilla(TransformationPass):
         Raises:
             TranspilerError: If there is not layout in the property set or not set at init time.
         """
-        self.layout = self.layout or self.property_set['layout']
+        self.layout = self.layout or dag.layout
 
         if self.layout is None:
-            raise TranspilerError("EnlargeWithAncilla requires property_set[\"layout\"] or"
+            raise TranspilerError("EnlargeWithAncilla requires dag.layout or"
                                   " \"layout\" parameter to run")
 
         layout_virtual_qubits = self.layout.get_virtual_bits().keys()
