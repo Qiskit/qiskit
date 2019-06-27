@@ -1212,6 +1212,13 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
      - qiskit-ibmq-provider
      - qiskit-aqua
      - qiskit-chemistry
+   * - 0.10.5
+     - 0.8.2
+     - 0.2.1
+     - 0.1.1
+     - 0.2.2
+     - 0.5.2
+     - 0.5.0
    * - 0.10.4
      - 0.8.2
      - 0.2.1
