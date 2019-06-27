@@ -22,7 +22,8 @@ The blocks are collected by a previous pass, such as Collect2qBlocks.
 from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
-from qiskit.extensions import UnitaryGate
+from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
+from qiskit.extensions import UnitaryGate, CnotGate
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -34,6 +35,16 @@ class ConsolidateBlocks(TransformationPass):
     Important note: this pass assumes that the 'blocks_list' property that
     it reads is given such that blocks are in topological order.
     """
+    def __init__(self, kak_basis_gate=CnotGate(), force_consolidate=False):
+        """
+        Args:
+            kak_basis_gate (Gate): Basis gate for KAK decomposition.
+            force_consolidate (bool): Force block consolidation
+        """
+        super().__init__()
+        self.force_consolidate = force_consolidate
+        self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
+
     def run(self, dag):
         """iterate over each block and replace it with an equivalent Unitary
         on the same wires.
@@ -55,6 +66,8 @@ class ConsolidateBlocks(TransformationPass):
         blocks = self.property_set['block_list']
         nodes_seen = set()
 
+        basis_gate_name = self.decomposer.gate.name
+
         for node in dag.topological_op_nodes():
             # skip already-visited nodes or input/output nodes
             if node in nodes_seen or node.type == 'in' or node.type == 'out':
@@ -72,12 +85,23 @@ class ConsolidateBlocks(TransformationPass):
                 subcirc = QuantumCircuit(q)
                 block_index_map = self._block_qargs_to_indices(block_qargs,
                                                                global_index_map)
+                basis_count = 0
                 for nd in block:
+                    if nd.op.name == basis_gate_name:
+                        basis_count += 1
                     nodes_seen.add(nd)
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
-                new_dag.apply_operation_back(
-                    unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
+                if self.force_consolidate or unitary.num_qubits > 2 or \
+                        self.decomposer.num_basis_gates(unitary) != basis_count:
+
+                    new_dag.apply_operation_back(
+                        unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
+                else:
+                    for nd in block:
+                        nodes_seen.add(nd)
+                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+
                 del blocks[0]
             else:
                 # the node could belong to some future block, but in that case
