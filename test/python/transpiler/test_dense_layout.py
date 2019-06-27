@@ -44,12 +44,11 @@ class TestDenseLayout(QiskitTestCase):
         pass_ = DenseLayout(CouplingMap(self.cmap20))
         pass_.run(dag)
 
-        layout = pass_.property_set['layout']
-        self.assertEqual(layout[qr[0]], 11)
-        self.assertEqual(layout[qr[1]], 10)
-        self.assertEqual(layout[qr[2]], 6)
-        self.assertEqual(layout[qr[3]], 5)
-        self.assertEqual(layout[qr[4]], 0)
+        self.assertEqual(dag.layout[qr[0]], 11)
+        self.assertEqual(dag.layout[qr[1]], 10)
+        self.assertEqual(dag.layout[qr[2]], 6)
+        self.assertEqual(dag.layout[qr[3]], 5)
+        self.assertEqual(dag.layout[qr[4]], 0)
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds dense 5q corner in 20q coupling map.
@@ -64,13 +63,12 @@ class TestDenseLayout(QiskitTestCase):
         pass_ = DenseLayout(CouplingMap(self.cmap20))
         pass_.run(dag)
 
-        layout = pass_.property_set['layout']
-        self.assertEqual(layout[qr0[0]], 11)
-        self.assertEqual(layout[qr0[1]], 10)
-        self.assertEqual(layout[qr0[2]], 6)
-        self.assertEqual(layout[qr1[0]], 5)
-        self.assertEqual(layout[qr1[1]], 1)
-        self.assertEqual(layout[qr1[2]], 0)
+        self.assertEqual(dag.layout[qr0[0]], 11)
+        self.assertEqual(dag.layout[qr0[1]], 10)
+        self.assertEqual(dag.layout[qr0[2]], 6)
+        self.assertEqual(dag.layout[qr1[0]], 5)
+        self.assertEqual(dag.layout[qr1[1]], 1)
+        self.assertEqual(dag.layout[qr1[2]], 0)
 
 
 if __name__ == '__main__':
