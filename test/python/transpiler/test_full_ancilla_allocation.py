@@ -48,18 +48,17 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr[2]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        dag.layout = initial_layout
 
         pass_.run(dag)
-        after_layout = pass_.property_set['layout']
 
         ancilla = QuantumRegister(2, 'ancilla')
 
-        self.assertEqual(after_layout[0], qr[0])
-        self.assertEqual(after_layout[1], qr[1])
-        self.assertEqual(after_layout[2], qr[2])
-        self.assertEqual(after_layout[3], ancilla[0])
-        self.assertEqual(after_layout[4], ancilla[1])
+        self.assertEqual(dag.layout[0], qr[0])
+        self.assertEqual(dag.layout[1], qr[1])
+        self.assertEqual(dag.layout[2], qr[2])
+        self.assertEqual(dag.layout[3], ancilla[0])
+        self.assertEqual(dag.layout[4], ancilla[1])
 
     def test_3q_with_holes_5q_coupling(self):
         """Allocates 3 ancillas for a 2q circuit on a 5q coupling, with holes
@@ -79,17 +78,16 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr[1]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        dag.layout = initial_layout
         pass_.run(dag)
-        after_layout = pass_.property_set['layout']
 
         ancilla = QuantumRegister(3, 'ancilla')
 
-        self.assertEqual(after_layout[0], qr[0])
-        self.assertEqual(after_layout[1], ancilla[0])
-        self.assertEqual(after_layout[2], qr[1])
-        self.assertEqual(after_layout[3], ancilla[1])
-        self.assertEqual(after_layout[4], ancilla[2])
+        self.assertEqual(dag.layout[0], qr[0])
+        self.assertEqual(dag.layout[1], ancilla[0])
+        self.assertEqual(dag.layout[2], qr[1])
+        self.assertEqual(dag.layout[3], ancilla[1])
+        self.assertEqual(dag.layout[4], ancilla[2])
 
     def test_3q_out_of_order_5q_coupling(self):
         """Allocates 2 ancillas a 3q circuit on a 5q coupling map, out of order
@@ -110,17 +108,16 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr[2]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        dag.layout = initial_layout
         pass_.run(dag)
-        after_layout = pass_.property_set['layout']
 
         ancilla = QuantumRegister(2, 'ancilla')
 
-        self.assertEqual(after_layout[0], qr[0])
-        self.assertEqual(after_layout[1], ancilla[0])
-        self.assertEqual(after_layout[2], qr[2])
-        self.assertEqual(after_layout[3], qr[1])
-        self.assertEqual(after_layout[4], ancilla[1])
+        self.assertEqual(dag.layout[0], qr[0])
+        self.assertEqual(dag.layout[1], ancilla[0])
+        self.assertEqual(dag.layout[2], qr[2])
+        self.assertEqual(dag.layout[3], qr[1])
+        self.assertEqual(dag.layout[4], ancilla[1])
 
     def test_name_collision(self):
         """Name collision during ancilla allocation."""
@@ -135,11 +132,10 @@ class TestFullAncillaAllocation(QiskitTestCase):
         initial_layout[2] = qr_ancilla[2]
 
         pass_ = FullAncillaAllocation(self.cmap5)
-        pass_.property_set['layout'] = initial_layout
+        dag.layout = initial_layout
         pass_.run(dag)
-        after_layout = pass_.property_set['layout']
 
-        qregs = set(v.register for v in after_layout.get_virtual_bits().keys())
+        qregs = set(v.register for v in dag.layout.get_virtual_bits().keys())
         self.assertEqual(2, len(qregs))
         self.assertIn(qr_ancilla, qregs)
         qregs.remove(qr_ancilla)
