@@ -100,10 +100,7 @@ class Interval:
 
     def __repr__(self):
         """Return a readable representation of Interval Object"""
-        start_time = self._begin
-        end_time = self._end
-        rep = self.__class__.__name__ + "({}, {})".format(start_time, end_time)
-        return rep
+        return "{}({}, {})".format(self.__class__.__name__, self.begin, self.end)
 
 
 class Timeslot:
@@ -142,10 +139,10 @@ class Timeslot:
         return False
 
     def __repr__(self):
-        interval = self._interval
-        channel = self._channel
-        rep = self.__class__.__name__ + "({}, {})".format(channel, (interval.begin, interval.end))
-        return rep
+        """Return a readable representation of Timeslot Object"""
+        return "{}({}, {})".format(self.__class__.__name__,
+                                   self.channel,
+                                   (self.interval.begin, self.interval.end))
 
 
 class TimeslotCollection:
@@ -269,6 +266,7 @@ class TimeslotCollection:
         return False
 
     def __repr__(self):
+        """Return a readable representation of TimeslotCollection Object"""
         rep = dict()
         for key, val in self._table.items():
             rep[key] = [(interval.begin, interval.end) for interval in val]
