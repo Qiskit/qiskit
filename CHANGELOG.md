@@ -56,6 +56,13 @@ The format is based on [Keep a Changelog].
     would only be raised if the same register was added twice.
 -   Qubits and classical bits are not represented as a tuples anymore,
     but as instances of `Qubit` and `Clbit` respectively.
+-   The ApplyLayout pass is incorporated in all preset pass managers to
+    delineate a virtual circuit from a physical circuit (\#2672)
+-   Mapping passes (CXDirection, Swap passes, CheckMap, CheckCnotDirection)
+    now operate on a register-less circuit corresponding to
+    an already embedded physical circuit. (\#2672)
+-   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
+-   Uses level 1 by default as transpiler optimization level (\#2672)
 
 ### Removed
 
