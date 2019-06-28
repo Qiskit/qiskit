@@ -34,11 +34,12 @@ class AssertSuperposition(Asserts):
         self._pcrit = pcrit
 
     def stat_test(self, counts):
-        print("counts = ")
-        print(counts)
-        print("counts.values = ")
-        print(list(counts.values()))
-        chisq, pval = (chisquare(list(counts.values())))
+        vals_list = list(counts.values())
+        numzeros = len(counts) - 2**len(list(counts)[0])
+        vals_list.extend([0]*numzeros)
+        print("vals_list = ")
+        print(vals_list)
+        chisq, pval = chisquare(vals_list)
         print("chisq, pval = ")
         print(chisq, pval)
         if pval <= self._pcrit or chisq == 0: #math.isnan(pval):
