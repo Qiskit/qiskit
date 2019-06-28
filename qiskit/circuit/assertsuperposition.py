@@ -17,22 +17,45 @@ Assertion of superposition states.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.assertmanager import AssertManager
 from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from random import randint
 from scipy.stats import chisquare
 
 class AssertSuperposition(Asserts):
-    """Assertion of Superposition states & Quantum measurement in the computational basis."""
-    def __init__(self):
+    """
+        Assertion of superposition states and quantum measurement
+        in the computational basis.
+    """
+    def __init__(self, pcrit):
         super().__init__()
+        self._type = "Superposition"
+        self._pcrit = pcrit
+
+    def stat_test(self, counts):
+        vals_list = list(counts.values())
+        numzeros = len(counts) - 2**len(list(counts)[0])
+        vals_list.extend([0]*numzeros)
+        print("vals_list = ")
+        print(vals_list)
+        chisq, pval = chisquare(vals_list)
+        print("chisq, pval = ")
+        print(chisq, pval)
+        if pval <= self._pcrit or chisq == 0: #math.isnan(pval):
+            passed = False
+        else:
+            passed = True
+        print("Superposition: chisq, pval, passed = ")
+        print(chisq, pval, passed)
+        return (chisq, pval, passed)
 
 
-def assertsuperposition(self, qubit, cbit):
-    """Create superposition assertion.
+def assertsuperposition(self, pcrit, qubit, cbit):
+    """Create superposition assertion
 
     Args:
+        pcrit: float
         qubit (QuantumRegister|list|tuple): quantum register
         cbit (ClassicalRegister|list|tuple): classical register
 
@@ -43,18 +66,9 @@ def assertsuperposition(self, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    randString = str(randint(0, 1000000000))
-    theClone = self.copy("breakpoint"+randString)
-    theClone.append(AssertSuperposition(), [qubit], [cbit])    
-    Asserts.StatOutputs[theClone.name] = {"type": "Superposition"}
+    theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
+    AssertManager.StatOutputs[theClone.name] = {"type":"Superposition"}
+    theClone.append(AssertSuperposition(pcrit), [qubit], [cbit])
     return theClone
 
-#need to work on, currently this is directly implemented in asserts.py
-def stat_test(counts):
-    c, p = chisquare(list(counts.values))
-    #c = 10
-    #p = 5
-    return c, p
-
 QuantumCircuit.assertsuperposition = assertsuperposition
-
