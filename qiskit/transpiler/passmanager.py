@@ -42,9 +42,34 @@ class PassManager():
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
             callback (func): A callback function that will be called after each
-                pass execution. The function will be called with 3 arguments:
-                the pass number, the pass name, the dag output of the pass, and
-                the name of the circuit being transpiled.
+                pass execution. The function will be called with 4 keyword
+                arguments:
+                    pass (Pass): the pass being run
+                    dag (DAGCircuit): the dag output of the pass
+                    time (float): the time to execute the pass
+                    property_set (PropertySet): the property set
+                    count (int): the index for the pass execution
+
+                Keyword arguments are used for forward compatibility reasons,
+                and the current options will always be available moving
+                forward. But, additional arguments may be added in future
+                release. To ensure your callback functions work against any
+                version of terra moving forward you want to have your callback
+                function take a single `**kwargs` input.
+
+                To use the callback feature you define a function that will
+                take in kwargs dict and access the variables. For example::
+
+                    def callback_func(**kwargs):
+                        pass = kwargs['pass']
+                        dag = kwargs['dag']
+                        time = kwargs['time']
+                        property_set = kwargs['property_set']
+                        count = kwargs['count']
+                        ...
+
+                    PassManager(callback=callback_func)
+
         """
         self.callback = callback
         # the pass manager's schedule of passes, including any control-flow.
@@ -143,13 +168,19 @@ class PassManager():
         count = 0
         for passset in self.working_list:
             for pass_ in passset:
+                if self.callback:
+                    start_time = time()
                 dag = self._do_pass(pass_, dag, passset.options)
                 if self.callback:
+                   end_time = time()
+                if self.callback:
+                    time = end_time - start_time
                     # Deepcopy dag to ensure reference doesn't get updated
                     # if callback func uses the dag after the loop iteration
                     # continues
-                    self.callback(count, pass_.name(), copy.deepcopy(dag),
-                                  name)
+                    self.callback(pass=pass_, dag=copy.deepcopy(dag),
+                                  time=time, property_set=self.property_set,
+                                  count=count)
                     count += 1
 
         circuit = dag_to_circuit(dag)
