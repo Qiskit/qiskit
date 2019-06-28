@@ -21,6 +21,7 @@ from qiskit.circuit.assertmanager import AssertManager
 from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
+#from numpy import math
 from random import randint
 from scipy.stats import chisquare
 
@@ -50,7 +51,11 @@ class AssertClassical(Asserts):
         chisq, pval = (chisquare(res_list, f_exp = exp_list))
         print("chisq, pval = ")
         print(chisq, pval)
-        return (chisq, pval, 0) #need to implement passed boolean
+        if pval <= self._pcrit or chisq == 0: #math.isnan(pval):
+            passed = True
+        else:
+            passed = False
+        return (chisq, pval, passed)
 
 
 def assertclassical(self, expval, pcrit, qubit, cbit):
