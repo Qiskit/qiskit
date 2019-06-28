@@ -42,7 +42,7 @@ class PassManager():
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
             callback (func): A callback function that will be called after each
-                pass execution. The function will be called with 4 keyword
+                pass execution. The function will be called with 5 keyword
                 arguments:
                     pass_ (Pass): the pass being run
                     dag (DAGCircuit): the dag output of the pass
