@@ -66,7 +66,7 @@ def assertsuperposition(self, pcrit, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    theClone = self.copy("breakpoint"+AssertManager.breakpoint_name())
+    theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
     AssertManager.StatOutputs[theClone.name] = {"type":"Superposition"}
     theClone.append(AssertSuperposition(pcrit), [qubit], [cbit])
     return theClone

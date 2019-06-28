@@ -43,7 +43,7 @@ breakpoint1 = qc1.assertclassical(0, .05, [1], [1])
 #print(AssertClassical.ExpectedValues)
 qc1.cx(0, 1)
 print("breakpoint1.name = ")
-print(breakpoint.name)
+print(breakpoint1.name)
 print("breakpoint1.data = ")
 print(breakpoint1.data)
 print("qc1.data = ")
@@ -67,7 +67,7 @@ print(BasicAer.backends())
 # running the job
 job_sim = execute([qc1, breakpoint1, qc2, breakpoint2], BasicAer.get_backend('qasm_simulator'))
 sim_result = job_sim.result()
-AssertionManager.stat_collect([breakpoint1, breakpoint2], sim_result)
+AssertManager.stat_collect([breakpoint1, breakpoint2], sim_result)
 
 """
 # Show the results

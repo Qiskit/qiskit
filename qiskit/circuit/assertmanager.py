@@ -32,12 +32,14 @@ class AssertManager():
         sy = str(tl.tm_year)
         sm = str(tl.tm_mon)
         timestring = sy+"_"+"0"*numzeros+sm+ta.replace(" ","_").replace(":","-")[7:-5]
-        if timestring in StatOutputs:
+        if "breakpoint"+"_"+timestring in AssertManager.StatOutputs:
             if timestring[-3] == "-":
                 return timestring+"_1"
             else:
                 index = timestring.find("-")+7
                 return timestring[:index]+str(int(timestring[index:])+1)
+        else:
+            return timestring
 
     def stat_collect(experiments, results):
         """Calculate and collect results of statistical tests for each experiment
