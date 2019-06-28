@@ -1010,11 +1010,6 @@ class DAGCircuit:
         except StopIteration:
             return
 
-        def add_nodes_from(layer, nodes):
-            """ Convert DAGNodes into a format that can be added to a
-             multigraph and then add to graph"""
-            layer._multi_graph.add_nodes_from(nodes)
-
         for graph_layer in graph_layers:
 
             # Get the op nodes from the layer, removing any input and output nodes.
@@ -1028,14 +1023,14 @@ class DAGCircuit:
             new_layer = DAGCircuit()
             new_layer.name = self.name
 
+            # add in the registers - this adds the input/output nodes
             for creg in self.cregs.values():
                 new_layer.add_creg(creg)
             for qreg in self.qregs.values():
                 new_layer.add_qreg(qreg)
 
-            add_nodes_from(new_layer, self.input_map.values())
-            add_nodes_from(new_layer, self.output_map.values())
-            add_nodes_from(new_layer, op_nodes)
+            # add in the op nodes
+            new_layer._multi_graph.add_nodes_from(op_nodes)
 
             # The quantum registers that have an operation in this layer.
             support_list = [
@@ -1046,18 +1041,39 @@ class DAGCircuit:
 
             # Now add the edges to the multi_graph
             # By default we just wire inputs to the outputs.
-            wires = {self.input_map[wire]: self.output_map[wire]
-                     for wire in self.wires}
+            connections = {new_layer.input_map[wire]: new_layer.output_map[wire]
+                           for wire in new_layer.wires}
+
             # Wire inputs to op nodes, and op nodes to outputs.
             for op_node in op_nodes:
                 args = self._bits_in_condition(op_node.condition) \
                        + op_node.cargs + op_node.qargs
-                arg_ids = (self.input_map[(arg.register, arg.index)] for arg in args)
-                for arg_id in arg_ids:
-                    wires[arg_id], wires[op_node] = op_node, wires[arg_id]
+                arg_ids = (new_layer.input_map[(arg.register, arg.index)] for arg in args)
 
-            # Add wiring to/from the operations and between unused inputs & outputs.
-            new_layer._multi_graph.add_edges_from(wires.items())
+                for arg_id in arg_ids:
+                    connections[arg_id], connections[op_node] = op_node, connections[arg_id]
+
+            # have to create a copy with no wires, as adding the registers adds wires from input to output
+            tmp = nx.classes.function.create_empty_copy(new_layer._multi_graph)
+            tmp.add_edges_from(connections.items())
+            new_layer._multi_graph = tmp
+
+            # add properties to edges
+            for start, end in new_layer._multi_graph.edges():
+
+                # all nodes should be connected to input or output
+                # this is because layers can only have one node per wire
+                if start.type == 'in':
+                    wire = start.wire
+                elif end.type == 'out':
+                    wire = end.wire
+                else:
+                    raise DAGCircuitError('Node not connected to input/output discovered in layers')
+
+                new_layer._multi_graph.adj[start][end][0]["name"] \
+                    = "%s[%s]" % (wire.register.name, wire.index)
+                new_layer._multi_graph.adj[start][end][0]["wire"] \
+                    = wire
             yield {"graph": new_layer, "partition": support_list}
 
     def serial_layers(self):
