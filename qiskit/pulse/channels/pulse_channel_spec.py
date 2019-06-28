@@ -40,8 +40,9 @@ class PulseChannelSpec:
         system = PulseChannelSpec(n_qubits=5, n_control=6, n_registers=1, buffer=10)
         ```
 
-    Within Qiskit a quantum computing system at the level of pulses is abstracted as a combination of multiple
-    types of channels on which instructions are scheduled. These most common channel types are the:
+    Within Qiskit a quantum computing system at the level of pulses is abstracted as
+    a combination of multiple types of channels on which instructions are scheduled.
+    These most common channel types are the:
       - `PulseChannel`: For performing stimulus of the system.
       - `AcquireChannel`: For scheduling acquisition of qubit data.
       - `MemorySlot`: For persistent storage of measurement results.
