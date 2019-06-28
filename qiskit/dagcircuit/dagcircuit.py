@@ -1029,13 +1029,17 @@ class DAGCircuit:
             for qreg in self.qregs.values():
                 new_layer.add_qreg(qreg)
 
-            # add in the op nodes
-            new_layer._multi_graph.add_nodes_from(op_nodes)
+            for node in op_nodes:
+                # this creates new DAGNodes in the new_layer
+                new_layer.apply_operation_back(node.op,
+                                               node.qargs,
+                                               node.cargs,
+                                               node.condition)
 
             # The quantum registers that have an operation in this layer.
             support_list = [
                 op_node.qargs
-                for op_node in op_nodes
+                for op_node in new_layer.op_nodes()
                 if op_node.name not in {"barrier", "snapshot", "save", "load", "noise"}
             ]
 
@@ -1045,7 +1049,7 @@ class DAGCircuit:
                            for wire in new_layer.wires}
 
             # Wire inputs to op nodes, and op nodes to outputs.
-            for op_node in op_nodes:
+            for op_node in new_layer.op_nodes():
                 args = self._bits_in_condition(op_node.condition) \
                        + op_node.cargs + op_node.qargs
                 arg_ids = (new_layer.input_map[(arg.register, arg.index)] for arg in args)
@@ -1053,7 +1057,8 @@ class DAGCircuit:
                 for arg_id in arg_ids:
                     connections[arg_id], connections[op_node] = op_node, connections[arg_id]
 
-            # have to create a copy with no wires, as adding the registers adds wires from input to output
+            # have to create a copy with no wires, as adding the registers
+            # adds wires from input to output
             tmp = nx.classes.function.create_empty_copy(new_layer._multi_graph)
             tmp.add_edges_from(connections.items())
             new_layer._multi_graph = tmp
