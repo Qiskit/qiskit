@@ -30,13 +30,14 @@ from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
 from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.assertclassical import AssertClassical
+from qiskit.circuit.assertmanager import AssertManager
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
 qc1.h(0)
 #print("Asserts.StatOutputs = ")
 #print(Asserts.StatOutputs)
-breakpoint1 = qc1.assertclassical(0, [1], [1])
+breakpoint1 = qc1.assertclassical(0, .05, [1], [1])
 #print("AssertClassical.ExpectedValues after bkpt1 = ")
 #print(AssertClassical.ExpectedValues)
 qc1.cx(0, 1)
@@ -52,7 +53,7 @@ print(qc1.data)
 qc2 = QuantumCircuit(2, 2)
 qc2.h([0,1])
 #breakpoint2 = qc2.assertsuperposition([0,1], [0,1])
-breakpoint2 = qc2.assertclassical(0, [1], [1])
+breakpoint2 = qc2.assertclassical(0, .05, [1], [1])
 qc2.measure([0,1], [0,1])
 
 # setting up the backend
@@ -63,7 +64,7 @@ print(BasicAer.backends())
 job_sim = execute([qc1, breakpoint1, qc2, breakpoint2], BasicAer.get_backend('qasm_simulator'))
 sim_result = job_sim.result()
 am = AssertManager()
-am.stat_collect(sim_result)
+am.stat_collect([breakpoint1, breakpoint2], sim_result)
 
 """
 # Show the results

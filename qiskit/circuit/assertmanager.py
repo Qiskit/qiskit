@@ -21,7 +21,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from random import randint
 
-
 class AssertManager():
     StatOutputs = {}
     """An AssertManager object manages all assertions in the experiment and executes them."""
@@ -42,21 +41,22 @@ class AssertManager():
             ?: if experiments and results are not the same length
         """
         for exp in experiments:
-            exp_results = results.get_counts(exp)
-            print(list(exp_results.values()))
-            assertion = exp.data[-1]
+            exp_counts = results.get_counts(exp)
+            print(list(exp_counts.values()))
+            assertion = exp.data[-1][0]
+            print(assertion)
             exp_type = assertion.get_type()
             print(exp_type)
-            chisq, pval, passed = assertion.stat_test(exp_results)
+            chisq, pval, passed = assertion.stat_test(exp_counts)
             print(chisq, pval, passed)
-            Asserts.StatOutputs[exp.name]["type"] = assertion.get_type()
-            Asserts.StatOutputs[exp.name]["expval"] = assertion.get_expval()
-            Asserts.StatOutputs[exp.name]["pcrit"] = assertion.get_pcrit()
-            Asserts.StatOutputs[exp.name]["chisq"] = chisq
-            Asserts.StatOutputs[exp.name]["pval"] = pval
-            Asserts.StatOutputs[exp.name]["passed"] = passed
+            AssertManager.StatOutputs[exp.name]["type"] = assertion.get_type()
+            AssertManager.StatOutputs[exp.name]["expval"] = assertion.get_expval()
+            AssertManager.StatOutputs[exp.name]["pcrit"] = assertion.get_pcrit()
+            AssertManager.StatOutputs[exp.name]["chisq"] = chisq
+            AssertManager.StatOutputs[exp.name]["pval"] = pval
+            AssertManager.StatOutputs[exp.name]["passed"] = passed
             #now the dict StatOutputs should map each breakpoint.name to another dictionary containing type, chisq, p, as well as other inputs like expval
-            return Asserts.StatOutputs
+            return AssertManager.StatOutputs
 
     #def output_csv():
         #return something

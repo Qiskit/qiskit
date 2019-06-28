@@ -17,6 +17,7 @@ Assertion of classical states.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.assertmanager import AssertManager
 from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -26,18 +27,17 @@ from scipy.stats import chisquare
 class AssertClassical(Asserts):
     """Assertion of classical states
        and Quantum measurement in the computational basis."""
-    def __init__(self,qubit,cbit,pcrit,expval):
+    def __init__(self, expval, pcrit):
         super().__init__()
         self._type = "classical"
         self._pcrit = pcrit
         self._expval = expval
 
-    def get_stats(results):
-        counts = results.get_counts()
+    def stat_test(self, counts):
         res_list = []
         exp_list = []
-        numshots = sum(list(exp_results.values()))
-        for key, value in exp_results.items():
+        numshots = sum(list(counts.values()))
+        for key, value in counts.items():
             res_list.append(value)
             if int(key) == self._expval:
                 exp_list.append(numshots)
@@ -50,10 +50,10 @@ class AssertClassical(Asserts):
         chisq, pval = (chisquare(res_list, f_exp = exp_list))
         print("chisq, pval = ")
         print(chisq, pval)
-        return (chisq, pval)
+        return (chisq, pval, 0) #need to implement passed boolean
 
 
-def assertclassical(self, expval, qubit, cbit):
+def assertclassical(self, expval, pcrit, qubit, cbit):
     """Create classical assertion
 
     Args:
@@ -70,8 +70,8 @@ def assertclassical(self, expval, qubit, cbit):
     """
     randString = str(randint(0, 1000000000))
     theClone = self.copy("breakpoint"+randString)
-    Asserts.StatOutputs[theClone.name] = {"type": "Classical", "expval": expval}
-    theClone.append(AssertClassical(), [qubit], [cbit])
+    AssertManager.StatOutputs[theClone.name] = {"type": "Classical", "expval": expval}
+    theClone.append(AssertClassical(expval, pcrit), [qubit], [cbit])
     return theClone
 
 QuantumCircuit.assertclassical = assertclassical

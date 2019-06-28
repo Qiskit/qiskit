@@ -30,7 +30,7 @@ class Asserts(Measure):
         super().__init__()
         self._type = None
         self._pcrit = None
-        sefl._expval = None
+        self._expval = None
 
     def get_type(self):
         return self._type
@@ -42,11 +42,11 @@ class Asserts(Measure):
         return self._expval
 
     @abc.abstractmethod
-    def stat_test(results):
+    def stat_test(self, counts):
         """Performs a statistical test on the experimental outcomes
 
         Args:
-            results (Result): Result of an experiment
+            counts (results.get_counts): counts of result of an experiment
 
         Returns:
             tuple containing the chisquare, p-value, and success boolean of the result
