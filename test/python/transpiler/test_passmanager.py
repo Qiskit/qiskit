@@ -14,6 +14,8 @@
 
 """Test the passmanager logic"""
 
+import copy
+
 import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
@@ -49,6 +51,8 @@ class TestPassManager(QiskitTestCase):
         calls = []
 
         def callback(**kwargs):
+            out_dict = kwargs
+            out_dict['dag'] = copy.deepcopy(kwargs['dag'])
             calls.append(kwargs)
 
         passmanager = PassManager(callback=callback)

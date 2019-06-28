@@ -13,7 +13,6 @@
 
 """PassManager class for the transpiler."""
 
-import copy
 from functools import partial
 from collections import OrderedDict
 from time import time
@@ -175,10 +174,7 @@ class PassManager():
                     end_time = time()
                 if self.callback:
                     run_time = end_time - start_time
-                    # Deepcopy dag to ensure reference doesn't get updated
-                    # if callback func uses the dag after the loop iteration
-                    # continues
-                    self.callback(pass_=pass_, dag=copy.deepcopy(dag),
+                    self.callback(pass_=pass_, dag=dag,
                                   time=run_time,
                                   property_set=self.property_set, count=count)
                     count += 1
