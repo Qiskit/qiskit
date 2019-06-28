@@ -101,6 +101,7 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         """Test unitary gate instruction"""
         num_trials = 10
         max_qubits = 3
+        # Test 1 to max_qubits for random n-qubit unitary gate
         for i in range(max_qubits):
             num_qubits = i + 1
             unitary_init = np.eye(2 ** num_qubits)

@@ -69,7 +69,7 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
         for i in range(max_qubits):
             num_qubits = i + 1
             psi_init = np.zeros(2 ** num_qubits)
-            psi_init[0] = 1.0    
+            psi_init[0] = 1.0
             qr = QuantumRegister(num_qubits, 'qr')
             for _ in range(num_trials):
                 # Create random unitary

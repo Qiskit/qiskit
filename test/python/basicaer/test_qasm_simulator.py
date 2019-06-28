@@ -160,7 +160,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         for mem in memory:
             self.assertIn(mem, ['10 00', '10 11'])
 
-def test_unitary(self):
+    def test_unitary(self):
         """Test unitary gate instruction"""
         max_qubits = 4
         x_mat = np.array([[0, 1], [1, 0]])
