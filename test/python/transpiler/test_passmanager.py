@@ -18,6 +18,7 @@ import numpy as np
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
+from qiskit.transpiler import PropertySet
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
@@ -47,21 +48,25 @@ class TestPassManager(QiskitTestCase):
 
         calls = []
 
-        def callback(*args):
-            calls.append(args)
+        def callback(**kwargs):
+            calls.append(kwargs)
 
         passmanager = PassManager(callback=callback)
         passmanager.append(Unroller(['u2']))
         passmanager.append(Optimize1qGates())
         transpile(circuit, FakeRueschlikon(), pass_manager=passmanager)
         self.assertEqual(len(calls), 2)
-        self.assertEqual(len(calls[0]), 4)
-        self.assertEqual(calls[0][0], 0)
-        self.assertEqual(calls[0][1], 'Unroller')
-        self.assertEqual(expected_start_dag, calls[0][2])
-        self.assertEqual('MyCircuit', calls[0][3])
-        self.assertEqual(len(calls[1]), 4)
-        self.assertEqual(calls[1][0], 1)
-        self.assertEqual(calls[1][1], 'Optimize1qGates')
-        self.assertEqual(expected_end_dag, calls[1][2])
-        self.assertEqual('MyCircuit', calls[1][3])
+        self.assertEqual(len(calls[0]), 5)
+        self.assertEqual(calls[0]['count'], 0)
+        self.assertEqual(calls[0]['pass_'].name(), 'Unroller')
+        self.assertEqual(expected_start_dag, calls[0]['dag'])
+        self.assertIsInstance(calls[0]['time'], float)
+        self.assertEqual(calls[0]['property_set'], PropertySet())
+        self.assertEqual('MyCircuit', calls[0]['dag'].name)
+        self.assertEqual(len(calls[1]), 5)
+        self.assertEqual(calls[1]['count'], 1)
+        self.assertEqual(calls[1]['pass_'].name(), 'Optimize1qGates')
+        self.assertEqual(expected_end_dag, calls[1]['dag'])
+        self.assertIsInstance(calls[0]['time'], float)
+        self.assertEqual(calls[0]['property_set'], PropertySet())
+        self.assertEqual('MyCircuit', calls[1]['dag'].name)

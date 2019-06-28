@@ -44,7 +44,7 @@ class PassManager():
             callback (func): A callback function that will be called after each
                 pass execution. The function will be called with 4 keyword
                 arguments:
-                    pass (Pass): the pass being run
+                    pass_ (Pass): the pass being run
                     dag (DAGCircuit): the dag output of the pass
                     time (float): the time to execute the pass
                     property_set (PropertySet): the property set
@@ -172,15 +172,15 @@ class PassManager():
                     start_time = time()
                 dag = self._do_pass(pass_, dag, passset.options)
                 if self.callback:
-                   end_time = time()
+                    end_time = time()
                 if self.callback:
-                    time = end_time - start_time
+                    run_time = end_time - start_time
                     # Deepcopy dag to ensure reference doesn't get updated
                     # if callback func uses the dag after the loop iteration
                     # continues
-                    self.callback(pass=pass_, dag=copy.deepcopy(dag),
-                                  time=time, property_set=self.property_set,
-                                  count=count)
+                    self.callback(pass_=pass_, dag=copy.deepcopy(dag),
+                                  time=run_time,
+                                  property_set=self.property_set, count=count)
                     count += 1
 
         circuit = dag_to_circuit(dag)
