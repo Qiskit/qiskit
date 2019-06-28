@@ -23,6 +23,8 @@ from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler import Layout
 from qiskit.circuit import Parameter
+from qiskit.dagcircuit.exceptions import DAGCircuitError
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class TestTranspile(QiskitTestCase):
@@ -391,7 +393,7 @@ class TestTranspile(QiskitTestCase):
                               (QuantumRegister(3, 'q'), 1),
                               (QuantumRegister(3, 'q'), 2)]
 
-        self.assertRaises(KeyError, transpile,
+        self.assertRaises(DAGCircuitError, transpile,
                           qc, backend, initial_layout=bad_initial_layout)
 
     def test_parameterized_circuit_for_simulator(self):

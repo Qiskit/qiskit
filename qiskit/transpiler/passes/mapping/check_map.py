@@ -18,7 +18,6 @@ It checks that all 2-qubit interactions are laid out to be physically close.
 """
 
 from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.transpiler import Layout
 
 
 class CheckMap(AnalysisPass):
@@ -27,15 +26,13 @@ class CheckMap(AnalysisPass):
     in the property set as True if mapped. False otherwise.
     """
 
-    def __init__(self, coupling_map, initial_layout=None):
+    def __init__(self, coupling_map):
         """
         Checks if a DAGCircuit is mapped to `coupling_map`.
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling map.
-            initial_layout (Layout): The initial layout of the DAG to analyze.
         """
         super().__init__()
-        self.layout = initial_layout  # TODO: this arg is never used, remove.
         self.coupling_map = coupling_map
 
     def run(self, dag):
@@ -46,17 +43,11 @@ class CheckMap(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to map.
         """
-        if self.layout is None:
-            if self.property_set["layout"]:
-                self.layout = self.property_set["layout"]
-            else:
-                self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
         self.property_set['is_swap_mapped'] = True
 
         for gate in dag.twoQ_gates():
-            physical_q0 = self.layout[gate.qargs[0]]
-            physical_q1 = self.layout[gate.qargs[1]]
+            physical_q0 = gate.qargs[0].index
+            physical_q1 = gate.qargs[1].index
 
             if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                 self.property_set['is_swap_mapped'] = False
