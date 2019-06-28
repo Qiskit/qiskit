@@ -34,6 +34,8 @@ class Snapshot(Command, Instruction):
                 The types of snapshots offered are defined in a separate specification
                 document for simulators
             name: Snapshot name which defaults to label, but can be different than label
+                This parameter is only for display purposes and is not taken into account during
+                comparison
         """
         self._type = snapshot_type
         self._channel = SnapshotChannel()
@@ -60,7 +62,7 @@ class Snapshot(Command, Instruction):
 
     def __eq__(self, other: 'Snapshot'):
         """Two Snapshots are the same if they are of the same type
-        and have the same label, type, and name.
+        and have the same label and type.
 
         Args:
             other: other Snapshot
@@ -70,8 +72,7 @@ class Snapshot(Command, Instruction):
         """
         if (type(self) is type(other) and
                 self.label == other.label and
-                self.type == other.type and
-                self.name == other.name):
+                self.type == other.type):
             return True
         return False
 
