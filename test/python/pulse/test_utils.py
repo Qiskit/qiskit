@@ -32,7 +32,7 @@ class TestAutoMerge(QiskitTestCase):
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
-        self.device = pulse.PulseChannelSpec.from_device(self.backend)
+        self.device = pulse.PulseChannelSpec.from_system(self.backend)
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,
@@ -118,7 +118,7 @@ class TestAddImplicitAcquires(QiskitTestCase):
 
     def setUp(self):
         self.backend = FakeOpenPulse2Q()
-        self.device = pulse.PulseChannelSpec.from_device(self.backend)
+        self.device = pulse.PulseChannelSpec.from_system(self.backend)
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,

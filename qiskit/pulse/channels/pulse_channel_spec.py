@@ -30,18 +30,18 @@ class PulseChannelSpec:
     """A helper class to support assembling channel objects and their mapping to qubits.
     This class can be initialized with two methods shown as below.
 
-    1. When you have BaseBackend object of the target quantum device.
+    1. With the `BaseBackend` object of the target pulse backend:
         ```python
-        system = PulseChannelSpec.from_device(backend)
+        system = PulseChannelSpec.from_system(backend)
         ```
 
-    2. When you know the number of elements constituting the target quantum device.
+    2. By specifying the number of pulse elements constituting the target quantum system:
         ```python
         system = PulseChannelSpec(n_qubits=5, n_control=6, n_registers=1, buffer=10)
         ```
 
     Within Qiskit a quantum system at the level of pulses is abstracted as a combination of multiple
-    types of channels on which instructions are scheduled. These most common channel types are the :
+    types of channels on which instructions are scheduled. These most common channel types are the:
       - `PulseChannel`: For performing stimulus of the system.
       - `AcquireChannel`: For scheduling acquisition of qubit data.
       - `MemorySlot`: For persistent storage of measurement results.
@@ -71,7 +71,7 @@ class PulseChannelSpec:
                  n_registers: int,
                  buffer: int = 0):
         """
-        Create pulse specification with number of channels.
+        Create pulse channel specification with number of channels.
 
         Args:
             n_qubits: Number of qubits.
@@ -91,9 +91,9 @@ class PulseChannelSpec:
                                         self.measures, self.acquires)
 
     @classmethod
-    def from_device(cls, backend):
+    def from_system(cls, backend):
         """
-        Create pulse specification with values from backend.
+        Create pulse channel specification with values from backend.
 
         Args:
             backend (BaseBackend): Backend configuration.
