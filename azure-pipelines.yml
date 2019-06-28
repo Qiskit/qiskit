@@ -1,0 +1,71 @@
+# Python package
+# Create and test a Python package on multiple Python versions.
+# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/python
+
+trigger:
+  branches:
+    include:
+      - master
+      - stable
+  tags:
+    include:
+      - '*'
+jobs:
+- job: 'Windows_Tests'
+  pool: {vmImage: 'vs2017-win2016'}
+  condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+  strategy:
+    matrix:
+      Python35:
+        python.version: '3.5'
+      Python36:
+        python.version: '3.6'
+      Python37:
+        python.version: '3.7'
+
+  steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+      displayName: 'Use Python $(python.version)'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+        pip install -e .
+        pip install "qiskit-ibmq-provider" -c constraints.txt
+        python setup.py build_ext --inplace
+      displayName: 'Install dependencies'
+
+    - script: |
+        stestr run
+        stestr last --subunit > test_results.subunit
+      displayName: 'Run tests'
+
+- job: 'Windows_Wheel_Builds'
+  pool: {vmImage: 'vs2017-win2016'}
+  condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+  variables:
+    CIBW_BEFORE_BUILD: pip install -U Cython
+    CIBW_SKIP: cp27-* cp34-*
+    TWINE_USERNAME: qiskit
+    CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+  steps:
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+    - script: choco install vcpython27 -f -y
+      displayName: Install Visual C++ for Python 2.7
+    - bash: |
+        python -m pip install --upgrade pip
+        pip install cibuildwheel==0.11.1
+        pip install -U twine
+        cibuildwheel --output-dir wheelhouse
+    - task: PublishBuildArtifacts@1
+      inputs: {pathtoPublish: 'wheelhouse'}
+    - bash: |
+        twine upload wheelhouse\*

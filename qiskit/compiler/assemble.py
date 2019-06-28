@@ -201,7 +201,7 @@ def _parse_run_args(backend, qobj_id, qobj_header,
     memory_slots = memory_slots or getattr(backend_config, 'memory_slots', None)
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
     if isinstance(rep_time, list):
-        rep_time = rep_time[-1]
+        rep_time = rep_time[0]
 
     parameter_binds = parameter_binds or []
 

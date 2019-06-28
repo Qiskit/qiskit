@@ -29,11 +29,11 @@ class Snapshot(Command, Instruction):
         """Create new snapshot command.
 
         Args:
-            label (str): Snapshot label which is used to identify the snapshot in the output.
-            snapshot_type (str): Type of snapshot, e.g., “state”: take snapshot of quantum state.
+            label: Snapshot label which is used to identify the snapshot in the output
+            snapshot_type: Type of snapshot, e.g., “state” (take a snapshot of the quantum state)
                 The types of snapshots offered are defined in a separate specification
-                document for simulators.
-            name (str): Snapshot name which defaults to label, but can be different than label.
+                document for simulators
+            name: Snapshot name which defaults to label, but can be different than label
         """
         self._type = snapshot_type
         self._channel = SnapshotChannel()
@@ -58,15 +58,15 @@ class Snapshot(Command, Instruction):
         """Type of snapshot."""
         return self._type
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Snapshot'):
         """Two Snapshots are the same if they are of the same type
         and have the same label, type, and name.
 
         Args:
-            other (Snapshot): other Snapshot,
+            other: other Snapshot
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if (type(self) is type(other) and
                 self.label == other.label and
