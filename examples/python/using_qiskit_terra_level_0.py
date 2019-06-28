@@ -27,17 +27,7 @@ import time
 
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, QiskitError
-from qiskit import execute, IBMQ, BasicAer
-from qiskit.providers.ibmq import least_busy
-from qiskit.tools.monitor import job_monitor
-
-
-try:
-    IBMQ.load_accounts()
-except:
-    print("""WARNING: No valid IBMQ credentials found on disk. 
-             You must store your credentials using IBMQ.save_account(token, url). 
-             For now, there's only access to local simulator backends...""")
+from qiskit import execute, BasicAer
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
@@ -61,26 +51,3 @@ sim_result = job_sim.result()
 # Show the results
 print(sim_result.get_counts(qc1))
 print(sim_result.get_counts(qc2))
-
-# see a list of available remote backends
-print("\n(IBMQ Backends)")
-print(IBMQ.backends())
-
-# Compile and run on a real device backend
-try:
-    # select least busy available device and execute.
-    least_busy_device = least_busy(IBMQ.backends(simulator=False))
-except:
-    print("All devices are currently unavailable.")
-
-print("Running on current least busy device: ", least_busy_device)
-
-# running the job
-job_exp = execute([qc1, qc2], backend=least_busy_device, shots=1024, max_credits=10)
-
-job_monitor(job_exp)
-exp_result = job_exp.result()
-
-# Show the results
-print(exp_result.get_counts(qc1))
-print(exp_result.get_counts(qc2))

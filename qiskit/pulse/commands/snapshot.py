@@ -15,7 +15,6 @@
 """
 Snapshot.
 """
-
 from qiskit.pulse.channels import SnapshotChannel
 from .instruction import Instruction
 from .command import Command
@@ -24,19 +23,22 @@ from .command import Command
 class Snapshot(Command, Instruction):
     """Snapshot."""
 
+    prefix = 'snap'
+
     def __init__(self, name: str, snap_type: str):
         """Create new snapshot command.
 
         Args:
-            name (str): Snapshot name which is used to identify the snapshot in the output.
-            snap_type (str): Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
+            name: Snapshot name which is used to identify the snapshot in the output
+            snap_type: Type of snapshot, e.g., “state” (take a snapshot of the quantum state)
                 The types of snapshots offered are defined in a separate specification
-                document for simulators.
+                document for simulators
         """
         self._type = snap_type
         self._channel = SnapshotChannel()
-        Command.__init__(self, duration=0, name=name)
-        Instruction.__init__(self, self, self._channel, name=name)
+        Command.__init__(self, duration=0)
+        self._name = Snapshot.create_name(name)
+        Instruction.__init__(self, self, self._channel, name=self.name)
         self._buffer = 0
 
     @property
@@ -44,15 +46,15 @@ class Snapshot(Command, Instruction):
         """Type of snapshot."""
         return self._type
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Snapshot'):
         """Two Snapshots are the same if they are of the same type
         and have the same name and type.
 
         Args:
-            other (Snapshot): other Snapshot,
+            other: other Snapshot
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if (type(self) is type(other) and
                 self.name == other.name and

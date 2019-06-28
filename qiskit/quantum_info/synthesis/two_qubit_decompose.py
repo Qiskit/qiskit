@@ -37,6 +37,7 @@ from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 
 _CUTOFF_PRECISION = 1e-12
 
@@ -456,6 +457,23 @@ class TwoQubitBasisDecomposer():
         return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis+1]), [q[1]])
 
         return return_circuit
+
+    def num_basis_gates(self, unitary):
+        """ Computes the number of basis gates needed in
+        a decomposition of input unitary
+        """
+        if hasattr(unitary, 'to_operator'):
+            unitary = unitary.to_operator().data
+        if hasattr(unitary, 'to_matrix'):
+            unitary = unitary.to_matrix()
+        unitary = np.asarray(unitary, dtype=complex)
+        a, b, c = weyl_coordinates(unitary)[:]
+        traces = [4*(np.cos(a)*np.cos(b)*np.cos(c)+1j*np.sin(a)*np.sin(b)*np.sin(c)),
+                  4*(np.cos(np.pi/4-a)*np.cos(self.basis.b-b)*np.cos(c) +
+                     1j*np.sin(np.pi/4-a)*np.sin(self.basis.b-b)*np.sin(c)),
+                  4*np.cos(c),
+                  4]
+        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
 
 
 two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CnotGate())
