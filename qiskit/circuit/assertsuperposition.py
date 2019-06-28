@@ -21,13 +21,13 @@ from qiskit.circuit.assertmanager import AssertManager
 from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-#from numpy import math
-from random import randint
 from scipy.stats import chisquare
 
 class AssertSuperposition(Asserts):
-    """Assertion of superposition states
-       and Quantum measurement in the computational basis."""
+    """
+        Assertion of superposition states and quantum measurement
+        in the computational basis.
+    """
     def __init__(self, pcrit):
         super().__init__()
         self._type = "Superposition"
@@ -66,8 +66,7 @@ def assertsuperposition(self, pcrit, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    randString = str(randint(0, 1000000000))
-    theClone = self.copy("breakpoint"+randString)
+    theClone = self.copy("breakpoint"+AssertManager.breakpoint_name())
     AssertManager.StatOutputs[theClone.name] = {"type":"Superposition"}
     theClone.append(AssertSuperposition(pcrit), [qubit], [cbit])
     return theClone

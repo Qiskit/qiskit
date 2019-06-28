@@ -21,13 +21,13 @@ from qiskit.circuit.assertmanager import AssertManager
 from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-#from numpy import math
-from random import randint
 from scipy.stats import chisquare
 
 class AssertClassical(Asserts):
-    """Assertion of classical states
-       and Quantum measurement in the computational basis."""
+    """
+        Assertion of classical states and quantum measurement
+        in the computational basis.
+    """
     def __init__(self, expval, pcrit):
         super().__init__()
         self._type = "Classical"
@@ -62,7 +62,8 @@ def assertclassical(self, expval, pcrit, qubit, cbit):
     """Create classical assertion
 
     Args:
-        expval: integer
+        expval: integer of 0's and 1's
+        pcrit: critical p-value for the hypothesis test
         qubit (QuantumRegister|list|tuple): quantum register
         cbit (ClassicalRegister|list|tuple): classical register
 
@@ -73,8 +74,7 @@ def assertclassical(self, expval, pcrit, qubit, cbit):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    randString = str(randint(0, 1000000000))
-    theClone = self.copy("breakpoint"+randString)
+    theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
     AssertManager.StatOutputs[theClone.name] = {"type":"Classical","expval":expval}
     theClone.append(AssertClassical(expval, pcrit), [qubit], [cbit])
     return theClone

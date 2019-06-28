@@ -19,7 +19,6 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from random import randint
 from scipy.stats import chisquare
 
 class Asserts(Measure):
@@ -49,7 +48,7 @@ class Asserts(Measure):
             counts (results.get_counts): counts of result of an experiment
 
         Returns:
-            tuple containing the chisquare, p-value, and success boolean of the result
+            tuple containing the chisquare, p-value, and success boolean of the assertion
 
         Raises:
             Error if results is not a valid Result object from an experiment
