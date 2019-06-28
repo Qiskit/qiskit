@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog].
 -   Decomposition of multiplexed single-qubit unitaries (Option: decompose
     up to a diagonal gate) (\#2600)
 -   ZYZ decomposition for single-qubit unitaries (\#2600)
+-   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
 -   Set default repetition time to be the first available.
