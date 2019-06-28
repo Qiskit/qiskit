@@ -214,7 +214,7 @@ class InstructionToQobjConverter:
             dict: Dictionary of required parameters.
         """
         command_dict = {
-            'name': instruction.name,
+            'name': 'snapshot',
             't0': shift+instruction.start_time,
             'label': instruction.label,
             'type': instruction.type
