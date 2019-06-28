@@ -30,6 +30,7 @@ from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
 from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.assertclassical import AssertClassical
+from qiskit.circuit.assertsuperposition import AssertSuperposition
 from qiskit.circuit.assertmanager import AssertManager
 
 # making first circuit: bell state
@@ -52,8 +53,7 @@ print(qc1.data)
 # making another circuit: superpositions
 qc2 = QuantumCircuit(2, 2)
 qc2.h([0,1])
-#breakpoint2 = qc2.assertsuperposition([0,1], [0,1])
-breakpoint2 = qc2.assertclassical(0, .05, [1], [1])
+breakpoint2 = qc2.assertsuperposition(.05, [0,1], [0,1])
 qc2.measure([0,1], [0,1])
 
 # setting up the backend

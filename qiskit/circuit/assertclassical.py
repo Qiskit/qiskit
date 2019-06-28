@@ -30,7 +30,7 @@ class AssertClassical(Asserts):
        and Quantum measurement in the computational basis."""
     def __init__(self, expval, pcrit):
         super().__init__()
-        self._type = "classical"
+        self._type = "Classical"
         self._pcrit = pcrit
         self._expval = expval
 
@@ -75,7 +75,7 @@ def assertclassical(self, expval, pcrit, qubit, cbit):
     """
     randString = str(randint(0, 1000000000))
     theClone = self.copy("breakpoint"+randString)
-    AssertManager.StatOutputs[theClone.name] = {"type": "Classical", "expval": expval}
+    AssertManager.StatOutputs[theClone.name] = {"type":"Classical","expval":expval}
     theClone.append(AssertClassical(expval, pcrit), [qubit], [cbit])
     return theClone
 

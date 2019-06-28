@@ -22,6 +22,7 @@ from .instructionset import InstructionSet
 from .measure import Measure
 from .asserts import Asserts
 from .assertclassical import AssertClassical
+from .assertsuperposition import AssertSuperposition
 from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector

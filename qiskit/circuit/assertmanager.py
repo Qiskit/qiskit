@@ -56,7 +56,7 @@ class AssertManager():
             AssertManager.StatOutputs[exp.name]["pval"] = pval
             AssertManager.StatOutputs[exp.name]["passed"] = passed
             #now the dict StatOutputs should map each breakpoint.name to another dictionary containing type, chisq, p, as well as other inputs like expval
-            return AssertManager.StatOutputs
+        return AssertManager.StatOutputs
 
     #def output_csv():
         #return something
