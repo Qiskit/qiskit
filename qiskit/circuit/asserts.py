@@ -11,10 +11,10 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-
 """
-Superclass for all Assertions.
+Abstract class and all derived classes for making statistical assertions.
 """
+import abc
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -23,72 +23,35 @@ from random import randint
 from scipy.stats import chisquare
 
 class Asserts(Measure):
-    wantcsv = True
-    StatOutputs = {}
     """Superclass for all the asserts, subclass of Measure"""
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self):
         super().__init__()
+        self._type = None
+        self._pcrit = None
+        sefl._expval = None
 
+    def get_type(self):
+        return self._type
 
-def stat_test(experiments, results):
-#need to fix comments on functions
-    """Does statistical tests for each assertion
+    def get_pcrit(self):
+        return self._pcrit
 
-    Args:
-        experiments (QuantumCircuit or list[QuantumCircuit]): Circuit(s) to execute
-        results: results object (output.results from output of execute function)
+    def get_expval(self):
+        return self._expval
 
-    Returns:
-        dictionary containing each breakpoint.name as keys and another dictionary for its values that contains the type of assertion and chisq and p values.
+    @abc.abstractmethod
+    def stat_test(results):
+        """Performs a statistical test on the experimental outcomes
 
-    Raises:
-        Error if input experiment hasn't been recorded as an assertion.
-    """
-    for exp in experiments:
-        exp_results = results.get_counts(exp)
-        print("list(exp_results.values()) = ")
-        print(list(exp_results.values()))        
-        exp_type = Asserts.StatOutputs[exp.name]["type"]
-        print("exp_type = ")
-        print(exp_type)
+        Args:
+            results (Result): Result of an experiment
 
-        #splitting by type here, we can change how this is done later
-        #in future we can change to a switch statement in which
-        #for each type we call its respective stat_test funtion 
-        if exp_type == "Classical":
-            res_list = []
-            exp_list = []
-            numshots = sum(list(exp_results.values()))
-            for key, value in exp_results.items():
-                res_list.append(value)
-                if int(key) == Asserts.StatOutputs[exp.name]["expval"]:
-                    exp_list.append(numshots)
-                else:
-                    exp_list.append(0)
-            print("exp_list =")
-            print(exp_list)
-            print("res_list = ")
-            print(res_list)
-            c, p = (chisquare(res_list, f_exp = exp_list)) 
+        Returns:
+            tuple containing the chisquare, p-value, and success boolean of the result
 
-        elif exp_type == "Superposition":
-            c, p = (chisquare(list(exp_results.values())))
-
-        elif exp_type == "Product":
-            c, p = (chisquare(list(exp_results.values()))) 
-            #placeholder, this should be replaced by the stat_test for Product
-
-        else: print("Error in asserts.stat_test: experiment doesn't have a recorded type")
-
-        print("c, p =")
-        print(c, p)
-        Asserts.StatOutputs[exp.name]["chisq"] = c
-        Asserts.StatOutputs[exp.name]["p"] = p
-        #the dict StatOutputs should map each breakpoint.name to 
-        #another dictionary containing type, chisq, p, other inputs like expval
-    return Asserts.StatOutputs
-
-
-
-#def output_csv():
-    #return something
+        Raises:
+            Error if results is not a valid Result object from an experiment
+        """
+        return

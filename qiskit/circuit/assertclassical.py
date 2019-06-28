@@ -21,13 +21,36 @@ from qiskit.circuit.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from random import randint
-
+from scipy.stats import chisquare
 
 class AssertClassical(Asserts):
     """Assertion of classical states
        and Quantum measurement in the computational basis."""
-    def __init__(self):
+    def __init__(self,qubit,cbit,pcrit,expval):
         super().__init__()
+        self._type = "classical"
+        self._pcrit = pcrit
+        self._expval = expval
+
+    def get_stats(results):
+        counts = results.get_counts()
+        res_list = []
+        exp_list = []
+        numshots = sum(list(exp_results.values()))
+        for key, value in exp_results.items():
+            res_list.append(value)
+            if int(key) == self._expval:
+                exp_list.append(numshots)
+            else:
+                exp_list.append(0)
+        print("exp_list = ")
+        print(exp_list)
+        print("rest_list = ")
+        print(res_list)
+        chisq, pval = (chisquare(res_list, f_exp = exp_list))
+        print("chisq, pval = ")
+        print(chisq, pval)
+        return (chisq, pval)
 
 
 def assertclassical(self, expval, qubit, cbit):
