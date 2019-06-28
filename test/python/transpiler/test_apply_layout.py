@@ -71,7 +71,7 @@ class TestApplyLayout(QiskitTestCase):
 
         dag = circuit_to_dag(circuit)
         pass_ = ApplyLayout()
-        pass_.property_set['layout'] = Layout({v[0]: 2, v[1]: 1})
+        dag.layout = Layout({v[0]: 2, v[1]: 1})
         with self.assertRaises(TranspilerError):
             pass_.run(dag)
 

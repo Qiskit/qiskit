@@ -51,12 +51,13 @@ def default_pass_manager(transpile_config):
     initial_layout = transpile_config.initial_layout
     seed_transpiler = transpile_config.seed_transpiler
     pass_manager = PassManager()
-    pass_manager.append(SetLayout(initial_layout))
-    pass_manager.append(Unroller(basis_gates))
+    if initial_layout:
+        pass_manager.append(SetLayout(initial_layout))
+    else:
+        # Use the trivial layout if no layout is found
+        pass_manager.append(TrivialLayout(coupling_map))
 
-    # Use the trivial layout if no layout is found
-    pass_manager.append(TrivialLayout(coupling_map),
-                        condition=lambda property_set: not property_set['layout'])
+    pass_manager.append(Unroller(basis_gates))
 
     # if the circuit and layout already satisfy the coupling_constraints, use that layout
     # otherwise layout on the most densely connected physical qubit subset

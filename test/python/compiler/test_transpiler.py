@@ -202,11 +202,9 @@ class TestTranspile(QiskitTestCase):
 
         new_qc = transpile(qc, coupling_map=coupling_map,
                            basis_gates=basis_gates, initial_layout=initial_layout)
-        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data
-                     if gate.name == "cx"]
+        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
         cx_qubits_physical = [[ctrl.index, tgt.index] for [ctrl, tgt] in cx_qubits]
-        self.assertEqual(sorted(cx_qubits_physical),
-                         [[9, 4], [9, 4]])
+        self.assertEqual(sorted(cx_qubits_physical), [[9, 4], [9, 4]])
 
     def test_transpile_bell(self):
         """Test Transpile Bell.
