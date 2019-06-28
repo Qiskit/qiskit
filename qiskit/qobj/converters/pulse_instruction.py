@@ -409,4 +409,4 @@ class QobjToInstructionConverter:
             Schedule: Converted and scheduled Snapshot
         """
         t0 = instruction.t0
-        return commands.Snapshot(instruction.label, instruction.type, instruction.name) << t0
+        return commands.Snapshot(instruction.label, instruction.type) << t0
