@@ -43,7 +43,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        pass_ = ConsolidateBlocks()
+        pass_ = ConsolidateBlocks(force_consolidate=True)
         pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
@@ -61,7 +61,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.cx(qr[1], qr[0])
         dag = circuit_to_dag(qc)
 
-        pass_ = ConsolidateBlocks()
+        pass_ = ConsolidateBlocks(force_consolidate=True)
         pass_.property_set['block_list'] = [dag.op_nodes()]
         new_dag = pass_.run(dag)
 
@@ -92,7 +92,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        pass_ = ConsolidateBlocks()
+        pass_ = ConsolidateBlocks(force_consolidate=True)
         topo_ops = list(dag.topological_op_nodes())
         block_1 = [topo_ops[1], topo_ops[2]]
         block_2 = [topo_ops[0], topo_ops[3]]
@@ -114,7 +114,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
-        pass_ = ConsolidateBlocks()
+        pass_ = ConsolidateBlocks(force_consolidate=True)
         pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
@@ -135,7 +135,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.cx(qr0[0], qr1[0])
         dag = circuit_to_dag(qc)
 
-        pass_ = ConsolidateBlocks()
+        pass_ = ConsolidateBlocks(force_consolidate=True)
         pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
         new_dag = pass_.run(dag)
 
