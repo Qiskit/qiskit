@@ -18,10 +18,8 @@
 
 import collections
 import io
-import itertools
 import json
 import math
-import operator
 import re
 
 try:
@@ -799,7 +797,7 @@ def _get_register_specs(bits):
             [Qubit(v0, 0), Qubit(v0, 1), Qubit(v0, 2), Qubit(v0, 3), Qubit(v1, 0)]
             which indicates a size-4 register and a size-1 register
 
-    return:
+    Returns:
         OrderedDict: ordered map of Registers to their sizes
     """
     regs = collections.OrderedDict([(bit.register, bit.register.size) for bit in bits])
