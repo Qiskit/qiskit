@@ -559,6 +559,17 @@ class DAGCircuit:
             else:
                 raise DAGCircuitError("bad node type %s" % nd.type)
 
+    def idle_wires(self):
+        """Return idle wires.
+
+        Yields:
+            Bit: Bit in idle wire.
+        """
+        for wire in self.wires:
+            nodes = self.nodes_on_wire(wire, only_ops=False)
+            if len([i for i in nodes]) == 2:
+                yield wire
+
     def size(self):
         """Return the number of operations."""
         return self._multi_graph.order() - 2 * len(self.wires)
