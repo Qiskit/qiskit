@@ -199,7 +199,6 @@ class QCircuitMachine(RuleBasedStateMachine):
             st.none(),
             st.sampled_from(mock_backends)),
         opt_level=st.one_of(
-            st.none(),
             st.integers(min_value=0, max_value=3)))
     def equivalent_transpile(self, backend, opt_level):
         """Simulate, transpile and simulate the present circuit. Verify that the
