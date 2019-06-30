@@ -28,7 +28,7 @@ class BaseBackend(ABC):
     """Base class for backends."""
 
     @abstractmethod
-    def __init__(self, configuration, provider=None):
+    def __init__(self, configuration, provider=None, properties=None):
         """Base class for backends.
 
         This method should initialize the module and its configuration, and
@@ -38,11 +38,13 @@ class BaseBackend(ABC):
         Args:
             configuration (BackendConfiguration): backend configuration
             provider (BaseProvider): provider responsible for this backend
+            properties (BackendProperties): backend properties
 
         Raises:
             QiskitError: if an error occurred when instantiating the backend.
         """
         self._configuration = configuration
+        self._properties = properties
         self._provider = provider
 
     @abstractmethod
@@ -66,10 +68,10 @@ class BaseBackend(ABC):
         """Return the backend properties.
 
         Returns:
-            BackendProperties: the configuration for the backend. If the backend
-            does not support properties, it returns ``None``.
+            BackendProperties: the properties for the backend. If the backend
+                does not support properties, it returns ``None``.
         """
-        return None
+        return self._properties
 
     def provider(self):
         """Return the backend Provider.
