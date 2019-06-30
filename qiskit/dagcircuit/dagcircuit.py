@@ -580,6 +580,17 @@ class DAGCircuit:
         """Return the total number of qubits used by the circuit."""
         return len(self.wires) - self.num_cbits()
 
+    def num_qbits(self):
+        """Return the total number of qubits used by the circuit.
+           num_qbits() intends to replace current use of width().
+           DAGCircuit.width() should return qubits + cbits for
+           consistency with Circuit.width() [qiskit-terra #2564].
+           After all calling code has been edited to replace DAGCircuit.width()
+           with DAGCircuit.num_qbits(), then DAGCircuit.width() can be modified
+           to express the desired semantic.
+        """
+        return len(self.wires) - self.num_cbits()
+
     def num_cbits(self):
         """Return the total number of bits used by the circuit."""
         return sum(creg.size for creg in self.cregs.values())
