@@ -71,7 +71,7 @@ class Command(metaclass=MetaCount):
             except Exception:
                 raise PulseError("The pulse command name should be castable to a string "
                                  "(or None for autogenerate a name).")
-            name_format = re.compile('[a-z][a-zA-Z0-9_]*')
+            name_format = re.compile('[a-zA-Z][a-zA-Z0-9_]*')
             if name_format.match(name) is None:
                 raise PulseError("%s is an invalid OpenPulse command name." % name)
 
