@@ -60,7 +60,7 @@ class PassManager():
                 take in kwargs dict and access the variables. For example::
 
                     def callback_func(**kwargs):
-                        pass = kwargs['pass']
+                        pass_ = kwargs['pass_']
                         dag = kwargs['dag']
                         time = kwargs['time']
                         property_set = kwargs['property_set']
