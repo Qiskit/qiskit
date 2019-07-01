@@ -49,12 +49,11 @@ class PassManager():
                     property_set (PropertySet): the property set
                     count (int): the index for the pass execution
 
-                Keyword arguments are used for forward compatibility reasons,
-                and the current options will always be available moving
-                forward. But, additional arguments may be added in future
-                release. To ensure your callback functions work against any
-                version of terra moving forward you want to have your callback
-                function take a single `**kwargs` input.
+                The exact arguments pass expose the internals of the pass
+                manager and are subject to change as the pass manager internals
+                change. If you intend to reuse a callback function over
+                multiple releases be sure to check that the arguments being
+                passed are the same.
 
                 To use the callback feature you define a function that will
                 take in kwargs dict and access the variables. For example::
