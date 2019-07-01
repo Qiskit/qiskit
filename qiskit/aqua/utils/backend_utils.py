@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 try:
     # pylint: disable=no-name-in-module, import-error
-    from qiskit.providers.ibmq import IBMQProvider
+    from qiskit.providers.ibmq import IBMQFactory, IBMQProvider
     HAS_IBMQ = True
 except Exception as e:
     HAS_IBMQ = False
-    logger.debug("IBMQProvider not loaded: '{}'".format(str(e)))
+    logger.debug("IBMQFactory/IBMQProvider not loaded: '{}'".format(str(e)))
 
 try:
     from qiskit.providers.aer import AerProvider
@@ -188,8 +188,12 @@ def get_backends_from_provider(provider_name):
         ImportError: Invalid provider name or failed to find provider
     """
     provider_object = _load_provider(provider_name)
-    if has_ibmq() and isinstance(provider_object, IBMQProvider):
+    if has_ibmq() and isinstance(provider_object, IBMQFactory):
+        # enable IBMQ account
         preferences = Preferences()
+        provider = enable_ibmq_account(preferences.get_url(), preferences.get_token(), preferences.get_proxies({}))
+        if provider is not None:
+            provider_object = provider
         url = preferences.get_url()
         token = preferences.get_token()
         kwargs = {}
@@ -227,8 +231,11 @@ def get_backend_from_provider(provider_name, backend_name):
     """
     backend = None
     provider_object = _load_provider(provider_name)
-    if has_ibmq() and isinstance(provider_object, IBMQProvider):
+    if has_ibmq() and isinstance(provider_object, IBMQFactory):
         preferences = Preferences()
+        provider = enable_ibmq_account(preferences.get_url(), preferences.get_token(), preferences.get_proxies({}))
+        if provider is not None:
+            provider_object = provider
         url = preferences.get_url()
         token = preferences.get_token()
         kwargs = {}
@@ -288,7 +295,7 @@ def get_provider_from_backend(backend):
     known_providers = {
                        'BasicAerProvider': 'qiskit.BasicAer',
                        'AerProvider': 'qiskit.Aer',
-                       'IBMQProvider': 'qiskit.IBMQ',
+                       'IBMQFactory': 'qiskit.IBMQ',
                        }
     if isinstance(backend, BaseBackend):
         provider = backend.provider()
@@ -325,11 +332,6 @@ def _load_provider(provider_name):
     if provider_object is None:
         raise ImportError("Failed to import provider '{}'".format(provider_name))
 
-    if has_ibmq() and isinstance(provider_object, IBMQProvider):
-        # enable IBMQ account
-        preferences = Preferences()
-        enable_ibmq_account(preferences.get_url(), preferences.get_token(), preferences.get_proxies({}))
-
     return provider_object
 
 
@@ -337,8 +339,9 @@ def enable_ibmq_account(url, token, proxies):
     """
     Enable IBMQ account, if not alreay enabled.
     """
+    provider = None
     if not has_ibmq():
-        return
+        return provider
     try:
         url = url or ''
         token = token or ''
@@ -349,19 +352,31 @@ def enable_ibmq_account(url, token, proxies):
             from qiskit.providers.ibmq.credentials import Credentials
             credentials = Credentials(token, url, proxies=proxies)
             unique_id = credentials.unique_id()
-            if unique_id in IBMQ._accounts:
+            if IBMQ._v1_provider._accounts:
+                if unique_id in IBMQ._v1_provider._accounts:
+                    # disable first any existent previous account with same unique_id and different properties
+                    enabled_credentials = IBMQ._v1_provider._accounts[unique_id].credentials
+                    if enabled_credentials.url != url or enabled_credentials.token != token or enabled_credentials.proxies != proxies:
+                        del IBMQ._v1_provider._accounts[unique_id]
+                    else:
+                        return IBMQ._v1_provider
+            elif IBMQ._credentials:
+                enabled_credentials = IBMQ._credentials
                 # disable first any existent previous account with same unique_id and different properties
-                enabled_credentials = IBMQ._accounts[unique_id].credentials
                 if enabled_credentials.url != url or enabled_credentials.token != token or enabled_credentials.proxies != proxies:
-                    del IBMQ._accounts[unique_id]
+                    IBMQ.disable_account()
+                else:
+                    providers = IBMQ.providers(hub=unique_id.hub, group=unique_id.group, project=unique_id.project)
+                    return providers[0] if providers else None
 
-            if unique_id not in IBMQ._accounts:
-                IBMQ.enable_account(token, url=url, proxies=proxies)
-                logger.info("Enabled IBMQ account. Url:'{}' Token:'{}' "
-                            "Proxies:'{}'".format(url, token, proxies))
+            provider = IBMQ.enable_account(token, url=url, proxies=proxies)
+            logger.info("Enabled IBMQ account. Url:'{}' Token:'{}' "
+                        "Proxies:'{}'".format(url, token, proxies))
     except Exception as e:
         logger.warning("Failed to enable IBMQ account. Url:'{}' Token:'{}' "
                        "Proxies:'{}' :{}".format(url, token, proxies, str(e)))
+
+    return provider
 
 
 def disable_ibmq_account(url, token, proxies):
@@ -375,16 +390,24 @@ def disable_ibmq_account(url, token, proxies):
         if url != '' and token != '':
             # pylint: disable=no-name-in-module, import-error
             from qiskit import IBMQ
-            from qiskit.providers.ibmq.credentials import Credentials
-            credentials = Credentials(token, url, proxies=proxies)
-            unique_id = credentials.unique_id()
-            if unique_id in IBMQ._accounts:
-                del IBMQ._accounts[unique_id]
-                logger.info("Disabled IBMQ account. Url:'{}' "
-                            "Token:'{}' Proxies:'{}'".format(url, token, proxies))
-            else:
-                logger.info("IBMQ account is not active. Not disabled. "
-                            "Url:'{}' Token:'{}' Proxies:'{}'".format(url, token, proxies))
+            if IBMQ._v1_provider._accounts:
+                from qiskit.providers.ibmq.credentials import Credentials
+                credentials = Credentials(token, url, proxies=proxies)
+                unique_id = credentials.unique_id()
+                if unique_id in IBMQ._v1_provider._accounts:
+                    del IBMQ._v1_provider._accounts[unique_id]
+                    logger.info("Disabled IBMQ v1 account. Url:'{}' "
+                                "Token:'{}' Proxies:'{}'".format(url, token, proxies))
+                else:
+                    logger.info("IBMQ v1 account is not active. Not disabled. "
+                                "Url:'{}' Token:'{}' Proxies:'{}'".format(url, token, proxies))
+            elif IBMQ._credentials:
+                enabled_credentials = IBMQ._credentials
+                if enabled_credentials.url == url and enabled_credentials.token == token and enabled_credentials.proxies == proxies:
+                    IBMQ.disable_account()
+                else:
+                    logger.info("IBMQ v2 account is not active. Not disabled. "
+                                "Url:'{}' Token:'{}' Proxies:'{}'".format(url, token, proxies))
     except Exception as e:
         logger.warning("Failed to disable IBMQ account. Url:'{}' "
                        "Token:'{}' Proxies:'{}' :{}".format(url, token, proxies, str(e)))
