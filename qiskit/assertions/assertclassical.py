@@ -22,6 +22,7 @@ from qiskit.assertions.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from scipy.stats import chisquare
+from math import isnan
 
 class AssertClassical(Asserts):
     """
@@ -35,23 +36,25 @@ class AssertClassical(Asserts):
         self._expval = expval
 
     def stat_test(self, counts):
-        res_list = []
-        exp_list = []
+        vals_list = list(counts.values())
+        numzeros = 2**len(list(counts)[0]) - len(counts)
+        vals_list.extend([0]*numzeros)
         numshots = sum(list(counts.values()))
-        for key, value in counts.items():
-            res_list.append(value)
-            if int(key) == self._expval:
-                exp_list.append(numshots)
-            else:
-                exp_list.append(0)
+        
+        exp_list = [0]*len(vals_list)
+        try:
+            index = list(map(int, counts.keys())).index(self._expval)
+        except ValueError:
+            index = -1
+        exp_list[index] = numshots
+        print("vals_list = ")
+        print(vals_list)
         print("exp_list = ")
         print(exp_list)
-        print("rest_list = ")
-        print(res_list)
-        chisq, pval = (chisquare(res_list, f_exp = exp_list))
+        chisq, pval = (chisquare(vals_list, f_exp = exp_list))
         print("chisq, pval = ")
         print(chisq, pval)
-        if pval <= self._pcrit or chisq == 0: #math.isnan(pval):
+        if pval <= self._pcrit or isnan(pval):
             passed = True
         else:
             passed = False
