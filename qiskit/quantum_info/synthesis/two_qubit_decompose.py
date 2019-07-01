@@ -104,7 +104,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
 
     # extract the left component
     temp = np.kron(np.eye(2), R.T.conj())
-    special_unitary_matrix.dot(temp, temp)
+    temp = special_unitary_matrix.dot(temp)
     L = temp[::2, ::2]
     detL = L[0, 0]*L[1, 1] - L[0, 1]*L[1, 0]
     if abs(detL) < 0.9:
@@ -198,35 +198,35 @@ class TwoQubitWeylDecomposition:
         # Flip into Weyl chamber
         if cs[0] > pi2:
             cs[0] -= 3*pi2
-            K1l.dot(_ipy, out=K1l)
-            K1r.dot(_ipy, out=K1r)
+            K1l = K1l.dot(_ipy)
+            K1r = K1r.dot(_ipy)
         if cs[1] > pi2:
             cs[1] -= 3*pi2
-            K1l.dot(_ipx, out=K1l)
-            K1r.dot(_ipx, out=K1r)
+            K1l = K1l.dot(_ipx)
+            K1r = K1r.dot(_ipx)
         conjs = 0
         if cs[0] > pi4:
             cs[0] = pi2-cs[0]
-            K1l.dot(_ipy, out=K1l)
-            _ipy.dot(K2r, out=K2r)
+            K1l = K1l.dot(_ipy)
+            K2r = _ipy.dot(K2r)
             conjs += 1
         if cs[1] > pi4:
             cs[1] = pi2-cs[1]
-            K1l.dot(_ipx, out=K1l)
-            _ipx.dot(K2r, out=K2r)
+            K1l = K1l.dot(_ipx)
+            K2r = _ipx.dot(K2r)
             conjs += 1
         if cs[2] > pi2:
             cs[2] -= 3*pi2
-            K1l.dot(_ipz, out=K1l)
-            K1r.dot(_ipz, out=K1r)
+            K1l = K1l.dot(_ipz)
+            K1r = K1r.dot(_ipz)
         if conjs == 1:
             cs[2] = pi2-cs[2]
-            K1l.dot(_ipz, out=K1l)
-            _ipz.dot(K2r, out=K2r)
+            K1l = K1l.dot(_ipz)
+            K2r = _ipz.dot(K2r)
         if cs[2] > pi4:
             cs[2] -= pi2
-            K1l.dot(_ipz, out=K1l)
-            K1r.dot(_ipz, out=K1r)
+            K1l = K1l.dot(_ipz)
+            K1r = K1r.dot(_ipz)
         self.a = cs[1]
         self.b = cs[0]
         self.c = cs[2]

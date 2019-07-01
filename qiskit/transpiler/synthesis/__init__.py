@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2018.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,10 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Preset PassManager flows."""
+"""Module containing transpiler synthesize."""
 
-from .default import default_pass_manager_simulator
-from .level0 import level_0_pass_manager
-from .level1 import level_1_pass_manager
-from .level2 import level_2_pass_manager
-from .level3 import level_3_pass_manager
+
+from .graysynth import graysynth, cnot_synth

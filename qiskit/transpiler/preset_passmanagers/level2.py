@@ -31,7 +31,7 @@ from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import NoiseAdaptiveLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.passes import LegacySwap
+from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import FixedPoint
@@ -39,6 +39,7 @@ from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import CommutativeCancellation
+from qiskit.transpiler.passes import ApplyLayout
 
 
 def level_2_pass_manager(transpile_config):
@@ -80,7 +81,7 @@ def level_2_pass_manager(transpile_config):
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
+    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 3. Unroll to 1q or 2q gates, swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
@@ -90,7 +91,7 @@ def level_2_pass_manager(transpile_config):
 
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
-             LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
+             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
     # 4. Unroll to the basis
