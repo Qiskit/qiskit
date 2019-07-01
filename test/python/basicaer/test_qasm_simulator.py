@@ -160,6 +160,31 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         for mem in memory:
             self.assertIn(mem, ['10 00', '10 11'])
 
+    def test_unitary(self):
+        """Test unitary gate instruction"""
+        max_qubits = 4
+        x_mat = np.array([[0, 1], [1, 0]])
+        # Test 1 to max_qubits for random n-qubit unitary gate
+        for i in range(max_qubits):
+            num_qubits = i + 1
+            # Apply X gate to all qubits
+            multi_x = x_mat
+            for _ in range(i):
+                multi_x = np.kron(multi_x, x_mat)
+            # Target counts
+            shots = 100
+            target_counts = {num_qubits * '1': shots}
+            # Test circuit
+            qr = QuantumRegister(num_qubits, 'qr')
+            cr = ClassicalRegister(num_qubits, 'cr')
+            circuit = QuantumCircuit(qr, cr)
+            circuit.unitary(multi_x, qr)
+            circuit.measure(qr, cr)
+            job = execute(circuit, self.backend, shots=shots)
+            result = job.result()
+            counts = result.get_counts(0)
+            self.assertEqual(counts, target_counts)
+
 
 if __name__ == '__main__':
     unittest.main()
