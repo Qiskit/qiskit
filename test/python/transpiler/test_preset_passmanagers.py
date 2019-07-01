@@ -70,6 +70,7 @@ class TestTranspileLevels(QiskitTestCase):
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):
+    """Test transpiing with different layouts"""
 
     @combine(level=[0, 1, 2, 3])
     def test_layout_1711(self, level):
