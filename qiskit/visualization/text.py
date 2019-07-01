@@ -464,13 +464,13 @@ class TextDrawing():
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit[0].name, qubit[1]))
+            qubits.append("%s_%s" % (qubit.register.name, qubit.index))
         return qubits
 
     def _get_clbit_labels(self):
         clbits = []
         for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit[0].name, clbit[1]))
+            clbits.append("%s_%s" % (clbit.register.name, clbit.index))
         return clbits
 
     def single_string(self):
@@ -959,7 +959,7 @@ class Layer:
             label (string): The label for the multi clbit box.
             top_connect (char): The char to connect the box on the top.
         """
-        clbit = [bit for bit in self.cregs if bit[0] == creg]
+        clbit = [bit for bit in self.cregs if bit.register == creg]
         self._set_multibox("cl", clbit, label, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, conditional=False):
