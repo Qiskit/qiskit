@@ -359,6 +359,7 @@ class Operator(BaseOperator):
         mat = np.reshape(other.data, other._shape)
         indices = [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims), np.product(input_dims)]
+        #print('DEBUG: indices {}, shift {}'.format(indices, shift))
         data = np.reshape(
             self._einsum_matmul(tensor, mat, indices, shift, right_mul),
             final_shape)
@@ -462,7 +463,9 @@ class Operator(BaseOperator):
                             'Cannot apply instruction with classical registers: {}'.format(
                                 instr.name))
                     # Get the integer position of the flat register
-                    new_qargs = [tup.index for tup in qregs]
+                    new_qargs = qargs
+                    if new_qargs is None:
+                        new_qargs = [tup.index for tup in qregs]
                     self._append_instruction(instr, qargs=new_qargs)
         else:
             raise QiskitError('Input is not an instruction.')
