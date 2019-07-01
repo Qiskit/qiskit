@@ -13,49 +13,57 @@
 # that they have been altered from the originals.
 
 """
-Assertion of superposition states.
+Assertion of classical states.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
-from qiskit.circuit.assertmanager import AssertManager
-from qiskit.circuit.asserts import Asserts
+from qiskit.assertions.assertmanager import AssertManager
+from qiskit.assertions.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from scipy.stats import chisquare
 
-class AssertSuperposition(Asserts):
+class AssertClassical(Asserts):
     """
-        Assertion of superposition states and quantum measurement
+        Assertion of classical states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, pcrit):
+    def __init__(self, expval, pcrit):
         super().__init__()
-        self._type = "Superposition"
+        self._type = "Classical"
         self._pcrit = pcrit
+        self._expval = expval
 
     def stat_test(self, counts):
-        vals_list = list(counts.values())
-        numzeros = len(counts) - 2**len(list(counts)[0])
-        vals_list.extend([0]*numzeros)
-        print("vals_list = ")
-        print(vals_list)
-        chisq, pval = chisquare(vals_list)
+        res_list = []
+        exp_list = []
+        numshots = sum(list(counts.values()))
+        for key, value in counts.items():
+            res_list.append(value)
+            if int(key) == self._expval:
+                exp_list.append(numshots)
+            else:
+                exp_list.append(0)
+        print("exp_list = ")
+        print(exp_list)
+        print("rest_list = ")
+        print(res_list)
+        chisq, pval = (chisquare(res_list, f_exp = exp_list))
         print("chisq, pval = ")
         print(chisq, pval)
         if pval <= self._pcrit or chisq == 0: #math.isnan(pval):
-            passed = False
-        else:
             passed = True
-        print("Superposition: chisq, pval, passed = ")
-        print(chisq, pval, passed)
+        else:
+            passed = False
         return (chisq, pval, passed)
 
 
-def assertsuperposition(self, pcrit, qubit, cbit):
-    """Create superposition assertion
+def assertclassical(self, expval, pcrit, qubit, cbit):
+    """Create classical assertion
 
     Args:
-        pcrit: float
+        expval: integer of 0's and 1's
+        pcrit: critical p-value for the hypothesis test
         qubit (QuantumRegister|list|tuple): quantum register
         cbit (ClassicalRegister|list|tuple): classical register
 
@@ -67,8 +75,8 @@ def assertsuperposition(self, pcrit, qubit, cbit):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    AssertManager.StatOutputs[theClone.name] = {"type":"Superposition"}
-    theClone.append(AssertSuperposition(pcrit), [qubit], [cbit])
+    AssertManager.StatOutputs[theClone.name] = {"type":"Classical","expval":expval}
+    theClone.append(AssertClassical(expval, pcrit), [qubit], [cbit])
     return theClone
 
-QuantumCircuit.assertsuperposition = assertsuperposition
+QuantumCircuit.assertclassical = assertclassical
