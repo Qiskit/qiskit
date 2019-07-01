@@ -959,7 +959,7 @@ class Layer:
             label (string): The label for the multi clbit box.
             top_connect (char): The char to connect the box on the top.
         """
-        clbit = [bit for bit in self.cregs if bit[0] == creg]
+        clbit = [bit for bit in self.cregs if bit.register == creg]
         self._set_multibox("cl", clbit, label, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, conditional=False):
