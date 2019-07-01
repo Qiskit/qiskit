@@ -78,7 +78,7 @@ The format is based on [Keep a Changelog].
     `PassManager` (\#2565).
 
 ### Fixed
-
+-   Fixes a bug where the CmdDef was getting built without buffers on channels.
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 -   Fixes a bug that removed `id` gates from circuit. id gates are
