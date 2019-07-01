@@ -90,7 +90,7 @@ class LookaheadSwap(TransformationPass):
         coupling_map = self.coupling_map
 
         if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('Basic swap runs on physical circuits only')
+            raise TranspilerError('Lookahead swap runs on physical circuits only')
 
         if len(dag.qubits()) > len(coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
