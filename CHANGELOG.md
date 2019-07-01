@@ -44,6 +44,8 @@ The format is based on [Keep a Changelog].
 -   Decomposition of multiplexed single-qubit unitaries (Option: decompose
     up to a diagonal gate) (\#2600)
 -   ZYZ decomposition for single-qubit unitaries (\#2600)
+-   Gray-Synth and Patel–Markov–Hayes algorithms for synthesis of
+    CNOT-Phase and CNOT-only (linear) circuits (\#2457)
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
