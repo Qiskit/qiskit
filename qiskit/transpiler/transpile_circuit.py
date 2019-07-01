@@ -58,4 +58,7 @@ def transpile_circuit(circuit, transpile_config):
     else:
         pass_manager = default_pass_manager_simulator(transpile_config)
 
+    if transpile_config.initial_layout:
+        circuit.layout = transpile_config.initial_layout
+
     return pass_manager.run(circuit)
