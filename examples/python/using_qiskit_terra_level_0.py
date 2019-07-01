@@ -28,10 +28,8 @@ as a level 1 user.
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
-from qiskit.circuit.asserts import Asserts
-from qiskit.circuit.assertclassical import AssertClassical
-from qiskit.circuit.assertsuperposition import AssertSuperposition
-from qiskit.circuit.assertmanager import AssertManager
+from qiskit.assertions.asserts import Asserts
+from qiskit.assertions.assertmanager import AssertManager
 
 # making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)

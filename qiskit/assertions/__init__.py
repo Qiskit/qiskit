@@ -12,14 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module for Circuits."""
-from .quantumcircuit import QuantumCircuit
-from .classicalregister import ClassicalRegister, Clbit
-from .quantumregister import QuantumRegister, Qubit
-from .gate import Gate
-from .instruction import Instruction
-from .instructionset import InstructionSet
-from .measure import Measure
-from .reset import Reset
-from .parameter import Parameter
-from .parametervector import ParameterVector
+"""Module for Assertions."""
+from .assertmanager import AssertManager
+from .asserts import Asserts
+from .assertclassical import AssertClassical
+from .assertsuperposition import AssertSuperposition
