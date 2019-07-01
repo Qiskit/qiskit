@@ -359,7 +359,6 @@ class Operator(BaseOperator):
         mat = np.reshape(other.data, other._shape)
         indices = [num_indices - 1 - qubit for qubit in qargs]
         final_shape = [np.product(output_dims), np.product(input_dims)]
-        #print('DEBUG: indices {}, shift {}'.format(indices, shift))
         data = np.reshape(
             self._einsum_matmul(tensor, mat, indices, shift, right_mul),
             final_shape)
