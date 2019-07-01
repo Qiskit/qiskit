@@ -56,6 +56,9 @@ class DenseLayout(TransformationPass):
 
         Raises:
             TranspilerError: if dag wider than self.coupling_map
+
+        Returns:
+            DAGCircuit: DAG with the layout.
         """
         num_dag_qubits = sum([qreg.size for qreg in dag.qregs.values()])
         if num_dag_qubits > self.coupling_map.size():

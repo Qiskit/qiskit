@@ -78,7 +78,6 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
 
         filename = self._get_resource_path('current_style.dot')
         self.pass_manager.draw(filename=filename, style=style, raw=True)
-        self.maxDiff=None
         self.assertFilesAreEqual(filename,
                                  path_to_diagram_reference('pass_manager_style.dot'))
         os.remove(filename)
