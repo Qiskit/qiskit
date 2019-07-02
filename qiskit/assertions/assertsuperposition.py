@@ -28,9 +28,11 @@ class AssertSuperposition(Asserts):
         Assertion of superposition states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, pcrit):
+    def __init__(self, qubit, cbit, pcrit):
         super().__init__()
         self._type = "Superposition"
+        self._qubit = qubit
+        self._cbit = cbit
         self._pcrit = pcrit
 
     def stat_test(self, counts):
@@ -68,7 +70,7 @@ def assertsuperposition(self, pcrit, qubit, cbit):
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
     AssertManager.StatOutputs[theClone.name] = {"type":"Superposition"}
-    theClone.append(AssertSuperposition(pcrit), [qubit], [cbit])
+    theClone.append(AssertSuperposition(qubit, cbit, pcrit), [qubit], [cbit])
     return theClone
 
 QuantumCircuit.assertsuperposition = assertsuperposition

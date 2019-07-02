@@ -29,9 +29,11 @@ class AssertClassical(Asserts):
         Assertion of classical states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, expval, pcrit):
+    def __init__(self, qubit, cbit, expval, pcrit):
         super().__init__()
         self._type = "Classical"
+        self._qubit = qubit
+        self._cbit = cbit
         self._pcrit = pcrit
         self._expval = expval
 
@@ -79,7 +81,7 @@ def assertclassical(self, expval, pcrit, qubit, cbit):
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
     AssertManager.StatOutputs[theClone.name] = {"type":"Classical","expval":expval}
-    theClone.append(AssertClassical(expval, pcrit), [qubit], [cbit])
+    theClone.append(AssertClassical(qubit, cbit, expval, pcrit), [qubit], [cbit])
     return theClone
 
 QuantumCircuit.assertclassical = assertclassical
