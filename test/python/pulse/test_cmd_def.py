@@ -31,7 +31,7 @@ class TestCmdDef(QiskitTestCase):
     def setUp(self):
         self.provider = FakeProvider()
         self.backend = self.provider.get_backend('fake_openpulse_2q')
-        self.device = PulseChannelSpec.from_system(self.backend)
+        self.device = PulseChannelSpec.from_backend(self.backend)
 
     def test_get_backend(self):
         """Test that backend is fetchable with cmd def present."""

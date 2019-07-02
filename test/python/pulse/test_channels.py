@@ -140,7 +140,7 @@ class TestPulseSpecification(QiskitTestCase):
         """
         backend = FakeOpenPulse2Q()
 
-        device = PulseChannelSpec.from_system(backend)
+        device = PulseChannelSpec.from_backend(backend)
 
         self.assertEqual(device.drives[0], DriveChannel(0))
         self.assertEqual(device.controls[0], ControlChannel(0))

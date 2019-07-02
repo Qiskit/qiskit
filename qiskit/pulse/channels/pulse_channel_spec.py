@@ -32,7 +32,7 @@ class PulseChannelSpec:
 
     1. With the `BaseBackend` object of the target pulse backend:
         ```python
-        system = PulseChannelSpec.from_system(backend)
+        system = PulseChannelSpec.from_backend(backend)
         ```
 
     2. By specifying the number of pulse elements constituting the target quantum computing system:
@@ -92,7 +92,7 @@ class PulseChannelSpec:
                                         self.measures, self.acquires)
 
     @classmethod
-    def from_system(cls, backend):
+    def from_backend(cls, backend):
         """
         Create pulse channel specification with values from backend.
 
