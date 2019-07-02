@@ -92,6 +92,8 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+-   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
+    containing gates without an explicit matrix definition (\#2723)
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 -   Fixes a bug that removed `id` gates from circuit. id gates are
