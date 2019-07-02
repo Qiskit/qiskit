@@ -15,31 +15,18 @@
 """
 Quantum measurement in the computational basis.
 """
-import time
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
+from datetime import datetime
 
 class AssertManager():
     """An AssertManager object manages all assertions in the experiment and executes them."""
     StatOutputs = {}
 
     def breakpoint_name():
-        tl = time.localtime()
-        ta = time.asctime()
-        numzeros = 2 - len(str(tl.tm_mon))
-        sy = str(tl.tm_year)
-        sm = str(tl.tm_mon)
-        timestring = sy+"_"+"0"*numzeros+sm+ta.replace(" ","_").replace(":","-")[7:-5]
-        if "breakpoint"+"_"+timestring in AssertManager.StatOutputs:
-            if timestring[-3] == "-":
-                return timestring+"_1"
-            else:
-                index = timestring.find("-")+7
-                return timestring[:index]+str(int(timestring[index:])+1)
-        else:
-            return timestring
+        return datetime.now().isoformat()
 
     def stat_collect(experiments, results):
         """Calculate and collect results of statistical tests for each experiment
