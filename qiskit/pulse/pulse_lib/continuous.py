@@ -232,6 +232,7 @@ def sech_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
         return s_deriv, s
     return s_deriv
 
+
 def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,
                     sigma: float, zeroed_width: Optional[float] = None) -> np.ndarray:
     r"""Continuous gaussian square pulse.
