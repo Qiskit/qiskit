@@ -29,9 +29,11 @@ class AssertClassical(Asserts):
         Assertion of classical states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, expval, pcrit):
+    def __init__(self, qubit, cbit, expval, pcrit):
         super().__init__()
         self._type = "Classical"
+        self._qubit = qubit
+        self._cbit = cbit
         self._pcrit = pcrit
         self._expval = expval
 
@@ -39,14 +41,14 @@ class AssertClassical(Asserts):
         vals_list = list(counts.values())
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
-        numshots = sum(list(counts.values()))
+        # numshots = sum(list(counts.values()))
         
-        exp_list = [0]*len(vals_list)
+        exp_list = [1]*len(vals_list)
         try:
             index = list(map(int, counts.keys())).index(self._expval)
         except ValueError:
             index = -1
-        exp_list[index] = numshots
+        exp_list[index] = 2**16
         print("vals_list = ")
         print(vals_list)
         print("exp_list = ")
@@ -79,7 +81,7 @@ def assertclassical(self, expval, pcrit, qubit, cbit):
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
     AssertManager.StatOutputs[theClone.name] = {"type":"Classical","expval":expval}
-    theClone.append(AssertClassical(expval, pcrit), [qubit], [cbit])
+    theClone.append(AssertClassical(qubit, cbit, expval, pcrit), [qubit], [cbit])
     return theClone
 
 QuantumCircuit.assertclassical = assertclassical

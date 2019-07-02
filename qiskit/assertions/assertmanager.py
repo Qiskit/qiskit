@@ -58,8 +58,24 @@ class AssertManager():
             exp_counts = results.get_counts(exp)
             print(list(exp_counts.values()))
             assertion = exp.data[-1][0]
+            qbits = assertion._qubit
+            cbits = assertion._cbit
             print(assertion)
             exp_type = assertion.get_type()
+
+            print("qbits")
+            print(qbits)
+            print("cbits")
+            print(cbits)
+
+            new_counts = {}
+            for (key, value) in exp_counts.items():
+                newkey = ''.join(key[-1*(cbit+1)] for cbit in cbits)
+                new_counts.setdefault(newkey, 0)
+                new_counts[newkey] += value
+            exp_counts = new_counts
+
+
             print(exp_type)
             chisq, pval, passed = assertion.stat_test(exp_counts)
             print(chisq, pval, passed)

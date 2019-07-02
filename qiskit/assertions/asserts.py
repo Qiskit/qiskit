@@ -28,6 +28,8 @@ class Asserts(Measure):
     def __init__(self):
         super().__init__()
         self._type = None
+        self._qubit = None
+        self._cbit = None
         self._pcrit = None
         self._expval = None
 
