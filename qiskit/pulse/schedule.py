@@ -18,7 +18,6 @@ import itertools
 import abc
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 
-from . import ops
 from .timeslots import Interval
 from .channels import Channel
 from .interfaces import ScheduleComponent
@@ -136,8 +135,8 @@ class Schedule(ScheduleComponent):
             time: Shifted time due to parent
 
         Yields:
-            Tuple[int, ScheduleComponent]: Tuple containing time `ScheduleComponent` starts
-                at and the flattened `ScheduleComponent`.
+            Tuple[int, Instruction]: Tuple containing time `Instruction` starts
+                at and the flattened `Instruction`.
         """
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
@@ -147,48 +146,57 @@ class Schedule(ScheduleComponent):
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
-            *schedules: Schedules to be take the union with the parent `Schedule`.
-            name: Name of the new schedule. Defaults to name of parent
+            *schedules: Schedules to be take the union with this `Schedule`.
+            name: Name of the new schedule. Defaults to name of self
         """
-        return ops.union(self, *schedules, name=name)
+        if name is None:
+            name = self.name
+        return Schedule(self, *schedules, name=name)
 
-    def shift(self: ScheduleComponent, time: int,
-              name: Optional[str] = None) -> 'Schedule':
+    def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
 
         Args:
             time: Time to shift by
-            name: Name of the new schedule. Defaults to name of parent
+            name: Name of the new schedule. Defaults to name of self
         """
-        return ops.shift(self, time, name=name)
+        if name is None:
+            name = self.name
+        return Schedule((time, self), name=name)
 
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
                name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
-            start_time: time to be inserted
-            schedule: schedule to be inserted
-            buffer: Obey buffer when inserting
-            name: Name of the new schedule. Defaults to name of parent
+            start_time: Time to insert the schedule
+            schedule: Schedule to insert
+            buffer: Whether to obey buffer when inserting
+            name: Name of the new schedule. Defaults to name of self
         """
-        return ops.insert(self, start_time, schedule, buffer=buffer, name=name)
+        if buffer and schedule.buffer and start_time > 0:
+            start_time += self.buffer
+        return self.union((start_time, schedule), name=name)
 
     def append(self, schedule: ScheduleComponent, buffer: bool = True,
                name: Optional[str] = None) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted at the maximum time over
+        r"""Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
+
+       $t = \textrm{max}({x.stop\_time |x \in self.channels \cap schedule.channels})$
 
         Args:
             schedule: schedule to be appended
-            buffer: Obey buffer when appending
-            name: Name of the new schedule. Defaults to name of parent
+            buffer: Whether to obey buffer when appending
+            name: Name of the new schedule. Defaults to name of self
         """
-        return ops.append(self, schedule, buffer=buffer, name=name)
+        common_channels = set(self.channels) & set(schedule.channels)
+        time = self.ch_stop_time(*common_channels)
+        return self.insert(time, schedule, buffer=buffer, name=name)
 
-    def flatten(self) -> 'ScheduleComponent':
+    def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
-        return ops.flatten(self)
+        return Schedule(*self.instructions, name=self.name)
 
     def filter(self, *filter_funcs: List[Callable],
                channels: Optional[Iterable[Channel]] = None,
