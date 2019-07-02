@@ -37,7 +37,7 @@ class AssertSuperposition(Asserts):
 
     def stat_test(self, counts):
         vals_list = list(counts.values())
-        numzeros = len(counts) - 2**len(list(counts)[0])
+        numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
         print("vals_list = ")
         print(vals_list)

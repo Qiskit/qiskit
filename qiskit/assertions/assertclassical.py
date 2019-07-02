@@ -41,14 +41,14 @@ class AssertClassical(Asserts):
         vals_list = list(counts.values())
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
-        numshots = sum(list(counts.values()))
+        # numshots = sum(list(counts.values()))
         
-        exp_list = [0]*len(vals_list)
+        exp_list = [1]*len(vals_list)
         try:
             index = list(map(int, counts.keys())).index(self._expval)
         except ValueError:
             index = -1
-        exp_list[index] = numshots
+        exp_list[index] = 2**16
         print("vals_list = ")
         print(vals_list)
         print("exp_list = ")

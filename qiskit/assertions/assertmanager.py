@@ -65,8 +65,16 @@ class AssertManager():
 
             print("qbits")
             print(qbits)
-            print("bits")
+            print("cbits")
             print(cbits)
+
+            new_counts = {}
+            for (key, value) in exp_counts.items():
+                newkey = ''.join(key[-1*(cbit+1)] for cbit in cbits)
+                new_counts.setdefault(newkey, 0)
+                new_counts[newkey] += value
+            exp_counts = new_counts
+
 
             print(exp_type)
             chisq, pval, passed = assertion.stat_test(exp_counts)
