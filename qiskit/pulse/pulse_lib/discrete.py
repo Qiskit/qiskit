@@ -221,7 +221,7 @@ def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SampleP
     """
     center = duration/2
     return _sampled_sech_pulse(duration, amp, center, sigma,
-                                   rescale_amp=True, name=name)
+                                   name=name)
 
 
 _sampled_sech_deriv_pulse = samplers.left(continuous.sech_deriv)
