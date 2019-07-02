@@ -191,6 +191,7 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
 
 
 def sech_fn(x, *args, **kwargs):
+    r"""Hyperbolic secant function"""
     return 1.0 / np.cosh(x, *args, **kwargs)
 
 
@@ -208,11 +209,11 @@ def sech(times: np.ndarray, amp: complex, center: float, sigma: float,
     """
     times = np.asarray(times, dtype=np.complex_)
     x = (times-center)/sigma
-    s = amp*sech_fn(x).astype(np.complex_)
+    sech_out = amp*sech_fn(x).astype(np.complex_)
 
     if ret_x:
-        return s, x
-    return s
+        return sech_out, x
+    return sech_out
 
 
 def sech_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
@@ -226,11 +227,11 @@ def sech_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
         sigma: Width (standard deviation) of pulse.
         ret_sech: Return sech with which derivative was taken with.
     """
-    s, x = sech(times, amp=amp, center=center, sigma=sigma, ret_x=True)
-    s_deriv = - s * np.tanh(x) / sigma
+    sech_out, x = sech(times, amp=amp, center=center, sigma=sigma, ret_x=True)
+    sech_out_deriv = - sech_out * np.tanh(x) / sigma
     if ret_sech:
-        return s_deriv, s
-    return s_deriv
+        return sech_out_deriv, sech_out
+    return sech_out_deriv
 
 
 def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,

@@ -224,7 +224,7 @@ class TestContinuousPulses(QiskitTestCase):
         amp = 0.5
         center = 20
         sigma = 2
-        times, dt = np.linspace(0, 40, 1000, retstep=True)
+        times = np.linspace(0, 40, 1000)
 
         sech_deriv_arr = continuous.sech_deriv(times, amp, center, sigma)
 
