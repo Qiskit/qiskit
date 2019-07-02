@@ -195,7 +195,7 @@ def sech_fn(x, *args, **kwargs):
 
 
 def sech(times: np.ndarray, amp: complex, center: float, sigma: float,
-             ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+         ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized sech pulse.
 
     Args:
@@ -216,7 +216,7 @@ def sech(times: np.ndarray, amp: complex, center: float, sigma: float,
 
 
 def sech_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
-                   ret_sech: bool = False) -> np.ndarray:
+               ret_sech: bool = False) -> np.ndarray:
     """Continuous unnormalized sech derivative pulse.
 
     Args:

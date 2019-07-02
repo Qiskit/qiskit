@@ -208,7 +208,7 @@ class TestContinuousPulses(QiskitTestCase):
         times, dt = np.linspace(0, 40, 1001, retstep=True)
         sech_arr = continuous.sech(times, amp, center, sigma)
         sech_arr_zeroed = continuous.sech(np.array([-1, 20]), amp, center,
-                                                  sigma)
+                                          sigma)
 
         self.assertEqual(sech_arr.dtype, np.complex_)
 
