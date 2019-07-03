@@ -55,8 +55,8 @@ class TestCountOpsLongestPathPass(QiskitTestCase):
         pass_ = CountOpsLongestPath()
         _ = pass_.run(dag)
 
-        self.assertDictEqual(pass_.property_set['count_ops_longest_path'], 
-                             {'cx': 3, 'x': 2, 'y': 2, 'h': 2})
+        count_ops = pass_.property_set['count_ops_longest_path']
+        self.assertDictEqual(count_ops, {'cx': 3, 'x': 2, 'y': 2, 'h': 2})
 
 
 if __name__ == '__main__':
