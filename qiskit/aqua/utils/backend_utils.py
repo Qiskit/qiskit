@@ -191,12 +191,7 @@ def get_backends_from_provider(provider_name):
     provider_object = _load_provider(provider_name)
     if has_ibmq() and isinstance(provider_object, IBMQFactory):
         # enable IBMQ account
-        preferences = Preferences().ibmq_credentials_preferences
-        provider = _enable_ibmq_account(preferences.token,
-                                        preferences.proxies,
-                                        preferences.hub,
-                                        preferences.group,
-                                        preferences.project)
+        provider = _refresh_ibmq_account()
         if provider is not None:
             return [x.name() for x in provider.backends() if x.name() not in _UNSUPPORTED_BACKENDS]
     else:
@@ -228,12 +223,7 @@ def get_backend_from_provider(provider_name, backend_name):
     """
     provider_object = _load_provider(provider_name)
     if has_ibmq() and isinstance(provider_object, IBMQFactory):
-        preferences = Preferences().ibmq_credentials_preferences
-        provider = _enable_ibmq_account(preferences.token,
-                                        preferences.proxies,
-                                        preferences.hub,
-                                        preferences.group,
-                                        preferences.project)
+        provider = _refresh_ibmq_account()
         if provider is not None:
             return provider.get_backend(backend_name)
     else:
@@ -324,18 +314,23 @@ def _load_provider(provider_name):
     return provider_object
 
 
-def _enable_ibmq_account(token, proxies, hub, group, project):
+def _refresh_ibmq_account():
     """
-    Enable IBMQ account, if not alreay enabled.
+    Refresh IBMQ account by enabling or disabling it depending on preferences stored values
     """
+    preferences = Preferences().ibmq_credentials_preferences
+    token = preferences.token or ''
+    proxies = preferences.proxies or {}
+    hub = preferences.hub
+    group = preferences.group
+    project = preferences.project
+    provider = None
     try:
-        token = token or ''
-        proxies = proxies or {}
+        # pylint: disable=no-name-in-module, import-error
+        from qiskit import IBMQ
+        providers = IBMQ.providers()
         if token != '':
-            # pylint: disable=no-name-in-module, import-error
-            from qiskit import IBMQ
             # check if there was a previous account that needs to be disabled first
-            providers = IBMQ.providers()
             disable_account = False
             enable_account = True
             for provider in providers:
@@ -357,13 +352,16 @@ def _enable_ibmq_account(token, proxies, hub, group, project):
             if provider is None:
                 logger.info("No Provider found for IBMQ account. "
                             "Hub/Group/Project: '{}/{}/{}' Proxies:'{}'".format(hub, group, project, proxies))
-            return provider
+        else:
+            if providers:
+                IBMQ.disable_account()
+                logger.info('Disabled IBMQ account.')
     except Exception as ex:
         logger.warning("IBMQ account Account Failure. "
                        "Hub/Group/Project: '{}/{}/{}' "
                        "Proxies:'{}' :{}".format(hub, group, project, proxies, str(ex)))
 
-    return None
+    return provider
 
 
 def _get_ibmq_provider():
