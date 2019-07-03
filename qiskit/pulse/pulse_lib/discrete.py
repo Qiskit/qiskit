@@ -203,6 +203,45 @@ def gaussian_deriv(duration: int, amp: complex, sigma: float,
     return _sampled_gaussian_deriv_pulse(duration, amp, center, sigma, name=name)
 
 
+_sampled_sech_pulse = samplers.left(continuous.sech)
+
+
+def sech(duration: int, amp: complex, sigma: float, name: str = None) -> SamplePulse:
+    r"""Generates unnormalized sech `SamplePulse`.
+
+    Centered at `duration/2` and zeroed at `t=-1` to prevent large initial discontinuity.
+
+    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+
+    Args:
+        duration: Duration of pulse. Must be greater than zero.
+        amp: Pulse amplitude at `duration/2`.
+        sigma: Width (standard deviation) of pulse.
+        name: Name of pulse.
+    """
+    center = duration/2
+    return _sampled_sech_pulse(duration, amp, center, sigma,
+                               name=name)
+
+
+_sampled_sech_deriv_pulse = samplers.left(continuous.sech_deriv)
+
+
+def sech_deriv(duration: int, amp: complex, sigma: float, name: str = None) -> SamplePulse:
+    r"""Generates unnormalized sech derivative `SamplePulse`.
+
+    Applies `left` sampling strategy to generate discrete pulse from continuous function.
+
+    Args:
+        duration: Duration of pulse. Must be greater than zero.
+        amp: Pulse amplitude at `center`.
+        sigma: Width (standard deviation) of pulse.
+        name: Name of pulse.
+    """
+    center = duration/2
+    return _sampled_sech_deriv_pulse(duration, amp, center, sigma, name=name)
+
+
 _sampled_gaussian_square_pulse = samplers.left(continuous.gaussian_square)
 
 
