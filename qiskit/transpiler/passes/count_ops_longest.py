@@ -12,13 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass for counting operations in a DAG circuit.
+""" An analysis pass for counting operations on the longest path in a DAG
+circuit.
 """
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
 class CountOpsLongest(AnalysisPass):
-    """ An analysis pass for counting operations in a DAG circuit.
+    """ An analysis pass for counting operations on the longest path in a DAG
+    circuit.
     """
 
     def run(self, dag):
