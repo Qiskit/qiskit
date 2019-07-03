@@ -27,6 +27,8 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations 
+    on the longest path of the DAGCircuit.
 -   The option `vertical_compression` was added to the text drawer and
     to the `QuantumCircuit.draw` method. The option allows to control
     how much room the text circuit drawing takes.
