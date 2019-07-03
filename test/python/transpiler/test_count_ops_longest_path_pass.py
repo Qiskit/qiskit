@@ -36,7 +36,9 @@ class TestCountOpsLongestPathPass(QiskitTestCase):
         self.assertDictEqual(pass_.property_set['count_ops_longest_path'], {})
 
     def test_just_qubits(self):
-        """ A dag with 9 operations (3 CXs, 2Xs, 2Ys and 2 Hs) on the longest path"""
+        """ A dag with 9 operations (3 CXs, 2Xs, 2Ys and 2 Hs) on the longest
+        path
+        """
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
