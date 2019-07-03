@@ -202,8 +202,8 @@ class QasmSimulatorPy(BaseBackend):
         memory = []
         for sample in samples:
             classical_memory = self._classical_memory
-            for count, (qubit, cmembit) in enumerate(sorted(measure_params)):
-                qubit_outcome = int((sample & (1 << count)) >> count)
+            for qubit, cmembit in measure_params:
+                qubit_outcome = int((sample & (1 << qubit)) >> qubit)
                 membit = 1 << cmembit
                 classical_memory = (classical_memory & (~membit)) | (qubit_outcome << cmembit)
             value = bin(classical_memory)[2:]
