@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2017, 2018.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,13 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Device-related classes for pulse."""
+"""Module containing transpiler synthesize."""
 
-from .device_specification import DeviceSpecification
-from .pulse_channel_spec import PulseChannelSpec
-from .system_topology import SystemTopology
-from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
-from .pulse_channels import PulseChannel
-from .channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from .channels import Channel
-from .qubit import Qubit
+
+from .graysynth import graysynth, cnot_synth
