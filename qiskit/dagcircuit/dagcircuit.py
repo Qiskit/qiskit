@@ -1199,6 +1199,23 @@ class DAGCircuit:
                 op_dict[name] += 1
         return op_dict
 
+    def count_ops_longest(self):
+        """Count the occurrences of operation names on the longest path.
+
+        Returns a dictionary of counts keyed on the operation name.
+        """
+        op_dict = {}
+        path = nx.dag_longest_path(self._multi_graph)
+        path = path[1:]     # remove qubits at beginning and end of path
+        path = path[:-1]
+        for node in path:
+            name = node.name
+            if name not in op_dict:
+                op_dict[name] = 1
+            else:
+                op_dict[name] += 1
+        return op_dict
+
     def properties(self):
         """Return a dictionary of circuit properties."""
         summary = {"size": self.size(),
