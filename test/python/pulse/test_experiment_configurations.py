@@ -34,8 +34,8 @@ class TestLoRange(QiskitTestCase):
         self.assertEqual(lo_range_1.upper_bound, +0.1)
         self.assertTrue(lo_range_1.includes(0.0))
 
-        lo_range_2 = LoRange(lower_bound=+0.1, upper_bound=-0.1)
-        lo_range_3 = LoRange(lower_bound=+0.2, upper_bound=-0.2)
+        lo_range_2 = LoRange(lower_bound=-0.1, upper_bound=+0.1)
+        lo_range_3 = LoRange(lower_bound=-0.2, upper_bound=+0.2)
 
         self.assertTrue(lo_range_1 == lo_range_2)
         self.assertFalse(lo_range_1 == lo_range_3)
