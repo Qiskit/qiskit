@@ -27,6 +27,7 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
+-   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
     to the `QuantumCircuit.draw` method. The option allows to control
     how much room the text circuit drawing takes.
