@@ -100,6 +100,8 @@ The format is based on [Keep a Changelog].
 -   Fixes a bug that removed `id` gates from circuit. id gates are
     like a `wait` command and will never be removed (\#2663)
 -   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
+-   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
+    was measured into more than one memory cbit (\#2735)
 
 
 ## [0.8.2] - 2019-06-14
