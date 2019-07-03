@@ -97,7 +97,7 @@ class TestTimeslot(QiskitTestCase):
     def test_representation_of_timeslot_object(self):
         """Test representation of Timeslot object."""
         slot = Timeslot(Interval(1, 5), AcquireChannel(0))
-        self.assertEqual(str(slot), 'Timeslot(AcquireChannel(0), (1, 5))')
+        self.assertEqual(repr(slot), 'Timeslot(AcquireChannel(0), (1, 5))')
 
 
 class TestTimeslotCollection(QiskitTestCase):
