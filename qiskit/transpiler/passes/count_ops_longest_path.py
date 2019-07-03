@@ -18,10 +18,10 @@ DAGcircuit.
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
-class CountOpsLongest(AnalysisPass):
+class CountOpsLongestPath(AnalysisPass):
     """ An analysis pass for counting operations on the longest path in a
     DAGcircuit.
     """
 
     def run(self, dag):
-        self.property_set['count_ops_longest'] = dag.count_ops_longest()
+        self.property_set['count_ops_longest'] = dag.count_ops_longest_path()
