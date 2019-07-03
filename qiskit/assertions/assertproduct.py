@@ -28,29 +28,38 @@ class AssertProduct(Asserts):
         Assertion of product states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, qubits, cbits, expval, pcrit): #qubit&cbit lists here
+    def __init__(self, qubit0, cbit0, qubit1, cbit1, expval, pcrit): #qubit&cbit lists here
         super().__init__()
         self._type = "Product"
-        self._qubits = qubits
-        self._cbits = cbits
+        self._qubit0 = qubit0
+        self._cbit0 = cbit0
+        self._qubit1 = qubit1
+        self._cbit1 = cbit1
         self._pcrit = pcrit
         self._expval = expval
 
     def stat_test(self, counts):
-        vals_list = list(counts.values())
-        numzeros = 2**len(list(counts)[0]) - len(counts)
-        vals_list.extend([0]*numzeros)
+        #vals_list = list(counts.values())
+        #numzeros = 2**len(list(counts)[0]) - len(counts)
+        #vals_list.extend([0]*numzeros)
         # numshots = sum(list(counts.values()))
         
-        cont_table = []
+        q0len = len(self._qubit0)
+        q1len = len(self._qubit1)
+        #empty contingency table with right dimensions
+        cont_table = [[0]*q0len] *q1len
+        for (key, value) in counts:
+            q0index = key[:q0len]
+            q1index = key[q0len:q1len+1]
+            cont_table[q1index][q0index] = value
 
-        exp_list = [1]*len(vals_list)
-        try:
+        """try:
             index = list(map(int, counts.keys())).index(self._expval)
         except ValueError:
             index = -1
         exp_list[index] = 2**16
-        
+        """
+
         print("cont_table")
         print(cont_table)
         chisq, pval = (chi2_contingency(cont_table))
@@ -69,8 +78,10 @@ def assertproduct(self, expval, pcrit, qubit0, cbit0, qubit1, cbit1):
     Args:
         expval: integer of 0's and 1's
         pcrit: critical p-value for the hypothesis test
-        qubit (QuantumRegister|list|tuple): quantum register
-        cbit (ClassicalRegister|list|tuple): classical register
+        qubit0 (QuantumRegister|list|tuple): quantum register
+        cbit0 (ClassicalRegister|list|tuple): classical register
+        qubit1 (QuantumRegister|list|tuple): quantum register
+        cbit1 (ClassicalRegister|list|tuple): classical register
 
     Returns:
         qiskit.QuantumCircuit: copy of quantum circuit at the assert point.
@@ -80,14 +91,8 @@ def assertproduct(self, expval, pcrit, qubit0, cbit0, qubit1, cbit1):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    AssertManager.StatOutputs[theClone.name] = {"type":"Product","expval":expval}
-    qubitsjoined = []
-    for q in qubits:
-        qubitsjoined.extend(q)
-    cbitsjoined = []
-    for c in cbits:
-        cbitsjoined.extend(q)
-    theClone.append(AssertProduct(qubits, cbits, expval, pcrit), [qubitsjoined], [cbitsjoined])
+    AssertManager.StatOutputs[theClone.name] = {"type":"Product","qubit0":qubit0,"cbit0":cbit0, "qubit1":qubit1, "cbit1":cbit1}
+    theClone.append(AssertProduct(qubit0, cbit0, qubit1, cbit1, expval, pcrit), [qubit0.extend(qubit1)], [cbit0.extend(cbit1)])
     return theClone
 
 QuantumCircuit.assertproduct = assertproduct
