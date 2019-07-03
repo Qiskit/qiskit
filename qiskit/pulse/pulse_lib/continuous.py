@@ -17,7 +17,7 @@
 """Module for builtin continuous pulse functions."""
 
 import functools
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 
 import numpy as np
 
@@ -104,7 +104,7 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
 
 
 def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: float,
-                        zeroed_width: Union[None, float] = None, rescale_amp: bool = False,
+                        zeroed_width: Optional[float] = None, rescale_amp: bool = False,
                         ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
@@ -137,7 +137,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
 
 
 def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
-             zeroed_width: Union[None, float] = None, rescale_amp: bool = False,
+             zeroed_width: Optional[float] = None, rescale_amp: bool = False,
              ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized gaussian pulse.
 
@@ -191,7 +191,7 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
 
 
 def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,
-                    sigma: float, zeroed_width: Union[None, float] = None) -> np.ndarray:
+                    sigma: float, zeroed_width: Optional[float] = None) -> np.ndarray:
     r"""Continuous gaussian square pulse.
 
     Args:
@@ -221,7 +221,7 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float
 
 
 def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: float,
-         zeroed_width: Union[None, float] = None, rescale_amp: bool = False) -> np.ndarray:
+         zeroed_width: Optional[float] = None, rescale_amp: bool = False) -> np.ndarray:
     r"""Continuous Y-only correction DRAG pulse for standard nonlinear oscillator (SNO) [1].
 
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.

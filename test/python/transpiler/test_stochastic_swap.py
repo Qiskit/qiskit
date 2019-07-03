@@ -16,7 +16,7 @@
 
 import unittest
 from qiskit.transpiler.passes import StochasticSwap
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -29,57 +29,6 @@ class TestStochasticSwap(QiskitTestCase):
     All of the tests use a fixed seed since the results
     may depend on it.
     """
-
-    def test_multiple_registers_with_layout_adjust(self):
-        """
-        Test two registers + measurements using a layout.
-        The mapper will adjust the initial layout so that
-        all of the gates can be done without swaps.
-        """
-        coupling = CouplingMap([[0, 1], [1, 2]])
-
-        qr_q = QuantumRegister(2, 'q')
-        qr_a = QuantumRegister(1, 'a')
-        cr_c = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(qr_q, qr_a, cr_c)
-        circ.cx(qr_q[0], qr_a[0])
-        circ.cx(qr_q[1], qr_a[0])
-        circ.measure(qr_q[0], cr_c[0])
-        circ.measure(qr_q[1], cr_c[1])
-        circ.measure(qr_a[0], cr_c[2])
-        dag = circuit_to_dag(circ)
-
-        layout = Layout({qr_q[0]: 0, qr_q[1]: 2, qr_a[0]: 1})
-
-        pass_ = StochasticSwap(coupling, layout, 20, 13)
-        after = pass_.run(dag)
-
-        self.assertEqual(dag, after)
-
-    def test_multiple_registers_with_good_layout(self):
-        """
-        Test two registers + measurements using a layout.
-        The layout makes all gates nearest neighbor.
-        """
-        coupling = CouplingMap([[0, 1], [1, 2]])
-
-        qr_q = QuantumRegister(2, 'q')
-        qr_a = QuantumRegister(1, 'a')
-        cr_c = ClassicalRegister(3, 'c')
-        circ = QuantumCircuit(qr_q, qr_a, cr_c)
-        circ.cx(qr_q[0], qr_a[0])
-        circ.cx(qr_q[1], qr_a[0])
-        circ.measure(qr_q[0], cr_c[0])
-        circ.measure(qr_q[1], cr_c[1])
-        circ.measure(qr_a[0], cr_c[2])
-        dag = circuit_to_dag(circ)
-
-        layout = Layout({qr_q[0]: 0, qr_a[0]: 1, qr_q[1]: 2})
-
-        pass_ = StochasticSwap(coupling, layout, 20, 13)
-        after = pass_.run(dag)
-
-        self.assertEqual(dag, after)
 
     def test_trivial_case(self):
         """
@@ -99,7 +48,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[0], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -122,7 +71,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         dag = circuit_to_dag(circuit)
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(dag, after)
@@ -148,7 +97,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
@@ -179,7 +128,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
@@ -215,7 +164,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
@@ -254,7 +203,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.cx(qr[3], qr[0])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
@@ -293,7 +242,7 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.h(qr[3])
         dag = circuit_to_dag(circuit)
 
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         expected = QuantumCircuit(qr)
@@ -303,6 +252,28 @@ class TestStochasticSwap(QiskitTestCase):
         expected.h(qr[2])
 
         self.assertEqual(circuit_to_dag(expected), after)
+
+    def test_all_single_qubit(self):
+        """Test all trivial layers."""
+        coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
+        qr = QuantumRegister(4, 'q')
+        cr = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(qr, cr)
+        circ.h(qr)
+        circ.z(qr)
+        circ.s(qr)
+        circ.t(qr)
+        circ.tdg(qr)
+        circ.measure(qr[0], cr[0])  # intentional duplicate
+        circ.measure(qr[0], cr[0])
+        circ.measure(qr[1], cr[1])
+        circ.measure(qr[2], cr[2])
+        circ.measure(qr[3], cr[3])
+        dag = circuit_to_dag(circ)
+
+        pass_ = StochasticSwap(coupling, 20, 13)
+        after = pass_.run(dag)
+        self.assertEqual(dag, after)
 
     def test_overoptimization_case(self):
         """Check mapper overoptimization.
@@ -386,7 +357,7 @@ class TestStochasticSwap(QiskitTestCase):
         #  qr[1]: 1,
         #  qr[2]: 2,
         #  qr[3]: 3}
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(expected_dag, after)
@@ -416,57 +387,35 @@ class TestStochasticSwap(QiskitTestCase):
 
         dag = circuit_to_dag(circ)
 
-        pass_ = StochasticSwap(coupling, None, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
         self.assertEqual(circuit_to_dag(circ), after)
-
-    def test_map_with_layout(self):
-        """Test using an initial layout."""
-        coupling = CouplingMap([[0, 1], [1, 2]])
-        qra = QuantumRegister(2, 'qa')
-        qrb = QuantumRegister(1, 'qb')
-        cr = ClassicalRegister(3, 'r')
-        circ = QuantumCircuit(qra, qrb, cr)
-        circ.cx(qra[0], qrb[0])
-        circ.measure(qra[0], cr[0])
-        circ.measure(qra[1], cr[1])
-        circ.measure(qrb[0], cr[2])
-        dag = circuit_to_dag(circ)
-
-        layout = Layout({qra[0]: 0, qra[1]: 2, qrb[0]: 1})
-
-        pass_ = StochasticSwap(coupling, layout, 20, 13)
-        after = pass_.run(dag)
-
-        self.assertEqual(dag, after)
 
     def test_congestion(self):
         """Test code path that falls back to serial layers."""
         coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
-        qr = QuantumRegister(2, 'q')
-        ar = QuantumRegister(2, 'a')
+        qr = QuantumRegister(4, 'q')
         cr = ClassicalRegister(4, 'c')
-        circ = QuantumCircuit(qr, ar, cr)
-        circ.cx(qr[1], ar[0])
-        circ.cx(qr[0], ar[1])
+        circ = QuantumCircuit(qr, cr)
+        circ.cx(qr[1], qr[2])
+        circ.cx(qr[0], qr[3])
         circ.measure(qr[0], cr[0])
         circ.h(qr)
-        circ.h(ar)
         circ.cx(qr[0], qr[1])
-        circ.cx(ar[0], ar[1])
+        circ.cx(qr[2], qr[3])
         circ.measure(qr[0], cr[0])
         circ.measure(qr[1], cr[1])
-        circ.measure(ar[0], cr[2])
-        circ.measure(ar[1], cr[3])
+        circ.measure(qr[2], cr[2])
+        circ.measure(qr[3], cr[3])
         dag = circuit_to_dag(circ)
         #                                             ┌─┐┌───┐        ┌─┐
         # q_0: |0>─────────────────■──────────────────┤M├┤ H ├──■─────┤M├
         #                   ┌───┐  │                  └╥┘└───┘┌─┴─┐┌─┐└╥┘
         # q_1: |0>──■───────┤ H ├──┼───────────────────╫──────┤ X ├┤M├─╫─
         #         ┌─┴─┐┌───┐└───┘  │               ┌─┐ ║      └───┘└╥┘ ║
-        # a_0: |0>┤ X ├┤ H ├───────┼─────────■─────┤M├─╫────────────╫──╫─
+        # q_2: |0>┤ X ├┤ H ├───────┼─────────■─────┤M├─╫────────────╫──╫─
         #         └───┘└───┘     ┌─┴─┐┌───┐┌─┴─┐┌─┐└╥┘ ║            ║  ║
-        # a_1: |0>───────────────┤ X ├┤ H ├┤ X ├┤M├─╫──╫────────────╫──╫─
+        # q_3: |0>───────────────┤ X ├┤ H ├┤ X ├┤M├─╫──╫────────────╫──╫─
         #                        └───┘└───┘└───┘└╥┘ ║  ║            ║  ║
         #  c_0: 0 ═══════════════════════════════╬══╬══╩════════════╬══╩═
         #                                        ║  ║               ║
@@ -481,9 +430,9 @@ class TestStochasticSwap(QiskitTestCase):
         #                 │  └───┘┌─┐        ┌───┐      └─┬─┘┌─┐└╥┘
         #  q_1: |0>──■────X────■──┤M├──────X─┤ X ├─X──────■──┤M├─╫─
         #          ┌─┴─┐┌───┐  │  └╥┘      │ └─┬─┘ │ ┌─┐     └╥┘ ║
-        #  a_0: |0>┤ X ├┤ H ├──┼───╫───────┼───■───┼─┤M├──────╫──╫─
+        #  q_2: |0>┤ X ├┤ H ├──┼───╫───────┼───■───┼─┤M├──────╫──╫─
         #          └───┘└───┘┌─┴─┐ ║ ┌───┐ │ ┌───┐ │ └╥┘ ┌─┐  ║  ║
-        #  a_1: |0>──────────┤ X ├─╫─┤ H ├─X─┤ H ├─X──╫──┤M├──╫──╫─
+        #  q_3: |0>──────────┤ X ├─╫─┤ H ├─X─┤ H ├─X──╫──┤M├──╫──╫─
         #                    └───┘ ║ └───┘   └───┘    ║  └╥┘  ║  ║
         #   c_0: 0 ════════════════╩══════════════════╬═══╬═══╩══╬═
         #                                             ║   ║      ║
@@ -492,67 +441,34 @@ class TestStochasticSwap(QiskitTestCase):
         #   c_2: 0 ═══════════════════════════════════╩═══╬════════
         #                                                 ║
         #   c_3: 0 ═══════════════════════════════════════╩════════
-        # Layout from mapper:
-        # {qr[0]: 0,
-        #  qr[1]: 1,
-        #  ar[0]: 2,
-        #  ar[1]: 3}
         #
         #     2
         #     |
         # 0 - 1 - 3
 
-        expected = QuantumCircuit(qr, ar, cr)
-        expected.cx(qr[1], ar[0])
-        expected.h(ar[0])
+        expected = QuantumCircuit(qr, cr)
+        expected.cx(qr[1], qr[2])
+        expected.h(qr[2])
         expected.swap(qr[0], qr[1])
         expected.h(qr[0])
-        expected.cx(qr[1], ar[1])
+        expected.cx(qr[1], qr[3])
         expected.measure(qr[1], cr[0])
-        expected.h(ar[1])
-        expected.swap(qr[1], ar[1])
-        expected.cx(ar[0], qr[1])
-        expected.h(ar[1])
-        expected.swap(qr[1], ar[1])
-        expected.measure(ar[0], cr[2])
-        expected.measure(ar[1], cr[3])
+        expected.h(qr[3])
+        expected.swap(qr[1], qr[3])
+        expected.cx(qr[2], qr[1])
+        expected.h(qr[3])
+        expected.swap(qr[1], qr[3])
+        expected.measure(qr[2], cr[2])
+        expected.measure(qr[3], cr[3])
         expected.cx(qr[1], qr[0])
         expected.measure(qr[1], cr[0])
         expected.measure(qr[0], cr[1])
         expected_dag = circuit_to_dag(expected)
 
-        layout = Layout({qr[0]: 0, qr[1]: 1, ar[0]: 2, ar[1]: 3})
-
-        pass_ = StochasticSwap(coupling, layout, 20, 13)
+        pass_ = StochasticSwap(coupling, 20, 13)
         after = pass_.run(dag)
 
         self.assertEqual(expected_dag, after)
-
-    def test_all_single_qubit(self):
-        """Test all trivial layers."""
-        coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
-        qr = QuantumRegister(2, 'q')
-        ar = QuantumRegister(2, 'a')
-        cr = ClassicalRegister(4, 'c')
-        circ = QuantumCircuit(qr, ar, cr)
-        circ.h(qr)
-        circ.h(ar)
-        circ.s(qr)
-        circ.s(ar)
-        circ.t(qr)
-        circ.t(ar)
-        circ.measure(qr[0], cr[0])  # intentional duplicate
-        circ.measure(qr[0], cr[0])
-        circ.measure(qr[1], cr[1])
-        circ.measure(ar[0], cr[2])
-        circ.measure(ar[1], cr[3])
-        dag = circuit_to_dag(circ)
-
-        layout = Layout({qr[0]: 0, qr[1]: 1, ar[0]: 2, ar[1]: 3})
-
-        pass_ = StochasticSwap(coupling, layout, 20, 13)
-        after = pass_.run(dag)
-        self.assertEqual(dag, after)
 
     def test_only_output_cx_and_swaps_in_coupling_map(self):
         """Test that output DAG contains only 2q gates from the the coupling map."""
@@ -568,21 +484,19 @@ class TestStochasticSwap(QiskitTestCase):
         circuit.measure(qr, cr)
         dag = circuit_to_dag(circuit)
 
-        layout = Layout({qr[0]: 0, qr[1]: 1, qr[2]: 2, qr[3]: 3})
-
-        pass_ = StochasticSwap(coupling, layout, 20, 5)
+        pass_ = StochasticSwap(coupling, 20, 5)
         after = pass_.run(dag)
 
-        valid_couplings = [set([layout[a], layout[b]])
+        valid_couplings = [set([qr[a], qr[b]])
                            for (a, b) in coupling.get_edges()]
 
         for _2q_gate in after.twoQ_gates():
             self.assertIn(set(_2q_gate.qargs), valid_couplings)
 
-    def test_len_coupling_vs_dag(self):
-        """Test error if coupling map and dag are not the same size."""
+    def test_len_cm_vs_dag(self):
+        """Test error if the coupling map is smaller than the dag."""
 
-        coupling = CouplingMap([[0, 1], [1, 2], [2, 3], [3, 4]])
+        coupling = CouplingMap([[0, 1], [1, 2]])
         qr = QuantumRegister(4, 'q')
         cr = ClassicalRegister(4, 'c')
         circuit = QuantumCircuit(qr, cr)
@@ -594,26 +508,6 @@ class TestStochasticSwap(QiskitTestCase):
         dag = circuit_to_dag(circuit)
 
         pass_ = StochasticSwap(coupling)
-        with self.assertRaises(TranspilerError):
-            _ = pass_.run(dag)
-
-    def test_len_layout_vs_dag(self):
-        """Test error if the layout and dag are not the same size."""
-
-        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
-        qr = QuantumRegister(4, 'q')
-        cr = ClassicalRegister(4, 'c')
-        circuit = QuantumCircuit(qr, cr)
-        circuit.h(qr[0])
-        circuit.cx(qr[0], qr[1])
-        circuit.cx(qr[0], qr[2])
-        circuit.cx(qr[0], qr[3])
-        circuit.measure(qr, cr)
-        dag = circuit_to_dag(circuit)
-
-        layout = Layout({qr[0]: 0, qr[1]: 1, qr[2]: 2})
-
-        pass_ = StochasticSwap(coupling, layout)
         with self.assertRaises(TranspilerError):
             _ = pass_.run(dag)
 

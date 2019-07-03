@@ -19,6 +19,7 @@ import unittest
 import numpy as np
 import scipy.linalg as la
 from qiskit import execute
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, U3Gate,
                                         XGate, YGate, ZGate)
@@ -317,6 +318,114 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
         """Check that the nonsupercontrolled basis throws a warning"""
         with self.assertWarns(UserWarning, msg="Supposed to warn when basis non-supercontrolled"):
             TwoQubitBasisDecomposer(UnitaryGate(Ud(np.pi/4, 0.2, 0.1)))
+
+    def test_cx_equivalence_0cx_random(self):
+        """Check random circuits with  0 cx
+        gates locally eqivilent to identity
+        """
+        qr = QuantumRegister(2, name='q')
+        qc = QuantumCircuit(qr)
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        sim = UnitarySimulatorPy()
+        U = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 0)
+
+    def test_cx_equivalence_1cx_random(self):
+        """Check random circuits with  1 cx
+        gates locally eqivilent to a cx
+        """
+        qr = QuantumRegister(2, name='q')
+        qc = QuantumCircuit(qr)
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        qc.cx(qr[1], qr[0])
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        sim = UnitarySimulatorPy()
+        U = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 1)
+
+    def test_cx_equivalence_2cx_random(self):
+        """Check random circuits with  2 cx
+        gates locally eqivilent to some
+        circuit with 2 cx.
+        """
+        qr = QuantumRegister(2, name='q')
+        qc = QuantumCircuit(qr)
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        qc.cx(qr[1], qr[0])
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        qc.cx(qr[0], qr[1])
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        sim = UnitarySimulatorPy()
+        U = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 2)
+
+    def test_cx_equivalence_3cx_random(self):
+        """Check random circuits with 3 cx
+        gates are outside the 0, 1, and 2
+        qubit regions.
+        """
+        qr = QuantumRegister(2, name='q')
+        qc = QuantumCircuit(qr)
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        qc.cx(qr[1], qr[0])
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        qc.cx(qr[0], qr[1])
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        qc.cx(qr[1], qr[0])
+
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[0])
+        rnd = 2*np.pi*np.random.random(size=3)
+        qc.u3(rnd[0], rnd[1], rnd[2], qr[1])
+
+        sim = UnitarySimulatorPy()
+        U = execute(qc, sim).result().get_unitary()
+        self.assertEqual(two_qubit_cnot_decompose.num_basis_gates(U), 3)
 
 # FIXME: need to write tests for the approximate decompositions
 
