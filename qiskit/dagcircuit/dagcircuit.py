@@ -1217,8 +1217,7 @@ class DAGCircuit:
         """
         op_dict = {}
         path = nx.dag_longest_path(self._multi_graph)
-        path = path[1:]     # remove qubits at beginning and end of path
-        path = path[:-1]
+        path = path[1:-1]     # remove qubits at beginning and end of path
         for node in path:
             name = node.name
             if name not in op_dict:
