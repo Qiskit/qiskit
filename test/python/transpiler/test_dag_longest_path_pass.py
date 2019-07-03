@@ -36,7 +36,7 @@ class TestDAGLongestPathPass(QiskitTestCase):
 
     def test_nonempty_dag_false(self):
         """Test the dag longest path non-empty dag.
-        path length = 11 = 9 ops and 2 qubits at start and end of path
+        path length = 11 = 9 ops + 2 qubits at start and end of path
         """
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
