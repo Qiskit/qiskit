@@ -57,11 +57,13 @@ class OperatorTestCase(QiskitTestCase):
 
     def simple_circuit_no_measure(self):
         """Return a unitary circuit and the corresponding unitary array."""
-        qr = QuantumRegister(2)
+        qr = QuantumRegister(3)
         circ = QuantumCircuit(qr)
         circ.h(qr[0])
         circ.x(qr[1])
-        target = Operator(np.kron(self.UX, self.UH))
+        circ.ry(np.pi / 2, qr[2])
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = Operator(np.kron(y90, np.kron(self.UX, self.UH)))
         return circ, target
 
     def simple_circuit_with_measure(self):

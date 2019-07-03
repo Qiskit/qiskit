@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog].
 -   The option `vertical_compression` was added to the text drawer and
     to the `QuantumCircuit.draw` method. The option allows to control
     how much room the text circuit drawing takes.
+-   The option `idle_wires` was added to the drawers to control
+    if wires without any operation should be included in the drawing.
 -   Introduced a visualization for the Pass Manager. (\#2445)
 -   The attribute `PassManager.log_passes` was added to log and time the
     passes when they are executed. The results is stored in the
@@ -42,6 +44,9 @@ The format is based on [Keep a Changelog].
 -   Decomposition of multiplexed single-qubit unitaries (Option: decompose
     up to a diagonal gate) (\#2600)
 -   ZYZ decomposition for single-qubit unitaries (\#2600)
+-   Gray-Synth and Patel–Markov–Hayes algorithms for synthesis of
+    CNOT-Phase and CNOT-only (linear) circuits (\#2457)
+-   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
 -   Set default repetition time to be the first available.
@@ -55,6 +60,13 @@ The format is based on [Keep a Changelog].
     would only be raised if the same register was added twice.
 -   Qubits and classical bits are not represented as a tuples anymore,
     but as instances of `Qubit` and `Clbit` respectively.
+-   The ApplyLayout pass is incorporated in all preset pass managers to
+    delineate a virtual circuit from a physical circuit (\#2672)
+-   Mapping passes (CXDirection, Swap passes, CheckMap, CheckCnotDirection)
+    now operate on a register-less circuit corresponding to
+    an already embedded physical circuit. (\#2672)
+-   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
+-   Uses level 1 by default as transpiler optimization level (\#2672)
 
 ### Removed
 
@@ -80,6 +92,8 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+-   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
+    containing gates without an explicit matrix definition (\#2723)
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 -   Fixes a bug that removed `id` gates from circuit. id gates are
