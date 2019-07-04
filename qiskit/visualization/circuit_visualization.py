@@ -124,10 +124,10 @@ def circuit_drawer(circuit,
             `'#000000'` (`mpl` only)
         linecolor (str): The color code to use for lines. Defaults to
             `'#000000'` (`mpl` only)
-        creglinecolor (str): The color code to use for classical register lines
-            `'#778899'`(`mpl` only)
-        gatetextcolor (str): The color code to use for gate text `'#000000'`
-            (`mpl` only)
+        creglinecolor (str): The color code to use for classical register
+            lines. Defaults to `'#778899'`(`mpl` only)
+        gatetextcolor (str): The color code to use for gate text. Defaults to
+            `'#000000'` (`mpl` only)
         gatefacecolor (str): The color code to use for gates. Defaults to
             `'#ffffff'` (`mpl` only)
         barrierfacecolor (str): The color code to use for barriers. Defaults to
@@ -162,10 +162,30 @@ def circuit_drawer(circuit,
             You must specify all the necessary values if using this. There is
             no provision for passing an incomplete dict in. (`mpl` only)
         displaycolor (dict): The color codes to use for each circuit element.
-            By default all values default to the value of `gatefacecolor` and
-            the keys are the same as `displaytext`. Also, just like
-            `displaytext` there is no provision for an incomplete dict passed
-            in. (`mpl` only)
+            The default values are:
+            {
+                'id': '#F0E442',
+                'u0': '#E7AB3B',
+                'u1': '#E7AB3B',
+                'u2': '#E7AB3B',
+                'u3': '#E7AB3B',
+                'x': '#58C698',
+                'y': '#58C698',
+                'z': '#58C698',
+                'h': '#70B7EB',
+                's': '#E0722D',
+                'sdg': '#E0722D',
+                't': '#E0722D',
+                'tdg': '#E0722D',
+                'rx': '#ffffff',
+                'ry': '#ffffff',
+                'rz': '#ffffff',
+                'reset': '#D188B4',
+                'target': '#70B7EB',
+                'meas': '#D188B4'
+           }
+           Also, just like  `displaytext` there is no provision for an
+           incomplete dict passed in. (`mpl` only)
         latexdrawerstyle (bool): When set to True enable latex mode which will
             draw gates like the `latex` output modes. (`mpl` only)
         usepiformat (bool): When set to True use radians for output (`mpl`
