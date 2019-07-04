@@ -43,6 +43,8 @@ class Interval:
             raise PulseError("Cannot create Interval with negative begin time")
         if end < 0:
             raise PulseError("Cannot create Interval with negative end time")
+        if begin > end:
+            raise PulseError("Cannot create Interval with time beginning after end")
         self._begin = begin
         self._end = end
 

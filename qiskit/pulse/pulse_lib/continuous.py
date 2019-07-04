@@ -190,6 +190,50 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
     return gauss_deriv
 
 
+def sech_fn(x, *args, **kwargs):
+    r"""Hyperbolic secant function"""
+    return 1.0 / np.cosh(x, *args, **kwargs)
+
+
+def sech(times: np.ndarray, amp: complex, center: float, sigma: float,
+         ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    r"""Continuous unnormalized sech pulse.
+
+    Args:
+        times: Times to output pulse for.
+        amp: Pulse amplitude at `center`.
+        center: Center (mean) of pulse.
+        sigma: Width (standard deviation) of pulse.
+        ret_x: Return centered and standard deviation normalized pulse location.
+               $x=(times-center)/sigma.
+    """
+    times = np.asarray(times, dtype=np.complex_)
+    x = (times-center)/sigma
+    sech_out = amp*sech_fn(x).astype(np.complex_)
+
+    if ret_x:
+        return sech_out, x
+    return sech_out
+
+
+def sech_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
+               ret_sech: bool = False) -> np.ndarray:
+    """Continuous unnormalized sech derivative pulse.
+
+    Args:
+        times: Times to output pulse for.
+        amp: Pulse amplitude at `center`.
+        center: Center (mean) of pulse.
+        sigma: Width (standard deviation) of pulse.
+        ret_sech: Return sech with which derivative was taken with.
+    """
+    sech_out, x = sech(times, amp=amp, center=center, sigma=sigma, ret_x=True)
+    sech_out_deriv = - sech_out * np.tanh(x) / sigma
+    if ret_sech:
+        return sech_out_deriv, sech_out
+    return sech_out_deriv
+
+
 def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,
                     sigma: float, zeroed_width: Optional[float] = None) -> np.ndarray:
     r"""Continuous gaussian square pulse.
