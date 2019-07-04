@@ -48,6 +48,27 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         result = self.backend.run(self.qobj).result()
         self.assertEqual(result.success, True)
 
+    def test_qasm_simulator_measure_sampler(self):
+        """Test measure sampler if qubits measured more than once."""
+        shots = 100
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(4, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.measure(qr[1], cr[2])
+        circuit.measure(qr[0], cr[3])
+        target = {'0110': shots}
+        job = execute(
+            circuit,
+            backend=self.backend,
+            shots=shots,
+            seed_simulator=self.seed)
+        result = job.result()
+        counts = result.get_counts(0)
+        self.assertEqual(counts, target)
+
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
         result = self.backend.run(self.qobj).result()
