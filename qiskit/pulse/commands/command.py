@@ -18,7 +18,8 @@ Base command.
 import re
 
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Union
+import numpy as np
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.channels import Channel
@@ -42,7 +43,7 @@ class Command(metaclass=MetaCount):
     prefix = 'c'
 
     @abstractmethod
-    def __init__(self, duration: int = None):
+    def __init__(self, duration: Union[int, np.integer] = None):
         """Create a new command.
 
         Args:
@@ -50,8 +51,8 @@ class Command(metaclass=MetaCount):
         Raises:
             PulseError: when duration is not number of points
         """
-        if isinstance(duration, int):
-            self._duration = duration
+        if isinstance(duration, (int, np.integer)):
+            self._duration = int(duration)
         else:
             raise PulseError('Pulse duration should be integer.')
 
