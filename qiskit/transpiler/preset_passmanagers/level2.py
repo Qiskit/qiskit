@@ -70,7 +70,7 @@ def level_2_pass_manager(transpile_config):
     seed_transpiler = transpile_config.seed_transpiler
     backend_properties = transpile_config.backend_properties
 
-    # 1. Unroll to the basis
+    # 1. Unroll to the basis first, to prepare for noise-adaptive layout
     _unroll = Unroller(basis_gates)
 
     # 2. Layout on good qubits if calibration info available, otherwise on dense links
@@ -121,7 +121,6 @@ def level_2_pass_manager(transpile_config):
         pm2.append(_given_layout)
         pm2.append(_choose_layout, condition=_choose_layout_condition)
         pm2.append(_embed)
-    if coupling_map:
         pm2.append(_swap_check)
         pm2.append(_swap, condition=_swap_condition)
         # pm2.append(_direction_check)  # TODO
