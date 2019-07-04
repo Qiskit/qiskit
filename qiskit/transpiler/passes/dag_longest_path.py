@@ -12,13 +12,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Device-related classes for pulse."""
+""" An analysis pass that returns the longest path in a DAGcircuit as a list
+of DAGNodes.
+"""
+from qiskit.transpiler.basepasses import AnalysisPass
 
-from .device_specification import DeviceSpecification
-from .pulse_channel_spec import PulseChannelSpec
-from .system_topology import SystemTopology
-from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
-from .pulse_channels import PulseChannel
-from .channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from .channels import Channel
-from .qubit import Qubit
+
+class DAGLongestPath(AnalysisPass):
+    """ An analysis pass that returns the longest path in a DAGcircuit as a
+    list of DAGNodes.
+    """
+
+    def run(self, dag):
+        self.property_set['dag_longest_path'] = dag.longest_path()

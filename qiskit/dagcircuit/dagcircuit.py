@@ -908,6 +908,10 @@ class DAGCircuit:
                 three_q_gates.append(node)
         return three_q_gates
 
+    def longest_path(self):
+        """Returns the longest path in the dag as a list of DAGNodes."""
+        return nx.dag_longest_path(self._multi_graph)
+
     def successors(self, node):
         """Returns list of the successors of a node as DAGNodes."""
         return self._multi_graph.successors(node)
@@ -1203,6 +1207,22 @@ class DAGCircuit:
         """
         op_dict = {}
         for node in self.topological_op_nodes():
+            name = node.name
+            if name not in op_dict:
+                op_dict[name] = 1
+            else:
+                op_dict[name] += 1
+        return op_dict
+
+    def count_ops_longest_path(self):
+        """Count the occurrences of operation names on the longest path.
+
+        Returns a dictionary of counts keyed on the operation name.
+        """
+        op_dict = {}
+        path = self.longest_path()
+        path = path[1:-1]     # remove qubits at beginning and end of path
+        for node in path:
             name = node.name
             if name not in op_dict:
                 op_dict[name] = 1
