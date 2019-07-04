@@ -1028,7 +1028,9 @@ class DAGCircuit:
         for graph_layer in graph_layers:
 
             # Get the op nodes from the layer, removing any input and output nodes.
+            # Sort to make sure they are in the order they were added to the original DAG
             op_nodes = [node for node in graph_layer if node.type == "op"]
+            op_nodes.sort(key=lambda nd: nd._node_id)
 
             # Stop yielding once there are no more op_nodes in a layer.
             if not op_nodes:
