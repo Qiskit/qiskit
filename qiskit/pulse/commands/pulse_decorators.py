@@ -38,7 +38,7 @@ def functional_pulse(func: Callable):
     @functools.wraps(func)
     def to_pulse(duration, *args, name=None, **kwargs):
         """Return SamplePulse."""
-        if isinstance(duration, int) and duration > 0:
+        if isinstance(duration, (int, np.integer)) and duration > 0:
             samples = func(duration, *args, **kwargs)
             samples = np.asarray(samples, dtype=np.complex128)
             return SamplePulse(samples=samples, name=name)
