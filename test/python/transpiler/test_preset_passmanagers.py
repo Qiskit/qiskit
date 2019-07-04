@@ -89,9 +89,7 @@ class TestFakeBackendTranspiling(QiskitTestCase):
                              optimization_level=optimization_level)
             qobj = assemble(qc_b)
 
-            for wire in range(15):
-                with self.subTest(level=optimization_level, wire=wire):
-                    self.assertEqual(qc_b.layout[wire], final_layout[wire])
+            self.assertEqual(qc_b.layout._p2v, final_layout)
 
             compiled_ops = qobj.experiments[0].instructions
             for operation in compiled_ops:
@@ -122,9 +120,8 @@ class TestFakeBackendTranspiling(QiskitTestCase):
         for optimization_level in range(4):
             qc_b = transpile(qc, backend, initial_layout=initial_layout,
                              optimization_level=optimization_level)
-            for wire in range(14):
-                with self.subTest(level=optimization_level, wire=wire):
-                    self.assertEqual(qc_b.layout[wire], final_layout[wire])
+
+            self.assertEqual(qc_b.layout._p2v, final_layout)
 
             for gate, qubits, _ in qc_b:
                 if gate.name == 'cx':
@@ -161,9 +158,8 @@ class TestFakeBackendTranspiling(QiskitTestCase):
         for optimization_level in range(4):
             qc_b = transpile(qc, backend, initial_layout=initial_layout,
                              optimization_level=optimization_level)
-            for wire in range(14):
-                with self.subTest(level=optimization_level, wire=wire):
-                    self.assertEqual(qc_b.layout[wire], final_layout[wire])
+
+            self.assertEqual(qc_b.layout._p2v, final_layout)
 
             gate_0, qubits_0, _ = qc_b[0]
             gate_1, qubits_1, _ = qc_b[1]
