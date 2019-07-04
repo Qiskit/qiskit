@@ -139,6 +139,7 @@ class PassManager():
 
         circuit = dag_to_circuit(dag)
         circuit.name = name
+        circuit.layout = self.property_set['layout']
         return circuit
 
     def draw(self, filename, style=None, raw=False):
