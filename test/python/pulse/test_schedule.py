@@ -460,16 +460,15 @@ class TestSchedule(QiskitTestCase):
         arguments should not produce repeated parameters in resulting ParameterizedSchedule
         object."""
         device = self.two_qubit_device
-        schedule = Schedule()
 
-        def my_test_parameterized_schedule_0(x, y, z):
+        def my_test_parameterized_schedule_one(x, y, z):
             result = PulseInstruction(
                 SamplePulse(np.array([x, y, z]), name='sample'),
                 device.drives[0]
             )
             return 0, result
 
-        def my_test_parameterized_schedule_1(x, y, z):
+        def my_test_parameterized_schedule_two(x, y, z):
             result = PulseInstruction(
                 SamplePulse(np.array([x, y, z]), name='sample'),
                 device.drives[0]
@@ -477,10 +476,10 @@ class TestSchedule(QiskitTestCase):
             return 5, result
 
         par_sched_in_0 = ParameterizedSchedule(
-            my_test_parameterized_schedule_0, parameters={'x': 0, 'y': 1, 'z': 2}
+            my_test_parameterized_schedule_one, parameters={'x': 0, 'y': 1, 'z': 2}
         )
         par_sched_in_1 = ParameterizedSchedule(
-            my_test_parameterized_schedule_1, parameters={'x': 0, 'y': 1, 'z': 2}
+            my_test_parameterized_schedule_two, parameters={'x': 0, 'y': 1, 'z': 2}
         )
         par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
 
