@@ -137,7 +137,7 @@ class TestSnapshot(QiskitTestCase):
     def test_default(self):
         """Test default snapshot.
         """
-        snap_command = Snapshot(name='test_name', snap_type='state')
+        snap_command = Snapshot(label='test_name', snapshot_type='state')
 
         self.assertEqual(snap_command.name, "test_name")
         self.assertEqual(snap_command.type, "state")
