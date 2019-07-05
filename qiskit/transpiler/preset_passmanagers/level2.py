@@ -70,7 +70,10 @@ def level_2_pass_manager(transpile_config):
     seed_transpiler = transpile_config.seed_transpiler
     backend_properties = transpile_config.backend_properties
 
-    # 1. Layout on good qubits if calibration info available, otherwise on dense links
+    # 1. Unroll to the basis first, to prepare for noise-adaptive layout
+    _unroll = Unroller(basis_gates)
+
+    # 2. Layout on good qubits if calibration info available, otherwise on dense links
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
@@ -80,10 +83,10 @@ def level_2_pass_manager(transpile_config):
     if backend_properties:
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
 
-    # 2. Extend dag/layout with ancillas using the full coupling map
+    # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
-    # 3. Unroll to 1q or 2q gates, swap to fit the coupling map
+    # 4. Unroll to 1q or 2q gates, swap to fit the coupling map
     _swap_check = CheckMap(coupling_map)
 
     def _swap_condition(property_set):
@@ -93,9 +96,6 @@ def level_2_pass_manager(transpile_config):
              Unroll3qOrMore(),
              StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
-
-    # 4. Unroll to the basis
-    _unroll = Unroller(basis_gates)
 
     # 5. Fix any bad CX directions
     # _direction_check = CheckCXDirection(coupling_map)  # TODO
@@ -116,12 +116,11 @@ def level_2_pass_manager(transpile_config):
     _opt = [Optimize1qGates(), CommutativeCancellation()]
 
     pm2 = PassManager()
+    pm2.append(_unroll)
     if coupling_map:
         pm2.append(_given_layout)
         pm2.append(_choose_layout, condition=_choose_layout_condition)
         pm2.append(_embed)
-    pm2.append(_unroll)
-    if coupling_map:
         pm2.append(_swap_check)
         pm2.append(_swap, condition=_swap_condition)
         # pm2.append(_direction_check)  # TODO
