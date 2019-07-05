@@ -456,8 +456,9 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(sched.duration, 10)
 
     def test_multiple_parameters_not_returned(self):
-        """Constructing ParameterizedSchedule object from multiple ParameterizedSchedules sharing arguments
-        should not produce repeated parameters in resulting ParameterizedSchedule object."""
+        """Constructing ParameterizedSchedule object from multiple ParameterizedSchedules sharing
+        arguments should not produce repeated parameters in resulting ParameterizedSchedule
+        object."""
         device = self.two_qubit_device
         schedule = Schedule()
 
