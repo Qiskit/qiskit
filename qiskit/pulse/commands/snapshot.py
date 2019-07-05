@@ -82,9 +82,5 @@ class Snapshot(Command, Instruction):
     # pylint: enable=arguments-differ
 
     def __repr__(self):
-        if self.label == self.name:
-            return '%s(%s, %s) -> %s' % (self.__class__.__name__, self.label,
-                                         self.type, self.channels)
-        else:
-            return '%s(%s, %s, %s) -> %s' % (self.__class__.__name__, self.label,
-                                             self.type, self.name, self.channels)
+        return '%s(%s, %s, %s) -> %s' % (self.__class__.__name__, self.label,
+                                         self.type, self.name, self.channels)
