@@ -72,8 +72,8 @@ class TestTranspileLevels(QiskitTestCase):
 class TestInitialLayouts(QiskitTestCase):
     """Test transpiing with different layouts"""
 
-     @data(0, 1, 2, 3)
-     def test_layout_1711(self, level):
+    @data(0, 1, 2, 3)
+    def test_layout_1711(self, level):
         """Test that a user-given initial layout is respected,
         in the qobj.
 
