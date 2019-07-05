@@ -461,28 +461,33 @@ class TestSchedule(QiskitTestCase):
         device = self.two_qubit_device
         schedule = Schedule()
 
-        def my_test_parameterized_schedule(x, y, z):
-            result = sample_pulse_instr = PulseInstruction(
+        def my_test_parameterized_schedule_0(x, y, z):
+            result = PulseInstruction(
                 SamplePulse(np.array([x, y, z]), name='sample'),
                 device.drives[0]
             )
-            return result
+            return 0, result
 
-        par_sched_in = ParameterizedSchedule(
-            my_test_parameterized_schedule,
-            parameters={'x': 0, 'y': 1, 'z': 2}
-        )
+        def my_test_parameterized_schedule_1(x, y, z):
+            result = PulseInstruction(
+                SamplePulse(np.array([x, y, z]), name='sample'),
+                device.drives[0]
+            )
+            return 5, result
 
-        par_sched = ParameterizedSchedule(
-            par_sched_in,
-            par_sched_in
-        )
+        par_sched_in_0 = ParameterizedSchedule(my_test_parameterized_schedule_0, parameters={'x': 0, 'y': 1, 'z': 2})
+        par_sched_in_1 = ParameterizedSchedule(my_test_parameterized_schedule_1, parameters={'x': 0, 'y': 1, 'z': 2})
+        par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
 
         cmd_def = CmdDef()
         cmd_def.add('test', 0, par_sched)
-        pars = cmd_def.get_parameters('test', 0)
 
-        self.assertEqual(pars, ('x', 'y', 'z'))
+        actual = cmd_def.get('test', 0, 0.01, 0.02, 0.03)
+        expected = par_sched_in_0.bind_parameters(0.01, 0.02, 0.03) | par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
+        self.assertEqual(actual.start_time, expected.start_time)
+        self.assertEqual(actual.stop_time, expected.stop_time)
+
+        self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
 
 
 class TestScheduleWithDeviceSpecification(QiskitTestCase):
