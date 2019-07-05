@@ -12,10 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Preset PassManager flows."""
+""" An analysis pass for counting operations on the longest path in a
+DAGcircuit.
+"""
+from qiskit.transpiler.basepasses import AnalysisPass
 
-from .default import default_pass_manager_simulator
-from .level0 import level_0_pass_manager
-from .level1 import level_1_pass_manager
-from .level2 import level_2_pass_manager
-from .level3 import level_3_pass_manager
+
+class CountOpsLongestPath(AnalysisPass):
+    """ An analysis pass for counting operations on the longest path in a
+    DAGcircuit.
+    """
+
+    def run(self, dag):
+        self.property_set['count_ops_longest_path'] = \
+            dag.count_ops_longest_path()

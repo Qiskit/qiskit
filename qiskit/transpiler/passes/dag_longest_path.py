@@ -12,10 +12,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Preset PassManager flows."""
+""" An analysis pass that returns the longest path in a DAGcircuit as a list
+of DAGNodes.
+"""
+from qiskit.transpiler.basepasses import AnalysisPass
 
-from .default import default_pass_manager_simulator
-from .level0 import level_0_pass_manager
-from .level1 import level_1_pass_manager
-from .level2 import level_2_pass_manager
-from .level3 import level_3_pass_manager
+
+class DAGLongestPath(AnalysisPass):
+    """ An analysis pass that returns the longest path in a DAGcircuit as a
+    list of DAGNodes.
+    """
+
+    def run(self, dag):
+        self.property_set['dag_longest_path'] = dag.longest_path()

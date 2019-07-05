@@ -15,9 +15,11 @@
 """Tests preset pass manager functionalities"""
 
 from qiskit.test import QiskitTestCase
-from qiskit.compiler import transpile
+from qiskit.compiler import transpile, assemble
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.test.mock import FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo
+from qiskit.extensions.standard import U2Gate, U3Gate
+from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
+                              FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
 
 
 class TestPresetPassManager(QiskitTestCase):
@@ -50,7 +52,8 @@ class TestFakeBackendTranspiling(QiskitTestCase):
 
     def test_optimization_level(self):
         """Test several backends with all optimization levels"""
-        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo()]:
+        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(),
+                        FakeTokyo(), FakePoughkeepsie()]:
             for optimization_level in range(4):
                 result = transpile(
                     [self._circuit],
@@ -58,3 +61,110 @@ class TestFakeBackendTranspiling(QiskitTestCase):
                     optimization_level=optimization_level
                 )
                 self.assertIsInstance(result, QuantumCircuit)
+
+    # TODO: make these tests more compact with ddt
+    def test_initial_layout_1(self):
+        """Test that a user-given initial layout is respected,
+        in the qobj.
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/1711
+        """
+        # build a circuit which works as-is on the coupling map, using the initial layout
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(3)
+        ancilla = QuantumRegister(13, 'ancilla')
+        qc = QuantumCircuit(qr, cr)
+        qc.cx(qr[2], qr[1])
+        qc.cx(qr[2], qr[0])
+        initial_layout = {0: qr[1], 2: qr[0], 15: qr[2]}
+        final_layout = {0: qr[1], 1: ancilla[0], 2: qr[0], 3: ancilla[1], 4: ancilla[2],
+                        5: ancilla[3], 6: ancilla[4], 7: ancilla[5], 8: ancilla[6],
+                        9: ancilla[7], 10: ancilla[8], 11: ancilla[9], 12: ancilla[10],
+                        13: ancilla[11], 14: ancilla[12], 15: qr[2]}
+
+        backend = FakeRueschlikon()
+
+        for optimization_level in range(4):
+            qc_b = transpile(qc, backend, initial_layout=initial_layout,
+                             optimization_level=optimization_level)
+            qobj = assemble(qc_b)
+
+            self.assertEqual(qc_b.layout._p2v, final_layout)
+
+            compiled_ops = qobj.experiments[0].instructions
+            for operation in compiled_ops:
+                if operation.name == 'cx':
+                    self.assertIn(operation.qubits, backend.configuration().coupling_map)
+                    self.assertIn(operation.qubits, [[15, 0], [15, 2]])
+
+    # TODO: make these tests more compact with ddt
+    def test_initial_layout_2(self):
+        """Test that a user-given initial layout is respected,
+        in the transpiled circuit.
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/2532
+        """
+        # build a circuit which works as-is on the coupling map, using the initial layout
+        qr = QuantumRegister(5, 'q')
+        cr = ClassicalRegister(2)
+        ancilla = QuantumRegister(9, 'ancilla')
+        qc = QuantumCircuit(qr, cr)
+        qc.cx(qr[2], qr[4])
+        initial_layout = {qr[2]: 11, qr[4]: 3,  # map to [11, 3] connection
+                          qr[0]: 1, qr[1]: 5, qr[3]: 9}
+        final_layout = {0: ancilla[0], 1: qr[0], 2: ancilla[1], 3: qr[4], 4: ancilla[2], 5: qr[1],
+                        6: ancilla[3], 7: ancilla[4], 8: ancilla[5], 9: qr[3], 10: ancilla[6],
+                        11: qr[2], 12: ancilla[7], 13: ancilla[8]}
+        backend = FakeMelbourne()
+
+        for optimization_level in range(4):
+            qc_b = transpile(qc, backend, initial_layout=initial_layout,
+                             optimization_level=optimization_level)
+
+            self.assertEqual(qc_b.layout._p2v, final_layout)
+
+            for gate, qubits, _ in qc_b:
+                if gate.name == 'cx':
+                    for qubit in qubits:
+                        self.assertIn(qubit.index, [11, 3])
+
+    # TODO: make these tests more compact with ddt
+    def test_initial_layout_3(self):
+        """Test that a user-given initial layout is respected,
+        even if cnots are not in the coupling map.
+
+        See: https://github.com/Qiskit/qiskit-terra/issues/2503
+        """
+        # build a circuit which works as-is on the coupling map, using the initial layout
+        qr = QuantumRegister(3, 'q')
+        cr = ClassicalRegister(2)
+        ancilla = QuantumRegister(17, 'ancilla')
+
+        qc = QuantumCircuit(qr, cr)
+        qc.u3(0.1, 0.2, 0.3, qr[0])
+        qc.u2(0.4, 0.5, qr[2])
+        qc.barrier()
+        qc.cx(qr[0], qr[2])
+        initial_layout = [6, 7, 12]
+
+        final_layout = {0: ancilla[0], 1: ancilla[1], 2: ancilla[2], 3: ancilla[3], 4: ancilla[4],
+                        5: ancilla[5], 6: qr[0], 7: qr[1], 8: ancilla[6], 9: ancilla[7],
+                        10: ancilla[8], 11: ancilla[9], 12: qr[2], 13: ancilla[10], 14: ancilla[11],
+                        15: ancilla[12], 16: ancilla[13], 17: ancilla[14], 18: ancilla[15],
+                        19: ancilla[16]}
+
+        backend = FakePoughkeepsie()
+
+        for optimization_level in range(4):
+            qc_b = transpile(qc, backend, initial_layout=initial_layout,
+                             optimization_level=optimization_level)
+
+            self.assertEqual(qc_b.layout._p2v, final_layout)
+
+            gate_0, qubits_0, _ = qc_b[0]
+            gate_1, qubits_1, _ = qc_b[1]
+
+            self.assertIsInstance(gate_0, U3Gate)
+            self.assertEqual(qubits_0[0].index, 6)
+            self.assertIsInstance(gate_1, U2Gate)
+            self.assertEqual(qubits_1[0].index, 12)
