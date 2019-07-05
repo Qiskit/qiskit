@@ -489,7 +489,7 @@ class TestSchedule(QiskitTestCase):
 
         actual = cmd_def.get('test', 0, 0.01, 0.02, 0.03)
         expected = par_sched_in_0.bind_parameters(0.01, 0.02, 0.03) |\
-                   par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
+            par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
         self.assertEqual(actual.start_time, expected.start_time)
         self.assertEqual(actual.stop_time, expected.stop_time)
 
