@@ -32,8 +32,9 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
-from qiskit.mapper import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler import TranspilerError
+
 from .ancestors import Ancestors
 from .dependency_graph import DependencyGraph
 
@@ -101,7 +102,7 @@ class FlexlayerHeuristics:
 
             if dones:
                 for gidx in dones:
-                    new_dag.apply_operation_back(self._dg.gate(gidx, layout, qreg))
+                    new_dag.apply_operation_back(*self._dg.gate(gidx, layout, qreg))
 
             if not blocking_gates:
                 break
@@ -120,7 +121,7 @@ class FlexlayerHeuristics:
                 # usual case
                 logger.debug("swap min-cost edge = %s", pprint.pformat(edge))
                 edge = self._fix_swap_direction(edge)
-                new_dag.apply_operation_back(SwapGate(qreg[edge[0]], qreg[edge[1]]))
+                new_dag.apply_operation_back(SwapGate(), [qreg[edge[0]], qreg[edge[1]]])
                 # update layout
                 layout.swap(edge[0], edge[1])
             else:
@@ -145,7 +146,7 @@ class FlexlayerHeuristics:
                     min_cost, edge = min(zip(costs, ece.cand_edges))
 
                     edge = self._fix_swap_direction(edge)
-                    new_dag.apply_operation_back(SwapGate(qreg[edge[0]], qreg[edge[1]]))
+                    new_dag.apply_operation_back(SwapGate(), [qreg[edge[0]], qreg[edge[1]]])
                     layout.swap(edge[0], edge[1])
 
                     logger.debug("%d-th inner iter. add a swap (%d, %d)", kin, edge[0], edge[1])

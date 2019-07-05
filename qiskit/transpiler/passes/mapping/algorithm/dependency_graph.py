@@ -12,15 +12,22 @@ dependency of two gates. For example, gate g1 must be applied before gate g2 if 
 there exists a path from g1 to g2.
 """
 import copy
-from collections import defaultdict
-from typing import List, Set, Tuple
+from collections import defaultdict, namedtuple
+from typing import List, Set, Union
 
 import networkx as nx
-
 from qiskit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import Instruction
-from qiskit.mapper import Layout
+from qiskit.circuit import Qubit, Clbit
+from qiskit.transpiler import Layout
 from qiskit.transpiler import TranspilerError
+
+InstructionContext = namedtuple("InstructionContext", "instruction qargs cargs")
+
+
+class ArgumentedGate(InstructionContext):
+    @property
+    def name(self) -> str:
+        return self.instruction.name
 
 
 class DependencyGraph:
@@ -46,7 +53,8 @@ class DependencyGraph:
             TranspilerError: if `graph_type` is not one of the types listed above.
         """
 
-        self._gates = quantum_circuit.data
+        self._gates = [ArgumentedGate(instr, qrags, cargs)
+                       for instr, qrags, cargs in quantum_circuit.data]
 
         self._graph = nx.DiGraph()  # dependency graph (including 1-qubit gates)
 
@@ -217,7 +225,7 @@ class DependencyGraph:
         """
         return self._graph.__len__()
 
-    def qargs(self, i: int) -> List[Tuple[QuantumRegister, int]]:
+    def qargs(self, i: int) -> List[Qubit]:
         """Qubit arguments of the gate
         Args:
             i: Index of the gate in the `self._gates`
@@ -226,7 +234,7 @@ class DependencyGraph:
         """
         return self._gates[i].qargs
 
-    def _all_args(self, i: int) -> List[Tuple[QuantumRegister, int]]:
+    def _all_args(self, i: int) -> List[Union[Qubit, Clbit]]:
         """Qubit and classical-bit arguments of the gate
         Args:
             i: Index of the gate in the `self._gates`
@@ -278,7 +286,7 @@ class DependencyGraph:
         """
         return nx.ancestors(self._graph, i)
 
-    def gate(self, gidx: int, layout: Layout, physical_qreg: QuantumRegister) -> Instruction:
+    def gate(self, gidx: int, layout: Layout, physical_qreg: QuantumRegister) -> InstructionContext:
         """Convert acting qubits of gate `gidx` from virtual qubits to physical ones.
         Args:
             gidx: Index of the gate in the `self._gates`
@@ -292,7 +300,7 @@ class DependencyGraph:
         gate = copy.deepcopy(self._gates[gidx])
         for i, virtual_qubit in enumerate(gate.qargs):
             if virtual_qubit in layout.get_virtual_bits().keys():
-                gate.qargs[i] = (physical_qreg, layout[virtual_qubit])
+                gate.qargs[i] = Qubit(physical_qreg, layout[virtual_qubit])
             else:
                 raise TranspilerError("virtual_qubit must be in layout")
         return gate

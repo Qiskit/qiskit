@@ -25,8 +25,9 @@ That's why this pass is named FlexlayerSwap pass.
 """
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.mapper import CouplingMap, Layout
+from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler import TransformationPass
+
 from .algorithm.dependency_graph import DependencyGraph
 from .algorithm.flexlayer_heuristics import FlexlayerHeuristics
 from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
@@ -79,28 +80,5 @@ class FlexlayerSwap(TransformationPass):
                                    lookahead_depth=self._lookahead_depth,
                                    decay_rate=self._decay_rate)
         res_dag, layout = algo.search()
-        res_dag = physical_to_virtual(res_dag, layout)
         return res_dag
 
-
-def physical_to_virtual(dag: DAGCircuit, initial_layout: Layout) -> DAGCircuit:
-    """
-    Convert a physical circuit `dag` into the virtual circuit under a given `initial_layout`.
-    Args:
-        dag: a physical circuit, assuming 'q' is the register name of its physical qubits.
-        initial_layout: given initial layout.
-    Returns:
-        A converted circuit with virtual qubits
-    """
-    layout = {}
-    qubits = dag.qubits()
-    for k, v in initial_layout.get_physical_bits().items():
-        layout[qubits[k]] = v
-
-    circuit = dag_to_circuit(dag)
-    circuit.qregs = initial_layout.get_registers()
-    for gate in circuit.data:
-        for i, q in enumerate(gate.qargs):
-            gate.qargs[i] = layout[q]
-
-    return circuit_to_dag(circuit)
