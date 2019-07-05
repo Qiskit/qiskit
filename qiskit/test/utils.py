@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Utils for using with Qiskit unit tests."""
 
@@ -26,8 +33,6 @@ class Path(Enum):
     EXAMPLES = os.path.normpath(os.path.join(SDK, '..', 'examples'))
     # Schemas path:     qiskit/schemas
     SCHEMAS = os.path.normpath(os.path.join(SDK, 'schemas'))
-    # VCR cassettes path: qiskit/test/cassettes/
-    CASSETTES = os.path.normpath(os.path.join(TEST, '..', 'cassettes'))
     # Sample QASMs path: qiskit/test/python/qasm
     QASMS = os.path.normpath(os.path.join(TEST, 'qasm'))
 

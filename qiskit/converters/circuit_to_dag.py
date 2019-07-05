@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Helper function for converting a circuit to a dag"""
 
-
-from qiskit.circuit.compositegate import CompositeGate
-from qiskit.dagcircuit._dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
 def circuit_to_dag(circuit):
@@ -28,36 +33,7 @@ def circuit_to_dag(circuit):
     for register in circuit.cregs:
         dagcircuit.add_creg(register)
 
-    for main_instruction in circuit.data:
-        # TODO: generate nodes for CompositeGates;
-        # for now simply drop their instructions into the DAG
-        instruction_list = []
-        is_composite = isinstance(main_instruction, CompositeGate)
-        if is_composite:
-            instruction_list = main_instruction.instruction_list()
-        else:
-            instruction_list.append(main_instruction)
-
-        for instruction in instruction_list:
-            # Get arguments for classical control (if any)
-            if instruction.control is None:
-                control = None
-            else:
-                control = (instruction.control[0], instruction.control[1])
-
-            def duplicate_instruction(inst):
-                """Create a fresh instruction from an input instruction."""
-                if inst.name == 'barrier':
-                    params = [inst.qargs]
-                elif inst.name == 'snapshot':
-                    params = inst.params + [inst.qargs]
-                else:
-                    params = inst.params + inst.qargs + inst.cargs
-                new_inst = inst.__class__(*params)
-                return new_inst
-
-            inst = duplicate_instruction(instruction)
-            dagcircuit.apply_operation_back(inst, inst.qargs,
-                                            inst.cargs, control)
+    for instruction, qargs, cargs in circuit.data:
+        dagcircuit.apply_operation_back(instruction.copy(), qargs, cargs, instruction.control)
 
     return dagcircuit

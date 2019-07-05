@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=invalid-name,super-init-not-called
 
@@ -73,7 +80,7 @@ class PassC_TP_RA_PA(DummyTP):
 
 
 class PassD_TP_NR_NP(DummyTP):
-    """ A dummy transfomation pass that takes an argument.
+    """ A dummy transformation pass that takes an argument.
     TP: Transformation Pass
     NR: No Requires
     NP: No Preserves
@@ -163,8 +170,17 @@ class PassI_Bad_AP(DummyAP):
     def run(self, dag):
         super().run(dag)
         cx_runs = dag.collect_runs(["cx"])
-        logging.getLogger(logger).info('cx_runs: %s', cx_runs)
-        dag._remove_op_node(cx_runs.pop()[0])
+
+        # Convert to ID so that can be checked if in correct order
+        cx_runs_ids = set()
+        for run in cx_runs:
+            curr = []
+            for node in run:
+                curr.append(node._node_id)
+            cx_runs_ids.add(tuple(curr))
+
+        logging.getLogger(logger).info('cx_runs: %s', cx_runs_ids)
+        dag.remove_op_node(cx_runs.pop()[0])
         logging.getLogger(logger).info('done removing')
 
 
@@ -193,3 +209,20 @@ class PassK_check_fixed_point_property(DummyAP, FixedPoint):
     def run(self, dag):
         for base in PassK_check_fixed_point_property.__bases__:
             base.run(self, dag)
+
+
+class PassM_AP_NR_NP(DummyAP):
+    """ A dummy analysis pass that modifies internal state at runtime
+    AP: Analysis Pass
+    NR: No Requires
+    NP: No Preserves
+    """
+
+    def __init__(self, argument1):
+        super().__init__()
+        self.argument1 = argument1
+
+    def run(self, dag):
+        super().run(dag)
+        self.argument1 *= 2
+        logging.getLogger(logger).info('self.argument1 = %s', self.argument1)

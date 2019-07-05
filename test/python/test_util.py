@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Tests for qiskit/_util.py"""
 
 from unittest import mock
 
-from qiskit import _util
+from qiskit import util
 from qiskit.test import QiskitTestCase
 
 
@@ -22,6 +29,6 @@ class TestUtil(QiskitTestCase):
     def test_local_hardware_none_cpu_count(self, cpu_count_mock, vmem_mock,
                                            platform_mock):
         """Test cpu count fallback to 1 when true value can't be determined"""
-        # pylint: disable=unused-argument
-        result = _util.local_hardware_info()
+        del cpu_count_mock, vmem_mock, platform_mock  # unused
+        result = util.local_hardware_info()
         self.assertEqual(1, result['cpus'])

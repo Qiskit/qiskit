@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Helper function for converting a dag to a circuit"""
 import collections
@@ -34,33 +41,17 @@ def dag_to_circuit(dag):
     name = dag.name or None
     circuit = QuantumCircuit(*qregs.values(), *cregs.values(), name=name)
 
-    graph = dag.multi_graph
-    for node in dag.node_nums_in_topological_order():
-        n = graph.nodes[node]
-        if n['type'] == 'op':
-            if n['op'].name == 'U':
-                name = 'u_base'
-            elif n['op'].name == 'CX':
-                name = 'cx_base'
-            elif n['op'].name == 'id':
-                name = 'iden'
-            else:
-                name = n['op'].name
+    for node in dag.topological_op_nodes():
+        qubits = []
+        for qubit in node.qargs:
+            qubits.append(qregs[qubit.register.name][qubit.index])
 
-            instr_method = getattr(circuit, name)
-            qubits = []
-            for qubit in n['qargs']:
-                qubits.append(qregs[qubit[0].name][qubit[1]])
+        clbits = []
+        for clbit in node.cargs:
+            clbits.append(cregs[clbit.register.name][clbit.index])
 
-            clbits = []
-            for clbit in n['cargs']:
-                clbits.append(cregs[clbit[0].name][clbit[1]])
-            params = n['op'].params
-
-            if name in ['snapshot', 'save', 'noise', 'load']:
-                result = instr_method(params[0])
-            else:
-                result = instr_method(*params, *qubits, *clbits)
-            if 'condition' in n and n['condition']:
-                result.c_if(*n['condition'])
+        # Get arguments for classical control (if any)
+        inst = node.op.copy()
+        inst.control = node.condition
+        circuit.append(inst, qubits, clbits)
     return circuit

@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
-
-# pylint: disable=invalid-name
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """BasePass and generic pass testing"""
 
@@ -43,6 +48,12 @@ class TestGenericPass(QiskitTestCase):
         pass1 = PassD_TP_NR_NP(argument1=[1, 2])
         pass2 = PassD_TP_NR_NP(argument1=[2, 1])
         self.assertNotEqual(pass1, pass2)
+
+    def test_pass_args_kwargs(self):
+        """ Same pass if same args and kwargs"""
+        pass1 = PassD_TP_NR_NP(argument1=[1, 2])
+        pass2 = PassD_TP_NR_NP([1, 2])
+        self.assertEqual(pass1, pass2)
 
     def test_pass_kwargs_out_of_order(self):
         """ Passes instances with same arguments (independently of the order) are the same"""

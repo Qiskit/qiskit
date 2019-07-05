@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test the BarrierBeforeFinalMeasurements pass"""
 
@@ -241,7 +248,8 @@ class TestBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_preserve_barriers_for_measurement_ordering(self):
-        """If the circuit has a barrier to enforce a measurement order, preserve it in the output.
+        """If the circuit has a barrier to enforce a measurement order,
+        preserve it in the output.
 
          q:---[m]--|-------     q:---|--[m]--|-------
            ----|---|--[m]--  ->   ---|---|---|--[m]--
@@ -269,7 +277,8 @@ class TestBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_measures_followed_by_barriers_should_be_final(self):
-        """If a measurement is followed only by a barrier, insert the barrier before it.
+        """If a measurement is followed only by a barrier,
+        insert the barrier before it.
 
          q:---[H]--|--[m]--|-------     q:---[H]--|--[m]-|-------
            ---[H]--|---|---|--[m]--  ->   ---[H]--|---|--|--[m]--
@@ -352,6 +361,44 @@ class TestBarrierBeforeMeasuremetsWhenABarrierIsAlreadyThere(QiskitTestCase):
 
         pass_ = BarrierBeforeFinalMeasurements()
         result = pass_.run(circuit_to_dag(circuit))
+
+        self.assertEqual(result, circuit_to_dag(expected))
+
+    def test_barrier_doesnt_reorder_gates(self):
+        """ A barrier should not allow the reordering of gates, as pointed out in #2102
+
+         q:--[u1(0)]-----------[m]---------      q:--[u1(0)]------------|--[m]---------
+           --[u1(1)]------------|-[m]------  ->    --[u1(1)]------------|---|-[m]------
+           --[u1(2)]-|----------|--|-[m]----       --[u1(2)]-|----------|---|--|-[m]----
+           ----------|-[u1(03)]-|--|--|-[m]-       ----------|-[u1(03)]-|---|--|--|-[m]-
+                                |  |  |  |                                  |  |  |  |
+         c:---------------------.--|--|--|-     c:--------------------------.--|--|--|-
+           ------------------------.--|--|-       -----------------------------.--|--|-
+           ---------------------------.--|-       --------------------------------.--|-
+           ------------------------------.-       -----------------------------------.-
+
+        """
+
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.u1(0, qr[0])
+        circuit.u1(1, qr[1])
+        circuit.u1(2, qr[2])
+        circuit.barrier(qr[2], qr[3])
+        circuit.u1(3, qr[3])
+
+        test_circuit = circuit.copy()
+        test_circuit.measure(qr, cr)
+
+        # expected circuit is the same, just with a barrier before the measurements
+        expected = circuit.copy()
+        expected.barrier(qr)
+        expected.measure(qr, cr)
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        result = pass_.run(circuit_to_dag(test_circuit))
 
         self.assertEqual(result, circuit_to_dag(expected))
 

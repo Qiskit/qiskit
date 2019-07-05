@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,assignment-from-no-return
 
 """
 Tools for working with Pauli Operators.
@@ -20,13 +27,9 @@ from qiskit.exceptions import QiskitError
 
 
 def _make_np_bool(arr):
-
-    if not isinstance(arr, list) and not isinstance(arr, np.ndarray):
-        arr = np.asarray([arr]).astype(np.bool)
-    elif isinstance(arr, list):
-        arr = np.asarray(arr).astype(np.bool)
-    elif arr.dtype != np.bool:
-        arr = arr.astype(np.bool)
+    if not isinstance(arr, (list, np.ndarray, tuple)):
+        arr = [arr]
+    arr = np.asarray(arr).astype(np.bool)
     return arr
 
 
@@ -278,7 +281,7 @@ class Pauli:
 
         Returns:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
-            represnets the pauli.
+            represents the pauli.
         """
         mat = sparse.coo_matrix(1)
         for z, x in zip(self._z, self._x):
@@ -293,6 +296,25 @@ class Pauli:
                 mat = sparse.bmat([[None, -mat], [mat, None]], format='coo')
 
         return mat.tocsr()
+
+    def to_operator(self):
+        """Convert to Operator object."""
+        # Place import here to avoid cyclic import from circuit visualization
+        from qiskit.quantum_info.operators.operator import Operator
+        return Operator(self.to_matrix())
+
+    def to_instruction(self):
+        """Convert to Pauli circuit instruction."""
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate
+        gates = {'I': IdGate(), 'X': XGate(), 'Y': YGate(), 'Z': ZGate()}
+        label = self.to_label()
+        n_qubits = self.numberofqubits
+        qreg = QuantumRegister(n_qubits)
+        circuit = QuantumCircuit(qreg, name='Pauli:{}'.format(label))
+        for i, pauli in enumerate(reversed(label)):
+            circuit.append(gates[pauli], [qreg[i]])
+        return circuit.to_instruction()
 
     def update_z(self, z, indices=None):
         """
@@ -362,7 +384,7 @@ class Pauli:
             pauli_labels (list[str]): the to-be-inserted or appended pauli label
 
         Note:
-            the indices refers to the localion of original paulis,
+            the indices refers to the location of original paulis,
             e.g. if indices = [0, 2], pauli_labels = ['Z', 'I'] and original pauli = 'ZYXI'
             the pauli will be updated to ZY'I'XI'Z'
             'Z' and 'I' are inserted before the qubit at 0 and 2.
@@ -424,15 +446,17 @@ class Pauli:
         return self
 
     @classmethod
-    def random(cls, num_qubits):
+    def random(cls, num_qubits, seed=None):
         """Return a random Pauli on number of qubits.
 
         Args:
             num_qubits (int): the number of qubits
-
+            seed (int): Optional. To set a random seed.
         Returns:
             Pauli: the random pauli
         """
+        if seed is not None:
+            np.random.seed(seed)
         z = np.random.randint(2, size=num_qubits).astype(np.bool)
         x = np.random.randint(2, size=num_qubits).astype(np.bool)
         return cls(z, x)
@@ -444,7 +468,7 @@ class Pauli:
 
         Args:
             num_qubits (int): the length of pauli
-            index (int): the qubit index to insert the single qubii
+            index (int): the qubit index to insert the single qubit
             pauli_label (str): pauli
 
         Returns:
@@ -460,7 +484,7 @@ class Pauli:
         return cls(z, x)
 
     def kron(self, other):
-        r"""Kron product of two paulis.
+        r"""Kronecker product of two paulis.
 
         Order is $P_2 (other) \otimes P_1 (self)$
 

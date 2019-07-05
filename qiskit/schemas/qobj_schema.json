@@ -115,13 +115,15 @@
                             ]
                         },
                         "val": {
-                            "items": {
+                            "OneOf": [
+                            {"items": {
                                 "type": "number"
                             },
                             "maxItems": 2,
                             "minItems": 2,
-                            "type": "array"
-                        }
+                            "type": "array"},
+                            {"type": "string"}
+                        ]}
                     },
                     "required": [
                         "val",
@@ -138,7 +140,9 @@
                             ]
                         },
                         "phase": {
-                            "type": "number"
+                            "OneOf":[
+                            {"type": "number"},
+                            {"type": "string"}]
                         }
                     },
                     "required": [
@@ -266,6 +270,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -282,6 +287,7 @@
                             "maxItems": 1
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -298,6 +304,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -322,6 +329,7 @@
                             "minItems": 1
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -336,6 +344,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -356,6 +365,7 @@
                             "minItems": 1
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -372,6 +382,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -388,6 +399,7 @@
                             "minItems": 1
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -404,6 +416,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -425,6 +438,7 @@
                             "minItems": 2
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -439,6 +453,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -458,6 +473,7 @@
                             "minItems": 2
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -474,6 +490,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -491,6 +508,7 @@
                             "minItems": 2
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -507,6 +525,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -524,6 +543,7 @@
                             "minItems": 3
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -538,6 +558,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "minItems": 1
                         },
                         "name": {
@@ -552,6 +573,7 @@
                             "minItems": 1
                         },
                         "register": {
+			    "type": "array",
                             "minItems": 1
                         },
                         "texparams": {
@@ -567,6 +589,7 @@
                 {
                     "properties": {
                         "memory": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "name": {
@@ -581,6 +604,7 @@
                             "minItems": 1
                         },
                         "register": {
+			    "type": "array",
                             "maxItems": 0
                         },
                         "texparams": {
@@ -598,26 +622,32 @@
                             "type": "string"
                         },
                         "memory": {
-                            "maxItems": 0
+			                "type": "array"
                         },
                         "name": {
                             "enum": [
                                 "snapshot"
                             ]
                         },
+                        "params": {
+                            "type": "array"
+                        },
+                        "qubits": {
+                            "type": "array"
+                        },
                         "register": {
-                            "maxItems": 0
+			                "type": "array"
+                        },
+                        "snapshot_type": {
+                            "type": "string"
                         },
                         "texparams": {
                             "maxItems": 0
-                        },
-                        "type": {
-                            "type": "string"
                         }
                     },
                     "required": [
                         "label",
-                        "type"
+                        "snapshot_type"
                     ],
                     "title": "snapshot"
                 },
@@ -641,9 +671,6 @@
                     ]
 
                 },
-                "memory": {
-                    "type": "array"
-                },
                 "name": {
                     "type": "string"
                 },
@@ -651,9 +678,6 @@
                     "type": "array"
                 },
                 "qubits": {
-                    "type": "array"
-                },
-                "register": {
                     "type": "array"
                 }
             },
@@ -700,7 +724,7 @@
                             "description": "Total number of qubits used in this experiment.",
                             "minimum": 1,
                             "type": "integer"
-                        }                        
+                        }
                     },
                     "title": "Experiment level configuration",
                     "type": "object"
@@ -716,10 +740,10 @@
                             "description": "Total number of (slow) measurement slots used in this experiment.",
                             "minimum": 0,
                             "type": "integer"
-                        },                        
+                        },
                         "n_qubits": {
                             "description": "Total number of qubits used in this experiment.",
-                            "minimum": 1,                            
+                            "minimum": 1,
                             "type": "integer"
                         },
                         "qreg_sizes": {
@@ -840,7 +864,6 @@
                 },
                 "instructions": {
                     "description": "List of experiment instructions.",
-                    "minItems": 1,
                     "type": "array"
                 }
             },
@@ -876,7 +899,7 @@
                             "description": "The number of qubits requested on the backend, equivalent to the max of n_qubits requested by individual experiments.",
                             "minimum": 1,
                             "type": "integer"
-                        },                        
+                        },
                         "seed": {
                             "default": 1,
                             "type": "integer"
@@ -885,7 +908,7 @@
                             "description": "Number of repetitions of each experiment",
                             "minimum": 1,
                             "type": "integer"
-                        }                        
+                        }
                     },
                     "title": "Qobj-level configuration",
                     "type": "object"
@@ -988,12 +1011,10 @@
                     },
                     "required": [
                         "meas_level",
-                        "pulse_library",
-                        "memory_slot_size",
-                        "meas_return",
-                        "qubit_lo_freq",
                         "meas_lo_freq",
-                        "rep_time"
+                        "meas_return",
+                        "pulse_library",
+                        "qubit_lo_freq"
                     ]
                 },
                 "experiments": {

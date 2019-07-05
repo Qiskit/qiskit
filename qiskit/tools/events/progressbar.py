@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
@@ -43,7 +50,7 @@
 import time
 import datetime
 import sys
-from qiskit.tools.events._pubsub import Subscriber
+from qiskit.tools.events.pubsub import Subscriber
 
 
 class BaseProgressBar(Subscriber):
@@ -149,7 +156,7 @@ class TextProgressBar(BaseProgressBar):
 
     def update(self, n):
         filled_length = int(round(50 * n / self.iter))
-        pbar = u'█' * filled_length + '-' * (50 - filled_length)
+        pbar = '█' * filled_length + '-' * (50 - filled_length)
         time_left = self.time_remaining_est(n)
         self.output_handler.write('\r|%s| %s%s%s [%s]' % (pbar, n, '/', self.iter, time_left))
         if n == self.iter:

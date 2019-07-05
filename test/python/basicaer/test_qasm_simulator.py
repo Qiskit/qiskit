@@ -1,31 +1,45 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# pylint: disable=missing-docstring,redefined-builtin
+"""Test QASM simulator."""
 
 import unittest
 
 import numpy as np
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit import compile
-from qiskit import BasicAer
-from qiskit.test import QiskitTestCase, Path
+
+from qiskit import execute
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.compiler import transpile, assemble
+from qiskit.providers.basicaer import QasmSimulatorPy
+from qiskit.test import Path
+from qiskit.test import providers
 
 
-class TestBasicAerQasmSimulator(QiskitTestCase):
+class TestBasicAerQasmSimulator(providers.BackendTestCase):
     """Test the Basic qasm_simulator."""
 
+    backend_cls = QasmSimulatorPy
+
     def setUp(self):
+        super(TestBasicAerQasmSimulator, self).setUp()
+
         self.seed = 88
-        self.backend = BasicAer.get_backend('qasm_simulator')
         qasm_filename = self._get_resource_path('example.qasm', Path.QASMS)
-        compiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
-        compiled_circuit.name = 'test'
-        self.qobj = compile(compiled_circuit, backend=self.backend)
+        transpiled_circuit = QuantumCircuit.from_qasm_file(qasm_filename)
+        transpiled_circuit.name = 'test'
+        transpiled_circuit = transpile(transpiled_circuit, backend=self.backend)
+        self.qobj = assemble(transpiled_circuit, shots=1000)
 
     def test_qasm_simulator_single_shot(self):
         """Test single shot run."""
@@ -33,6 +47,27 @@ class TestBasicAerQasmSimulator(QiskitTestCase):
         self.qobj.config.shots = shots
         result = self.backend.run(self.qobj).result()
         self.assertEqual(result.success, True)
+
+    def test_qasm_simulator_measure_sampler(self):
+        """Test measure sampler if qubits measured more than once."""
+        shots = 100
+        qr = QuantumRegister(2, 'qr')
+        cr = ClassicalRegister(4, 'cr')
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(qr[1])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[1], cr[1])
+        circuit.measure(qr[1], cr[2])
+        circuit.measure(qr[0], cr[3])
+        target = {'0110': shots}
+        job = execute(
+            circuit,
+            backend=self.backend,
+            shots=shots,
+            seed_simulator=self.seed)
+        result = job.result()
+        counts = result.get_counts(0)
+        self.assertEqual(counts, target)
 
     def test_qasm_simulator(self):
         """Test data counts output for single circuit run against reference."""
@@ -47,6 +82,7 @@ class TestBasicAerQasmSimulator(QiskitTestCase):
         self.assertDictAlmostEqual(counts, target, threshold)
 
     def test_if_statement(self):
+        """Test if statements."""
         shots = 100
         qr = QuantumRegister(3, 'qr')
         cr = ClassicalRegister(3, 'cr')
@@ -69,17 +105,17 @@ class TestBasicAerQasmSimulator(QiskitTestCase):
         circuit_if_false.measure(qr[0], cr[0])
         circuit_if_false.measure(qr[1], cr[1])
         circuit_if_false.measure(qr[2], cr[2])
-        qobj = compile([circuit_if_true, circuit_if_false],
-                       backend=self.backend, shots=shots, seed=self.seed)
+        job = execute([circuit_if_true, circuit_if_false],
+                      backend=self.backend, shots=shots, seed_simulator=self.seed)
 
-        result = self.backend.run(qobj).result()
+        result = job.result()
         counts_if_true = result.get_counts(circuit_if_true)
         counts_if_false = result.get_counts(circuit_if_false)
         self.assertEqual(counts_if_true, {'111': 100})
         self.assertEqual(counts_if_false, {'001': 100})
 
     def test_teleport(self):
-        """test teleportation as in tutorials"""
+        """Test teleportation as in tutorials"""
         self.log.info('test_teleport')
         pi = np.pi
         shots = 2000
@@ -99,8 +135,8 @@ class TestBasicAerQasmSimulator(QiskitTestCase):
         circuit.z(qr[2]).c_if(cr0, 1)
         circuit.x(qr[2]).c_if(cr1, 1)
         circuit.measure(qr[2], cr2[0])
-        qobj = compile(circuit, backend=self.backend, shots=shots, seed=self.seed)
-        results = self.backend.run(qobj).result()
+        job = execute(circuit, backend=self.backend, shots=shots, seed_simulator=self.seed)
+        results = job.result()
         data = results.get_counts('teleport')
         alice = {
             '00': data['0 0 0'] + data['1 0 0'],
@@ -113,7 +149,6 @@ class TestBasicAerQasmSimulator(QiskitTestCase):
             '1': data['1 0 0'] + data['1 1 0'] + data['1 0 1'] + data['1 1 1']
         }
         self.log.info('test_teleport: circuit:')
-        self.log.info('test_teleport: circuit:')
         self.log.info(circuit.qasm())
         self.log.info('test_teleport: data %s', data)
         self.log.info('test_teleport: alice %s', alice)
@@ -125,6 +160,7 @@ class TestBasicAerQasmSimulator(QiskitTestCase):
         self.assertLess(error, 0.05)
 
     def test_memory(self):
+        """Test memory."""
         qr = QuantumRegister(4, 'qr')
         cr0 = ClassicalRegister(2, 'cr0')
         cr1 = ClassicalRegister(2, 'cr1')
@@ -138,12 +174,37 @@ class TestBasicAerQasmSimulator(QiskitTestCase):
         circ.measure(qr[3], cr1[1])
 
         shots = 50
-        qobj = compile(circ, backend=self.backend, shots=shots, memory=True)
-        result = self.backend.run(qobj).result()
+        job = execute(circ, backend=self.backend, shots=shots, memory=True)
+        result = job.result()
         memory = result.get_memory()
         self.assertEqual(len(memory), shots)
         for mem in memory:
             self.assertIn(mem, ['10 00', '10 11'])
+
+    def test_unitary(self):
+        """Test unitary gate instruction"""
+        max_qubits = 4
+        x_mat = np.array([[0, 1], [1, 0]])
+        # Test 1 to max_qubits for random n-qubit unitary gate
+        for i in range(max_qubits):
+            num_qubits = i + 1
+            # Apply X gate to all qubits
+            multi_x = x_mat
+            for _ in range(i):
+                multi_x = np.kron(multi_x, x_mat)
+            # Target counts
+            shots = 100
+            target_counts = {num_qubits * '1': shots}
+            # Test circuit
+            qr = QuantumRegister(num_qubits, 'qr')
+            cr = ClassicalRegister(num_qubits, 'cr')
+            circuit = QuantumCircuit(qr, cr)
+            circuit.unitary(multi_x, qr)
+            circuit.measure(qr, cr)
+            job = execute(circuit, self.backend, shots=shots)
+            result = job.result()
+            counts = result.get_counts(0)
+            self.assertEqual(counts, target_counts)
 
 
 if __name__ == '__main__':

@@ -1,13 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Pass for decomposing 3q (or more) gates into 2q or 1q gates."""
 
-from qiskit.transpiler._basepasses import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.exceptions import QiskitError
 
 
 class Unroll3qOrMore(TransformationPass):
@@ -23,12 +32,23 @@ class Unroll3qOrMore(TransformationPass):
             dag(DAGCircuit): input dag
         Returns:
             DAGCircuit: output dag with maximum node degrees of 2
+        Raises:
+            QiskitError: if a 3q+ gate is not decomposable
         """
-        for node_id, node_data in dag.threeQ_or_more_nodes():
-            decomposition_rules = node_data["op"].decompositions()
-
+        for node in dag.threeQ_or_more_gates():
             # TODO: allow choosing other possible decompositions
-            decomposition_dag = self.run(decomposition_rules[0])  # recursively unroll
+            rule = node.op.definition
+            if not rule:
+                raise QiskitError("Cannot unroll all 3q or more gates. "
+                                  "No rule to expand instruction %s." %
+                                  node.op.name)
 
-            dag.substitute_node_with_dag(node_id, decomposition_dag)
+            # hacky way to build a dag on the same register as the rule is defined
+            # TODO: need anonymous rules to address wires by index
+            decomposition = DAGCircuit()
+            decomposition.add_qreg(rule[0][1][0].register)
+            for inst in rule:
+                decomposition.apply_operation_back(*inst)
+            decomposition = self.run(decomposition)  # recursively unroll
+            dag.substitute_node_with_dag(node, decomposition)
         return dag

@@ -58,10 +58,15 @@
                     "type": "integer",
                     "description": "Experiment-level random seed"
                 },
+                "meas_level": {
+                    "type": "integer",
+                    "enum": [0, 1, 2],
+                    "description": "Measurement level of experiment"
+                },
                 "meas_return": {
                     "type": "string",
                     "enum": ["single","avg"],
-                    "description": "Is the data in the memory/snapshot averaged or from each shot"
+                    "description": "Is the data averaged or from each shot"
                 },
                 "header": {
                     "type": "object",

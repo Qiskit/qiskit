@@ -1,18 +1,26 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 # pylint: disable=wrong-import-order
+
 
 """Main Qiskit public functionality."""
 
 import pkgutil
 
 # First, check for required Python and API version
-from . import _util
+from . import util
 
 # qiskit errors operator
 from .exceptions import QiskitError
@@ -21,12 +29,12 @@ from .exceptions import QiskitError
 from qiskit.circuit import ClassicalRegister
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import QuantumCircuit
-from .tools.compiler import (compile, execute)
+from qiskit.execute import execute
+from qiskit.compiler import transpile, assemble
 
 # The qiskit.extensions.x imports needs to be placed here due to the
 # mechanism for adding gates dynamically.
-import qiskit.extensions.standard
-import qiskit.extensions.quantum_initializer
+import qiskit.extensions
 import qiskit.circuit.measure
 import qiskit.circuit.reset
 
@@ -36,17 +44,18 @@ import qiskit.circuit.reset
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Please note these are global instances, not modules.
-from qiskit.providers.builtinsimulators import BasicAer
+from qiskit.providers.basicaer import BasicAer
 
-# Try to import the Aer provider if the Aer element is installed.
+# Try to import the Aer provider if installed.
 try:
     from qiskit.providers.aer import Aer
 except ImportError:
     pass
-# Try to import the IBQM provider if the IBMQ element is installed.
+# Try to import the IBMQ provider if installed.
 try:
     from qiskit.providers.ibmq import IBMQ
 except ImportError:
     pass
 
 from .version import __version__
+from .version import __qiskit_version__

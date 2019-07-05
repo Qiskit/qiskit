@@ -1,33 +1,42 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# pylint: disable=missing-docstring
-# pylint: disable=redefined-builtin
+"""Tests for unitary simulator."""
 
 import unittest
+
 import numpy as np
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit import compile
-from qiskit import BasicAer
-from qiskit.test import QiskitTestCase
+from qiskit import execute
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.providers.basicaer import UnitarySimulatorPy
+from qiskit.test import ReferenceCircuits
+from qiskit.test import providers
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import process_fidelity
 
 
-class BasicAerUnitarySimulatorPyTest(QiskitTestCase):
+class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
     """Test BasicAer unitary simulator."""
 
-    def setUp(self):
-        self.backend = BasicAer.get_backend('unitary_simulator')
+    backend_cls = UnitarySimulatorPy
+    circuit = ReferenceCircuits.bell_no_measure()
 
     def test_basicaer_unitary_simulator_py(self):
         """Test unitary simulator."""
         circuits = self._test_circuits()
-        qobj = compile(circuits, backend=self.backend)
-        job = self.backend.run(qobj)
+        job = execute(circuits, backend=self.backend)
         sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]
         reference_unitaries = self._reference_unitaries()
         norms = [np.trace(np.dot(np.transpose(np.conj(target)), actual))
@@ -87,6 +96,29 @@ class BasicAerUnitarySimulatorPyTest(QiskitTestCase):
                                   np.dot(gate_y, gate_x))
         return [target_unitary1, target_unitary2, target_unitary3,
                 target_unitary4, target_unitary5]
+
+    def test_unitary(self):
+        """Test unitary gate instruction"""
+        num_trials = 10
+        max_qubits = 3
+        # Test 1 to max_qubits for random n-qubit unitary gate
+        for i in range(max_qubits):
+            num_qubits = i + 1
+            unitary_init = np.eye(2 ** num_qubits)
+            qr = QuantumRegister(num_qubits, 'qr')
+            for _ in range(num_trials):
+                # Create random unitary
+                unitary = random_unitary(2 ** num_qubits)
+                # Compute expected output state
+                unitary_target = unitary.data.dot(unitary_init)
+                # Simulate output on circuit
+                circuit = QuantumCircuit(qr)
+                circuit.unitary(unitary, qr)
+                job = execute(circuit, self.backend)
+                result = job.result()
+                unitary_out = result.get_unitary(0)
+                fidelity = process_fidelity(unitary_target, unitary_out)
+                self.assertGreater(fidelity, 0.999)
 
 
 if __name__ == '__main__':

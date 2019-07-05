@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """A pass for choosing a Layout of a circuit onto a Coupling graph.
 
 This pass associates a physical qubit (int) to each virtual qubit
-of the circuit (tuple(QuantumRegister, int)).
+of the circuit (Qubit).
 
 Note: even though a 'layout' is not strictly a property of the DAG,
 in the transpiler architecture it is best passed around between passes by
@@ -19,8 +26,8 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.csgraph as cs
 
-from qiskit.mapper import Layout
-from qiskit.transpiler._basepasses import AnalysisPass
+from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
@@ -61,7 +68,7 @@ class DenseLayout(AnalysisPass):
         map_iter = 0
         for qreg in dag.qregs.values():
             for i in range(qreg.size):
-                layout[(qreg, i)] = int(best_sub[map_iter])
+                layout[qreg[i]] = int(best_sub[map_iter])
                 map_iter += 1
         self.property_set['layout'] = layout
 
@@ -91,6 +98,7 @@ class DenseLayout(AnalysisPass):
                                          return_predecessors=False)
 
             connection_count = 0
+            sub_graph = []
             for i in range(n_qubits):
                 node_idx = bfs[i]
                 for j in range(sp_cmap.indptr[node_idx],
@@ -99,9 +107,22 @@ class DenseLayout(AnalysisPass):
                     for counter in range(n_qubits):
                         if node == bfs[counter]:
                             connection_count += 1
+                            sub_graph.append([node_idx, node])
                             break
 
             if connection_count > best:
                 best = connection_count
                 best_map = bfs[0:n_qubits]
+                # Return a best mapping that has reduced bandwidth
+                mapping = {}
+                for edge in range(best_map.shape[0]):
+                    mapping[best_map[edge]] = edge
+                new_cmap = [[mapping[c[0]], mapping[c[1]]] for c in sub_graph]
+                rows = [edge[0] for edge in new_cmap]
+                cols = [edge[1] for edge in new_cmap]
+                data = [1]*len(rows)
+                sp_sub_graph = sp.coo_matrix((data, (rows, cols)),
+                                             shape=(n_qubits, n_qubits)).tocsr()
+                perm = cs.reverse_cuthill_mckee(sp_sub_graph)
+                best_map = best_map[perm]
         return best_map

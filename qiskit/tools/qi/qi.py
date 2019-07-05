@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2017, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# pylint: disable=invalid-name,anomalous-backslash-in-string
-
+# pylint: disable=invalid-name
 """
 A collection of useful quantum information functions.
 
@@ -19,12 +25,10 @@ import warnings
 
 import numpy as np
 import scipy.linalg as la
-from scipy.stats import unitary_group
 
-
-from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import pauli_group
 from qiskit.quantum_info import purity as new_purity
+from qiskit.quantum_info import random
 
 
 ###############################################################
@@ -180,7 +184,7 @@ def vectorize(density_matrix, method='col'):
         method (str): the method of vectorization. Allowed values are
             - 'col' (default) flattens to column-major vector.
             - 'row' flattens to row-major vector.
-            - 'pauli'flattens in the n-qubit Pauli basis.
+            - 'pauli' flattens in the n-qubit Pauli basis.
             - 'pauli-weights': flattens in the n-qubit Pauli basis ordered by
                weight.
 
@@ -293,7 +297,7 @@ def chop(array, epsilon=1e-10):
     Truncate small values of a complex array.
 
     Args:
-        array (array_like): array to truncte small values.
+        array (array_like): array to truncate small values.
         epsilon (float): threshold.
 
     Returns:
@@ -335,93 +339,24 @@ def outer(vector1, vector2=None):
 # Random Matrices.
 ###############################################################
 
-def random_unitary_matrix(length):
+def random_unitary_matrix(dim, seed=None):
+    """Deprecated in 0.8+
     """
-    Return a random unitary ndarray.
+    warnings.warn('The random_unitary_matrix() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the function in qiskit.quantum_info.random',
+                  DeprecationWarning)
+    return random.random_unitary(dim, seed).data
 
-    Args:
-        length (int): the length of the returned unitary.
-    Returns:
-        ndarray: U (length, length) unitary ndarray.
+
+def random_density_matrix(length, rank=None, method='Hilbert-Schmidt', seed=None):
+    """Deprecated in 0.8+
     """
-    return unitary_group.rvs(length)
-
-
-def random_density_matrix(length, rank=None, method='Hilbert-Schmidt'):
-    """
-    Generate a random density matrix rho.
-
-    Args:
-        length (int): the length of the density matrix.
-        rank (int or None): the rank of the density matrix. The default
-            value is full-rank.
-        method (string): the method to use.
-            'Hilbert-Schmidt': sample rho from the Hilbert-Schmidt metric.
-            'Bures': sample rho from the Bures metric.
-
-    Returns:
-        ndarray: rho (length, length) a density matrix.
-    Raises:
-        QiskitError: if the method is not valid.
-    """
-    if method == 'Hilbert-Schmidt':
-        return __random_density_hs(length, rank)
-    elif method == 'Bures':
-        return __random_density_bures(length, rank)
-    else:
-        raise QiskitError('Error: unrecognized method {}'.format(method))
-
-
-def __ginibre_matrix(nrow, ncol=None):
-    """
-    Return a normally distributed complex random matrix.
-
-    Args:
-        nrow (int): number of rows in output matrix.
-        ncol (int): number of columns in output matrix.
-
-    Returns:
-        ndarray: A complex rectangular matrix where each real and imaginary
-            entry is sampled from the normal distribution.
-    """
-    if ncol is None:
-        ncol = nrow
-    G = np.random.normal(size=(nrow, ncol)) + \
-        np.random.normal(size=(nrow, ncol)) * 1j
-    return G
-
-
-def __random_density_hs(N, rank=None):
-    """
-    Generate a random density matrix from the Hilbert-Schmidt metric.
-
-    Args:
-        N (int): the length of the density matrix.
-        rank (int or None): the rank of the density matrix. The default
-            value is full-rank.
-    Returns:
-        ndarray: rho (N,N  a density matrix.
-    """
-    G = __ginibre_matrix(N, rank)
-    G = G.dot(G.conj().T)
-    return G / np.trace(G)
-
-
-def __random_density_bures(N, rank=None):
-    """
-    Generate a random density matrix from the Bures metric.
-
-    Args:
-        N (int): the length of the density matrix.
-        rank (int or None): the rank of the density matrix. The default
-            value is full-rank.
-    Returns:
-        ndarray: rho (N,N) a density matrix.
-    """
-    P = np.eye(N) + random_unitary_matrix(N)
-    G = P.dot(__ginibre_matrix(N, rank))
-    G = G.dot(G.conj().T)
-    return G / np.trace(G)
+    warnings.warn('The random_density_matrix() function in qiskit.tools.qi has been '
+                  'deprecated and will be removed in the future. Instead use '
+                  'the function in qiskit.quantum_info.random',
+                  DeprecationWarning)
+    return random.random_density_matrix(length, rank, method, seed)
 
 
 ###############################################################
@@ -477,12 +412,11 @@ def shannon_entropy(pvec, base=2):
 
     Args:
         pvec (array_like): a probability vector.
-        base (int): the base of the logarith
+        base (int): the base of the logarithm
 
     Returns:
         float: The Shannon entropy H(pvec).
     """
-    # pylint: disable=missing-docstring
     if base == 2:
         def logfn(x):
             return - x * np.log2(x)
@@ -510,6 +444,7 @@ def entropy(state):
     Returns:
         float: The von-Neumann entropy S(rho).
     """
+    # pylint: disable=assignment-from-no-return
 
     rho = np.array(state)
     if rho.ndim == 1:

@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test the decompose pass"""
 
@@ -29,9 +36,9 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(HGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.op_nodes(data=True)
+        op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
-        self.assertEqual(op_nodes[0][1]["op"].name, 'u2')
+        self.assertEqual(op_nodes[0].name, 'u2')
 
     def test_decompose_only_h(self):
         """Test to decompose a single H, without the rest
@@ -43,11 +50,10 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(HGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.op_nodes(data=True)
+        op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 2)
         for node in op_nodes:
-            op = node[1]["op"]
-            self.assertIn(op.name, ['cx', 'u2'])
+            self.assertIn(node.name, ['cx', 'u2'])
 
     def test_decompose_toffoli(self):
         """Test decompose CCX.
@@ -59,11 +65,10 @@ class TestDecompose(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         pass_ = Decompose(ToffoliGate)
         after_dag = pass_.run(dag)
-        op_nodes = after_dag.op_nodes(data=True)
+        op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 15)
         for node in op_nodes:
-            op = node[1]["op"]
-            self.assertIn(op.name, ['h', 't', 'tdg', 'cx'])
+            self.assertIn(node.name, ['h', 't', 'tdg', 'cx'])
 
     def test_decompose_conditional(self):
         """Test decompose a 1-qubit gates with a conditional.

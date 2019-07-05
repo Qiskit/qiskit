@@ -1,18 +1,25 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
-# pylint: disable=missing-docstring,redefined-builtin
+# pylint: disable=missing-docstring
 
 """Non-string identifiers for circuit and record identifiers test"""
 
 import unittest
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit import compile, BasicAer
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.compiler import assemble
 from qiskit.test import QiskitTestCase
 
 
@@ -30,22 +37,19 @@ class TestQobjIdentifiers(QiskitTestCase):
         self.circuits = [qc]
 
     def test_builtin_qasm_simulator_py(self):
-        backend = BasicAer.get_backend('qasm_simulator')
-        qobj = compile(self.circuits, backend=backend)
+        qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
 
     def test_builtin_qasm_simulator(self):
-        backend = BasicAer.get_backend('qasm_simulator')
-        qobj = compile(self.circuits, backend=backend)
+        qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))
 
     def test_builtin_unitary_simulator_py(self):
-        backend = BasicAer.get_backend('unitary_simulator')
-        qobj = compile(self.circuits, backend=backend)
+        qobj = assemble(self.circuits)
         exp = qobj.experiments[0]
         self.assertIn(self.qr_name, map(lambda x: x[0], exp.header.qubit_labels))
         self.assertIn(self.cr_name, map(lambda x: x[0], exp.header.clbit_labels))

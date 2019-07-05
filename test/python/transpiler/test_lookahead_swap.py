@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017, 2018.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Test the LookaheadSwap pass"""
 
 import unittest
 from qiskit.transpiler.passes import LookaheadSwap
-from qiskit.mapper import CouplingMap
+from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -19,7 +26,7 @@ class TestLookaheadSwap(QiskitTestCase):
     """Tests the LookaheadSwap pass."""
 
     def test_lookahead_swap_doesnt_modify_mapped_circuit(self):
-        """Test that lookahead mapper is idempotent.
+        """Test that lookahead swap is idempotent.
 
         It should not modify a circuit which is already compatible with the
         coupling map, and can be applied repeatedly without modifying the circuit.
@@ -49,7 +56,7 @@ class TestLookaheadSwap(QiskitTestCase):
         that the mapper inserts a single swap to enable the gate.
         """
 
-        qr = QuantumRegister(3)
+        qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
         dag_circuit = circuit_to_dag(circuit)
@@ -73,7 +80,7 @@ class TestLookaheadSwap(QiskitTestCase):
         Verify that we find the first solution, as it requires fewer SWAPs.
         """
 
-        qr = QuantumRegister(3)
+        qr = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
         circuit.cx(qr[0], qr[1])
@@ -97,7 +104,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         """
 
-        qr = QuantumRegister(3)
+        qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(2)
         circuit = QuantumCircuit(qr, cr)
 
@@ -111,8 +118,9 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        mapped_measure_qargs = set(mapped_dag.multi_graph.nodes(data=True)[op]['qargs'][0]
-                                   for op in mapped_dag.get_named_nodes('measure'))
+        mapped_measure_qargs = set(op.qargs[0]
+
+                                   for op in mapped_dag.named_nodes('measure'))
 
         self.assertIn(mapped_measure_qargs,
                       [set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
@@ -128,7 +136,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         """
 
-        qr = QuantumRegister(3)
+        qr = QuantumRegister(3, 'q')
         cr = ClassicalRegister(2)
         circuit = QuantumCircuit(qr, cr)
 
@@ -141,8 +149,9 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        mapped_barrier_qargs = [set(mapped_dag.multi_graph.nodes(data=True)[op]['qargs'])
-                                for op in mapped_dag.get_named_nodes('barrier')][0]
+        mapped_barrier_qargs = [set(op.qargs)
+
+                                for op in mapped_dag.named_nodes('barrier')][0]
 
         self.assertIn(mapped_barrier_qargs,
                       [set(((QuantumRegister(3, 'q'), 0), (QuantumRegister(3, 'q'), 1))),
