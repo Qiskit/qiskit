@@ -42,8 +42,10 @@ class AssertManager():
             ?: if experiments and results are not the same length
         """
         for exp in experiments:
+            print("exp.data")
+            print(exp.data)
             exp_counts = results.get_counts(exp)
-            print(list(exp_counts.values()))
+            print(exp_counts)
             assertion = exp.data[-1][0]
             qbits = assertion._qubit
             cbits = assertion._cbit

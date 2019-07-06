@@ -15,6 +15,7 @@
 """
 Assertion of product states.
 """
+import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.assertions.assertmanager import AssertManager
@@ -28,15 +29,16 @@ class AssertProduct(Asserts):
         Assertion of product states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, qubit0, cbit0, qubit1, cbit1, expval, pcrit): #qubit&cbit lists here
+    def __init__(self, pcrit, qubit0, cbit0, qubit1, cbit1): #qubit&cbit lists here
         super().__init__()
         self._type = "Product"
+        self._pcrit = pcrit
+        self._qubit = qubit0+qubit1
+        self._cbit = cbit0+cbit1
         self._qubit0 = qubit0
         self._cbit0 = cbit0
         self._qubit1 = qubit1
         self._cbit1 = cbit1
-        self._pcrit = pcrit
-        self._expval = expval
 
     def stat_test(self, counts):
         #vals_list = list(counts.values())
@@ -47,10 +49,16 @@ class AssertProduct(Asserts):
         q0len = len(self._qubit0)
         q1len = len(self._qubit1)
         #empty contingency table with right dimensions
-        cont_table = [[0]*q0len] *q1len
-        for (key, value) in counts:
-            q0index = key[:q0len]
-            q1index = key[q0len:q1len+1]
+        cont_table = np.empty((2**q0len,2**q1len))
+        cont_table.fill(1)
+        print("cont_table = ")
+        print(cont_table)
+        for (key, value) in counts.items():
+            print("key = " + key)
+            q0index = int(key[:q0len], 2)
+            q1index = int(key[q0len:], 2)
+            print("q0index = " + str(q0index))
+            print("q1index = " + str(q1index))
             cont_table[q1index][q0index] = value
 
         """try:
@@ -62,17 +70,17 @@ class AssertProduct(Asserts):
 
         print("cont_table")
         print(cont_table)
-        chisq, pval = (chi2_contingency(cont_table))
+        chisq, pval, dof, expctd = chi2_contingency(cont_table)
         print("chisq, pval = ")
         print(chisq, pval)
         if pval <= self._pcrit:
-            passed = True
-        else:
             passed = False
+        else:
+            passed = True
         return (chisq, pval, passed)
 
 
-def assertproduct(self, expval, pcrit, qubit0, cbit0, qubit1, cbit1):
+def assertproduct(self, pcrit, qubit0, cbit0, qubit1, cbit1):
     """Create product assertion
 
     Args:
@@ -92,7 +100,7 @@ def assertproduct(self, expval, pcrit, qubit0, cbit0, qubit1, cbit1):
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
     AssertManager.StatOutputs[theClone.name] = {"type":"Product","qubit0":qubit0,"cbit0":cbit0, "qubit1":qubit1, "cbit1":cbit1}
-    theClone.append(AssertProduct(qubit0, cbit0, qubit1, cbit1, expval, pcrit), [qubit0.extend(qubit1)], [cbit0.extend(cbit1)])
+    theClone.append(AssertProduct(pcrit, qubit0, cbit0, qubit1, cbit1), [qubit0+qubit1], [cbit0+cbit1])
     return theClone
 
 QuantumCircuit.assertproduct = assertproduct

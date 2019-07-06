@@ -15,6 +15,7 @@
 """
 Assertion of classical states.
 """
+import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.assertions.assertmanager import AssertManager
@@ -52,7 +53,9 @@ class AssertClassical(Asserts):
         print(vals_list)
         print("exp_list = ")
         print(exp_list)
-        chisq, pval = (chisquare(vals_list, f_exp = exp_list))
+        vals_list = vals_list / np.sum(vals_list)
+        exp_list = exp_list / np.sum(exp_list)
+        chisq, pval = chisquare(vals_list, f_exp = exp_list, ddof=1)
         print("chisq, pval = ")
         print(chisq, pval)
         if pval <= self._pcrit:
