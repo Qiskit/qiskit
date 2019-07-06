@@ -64,7 +64,7 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
+def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
     """
     Given a circuit, return a tuple (qregs, cregs, ops) where
     qregs and cregs are the quantum and classical registers
@@ -76,6 +76,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
             reversed.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
             the circuit should be justified.
+        idle_wires (bool): Include idle wires. Default is True.
     Returns:
         Tuple(list,list,list): To be consumed by the visualizer directly.
     """
@@ -87,14 +88,8 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
 
     dag = circuit_to_dag(circuit)
     ops = []
-    qregs = []
-    cregs = []
-
-    for qreg in dag.qregs.values():
-        qregs += [(qreg, bitno) for bitno in range(qreg.size)]
-
-    for creg in dag.cregs.values():
-        cregs += [(creg, bitno) for bitno in range(creg.size)]
+    qregs = dag.qubits()
+    cregs = dag.clbits()
 
     if justify == 'none':
         for node in dag.topological_op_nodes():
@@ -187,6 +182,13 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None):
     if reverse_bits:
         qregs.reverse()
         cregs.reverse()
+
+    if not idle_wires:
+        for wire in dag.idle_wires():
+            if wire in qregs:
+                qregs.remove(wire)
+            if wire in cregs:
+                cregs.remove(wire)
 
     return qregs, cregs, ops
 

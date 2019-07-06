@@ -88,54 +88,34 @@ def _get_credentials(test_object, test_options):
         Credentials: set of credentials
 
     Raises:
-        ImportError: if the
-        Exception: when the credential could not be set and they are needed
-            for that set of options
+        SkipTest: when credentials can't be found
     """
     try:
         from qiskit.providers.ibmq.credentials import (Credentials,
                                                        discover_credentials)
     except ImportError:
-        raise ImportError('qiskit-ibmq-provider could not be found, and is '
-                          'required for mocking or executing online tests.')
+        raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
+                                'and is required for executing online tests.')
 
-    dummy_credentials = Credentials(
-        'dummyapiusersloginWithTokenid01',
-        'https://quantumexperience.ng.bluemix.net/api')
-
-    if test_options['mock_online']:
-        return dummy_credentials
-
-    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', ''):
-        # Special case: instead of using the standard credentials mechanism,
-        # load them from different environment variables. This assumes they
-        # will always be in place, as is used by the Travis setup.
+    if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
         return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
-    else:
+    elif os.getenv('QISKIT_TESTS_USE_CREDENTIALS_FILE'):
         # Attempt to read the standard credentials.
         discovered_credentials = discover_credentials()
 
         if discovered_credentials:
             # Decide which credentials to use for testing.
             if len(discovered_credentials) > 1:
-                try:
-                    # Attempt to use QE credentials.
-                    return discovered_credentials[dummy_credentials.unique_id()]
-                except KeyError:
-                    pass
+                raise unittest.SkipTest(
+                    "More than 1 credential set found, use: "
+                    "IBMQ_TOKEN and IBMQ_URL env variables to "
+                    "set credentials explicitly")
 
             # Use the first available credentials.
             return list(discovered_credentials.values())[0]
-
-    # No user credentials were found.
-    if test_options['rec']:
-        raise Exception('Could not locate valid credentials. You need them for '
-                        'recording tests against the remote API.')
-
-    test_object.log.warning('No user credentials were detected. '
-                            'Running with mocked data.')
-    test_options['mock_online'] = True
-    return dummy_credentials
+    raise unittest.SkipTest(
+        'No IBMQ credentials found for running the test. This is required for '
+        'running online tests.')
 
 
 def requires_qe_access(func):

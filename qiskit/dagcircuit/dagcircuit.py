@@ -413,7 +413,7 @@ class DAGCircuit:
             # Map the register name, using fact that registers must not be
             # fragmented by the wire_map (this must have been checked
             # elsewhere)
-            bit0 = (condition[0], 0)
+            bit0 = condition[0][0]
             new_condition = (wire_map.get(bit0, bit0).register, condition[1])
         return new_condition
 
@@ -558,6 +558,17 @@ class DAGCircuit:
                 self.apply_operation_front(nd.op, m_qargs, m_cargs, condition)
             else:
                 raise DAGCircuitError("bad node type %s" % nd.type)
+
+    def idle_wires(self):
+        """Return idle wires.
+
+        Yields:
+            Bit: Bit in idle wire.
+        """
+        for wire in self.wires:
+            nodes = self.nodes_on_wire(wire, only_ops=False)
+            if len([i for i in nodes]) == 2:
+                yield wire
 
     def size(self):
         """Return the number of operations."""
@@ -896,6 +907,10 @@ class DAGCircuit:
                 three_q_gates.append(node)
         return three_q_gates
 
+    def longest_path(self):
+        """Returns the longest path in the dag as a list of DAGNodes."""
+        return nx.dag_longest_path(self._multi_graph)
+
     def successors(self, node):
         """Returns list of the successors of a node as DAGNodes."""
         return self._multi_graph.successors(node)
@@ -1141,7 +1156,8 @@ class DAGCircuit:
                 s = list(self._multi_graph.successors(node))
                 while len(s) == 1 and \
                         s[0].type == "op" and \
-                        s[0].name in namelist:
+                        s[0].name in namelist and \
+                        s[0].condition is None:
                     group.append(s[0])
                     nodes_seen[s[0]] = True
                     s = list(self._multi_graph.successors(s[0]))
@@ -1190,6 +1206,22 @@ class DAGCircuit:
         """
         op_dict = {}
         for node in self.topological_op_nodes():
+            name = node.name
+            if name not in op_dict:
+                op_dict[name] = 1
+            else:
+                op_dict[name] += 1
+        return op_dict
+
+    def count_ops_longest_path(self):
+        """Count the occurrences of operation names on the longest path.
+
+        Returns a dictionary of counts keyed on the operation name.
+        """
+        op_dict = {}
+        path = self.longest_path()
+        path = path[1:-1]     # remove qubits at beginning and end of path
+        for node in path:
             name = node.name
             if name not in op_dict:
                 op_dict[name] = 1

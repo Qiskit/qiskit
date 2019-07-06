@@ -16,9 +16,11 @@
 Specification of the device.
 """
 from typing import List
+from warnings import warn
 
 from qiskit.validation.exceptions import ModelValidationError
 
+from qiskit.pulse.exceptions import PulseError
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
 from .channels import AcquireChannel, MemorySlot, RegisterSlot
 from .qubit import Qubit
@@ -40,6 +42,9 @@ class DeviceSpecification:
         self._reg_slots = registers
         self._mem_slots = mem_slots
 
+        warn('DeviceSpecification is deprecated.'
+             'Instead of DeviceSpecification, use PulseChannelSpec.', DeprecationWarning)
+
     @classmethod
     def create_from(cls, backend):
         """
@@ -52,6 +57,9 @@ class DeviceSpecification:
             PulseError: when an invalid backend is specified
         """
         backend_config = backend.configuration()
+
+        if not backend_config.open_pulse:
+            raise PulseError(backend_config.backend_name + ' does not support OpenPulse.')
 
         # TODO : Remove usage of config.defaults when backend.defaults() is updated.
         try:

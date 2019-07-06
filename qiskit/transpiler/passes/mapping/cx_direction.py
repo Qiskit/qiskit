@@ -22,7 +22,6 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler.layout import Layout
 from qiskit.extensions.standard import U2Gate
 
 
@@ -38,16 +37,14 @@ class CXDirection(TransformationPass):
         ----.----      --[H]--(+)--[H]--
     """
 
-    def __init__(self, coupling_map, initial_layout=None):
+    def __init__(self, coupling_map):
         """
         Args:
             coupling_map (CouplingMap): Directed graph represented a coupling map.
-            initial_layout (Layout): The initial layout of the DAG.
         """
 
         super().__init__()
         self.coupling_map = coupling_map
-        self.layout = initial_layout
 
     def run(self, dag):
         """
@@ -63,10 +60,6 @@ class CXDirection(TransformationPass):
         """
         new_dag = DAGCircuit()
 
-        if self.layout is None:
-            # LegacySwap renames the register in the DAG and does not match the property set
-            self.layout = Layout.generate_trivial_layout(*dag.qregs.values())
-
         for layer in dag.serial_layers():
             subdag = layer['graph']
 
@@ -74,8 +67,8 @@ class CXDirection(TransformationPass):
                 control = cnot_node.qargs[0]
                 target = cnot_node.qargs[1]
 
-                physical_q0 = self.layout[control]
-                physical_q1 = self.layout[target]
+                physical_q0 = control.index
+                physical_q1 = target.index
                 if self.coupling_map.distance(physical_q0, physical_q1) != 1:
                     raise TranspilerError('The circuit requires a connection between physical '
                                           'qubits %s and %s' % (physical_q0, physical_q1))
