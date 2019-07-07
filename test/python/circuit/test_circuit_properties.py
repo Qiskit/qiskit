@@ -20,6 +20,7 @@ import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+# pylint: disable=unused-import
 from qiskit.extensions.simulator import snapshot
 
 
