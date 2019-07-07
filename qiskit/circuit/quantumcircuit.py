@@ -99,6 +99,8 @@ class QuantumCircuit:
         # Parameter table tracks instructions with variable parameters.
         self._parameter_table = ParameterTable()
 
+        self.layout = None
+
     def __str__(self):
         return str(self.draw(output='text'))
 
