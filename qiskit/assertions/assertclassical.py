@@ -56,12 +56,13 @@ class AssertClassical(Asserts):
         vals_list = vals_list / np.sum(vals_list)
         exp_list = exp_list / np.sum(exp_list)
         chisq, pval = chisquare(vals_list, f_exp = exp_list, ddof=1)
+        if len(list(counts.keys())[0]) == 1:
+            pval = vals_list[index]
+            passed = True if pval >= 1 - self._pcrit else False
+        else:
+            passed = True if pval >= self._pcrit else False
         print("chisq, pval = ")
         print(chisq, pval)
-        if pval <= self._pcrit:
-            passed = True
-        else:
-            passed = False
         return (chisq, pval, passed)
 
 
