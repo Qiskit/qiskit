@@ -163,20 +163,10 @@ class PassManager():
         del circuit
         self.reset()  # Reset passmanager instance before starting
 
-        count = 0
+        self.count = 0
         for passset in self.working_list:
             for pass_ in passset:
-                if self.callback:
-                    start_time = time()
                 dag = self._do_pass(pass_, dag, passset.options)
-                if self.callback:
-                    end_time = time()
-                if self.callback:
-                    run_time = end_time - start_time
-                    self.callback(pass_=pass_, dag=dag,
-                                  time=run_time,
-                                  property_set=self.property_set, count=count)
-                    count += 1
 
         circuit = dag_to_circuit(dag)
         circuit.name = name
@@ -217,8 +207,23 @@ class PassManager():
     def _run_this_pass(self, pass_, dag):
         if pass_.is_transformation_pass:
             pass_.property_set = self.fenced_property_set
-            with PassManagerContext(self, pass_):
-                new_dag = pass_.run(dag)
+            # Measure time if we have a callback or logging set
+            if self.log_passes or self.callback:
+                start_time = time()
+            new_dag = pass_.run(dag)
+            if self.log_passes or self.callback:
+                end_time = time()
+                run_time = end_time - start_time
+                # Execute the callback function if one is set
+                if self.callback:
+                    self.callback(pass_=pass_, dag=new_dag,
+                                  time=run_time,
+                                  property_set=self.property_set,
+                                  count=self.count)
+                    self.count += 1
+                # Log the pass if set
+                if self.log_passes:
+                    self._log_pass(start_time, end_time, pass_.name())
             if not isinstance(new_dag, DAGCircuit):
                 raise TranspilerError("Transformation passes should return a transformed dag."
                                       "The pass %s is returning a %s" % (type(pass_).__name__,
@@ -226,11 +231,42 @@ class PassManager():
             dag = new_dag
         elif pass_.is_analysis_pass:
             pass_.property_set = self.property_set
-            with PassManagerContext(self, pass_):
-                pass_.run(FencedDAGCircuit(dag))
+            # Measure time if we have a callback or logging set
+            if self.log_passes or self.callback:
+                start_time = time()
+            pass_.run(FencedDAGCircuit(dag))
+            if self.log_passes or self.callback:
+                end_time = time()
+                run_time = end_time - start_time
+                # Execute the callback function if one is set
+                if self.callback:
+                    self.callback(pass_=pass_, dag=dag,
+                                  time=run_time,
+                                  property_set=self.property_set,
+                                  count=self.count)
+                    self.count += 1
+                # Log the pass if set
+                if self.log_passes:
+                    self._log_pass(start_time, end_time, pass_.name())
         else:
             raise TranspilerError("I dont know how to handle this type of pass")
         return dag
+
+    def _log_pass(self, start_time, end_time, name):
+        raw_log_dict = {
+            'name': name,
+            'start_time': start_time,
+            'end_time': end_time,
+            'running_time': end_time - self.start_time
+        }
+        log_dict = "%s: %.5f (ms)" % (name,
+                                      (end_time - self.start_time) * 1000)
+        if self.property_set['pass_raw_log'] is None:
+            self.property_set['pass_raw_log'] = []
+        if self.property_set['pass_log'] is None:
+            self.property_set['pass_log'] = []
+        self.property_set['pass_raw_log'].append(raw_log_dict)
+        self.property_set['pass_log'].append(log_dict)
 
     def _update_valid_passes(self, pass_):
         self.valid_passes.add(pass_)
@@ -247,37 +283,6 @@ class PassManager():
         for pass_ in self.working_list:
             ret.append(pass_.dump_passes())
         return ret
-
-
-class PassManagerContext:
-    """ A wrap around the execution of a pass."""
-
-    def __init__(self, pm_instance, pass_instance):
-        self.pm_instance = pm_instance
-        self.pass_instance = pass_instance
-        self.start_time = None
-
-    def __enter__(self):
-        if self.pm_instance.log_passes:
-            self.start_time = time()
-
-    def __exit__(self, *exc_info):
-        if self.pm_instance.log_passes:
-            end_time = time()
-            raw_log_dict = {
-                'name': self.pass_instance.name(),
-                'start_time': self.start_time,
-                'end_time': end_time,
-                'running_time': end_time - self.start_time
-            }
-            log_dict = "%s: %.5f (ms)" % (self.pass_instance.name(),
-                                          (end_time - self.start_time) * 1000)
-            if self.pm_instance.property_set['pass_raw_log'] is None:
-                self.pm_instance.property_set['pass_raw_log'] = []
-            if self.pm_instance.property_set['pass_log'] is None:
-                self.pm_instance.property_set['pass_log'] = []
-            self.pm_instance.property_set['pass_raw_log'].append(raw_log_dict)
-            self.pm_instance.property_set['pass_log'].append(log_dict)
 
 
 class FlowController():
