@@ -23,6 +23,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler import PropertySet
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
+from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.transpiler.passes import Optimize1qGates, Unroller
 from qiskit.test.mock import FakeRueschlikon
 from qiskit.test import QiskitTestCase
@@ -73,4 +74,47 @@ class TestPassManager(QiskitTestCase):
         self.assertEqual(expected_end_dag, calls[1]['dag'])
         self.assertIsInstance(calls[0]['time'], float)
         self.assertEqual(calls[0]['property_set'], PropertySet())
+        self.assertEqual('MyCircuit', calls[1]['dag'].name)
+
+    def test_callback_with_pass_requires(self):
+        """Test the callback with a pass with another pass requirement."""
+        qr = QuantumRegister(3, 'qr')
+        circuit = QuantumCircuit(qr, name='MyCircuit')
+        circuit.z(qr[0])
+        circuit.cx(qr[0], qr[2])
+        circuit.z(qr[0])
+        expected_start = QuantumCircuit(qr)
+        expected_start.z(qr[0])
+        expected_start.cx(qr[0], qr[2])
+        expected_start.z(qr[0])
+        expected_start_dag = circuit_to_dag(expected_start)
+
+        expected_end = QuantumCircuit(qr)
+        expected_end.cx(qr[0], qr[2])
+        expected_end_dag = circuit_to_dag(expected_end)
+
+        calls = []
+
+        def callback(**kwargs):
+            out_dict = kwargs
+            out_dict['dag'] = copy.deepcopy(kwargs['dag'])
+            calls.append(out_dict)
+
+        passmanager = PassManager(callback=callback)
+        passmanager.append(CommutativeCancellation())
+        passmanager.run(circuit)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls[0]), 5)
+        self.assertEqual(calls[0]['count'], 0)
+        self.assertEqual(calls[0]['pass_'].name(), 'CommutationAnalysis')
+        self.assertEqual(expected_start_dag, calls[0]['dag'])
+        self.assertIsInstance(calls[0]['time'], float)
+        self.assertIsInstance(calls[0]['property_set'], PropertySet)
+        self.assertEqual('MyCircuit', calls[0]['dag'].name)
+        self.assertEqual(len(calls[1]), 5)
+        self.assertEqual(calls[1]['count'], 1)
+        self.assertEqual(calls[1]['pass_'].name(), 'CommutativeCancellation')
+        self.assertEqual(expected_end_dag, calls[1]['dag'])
+        self.assertIsInstance(calls[0]['time'], float)
+        self.assertIsInstance(calls[0]['property_set'], PropertySet)
         self.assertEqual('MyCircuit', calls[1]['dag'].name)
