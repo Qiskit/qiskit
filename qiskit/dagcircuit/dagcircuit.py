@@ -1028,8 +1028,13 @@ class DAGCircuit:
         for graph_layer in graph_layers:
 
             # Get the op nodes from the layer, removing any input and output nodes.
-            # Sort to make sure they are in the order they were added to the original DAG
             op_nodes = [node for node in graph_layer if node.type == "op"]
+
+            # Sort to make sure they are in the order they were added to the original DAG
+            # It has to be done by node_id as graph_layer is just a list of nodes
+            # with no implied topology
+            # Drawing tools that rely on _node_id to infer order of node creation
+            # so we need this to be preserved by layers()
             op_nodes.sort(key=lambda nd: nd._node_id)
 
             # Stop yielding once there are no more op_nodes in a layer.
@@ -1059,26 +1064,6 @@ class DAGCircuit:
                 for op_node in new_layer.op_nodes()
                 if op_node.name not in {"barrier", "snapshot", "save", "load", "noise"}
             ]
-
-            # Now add the edges to the multi_graph
-            # By default we just wire inputs to the outputs.
-            connections = {new_layer.input_map[wire]: new_layer.output_map[wire]
-                           for wire in new_layer.wires}
-
-            # Wire inputs to op nodes, and op nodes to outputs.
-            for op_node in new_layer.op_nodes():
-                args = self._bits_in_condition(op_node.condition) \
-                       + op_node.cargs + op_node.qargs
-                arg_ids = (new_layer.input_map[(arg.register, arg.index)] for arg in args)
-
-                for arg_id in arg_ids:
-                    connections[arg_id], connections[op_node] = op_node, connections[arg_id]
-
-            # have to create a copy with no wires, as adding the registers
-            # adds wires from input to output
-            tmp = nx.classes.function.create_empty_copy(new_layer._multi_graph)
-            tmp.add_edges_from(connections.items())
-            new_layer._multi_graph = tmp
 
             # add properties to edges
             for start, end in new_layer._multi_graph.edges():
