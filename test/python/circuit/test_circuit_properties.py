@@ -20,6 +20,8 @@ import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+# pylint: disable=unused-import
+from qiskit.extensions.simulator import snapshot
 
 
 class TestCircuitProperties(QiskitTestCase):
@@ -226,6 +228,93 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[2], c[0])
         qc.measure(q[3], c[0])
         self.assertEqual(qc.depth(), 5)
+
+    def test_circuit_depth_barriers1(self):
+        """Test circuit depth for barriers #1.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.barrier(q)
+        circ.h(2)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_barriers2(self):
+        """Test circuit depth for barriers #2.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.barrier(q)
+        circ.cx(0, 1)
+        circ.barrier(q)
+        circ.h(2)
+        circ.barrier(q)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_barriers3(self):
+        """Test circuit depth for barriers #3.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.barrier(q)
+        circ.cx(0, 1)
+        circ.barrier(q)
+        circ.barrier(q)
+        circ.barrier(q)
+        circ.h(2)
+        circ.barrier(q)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_snap1(self):
+        """Test circuit depth for snapshots #1.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.snapshot('snap')
+        circ.h(2)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_snap2(self):
+        """Test circuit depth for snapshots #2.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.snapshot('snap0')
+        circ.cx(0, 1)
+        circ.snapshot('snap1')
+        circ.h(2)
+        circ.snapshot('snap2')
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_snap3(self):
+        """Test circuit depth for snapshots #3.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.snapshot('snap0')
+        circ.snapshot('snap1')
+        circ.h(2)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
 
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""

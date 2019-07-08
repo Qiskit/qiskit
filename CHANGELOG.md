@@ -70,6 +70,7 @@ The format is based on [Keep a Changelog].
     an already embedded physical circuit. (\#2672)
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
+-   Change Snapshot signature to match simulator.snapshot (\#2592)
 
 ### Removed
 
