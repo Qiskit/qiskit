@@ -27,6 +27,8 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations 
+    on the longest path of the DAGCircuit.
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
     to the `QuantumCircuit.draw` method. The option allows to control
@@ -68,6 +70,7 @@ The format is based on [Keep a Changelog].
     an already embedded physical circuit. (\#2672)
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
+-   Change Snapshot signature to match simulator.snapshot (\#2592)
 
 ### Removed
 
@@ -102,6 +105,8 @@ The format is based on [Keep a Changelog].
 -   Fixes a bug that removed `id` gates from circuit. id gates are
     like a `wait` command and will never be removed (\#2663)
 -   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
+-   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
+    was measured into more than one memory cbit (\#2735)
 
 
 ## [0.8.2] - 2019-06-14
