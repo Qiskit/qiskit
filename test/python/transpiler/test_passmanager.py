@@ -53,7 +53,7 @@ class TestPassManager(QiskitTestCase):
         def callback(**kwargs):
             out_dict = kwargs
             out_dict['dag'] = copy.deepcopy(kwargs['dag'])
-            calls.append(kwargs)
+            calls.append(out_dict)
 
         passmanager = PassManager(callback=callback)
         passmanager.append(Unroller(['u2']))
