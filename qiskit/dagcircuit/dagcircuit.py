@@ -1015,6 +1015,10 @@ class DAGCircuit:
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
 
+        New but semantically equivalent DAGNodes will be included in the returned layers,
+        NOT the DAGNodes from the original DAG. The original vs new nodes can be compared using
+        DAGNode.semantic_eq(node1, node2)
+
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
         the desired behavior.
