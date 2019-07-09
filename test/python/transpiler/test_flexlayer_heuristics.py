@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2017.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """Tests for FlexlayerHeuristics."""
 
@@ -11,9 +18,10 @@ import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.mapper import CouplingMap, Layout
-from qiskit.transpiler.passes.mapping.algorithm import DependencyGraph
-from qiskit.transpiler.passes.mapping.algorithm import FlexlayerHeuristics, remove_head_swaps
+from qiskit.transpiler import CouplingMap, Layout
+from qiskit.transpiler.passes.mapping.algorithm.dependency_graph import DependencyGraph
+from qiskit.transpiler.passes.mapping.algorithm.flexlayer_heuristics import FlexlayerHeuristics
+from qiskit.transpiler.passes.mapping.algorithm.flexlayer_heuristics import remove_head_swaps
 
 
 class TestFlexlayerHeuristics(unittest.TestCase):
@@ -66,7 +74,7 @@ class TestFlexlayerHeuristics(unittest.TestCase):
     def test_search_multi_creg(self):
         """Test for multiple ClassicalRegisters.
         """
-        qr = QuantumRegister(4, 'b')
+        qr = QuantumRegister(4, 'q')
         cr1 = ClassicalRegister(2, 'c')
         cr2 = ClassicalRegister(2, 'd')
         circuit = QuantumCircuit(qr, cr1, cr2)

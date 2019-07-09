@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 A dependency graph represents precedence relations of the gates in a quantum circuit considering
@@ -16,17 +23,22 @@ from collections import defaultdict, namedtuple
 from typing import List, Set, Union
 
 import networkx as nx
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit import Qubit, Clbit
-from qiskit.transpiler import Layout
-from qiskit.transpiler import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.layout import Layout
 
 InstructionContext = namedtuple("InstructionContext", "instruction qargs cargs")
 
 
 class ArgumentedGate(InstructionContext):
+    """
+    A wrapper class of `InstructionContext` (instruction with args context).
+    """
+
     @property
     def name(self) -> str:
+        """Name of this instruction."""
         return self.instruction.name
 
 
