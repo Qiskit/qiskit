@@ -1069,22 +1069,6 @@ class DAGCircuit:
                 if op_node.name not in {"barrier", "snapshot", "save", "load", "noise"}
             ]
 
-            # add properties to edges
-            for start, end in new_layer._multi_graph.edges():
-
-                # all nodes should be connected to input or output
-                # this is because layers can only have one node per wire
-                if start.type == 'in':
-                    wire = start.wire
-                elif end.type == 'out':
-                    wire = end.wire
-                else:
-                    raise DAGCircuitError('Node not connected to input/output discovered in layers')
-
-                new_layer._multi_graph.adj[start][end][0]["name"] \
-                    = "%s[%s]" % (wire.register.name, wire.index)
-                new_layer._multi_graph.adj[start][end][0]["wire"] \
-                    = wire
             yield {"graph": new_layer, "partition": support_list}
 
     def serial_layers(self):
