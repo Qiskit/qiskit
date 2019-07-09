@@ -69,8 +69,10 @@ class TestSuperOp(ChannelTestCase):
         circuit = QuantumCircuit(2)
         circuit.ch(0, 1)
         op = SuperOp(circuit)
-        target = SuperOp(Operator(np.kron(self.UI, np.diag([1, 0])) +
-                 np.kron(self.UH, np.diag([0, 1]))))
+        target = SuperOp(
+            Operator(
+                np.kron(self.UI, np.diag([1, 0])) +
+                np.kron(self.UH, np.diag([0, 1]))))
         self.assertEqual(target, op)
 
     def test_circuit_init_except(self):
