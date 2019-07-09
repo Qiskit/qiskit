@@ -1,9 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2019, IBM.
+# This code is part of Qiskit.
 #
-# This source code is licensed under the Apache License, Version 2.0 found in
-# the LICENSE.txt file in the root directory of this source tree.
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 A pass implementing the flexible-layer mapper.
@@ -23,10 +30,11 @@ That's why this pass is named FlexlayerSwap pass.
 
 (For the general role of the swap mapper pass, see `lookahed_swap.py`.)
 """
-from qiskit.converters import dag_to_circuit, circuit_to_dag
+from qiskit.converters import dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler import CouplingMap, Layout
-from qiskit.transpiler import TransformationPass
+from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.coupling import CouplingMap
+from qiskit.transpiler.layout import Layout
 
 from .algorithm.dependency_graph import DependencyGraph
 from .algorithm.flexlayer_heuristics import FlexlayerHeuristics
@@ -40,21 +48,18 @@ class FlexlayerSwap(TransformationPass):
 
     def __init__(self,
                  coupling_map: CouplingMap,
-                 initial_layout: Layout = None,
                  lookahead_depth: int = 10,
                  decay_rate: float = 0.5):
         """
-        Maps a DAGCircuit onto a `coupling_map` using swap gates for a given `initial_layout`.
+        Maps a DAGCircuit onto a `coupling_map` using swap gates.
         Args:
             coupling_map: Directed graph represented a coupling map.
-            initial_layout: initial layout of qubits in mapping
             lookahead_depth: how far gates from blocking gates should be looked ahead
             decay_rate: decay rate of look-ahead weight (0 < decay_rate < 1)
         """
         super().__init__()
         self.requires.append(BarrierBeforeFinalMeasurements())
         self._coupling_map = coupling_map
-        self._initial_layout = initial_layout
         self._lookahead_depth = lookahead_depth
         self._decay_rate = decay_rate
 
@@ -66,19 +71,15 @@ class FlexlayerSwap(TransformationPass):
         Returns:
             A mapped DAG (with virtual qubits).
         """
-        if not self._initial_layout:
-            self._initial_layout = self.property_set["layout"]
-        if not self._initial_layout:
-            self._initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         qc = dag_to_circuit(dag)
         dependency_graph = DependencyGraph(qc, graph_type="xz_commute")
         algo = FlexlayerHeuristics(qc=qc,
                                    dependency_graph=dependency_graph,
                                    coupling=self._coupling_map,
-                                   initial_layout=self._initial_layout,
+                                   initial_layout=initial_layout,
                                    lookahead_depth=self._lookahead_depth,
                                    decay_rate=self._decay_rate)
-        res_dag, layout = algo.search()
+        res_dag, _ = algo.search()
         return res_dag
-
