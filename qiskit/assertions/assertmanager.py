@@ -55,6 +55,8 @@ class AssertManager():
         Raises:
             ?: if experiments and results are not the same length
         """
+        if isinstance(experiments, QuantumCircuit):
+            experiments = [experiments]
         for exp in experiments:
             print("exp.data")
             print(exp.data)
@@ -70,7 +72,8 @@ class AssertManager():
 
             new_counts = {}
             for (key, value) in exp_counts.items():
-                newkey = ''.join([key[-1*(cbit+1)] for cbit in cbits][::-1])
+                newkey = key.replace(' ', '')
+                newkey = ''.join([newkey[-1*(cbit+1)] for cbit in cbits][::-1])
                 new_counts.setdefault(newkey, 0)
                 new_counts[newkey] += value
             exp_counts = new_counts
