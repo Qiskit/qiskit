@@ -18,6 +18,7 @@ Quantum measurement in the computational basis.
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.exceptions import QiskitError
 from datetime import datetime
 
@@ -28,12 +29,18 @@ class AssertManager():
     def breakpoint_name():
         return datetime.now().isoformat()
 
-    def bits2idxs(bits):
-        if isinstance(bits[0], int):
-            return bits
-        else:
-            bits = [bit.index for bit in bits]
-            return bits
+    def clbits2idxs(cbits, exp):
+        if isinstance(cbits, ClassicalRegister): # syntax 3
+            idxfirst = exp.clbits.index(cbits[0])
+            idxlast = exp.clbits.index(cbits[-1])
+            return range(idxfirst, idxlast+1)
+        elif isinstance(cbits, int) or isinstance(cbits, Clbit):
+            cbits = [cbits]
+        if isinstance(cbits[0], int): # syntax 1
+            return cbits
+        elif isinstance(cbits[0], Clbit): # syntax 2
+            idxs = [exp.clbits.index(cbit) for cbit in cbits]
+            return idxs
 
     def stat_collect(experiments, results):
         """Calculate and collect results of statistical tests for each experiment
@@ -54,11 +61,10 @@ class AssertManager():
             exp_counts = results.get_counts(exp)
             print(exp_counts)
             assertion = exp.data[-1][0]
-            #qubits = assertion._qubit
             cbits = assertion._cbit
             print(assertion)
             exp_type = assertion.get_type()
-            cbits = AssertManager.bits2idxs(cbits)
+            cbits = AssertManager.clbits2idxs(cbits, exp)
             print("cbits")
             print(cbits)
 
