@@ -28,6 +28,13 @@ class AssertManager():
     def breakpoint_name():
         return datetime.now().isoformat()
 
+    def bits2idxs(bits):
+        if isinstance(bits[0], int):
+            return bits
+        else:
+            bits = [bit.index for bit in bits]
+            return bits
+
     def stat_collect(experiments, results):
         """Calculate and collect results of statistical tests for each experiment
     
@@ -47,19 +54,17 @@ class AssertManager():
             exp_counts = results.get_counts(exp)
             print(exp_counts)
             assertion = exp.data[-1][0]
-            qbits = assertion._qubit
+            #qubits = assertion._qubit
             cbits = assertion._cbit
             print(assertion)
             exp_type = assertion.get_type()
-
-            print("qbits")
-            print(qbits)
+            cbits = AssertManager.bits2idxs(cbits)
             print("cbits")
             print(cbits)
 
             new_counts = {}
             for (key, value) in exp_counts.items():
-                newkey = ''.join(key[-1*(cbit+1)] for cbit in cbits)
+                newkey = ''.join([key[-1*(cbit+1)] for cbit in cbits][::-1])
                 new_counts.setdefault(newkey, 0)
                 new_counts[newkey] += value
             exp_counts = new_counts

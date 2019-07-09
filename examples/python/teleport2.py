@@ -36,18 +36,13 @@ backend = BasicAer.get_backend("qasm_simulator")
 ###############################################################
 q = QuantumRegister(3, "q")
 c0 = ClassicalRegister(1, "c0")
-c1 = ClassicalRegister(1, "c1")
+c1 = ClassicalRegister(2, "c1")
 c2 = ClassicalRegister(1, "c2")
 qc = QuantumCircuit(q, c0, c1, c2, name="teleport")
 
 # Assert a classical state of all 0's
-breakpoint1 = qc.assertclassical(0, 0.05, q, [c0[0], c1[0], c2[0]])
-print("c0[0].index")
-print(c0[0].index)
-print("c1[0].index")
-print(c1[0].index)
-print("c2[0].index")
-print(c2[0].index)
+breakpoint1 = qc.assertclassical(0, 0.05, q, [c0[0], c1[0], c1[1]])
+qc.measure(q, [c0[0], c1[0], c1[1]])
 
 # Prepare an initial state
 qc.u3(0.3, 0.2, 0.1, q[0])

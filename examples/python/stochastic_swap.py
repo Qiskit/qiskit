@@ -18,12 +18,15 @@ from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.assertions.asserts import Asserts
+from qiskit.assertions.assertmanager import AssertManager
 
 coupling = CouplingMap([[0, 1], [1, 2], [1, 3]])
 qr = QuantumRegister(2, 'q')
 ar = QuantumRegister(2, 'a')
 cr = ClassicalRegister(4, 'c')
 circ = QuantumCircuit(qr, ar, cr)
+breakpoint1 = circ.assertclassical(0, 0.05, [qr[0:1], ar[0:1]], [cr[0:3]])
 circ.cx(qr[1], ar[0])
 circ.cx(qr[0], ar[1])
 circ.measure(qr[0], cr[0])

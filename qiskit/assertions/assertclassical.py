@@ -38,6 +38,8 @@ class AssertClassical(Asserts):
         self._expval = expval
 
     def stat_test(self, counts):
+        print("counts = ")
+        print(counts)
         vals_list = list(counts.values())
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
