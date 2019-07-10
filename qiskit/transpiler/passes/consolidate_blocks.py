@@ -69,11 +69,17 @@ class ConsolidateBlocks(TransformationPass):
         basis_gate_name = self.decomposer.gate.name
 
         for node in dag.topological_op_nodes():
-            # skip already-visited nodes or input/output nodes
-            if node in nodes_seen or node.type == 'in' or node.type == 'out':
+            # skip already-visited nodes
+            if node in nodes_seen:
                 continue
+
+            # block must be added at the latest possible place, so that all nodes that came
+            # before it in the original circuit are added first (#2737)
+            all_other_nodes_in_block = [n for n in blocks[0] if n != node] if blocks else []
+            all_already_seen = all([n in nodes_seen for n in all_other_nodes_in_block])
+
             # check if the node belongs to the next block
-            if blocks and node in blocks[0]:
+            if blocks and node in blocks[0] and all_already_seen:
                 block = blocks[0]
                 # find the qubits involved in this block
                 block_qargs = set()
@@ -104,6 +110,8 @@ class ConsolidateBlocks(TransformationPass):
 
                 del blocks[0]
             else:
+                # show that we have visited this node already
+                nodes_seen.add(node)
                 # the node could belong to some future block, but in that case
                 # we simply skip it. It is guaranteed that we will revisit that
                 # future block, via its other nodes
@@ -112,8 +120,10 @@ class ConsolidateBlocks(TransformationPass):
                         break
                 # freestanding nodes can just be added
                 else:
-                    nodes_seen.add(node)
-                    new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                    # add the node if there are no blocks left or
+                    # if the node isn't in the current block
+                    if not blocks or node not in blocks[0]:
+                        new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
         return new_dag
 
