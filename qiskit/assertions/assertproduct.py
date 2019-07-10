@@ -33,12 +33,13 @@ class AssertProduct(Asserts):
         super().__init__()
         self._type = "Product"
         self._pcrit = pcrit
-        self._qubit = qubit0+qubit1
-        self._cbit = cbit0+cbit1
-        self._qubit0 = qubit0
-        self._cbit0 = cbit0
-        self._qubit1 = qubit1
-        self._cbit1 = cbit1
+        self._qubit0 = qubit0 if type(qubit0) is list else [qubit0]
+        self._cbit0 = cbit0 if type(cbit0) is list else [cbit0]
+        self._qubit1 = qubit1 if type(qubit1) is list else [qubit1]
+        self._cbit1 = cbit1 if type(cbit1) is list else [cbit1]
+        self._qubit = self._qubit0 + self._qubit1
+        self._cbit = self._cbit0 + self._cbit1
+        # print(self.__dict__)
 
     def stat_test(self, counts):
         #vals_list = list(counts.values())
@@ -60,13 +61,6 @@ class AssertProduct(Asserts):
             print("q0index = " + str(q0index))
             print("q1index = " + str(q1index))
             cont_table[q1index][q0index] = value
-
-        """try:
-            index = list(map(int, counts.keys())).index(self._expval)
-        except ValueError:
-            index = -1
-        exp_list[index] = 2**16
-        """
 
         print("cont_table")
         print(cont_table)
@@ -99,8 +93,11 @@ def assertproduct(self, pcrit, qubit0, cbit0, qubit1, cbit1):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    AssertManager.StatOutputs[theClone.name] = {"type":"Product","qubit0":qubit0,"cbit0":cbit0, "qubit1":qubit1, "cbit1":cbit1}
-    theClone.append(AssertProduct(pcrit, qubit0, cbit0, qubit1, cbit1), [qubit0+qubit1], [cbit0+cbit1])
+    assertion = AssertProduct(pcrit, qubit0, cbit0, qubit1, cbit1) 
+    theClone.append(assertion, assertion._qubit, assertion._cbit)
+    AssertManager.StatOutputs[theClone.name] = {"type":"Product", "qubit0":assertion._qubit0, \
+        "cbit0":assertion._cbit0, "qubit1":assertion._qubit1, "cbit1":assertion._cbit1, \
+        "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
 QuantumCircuit.assertproduct = assertproduct

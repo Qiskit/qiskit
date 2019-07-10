@@ -88,6 +88,7 @@ class AssertManager():
             AssertManager.StatOutputs[exp.name]["chisq"] = chisq
             AssertManager.StatOutputs[exp.name]["pval"] = pval
             AssertManager.StatOutputs[exp.name]["passed"] = passed
+            AssertManager.StatOutputs[exp.name]["counts"] = exp_counts
             #now the dict StatOutputs should map each breakpoint.name to another dictionary containing type, chisq, p, as well as other inputs like expval
         return AssertManager.StatOutputs
 

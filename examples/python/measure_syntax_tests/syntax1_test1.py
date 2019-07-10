@@ -33,7 +33,9 @@ from qiskit.assertions.assertmanager import AssertManager
 qc1 = QuantumCircuit(2, 2)
 qc1.h(0)
 
-breakpoint = qc1.assertproduct(.05, [0], [0], [1], [1])
+# Insert a breakpoint, asserting that the 2 qubits are in a product state,
+# with a critical p-value of 0.05.
+breakpoint = qc1.assertproduct(.05, 0, 0, 1, 1)
 
 qc1.cx(0, 1)
 
@@ -43,10 +45,12 @@ qc1.measure([0,1], [0,1])
 print("(BasicAER Backends)")
 print(BasicAer.backends())
 
-# running the job
+# running the breakpoint and the job
 job_sim = execute([breakpoint, qc1], BasicAer.get_backend('qasm_simulator'))
 sim_result = job_sim.result()
-AssertManager.stat_collect([breakpoint], sim_result)
+
+# We obtain a dictionary of the results from our statistical test on our breakpoint
+stat_outputs = AssertManager.stat_collect(breakpoint, sim_result)
 
 # Show the results
 print("sim_result.get_counts(qc1) = ")
