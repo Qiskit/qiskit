@@ -39,7 +39,7 @@ class TestGateMap(QiskitVisualizationTestCase):
             n = i.configuration().n_qubits
             if n == 5:
                 img_ref = path_to_diagram_reference("5bit_quantum_computer.png")
-            if n == 14:
+            elif n == 14:
                 img_ref = path_to_diagram_reference("14bit_quantum_computer.png")
             elif n == 16:
                 img_ref = path_to_diagram_reference("16bit_quantum_computer.png")
@@ -47,8 +47,8 @@ class TestGateMap(QiskitVisualizationTestCase):
                 img_ref = path_to_diagram_reference("20bit_quantum_computer.png")
             filename = "temp.png"
             fig = plot_gate_map(i)
-            fig.savefig(filename, bbox_inches='tight')
-            self.assertImagesAreEqual(filename, img_ref)
+            fig.savefig(filename, bbox_inches="tight")
+            self.assertImagesAreEqual(filename, img_ref, 0.1)
             os.remove(filename)
 
 
