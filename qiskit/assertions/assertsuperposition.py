@@ -28,28 +28,22 @@ class AssertSuperposition(Asserts):
         Assertion of superposition states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, qubit, cbit, pcrit):
+    def __init__(self, pcrit, qubit, cbit):
         super().__init__()
         self._type = "Superposition"
-        self._qubit = qubit
-        self._cbit = cbit
         self._pcrit = pcrit
+        self._qubit = AssertManager.syntax4measure(qubit)
+        self._cbit = AssertManager.syntax4measure(cbit)
 
     def stat_test(self, counts):
         vals_list = list(counts.values())
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
-        print("counts = ")
-        print(counts)
         chisq, pval = chisquare(vals_list)
-        print("chisq, pval = ")
-        print(chisq, pval)
         if pval <= self._pcrit or chisq == 0: #math.isnan(pval):
             passed = False
         else:
             passed = True
-        print("Superposition: chisq, pval, passed = ")
-        print(chisq, pval, passed)
         return (chisq, pval, passed)
 
 
@@ -69,8 +63,10 @@ def assertsuperposition(self, pcrit, qubit, cbit):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    AssertManager.StatOutputs[theClone.name] = {"type":"Superposition"}
-    theClone.append(AssertSuperposition(qubit, cbit, pcrit), [qubit], [cbit])
+    assertion = AssertSuperposition(pcrit, qubit, cbit)
+    theClone.append(assertion, [assertion._qubit], [assertion._cbit])
+    AssertManager.StatOutputs[theClone.name] = {"type":"Superposition", \
+        "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
 QuantumCircuit.assertsuperposition = assertsuperposition

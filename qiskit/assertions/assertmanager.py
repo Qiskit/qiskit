@@ -18,6 +18,7 @@ Quantum measurement in the computational basis.
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.register import Register
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.exceptions import QiskitError
 from datetime import datetime
@@ -29,18 +30,24 @@ class AssertManager():
     def breakpoint_name():
         return datetime.now().isoformat()
 
+    def syntax4measure(bit):
+        if isinstance(bit,(list,Register)):
+            return bit
+        elif isinstance(bit,range):
+            return list(bit)
+        else:
+            return [bit]
+
     def clbits2idxs(cbits, exp):
-        if isinstance(cbits, ClassicalRegister): # syntax 3
-            idxfirst = exp.clbits.index(cbits[0])
-            idxlast = exp.clbits.index(cbits[-1])
-            return range(idxfirst, idxlast+1)
-        elif isinstance(cbits, int) or isinstance(cbits, Clbit):
-            cbits = [cbits]
         if isinstance(cbits[0], int): # syntax 1
             return cbits
         elif isinstance(cbits[0], Clbit): # syntax 2
             idxs = [exp.clbits.index(cbit) for cbit in cbits]
             return idxs
+        elif isinstance(cbits, ClassicalRegister): # syntax 3
+            idxfirst = exp.clbits.index(cbits[0])
+            idxlast = exp.clbits.index(cbits[-1])
+            return range(idxfirst, idxlast+1)
 
     def stat_collect(experiments, results):
         """Calculate and collect results of statistical tests for each experiment
@@ -55,20 +62,14 @@ class AssertManager():
         Raises:
             ?: if experiments and results are not the same length
         """
-        if isinstance(experiments, QuantumCircuit):
+        if not isinstance(experiments, list):
             experiments = [experiments]
         for exp in experiments:
-            print("exp.data")
-            print(exp.data)
             exp_counts = results.get_counts(exp)
-            print(exp_counts)
             assertion = exp.data[-1][0]
             cbits = assertion._cbit
-            print(assertion)
             exp_type = assertion.get_type()
             cbits = AssertManager.clbits2idxs(cbits, exp)
-            print("cbits")
-            print(cbits)
 
             new_counts = {}
             for (key, value) in exp_counts.items():
@@ -78,9 +79,8 @@ class AssertManager():
                 new_counts[newkey] += value
             exp_counts = new_counts
 
-
-            print(exp_type)
             chisq, pval, passed = assertion.stat_test(exp_counts)
+            print("chisq, pval, passed = ")
             print(chisq, pval, passed)
             AssertManager.StatOutputs[exp.name]["type"] = assertion.get_type()
             AssertManager.StatOutputs[exp.name]["expval"] = assertion.get_expval()

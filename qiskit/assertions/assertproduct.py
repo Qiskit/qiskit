@@ -33,13 +33,12 @@ class AssertProduct(Asserts):
         super().__init__()
         self._type = "Product"
         self._pcrit = pcrit
-        self._qubit0 = qubit0 if type(qubit0) is list else [qubit0]
-        self._cbit0 = cbit0 if type(cbit0) is list else [cbit0]
-        self._qubit1 = qubit1 if type(qubit1) is list else [qubit1]
-        self._cbit1 = cbit1 if type(cbit1) is list else [cbit1]
+        self._qubit0 = AssertManager.syntax4measure(qubit0)
+        self._cbit0 = AssertManager.syntax4measure(cbit0)
+        self._qubit1 = AssertManager.syntax4measure(qubit1)
+        self._cbit1 = AssertManager.syntax4measure(cbit1)
         self._qubit = self._qubit0 + self._qubit1
         self._cbit = self._cbit0 + self._cbit1
-        # print(self.__dict__)
 
     def stat_test(self, counts):
         #vals_list = list(counts.values())
@@ -52,21 +51,12 @@ class AssertProduct(Asserts):
         #empty contingency table with right dimensions
         cont_table = np.empty((2**q0len,2**q1len))
         cont_table.fill(1)
-        print("cont_table = ")
-        print(cont_table)
         for (key, value) in counts.items():
-            print("key = " + key)
             q0index = int(key[:q0len], 2)
             q1index = int(key[q0len:], 2)
-            print("q0index = " + str(q0index))
-            print("q1index = " + str(q1index))
             cont_table[q1index][q0index] = value
 
-        print("cont_table")
-        print(cont_table)
         chisq, pval, dof, expctd = chi2_contingency(cont_table)
-        print("chisq, pval = ")
-        print(chisq, pval)
         if pval <= self._pcrit:
             passed = False
         else:
@@ -94,10 +84,11 @@ def assertproduct(self, pcrit, qubit0, cbit0, qubit1, cbit1):
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
     assertion = AssertProduct(pcrit, qubit0, cbit0, qubit1, cbit1) 
-    theClone.append(assertion, assertion._qubit, assertion._cbit)
+    theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     AssertManager.StatOutputs[theClone.name] = {"type":"Product", "qubit0":assertion._qubit0, \
         "cbit0":assertion._cbit0, "qubit1":assertion._qubit1, "cbit1":assertion._cbit1, \
         "qubit":assertion._qubit, "cbit":assertion._cbit}
+    assertion._qubit0 = [assertion._qubit0]
     return theClone
 
 QuantumCircuit.assertproduct = assertproduct

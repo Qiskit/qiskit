@@ -29,17 +29,15 @@ class AssertClassical(Asserts):
         Assertion of classical states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, qubit, cbit, expval, pcrit):
+    def __init__(self, expval, pcrit, qubit, cbit):
         super().__init__()
         self._type = "Classical"
-        self._qubit = qubit
-        self._cbit = cbit
-        self._pcrit = pcrit
         self._expval = expval
+        self._pcrit = pcrit
+        self._qubit = AssertManager.syntax4measure(qubit)
+        self._cbit = AssertManager.syntax4measure(cbit)
 
     def stat_test(self, counts):
-        print("counts = ")
-        print(counts)
         vals_list = list(counts.values())
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
@@ -51,10 +49,6 @@ class AssertClassical(Asserts):
         except ValueError:
             index = -1
         exp_list[index] = 2**16
-        print("vals_list = ")
-        print(vals_list)
-        print("exp_list = ")
-        print(exp_list)
         vals_list = vals_list / np.sum(vals_list)
         exp_list = exp_list / np.sum(exp_list)
         chisq, pval = chisquare(vals_list, f_exp = exp_list, ddof=1)
@@ -63,8 +57,6 @@ class AssertClassical(Asserts):
             passed = True if pval >= 1 - self._pcrit else False
         else:
             passed = True if pval >= self._pcrit else False
-        print("chisq, pval = ")
-        print(chisq, pval)
         return (chisq, pval, passed)
 
 
@@ -85,8 +77,10 @@ def assertclassical(self, expval, pcrit, qubit, cbit):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    AssertManager.StatOutputs[theClone.name] = {"type":"Classical","expval":expval}
-    theClone.append(AssertClassical(qubit, cbit, expval, pcrit), [qubit], [cbit])
+    assertion = AssertClassical(expval, pcrit, qubit, cbit)
+    theClone.append(assertion, [assertion._qubit], [assertion._cbit])
+    AssertManager.StatOutputs[theClone.name] = {"type":"Classical", "expval":expval, \
+        "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
 QuantumCircuit.assertclassical = assertclassical

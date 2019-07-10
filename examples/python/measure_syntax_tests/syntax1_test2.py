@@ -47,7 +47,9 @@ qft3.barrier()
 qft(qft3, 3)
 qft3.barrier()
 
-breakpoint = qft3.assertclassical(1, 0.05, [0, 1, 2], [0, 1, 2])
+# Insert a breakpoint, asserting that the 3 measured qubits are a classical value of 1,
+# with a critical p-value of 0.05.
+breakpoint = qft3.assertclassical(1, 0.05, range(3), range(3))
 for j in range(3):
     qft3.measure(j, j)
 
@@ -65,15 +67,17 @@ qft5.barrier()
 for j in range(5):
     qft5.measure(j, j)
 
-print(qft3)
-print(qft4)
-print(qft5)
-
-print('Qasm simulator')
+# setting up the backend, running the breakpoint and the job
 sim_backend = BasicAer.get_backend('qasm_simulator')
 job = execute([breakpoint, qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()
-AssertManager.stat_collect([breakpoint], result)
-print(result.get_counts(qft3))
-print(result.get_counts(qft4))
-print(result.get_counts(qft5))
+
+# We obtain a dictionary of the results from our statistical test on our breakpoint
+stat_outputs = AssertManager.stat_collect(breakpoint, result)
+print("Results of our statistical test:")
+print(stat_outputs)
+
+# Show the results
+#print(result.get_counts(qft3))
+#print(result.get_counts(qft4))
+#print(result.get_counts(qft5))
