@@ -20,7 +20,7 @@ from qiskit import BasicAer
 from qiskit.aqua import QuantumInstance
 from qiskit.aqua.algorithms import Grover
 from qiskit.aqua.components.oracles import LogicalExpressionOracle as LEO, TruthTableOracle as TTO
-from test.common import QiskitAquaTestCase
+from test.aqua.common import QiskitAquaTestCase
 
 
 tests = [

@@ -15,7 +15,7 @@
 import unittest
 
 from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
-from test.common import QiskitAquaTestCase
+from test.aqua.common import QiskitAquaTestCase
 
 
 class TestEngtanlerMap(QiskitAquaTestCase):

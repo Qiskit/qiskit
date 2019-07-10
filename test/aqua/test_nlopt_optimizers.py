@@ -18,7 +18,7 @@ from parameterized import parameterized
 from scipy.optimize import rosen
 import numpy as np
 
-from test.common import QiskitAquaTestCase
+from test.aqua.common import QiskitAquaTestCase
 from qiskit.aqua import PluggableType, get_pluggable_class
 
 

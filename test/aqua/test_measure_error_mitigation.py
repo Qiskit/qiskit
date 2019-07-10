@@ -18,7 +18,7 @@ import time
 import numpy as np
 from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
 
-from test.common import QiskitAquaTestCase
+from test.aqua.common import QiskitAquaTestCase
 from qiskit.aqua.components.oracles import LogicalExpressionOracle
 from qiskit.aqua import QuantumInstance, aqua_globals
 from qiskit.aqua.algorithms import Grover

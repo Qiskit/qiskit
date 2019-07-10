@@ -18,7 +18,7 @@ from parameterized import parameterized
 from qiskit import BasicAer
 from qiskit.aqua import run_algorithm, QuantumInstance, AquaError
 from qiskit.aqua.algorithms import Shor
-from test.common import QiskitAquaTestCase
+from test.aqua.common import QiskitAquaTestCase
 
 
 class TestShor(QiskitAquaTestCase):
