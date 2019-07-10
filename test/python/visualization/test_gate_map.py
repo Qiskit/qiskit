@@ -16,7 +16,7 @@
 import unittest
 import os
 import matplotlib.pyplot as plt
-from qiskit import IBMQ
+from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.gate_map import _GraphDist, plot_gate_map
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
@@ -24,19 +24,27 @@ from .visualization import path_to_diagram_reference, QiskitVisualizationTestCas
 
 class TestGateMap(QiskitVisualizationTestCase):
     """ visual tests for plot_gate_map """
-    backend = []
+    backends = []
 
-    def setup(self):
+    def setUp(self):
         """ setup for backend """
-        self.backend = IBMQ.backends(filters=lambda x: not x.configuration().simulator)
+        self.backends = list(filter(lambda x:
+                                    not (x.configuration().simulator
+                                         or x.configuration().n_qubits == 2),
+                                    FakeProvider().backends()))
 
     def test_plot_gate_map(self):
-        """ tests plotting of gate map of a device (14 qubit and 5 qubit)"""
-        img_ref = path_to_diagram_reference("5bit_quantum_computer.png")
-        for i in self.backend:
+        """ tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
+        for i in self.backends:
             n = i.configuration().n_qubits
-            if n > 5:
+            if n == 5:
+                img_ref = path_to_diagram_reference("5bit_quantum_computer.png")
+            if n == 14:
                 img_ref = path_to_diagram_reference("14bit_quantum_computer.png")
+            elif n == 16:
+                img_ref = path_to_diagram_reference("16bit_quantum_computer.png")
+            elif n == 20:
+                img_ref = path_to_diagram_reference("20bit_quantum_computer.png")
             filename = "temp.png"
             fig = plot_gate_map(i)
             fig.savefig(filename, bbox_inches='tight')
