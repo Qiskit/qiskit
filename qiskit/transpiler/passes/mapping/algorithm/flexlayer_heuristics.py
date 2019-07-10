@@ -35,7 +35,7 @@ import copy
 import logging
 import pprint
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Gate
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions.standard import SwapGate
 from qiskit.transpiler.coupling import CouplingMap
@@ -73,7 +73,6 @@ class FlexlayerHeuristics:
         self._qubit_count_validity_check()
         if len(initial_layout.get_virtual_bits()) != len(initial_layout.get_physical_bits()):
             raise TranspilerError("FlexlayerHeuristics assumes #virtual-qubits == #physical-qubits")
-        # self._add_ancilla_qubits()
 
         self._lookahead_depth = lookahead_depth
         self._decay_rate = decay_rate
@@ -84,7 +83,7 @@ class FlexlayerHeuristics:
         """
 
         Returns:
-            Mapped physical circuit (DAGCircuit) and initial qubit layout (Layout)
+            Mapped physical circuit (DAGCircuit) and last qubit layout (Layout)
         Raises:
             TranspilerError: if found too many loops (maybe unexpected infinite loop).
         """
@@ -169,11 +168,7 @@ class FlexlayerHeuristics:
             if k == max_n_iteration:
                 raise TranspilerError("Unknown error: #iteration reached max_n_iteration")
 
-        reslayout = self._initial_layout
-        # resqc = dag_to_circuit(new_dag)
-        # resqc, reslayout = remove_head_swaps(resqc, self._initial_layout)
-
-        return new_dag, reslayout
+        return new_dag, layout
 
     def _next_blocking_gates_from(self, blocking_gates, layout):
         """next blocking gates from blocking_gates for layout with finding applicable gates (dones)
@@ -300,10 +295,6 @@ class FlexlayerHeuristics:
         new_dag.add_qreg(physical_qreg)
         for creg in self._qc.cregs:
             new_dag.add_creg(creg)
-        # new_dag.add_basis_element('swap', 2, 0, 0)
-        # for name, data in self._qc.definitions.items():
-        #     new_dag.add_basis_element(name, data["n_bits"], 0, data["n_args"])
-        #     new_dag.add_gate_data(name, data)
         return new_dag
 
 
@@ -439,71 +430,3 @@ class EdgeCostEstimator:
         if abs(dist1 - dits2) > 1:
             raise TranspilerError("Invalid shortest paths on coupling graph")
         return dits2 - dist1
-
-
-def _qargs(gate):
-    return [ridx for (reg, ridx) in gate.qargs]
-
-
-def remove_head_swaps(qc: QuantumCircuit,
-                      initial_layout: Layout) -> (QuantumCircuit, Layout):
-    """remove unnecessary swap gates from qc by changing initial_layout
-    assume all of the gates in qc are expanded to one-qubit gate, cx, swap
-    """
-
-    rev_new_layout = {v: k for k, v in initial_layout.items()}
-    cx_seen = collections.defaultdict(bool)  # phisical qubit -> seen first cx or not
-    to_be_removed = []
-    for i, gate in enumerate(qc.data):
-        if len(gate.qargs) > 1:
-            qargs = _qargs(gate)
-            if gate.name == "swap":
-                if (not cx_seen[qargs[0]]) and (not cx_seen[qargs[1]]):
-                    # swap before the first cx -> update rev_layout and do not output swap to qasm
-                    rev_new_layout[qargs[0]], rev_new_layout[qargs[1]] = rev_new_layout[qargs[1]], \
-                                                                         rev_new_layout[qargs[0]]
-                    to_be_removed.append(i)
-                else:
-                    # must change flag! because left swap = cx
-                    cx_seen[qargs[0]] = True
-                    cx_seen[qargs[1]] = True
-            else:
-                for qarg in qargs:
-                    cx_seen[qarg] = True
-
-    logger.debug("remove_head_swaps: n_removed = %d", len(to_be_removed))
-
-    resqc = copy.deepcopy(qc)
-    new_initial_layout = {v: k for k, v in rev_new_layout.items()}
-    new_layout = new_initial_layout
-    rev_org_layout = {v: k for k, v in initial_layout.items()}
-
-    if to_be_removed:
-        qregs = resqc.qregs
-        for i, gate in enumerate(resqc.data[:1 + to_be_removed[-1]]):
-            qargs = _qargs(gate)
-            if gate.name == "swap":
-                rev_org_layout[qargs[0]], rev_org_layout[qargs[1]] = rev_org_layout[qargs[1]], \
-                                                                     rev_org_layout[qargs[0]]
-                if i not in to_be_removed:
-                    rev_new_layout[qargs[0]], rev_new_layout[qargs[1]] = rev_new_layout[qargs[1]], \
-                                                                         rev_new_layout[qargs[0]]
-                    new_layout = {v: k for k, v in rev_new_layout.items()}
-            else:
-                _change_qargs(gate, rev_org_layout, new_layout, qregs)
-
-        resqc.data = [g for i, g in enumerate(resqc.data) if i not in to_be_removed]
-
-    return resqc, new_initial_layout
-
-
-def _change_qargs(gate: Gate, rev_org_layout: dict, new_layout: dict, qregs: dict):
-    if gate.name == "measure":
-        raise TranspilerError("_change_qargs() is not applicable to measure gate")
-
-    new_qarg = []
-    for qubit in _qargs(gate):
-        new_qubit = new_layout[rev_org_layout[qubit]]
-        new_qarg.append((qregs[new_qubit[0]], new_qubit[1]))
-
-    gate.arg = new_qarg
