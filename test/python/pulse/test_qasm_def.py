@@ -174,7 +174,7 @@ class TestQasmToSchedDefWithDeviceSpecification(QiskitTestCase):
         self.assertTrue(qasm_def.has('tmp', 0))
 
     def test_add(self):
-        """Test `add`, `has`, `get`, `cmdss`."""
+        """Test `add`, `has`, `get`, `gates`."""
         sched = Schedule()
         sched.append(SamplePulse(np.ones(5))(self.device.q[0].drive))
         qasm_def = QasmToSchedDef()
