@@ -908,6 +908,10 @@ class DAGCircuit:
                 three_q_gates.append(node)
         return three_q_gates
 
+    def longest_path(self):
+        """Returns the longest path in the dag as a list of DAGNodes."""
+        return nx.dag_longest_path(self._multi_graph)
+
     def successors(self, node):
         """Returns list of the successors of a node as DAGNodes."""
         return self._multi_graph.successors(node)
@@ -1011,6 +1015,10 @@ class DAGCircuit:
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
 
+        New but semantically equivalent DAGNodes will be included in the returned layers,
+        NOT the DAGNodes from the original DAG. The original vs new nodes can be compared using
+        DAGNode.semantic_eq(node1, node2)
+
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
         the desired behavior.
@@ -1021,15 +1029,17 @@ class DAGCircuit:
         except StopIteration:
             return
 
-        def add_nodes_from(layer, nodes):
-            """ Convert DAGNodes into a format that can be added to a
-             multigraph and then add to graph"""
-            layer._multi_graph.add_nodes_from(nodes)
-
         for graph_layer in graph_layers:
 
             # Get the op nodes from the layer, removing any input and output nodes.
             op_nodes = [node for node in graph_layer if node.type == "op"]
+
+            # Sort to make sure they are in the order they were added to the original DAG
+            # It has to be done by node_id as graph_layer is just a list of nodes
+            # with no implied topology
+            # Drawing tools that rely on _node_id to infer order of node creation
+            # so we need this to be preserved by layers()
+            op_nodes.sort(key=lambda nd: nd._node_id)
 
             # Stop yielding once there are no more op_nodes in a layer.
             if not op_nodes:
@@ -1039,36 +1049,26 @@ class DAGCircuit:
             new_layer = DAGCircuit()
             new_layer.name = self.name
 
+            # add in the registers - this adds the input/output nodes
             for creg in self.cregs.values():
                 new_layer.add_creg(creg)
             for qreg in self.qregs.values():
                 new_layer.add_qreg(qreg)
 
-            add_nodes_from(new_layer, self.input_map.values())
-            add_nodes_from(new_layer, self.output_map.values())
-            add_nodes_from(new_layer, op_nodes)
+            for node in op_nodes:
+                # this creates new DAGNodes in the new_layer
+                new_layer.apply_operation_back(node.op,
+                                               node.qargs,
+                                               node.cargs,
+                                               node.condition)
 
             # The quantum registers that have an operation in this layer.
             support_list = [
                 op_node.qargs
-                for op_node in op_nodes
+                for op_node in new_layer.op_nodes()
                 if op_node.name not in {"barrier", "snapshot", "save", "load", "noise"}
             ]
 
-            # Now add the edges to the multi_graph
-            # By default we just wire inputs to the outputs.
-            wires = {self.input_map[wire]: self.output_map[wire]
-                     for wire in self.wires}
-            # Wire inputs to op nodes, and op nodes to outputs.
-            for op_node in op_nodes:
-                args = self._bits_in_condition(op_node.condition) \
-                       + op_node.cargs + op_node.qargs
-                arg_ids = (self.input_map[(arg.register, arg.index)] for arg in args)
-                for arg_id in arg_ids:
-                    wires[arg_id], wires[op_node] = op_node, wires[arg_id]
-
-            # Add wiring to/from the operations and between unused inputs & outputs.
-            new_layer._multi_graph.add_edges_from(wires.items())
             yield {"graph": new_layer, "partition": support_list}
 
     def serial_layers(self):
@@ -1203,6 +1203,22 @@ class DAGCircuit:
         """
         op_dict = {}
         for node in self.topological_op_nodes():
+            name = node.name
+            if name not in op_dict:
+                op_dict[name] = 1
+            else:
+                op_dict[name] += 1
+        return op_dict
+
+    def count_ops_longest_path(self):
+        """Count the occurrences of operation names on the longest path.
+
+        Returns a dictionary of counts keyed on the operation name.
+        """
+        op_dict = {}
+        path = self.longest_path()
+        path = path[1:-1]     # remove qubits at beginning and end of path
+        for node in path:
             name = node.name
             if name not in op_dict:
                 op_dict[name] = 1
