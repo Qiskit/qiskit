@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse.cmd_def import CmdDef
+from qiskit.pulse.qasm_def import QasmToSchedDef
 from qiskit.pulse.commands import AcquireInstruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
@@ -35,8 +35,8 @@ class TestAutoMerge(QiskitTestCase):
         self.device = pulse.PulseChannelSpec.from_backend(self.backend)
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
-        self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,
-                                            self.defaults.pulse_library)
+        self.qasm_def = QasmToSchedDef.from_defaults(self.defaults.cmd_def,
+                                                     self.defaults.pulse_library)
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
 
@@ -47,11 +47,11 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(0, self.short_pulse(self.device.drives[0]))
         sched = sched.insert(1, acquire(self.device.acquires[0], self.device.memoryslots[0]))
         sched = sched.insert(10, acquire(self.device.acquires[1], self.device.memoryslots[1]))
-        sched = align_measures([sched], self.cmd_def)[0]
+        sched = align_measures([sched], self.qasm_def)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
-        sched = align_measures([sched], self.cmd_def, align_time=20)[0]
+        sched = align_measures([sched], self.qasm_def, align_time=20)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 20)
@@ -63,11 +63,11 @@ class TestAutoMerge(QiskitTestCase):
         sched = pulse.Schedule(name='fake_experiment')
         sched = sched.insert(0, self.short_pulse(self.device.drives[0]))
         sched = sched.insert(1, acquire(self.device.acquires[0], self.device.memoryslots[0]))
-        sched = align_measures([sched], self.cmd_def)[0]
+        sched = align_measures([sched], self.qasm_def)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 4)
-        sched = align_measures([sched], self.cmd_def, max_calibration_duration=10)[0]
+        sched = align_measures([sched], self.qasm_def, max_calibration_duration=10)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
@@ -80,7 +80,7 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(4, acquire(self.device.acquires[0], self.device.memoryslots[0]))
         sched = sched.insert(10, acquire(self.device.acquires[0], self.device.memoryslots[0]))
         with self.assertRaises(PulseError):
-            align_measures([sched], self.cmd_def)
+            align_measures([sched], self.qasm_def)
 
     def test_error_post_acquire_pulse(self):
         """Test that an error is raised if a pulse occurs on a channel after an acquire."""
@@ -90,10 +90,10 @@ class TestAutoMerge(QiskitTestCase):
         sched = sched.insert(4, acquire(self.device.acquires[0], self.device.memoryslots[0]))
         # No error with separate channel
         sched = sched.insert(10, self.short_pulse(self.device.drives[1]))
-        align_measures([sched], self.cmd_def)
+        align_measures([sched], self.qasm_def)
         sched = sched.insert(10, self.short_pulse(self.device.drives[0]))
         with self.assertRaises(PulseError):
-            align_measures([sched], self.cmd_def)
+            align_measures([sched], self.qasm_def)
 
     def test_align_across_schedules(self):
         """Test that acquires are aligned together across multiple schedules."""
@@ -104,7 +104,7 @@ class TestAutoMerge(QiskitTestCase):
         sched2 = pulse.Schedule(name='fake_experiment')
         sched2 = sched2.insert(3, self.short_pulse(self.device.drives[0]))
         sched2 = sched2.insert(25, acquire(self.device.acquires[0], self.device.memoryslots[0]))
-        schedules = align_measures([sched1, sched2], self.cmd_def)
+        schedules = align_measures([sched1, sched2], self.qasm_def)
         for time, inst in schedules[0].instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 25)
@@ -121,8 +121,8 @@ class TestAddImplicitAcquires(QiskitTestCase):
         self.device = pulse.PulseChannelSpec.from_backend(self.backend)
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
-        self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,
-                                            self.defaults.pulse_library)
+        self.qasm_def = QasmToSchedDef.from_defaults(self.defaults.cmd_def,
+                                                     self.defaults.pulse_library)
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
         acquire = pulse.Acquire(5)
@@ -167,8 +167,8 @@ class TestAutoMergeWithDeviceSpecification(QiskitTestCase):
         self.device = pulse.DeviceSpecification.create_from(self.backend)
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
-        self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,
-                                            self.defaults.pulse_library)
+        self.qasm_def = QasmToSchedDef.from_defaults(self.defaults.cmd_def,
+                                                     self.defaults.pulse_library)
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
 
@@ -179,11 +179,11 @@ class TestAutoMergeWithDeviceSpecification(QiskitTestCase):
         sched = sched.insert(0, self.short_pulse(self.device.q[0].drive))
         sched = sched.insert(1, acquire(self.device.q[0], self.device.mem[0]))
         sched = sched.insert(10, acquire(self.device.q[1], self.device.mem[1]))
-        sched = align_measures([sched], self.cmd_def)[0]
+        sched = align_measures([sched], self.qasm_def)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
-        sched = align_measures([sched], self.cmd_def, align_time=20)[0]
+        sched = align_measures([sched], self.qasm_def, align_time=20)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 20)
@@ -195,11 +195,11 @@ class TestAutoMergeWithDeviceSpecification(QiskitTestCase):
         sched = pulse.Schedule(name='fake_experiment')
         sched = sched.insert(0, self.short_pulse(self.device.q[0].drive))
         sched = sched.insert(1, acquire(self.device.q[0], self.device.mem[0]))
-        sched = align_measures([sched], self.cmd_def)[0]
+        sched = align_measures([sched], self.qasm_def)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 4)
-        sched = align_measures([sched], self.cmd_def, max_calibration_duration=10)[0]
+        sched = align_measures([sched], self.qasm_def, max_calibration_duration=10)[0]
         for time, inst in sched.instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 10)
@@ -212,7 +212,7 @@ class TestAutoMergeWithDeviceSpecification(QiskitTestCase):
         sched = sched.insert(4, acquire(self.device.q[0], self.device.mem[0]))
         sched = sched.insert(10, acquire(self.device.q[0], self.device.mem[0]))
         with self.assertRaises(PulseError):
-            align_measures([sched], self.cmd_def)
+            align_measures([sched], self.qasm_def)
 
     def test_error_post_acquire_pulse(self):
         """Test that an error is raised if a pulse occurs on a channel after an acquire."""
@@ -222,10 +222,10 @@ class TestAutoMergeWithDeviceSpecification(QiskitTestCase):
         sched = sched.insert(4, acquire(self.device.q[0], self.device.mem[0]))
         # No error with separate channel
         sched = sched.insert(10, self.short_pulse(self.device.q[1].drive))
-        align_measures([sched], self.cmd_def)
+        align_measures([sched], self.qasm_def)
         sched = sched.insert(10, self.short_pulse(self.device.q[0].drive))
         with self.assertRaises(PulseError):
-            align_measures([sched], self.cmd_def)
+            align_measures([sched], self.qasm_def)
 
     def test_align_across_schedules(self):
         """Test that acquires are aligned together across multiple schedules."""
@@ -236,7 +236,7 @@ class TestAutoMergeWithDeviceSpecification(QiskitTestCase):
         sched2 = pulse.Schedule(name='fake_experiment')
         sched2 = sched2.insert(3, self.short_pulse(self.device.q[0].drive))
         sched2 = sched2.insert(25, acquire(self.device.q[0], self.device.mem[0]))
-        schedules = align_measures([sched1, sched2], self.cmd_def)
+        schedules = align_measures([sched1, sched2], self.qasm_def)
         for time, inst in schedules[0].instructions:
             if isinstance(inst, AcquireInstruction):
                 self.assertEqual(time, 25)
@@ -254,8 +254,8 @@ class TestAddImplicitAcquiresWithDeviceSpecification(QiskitTestCase):
         self.device = pulse.DeviceSpecification.create_from(self.backend)
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
-        self.cmd_def = CmdDef.from_defaults(self.defaults.cmd_def,
-                                            self.defaults.pulse_library)
+        self.qasm_def = QasmToSchedDef.from_defaults(self.defaults.cmd_def,
+                                                     self.defaults.pulse_library)
         self.short_pulse = pulse.SamplePulse(samples=np.array([0.02739068], dtype=np.complex128),
                                              name='p0')
         acquire = pulse.Acquire(5)

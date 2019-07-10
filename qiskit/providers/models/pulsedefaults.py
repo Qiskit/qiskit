@@ -20,7 +20,7 @@ from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.base import ObjSchema
 from qiskit.validation.fields import (Integer, List, Nested, Number, String)
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema
-from qiskit.pulse import CmdDef
+from qiskit.pulse import QasmToSchedDef
 
 
 class MeasurementKernelSchema(BaseSchema):
@@ -129,9 +129,9 @@ class PulseDefaults(BaseModel):
         super().__init__(**kwargs)
 
     def build_cmd_def(self):
-        """Construct the `CmdDef` object for the backend.
+        """Construct the `QasmToSchedDef` object for the backend.
 
         Returns:
-            CmdDef: `CmdDef` instance generated from defaults
+            QasmToSchedDef: `QasmToSchedDef` instance generated from defaults
         """
-        return CmdDef.from_defaults(self.cmd_def, self.pulse_library, buffer=self.buffer)
+        return QasmToSchedDef.from_defaults(self.cmd_def, self.pulse_library buffer=self.buffer)

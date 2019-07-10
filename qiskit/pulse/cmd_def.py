@@ -27,6 +27,11 @@ from .schedule import Schedule, ParameterizedSchedule
 
 # pylint: disable=missing-return-doc
 
+import warnings
+
+warnings.warn("CmdDef has been deprecated and renamed to QasmToSchedDef, and the file cmd_def.py "
+              "is replaced with qasm_def.py. Please use pulse.qasm_def.QasmToSchedDef instead.")
+
 
 def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]) -> Tuple[int]:
     """Convert argument to tuple.

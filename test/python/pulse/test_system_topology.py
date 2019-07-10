@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test for the CmdDef object."""
+"""Test for the SystemTopology object."""
 
 from qiskit.test import QiskitTestCase
 
