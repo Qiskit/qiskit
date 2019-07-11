@@ -1014,6 +1014,10 @@ class DAGCircuit:
         greedy algorithm. Each returned layer is a dict containing
         {"graph": circuit graph, "partition": list of qubit lists}.
 
+        New but semantically equivalent DAGNodes will be included in the returned layers,
+        NOT the DAGNodes from the original DAG. The original vs new nodes can be compared using
+        DAGNode.semantic_eq(node1, node2)
+
         TODO: Gates that use the same cbits will end up in different
         layers as this is currently implemented. This may not be
         the desired behavior.
@@ -1024,15 +1028,17 @@ class DAGCircuit:
         except StopIteration:
             return
 
-        def add_nodes_from(layer, nodes):
-            """ Convert DAGNodes into a format that can be added to a
-             multigraph and then add to graph"""
-            layer._multi_graph.add_nodes_from(nodes)
-
         for graph_layer in graph_layers:
 
             # Get the op nodes from the layer, removing any input and output nodes.
             op_nodes = [node for node in graph_layer if node.type == "op"]
+
+            # Sort to make sure they are in the order they were added to the original DAG
+            # It has to be done by node_id as graph_layer is just a list of nodes
+            # with no implied topology
+            # Drawing tools that rely on _node_id to infer order of node creation
+            # so we need this to be preserved by layers()
+            op_nodes.sort(key=lambda nd: nd._node_id)
 
             # Stop yielding once there are no more op_nodes in a layer.
             if not op_nodes:
@@ -1042,19 +1048,23 @@ class DAGCircuit:
             new_layer = DAGCircuit()
             new_layer.name = self.name
 
+            # add in the registers - this adds the input/output nodes
             for creg in self.cregs.values():
                 new_layer.add_creg(creg)
             for qreg in self.qregs.values():
                 new_layer.add_qreg(qreg)
 
-            add_nodes_from(new_layer, self.input_map.values())
-            add_nodes_from(new_layer, self.output_map.values())
-            add_nodes_from(new_layer, op_nodes)
+            for node in op_nodes:
+                # this creates new DAGNodes in the new_layer
+                new_layer.apply_operation_back(node.op,
+                                               node.qargs,
+                                               node.cargs,
+                                               node.condition)
 
             # The quantum registers that have an operation in this layer.
             support_list = [
                 op_node.qargs
-                for op_node in op_nodes
+                for op_node in new_layer.op_nodes()
                 if op_node.name not in {"barrier", "snapshot", "save", "load", "noise"}
             ]
 

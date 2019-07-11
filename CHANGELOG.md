@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
--   New `CountOpsLongest` analysis pass to retrieve the number of operations 
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations
     on the longest path of the DAGCircuit.
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
@@ -70,6 +70,7 @@ The format is based on [Keep a Changelog].
     an already embedded physical circuit. (\#2672)
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
+-   Change Snapshot signature to match simulator.snapshot (\#2592)
 
 ### Removed
 
@@ -95,6 +96,9 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+-   Fixes a bug where the CmdDef was getting built without buffers on channels.
+-   Fixed bug in `Pulse` for multiple parameters being added (\#2742)
+-   Fixed bug in `Pulse` for CmdDef arguments (\#2741)
 -   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
     containing gates without an explicit matrix definition (\#2723)
 -   Possible to decompose SU(4) gate into non-CNOT basis with

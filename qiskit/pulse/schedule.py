@@ -376,7 +376,7 @@ class ParameterizedSchedule:
 
         self._parameterized = tuple(parameterized)
         self._schedules = tuple(full_schedules)
-        self._parameters = tuple(sorted(parameters))
+        self._parameters = tuple(sorted(set(parameters)))
 
     @property
     def parameters(self) -> Tuple[str]:
