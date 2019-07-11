@@ -155,10 +155,10 @@ class MatplotlibDrawer:
     def _registers(self, creg, qreg):
         self._creg = []
         for r in creg:
-            self._creg.append(Register(reg=r[0], index=r[1]))
+            self._creg.append(Register(reg=r.register, index=r.index))
         self._qreg = []
         for r in qreg:
-            self._qreg.append(Register(reg=r[0], index=r[1]))
+            self._qreg.append(Register(reg=r.register, index=r.index))
 
     @property
     def ast(self):
