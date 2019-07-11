@@ -65,13 +65,15 @@ class CmdDef:
 
     @classmethod
     def from_defaults(cls, flat_cmd_def: List[PulseQobjInstruction],
-                      pulse_library: Dict[str, SamplePulse]) -> 'CmdDef':
+                      pulse_library: Dict[str, SamplePulse],
+                      buffer: int = 0) -> 'CmdDef':
         """Create command definition from backend defaults output.
         Args:
             flat_cmd_def: Command definition list returned by backend
             pulse_library: Dictionary of `SamplePulse`s
+            buffer: Buffer between instructions on channel
         """
-        converter = QobjToInstructionConverter(pulse_library, buffer=0)
+        converter = QobjToInstructionConverter(pulse_library, buffer=buffer)
         cmd_def = cls()
 
         for cmd in flat_cmd_def:
