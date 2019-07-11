@@ -21,14 +21,10 @@ over time.
 """
 
 import math
-import warnings
-
 import numpy as np
 import scipy.linalg as la
 
 from qiskit.quantum_info import pauli_group
-from qiskit.quantum_info import purity as new_purity
-from qiskit.quantum_info import random
 
 
 ###############################################################
