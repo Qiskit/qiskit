@@ -21,14 +21,10 @@ over time.
 """
 
 import math
-import warnings
-
 import numpy as np
 import scipy.linalg as la
 
 from qiskit.quantum_info import pauli_group
-from qiskit.quantum_info import purity as new_purity
-from qiskit.quantum_info import random
 
 
 ###############################################################
@@ -334,49 +330,9 @@ def outer(vector1, vector2=None):
         vector2 = np.array(vector2).conj()
     return np.outer(vector1, vector2)
 
-
-###############################################################
-# Random Matrices.
-###############################################################
-
-def random_unitary_matrix(dim, seed=None):
-    """Deprecated in 0.8+
-    """
-    warnings.warn('The random_unitary_matrix() function in qiskit.tools.qi has been '
-                  'deprecated and will be removed in the future. Instead use '
-                  'the function in qiskit.quantum_info.random',
-                  DeprecationWarning)
-    return random.random_unitary(dim, seed).data
-
-
-def random_density_matrix(length, rank=None, method='Hilbert-Schmidt', seed=None):
-    """Deprecated in 0.8+
-    """
-    warnings.warn('The random_density_matrix() function in qiskit.tools.qi has been '
-                  'deprecated and will be removed in the future. Instead use '
-                  'the function in qiskit.quantum_info.random',
-                  DeprecationWarning)
-    return random.random_density_matrix(length, rank, method, seed)
-
-
 ###############################################################
 # Measures.
 ###############################################################
-
-
-def purity(state):
-    """Calculate the purity of a quantum state.
-
-    Args:
-        state (np.array): a quantum state
-    Returns:
-        float: purity.
-    """
-    warnings.warn('The purity() function in qiskit.tools.qi has been '
-                  'deprecated and will be removed in the future. Instead use '
-                  'the purity() function in qiskit.quantum_info',
-                  DeprecationWarning)
-    return new_purity(state)
 
 
 def concurrence(state):

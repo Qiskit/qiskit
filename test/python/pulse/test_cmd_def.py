@@ -282,3 +282,6 @@ class TestCmdDefWithDeviceSpecification(QiskitTestCase):
         u1_minus_pi = cmd_def.get('u1', 0, P1=1)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
         self.assertEqual(fc_cmd.phase, np.pi)
+
+        for chan in u1_minus_pi.channels:
+            self.assertEqual(chan.buffer, defaults.buffer)
