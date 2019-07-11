@@ -216,7 +216,7 @@ class InstructionToQobjConverter:
         command_dict = {
             'name': 'snapshot',
             't0': shift+instruction.start_time,
-            'label': instruction.name,
+            'label': instruction.label,
             'type': instruction.type
         }
         return self._qobj_model(**command_dict)
