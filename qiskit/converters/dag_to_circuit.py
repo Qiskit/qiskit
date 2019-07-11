@@ -53,5 +53,5 @@ def dag_to_circuit(dag):
         # Get arguments for classical condition (if any)
         inst = node.op.copy()
         inst.condition = node.condition
-        circuit.append(inst, qubits, clbits)
+        circuit._append(inst, qubits, clbits)
     return circuit
