@@ -17,7 +17,7 @@
 from .channels import (DeviceSpecification, PulseChannelSpec, DriveChannel,
                        MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
-from .qasm_def import QasmToSchedDef
+from .qasm_to_sched_def import QasmToSchedDef
 from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
                        SamplePulse, Snapshot, Kernel, Discriminator, functional_pulse)
 from .configuration import LoConfig, LoRange

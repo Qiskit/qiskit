@@ -22,7 +22,7 @@ from typing import List, Optional
 import numpy as np
 
 from .channels import AcquireChannel, MemorySlot
-from .qasm_def import QasmToSchedDef
+from .qasm_to_sched_def import QasmToSchedDef
 from .commands import Acquire, AcquireInstruction
 from .exceptions import PulseError
 from .interfaces import ScheduleComponent

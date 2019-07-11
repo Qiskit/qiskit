@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit import pulse
-from qiskit.pulse.qasm_def import QasmToSchedDef
+from qiskit.pulse.qasm_to_sched_def import QasmToSchedDef
 from qiskit.pulse.commands import AcquireInstruction
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase

@@ -17,6 +17,8 @@ Command definition module. Relates circuit gates to pulse commands.
 """
 from typing import List, Tuple, Iterable, Union, Dict, Optional
 
+import warnings
+
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 
@@ -26,8 +28,6 @@ from .exceptions import PulseError
 from .schedule import Schedule, ParameterizedSchedule
 
 # pylint: disable=missing-return-doc
-
-import warnings
 
 warnings.warn("CmdDef has been deprecated and renamed to QasmToSchedDef, and the file cmd_def.py "
               "is replaced with qasm_def.py. Please use pulse.qasm_def.QasmToSchedDef instead.")
