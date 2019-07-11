@@ -15,7 +15,6 @@
 """Tests for DAG visualization tool."""
 
 import unittest
-from unittest.mock import patch
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
@@ -36,7 +35,7 @@ class TestDagDrawer(QiskitTestCase):
 
     def test_dag_drawer_no_graphviz(self):
         """Test dag draw with no graphviz."""
-        with patch('nxpd.pydot.find_graphviz', return_value=None) as _:
+        with unittest.mock.patch('nxpd.pydot.find_graphviz', return_value=None) as _:
             self.assertRaises(VisualizationError, dag_drawer, self.dag)
 
 
