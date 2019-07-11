@@ -548,7 +548,6 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
                               "        └╥┘",
                               " c_0: 0 ═╩═",
                               "           </pre>"])
-        self.maxDiff=None
         qr = QuantumRegister(1, 'q')
         cr = ClassicalRegister(1, 'c')
         circuit = QuantumCircuit(qr, cr)
