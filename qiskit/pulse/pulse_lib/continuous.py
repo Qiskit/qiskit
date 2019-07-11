@@ -17,7 +17,7 @@
 """Module for builtin continuous pulse functions."""
 
 import functools
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 
 import numpy as np
 
@@ -104,7 +104,7 @@ def sin(times: np.ndarray, amp: complex, freq: float, phase: float = 0) -> np.nd
 
 
 def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: float,
-                        zeroed_width: Union[None, float] = None, rescale_amp: bool = False,
+                        zeroed_width: Optional[float] = None, rescale_amp: bool = False,
                         ret_scale_factor: bool = False) -> np.ndarray:
     r"""Enforce that the supplied gaussian pulse is zeroed at a specific width.
 
@@ -137,7 +137,7 @@ def _fix_gaussian_width(gaussian_samples, amp: float, center: float, sigma: floa
 
 
 def gaussian(times: np.ndarray, amp: complex, center: float, sigma: float,
-             zeroed_width: Union[None, float] = None, rescale_amp: bool = False,
+             zeroed_width: Optional[float] = None, rescale_amp: bool = False,
              ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
     r"""Continuous unnormalized gaussian pulse.
 
@@ -190,8 +190,52 @@ def gaussian_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
     return gauss_deriv
 
 
+def sech_fn(x, *args, **kwargs):
+    r"""Hyperbolic secant function"""
+    return 1.0 / np.cosh(x, *args, **kwargs)
+
+
+def sech(times: np.ndarray, amp: complex, center: float, sigma: float,
+         ret_x: bool = False) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    r"""Continuous unnormalized sech pulse.
+
+    Args:
+        times: Times to output pulse for.
+        amp: Pulse amplitude at `center`.
+        center: Center (mean) of pulse.
+        sigma: Width (standard deviation) of pulse.
+        ret_x: Return centered and standard deviation normalized pulse location.
+               $x=(times-center)/sigma.
+    """
+    times = np.asarray(times, dtype=np.complex_)
+    x = (times-center)/sigma
+    sech_out = amp*sech_fn(x).astype(np.complex_)
+
+    if ret_x:
+        return sech_out, x
+    return sech_out
+
+
+def sech_deriv(times: np.ndarray, amp: complex, center: float, sigma: float,
+               ret_sech: bool = False) -> np.ndarray:
+    """Continuous unnormalized sech derivative pulse.
+
+    Args:
+        times: Times to output pulse for.
+        amp: Pulse amplitude at `center`.
+        center: Center (mean) of pulse.
+        sigma: Width (standard deviation) of pulse.
+        ret_sech: Return sech with which derivative was taken with.
+    """
+    sech_out, x = sech(times, amp=amp, center=center, sigma=sigma, ret_x=True)
+    sech_out_deriv = - sech_out * np.tanh(x) / sigma
+    if ret_sech:
+        return sech_out_deriv, sech_out
+    return sech_out_deriv
+
+
 def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float,
-                    sigma: float, zeroed_width: Union[None, float] = None) -> np.ndarray:
+                    sigma: float, zeroed_width: Optional[float] = None) -> np.ndarray:
     r"""Continuous gaussian square pulse.
 
     Args:
@@ -221,7 +265,7 @@ def gaussian_square(times: np.ndarray, amp: complex, center: float, width: float
 
 
 def drag(times: np.ndarray, amp: complex, center: float, sigma: float, beta: float,
-         zeroed_width: Union[None, float] = None, rescale_amp: bool = False) -> np.ndarray:
+         zeroed_width: Optional[float] = None, rescale_amp: bool = False) -> np.ndarray:
     r"""Continuous Y-only correction DRAG pulse for standard nonlinear oscillator (SNO) [1].
 
     [1] Gambetta, J. M., Motzoi, F., Merkel, S. T. & Wilhelm, F. K.

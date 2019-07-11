@@ -1400,5 +1400,44 @@ class TestTextConditional(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(qc)), expected)
 
 
+class TestTextIdleWires(QiskitTestCase):
+    """The idle_wires option"""
+
+    def test_text_h(self):
+        """ Remove QuWires. """
+        expected = '\n'.join(['         ┌───┐',
+                              'q1_1: |0>┤ H ├',
+                              '         └───┘'])
+        qr1 = QuantumRegister(3, 'q1')
+        circuit = QuantumCircuit(qr1)
+        circuit.h(qr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
+
+    def test_text_measure(self):
+        """ Remove QuWires and ClWires. """
+        expected = '\n'.join(['         ┌─┐   ',
+                              'q2_0: |0>┤M├───',
+                              '         └╥┘┌─┐',
+                              'q2_1: |0>─╫─┤M├',
+                              '          ║ └╥┘',
+                              ' c2_0: 0 ═╩══╬═',
+                              '             ║ ',
+                              ' c2_1: 0 ════╩═',
+                              '               '])
+        qr1 = QuantumRegister(2, 'q1')
+        cr1 = ClassicalRegister(2, 'c1')
+        qr2 = QuantumRegister(2, 'q2')
+        cr2 = ClassicalRegister(2, 'c2')
+        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circuit.measure(qr2, cr2)
+        self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
+
+    def test_text_empty_circuit(self):
+        """ Remove everything in an empty circuit. """
+        expected = ''
+        circuit = QuantumCircuit()
+        self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
+
+
 if __name__ == '__main__':
     unittest.main()

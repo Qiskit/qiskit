@@ -16,7 +16,7 @@
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Optional
 
 from qiskit.pulse.channels import Channel
 
@@ -102,7 +102,8 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def union(self, *schedules: List['ScheduleComponent'], name: str = None) -> 'ScheduleComponent':
+    def union(self, *schedules: List['ScheduleComponent'],
+              name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
 
         Args:
@@ -112,7 +113,8 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def shift(self: 'ScheduleComponent', time: int, name: str = None) -> 'ScheduleComponent':
+    def shift(self: 'ScheduleComponent', time: int,
+              name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule shifted forward by `time`.
         Args:
             time: Time to shift by
@@ -121,8 +123,9 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def insert(self, start_time: int, schedule: 'ScheduleComponent', buffer: bool = False,
-               name: str = None) -> 'ScheduleComponent':
+    def insert(self, start_time: int, schedule: 'ScheduleComponent',
+               buffer: bool = False,
+               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at `start_time` of `self`.
 
         Args:
@@ -135,7 +138,7 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @abstractmethod
     def append(self, schedule: 'ScheduleComponent', buffer: bool = True,
-               name: str = None) -> 'ScheduleComponent':
+               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule with `schedule` inserted at the maximum time over
         all channels shared between `self` and `schedule`.
 

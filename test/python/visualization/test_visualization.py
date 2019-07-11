@@ -203,7 +203,8 @@ class TestVisualizationUtils(QiskitTestCase):
 
         self.assertEqual([(self.qr1, 0), (self.qr1, 1), (self.qr2, 0), (self.qr2, 1)], qregs)
         self.assertEqual([(self.cr1, 0), (self.cr1, 1), (self.cr2, 0), (self.cr2, 1)], cregs)
-        self.assertEqual(exp, [[(op.name, op.qargs, op.cargs) for op in ops]for ops in layered_ops])
+        self.assertEqual(exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
     def test_get_layered_instructions_reverse_bits(self):
         """ _get_layered_instructions with reverse_bits=True """
@@ -222,7 +223,42 @@ class TestVisualizationUtils(QiskitTestCase):
 
         self.assertEqual([(self.qr2, 1), (self.qr2, 0), (self.qr1, 1), (self.qr1, 0)], qregs)
         self.assertEqual([(self.cr2, 1), (self.cr2, 0), (self.cr1, 1), (self.cr1, 0)], cregs)
-        self.assertEqual(exp, [[(op.name, op.qargs, op.cargs) for op in ops]for ops in layered_ops])
+        self.assertEqual(exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_get_layered_instructions_remove_idle_wires(self):
+        """ _get_layered_instructions with idle_wires=False """
+        qr1 = QuantumRegister(3, 'qr1')
+        qr2 = QuantumRegister(3, 'qr2')
+        cr1 = ClassicalRegister(3, 'cr1')
+        cr2 = ClassicalRegister(3, 'cr2')
+
+        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circuit.cx(qr2[0], qr2[1])
+        circuit.measure(qr2[0], cr2[0])
+        circuit.cx(qr2[1], qr2[0])
+        circuit.measure(qr2[1], cr2[1])
+        circuit.cx(qr1[0], qr1[1])
+        circuit.measure(qr1[0], cr1[0])
+        circuit.cx(qr1[1], qr1[0])
+        circuit.measure(qr1[1], cr1[1])
+
+        (qregs, cregs, layered_ops) = utils._get_layered_instructions(circuit, idle_wires=False)
+
+        exp = [[('cx', [qr2[0], qr2[1]], []),
+                ('cx', [qr1[0], qr1[1]], [])],
+               [('measure', [qr2[0]], [cr2[0]])],
+               [('measure', [qr1[0]], [cr1[0]])],
+               [('cx', [qr2[1], qr2[0]], []),
+                ('cx', [qr1[1], qr1[0]], [])],
+               [('measure', [qr2[1]], [cr2[1]])],
+               [('measure', [qr1[1]], [cr1[1]])]
+               ]
+
+        self.assertEqual([qr1[0], qr1[1], qr2[0], qr2[1]], qregs)
+        self.assertEqual([cr1[0], cr1[1], cr2[0], cr2[1]], cregs)
+        self.assertEqual(exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
 
 if __name__ == '__main__':
