@@ -64,23 +64,39 @@ class ConsolidateBlocks(TransformationPass):
             global_index_map[wire] = global_qregs.index(wire.register) + wire.index
 
         blocks = self.property_set['block_list']
-        nodes_seen = set()
-
-        basis_gate_name = self.decomposer.gate.name
+        # just to make checking if a node is in any block easier
+        all_block_nodes = [nd for bl in blocks for nd in bl]
 
         for node in dag.topological_op_nodes():
-            # skip already-visited nodes
-            if node in nodes_seen:
-                continue
+            if node not in all_block_nodes:
+                # need to add this node to find out where in the list it goes
+                preds = [nd for nd in dag.predecessors(node) if nd.type == 'op']
 
-            # block must be added at the latest possible place, so that all nodes that came
-            # before it in the original circuit are added first (#2737)
-            all_other_nodes_in_block = [n for n in blocks[0] if n != node] if blocks else []
-            all_already_seen = all([n in nodes_seen for n in all_other_nodes_in_block])
+                block_count = 0
+                while preds:
+                    if block_count < len(blocks):
+                        block = blocks[block_count]
 
-            # check if the node belongs to the next block
-            if blocks and node in blocks[0] and all_already_seen:
-                block = blocks[0]
+                        # if any of the predecessors are in the block, remove them
+                        preds = [p for p in preds if p not in block]
+                    else:
+                        # insert at the end
+                        # shouldn't ever get here?
+                        break
+                    block_count += 1
+
+                # we have now seen all predecessors
+                # so update the blocks list to include this block
+                blocks = blocks[:block_count] + [[node]] + blocks[block_count:]
+
+        # create the dag from the updated list of blocks
+        basis_gate_name = self.decomposer.gate.name
+        for block in blocks:
+
+            if len(block) == 1 and block[0].name != 'cx':
+                # an intermediate node that was added into the overall list
+                new_dag.apply_operation_back(block[0].op, block[0].qargs, block[0].cargs)
+            else:
                 # find the qubits involved in this block
                 block_qargs = set()
                 for nd in block:
@@ -95,7 +111,6 @@ class ConsolidateBlocks(TransformationPass):
                 for nd in block:
                     if nd.op.name == basis_gate_name:
                         basis_count += 1
-                    nodes_seen.add(nd)
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
                 if self.force_consolidate or unitary.num_qubits > 2 or \
@@ -105,25 +120,7 @@ class ConsolidateBlocks(TransformationPass):
                         unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
                     for nd in block:
-                        nodes_seen.add(nd)
                         new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
-
-                del blocks[0]
-            else:
-                # show that we have visited this node already
-                nodes_seen.add(node)
-                # the node could belong to some future block, but in that case
-                # we simply skip it. It is guaranteed that we will revisit that
-                # future block, via its other nodes
-                for block in blocks[1:]:
-                    if node in block:
-                        break
-                # freestanding nodes can just be added
-                else:
-                    # add the node if there are no blocks left or
-                    # if the node isn't in the current block
-                    if not blocks or node not in blocks[0]:
-                        new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
         return new_dag
 

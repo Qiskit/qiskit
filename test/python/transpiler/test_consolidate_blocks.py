@@ -19,6 +19,7 @@ Tests for the ConsolidateBlocks transpiler pass.
 import unittest
 import numpy as np
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
@@ -27,6 +28,8 @@ from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import Collect2qBlocks
 
 
 class TestConsolidateBlocks(QiskitTestCase):
@@ -145,6 +148,61 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(len(new_dag.op_nodes()), 1)
         fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)
+
+    def test_node_added_before_block(self):
+        """Test that a node before a block remains before the block"""
+        qc = QuantumCircuit(2, 1)
+        qc.iden(0)
+        qc.swap(1, 0)
+        qc.cx(1, 0)
+        qc.iden(1)
+
+        # can't just add all the nodes to one block as in other tests
+        # as we are trying to test the block gets added in the correct place
+        # so use a pass to collect the blocks instead
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        qc1 = transpile(qc, pass_manager=pass_manager)
+
+        self.assertEqual(qc, qc1)
+
+    def test_node_added_after_block(self):
+        """Test that a node after the block remains after the block"""
+        qc = QuantumCircuit(3)
+        qc.cx(1, 2)
+        qc.iden(1)
+        qc.iden(2)
+        qc.cx(0, 1)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        qc1 = transpile(qc, pass_manager=pass_manager)
+
+        self.assertEqual(qc, qc1)
+
+    def test_node_middle_of_blocks(self):
+        """Test that a node surrounded by blocks stays in the same place"""
+        qc = QuantumCircuit(4)
+        qc.cx(0, 1)
+        qc.iden(1)
+        qc.cx(3, 2)
+        qc.iden(2)
+
+        qc.swap(1, 2)
+
+        qc.iden(1)
+        qc.cx(0, 1)
+        qc.iden(2)
+        qc.cx(3, 2)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        qc1 = transpile(qc, pass_manager=pass_manager)
+
+        self.assertEqual(qc, qc1)
 
 
 if __name__ == '__main__':
