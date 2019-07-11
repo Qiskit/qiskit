@@ -66,14 +66,16 @@ class QasmToSchedDef:
     @classmethod
     def from_defaults(cls,
                       flat_qasm_def: List[PulseQobjInstruction],
-                      pulse_library: Dict[str, SamplePulse]) -> 'QasmToSchedDef':
+                      pulse_library: Dict[str, SamplePulse],
+                      buffer: int = 0) -> 'QasmToSchedDef':
         """Create definitions from backend defaults output.
 
         Args:
             flat_qasm_def: `Command` definition list returned by backend
             pulse_library: Dictionary of `SamplePulse`s
+            buffer: Buffer between instructions on channel
         """
-        converter = QobjToInstructionConverter(pulse_library, buffer=0)
+        converter = QobjToInstructionConverter(pulse_library, buffer=buffer)
         qasm_def = cls()
 
         for gate in flat_qasm_def:
