@@ -134,4 +134,4 @@ class PulseDefaults(BaseModel):
         Returns:
             QasmToSchedDef: `QasmToSchedDef` instance generated from defaults
         """
-        return QasmToSchedDef.from_defaults(self.cmd_def, self.pulse_library buffer=self.buffer)
+        return QasmToSchedDef.from_defaults(self.cmd_def, self.pulse_library, buffer=self.buffer)
