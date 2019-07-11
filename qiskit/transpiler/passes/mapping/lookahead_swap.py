@@ -13,12 +13,12 @@
 # that they have been altered from the originals.
 
 """
-Implementation of Sven Jandura's swap mapper submission for the 2018 QISKit
+Implementation of Sven Jandura's swap mapper submission for the 2018 Qiskit
 Developer Challenge, adapted to integrate into the transpiler architecture.
 
-The role of the mapper pass is to modify the starting circuit to be compatible
+The role of the swapper pass is to modify the starting circuit to be compatible
 with the target device's topology (the set of two-qubit gates available on the
-hardware.) To do this, the mapper will insert SWAP gates to relocate the virtual
+hardware.) To do this, the pass will insert SWAP gates to relocate the virtual
 qubits for each upcoming gate onto a set of coupled physical qubits. However, as
 SWAP gates are particularly lossy, the goal is to accomplish this remapping while
 introducing the fewest possible additional SWAPs.
@@ -65,17 +65,15 @@ SEARCH_WIDTH = 4
 class LookaheadSwap(TransformationPass):
     """Map input circuit onto a backend topology via insertion of SWAPs."""
 
-    def __init__(self, coupling_map, initial_layout=None):
+    def __init__(self, coupling_map):
         """Initialize a LookaheadSwap instance.
 
         Arguments:
             coupling_map (CouplingMap): CouplingMap of the target backend.
-            initial_layout (Layout): The initial layout of the DAG to analyze.
         """
 
         super().__init__()
-        self._coupling_map = coupling_map
-        self.initial_layout = initial_layout
+        self.coupling_map = coupling_map
 
     def run(self, dag):
         """Run one pass of the lookahead mapper on the provided DAG.
@@ -89,31 +87,27 @@ class LookaheadSwap(TransformationPass):
             TranspilerError: if the coupling map or the layout are not
             compatible with the DAG
         """
-        coupling_map = self._coupling_map
-        ordered_virtual_gates = list(dag.serial_layers())
+        coupling_map = self.coupling_map
 
-        if self.initial_layout is None:
-            if self.property_set["layout"]:
-                self.initial_layout = self.property_set["layout"]
-            else:
-                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
+            raise TranspilerError('Lookahead swap runs on physical circuits only')
 
-        if len(dag.qubits()) != len(self.initial_layout):
+        if len(dag.qubits()) > len(coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
-        if len(self._coupling_map.physical_qubits) != len(self.initial_layout):
-            raise TranspilerError(
-                "Mappers require to have the layout to be the same size as the coupling map")
+        canonical_register = dag.qregs['q']
+        trivial_layout = Layout.generate_trivial_layout(canonical_register)
+        current_layout = trivial_layout.copy()
 
         mapped_gates = []
-        layout = self.initial_layout.copy()
+        ordered_virtual_gates = list(dag.serial_layers())
         gates_remaining = ordered_virtual_gates.copy()
 
         while gates_remaining:
-            best_step = _search_forward_n_swaps(layout, gates_remaining,
+            best_step = _search_forward_n_swaps(current_layout, gates_remaining,
                                                 coupling_map)
 
-            layout = best_step['layout']
+            current_layout = best_step['layout']
             gates_mapped = best_step['gates_mapped']
             gates_remaining = best_step['gates_remaining']
 

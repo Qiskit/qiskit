@@ -279,7 +279,7 @@ class ScheduleDrawer:
         """
         self.style = style or SchedStyle()
 
-    def _build_channels(self, schedule, t0, tf):
+    def _build_channels(self, schedule, channels_to_plot, t0, tf):
         # prepare waveform channels
         drive_channels = collections.OrderedDict()
         measure_channels = collections.OrderedDict()
@@ -287,7 +287,10 @@ class ScheduleDrawer:
         acquire_channels = collections.OrderedDict()
         snapshot_channels = collections.OrderedDict()
 
-        for chan in schedule.channels:
+        _channels = list(schedule.channels) + channels_to_plot
+        _channels = list(set(_channels))
+
+        for chan in _channels:
             if isinstance(chan, DriveChannel):
                 try:
                     drive_channels[chan] = EventsOutputChannels(t0, tf)
@@ -560,7 +563,7 @@ class ScheduleDrawer:
             tf = schedule.stop_time
         # prepare waveform channels
         (channels, output_channels,
-         snapshot_channels) = self._build_channels(schedule, t0, tf)
+         snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
 
         # count numbers of valid waveform
         n_valid_waveform, v_max = self._count_valid_waveforms(output_channels, scaling=scaling,
