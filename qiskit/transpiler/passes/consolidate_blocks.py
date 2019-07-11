@@ -25,6 +25,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate, CnotGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class ConsolidateBlocks(TransformationPass):
@@ -80,9 +81,12 @@ class ConsolidateBlocks(TransformationPass):
                         # if any of the predecessors are in the block, remove them
                         preds = [p for p in preds if p not in block]
                     else:
-                        # insert at the end
-                        # shouldn't ever get here?
-                        break
+                        # should never occur as this would mean not all
+                        # nodes before this one topologically had been added
+                        # so not all predecessors were removed
+                        raise TranspilerError("Not all predecessors removed due to error"
+                                              " in topological order")
+
                     block_count += 1
 
                 # we have now seen all predecessors
