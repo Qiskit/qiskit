@@ -624,30 +624,39 @@ class QuantumCircuit:
         # line so that they all stacked at the same depth.
         # Conditional gates act on all cbits in the register
         # they are conditioned on.
-        # We do not consider barriers or snapshots as
+        # We treat barriers or snapshots different as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
         for instr, qargs, cargs in self.data:
-            if instr.name not in ['barrier', 'snapshot']:
-                levels = []
-                reg_ints = []
-                for ind, reg in enumerate(qargs + cargs):
-                    # Add to the stacks of the qubits and
-                    # cbits used in the gate.
-                    reg_ints.append(reg_map[reg.register.name] + reg.index)
+            levels = []
+            reg_ints = []
+            # If count then add one to stack heights
+            count = True
+            if instr.name in ['barrier', 'snapshot']:
+                count = False
+            for ind, reg in enumerate(qargs + cargs):
+                # Add to the stacks of the qubits and
+                # cbits used in the gate.
+                reg_ints.append(reg_map[reg.register.name] + reg.index)
+                if count:
                     levels.append(op_stack[reg_ints[ind]] + 1)
-                if instr.control:
-                    # Controls operate over all bits in the
-                    # classical register they use.
-                    cint = reg_map[instr.control[0].name]
-                    for off in range(instr.control[0].size):
-                        if cint + off not in reg_ints:
-                            reg_ints.append(cint + off)
-                            levels.append(op_stack[cint + off] + 1)
+                else:
+                    levels.append(op_stack[reg_ints[ind]])
+            # Assuming here that there is no controlled
+            # snapshots or barriers ever.
+            if instr.control:
+                # Controls operate over all bits in the
+                # classical register they use.
+                cint = reg_map[instr.control[0].name]
+                for off in range(instr.control[0].size):
+                    if cint + off not in reg_ints:
+                        reg_ints.append(cint + off)
+                        levels.append(op_stack[cint + off] + 1)
 
-                max_level = max(levels)
-                for ind in reg_ints:
-                    op_stack[ind] = max_level
+            max_level = max(levels)
+            for ind in reg_ints:
+                op_stack[ind] = max_level
+
         return max(op_stack)
 
     def width(self):
