@@ -89,6 +89,8 @@ class PassManager():
         # The property log_passes allows to log and time the passes as they run in the pass manager
         self.log_passes = False
 
+        self.count = 0
+
         if passes is not None:
             self.append(passes)
 
@@ -257,10 +259,10 @@ class PassManager():
             'name': name,
             'start_time': start_time,
             'end_time': end_time,
-            'running_time': end_time - self.start_time
+            'running_time': end_time - start_time
         }
         log_dict = "%s: %.5f (ms)" % (name,
-                                      (end_time - self.start_time) * 1000)
+                                      (end_time - start_time) * 1000)
         if self.property_set['pass_raw_log'] is None:
             self.property_set['pass_raw_log'] = []
         if self.property_set['pass_log'] is None:
