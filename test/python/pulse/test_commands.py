@@ -19,10 +19,26 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse import (Acquire, FrameChange, PersistentValue,
+from qiskit.pulse import (SamplePulse, Acquire, FrameChange, PersistentValue,
                           Snapshot, Kernel, Discriminator, functional_pulse)
 from qiskit.test import QiskitTestCase
 
+
+class TestSamplePulse(QiskitTestCase):
+    """SamplePulse tests."""
+
+    def test_sample_pulse(self):
+        """Test pulse initialization."""
+        n_samples = 100
+        samples = np.linspace(0, 1., n_samples, dtype=np.complex128)
+        name = 'test'
+        sample_pulse = SamplePulse(samples, name=name)
+
+        self.assertEqual(sample_pulse.samples.dtype, np.complex128)
+        np.testing.assert_almost_equal(sample_pulse.samples, samples)
+
+        self.assertEqual(sample_pulse.duration, n_samples)
+        self.assertEqual(sample_pulse.name, name)
 
 class TestAcquire(QiskitTestCase):
     """Acquisition tests."""
