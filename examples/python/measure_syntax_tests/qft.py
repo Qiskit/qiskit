@@ -78,6 +78,6 @@ print("Results of our statistical test:")
 print(stat_outputs)
 
 # Show the results
-#print(result.get_counts(qft3))
-#print(result.get_counts(qft4))
-#print(result.get_counts(qft5))
+print(result.get_counts(qft3))
+print(result.get_counts(qft4))
+print(result.get_counts(qft5))

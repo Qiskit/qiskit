@@ -45,7 +45,7 @@ class AssertClassical(Asserts):
         
         exp_list = [1]*len(vals_list)
         try:
-            index = list(map(int, counts.keys())).index(self._expval)
+            index = list(map(lambda x: int(x, 2), counts.keys())).index(self._expval)
         except ValueError:
             index = -1
         exp_list[index] = 2**16

@@ -20,6 +20,8 @@ Ripple adder example based on Cuccaro et al., quant-ph/0410184.
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
 from qiskit import execute
+from qiskit.assertions.asserts import Asserts
+from qiskit.assertions.assertmanager import AssertManager
 
 ###############################################################
 # Set the backend name and coupling map.
@@ -70,12 +72,26 @@ unmajority(adder_subcircuit, cin[0], b[0], a[0])
 # Set the inputs to the adder
 qc.x(a[0])  # Set input a = 0...0001
 qc.x(b)   # Set input b = 1...1111
+
+# A breakpoint is a copy of the quantum circuit, including all its
+# instructions up to that point, with an assertion at the end.
+# An assertion is a measurement that performs a statistical test.
+breakpoint1 = qc.assertclassical(2**n - 1, 0.05, [b[i] for i in range(n)], \
+    [ans[i] for i in range(n)])
+
 # Apply the adder
 qc += adder_subcircuit
+
+# Here's another breakpoint to confirm successful addition
+breakpoint2 = qc.assertclassical(0, 0.05, [b[i] for i in range(n)], \
+    [ans[i] for i in range(n)])
+
 # Measure the output register in the computational basis
+# Note that you can replace the measurement syntax below
 #for j in range(n):
 #    qc.measure(b[j], ans[j])
-qc.measure([b[0], b[1]], [ans[0], ans[1]])
+# with the measurement syntax below
+qc.measure([b[i] for i in range(n)], [ans[i] for i in range(n)])
 qc.measure(cout[0], ans[n])
 
 ###############################################################
@@ -83,13 +99,18 @@ qc.measure(cout[0], ans[n])
 ###############################################################
 
 # First version: not mapped
-job = execute(qc, backend=backend, coupling_map=None, shots=1024)
+job = execute([breakpoint1, breakpoint2, qc], backend=backend, coupling_map=None, shots=1024)
 result = job.result()
+stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
+print("Results of our statistical tests:")
+print(stat_outputs)
 print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
-job = execute(qc, backend=backend, coupling_map=coupling_map, shots=1024)
+job = execute([breakpoint1, breakpoint2, qc], backend=backend, coupling_map=coupling_map, shots=1024)
 result = job.result()
+print("Results of our statistical tests:")
+print(stat_outputs)
 print(result.get_counts(qc))
 
 # Both versions should give the same distribution
