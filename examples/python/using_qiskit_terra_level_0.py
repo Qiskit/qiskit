@@ -36,12 +36,19 @@ qc1 = QuantumCircuit(2, 2)
 qc1.h(0)
 #print("Asserts.StatOutputs = ")
 #print(Asserts.StatOutputs)
+breakpoint0 = qc1.assertsuperposition(.05, [1], [1])
 breakpoint1 = qc1.assertclassical(0, .05, [1], [1])
+breakpoint3 = qc1.assertproduct(.05, [0], [0], [1], [1])
 #print("AssertClassical.ExpectedValues after bkpt1 = ")
 #print(AssertClassical.ExpectedValues)
 qc1.cx(0, 1)
+
+breakpoint5 = qc1.assertproduct(.05, [0], [0], [1], [1])
+
 print("breakpoint1.name = ")
 print(breakpoint1.name)
+print("breakpoint3.name = ")
+print(breakpoint3.name)
 print("breakpoint1.data = ")
 print(breakpoint1.data)
 print("qc1.data = ")
@@ -54,18 +61,21 @@ print(qc1.data)
 qc2 = QuantumCircuit(2, 2)
 qc2.h([0,1])
 breakpoint2 = qc2.assertsuperposition(.05, [0,1], [0,1])
+breakpoint4 = qc2.assertclassical(0,.05, [0,1],[0,1])
 qc2.measure([0,1], [0,1])
 print("breakpoint2.name = ")
 print(breakpoint2.name)
+print("breakpoint4.name = ")
+print(breakpoint4.name)
 
 # setting up the backend
 print("(BasicAER Backends)")
 print(BasicAer.backends())
 
 # running the job
-job_sim = execute([qc1, breakpoint1, qc2, breakpoint2], BasicAer.get_backend('qasm_simulator'))
+job_sim = execute([qc1, breakpoint0, breakpoint1, breakpoint3, breakpoint5, qc2, breakpoint2, breakpoint4], BasicAer.get_backend('qasm_simulator'))
 sim_result = job_sim.result()
-AssertManager.stat_collect([breakpoint1, breakpoint2], sim_result)
+AssertManager.stat_collect([breakpoint0, breakpoint1, breakpoint3, breakpoint5, breakpoint2, breakpoint4], sim_result)
 
 """
 # Show the results

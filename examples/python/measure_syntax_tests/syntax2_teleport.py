@@ -42,12 +42,8 @@ qc = QuantumCircuit(q, c0, c1, c2, name="teleport")
 
 # Assert a classical state of all 0's
 breakpoint1 = qc.assertclassical(0, 0.05, q, [c0[0], c1[0], c2[0]])
-print("c0[0].index")
-print(c0[0].index)
-print("c1[0].index")
-print(c1[0].index)
-print("c2[0].index")
-print(c2[0].index)
+
+qc.measure(q, [c0[0], c1[0], c1[0]])
 
 # Prepare an initial state
 qc.u3(0.3, 0.2, 0.1, q[0])
@@ -63,8 +59,8 @@ qc.barrier(q)
 qc.cx(q[0], q[1])
 qc.h(q[0])
 
-# Assert superposition of 1st 2 qubits
-breakpoint2 = qc.assertsuperposition(0.05, [q[0], q[1]], [c0[0], c1[0]])
+# Assert superposition of 1st qubit
+breakpoint2 = qc.assertsuperposition(0.05, q[0], c0[0])
 
 qc.measure(q[0], c0[0])
 qc.measure(q[1], c1[0])
@@ -91,14 +87,21 @@ result = job.result()
 print(result.get_counts(qc))
 
 # Execute and show results of statistical assertion tests
-assert_job = execute([breakpoint1, breakpoint2], backend=backend, coupling_map=None, shots=1024,
+job = execute([breakpoint1, breakpoint2, qc], backend=backend, coupling_map=None, shots=1024,
                     initial_layout=initial_layout)
-AssertManager.stat_collect([breakpoint1, breakpoint2], assert_job.result())
+result = job.result()
+print(result.get_counts(qc))
+stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
+print("Results of our statistical test:")
+print(stat_outputs)
 
 # Second version: mapped to 2x8 array coupling graph
-job = execute(qc, backend=backend, coupling_map=coupling_map, shots=1024,
+job = execute([breakpoint1, breakpoint2, qc], backend=backend, coupling_map=coupling_map, shots=1024,
               initial_layout=initial_layout)
 result = job.result()
 print(result.get_counts(qc))
+stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
+print("Results of our statistical test:")
+print(stat_outputs)
 
-# Both versions should give the same distribution
+# Both results should give the same distribution
