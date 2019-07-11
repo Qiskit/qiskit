@@ -16,6 +16,7 @@
 Specification of the device.
 """
 from typing import List
+from warnings import warn
 
 from qiskit.validation.exceptions import ModelValidationError
 
@@ -40,6 +41,9 @@ class DeviceSpecification:
         self._qubits = qubits
         self._reg_slots = registers
         self._mem_slots = mem_slots
+
+        warn('DeviceSpecification is deprecated.'
+             'Instead of DeviceSpecification, use PulseChannelSpec.', DeprecationWarning)
 
     @classmethod
     def create_from(cls, backend):

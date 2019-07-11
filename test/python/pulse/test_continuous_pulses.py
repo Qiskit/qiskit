@@ -200,6 +200,39 @@ class TestContinuousPulses(QiskitTestCase):
                                0, places=5)
         self.assertAlmostEqual(np.sum(gaussian_arr*dt), amp*np.sqrt(2*np.pi*sigma**2), places=3)
 
+    def test_sech(self):
+        """Test sech pulse."""
+        amp = 0.5
+        center = 20
+        sigma = 2
+        times, dt = np.linspace(0, 40, 1001, retstep=True)
+        sech_arr = continuous.sech(times, amp, center, sigma)
+        sech_arr_zeroed = continuous.sech(np.array([-1, 20]), amp, center,
+                                          sigma)
+
+        self.assertEqual(sech_arr.dtype, np.complex_)
+
+        center_time = np.argmax(sech_arr)
+        self.assertAlmostEqual(times[center_time], center)
+        self.assertAlmostEqual(sech_arr[center_time], amp)
+        self.assertAlmostEqual(sech_arr_zeroed[0], 0., places=2)
+        self.assertAlmostEqual(sech_arr_zeroed[1], amp)
+        self.assertAlmostEqual(np.sum(sech_arr*dt), amp*np.pi*sigma, places=3)
+
+    def test_sech_deriv(self):
+        """Test sech derivative pulse."""
+        amp = 0.5
+        center = 20
+        sigma = 2
+        times = np.linspace(0, 40, 1000)
+
+        sech_deriv_arr = continuous.sech_deriv(times, amp, center, sigma)
+
+        self.assertEqual(sech_deriv_arr.dtype, np.complex_)
+
+        self.assertAlmostEqual(continuous.sech_deriv(np.array([0]), amp, center, sigma)[0],
+                               0, places=3)
+
     def test_gaussian_square(self):
         """Test gaussian square pulse."""
         amp = 0.5

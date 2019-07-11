@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,10 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Functionality and helpers for testing Qiskit."""
+""" An analysis pass for counting operations on the longest path in a
+DAGcircuit.
+"""
+from qiskit.transpiler.basepasses import AnalysisPass
 
-from .base import QiskitTestCase
-from .decorators import requires_aer_provider, online_test, slow_test, requires_qe_access, \
-    combine
-from .reference_circuits import ReferenceCircuits
-from .utils import Path
+
+class CountOpsLongestPath(AnalysisPass):
+    """ An analysis pass for counting operations on the longest path in a
+    DAGcircuit.
+    """
+
+    def run(self, dag):
+        self.property_set['count_ops_longest_path'] = \
+            dag.count_ops_longest_path()
