@@ -338,6 +338,7 @@ def outer(vector1, vector2=None):
 # Measures.
 ###############################################################
 
+
 def concurrence(state):
     """Calculate the concurrence.
 
