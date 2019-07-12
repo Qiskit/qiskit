@@ -553,10 +553,12 @@ class TestDumpPasses(SchedulerTestCase):
                      'type': ConditionalController}]
         self.assertEqual(expected, passmanager.passes())
 
+
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
     def handleError(self, record):
         raise sys.exc_info()
+
 
 class TestLogPasses(QiskitTestCase):
     """Testing the log_passes option."""
