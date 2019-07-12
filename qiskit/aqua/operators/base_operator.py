@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2019.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 from abc import ABC, abstractmethod
 
@@ -25,6 +22,14 @@ class BaseOperator(ABC):
     def __init__(self):
         """Constructor."""
         raise NotImplementedError
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, new_value):
+        self._name = new_value
 
     @abstractmethod
     def __add__(self, other):
@@ -76,5 +81,12 @@ class BaseOperator(ABC):
         """
         Consume the result from the quantum computer to build the expectation,
         will be only used along with the `construct_evaluation_circuit` method.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def evolve(self):
+        """
+        Time evolution, exp^(-jt H).
         """
         raise NotImplementedError

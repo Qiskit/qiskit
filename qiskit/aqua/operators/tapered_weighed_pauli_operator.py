@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 class TaperedWeightedPauliOperator(WeightedPauliOperator):
 
-    def __init__(self, paulis, symmetries, cliffords, sq_list, tapering_values, basis=None, atol=1e-12):
-        super().__init__(paulis, basis, atol)
+    def __init__(self, paulis, symmetries, cliffords, sq_list, tapering_values, basis=None, atol=1e-12, name=None):
+        super().__init__(paulis, basis, atol, name=name)
         self._symmetries = symmetries
         self._cliffords = cliffords
         self._sq_list = sq_list
@@ -50,7 +50,7 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
         return self._tapering_values
 
     @classmethod
-    def qubit_tapering(cls, operator, symmetries, cliffords, sq_list, tapering_values):
+    def taper(cls, operator, symmetries, cliffords, sq_list, tapering_values):
         """
         Builds an Operator which has a number of qubits tapered off,
         based on a block-diagonal Operator built using a list of cliffords.
@@ -102,7 +102,9 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
             pauli_term_out = [coeff_out, Pauli(z_temp, x_temp)]
             operator_out.extend([pauli_term_out])
 
-        return cls(operator_out, symmetries, cliffords, sq_list, tapering_values)
+        new_name = operator.name + "_tapered_on_{}".format("_".join(sq_list))
+
+        return cls(operator_out, symmetries, cliffords, sq_list, tapering_values, name=new_name)
 
     @classmethod
     def two_qubit_reduction(cls, operator, num_particles):
@@ -159,9 +161,9 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
             clifford = WeightedPauliOperator(paulis=[[1. / np.sqrt(2), z_sym], [1. / np.sqrt(2), sq_pauli]])
             cliffords.append(clifford)
 
-        return cls.qubit_tapering(operator, symmetries, cliffords, sq_list, tapering_values)
+        return cls.taper(operator, symmetries, cliffords, sq_list, tapering_values)
 
-    def tapering_consistently(self, operator):
+    def consistent_tapering(self, operator):
         """
         Tapering the `operator` with the same manner of how this tapered operator is created. i.e., using the same
         cliffords and tapering values.
@@ -176,7 +178,7 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
             raise AquaError("Can not taper an empty operator.")
 
         for symmetry in self._symmetries:
-            if not operator.is_commute(symmetry):
+            if not operator.commute_with(symmetry):
                 raise AquaError("The given operator does not commute with the symmetry, can not taper it.")
 
-        return self.qubit_tapering(operator, self._symmetries, self._cliffords, self._sq_list, self._tapering_values)
+        return TaperedWeightedPauliOperator.taper(operator, self._symmetries, self._cliffords, self._sq_list, self._tapering_values)

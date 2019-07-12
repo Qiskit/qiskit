@@ -1,8 +1,18 @@
+# -*- coding: utf-8 -*-
 
-from abc import ABC, abstractmethod
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 import copy
-
-import numpy as np
 
 from qiskit.aqua.operators.weighted_pauli_operator import WeightedPauliOperator
 from qiskit.aqua.utils import PauliGraph
@@ -24,18 +34,18 @@ def _post_format_conversion(grouped_paulis):
 
 class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
 
-    def __init__(self, paulis, basis, atol=1e-12):
-        super().__init__(paulis, basis, atol)
+    def __init__(self, paulis, basis, atol=1e-12, name=None):
+        super().__init__(paulis, basis, atol, name=name)
 
     # TODO: naming
     @classmethod
-    def sorted_grouping(cls, paulis, method="largest-degree"):
+    def sorted_grouping(cls, paulis, method="largest-degree", name=None):
         p = PauliGraph(paulis, method)
         basis, paulis = _post_format_conversion(p.grouped_paulis)
-        return cls(paulis, basis)
+        return cls(paulis, basis, name)
 
     @classmethod
-    def unsorted_grouping(cls, paulis):
+    def unsorted_grouping(cls, paulis, name=None):
 
         if len(paulis) == 0:
             return paulis
@@ -85,4 +95,4 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
                 grouped_paulis.append(paulis_temp)
 
         basis, paulis = _post_format_conversion(grouped_paulis)
-        return cls(paulis, basis)
+        return cls(paulis, basis, name=name)

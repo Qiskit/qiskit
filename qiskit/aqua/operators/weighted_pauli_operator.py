@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2019.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,22 +19,17 @@ import logging
 import json
 from operator import iadd as op_iadd, isub as op_isub
 import sys
-from collections import OrderedDict
 import warnings
 
 import numpy as np
-from scipy import sparse as scisparse
-from scipy import linalg as scila
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit import Instruction
 from qiskit.quantum_info import Pauli
 from qiskit.qasm import pi
-from qiskit.assembler.run_config import RunConfig
 from qiskit.tools import parallel_map
 from qiskit.tools.events import TextProgressBar
 
 from qiskit.aqua import AquaError, aqua_globals
-from qiskit.aqua.utils import PauliGraph, compile_and_run_circuits, find_regs_by_name
+from qiskit.aqua.utils import find_regs_by_name
 from qiskit.aqua.utils.backend_utils import is_statevector_backend
 
 from qiskit.aqua.operators.base_operator import BaseOperator
@@ -46,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 class WeightedPauliOperator(BaseOperator):
 
-    def __init__(self, paulis, basis=None, atol=1e-12):
+    def __init__(self, paulis, basis=None, atol=1e-12, name=None):
         """
         Args:
             paulis ([[complex, Pauli]]): the list of weighted Paulis, where a weighted pauli is composed of
@@ -65,6 +60,7 @@ class WeightedPauliOperator(BaseOperator):
         self._basis = [(pauli[1], [i]) for i, pauli in enumerate(paulis)] if basis is None else basis
         self._aer_paulis = None
         self._atol = atol
+        self._name = name if name is not None else ''
 
     @property
     def paulis(self):
@@ -179,21 +175,57 @@ class WeightedPauliOperator(BaseOperator):
         """Overload -= operator."""
         return self._extend_or_combine(other, 'inplace', op_isub)
 
-    def __mul__(self, other):
-        """Overload * operator."""
-        ret_pauli = WeightedPauliOperator(paulis=[])
-        for existed_weight, existed_pauli in self._paulis:
-            for weight, pauli in other._paulis:
+
+    def _scaling_weight(self, scaling_factor, copy=True):
+        """
+        Constantly scaling all weights of paulis.
+
+        Args:
+            scaling_factor (complex): the scaling factor
+            copy (bool): return a copy or modify in-place
+
+        Returns:
+            WeightedPauliOperator: a copy of the scaled one.
+
+        Raises:
+            ValueError: the scaling factor is not a valid type.
+        """
+        if not isinstance(scaling_factor, (int, float, complex, np.int, np.float, np.complex)):
+            raise ValueError("Type of scaling factor is a valid type. {} if given.".format(scaling_factor.__class__))
+        ret = self.copy() if copy else self
+        for idx in range(len(ret._paulis)):
+            ret._paulis[idx] = [ret._paulis[idx][0] * scaling_factor, ret._paulis[idx][1]]
+        return ret
+
+    @staticmethod
+    def _multiply(op_1, op_2):
+        ret = WeightedPauliOperator(paulis=[])
+        for existed_weight, existed_pauli in op_1.paulis:
+            for weight, pauli in op_2.paulis:
                 new_pauli, sign = Pauli.sgn_prod(existed_pauli, pauli)
                 new_weight = existed_weight * weight * sign
-                if abs(new_weight) > self._atol:
+                if abs(new_weight) > op_1.atol:
                     pauli_term = [new_weight, new_pauli]
-                    ret_pauli += WeightedPauliOperator(paulis=[pauli_term])
-        return ret_pauli
+                    ret += WeightedPauliOperator(paulis=[pauli_term])
+        return ret
+
+    def __rmul__(self, other):
+        if not isinstance(other, self.__class__):
+            return self._scaling_weight(other)
+        else:
+            return self._multiply(other, self)
+
+    def __mul__(self, other):
+        """Overload * operator."""
+        # if other is a scalar
+        if not isinstance(other, self.__class__):
+            return self._scaling_weight(other)
+        else:
+            return self._multiply(self, other)
 
     def __neg__(self):
         """Overload unary -."""
-        return self.copy().scaling(-1.0)
+        return self._scaling_weight(-1.0)
 
     def __str__(self):
         """Overload str()."""
@@ -263,24 +295,10 @@ class WeightedPauliOperator(BaseOperator):
 
         return self
 
-    def scaling(self, scaling_factor):
-        """
-        Constantly scaling all weights of paulis.
-
-        Args:
-            scaling_factor (complex): the scaling factor
-
-        Returns:
-            WeightedPauliOperator: self, the scaled one.
-        """
-        for idx in range(len(self._paulis)):
-            self._paulis[idx] = [self._paulis[idx][0] * scaling_factor, self._paulis[idx][1]]
-        return self
-
-    def is_commute(self, other):
+    def commute_with(self, other):
         return check_commutativity(self, other)
 
-    def is_anticommute(self, other):
+    def anticommute_with(self, other):
         return check_commutativity(self, other, anti=True)
 
     # TODO: need this shortcut method?
@@ -983,3 +1001,4 @@ class WeightedPauliOperator(BaseOperator):
             cliffords.append(clifford)
 
         return pauli_symmetries, sq_paulis, cliffords, sq_list
+
