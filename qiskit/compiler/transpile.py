@@ -30,7 +30,7 @@ def transpile(circuits,
               basis_gates=None, coupling_map=None, backend_properties=None,
               initial_layout=None, seed_transpiler=None,
               optimization_level=None,
-              pass_manager=None):
+              pass_manager=None, callback=None):
     """transpile one or more circuits, according to some desired
     transpilation targets.
 
@@ -120,6 +120,34 @@ def transpile(circuits,
             pass manager will be used directly (Qiskit will not attempt to
             auto-select a pass manager based on transpile options).
 
+        callback (func):
+            A callback function that will be called after each
+            pass execution. The function will be called with 5 keyword
+            arguments:
+                pass_ (Pass): the pass being run
+                dag (DAGCircuit): the dag output of the pass
+                time (float): the time to execute the pass
+                property_set (PropertySet): the property set
+                count (int): the index for the pass execution
+
+            The exact arguments pass expose the internals of the pass manager
+            and are subject to change as the pass manager internals change. If
+            you intend to reuse a callback function over multiple releases be
+            sure to check that the arguments being passed are the same.
+
+            To use the callback feature you define a function that will
+            take in kwargs dict and access the variables. For example::
+
+                def callback_func(**kwargs):
+                    pass_ = kwargs['pass_']
+                    dag = kwargs['dag']
+                    time = kwargs['time']
+                    property_set = kwargs['property_set']
+                    count = kwargs['count']
+                    ...
+
+                transpile(circ, callback=callback_func)
+
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
@@ -142,7 +170,7 @@ def transpile(circuits,
     transpile_configs = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                               backend_properties, initial_layout,
                                               seed_transpiler, optimization_level,
-                                              pass_manager)
+                                              pass_manager, callback)
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config.coupling_map for config in transpile_configs)
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
@@ -183,7 +211,7 @@ def _transpile_circuit(circuit_config_tuple):
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, seed_transpiler, optimization_level,
-                          pass_manager):
+                          pass_manager, callback):
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -215,15 +243,17 @@ def _parse_transpile_args(circuits, backend,
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
 
     transpile_configs = []
-    for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
-                    seed_transpiler, optimization_level, pass_manager):
+    for args in zip(basis_gates, coupling_map, backend_properties,
+                    initial_layout, seed_transpiler, optimization_level,
+                    pass_manager):
         transpile_config = TranspileConfig(basis_gates=args[0],
                                            coupling_map=args[1],
                                            backend_properties=args[2],
                                            initial_layout=args[3],
                                            seed_transpiler=args[4],
                                            optimization_level=args[5],
-                                           pass_manager=args[6])
+                                           pass_manager=args[6],
+                                           callback=callback)
         transpile_configs.append(transpile_config)
 
     return transpile_configs
