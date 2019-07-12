@@ -24,6 +24,7 @@ import re
 
 try:
     from pylatexenc.latexencode import utf8tolatex
+
     HAS_PYLATEX = True
 except ImportError:
     HAS_PYLATEX = False
@@ -222,10 +223,10 @@ class QCircuitImage:
                     self._latex[i][0] = "\\lstick{{ {}_{} : \\ket{{0}} }}".format(
                         self.ordered_regs[i].register.name, self.ordered_regs[i].index)
                 else:
-                    self._latex[i][0] = "\\lstick{{ q_{} ({}_{}) : \\ket{{0}} }}".format(
-                        self.layout[self.ordered_regs[i]],
+                    self._latex[i][0] = "\\lstick{{({}_{}) q_{} : \\ket{{0}} }}".format(
                         self.ordered_regs[i].register.name,
-                        self.ordered_regs[i].index)
+                        self.ordered_regs[i].index,
+                        self.layout[self.ordered_regs[i]])
 
     def _get_image_depth(self):
         """Get depth information for the circuit.
