@@ -13,22 +13,23 @@
 # that they have been altered from the originals.
 
 """
-A core algorithm of the flexible-layer swap mapping heuristics proposed in [Itoko et. al. 2019].
+A core algorithm of the flexible-layer swap mapping heuristics first proposed in [1].
 
 The outline of the algorithm is as follows.
 0. Assume an initial_layout is given and set it to `layout`.
 1. Initialize `blocking_gates` as gates without in-edge in dependency graph.
-2. Update `blocking_gates` by processing applicable gates for the `layout`.
+2. Update `blocking_gates` by processing applicable gates for a current `layout`.
 3. If it comes to no blocking gates, it terminates. Otherwise, it selects a qubit
   pair (= an edge in the coupling graph) to be swapped based on its `cost`.
 4. Add the swap gate at the min-cost edge (= update `layout`).
 5. Go back to the step 2.
 Note: In the actual flow, there is an additional path for avoiding handling cyclic swaps in step 3.
 
-For more details on the algorithm, see [Itoko et. al. 2019]:
-T. Itoko, R. Raymond, T. Imamichi, A. Matsuo, and A. W. Cross.
+[1] T. Itoko, R. Raymond, T. Imamichi, A. Matsuo, and A. W. Cross.
 Quantum circuit compilers using gate commutation rules.
 In Proceedings of ASP-DAC, pp. 191--196. ACM, 2019.
+
+See https://arxiv.org/abs/1907.02686 (extended version of [1]) for the details of the algorithm.
 """
 import collections
 import copy
