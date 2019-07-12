@@ -19,7 +19,7 @@ dependency of two gates. For example, gate g1 must be applied before gate g2 if 
 there exists a path from g1 to g2.
 """
 import copy
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from typing import List, Set, Union
 
 import networkx as nx
@@ -57,9 +57,9 @@ class DependencyGraph:
         Args:
             quantum_circuit: A quantum circuit whose dependency graph to be constructed.
             graph_type: Which type of dependency is considered.
-                - "xz_commute": consider four commutation rules proposed in [Itoko et. al. 2019].
+                - "xz_commute": consider four commutation rules:
+                    Rz-CX(control), Rx-CX(target), CX-CX(controls), CX-CX(targets).
                 - "basic": consider only the commutation between gates without sharing qubits.
-                - "layer": fix layers and add dependencies between layers to `basic`.
 
         Raises:
             TranspilerError: if `graph_type` is not one of the types listed above.
@@ -81,8 +81,6 @@ class DependencyGraph:
             self._create_xz_graph()
         elif graph_type == "basic":
             self._create_basic_graph()
-        elif graph_type == "layer":
-            self._create_layer_graph()
         else:
             raise TranspilerError("Unknown graph_type:" + graph_type)
 
@@ -205,30 +203,6 @@ class DependencyGraph:
                 m = next(pgow, -1)
                 if m != -1:
                     self._graph.add_edge(m, n)
-
-    def _create_layer_graph(self):
-        self._create_basic_graph()
-
-        # construct CNOT layers
-        layers = []
-        wire = defaultdict(int)
-        for n in self._graph.nodes():
-            qargs = self.qargs(n)
-            if self.gate_name(n) == "cx":  # consider only CNOTs
-                i = 1 + max(wire[qargs[0]], wire[qargs[1]])
-                wire[qargs[0]] = i
-                wire[qargs[1]] = i
-                if len(layers) > i:
-                    layers[i].append(n)
-                else:
-                    layers.append([n])
-
-        # Add more edges to basic graph for fixing layers
-        for i in range(len(layers) - 1):
-            j = i + 1
-            for icx in layers[i]:
-                for jcx in layers[j]:
-                    self._graph.add_edge(icx, jcx)
 
     def n_nodes(self) -> int:
         """Number of the nodes
