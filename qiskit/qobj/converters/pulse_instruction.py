@@ -335,6 +335,8 @@ class QobjToInstructionConverter:
             instruction (PulseQobjInstruction): frame change qobj
         Returns:
             Schedule: Converted and scheduled Instruction
+        Raises:
+            PulseError: when complex phase value is specified
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
@@ -345,8 +347,10 @@ class QobjToInstructionConverter:
             phase_expr = parse_string_expr(phase, partial_binding=False)
 
             def gen_fc_sched(*args, **kwargs):
-                phase = abs(phase_expr(*args, **kwargs))
-                return commands.FrameChange(phase)(channel) << t0
+                _phase = phase_expr(*args, **kwargs)
+                if isinstance(_phase, complex):
+                    raise PulseError('Phase of FrameChange should be real value.')
+                return commands.FrameChange(_phase)(channel) << t0
 
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 
