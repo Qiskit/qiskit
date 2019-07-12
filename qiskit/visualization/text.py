@@ -22,6 +22,7 @@ import sympy
 from numpy import ndarray
 
 from .exceptions import VisualizationError
+from .utils import wire_labels
 
 
 class DrawElement():
@@ -442,10 +443,11 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None, vertical_compression='high'):
+                 line_length=None, vertical_compression='high', layout=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
+        self.layout = layout
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
@@ -460,18 +462,6 @@ class TextDrawing():
         return '<pre style="word-wrap: normal;' \
                'white-space: pre;' \
                'line-height: 15px;">%s</pre>' % self.single_string()
-
-    def _get_qubit_labels(self):
-        qubits = []
-        for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit.register.name, qubit.index))
-        return qubits
-
-    def _get_clbit_labels(self):
-        clbits = []
-        for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit.register.name, clbit.index))
-        return clbits
 
     def single_string(self):
         """
@@ -566,16 +556,12 @@ class TextDrawing():
         Returns:
             List: The list of wire names.
         """
-        qubit_labels = self._get_qubit_labels()
-        clbit_labels = self._get_clbit_labels()
-
         if with_initial_value:
-            qubit_labels = ['%s: |0>' % qubit for qubit in qubit_labels]
-            clbit_labels = ['%s: 0 ' % clbit for clbit in clbit_labels]
+            qubit_labels, clbit_labels = wire_labels(self.qregs, self.cregs, self.layout,
+                                                     '{name}_{index}: {initial_value:<2}')
         else:
-            qubit_labels = ['%s: ' % qubit for qubit in qubit_labels]
-            clbit_labels = ['%s: ' % clbit for clbit in clbit_labels]
-
+            qubit_labels, clbit_labels = wire_labels(self.qregs, self.cregs, self.layout,
+                                                     '{name}_{index}: ')
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):

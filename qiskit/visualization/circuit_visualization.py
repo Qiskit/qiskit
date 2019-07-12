@@ -361,7 +361,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
                                                         reverse_bits=reverse_bits,
                                                         justify=justify,
                                                         idle_wires=idle_wires)
-    text_drawing = _text.TextDrawing(qregs, cregs, ops)
+    text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=circuit.layout)
     text_drawing.plotbarriers = plotbarriers
     text_drawing.line_length = line_length
     text_drawing.vertical_compression = vertical_compression

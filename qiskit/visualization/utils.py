@@ -20,6 +20,7 @@ from qiskit.visualization.exceptions import VisualizationError
 
 try:
     import PIL
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -62,6 +63,29 @@ def _trim(image):
     if bbox:
         image = image.crop(bbox)
     return image
+
+
+def wire_labels(qregs, cregs, layout, wire_tag_format='{name}_{index}: {initial_value:<2}'):
+    """
+    Returns a list of names for each wire.
+    Args:
+        wire_tag_format (str): Optional. Format string.
+
+    Returns:
+        List: The list of wire names.
+    """
+    qubit_labels = []
+    clbit_labels = []
+
+    for qubit in qregs:
+        qubit_labels.append(wire_tag_format.format(name=qubit.register.name,
+                                                   index=qubit.index,
+                                                   initial_value='|0>'))
+    for clbit in cregs:
+        clbit_labels.append(wire_tag_format.format(name=clbit.register.name,
+                                                   index=clbit.index,
+                                                   initial_value='0'))
+    return (qubit_labels, clbit_labels)
 
 
 def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
