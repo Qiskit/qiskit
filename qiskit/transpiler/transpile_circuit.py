@@ -58,4 +58,8 @@ def transpile_circuit(circuit, transpile_config):
     else:
         pass_manager = default_pass_manager_simulator(transpile_config)
 
+    # Set a callback on the pass manager if it's set
+    if getattr(transpile_config, 'callback', None):
+        pass_manager.callback = transpile_config.callback
+
     return pass_manager.run(circuit)
