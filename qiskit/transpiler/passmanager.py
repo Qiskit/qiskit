@@ -28,6 +28,7 @@ from .exceptions import TranspilerError
 
 LOG = logging.getLogger(__name__)
 
+
 class PassManager():
     """A PassManager schedules the passes"""
 
