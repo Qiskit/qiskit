@@ -431,7 +431,8 @@ def _latex_circuit_drawer(circuit,
         _generate_latex_source(circuit, filename=tmppath,
                                scale=scale, style=style,
                                plot_barriers=plot_barriers,
-                               reverse_bits=reverse_bits, justify=justify, idle_wires=idle_wires)
+                               reverse_bits=reverse_bits, justify=justify,
+                               idle_wires=idle_wires, with_layout=with_layout)
         image = None
         try:
 
@@ -478,7 +479,8 @@ def _latex_circuit_drawer(circuit,
 
 def _generate_latex_source(circuit, filename=None,
                            scale=0.7, style=None, reverse_bits=False,
-                           plot_barriers=True, justify=None, idle_wires=True, with_layout=False):
+                           plot_barriers=True, justify=None, idle_wires=True,
+                           with_layout=False):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -501,10 +503,14 @@ def _generate_latex_source(circuit, filename=None,
     qregs, cregs, ops = utils._get_layered_instructions(circuit,
                                                         reverse_bits=reverse_bits,
                                                         justify=justify, idle_wires=idle_wires)
+    if with_layout:
+        layout = circuit.layout
+    else:
+        layout = None
 
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
-                                 reverse_bits=reverse_bits)
+                                 reverse_bits=reverse_bits, layout=layout)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
