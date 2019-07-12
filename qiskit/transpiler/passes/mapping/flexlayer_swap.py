@@ -13,12 +13,16 @@
 # that they have been altered from the originals.
 
 """
-A pass implementing the flexible-layer mapper.
+A pass implementing the flexible-layer mapping algorithm.
 
-That is the swap mapper proposed in the paper:
+That is a swap mapping algorithm proposed in the paper:
 T. Itoko, R. Raymond, T. Imamichi, A. Matsuo, and A. W. Cross.
 Quantum circuit compilers using gate commutation rules.
 In Proceedings of ASP-DAC, pp. 191--196. ACM, 2019.
+ (Its extended version is available at https://arxiv.org/abs/1907.02686 )
+Note: This implementation does not include a post process for removing meaningless head swaps,
+i.e. changing initial layout, which was applied in the experiments in the paper.
+This is due to the limitation of swap mapper passes which are not allowed to change initial layout.
 
 This algorithm considers the *dependency graph* of a given circuit
 with less dependencies by considering commutativity of consecutive gates,
@@ -28,7 +32,7 @@ a current layout, and they can be seen as a kind of *flexible layer*
 in contrast to many other swap passes assumes fixed layers as their input.
 That's why this pass is named FlexlayerSwap pass.
 
-(For the general role of the swap mapper pass, see `lookahed_swap.py`.)
+(For the general role of the swap mapping pass, see :doc:`lookahed_swap`.)
 """
 from qiskit.converters import dag_to_circuit
 from qiskit.dagcircuit import DAGCircuit
@@ -43,38 +47,44 @@ from .barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 
 class FlexlayerSwap(TransformationPass):
     """
-    Maps a DAGCircuit onto a `coupling_map` inserting swap gates.
+    Map input circuit onto a backend topology via insertion of SWAPs
+    using flexible-layer mapping algorithm.
     """
 
     def __init__(self,
-                 coupling_map: CouplingMap,
-                 lookahead_depth: int = 10,
-                 decay_rate: float = 0.5):
+                 coupling_map,
+                 dependency_graph_type="xz_commute",
+                 lookahead_depth=10,
+                 decay_rate=0.5):
         """
-        Maps a DAGCircuit onto a `coupling_map` using swap gates.
+        Initialize a FlexlayerSwap instance.
         Args:
-            coupling_map: Directed graph represented a coupling map.
-            lookahead_depth: how far gates from blocking gates should be looked ahead
-            decay_rate: decay rate of look-ahead weight (0 < decay_rate < 1)
+            coupling_map (CouplingMap): CouplingMap of the target backend.
+            dependency_graph_type (str): Type of dependency graph:
+                - "basic": consider only the commutation between gates without sharing qubits.
+                - "xz_commute": consider four more commutation rules.
+            lookahead_depth (int): How far gates from blocking gates should be looked ahead
+            decay_rate (float): Decay rate of look-ahead weight (0 < decay_rate < 1)
         """
         super().__init__()
         self.requires.append(BarrierBeforeFinalMeasurements())
         self._coupling_map = coupling_map
+        self._graph_type = dependency_graph_type
         self._lookahead_depth = lookahead_depth
         self._decay_rate = decay_rate
 
-    def run(self, dag: DAGCircuit) -> DAGCircuit:
+    def run(self, dag):
         """
         Runs the FlexlayerSwap pass on `dag`.
         Args:
-            dag: DAG to map.
+            dag (DAGCircuit): A circuit to map.
         Returns:
-            A mapped DAG (with virtual qubits).
+            DAGCircuit: A mapped circuit compatible with the coupling_map.
         """
         initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         qc = dag_to_circuit(dag)
-        dependency_graph = DependencyGraph(qc, graph_type="xz_commute")
+        dependency_graph = DependencyGraph(qc, graph_type=self._graph_type)
         algo = FlexlayerHeuristics(qc=qc,
                                    dependency_graph=dependency_graph,
                                    coupling=self._coupling_map,
