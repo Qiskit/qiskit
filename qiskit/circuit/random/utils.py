@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Reset
-from qiskit.extensions import (IdGate, U0Gate, U1Gate, U2Gate, U3Gate, XGate,
+from qiskit.extensions import (IdGate, U1Gate, U2Gate, U3Gate, XGate,
                                YGate, ZGate, HGate, SGate, SdgGate, TGate,
                                TdgGate, RXGate, RYGate, RZGate, CnotGate,
                                CyGate, CzGate, CHGate, CrzGate, Cu1Gate,
@@ -28,12 +28,12 @@ from qiskit.extensions import (IdGate, U0Gate, U1Gate, U2Gate, U3Gate, XGate,
 from qiskit.exceptions import QiskitError
 
 
-def random_circuit(width, depth, max_operands=3, measure=False,
+def random_circuit(n_qubits, depth, max_operands=3, measure=False,
                    conditional=False, reset=False, seed=None):
     """Generate random circuit of arbitrary size and form.
 
     Args:
-        width (int): number of quantum wires
+        n_qubits (int): number of quantum wires
         depth (int): layers of operations (i.e. critical path length)
         max_operands (int): maximum operands of each gate (between 1 and 3)
         measure (bool): if True, measure all qubits at the end
@@ -50,17 +50,17 @@ def random_circuit(width, depth, max_operands=3, measure=False,
     if max_operands < 1 or max_operands > 3:
         raise QiskitError("max_operands must be between 1 and 3")
 
-    one_q_ops = [IdGate, U0Gate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
+    one_q_ops = [IdGate, U1Gate, U2Gate, U3Gate, XGate, YGate, ZGate,
                  HGate, SGate, SdgGate, TGate, TdgGate, RXGate, RYGate, RZGate]
     two_q_ops = [CnotGate, CyGate, CzGate, CHGate, CrzGate,
                  Cu1Gate, Cu3Gate, SwapGate, RZZGate]
     three_q_ops = [ToffoliGate, FredkinGate]
 
-    qr = QuantumRegister(width, 'q')
-    qc = QuantumCircuit(width)
+    qr = QuantumRegister(n_qubits, 'q')
+    qc = QuantumCircuit(n_qubits)
 
     if measure or conditional:
-        cr = ClassicalRegister(width, 'c')
+        cr = ClassicalRegister(n_qubits, 'c')
         qc.add_register(cr)
 
     if reset:
@@ -73,7 +73,7 @@ def random_circuit(width, depth, max_operands=3, measure=False,
     # apply arbitrary random operations at every depth
     for _ in range(depth):
         # choose either 1, 2, or 3 qubits for the operation
-        remaining_qubits = list(range(width))
+        remaining_qubits = list(range(n_qubits))
         while remaining_qubits:
             max_possible_operands = min(len(remaining_qubits), max_operands)
             num_operands = rng.choice(range(max_possible_operands)) + 1
@@ -96,7 +96,7 @@ def random_circuit(width, depth, max_operands=3, measure=False,
 
             # with some low probability, condition on classical bit values
             if conditional and rng.choice(range(10)) == 0:
-                possible_values = range(pow(2, width))
+                possible_values = range(pow(2, n_qubits))
                 value = rng.choice(list(possible_values))
                 op.control = (cr, value)
 
