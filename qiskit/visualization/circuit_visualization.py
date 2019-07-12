@@ -363,7 +363,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: False
-        Returns:
+    Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
     qregs, cregs, ops = utils._get_layered_instructions(circuit,
