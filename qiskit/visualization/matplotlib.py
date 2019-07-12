@@ -39,8 +39,6 @@ from qiskit import user_config
 
 logger = logging.getLogger(__name__)
 
-Register = collections.namedtuple('Register', 'reg index')
-
 WID = 0.65
 HIG = 0.65
 DEFAULT_SCALE = 4.3
@@ -156,10 +154,10 @@ class MatplotlibDrawer:
     def _registers(self, creg, qreg):
         self._creg = []
         for r in creg:
-            self._creg.append(Register(reg=r.register, index=r.index))
+            self._creg.append(r)
         self._qreg = []
         for r in qreg:
-            self._qreg.append(Register(reg=r.register, index=r.index))
+            self._qreg.append(r)
 
     @property
     def ast(self):
@@ -447,21 +445,20 @@ class MatplotlibDrawer:
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
                 if self.layout is None:
-                    label = '${name}_{{{index}}}$'.format(name=reg.reg.name, index=reg.index)
+                    label = '${name}_{{{index}}}$'.format(name=reg.register.name, index=reg.index)
                 else:
                     label = '$({name}_{{{index}}})~q_{physical}$'.format(
                         physical=self.layout[reg],
                         name=reg.reg.name,
                         index=reg.index)
             else:
-                label = '${name}$'.format(name=reg.reg.name)
-
+                label = '${name}$'.format(name=reg.register.name)
             pos = -ii
             self._qreg_dict[ii] = {
                 'y': pos,
                 'label': label,
                 'index': reg.index,
-                'group': reg.reg
+                'group': reg.register
             }
             self._cond['n_lines'] += 1
         # classical register
@@ -474,22 +471,22 @@ class MatplotlibDrawer:
                     self._creg, n_creg)):
                 pos = y_off - idx
                 if self._style.bundle:
-                    label = '${}$'.format(reg.reg.name)
+                    label = '${}$'.format(reg.register.name)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
-                        'group': reg.reg
+                        'group': reg.register
                     }
-                    if not (not nreg or reg.reg != nreg.reg):
+                    if not (not nreg or reg.register != nreg.register):
                         continue
                 else:
-                    label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
+                    label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
-                        'group': reg.reg
+                        'group': reg.register
                     }
 
                 self._cond['n_lines'] += 1
