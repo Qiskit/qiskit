@@ -16,7 +16,10 @@
 
 """Transpiler testing"""
 
+import io
+from logging import StreamHandler, getLogger
 import unittest.mock
+import sys
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager
@@ -550,36 +553,36 @@ class TestDumpPasses(SchedulerTestCase):
                      'type': ConditionalController}]
         self.assertEqual(expected, passmanager.passes())
 
+class StreamHandlerRaiseException(StreamHandler):
+    """Handler class that will raise an exception on formatting errors."""
+    def handleError(self, record):
+        raise sys.exc_info()
 
 class TestLogPasses(QiskitTestCase):
     """Testing the log_passes option."""
 
     def setUp(self):
+        logger = getLogger()
+        logger.setLevel('DEBUG')
+        self.output = io.StringIO()
+        logger.addHandler(StreamHandlerRaiseException(self.output))
         self.circuit = QuantumCircuit(QuantumRegister(1))
 
     def assertPassLog(self, passmanager, list_of_passes):
         """ Runs the passmanager and checks that the elements in
         passmanager.property_set['pass_log'] match list_of_passes (the names)."""
         transpile(self.circuit, pass_manager=passmanager)
-
-        current_names = [pass_log['name'] for pass_log in passmanager.property_set['pass_raw_log']]
-        self.assertEqual(current_names, list_of_passes)
-
-        # All the passes run under the second
-        current_running_time = [pass_log['running_time'] < 1 for pass_log in
-                                passmanager.property_set['pass_raw_log']]
-        self.assertTrue(all(current_running_time))
-
-        # The formatted property_set['pass_log']
-        formatted_log = [
-            "%s: %.5f (ms)" % (pass_raw_log['name'], (pass_raw_log['running_time']) * 1000) for
-            pass_raw_log in passmanager.property_set['pass_raw_log']]
-        self.assertEqual(passmanager.property_set['pass_log'], formatted_log)
+        self.output.seek(0)
+        # Filter unrelated log lines
+        output_lines = self.output.readlines()
+        pass_log_lines = [x for x in output_lines if x.startswith('Pass:')]
+        for index, pass_name in enumerate(list_of_passes):
+            self.assertTrue(pass_log_lines[index].startswith(
+                'Pass: %s -' % pass_name))
 
     def test_passes(self):
         """Dump passes in different FlowControllerLinear"""
         passmanager = PassManager()
-        passmanager.log_passes = True
         passmanager.append(PassC_TP_RA_PA())
         passmanager.append(PassB_TP_RA_PA())
 
@@ -594,7 +597,6 @@ class TestLogPasses(QiskitTestCase):
             PassB_TP_RA_PA(),
             PassD_TP_NR_NP(argument1=[1, 2]),
             PassB_TP_RA_PA()])
-        passmanager.log_passes = True
 
         self.assertPassLog(passmanager, ['PassA_TP_NR_NP',
                                          'PassC_TP_RA_PA',
@@ -608,7 +610,6 @@ class TestLogPasses(QiskitTestCase):
         passmanager = PassManager()
         FlowController.add_flow_controller('do_x_times', DoXTimesController)
         passmanager.append([PassB_TP_RA_PA(), PassC_TP_RA_PA()], do_x_times=lambda x: 3)
-        passmanager.log_passes = True
         self.assertPassLog(passmanager, ['PassA_TP_NR_NP',
                                          'PassB_TP_RA_PA',
                                          'PassC_TP_RA_PA',
@@ -627,7 +628,6 @@ class TestLogPasses(QiskitTestCase):
              PassF_reduce_dag_property()],
             do_while=lambda property_set: not property_set['property_fixed_point'],
             condition=lambda property_set: property_set['property_fixed_point'])
-        passmanager.log_passes = True
         self.assertPassLog(passmanager, ['PassE_AP_NR_NP'])
 
 
