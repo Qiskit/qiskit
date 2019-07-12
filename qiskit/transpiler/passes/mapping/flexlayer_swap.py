@@ -35,9 +35,7 @@ That's why this pass is named FlexlayerSwap pass.
 (For the general role of the swap mapping pass, see :doc:`lookahed_swap`.)
 """
 from qiskit.converters import dag_to_circuit
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.layout import Layout
 
 from .algorithm.dependency_graph import DependencyGraph
