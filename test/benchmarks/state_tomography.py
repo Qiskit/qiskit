@@ -24,7 +24,10 @@ try:
 except ImportError:
     NO_TOMO = True
 from qiskit.quantum_info import state_fidelity
-from qiskit.tools.qi.qi import random_unitary_matrix, purity
+try:
+    from qiskit.tools.qi.qi import random_unitary_matrix, purity
+except ImportError:
+    NO_TOMO = True
 
 
 class StateTomographyBench:
