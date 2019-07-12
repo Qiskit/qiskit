@@ -28,11 +28,13 @@ def emptycircuit():
     """Empty circuit"""
     return QuantumCircuit()
 
+
 def circuit_2532():
     """See https://github.com/Qiskit/qiskit-terra/issues/2532"""
     circuit = QuantumCircuit(5)
     circuit.cx(2, 4)
     return circuit
+
 
 @ddt
 class TestPresetPassManager(QiskitTestCase):
