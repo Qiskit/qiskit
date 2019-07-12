@@ -188,16 +188,15 @@ class CouplingMap:
                 "Nodes %s and %s are not connected" % (str(physical_qubit1), str(physical_qubit2)))
 
     def undirected_neighbors(self, physical_qubit):
-        """List up neighbors of the physical_qubit in the undirected coupling graph.
+        """List up neighbors of the `physical_qubit` in the undirected coupling graph.
 
         Args:
-            physical_qubit:
+            physical_qubit (int): A physical qubit whose neighors should be listed up
 
         Returns:
-            List: The neighbors of the physical_qubit
+            iterator: The neighbors of the physical qubit
         """
-        neighbors = self.graph.to_undirected().neighbors(physical_qubit)
-        return [r for r in neighbors]
+        return self.graph.to_undirected().neighbors(physical_qubit)
 
     @property
     def is_symmetric(self):
