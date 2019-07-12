@@ -1439,5 +1439,33 @@ class TestTextIdleWires(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
 
+class TestTextWithLayout(QiskitTestCase):
+    """The with_layout option"""
+
+    def test_with_no_layout(self):
+        """ A circuit without layout"""
+        expected = '\n'.join(["             ",
+                              "q_0: |0>─────",
+                              "        ┌───┐",
+                              "q_1: |0>┤ H ├",
+                              "        └───┘",
+                              "q_2: |0>─────",
+                              "             "])
+        qr1 = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr1)
+        circuit.h(qr1[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
+
+    def test_text_measure(self):
+        """ Remove QuWires and ClWires. """
+        expected = '\n'.join([])
+        qr1 = QuantumRegister(2, 'qr')
+        qr2 = QuantumRegister(2, 'q')
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.h(qr1)
+        circuit.h(qr2)
+        self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
+
+
 if __name__ == '__main__':
     unittest.main()

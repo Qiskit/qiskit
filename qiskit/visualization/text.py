@@ -557,11 +557,18 @@ class TextDrawing():
             List: The list of wire names.
         """
         if with_initial_value:
-            qubit_labels, clbit_labels = wire_labels(self.qregs, self.cregs, self.layout,
-                                                     '{name}_{index}: {initial_value:<2}')
+            initial_qubit_value = '|0>'
+            initial_clbit_value = '0 '
         else:
-            qubit_labels, clbit_labels = wire_labels(self.qregs, self.cregs, self.layout,
-                                                     '{name}_{index}: ')
+            initial_qubit_value = ''
+            initial_clbit_value = ''
+
+        if self.layout is None:
+            qubit_labels = wire_labels('{name}_{index}: ' + initial_qubit_value, self.qregs)
+        else:
+            qubit_labels = wire_labels('{name}_{index}: ({physical}) '+initial_qubit_value,
+                                       self.qregs, self.layout)
+        clbit_labels = wire_labels('{name}_{index}: '+initial_clbit_value, self.cregs)
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):

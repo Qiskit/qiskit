@@ -65,7 +65,7 @@ def _trim(image):
     return image
 
 
-def wire_labels(qregs, cregs, layout, wire_tag_format='{name}_{index}: {initial_value:<2}'):
+def wire_labels(wire_tag_format, regs, layout=None):
     """
     Returns a list of names for each wire.
     Args:
@@ -73,24 +73,18 @@ def wire_labels(qregs, cregs, layout, wire_tag_format='{name}_{index}: {initial_
         available labels are:
             - name: Name of the register
             - index: Register index
-            - initial_value: |0> for qubits. 0 for classical bits
-            - physical: The physical qubit if the layout is available. '' otherwise.
+            - physical: The physical qubit if the layout is available. Otherwise, empty string.
 
     Returns:
         List: The list of wire names.
     """
-    qubit_labels = []
-    clbit_labels = []
+    labels = []
 
-    for qubit in qregs:
-        qubit_labels.append(wire_tag_format.format(name=qubit.register.name,
-                                                   index=qubit.index,
-                                                   initial_value='|0>'))
-    for clbit in cregs:
-        clbit_labels.append(wire_tag_format.format(name=clbit.register.name,
-                                                   index=clbit.index,
-                                                   initial_value='0'))
-    return (qubit_labels, clbit_labels)
+    for bit in regs:
+        labels.append(wire_tag_format.format(name=bit.register.name,
+                                             index=bit.index,
+                                             physical='' if layout is None else layout[bit]))
+    return labels
 
 
 def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
