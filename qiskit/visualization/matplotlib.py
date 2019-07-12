@@ -136,6 +136,7 @@ class MatplotlibDrawer:
 
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
+        self.layout = layout
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -445,9 +446,15 @@ class MatplotlibDrawer:
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
-                label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
+                if self.layout is None:
+                    label = '${name}_{{{index}}}$'.format(name=reg.reg.name, index=reg.index)
+                else:
+                    label = '$({name}_{{{index}}})~q_{physical}$'.format(
+                        physical=self.layout[reg],
+                        name=reg.reg.name,
+                        index=reg.index)
             else:
-                label = '${}$'.format(reg.reg.name)
+                label = '${name}$'.format(name=reg.reg.name)
 
             pos = -ii
             self._qreg_dict[ii] = {
