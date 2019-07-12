@@ -69,7 +69,12 @@ def wire_labels(qregs, cregs, layout, wire_tag_format='{name}_{index}: {initial_
     """
     Returns a list of names for each wire.
     Args:
-        wire_tag_format (str): Optional. Format string.
+        wire_tag_format (str): Format string. See `help('FORMATTING')` for details. They
+        available labels are:
+            - name: Name of the register
+            - index: Register index
+            - initial_value: |0> for qubits. 0 for classical bits
+            - physical: The physical qubit if the layout is available. '' otherwise.
 
     Returns:
         List: The list of wire names.
