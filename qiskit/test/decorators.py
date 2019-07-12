@@ -19,6 +19,8 @@ import os
 import sys
 import unittest
 from warnings import warn
+from itertools import product
+from ddt import data, unpack
 
 from qiskit.util import _has_connection
 from .testing_options import get_test_options
@@ -88,54 +90,34 @@ def _get_credentials(test_object, test_options):
         Credentials: set of credentials
 
     Raises:
-        ImportError: if the
-        Exception: when the credential could not be set and they are needed
-            for that set of options
+        SkipTest: when credentials can't be found
     """
     try:
         from qiskit.providers.ibmq.credentials import (Credentials,
                                                        discover_credentials)
     except ImportError:
-        raise ImportError('qiskit-ibmq-provider could not be found, and is '
-                          'required for mocking or executing online tests.')
+        raise unittest.SkipTest('qiskit-ibmq-provider could not be found, '
+                                'and is required for executing online tests.')
 
-    dummy_credentials = Credentials(
-        'dummyapiusersloginWithTokenid01',
-        'https://quantumexperience.ng.bluemix.net/api')
-
-    if test_options['mock_online']:
-        return dummy_credentials
-
-    if os.getenv('USE_ALTERNATE_ENV_CREDENTIALS', ''):
-        # Special case: instead of using the standard credentials mechanism,
-        # load them from different environment variables. This assumes they
-        # will always be in place, as is used by the Travis setup.
+    if os.getenv('IBMQ_TOKEN') and os.getenv('IBMQ_URL'):
         return Credentials(os.getenv('IBMQ_TOKEN'), os.getenv('IBMQ_URL'))
-    else:
+    elif os.getenv('QISKIT_TESTS_USE_CREDENTIALS_FILE'):
         # Attempt to read the standard credentials.
         discovered_credentials = discover_credentials()
 
         if discovered_credentials:
             # Decide which credentials to use for testing.
             if len(discovered_credentials) > 1:
-                try:
-                    # Attempt to use QE credentials.
-                    return discovered_credentials[dummy_credentials.unique_id()]
-                except KeyError:
-                    pass
+                raise unittest.SkipTest(
+                    "More than 1 credential set found, use: "
+                    "IBMQ_TOKEN and IBMQ_URL env variables to "
+                    "set credentials explicitly")
 
             # Use the first available credentials.
             return list(discovered_credentials.values())[0]
-
-    # No user credentials were found.
-    if test_options['rec']:
-        raise Exception('Could not locate valid credentials. You need them for '
-                        'recording tests against the remote API.')
-
-    test_object.log.warning('No user credentials were detected. '
-                            'Running with mocked data.')
-    test_options['mock_online'] = True
-    return dummy_credentials
+    raise unittest.SkipTest(
+        'No IBMQ credentials found for running the test. This is required for '
+        'running online tests.')
 
 
 def requires_qe_access(func):
@@ -204,3 +186,37 @@ def online_test(func):
 
 
 TEST_OPTIONS = get_test_options()
+
+
+class Case(dict):
+    """ A test case, see https://ddt.readthedocs.io/en/latest/example.html MyList."""
+    pass
+
+
+def generate_cases(dsc=None, name=None, **kwargs):
+    """Combines kwargs in cartesian product and creates Case with them"""
+    ret = []
+    keys = kwargs.keys()
+    vals = kwargs.values()
+    for values in product(*vals):
+        case = Case(zip(keys, values))
+        if dsc is not None:
+            setattr(case, "__doc__", dsc.format(**case))
+        if name is not None:
+            setattr(case, "__name__", name.format(**case))
+        ret.append(case)
+    return ret
+
+
+def combine(**kwargs):
+    """Decorator to create combinations and tests
+        @combine(level=[0, 1, 2, 3],
+                 circuit=[a, b, c, d],
+                 dsc='Test circuit {circuit.__name__} with level {level}',
+                 name='{circuit.__name__}_level{level}')
+    """
+
+    def deco(func):
+        return data(*generate_cases(**kwargs))(unpack(func))
+
+    return deco

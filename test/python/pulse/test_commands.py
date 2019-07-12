@@ -50,15 +50,20 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq_command.discriminator.params, discriminator_opts)
         self.assertEqual(acq_command.kernel.name, 'boxcar')
         self.assertEqual(acq_command.kernel.params, kernel_opts)
+        self.assertTrue(acq_command.name.startswith('acq'))
 
     def test_can_construct_acquire_command_with_default_values(self):
         """Test if an acquire command can be constructed with default discriminator and kernel.
         """
-        acq_command = Acquire(duration=10)
+        acq_command_a = Acquire(duration=10)
+        acq_command_b = Acquire(duration=10)
 
-        self.assertEqual(acq_command.duration, 10)
-        self.assertEqual(acq_command.discriminator, None)
-        self.assertEqual(acq_command.kernel, None)
+        self.assertEqual(acq_command_a.duration, 10)
+        self.assertEqual(acq_command_a.discriminator, None)
+        self.assertEqual(acq_command_a.kernel, None)
+        self.assertTrue(acq_command_a.name.startswith('acq'))
+        self.assertNotEqual(acq_command_a.name, acq_command_b.name)
+        self.assertEqual(acq_command_b.name, 'acq' + str(int(acq_command_a.name[3:]) + 1))
 
 
 class TestFrameChange(QiskitTestCase):
@@ -71,6 +76,7 @@ class TestFrameChange(QiskitTestCase):
 
         self.assertEqual(fc_command.phase, 1.57)
         self.assertEqual(fc_command.duration, 0)
+        self.assertTrue(fc_command.name.startswith('fc'))
 
 
 class TestFunctionalPulse(QiskitTestCase):
@@ -96,6 +102,21 @@ class TestFunctionalPulse(QiskitTestCase):
         # check duration
         self.assertEqual(pulse_command.duration, 10)
 
+    def test_variable_duration(self):
+        """Test generation of sample pulse with variable duration.
+        """
+
+        @functional_pulse
+        def gaussian(duration, amp, t0, sig):
+            x = np.linspace(0, duration - 1, duration)
+            return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
+
+        _durations = np.arange(10, 15, 1)
+
+        for _duration in _durations:
+            pulse_command = gaussian(duration=_duration, amp=1, t0=5, sig=1)
+            self.assertEqual(len(pulse_command.samples), _duration)
+
 
 class TestPersistentValue(QiskitTestCase):
     """PersistentValue tests."""
@@ -107,6 +128,7 @@ class TestPersistentValue(QiskitTestCase):
 
         self.assertEqual(pv_command.value, 0.5-0.5j)
         self.assertEqual(pv_command.duration, 0)
+        self.assertTrue(pv_command.name.startswith('pv'))
 
 
 class TestSnapshot(QiskitTestCase):
@@ -115,7 +137,7 @@ class TestSnapshot(QiskitTestCase):
     def test_default(self):
         """Test default snapshot.
         """
-        snap_command = Snapshot(name='test_name', snap_type='state')
+        snap_command = Snapshot(label='test_name', snapshot_type='state')
 
         self.assertEqual(snap_command.name, "test_name")
         self.assertEqual(snap_command.type, "state")

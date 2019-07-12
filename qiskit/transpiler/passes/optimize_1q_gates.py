@@ -39,7 +39,7 @@ class Optimize1qGates(TransformationPass):
     """Simplify runs of single qubit gates in the ["u1", "u2", "u3", "cx", "id"] basis."""
     def run(self, dag):
         """Return a new circuit that has been optimized."""
-        runs = dag.collect_runs(["u1", "u2", "u3", "id"])
+        runs = dag.collect_runs(["u1", "u2", "u3"])
         runs = _split_runs_on_parameters(runs)
         for run in runs:
             right_name = "u1"

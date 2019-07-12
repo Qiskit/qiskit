@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import Measure
 from qiskit.circuit import Reset
 from qiskit.circuit import Gate, Instruction
+from qiskit.extensions.standard.iden import IdGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.x import XGate
@@ -448,6 +449,26 @@ class TestDagLayers(QiskitTestCase):
             ['x'],
             ['measure', 'measure']
         ], name_layers)
+
+    def test_layers_maintains_order(self):
+        """Test that the layers method doesn't mess up the order of the DAG as
+         reported in #2698"""
+        qr = QuantumRegister(1, 'q0')
+
+        # the order the nodes should be in
+        truth = [('in', 'q0[0]', 1), ('op', 'x', 3), ('op', 'id', 4), ('out', 'q0[0]', 2)]
+
+        # this only occurred sometimes so has to be run more than once
+        # (10 times seemed to always be enough for this bug to show at least once)
+        for _ in range(10):
+            qc = QuantumCircuit(qr)
+            qc.x(0)
+            dag = circuit_to_dag(qc)
+            d1 = list(dag.layers())[0]['graph']
+            d1.apply_operation_back(IdGate(), [qr[0]], [])
+
+            comp = [(nd.type, nd.name, nd._node_id) for nd in d1.topological_nodes()]
+            self.assertEqual(comp, truth)
 
 
 class TestCircuitProperties(QiskitTestCase):

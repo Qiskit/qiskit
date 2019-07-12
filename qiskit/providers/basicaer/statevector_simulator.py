@@ -53,7 +53,7 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A Python statevector simulator for qobj files',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'snapshot'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -81,9 +81,9 @@ class StatevectorSimulatorPy(QasmSimulatorPy):
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
             },
             {
-                'name': 'snapshot',
-                'parameters': ['slot'],
-                'qasm_def': 'gate snapshot(slot) q { TODO }'
+                'name': 'unitary',
+                'parameters': ['matrix'],
+                'qasm_def': 'unitary(matrix) q1, q2,...'
             }
         ]
     }
