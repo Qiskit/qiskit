@@ -22,7 +22,6 @@ import sympy
 from numpy import ndarray
 
 from .exceptions import VisualizationError
-from .utils import wire_labels
 
 
 class DrawElement():
@@ -563,12 +562,23 @@ class TextDrawing():
             initial_qubit_value = ''
             initial_clbit_value = ''
 
+        qubit_labels = []
         if self.layout is None:
-            qubit_labels = wire_labels('{name}_{index}: ' + initial_qubit_value, self.qregs)
+            for bit in self.qregs:
+                label = '{name}_{index}: ' + initial_qubit_value
+                qubit_labels.append(label.format(name=bit.register.name,
+                                                 index=bit.index,
+                                                 physical=''))
         else:
-            qubit_labels = wire_labels('({name}{index}) q{physical}'+initial_qubit_value,
-                                       self.qregs, self.layout)
-        clbit_labels = wire_labels('{name}_{index}: '+initial_clbit_value, self.cregs)
+            for bit in self.qregs:
+                label = '({name}{index}) q{physical}' + initial_qubit_value
+                qubit_labels.append(label.format(name=bit.register.name,
+                                                 index=bit.index,
+                                                 physical=self.layout[bit]))
+        clbit_labels = []
+        for bit in self.cregs:
+            label = '{name}_{index}: ' + initial_clbit_value
+            clbit_labels.append(label.format(name=bit.register.name, index=bit.index))
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):

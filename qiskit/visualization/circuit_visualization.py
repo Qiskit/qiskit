@@ -553,7 +553,12 @@ def _matplotlib_circuit_drawer(circuit,
                                                         reverse_bits=reverse_bits,
                                                         justify=justify,
                                                         idle_wires=idle_wires)
+    if with_layout:
+        layout = circuit.layout
+    else:
+        layout = None
+
     qcd = _matplotlib.MatplotlibDrawer(qregs, cregs, ops, scale=scale, style=style,
                                        plot_barriers=plot_barriers,
-                                       reverse_bits=reverse_bits)
+                                       reverse_bits=reverse_bits, layout=layout)
     return qcd.draw(filename)

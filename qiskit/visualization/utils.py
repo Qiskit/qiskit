@@ -64,29 +64,6 @@ def _trim(image):
         image = image.crop(bbox)
     return image
 
-
-def wire_labels(wire_tag_format, regs, layout=None):
-    """
-    Returns a list of names for each wire.
-    Args:
-        wire_tag_format (str): Format string. See `help('FORMATTING')` for details. They
-        available labels are:
-            - name: Name of the register
-            - index: Register index
-            - physical: The physical qubit if the layout is available. Otherwise, empty string.
-
-    Returns:
-        List: The list of wire names.
-    """
-    labels = []
-
-    for bit in regs:
-        labels.append(wire_tag_format.format(name=bit.register.name,
-                                             index=bit.index,
-                                             physical='' if layout is None else layout[bit]))
-    return labels
-
-
 def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
     """
     Given a circuit, return a tuple (qregs, cregs, ops) where
