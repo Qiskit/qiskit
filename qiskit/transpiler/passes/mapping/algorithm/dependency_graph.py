@@ -94,7 +94,7 @@ class DependencyGraph:
         # construct commutation-rules-aware dependency graph
         for n in self._graph.nodes():
             if self._gates[n].name in x_gates:
-                [b] = self._gates[n].qargs
+                b = self._gates[n].qargs[0]  # acting qubit of gate n
                 # pylint: disable=unbalanced-tuple-unpacking
                 [pgow] = self._prior_gates_on_wire(self._gates, n)
                 z_flag = False
@@ -114,7 +114,7 @@ class DependencyGraph:
                     else:
                         raise TranspilerError("Unknown gate: " + gate.name)
             elif self._gates[n].name in z_gates:
-                [b] = self._gates[n].qargs
+                b = self._gates[n].qargs[0]  # acting qubit of gate n
                 # pylint: disable=unbalanced-tuple-unpacking
                 [pgow] = self._prior_gates_on_wire(self._gates, n)
                 x_flag = False
