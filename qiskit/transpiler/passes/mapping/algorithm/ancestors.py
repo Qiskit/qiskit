@@ -28,7 +28,7 @@ class Ancestors:
     Utility class for speeding up a function to find ancestors in DAG.
     """
 
-    def __init__(self, G: nx.DiGraph, max_depth=5):
+    def __init__(self, G: nx.DiGraph, max_depth: int = 5):
         self._graph = G.reverse()
         self._max_depth = max_depth
         self._depth = 0
@@ -45,7 +45,7 @@ class Ancestors:
         return self._ancestors_rec(n)
 
     @lru_cache(maxsize=CACHE_SIZE)
-    def _ancestors_rec(self, n) -> set:
+    def _ancestors_rec(self, n: int) -> set:
         if self._depth >= self._max_depth:
             return self._ancestors_loop(n)
         self._depth += 1
@@ -57,7 +57,7 @@ class Ancestors:
         return ret
 
     @lru_cache(maxsize=CACHE_SIZE)
-    def _ancestors_loop(self, n) -> set:
+    def _ancestors_loop(self, n: int) -> set:
         ret = set()
         done = set()
         cands = [n]
