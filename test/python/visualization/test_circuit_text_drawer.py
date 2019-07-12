@@ -24,6 +24,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import Layout
 from qiskit.circuit import Gate, Parameter
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.operators import SuperOp
@@ -1458,12 +1459,21 @@ class TestTextWithLayout(QiskitTestCase):
 
     def test_text_measure(self):
         """ Remove QuWires and ClWires. """
-        expected = '\n'.join([])
-        qr1 = QuantumRegister(2, 'qr')
-        qr2 = QuantumRegister(2, 'q')
-        circuit = QuantumCircuit(qr1, qr2)
-        circuit.h(qr1)
-        circuit.h(qr2)
+        expected = '\n'.join(["                ┌───┐",
+                              "      (v0) q0|0>┤ H ├",
+                              "                ├───┤",
+                              "      (v1) q4|0>┤ H ├",
+                              "                ├───┤",
+                              "(ancilla0) q3|0>┤ H ├",
+                              "                ├───┤",
+                              "(ancilla1) q1|0>┤ H ├",
+                              "                └───┘"])
+        qr = QuantumRegister(2, 'v')
+        ancilla = QuantumRegister(2, 'ancilla')
+        circuit = QuantumCircuit(qr, ancilla)
+        circuit.layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 3, qr[1]: 4})
+        circuit.h(qr)
+        circuit.h(ancilla)
         self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
 
 

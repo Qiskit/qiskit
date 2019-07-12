@@ -566,7 +566,7 @@ class TextDrawing():
         if self.layout is None:
             qubit_labels = wire_labels('{name}_{index}: ' + initial_qubit_value, self.qregs)
         else:
-            qubit_labels = wire_labels('{name}_{index}: ({physical}) '+initial_qubit_value,
+            qubit_labels = wire_labels('({name}{index}) q{physical}'+initial_qubit_value,
                                        self.qregs, self.layout)
         clbit_labels = wire_labels('{name}_{index}: '+initial_clbit_value, self.cregs)
         return qubit_labels + clbit_labels
