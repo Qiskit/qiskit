@@ -1457,8 +1457,8 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.h(qr1[1])
         self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
 
-    def test_text_measure(self):
-        """ Remove QuWires and ClWires. """
+    def test_mixed_layout(self):
+        """ With a mixed layout. """
         expected = '\n'.join(["                ┌───┐",
                               "      (v0) q0|0>┤ H ├",
                               "                ├───┤",
@@ -1474,6 +1474,34 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 3, qr[1]: 4})
         circuit.h(qr)
         circuit.h(ancilla)
+        self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
+
+    def test_with_classical_regs(self):
+        """ Involving classical registers"""
+        expected = '\n'.join(["                 ",
+                              "(qr0) q0|0>──────",
+                              "                 ",
+                              "(qr1) q1|0>──────",
+                              "           ┌─┐   ",
+                              "(qs0) q3|0>┤M├───",
+                              "           └╥┘┌─┐",
+                              "(qs1) q4|0>─╫─┤M├",
+                              "            ║ └╥┘",
+                              "   c1_0: 0 ═╬══╬═",
+                              "            ║  ║ ",
+                              "   c1_1: 0 ═╬══╬═",
+                              "            ║  ║ ",
+                              "   c2_0: 0 ═╩══╬═",
+                              "               ║ ",
+                              "   c2_1: 0 ════╩═",
+                              "                 "])
+        qr1 = QuantumRegister(2, 'qr')
+        cr1 = ClassicalRegister(2, 'c1')
+        qr2 = QuantumRegister(2, 'qs')
+        cr2 = ClassicalRegister(2, 'c2')
+        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circuit.layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 3, qr2[1]: 4})
+        circuit.measure(qr2, cr2)
         self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
 
 
