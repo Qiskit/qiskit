@@ -16,6 +16,8 @@
 
 import unittest
 
+import numpy as np
+
 from qiskit.circuit import Gate
 from qiskit.circuit import Parameter
 from qiskit.circuit import Instruction
@@ -36,18 +38,30 @@ class TestInstructions(QiskitTestCase):
         hop2 = Instruction('s', 1, 0, [])
         hop3 = Instruction('h', 1, 0, [])
 
+        self.assertFalse(hop1 == hop2)
+        self.assertTrue(hop1 == hop3)
+
         uop1 = Instruction('u', 1, 0, [0.4, 0.5, 0.5])
         uop2 = Instruction('u', 1, 0, [0.4, 0.6, 0.5])
         uop3 = Instruction('v', 1, 0, [0.4, 0.5, 0.5])
         uop4 = Instruction('u', 1, 0, [0.4, 0.5, 0.5])
-        self.assertFalse(hop1 == hop2)
-        self.assertTrue(hop1 == hop3)
+
         self.assertFalse(uop1 == uop2)
         self.assertTrue(uop1 == uop4)
         self.assertFalse(uop1 == uop3)
+
         self.assertTrue(HGate() == HGate())
         self.assertFalse(HGate() == CnotGate())
         self.assertFalse(hop1 == HGate())
+
+        eop1 = Instruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
+        eop2 = Instruction('kraus', 1, 0, [np.array([[0, 1], [1, 0]])])
+        eop3 = Instruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
+        eop4 = Instruction('kraus', 1, 0, [np.eye(4)])
+
+        self.assertTrue(eop1 == eop3)
+        self.assertFalse(eop1 == eop2)
+        self.assertFalse(eop1 == eop4)
 
     def test_instructions_equal_with_parameters(self):
         """Test equality of instructions for cases with Parameters."""

@@ -55,4 +55,8 @@ def transpile_circuit(circuit, transpile_config):
         else:
             raise TranspilerError("optimization_level can range from 0 to 3.")
 
+    # Set a callback on the pass manager there is one
+    if getattr(transpile_config, 'callback', None):
+        pass_manager.callback = transpile_config.callback
+
     return pass_manager.run(circuit)

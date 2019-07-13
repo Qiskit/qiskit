@@ -12,10 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Functionality and helpers for testing Qiskit."""
+"""Module containing transpiler synthesize."""
 
-from .base import QiskitTestCase
-from .decorators import requires_aer_provider, online_test, slow_test, requires_qe_access, \
-    combine
-from .reference_circuits import ReferenceCircuits
-from .utils import Path
+
+from .graysynth import graysynth, cnot_synth
