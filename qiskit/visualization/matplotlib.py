@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name,missing-docstring,anomalous-backslash-in-string
+# pylint: disable=invalid-name,missing-docstring
 
 """mpl circuit visualization backend."""
 
@@ -447,7 +447,7 @@ class MatplotlibDrawer:
                 if self.layout is None:
                     label = '${name}_{{{index}}}$'.format(name=reg.register.name, index=reg.index)
                 else:
-                    label = '$({name}_{{{index}}})\ q_{physical}$'.format(
+                    label = '$({name}_{{{index}}})\\ q_{physical}$'.format(
                         physical=self.layout[reg],
                         name=reg.register.name,
                         index=reg.index)
