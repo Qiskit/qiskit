@@ -192,6 +192,7 @@ class PassManager():
         Raises:
             TranspilerError: If the pass is not a proper pass instance.
         """
+
         # First, do the requires of pass_
         for required_pass in pass_.requires:
             dag = self._do_pass(required_pass, dag, options)
