@@ -20,7 +20,6 @@ from qiskit.visualization.exceptions import VisualizationError
 
 try:
     import PIL
-
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -63,6 +62,7 @@ def _trim(image):
     if bbox:
         image = image.crop(bbox)
     return image
+
 
 def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
     """
