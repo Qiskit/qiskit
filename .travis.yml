@@ -105,6 +105,14 @@ jobs:
         - sudo pip install -U twine
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
+    - if: tag IS present
+      env:
+        - TWINE_USERNAME=qiskit
+      python: 3.6
+      install: pip install -U twine
+      script:
+        - python3 setup.py sdist
+        - twine upload dist/qiskit-terra*tar.gz
     - os: osx
       language: generic
       if: tag IS present

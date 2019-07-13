@@ -96,6 +96,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+-   Fixes a bug where the CmdDef was getting built without buffers on channels.
 -   Fixed bug in `Pulse` for multiple parameters being added (\#2742)
 -   Fixed bug in `Pulse` for CmdDef arguments (\#2741)
 -   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
