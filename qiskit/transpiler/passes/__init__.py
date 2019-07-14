@@ -22,8 +22,10 @@ from .depth import Depth
 from .size import Size
 from .width import Width
 from .count_ops import CountOps
+from .count_ops_longest_path import CountOpsLongestPath
 from .num_tensor_factors import NumTensorFactors
 from .dag_fixed_point import DAGFixedPoint
+from .dag_longest_path import DAGLongestPath
 from .merge_adjacent_barriers import MergeAdjacentBarriers
 from .optimize_1q_gates import Optimize1qGates
 from .decompose import Decompose
@@ -36,6 +38,7 @@ from .collect_2q_blocks import Collect2qBlocks
 from .consolidate_blocks import ConsolidateBlocks
 from .mapping.full_ancilla_allocation import FullAncillaAllocation
 from .mapping.enlarge_with_ancilla import EnlargeWithAncilla
+from .mapping.apply_layout import ApplyLayout
 from .mapping.barrier_before_final_measurements import BarrierBeforeFinalMeasurements
 from .mapping.check_map import CheckMap
 from .mapping.check_cx_direction import CheckCXDirection
@@ -48,4 +51,3 @@ from .mapping.basic_swap import BasicSwap
 from .mapping.lookahead_swap import LookaheadSwap
 from .remove_diagonal_gates_before_measure import RemoveDiagonalGatesBeforeMeasure
 from .mapping.stochastic_swap import StochasticSwap
-from .mapping.legacy_swap import LegacySwap

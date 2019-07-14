@@ -97,9 +97,6 @@ class Layout():
 
     @staticmethod
     def _cast_tuple_to_bit(value):
-        if isinstance(value, Qubit):
-            # Remove when Qubit.__class__ gets removed.
-            return value
         if isinstance(value, tuple):
             warn('Querying layout with a tuple (i.e. layout[(qr, 0)]) is deprecated. '
                  'Go for layout[qr[0]].', DeprecationWarning)

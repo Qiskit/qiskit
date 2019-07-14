@@ -68,7 +68,7 @@ class UnitarySimulatorPy(BaseBackend):
         'max_shots': 65536,
         'coupling_map': None,
         'description': 'A python simulator for unitary matrix corresponding to a circuit',
-        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id'],
+        'basis_gates': ['u1', 'u2', 'u3', 'cx', 'id', 'unitary'],
         'gates': [
             {
                 'name': 'u1',
@@ -94,6 +94,11 @@ class UnitarySimulatorPy(BaseBackend):
                 'name': 'id',
                 'parameters': ['a'],
                 'qasm_def': 'gate id a { U(0,0,0) a; }'
+            },
+            {
+                'name': 'unitary',
+                'parameters': ['matrix'],
+                'qasm_def': 'unitary(matrix) q1, q2,...'
             }
         ]
     }
@@ -114,36 +119,20 @@ class UnitarySimulatorPy(BaseBackend):
         self._initial_unitary = None
         self._chop_threshold = 1e-15
 
-    def _add_unitary_single(self, gate, qubit):
-        """Apply an arbitrary 1-qubit unitary matrix.
+    def _add_unitary(self, gate, qubits):
+        """Apply an N-qubit unitary matrix.
 
         Args:
-            gate (matrix_like): a single qubit gate matrix
-            qubit (int): the qubit to apply gate to
+            gate (matrix_like): an N-qubit unitary matrix
+            qubits (list): the list of N-qubits.
         """
-        # Convert to complex rank-2 tensor
-        gate_tensor = np.array(gate, dtype=complex)
+        # Get the number of qubits
+        num_qubits = len(qubits)
         # Compute einsum index string for 1-qubit matrix multiplication
-        indexes = einsum_matmul_index([qubit], self._number_of_qubits)
-        # Apply matrix multiplication
-        self._unitary = np.einsum(indexes, gate_tensor, self._unitary,
-                                  dtype=complex, casting='no')
-
-    def _add_unitary_two(self, gate, qubit0, qubit1):
-        """Apply a two-qubit unitary matrix.
-
-        Args:
-            gate (matrix_like): a the two-qubit gate matrix
-            qubit0 (int): gate qubit-0
-            qubit1 (int): gate qubit-1
-        """
-
-        # Convert to complex rank-4 tensor
-        gate_tensor = np.reshape(np.array(gate, dtype=complex), 4 * [2])
-
-        # Compute einsum index string for 2-qubit matrix multiplication
-        indexes = einsum_matmul_index([qubit0, qubit1], self._number_of_qubits)
-
+        indexes = einsum_matmul_index(qubits, self._number_of_qubits)
+        # Convert to complex rank-2N tensor
+        gate_tensor = np.reshape(np.array(gate, dtype=complex),
+                                 num_qubits * [2, 2])
         # Apply matrix multiplication
         self._unitary = np.einsum(indexes, gate_tensor, self._unitary,
                                   dtype=complex, casting='no')
@@ -285,7 +274,7 @@ class UnitarySimulatorPy(BaseBackend):
                   'status': 'COMPLETED',
                   'success': True,
                   'time_taken': (end - start),
-                  'header': qobj.header.as_dict()}
+                  'header': qobj.header.to_dict()}
 
         return Result.from_dict(result)
 
@@ -324,12 +313,16 @@ class UnitarySimulatorPy(BaseBackend):
         self._initialize_unitary()
 
         for operation in experiment.instructions:
+            if operation.name == 'unitary':
+                qubits = operation.qubits
+                gate = operation.params[0]
+                self._add_unitary(gate, qubits)
             # Check if single  gate
-            if operation.name in ('U', 'u1', 'u2', 'u3'):
+            elif operation.name in ('U', 'u1', 'u2', 'u3'):
                 params = getattr(operation, 'params', None)
                 qubit = operation.qubits[0]
                 gate = single_gate_matrix(operation.name, params)
-                self._add_unitary_single(gate, qubit)
+                self._add_unitary(gate, [qubit])
             elif operation.name in ('id', 'u0'):
                 pass
             # Check if CX gate
@@ -337,7 +330,7 @@ class UnitarySimulatorPy(BaseBackend):
                 qubit0 = operation.qubits[0]
                 qubit1 = operation.qubits[1]
                 gate = cx_gate_matrix()
-                self._add_unitary_two(gate, qubit0, qubit1)
+                self._add_unitary(gate, [qubit0, qubit1])
             # Check if barrier
             elif operation.name == 'barrier':
                 pass
@@ -354,7 +347,7 @@ class UnitarySimulatorPy(BaseBackend):
                 'status': 'DONE',
                 'success': True,
                 'time_taken': (end - start),
-                'header': experiment.header.as_dict()}
+                'header': experiment.header.to_dict()}
 
     def _validate(self, qobj):
         """Semantic validations of the qobj which cannot be done via schemas.

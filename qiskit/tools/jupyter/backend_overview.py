@@ -72,13 +72,15 @@ class BackendOverview(Magics):
         least_label = widgets.Label(value='Least Busy')
         oper_label = widgets.Label(
             value='Operational', layout=widgets.Layout(margin='5px 0px 0px 0px'))
-        t1_label = widgets.Label(
-            value='Avg. T1', layout=widgets.Layout(margin='10px 0px 0px 0px'))
-        t2_label = widgets.Label(
-            value='Avg. T2', layout=widgets.Layout(margin='10px 0px 0px 0px'))
+        t12_label = widgets.Label(
+            value='Avg. T1 / T2', layout=widgets.Layout(margin='10px 0px 0px 0px'))
+        cx_label = widgets.Label(
+            value='Avg. CX Err.', layout=widgets.Layout(margin='10px 0px 0px 0px'))
+        meas_label = widgets.Label(
+            value='Avg. Meas. Err.', layout=widgets.Layout(margin='10px 0px 0px 0px'))
 
-        labels_widget = widgets.VBox([qubit_label, pend_label, least_label,
-                                      oper_label, t1_label, t2_label],
+        labels_widget = widgets.VBox([qubit_label, pend_label, oper_label,
+                                      least_label, t12_label, cx_label, meas_label],
                                      layout=widgets.Layout(margin='295px 0px 0px 0px',
                                                            min_width='100px'))
 
@@ -157,16 +159,37 @@ def backend_widget(backend):
 
     t1_units = props['qubits'][0][0]['unit']
     avg_t1 = round(sum([q[0]['value'] for q in props['qubits']])/n_qubits, 1)
-    t1_widget = widgets.HTML(value="<h5>{t1} {units}</h5>".format(t1=avg_t1, units=t1_units),
-                             layout=widgets.Layout())
-
-    t2_units = props['qubits'][0][1]['unit']
     avg_t2 = round(sum([q[1]['value'] for q in props['qubits']])/n_qubits, 1)
-    t2_widget = widgets.HTML(value="<h5>{t2} {units}</h5>".format(t2=avg_t2, units=t2_units),
+    t12_widget = widgets.HTML(value="<h5>{t1} / {t2} {units}</h5>".format(t1=avg_t1,
+                                                                          t2=avg_t2,
+                                                                          units=t1_units),
+                              layout=widgets.Layout())
+
+    sum_cx_err = 0
+    num_cx = 0
+    for gate in props['gates']:
+        if gate['gate'] == 'cx':
+            for param in gate['parameters']:
+                if param['name'] == 'gate_error':
+                    # Value == 1.0 means gate effectively off
+                    if param['value'] != 1.0:
+                        sum_cx_err += param['value']
+                        num_cx += 1
+    avg_cx_err = round(sum_cx_err/(num_cx), 4)
+    cx_widget = widgets.HTML(value="<h5>{cx_err}</h5>".format(cx_err=avg_cx_err),
                              layout=widgets.Layout())
 
-    out = widgets.VBox([name, cmap, qubit_count, pending,
-                        least_busy, is_oper, t1_widget, t2_widget],
+    avg_meas_err = 0
+    for qub in props['qubits']:
+        for item in qub:
+            if item['name'] == 'readout_error':
+                avg_meas_err += item['value']
+    avg_meas_err = round(avg_meas_err/n_qubits, 4)
+    meas_widget = widgets.HTML(value="<h5>{meas_err}</h5>".format(meas_err=avg_meas_err),
+                               layout=widgets.Layout())
+
+    out = widgets.VBox([name, cmap, qubit_count, pending, is_oper, least_busy,
+                        t12_widget, cx_widget, meas_widget],
                        layout=widgets.Layout(display='inline-flex',
                                              flex_flow='column',
                                              align_items='center'))
@@ -213,17 +236,17 @@ def update_backend_info(self, interval=60):
 
             for var in idx:
                 if var == least_pending_idx:
-                    self.children[var].children[4].value = "<h5 style='color:#34bc6e'>True</h5>"
+                    self.children[var].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
-                    self.children[var].children[4].value = "<h5 style='color:#dc267f'>False</h5>"
+                    self.children[var].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
 
                 self.children[var].children[3].children[1].value = pending[var]
                 self.children[var].children[3].children[1].max = max(
                     self.children[var].children[3].children[1].max, pending[var]+10)
                 if stati[var].operational:
-                    self.children[var].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
+                    self.children[var].children[4].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
-                    self.children[var].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
+                    self.children[var].children[4].value = "<h5 style='color:#dc267f'>False</h5>"
 
             started = True
             current_interval = 0

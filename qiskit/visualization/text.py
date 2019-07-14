@@ -442,14 +442,16 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None, vertically_compressed=True):
+                 line_length=None, vertical_compression='high'):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
-        self.vertically_compressed = vertically_compressed
+        if vertical_compression not in ['high', 'medium', 'low']:
+            raise ValueError("Vertical compression can only be 'high', 'medium', or 'low'")
+        self.vertical_compression = vertical_compression
 
     def __str__(self):
         return self.single_string()
@@ -462,13 +464,13 @@ class TextDrawing():
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit[0].name, qubit[1]))
+            qubits.append("%s_%s" % (qubit.register.name, qubit.index))
         return qubits
 
     def _get_clbit_labels(self):
         clbits = []
         for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit[0].name, clbit[1]))
+            clbits.append("%s_%s" % (clbit.register.name, clbit.index))
         return clbits
 
     def single_string(self):
@@ -550,7 +552,7 @@ class TextDrawing():
         lines = []
         for layer_group in layer_groups:
             wires = [i for i in zip(*layer_group)]
-            lines += TextDrawing.draw_wires(wires, self.vertically_compressed)
+            lines += self.draw_wires(wires)
 
         return lines
 
@@ -576,14 +578,23 @@ class TextDrawing():
 
         return qubit_labels + clbit_labels
 
-    @staticmethod
-    def draw_wires(wires, vertically_compressed=True):
+    def should_compress(self, top_line, bot_line):
+        """Decides if the top_line and bot_line should be merged,
+        based on `self.vertical_compression`."""
+        if self.vertical_compression == 'high':
+            return True
+        if self.vertical_compression == 'low':
+            return False
+        for top, bot in zip(top_line, bot_line):
+            if top == '┴' and bot == '┬':
+                return False
+        return True
+
+    def draw_wires(self, wires):
         """
         Given a list of wires, creates a list of lines with the text drawing.
         Args:
             wires (list): A list of wires with instructions.
-            vertically_compressed (bool): Default is `True`. It merges the lines
-                                     so the drawing will take less vertical room.
         Returns:
             list: A list of lines with the text drawing.
         """
@@ -598,7 +609,7 @@ class TextDrawing():
             if bot_line is None:
                 lines.append(top_line)
             else:
-                if vertically_compressed:
+                if self.should_compress(top_line, bot_line):
                     lines.append(TextDrawing.merge_lines(lines.pop(), top_line))
                 else:
                     lines.append(TextDrawing.merge_lines(lines[-1], top_line, icod="bot"))
@@ -948,7 +959,7 @@ class Layer:
             label (string): The label for the multi clbit box.
             top_connect (char): The char to connect the box on the top.
         """
-        clbit = [bit for bit in self.cregs if bit[0] == creg]
+        clbit = [bit for bit in self.cregs if bit.register == creg]
         self._set_multibox("cl", clbit, label, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, conditional=False):

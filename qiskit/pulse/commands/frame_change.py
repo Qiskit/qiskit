@@ -15,6 +15,7 @@
 """
 Frame change pulse.
 """
+from typing import Optional
 
 from qiskit.pulse.channels import PulseChannel
 from .instruction import Instruction
@@ -24,30 +25,32 @@ from .command import Command
 class FrameChange(Command):
     """Frame change pulse."""
 
-    def __init__(self, phase):
+    prefix = 'fc'
+
+    def __init__(self, phase: float, name: Optional[str] = None):
         """Create new frame change pulse.
 
         Args:
-            phase (float): Frame change phase in radians.
-                The allowable precision is device specific.
+            phase: Frame change phase in radians. The allowable precision is device specific
+            name: Name of this framechange command.
         """
         super().__init__(duration=0)
         self._phase = float(phase)
+        self._name = FrameChange.create_name(name)
 
     @property
     def phase(self):
         """Framechange phase."""
         return self._phase
 
-    def __eq__(self, other):
-        """Two FrameChanges are the same if they are of the same type
-        and have the same phase.
+    def __eq__(self, other: 'FrameChange'):
+        """Two FrameChanges are the same if they are of the same type and phase.
 
         Args:
-            other (FrameChange): other FrameChange
+            other: other FrameChange
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if type(self) is type(other) and \
                 self.phase == other.phase:
@@ -64,7 +67,7 @@ class FrameChange(Command):
 
 
 class FrameChangeInstruction(Instruction):
-    """Instruction to change frame of an `PulseChannel`. """
+    """Instruction to change frame of an `PulseChannel`."""
 
     def __init__(self, command: FrameChange, channel: PulseChannel, name=None):
         super().__init__(command, channel, name=name)

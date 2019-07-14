@@ -1,4 +1,5 @@
 coverage>=4.4.0
+hypothesis>=4.24.3
 ipywidgets>=7.3.0
 jupyter
 matplotlib>=2.1
@@ -6,12 +7,12 @@ nxpd>=0.2
 pillow>=4.2.1
 pycodestyle
 pydot
-pylint>=2.2,<2.3
+pylint>=2.3,<2.4
 pylintfileheader>=0.0.2
 stestr>=2.0.0
-vcrpy
 PyGithub
 wheel
 cython>=0.27.1
 pillow>=4.2.1
 pylatexenc>=1.4
+ddt>=1.2.0

@@ -19,8 +19,10 @@ A pass implementing the default Qiskit stochastic mapper.
 from logging import getLogger
 from pprint import pformat
 from math import inf
+from collections import OrderedDict
 import numpy as np
 
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
@@ -49,40 +51,27 @@ class StochasticSwap(TransformationPass):
     Uses a randomized algorithm.
     """
 
-    def __init__(self, coupling_map, initial_layout=None,
-                 trials=20, seed=None):
+    def __init__(self, coupling_map, trials=20, seed=None):
         """
         Map a DAGCircuit onto a `coupling_map` using swap gates.
 
-        If initial_layout is not None, we assume the input circuit
-        has been layed out before running this pass, and that
-        the layout process yields a DAG, coupling map, and layout
-        with the following properties:
-
-        1. All three have the same number of qubits
-        2. The layout a bijection from the DAG qubits to the coupling map
-
-        For this mapping pass, it may also be necessary that
-
-        3. The coupling map is a connected graph
+        The coupling map is a connected graph
 
         If these are not satisfied, the behavior is undefined.
 
         Args:
             coupling_map (CouplingMap): Directed graph representing a coupling
                 map.
-            initial_layout (Layout): initial layout of qubits in mapping
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
         """
         super().__init__()
         self.coupling_map = coupling_map
-        self.initial_layout = initial_layout
-        self.input_layout = None
         self.trials = trials
         self.seed = seed
         self.qregs = None
         self.rng = None
+        self.trivial_layout = None
 
     def run(self, dag):
         """
@@ -99,20 +88,14 @@ class StochasticSwap(TransformationPass):
             compatible with the DAG
         """
 
-        if self.initial_layout is None:
-            if self.property_set["layout"]:
-                self.initial_layout = self.property_set["layout"]
-            else:
-                self.initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
+            raise TranspilerError('Basic swap runs on physical circuits only')
 
-        if len(dag.qubits()) != len(self.initial_layout):
+        if len(dag.qubits()) > len(self.coupling_map.physical_qubits):
             raise TranspilerError('The layout does not match the amount of qubits in the DAG')
 
-        if len(self.coupling_map.physical_qubits) != len(self.initial_layout):
-            raise TranspilerError(
-                "Mappers require to have the layout to be the same size as the coupling map")
-
-        self.input_layout = self.initial_layout.copy()
+        canonical_register = dag.qregs['q']
+        self.trivial_layout = Layout.generate_trivial_layout(canonical_register)
 
         self.qregs = dag.qregs
         if self.seed is None:
@@ -121,7 +104,6 @@ class StochasticSwap(TransformationPass):
         logger.debug("StochasticSwap RandomState seeded with seed=%s", self.seed)
 
         new_dag = self._mapper(dag, self.coupling_map, trials=self.trials)
-        # self.property_set["layout"] = self.initial_layout
         return new_dag
 
     def _layer_permutation(self, layer_partition, layout, qubit_subset,
@@ -158,18 +140,15 @@ class StochasticSwap(TransformationPass):
         Raises:
             TranspilerError: if anything went wrong.
      """
-        return _layer_permutation(layer_partition, self.initial_layout,
+        return _layer_permutation(layer_partition,
                                   layout, qubit_subset,
-                                  coupling, trials,
-                                  self.qregs, self.rng)
+                                  coupling, trials, self.rng)
 
-    def _layer_update(self, i, first_layer, best_layout, best_depth,
+    def _layer_update(self, i, best_layout, best_depth,
                       best_circuit, layer_list):
         """Provide a DAGCircuit for a new mapped layer.
 
         i (int) = layer number
-        first_layer (bool) = True if this is the first layer in the
-            circuit with any multi-qubit gates
         best_layout (Layout) = layout returned from _layer_permutation
         best_depth (int) = depth returned from _layer_permutation
         best_circuit (DAGCircuit) = swap circuit returned
@@ -182,47 +161,32 @@ class StochasticSwap(TransformationPass):
         """
         layout = best_layout
         logger.debug("layer_update: layout = %s", pformat(layout))
-        logger.debug("layer_update: self.initial_layout = %s", pformat(self.initial_layout))
+        logger.debug("layer_update: self.trivial_layout = %s", pformat(self.trivial_layout))
         dagcircuit_output = DAGCircuit()
         for qubit in layout.get_virtual_bits().keys():
             if qubit.register not in dagcircuit_output.qregs.values():
                 dagcircuit_output.add_qreg(qubit.register)
 
-        # If this is the first layer with multi-qubit gates,
-        # output all layers up to this point and ignore any
-        # swap gates. Set the initial layout.
-        if first_layer:
-            logger.debug("layer_update: first multi-qubit gate layer")
-            # Output all layers up to this point
-            for j in range(i + 1):
-                # Make qubit edge map and extend by classical bits
-                edge_map = layout.combine_into_edge_map(self.initial_layout)
-                for bit in dagcircuit_output.clbits():
-                    edge_map[bit] = bit
-                dagcircuit_output.compose_back(layer_list[j]["graph"], edge_map)
-        # Otherwise, we output the current layer and the associated swap gates.
+        # Output any swaps
+        if best_depth > 0:
+            logger.debug("layer_update: there are swaps in this layer, "
+                         "depth %d", best_depth)
+            dagcircuit_output.extend_back(best_circuit)
         else:
-            # Output any swaps
-            if best_depth > 0:
-                logger.debug("layer_update: there are swaps in this layer, "
-                             "depth %d", best_depth)
-                dagcircuit_output.extend_back(best_circuit)
-            else:
-                logger.debug("layer_update: there are no swaps in this layer")
-            # Make qubit edge map and extend by classical bits
-            edge_map = layout.combine_into_edge_map(self.initial_layout)
-            for bit in dagcircuit_output.clbits():
-                edge_map[bit] = bit
-            # Output this layer
-            dagcircuit_output.compose_back(layer_list[i]["graph"], edge_map)
+            logger.debug("layer_update: there are no swaps in this layer")
+        # Make qubit edge map and extend by classical bits
+        edge_map = layout.combine_into_edge_map(self.trivial_layout)
+        for bit in dagcircuit_output.clbits():
+            edge_map[bit] = bit
+        # Output this layer
+        dagcircuit_output.compose_back(layer_list[i]["graph"], edge_map)
 
         return dagcircuit_output
 
-    def _mapper(self, circuit_graph, coupling_graph,
-                trials=20):
+    def _mapper(self, circuit_graph, coupling_graph, trials=20):
         """Map a DAGCircuit onto a CouplingMap using swap gates.
 
-        Use self.initial_layout for the initial layout.
+        Use self.trivial_layout for the initial layout.
 
         Args:
             circuit_graph (DAGCircuit): input DAG circuit
@@ -232,12 +196,6 @@ class StochasticSwap(TransformationPass):
         Returns:
             DAGCircuit: object containing a circuit equivalent to
                 circuit_graph that respects couplings in coupling_graph
-            Layout: a layout object mapping qubits of circuit_graph into
-                qubits of coupling_graph. The layout may differ from the
-                initial_layout if the first layer of gates cannot be
-                executed on the initial_layout, since in this case
-                it is more efficient to modify the layout instead of swapping
-            Dict: a final-layer qubit permutation
 
         Raises:
             TranspilerError: if there was any error during the mapping
@@ -249,26 +207,10 @@ class StochasticSwap(TransformationPass):
         for i, v in enumerate(layerlist):
             logger.debug("    %d: %s", i, v["partition"])
 
-        if self.initial_layout is not None:
-            qubit_subset = self.initial_layout.get_virtual_bits().keys()
-        else:
-            # Supply a default layout for this dag
-            self.initial_layout = Layout()
-            physical_qubit = 0
-            for qreg in circuit_graph.qregs.values():
-                for index in range(qreg.size):
-                    self.initial_layout[(qreg, index)] = physical_qubit
-                    physical_qubit += 1
-            qubit_subset = self.initial_layout.get_virtual_bits().keys()
-            # Restrict the coupling map to the image of the layout
-            coupling_graph = coupling_graph.subgraph(
-                self.initial_layout.get_physical_bits().keys())
-            if coupling_graph.size() < len(self.initial_layout):
-                raise TranspilerError("Coupling map too small for default layout")
-            self.input_layout = self.initial_layout.copy()
+        qubit_subset = self.trivial_layout.get_virtual_bits().keys()
 
-        # Find swap circuit to preceed to each layer of input circuit
-        layout = self.initial_layout.copy()
+        # Find swap circuit to precede each layer of input circuit
+        layout = self.trivial_layout.copy()
 
         # Construct an empty DAGCircuit with the same set of
         # qregs and cregs as the input circuit
@@ -287,8 +229,7 @@ class StochasticSwap(TransformationPass):
         for bit in circuit_graph.clbits():
             identity_wire_map[bit] = bit
 
-        first_layer = True  # True until first layer is output
-        logger.debug("initial_layout = %s", layout)
+        logger.debug("trivial_layout = %s", layout)
 
         # Iterate over layers
         for i, layer in enumerate(layerlist):
@@ -330,12 +271,9 @@ class StochasticSwap(TransformationPass):
                     # If this layer is only single-qubit gates,
                     # and we have yet to see multi-qubit gates,
                     # continue to the next inner iteration
-                    if trivial_flag and first_layer:
+                    if trivial_flag:
                         logger.debug("mapper: skip to next sublayer")
                         continue
-
-                    if first_layer:
-                        self.initial_layout = layout
 
                     # Update the record of qubit positions
                     # for each inner iteration
@@ -343,63 +281,42 @@ class StochasticSwap(TransformationPass):
                     # Update the DAG
                     dagcircuit_output.extend_back(
                         self._layer_update(j,
-                                           first_layer,
                                            best_layout,
                                            best_depth,
                                            best_circuit,
                                            serial_layerlist),
                         identity_wire_map)
-                    if first_layer:
-                        first_layer = False
 
             else:
                 # Update the record of qubit positions for each iteration
                 layout = best_layout
 
-                if first_layer:
-                    self.initial_layout = layout
-
                 # Update the DAG
                 dagcircuit_output.extend_back(
                     self._layer_update(i,
-                                       first_layer,
                                        best_layout,
                                        best_depth,
                                        best_circuit,
                                        layerlist),
                     identity_wire_map)
 
-                if first_layer:
-                    first_layer = False
-
         # This is the final edgemap. We might use it to correctly replace
         # any measurements that needed to be removed earlier.
-        logger.debug("mapper: self.initial_layout = %s", pformat(self.initial_layout))
+        logger.debug("mapper: self.trivial_layout = %s", pformat(self.trivial_layout))
         logger.debug("mapper: layout = %s", pformat(layout))
-        last_edgemap = layout.combine_into_edge_map(self.initial_layout)
+        last_edgemap = layout.combine_into_edge_map(self.trivial_layout)
         logger.debug("mapper: last_edgemap = %s", pformat(last_edgemap))
-
-        # If first_layer is still set, the circuit only has single-qubit gates
-        # so we can use the initial layout to output the entire circuit
-        # This code is dead due to changes to first_layer above.
-        if first_layer:
-            logger.debug("mapper: first_layer flag still set")
-            layout = self.initial_layout
-            for i, layer in enumerate(layerlist):
-                edge_map = layout.combine_into_edge_map(self.initial_layout)
-                dagcircuit_output.compose_back(layer["graph"], edge_map)
 
         return dagcircuit_output
 
 
-def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
-                       coupling, trials, qregs, rng):
+def _layer_permutation(layer_partition, layout, qubit_subset,
+                       coupling, trials, rng):
     """Find a swap circuit that implements a permutation for this layer.
 
     Args:
         layer_partition (list): The layer_partition is a list of (qu)bit
             lists and each qubit is a tuple (qreg, index).
-        initial_layout (Layout): The initial layout passed.
         layout (Layout): The layout is a Layout object mapping virtual
             qubits in the input circuit to physical qubits in the coupling
             graph. It reflects the current positions of the data.
@@ -410,7 +327,6 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
             This coupling map should be one that was provided to the
             stochastic mapper.
         trials (int): Number of attempts the randomized algorithm makes.
-        qregs (OrderedDict): Ordered dict of registers from input DAG.
         rng (RandomState): Random number generator.
 
     Returns:
@@ -418,7 +334,7 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
 
     Raises:
         TranspilerError: if anything went wrong.
-     """
+    """
     logger.debug("layer_permutation: layer_partition = %s",
                  pformat(layer_partition))
     logger.debug("layer_permutation: layout = %s",
@@ -426,6 +342,11 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
     logger.debug("layer_permutation: qubit_subset = %s",
                  pformat(qubit_subset))
     logger.debug("layer_permutation: trials = %s", trials)
+
+    # The input dag is on a flat canonical register
+    # TODO: cleanup the code that is general for multiple qregs below
+    canonical_register = QuantumRegister(len(layout), 'q')
+    qregs = OrderedDict({canonical_register.name: canonical_register})
 
     gates = []  # list of lists of tuples [[(register, index), ...], ...]
     for gate_args in layer_partition:
@@ -442,9 +363,7 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
     if dist == len(gates):
         logger.debug("layer_permutation: nothing to do")
         circ = DAGCircuit()
-        for register in layout.get_virtual_bits().keys():
-            if register.register not in circ.qregs.values():
-                circ.add_qreg(register.register)
+        circ.add_qreg(canonical_register)
         return True, circ, 0, layout, (not bool(gates))
 
     # Begin loop over trials of randomized algorithm
@@ -502,9 +421,10 @@ def _layer_permutation(layer_partition, initial_layout, layout, qubit_subset,
         return False, None, None, None, False
 
     edgs = best_edges.edges()
+    trivial_layout = Layout.generate_trivial_layout(canonical_register)
     for idx in range(best_edges.size//2):
         slice_circuit.apply_operation_back(
-            SwapGate(), [initial_layout[edgs[2*idx]], initial_layout[edgs[2*idx+1]]], [])
+            SwapGate(), [trivial_layout[edgs[2*idx]], trivial_layout[edgs[2*idx+1]]], [])
     trial_circuit.extend_back(slice_circuit)
     best_circuit = trial_circuit
 

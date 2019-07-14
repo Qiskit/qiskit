@@ -43,6 +43,8 @@ class Interval:
             raise PulseError("Cannot create Interval with negative begin time")
         if end < 0:
             raise PulseError("Cannot create Interval with negative end time")
+        if begin > end:
+            raise PulseError("Cannot create Interval with time beginning after end")
         self._begin = begin
         self._end = end
 
@@ -98,6 +100,10 @@ class Interval:
             return True
         return False
 
+    def __repr__(self):
+        """Return a readable representation of Interval Object"""
+        return "{}({}, {})".format(self.__class__.__name__, self.begin, self.end)
+
 
 class Timeslot:
     """Named tuple of (Interval, Channel)."""
@@ -133,6 +139,12 @@ class Timeslot:
         if self.interval == other.interval and self.channel == other.channel:
             return True
         return False
+
+    def __repr__(self):
+        """Return a readable representation of Timeslot Object"""
+        return "{}({}, {})".format(self.__class__.__name__,
+                                   self.channel,
+                                   (self.interval.begin, self.interval.end))
 
 
 class TimeslotCollection:
@@ -220,9 +232,10 @@ class TimeslotCollection:
             timeslots: TimeslotCollection to be checked
         """
         for slot in timeslots.timeslots:
-            for interval in self._table[slot.channel]:
-                if slot.interval.has_overlap(interval):
-                    return False
+            if slot.channel in self.channels:
+                for interval in self._table[slot.channel]:
+                    if slot.interval.has_overlap(interval):
+                        return False
         return True
 
     def merged(self, timeslots: 'TimeslotCollection') -> 'TimeslotCollection':
@@ -253,3 +266,10 @@ class TimeslotCollection:
         if self.timeslots == other.timeslots:
             return True
         return False
+
+    def __repr__(self):
+        """Return a readable representation of TimeslotCollection Object"""
+        rep = dict()
+        for key, val in self._table.items():
+            rep[key] = [(interval.begin, interval.end) for interval in val]
+        return self.__class__.__name__ + str(rep)

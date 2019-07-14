@@ -14,12 +14,14 @@
 
 """Module for Pulses."""
 
-from .channels import (DeviceSpecification, DriveChannel, MeasureChannel, AcquireChannel,
+from .channels import (DeviceSpecification, PulseChannelSpec, DriveChannel,
+                       MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
+from .cmd_def import CmdDef
 from .commands import (Instruction, Acquire, FrameChange, PersistentValue,
                        SamplePulse, Snapshot, Kernel, Discriminator, functional_pulse)
 from .configuration import LoConfig, LoRange
-from .schedule import Schedule
-from .cmd_def import CmdDef
 from .exceptions import PulseError
 from .interfaces import ScheduleComponent
+# from .parser import parse_string_expr
+from .schedule import Schedule

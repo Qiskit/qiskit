@@ -15,7 +15,6 @@
 """Circuit transpile function"""
 
 from qiskit.transpiler.preset_passmanagers import (default_pass_manager_simulator,
-                                                   default_pass_manager,
                                                    level_0_pass_manager,
                                                    level_1_pass_manager,
                                                    level_2_pass_manager,
@@ -55,8 +54,12 @@ def transpile_circuit(circuit, transpile_config):
 
     # legacy behavior
     elif transpile_config.coupling_map:
-        pass_manager = default_pass_manager(transpile_config)
+        pass_manager = level_1_pass_manager(transpile_config)
     else:
         pass_manager = default_pass_manager_simulator(transpile_config)
+
+    # Set a callback on the pass manager if it's set
+    if getattr(transpile_config, 'callback', None):
+        pass_manager.callback = transpile_config.callback
 
     return pass_manager.run(circuit)

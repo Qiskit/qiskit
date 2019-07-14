@@ -16,29 +16,20 @@
 Identity gate.
 """
 import numpy
-from qiskit.circuit import CompositeGate
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u3 import U3Gate
 
 
 class IdGate(Gate):
-    """Identity gate."""
+    """Identity gate.
+
+    Identity gate corresponds to a single-qubit gate wait cycle,
+    and should not be optimized or unrolled (it is an opaque gate).
+    """
 
     def __init__(self, label=None):
         """Create new Identity gate."""
         super().__init__("id", 1, [], label=label)
-
-    def _define(self):
-        definition = []
-        q = QuantumRegister(1, "q")
-        rule = [
-            (U3Gate(0, 0, 0), [q[0]], [])
-        ]
-        for inst in rule:
-            definition.append(inst)
-        self.definition = definition
 
     def inverse(self):
         """Invert this gate."""
@@ -51,9 +42,12 @@ class IdGate(Gate):
 
 
 def iden(self, q):
-    """Apply Identity to q."""
+    """Apply Identity to q.
+
+    Identity gate corresponds to a single-qubit gate wait cycle,
+    and should not be optimized or unrolled (it is an opaque gate).
+    """
     return self.append(IdGate(), [q], [])
 
 
 QuantumCircuit.iden = iden
-CompositeGate.iden = iden

@@ -17,6 +17,7 @@
 import unittest
 
 from qiskit.pulse.channels import AcquireChannel
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.test import QiskitTestCase
 
@@ -53,6 +54,28 @@ class TestInterval(QiskitTestCase):
         # keep original interval unchanged
         self.assertEqual(1, interval.begin)
 
+    def test_invalid_interval(self):
+        """Test invalid instantiation with negative time bounds."""
+        with self.assertRaises(PulseError):
+            Interval(-1, 5)
+        with self.assertRaises(PulseError):
+            Interval(2, -5)
+        with self.assertRaises(PulseError):
+            Interval(5, 2)
+
+    def test_interval_equality(self):
+        """Test equality and inequality of intervals."""
+        interval_1 = Interval(3, 10)
+        interval_2 = Interval(3, 10)
+        interval_3 = Interval(2, 10)
+        self.assertTrue(interval_1 == interval_2)
+        self.assertFalse(interval_1 == interval_3)
+
+    def test_representation_of_interval_object(self):
+        """Test string representation of intervals."""
+        interval = Interval(3, 10)
+        self.assertEqual(str(interval), 'Interval(3, 10)')
+
 
 class TestTimeslot(QiskitTestCase):
     """Timeslot tests."""
@@ -63,6 +86,18 @@ class TestTimeslot(QiskitTestCase):
         slot = Timeslot(Interval(1, 3), AcquireChannel(0))
         self.assertEqual(Interval(1, 3), slot.interval)
         self.assertEqual(AcquireChannel(0), slot.channel)
+
+    def test_shift(self):
+        """Test shifting of Timeslot."""
+        slot_1 = Timeslot(Interval(1, 3), AcquireChannel(0))
+        slot_2 = Timeslot(Interval(1+5, 3+5), AcquireChannel(0))
+        shifted_slot = slot_1.shift(+5)
+        self.assertTrue(slot_2 == shifted_slot)
+
+    def test_representation_of_timeslot_object(self):
+        """Test representation of Timeslot object."""
+        slot = Timeslot(Interval(1, 5), AcquireChannel(0))
+        self.assertEqual(repr(slot), 'Timeslot(AcquireChannel(0), (1, 5))')
 
 
 class TestTimeslotCollection(QiskitTestCase):
@@ -119,6 +154,23 @@ class TestTimeslotCollection(QiskitTestCase):
         actual = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0))).shift(10)
         expected = TimeslotCollection(Timeslot(Interval(11, 13), AcquireChannel(0)))
         self.assertEqual(expected, actual)
+
+    def test_is_mergeable_does_not_mutate_TimeslotCollection(self):
+        """Test that is_mergeable_with does not mutate the given TimeslotCollection"""
+
+        # Different channel but different interval
+        col1 = TimeslotCollection(Timeslot(Interval(1, 2), AcquireChannel(0)))
+        expected_channels = col1.channels
+        col2 = TimeslotCollection(Timeslot(Interval(3, 4), AcquireChannel(1)))
+        col1.is_mergeable_with(col2)
+        self.assertEqual(col1.channels, expected_channels)
+
+        # Different channel but same interval
+        col1 = TimeslotCollection(Timeslot(Interval(1, 2), AcquireChannel(0)))
+        expected_channels = col1.channels
+        col2 = TimeslotCollection(Timeslot(Interval(1, 2), AcquireChannel(1)))
+        col1.is_mergeable_with(col2)
+        self.assertEqual(col1.channels, expected_channels)
 
 
 if __name__ == '__main__':

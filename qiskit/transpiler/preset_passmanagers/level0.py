@@ -27,10 +27,11 @@ from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.passes import LegacySwap
+from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.transpiler.passes import ApplyLayout
 
 
 def level_0_pass_manager(transpile_config):
@@ -65,7 +66,7 @@ def level_0_pass_manager(transpile_config):
     _choose_layout = TrivialLayout(coupling_map)
 
     # 2. Extend dag/layout with ancillas using the full coupling map
-    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla()]
+    _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
 
     # 3. Unroll to the basis
     _unroll = Unroller(basis_gates)
@@ -77,7 +78,7 @@ def level_0_pass_manager(transpile_config):
         return not property_set['is_swap_mapped']
 
     _swap = [BarrierBeforeFinalMeasurements(),
-             LegacySwap(coupling_map, trials=20, seed=seed_transpiler),
+             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
     # 5. Fix any bad CX directions
@@ -102,6 +103,5 @@ def level_0_pass_manager(transpile_config):
         # pm0.append(_direction_check)  # TODO
         pm0.append(_direction, condition=_direction_condition)
     pm0.append(_reset)
-    pm0.append(_direction)
 
     return pm0

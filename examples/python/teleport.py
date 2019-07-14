@@ -69,13 +69,15 @@ qc.measure(q[2], c2[0])
 initial_layout = {q[0]: 0,
                   q[1]: 1,
                   q[2]: 2}
-job = execute(qc, backend=backend, coupling_map=None, shots=1024, initial_layout=initial_layout)
+job = execute(qc, backend=backend, coupling_map=None, shots=1024,
+              initial_layout=initial_layout)
 
 result = job.result()
 print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
-job = execute(qc, backend=backend, coupling_map=coupling_map, shots=1024,initial_layout=initial_layout)
+job = execute(qc, backend=backend, coupling_map=coupling_map, shots=1024,
+              initial_layout=initial_layout)
 result = job.result()
 print(result.get_counts(qc))
 # Both versions should give the same distribution

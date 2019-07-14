@@ -37,6 +37,7 @@ from qiskit.extensions.standard.u3 import U3Gate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
 
 _CUTOFF_PRECISION = 1e-12
 
@@ -103,7 +104,7 @@ def decompose_two_qubit_product_gate(special_unitary_matrix):
 
     # extract the left component
     temp = np.kron(np.eye(2), R.T.conj())
-    special_unitary_matrix.dot(temp, temp)
+    temp = special_unitary_matrix.dot(temp)
     L = temp[::2, ::2]
     detL = L[0, 0]*L[1, 1] - L[0, 1]*L[1, 0]
     if abs(detL) < 0.9:
@@ -197,35 +198,35 @@ class TwoQubitWeylDecomposition:
         # Flip into Weyl chamber
         if cs[0] > pi2:
             cs[0] -= 3*pi2
-            K1l.dot(_ipy, out=K1l)
-            K1r.dot(_ipy, out=K1r)
+            K1l = K1l.dot(_ipy)
+            K1r = K1r.dot(_ipy)
         if cs[1] > pi2:
             cs[1] -= 3*pi2
-            K1l.dot(_ipx, out=K1l)
-            K1r.dot(_ipx, out=K1r)
+            K1l = K1l.dot(_ipx)
+            K1r = K1r.dot(_ipx)
         conjs = 0
         if cs[0] > pi4:
             cs[0] = pi2-cs[0]
-            K1l.dot(_ipy, out=K1l)
-            _ipy.dot(K2r, out=K2r)
+            K1l = K1l.dot(_ipy)
+            K2r = _ipy.dot(K2r)
             conjs += 1
         if cs[1] > pi4:
             cs[1] = pi2-cs[1]
-            K1l.dot(_ipx, out=K1l)
-            _ipx.dot(K2r, out=K2r)
+            K1l = K1l.dot(_ipx)
+            K2r = _ipx.dot(K2r)
             conjs += 1
         if cs[2] > pi2:
             cs[2] -= 3*pi2
-            K1l.dot(_ipz, out=K1l)
-            K1r.dot(_ipz, out=K1r)
+            K1l = K1l.dot(_ipz)
+            K1r = K1r.dot(_ipz)
         if conjs == 1:
             cs[2] = pi2-cs[2]
-            K1l.dot(_ipz, out=K1l)
-            _ipz.dot(K2r, out=K2r)
+            K1l = K1l.dot(_ipz)
+            K2r = _ipz.dot(K2r)
         if cs[2] > pi4:
             cs[2] -= pi2
-            K1l.dot(_ipz, out=K1l)
-            K1r.dot(_ipz, out=K1r)
+            K1l = K1l.dot(_ipz)
+            K1r = K1r.dot(_ipz)
         self.a = cs[1]
         self.b = cs[0]
         self.c = cs[2]
@@ -451,11 +452,28 @@ class TwoQubitBasisDecomposer():
         for i in range(best_nbasis):
             return_circuit.append(U3Gate(*decomposition_angles[2*i]), [q[0]])
             return_circuit.append(U3Gate(*decomposition_angles[2*i+1]), [q[1]])
-            return_circuit.append(CnotGate(), [q[0], q[1]])
+            return_circuit.append(self.gate, [q[0], q[1]])
         return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis]), [q[0]])
         return_circuit.append(U3Gate(*decomposition_angles[2*best_nbasis+1]), [q[1]])
 
         return return_circuit
+
+    def num_basis_gates(self, unitary):
+        """ Computes the number of basis gates needed in
+        a decomposition of input unitary
+        """
+        if hasattr(unitary, 'to_operator'):
+            unitary = unitary.to_operator().data
+        if hasattr(unitary, 'to_matrix'):
+            unitary = unitary.to_matrix()
+        unitary = np.asarray(unitary, dtype=complex)
+        a, b, c = weyl_coordinates(unitary)[:]
+        traces = [4*(np.cos(a)*np.cos(b)*np.cos(c)+1j*np.sin(a)*np.sin(b)*np.sin(c)),
+                  4*(np.cos(np.pi/4-a)*np.cos(self.basis.b-b)*np.cos(c) +
+                     1j*np.sin(np.pi/4-a)*np.sin(self.basis.b-b)*np.sin(c)),
+                  4*np.cos(c),
+                  4]
+        return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
 
 
 two_qubit_cnot_decompose = TwoQubitBasisDecomposer(CnotGate())

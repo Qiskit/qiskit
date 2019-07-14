@@ -13,21 +13,18 @@
 # that they have been altered from the originals.
 
 """
-Example showing how to draw a quantum circuit using Qiskit Terra.
-
+Example showing how to draw a quantum circuit using Qiskit.
 """
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit
 
 
 def build_bell_circuit():
     """Returns a circuit putting 2 qubits in the Bell state."""
-    q = QuantumRegister(2)
-    c = ClassicalRegister(2)
-    qc = QuantumCircuit(q, c)
-    qc.h(q[0])
-    qc.cx(q[0], q[1])
-    qc.measure(q, c)
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure([0, 1], [0, 1])
     return qc
 
 # Create the circuit

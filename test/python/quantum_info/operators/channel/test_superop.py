@@ -17,7 +17,8 @@
 import unittest
 import numpy as np
 
-from qiskit import QiskitError
+from qiskit import QiskitError, QuantumCircuit
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.channel import SuperOp
 from .channel_test_case import ChannelTestCase
 
@@ -46,10 +47,33 @@ class TestSuperOp(ChannelTestCase):
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
-        circuit, target = self.simple_circuit_no_measure()
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
         op = SuperOp(circuit)
-        target = SuperOp(target)
-        self.assertEqual(op, target)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = SuperOp(Operator(np.kron(y90, np.kron(self.UX, self.UH))))
+        self.assertEqual(target, op)
+
+        # Test decomposition of Controlled-u1 gate
+        lam = np.pi / 4
+        circuit = QuantumCircuit(2)
+        circuit.cu1(lam, 0, 1)
+        op = SuperOp(circuit)
+        target = SuperOp(Operator(np.diag([1, 1, 1, np.exp(1j * lam)])))
+        self.assertEqual(target, op)
+
+        # Test decomposition of controlled-H gate
+        circuit = QuantumCircuit(2)
+        circuit.ch(0, 1)
+        op = SuperOp(circuit)
+        target = SuperOp(
+            Operator(
+                np.kron(self.UI, np.diag([1, 0])) +
+                np.kron(self.UH, np.diag([0, 1]))))
+        self.assertEqual(target, op)
 
     def test_circuit_init_except(self):
         """Test initialization from circuit with measure raises exception."""
