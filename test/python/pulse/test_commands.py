@@ -88,7 +88,7 @@ class TestSamplePulse(QiskitTestCase):
         try:
             SamplePulse(recombined_pulse)
         except PulseError:
-            self.fail('SamplePulse incorrectly failed on approximately unit norm samples.')
+            self.fail('SamplePulse incorrectly failed to approximately unit norm samples.')
 
 
 class TestAcquire(QiskitTestCase):
