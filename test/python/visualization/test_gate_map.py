@@ -35,18 +35,11 @@ class TestGateMap(QiskitVisualizationTestCase):
 
     def test_plot_gate_map(self):
         """ tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
-        for i in self.backends:
-            n = i.configuration().n_qubits
-            if n == 5:
-                img_ref = path_to_diagram_reference("5bit_quantum_computer.png")
-            elif n == 14:
-                img_ref = path_to_diagram_reference("14bit_quantum_computer.png")
-            elif n == 16:
-                img_ref = path_to_diagram_reference("16bit_quantum_computer.png")
-            elif n == 20:
-                img_ref = path_to_diagram_reference("20bit_quantum_computer.png")
+        for backend in self.backends:
+            n = backend.configuration().n_qubits
+            img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
             filename = "temp.png"
-            fig = plot_gate_map(i)
+            fig = plot_gate_map(backend)
             fig.savefig(filename, bbox_inches="tight")
             self.assertImagesAreEqual(filename, img_ref, 0.1)
             os.remove(filename)
@@ -84,25 +77,25 @@ class TestGraphDist(QiskitTestCase):
         """ tests dist_real calculation for different figsize """
         params = [(self.ax1, self.real_values[0], True), (self.ax1, self.real_values[1], False),
                   (self.ax2, self.real_values[2], True), (self.ax2, self.real_values[3], False)]
-        for param1, param2, param3 in params:
+        for test_val, expected_val, bool_op in params:
             with self.subTest():
-                self.assertEqual(param2, _GraphDist(self.size, param1, param3).dist_real)
+                self.assertEqual(expected_val, _GraphDist(self.size, test_val, bool_op).dist_real)
 
     def test_dist_abs(self):
         """ tests dist_abs calculation for different figsize """
         params = [(self.ax1, self.abs_values[0], True), (self.ax1, self.abs_values[1], False),
                   (self.ax2, self.abs_values[2], True), (self.ax2, self.abs_values[3], False)]
-        for param1, param2, param3 in params:
+        for test_val, expected_val, bool_op in params:
             with self.subTest():
-                self.assertEqual(param2, _GraphDist(self.size, param1, param3).dist_abs)
+                self.assertEqual(expected_val, _GraphDist(self.size, test_val, bool_op).dist_abs)
 
     def test_value(self):
         """ tests value calculation for size = 4 """
         params = [(self.ax1, self.val[0], True), (self.ax1, self.val[1], False),
                   (self.ax2, self.val[2], True), (self.ax2, self.val[3], False)]
-        for param1, param2, param3 in params:
+        for test_val, expected_val, bool_op in params:
             with self.subTest():
-                self.assertEqual(param2, _GraphDist(self.size, param1, param3).value)
+                self.assertEqual(expected_val, _GraphDist(self.size, test_val, bool_op).value)
 
 
 if __name__ == '__main__':
