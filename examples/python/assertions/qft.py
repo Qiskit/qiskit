@@ -42,14 +42,18 @@ qft3 = QuantumCircuit(5, 5, name="qft3")
 qft4 = QuantumCircuit(5, 5, name="qft4")
 qft5 = QuantumCircuit(5, 5, name="qft5")
 
-input_state(qft3, 3)
+# Below, qft3 is a 3-qubit quantum circuit.
+input_state(qft3, 3) # Initializes the state so that post-QFT, the state should be 1.
+# Insert a breakpoint to the qft3 circuit after initializing the input state.
+# This asserts that the 3 qubits are in superposition, with critical p-value 0.05.
+breakpoint1 = qft3.assertsuperposition(0.05, range(3), range(3))
 qft3.barrier()
 qft(qft3, 3)
 qft3.barrier()
 
-# Insert a breakpoint, asserting that the 3 measured qubits are a classical value of 1,
-# with a critical p-value of 0.05.
-breakpoint = qft3.assertclassical(1, 0.05, range(3), range(3))
+# Insert a breakpoint after the quantum Fourier Transform has been performed.
+# This asserts that the 3 qubits are a classical value of 1, with critical p-value 0.05.
+breakpoint2 = qft3.assertclassical(1, 0.05, range(3), range(3))
 for j in range(3):
     qft3.measure(j, j)
 
@@ -69,12 +73,13 @@ for j in range(5):
 
 # setting up the backend, running the breakpoint and the job
 sim_backend = BasicAer.get_backend('qasm_simulator')
-job = execute([breakpoint, qft3, qft4, qft5], sim_backend, shots=1024)
+job = execute([breakpoint1, breakpoint2, qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()
 
-# We obtain a dictionary of the results from our statistical test on our breakpoint
-stat_outputs = AssertManager.stat_collect(breakpoint, result)
-print("Results of our statistical test:")
+# We obtain a dictionary of the results from each of our statistical tests
+# The line below also prints to command line whether the assertion passed or failed.
+stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
+print("Full results of our assertion:")
 print(stat_outputs)
 
 # Show the results

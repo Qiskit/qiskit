@@ -72,8 +72,9 @@ job_exp = execute([breakpoint, qc], least_busy_device, shots=1024, max_credits=1
 result_exp = job_exp.result()
 
 # Show the assertion, for which the statistical test should fail
+print("We want the statistical test below to fail, to assert the state is not a product state:")
 stat_outputs = AssertManager.stat_collect(breakpoint, result_exp)
-print("Output of our statistical test.  This assertion should fail:")
+print("Full results of our assertion:")
 print(stat_outputs)
 
 # Show the results

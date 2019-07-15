@@ -32,14 +32,17 @@ class AssertClassical(Asserts):
     def __init__(self, expval, pcrit, qubit, cbit):
         super().__init__()
         self._type = "Classical"
-        self._expval = expval
+        self._expval = expval if isinstance(expval, int) else int(expval, 2)
         self._pcrit = pcrit
         self._qubit = AssertManager.syntax4measure(qubit)
         self._cbit = AssertManager.syntax4measure(cbit)
+        if not self._expval in range(0, 2**len(self._cbit)):
+            raise QiskitError("AssertClassical expected value %d not in range for %d cbits" % (self._expval, len(self._cbit)))
 
     def stat_test(self, counts):
         vals_list = list(counts.values())
-        numzeros = 2**len(list(counts)[0]) - len(counts)
+        numqubits = len(list(counts)[0])
+        numzeros = 2**numqubits - len(counts)
         vals_list.extend([0]*numzeros)
         # numshots = sum(list(counts.values()))
         
