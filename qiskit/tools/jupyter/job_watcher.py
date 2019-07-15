@@ -17,7 +17,6 @@
 from qiskit.tools.events.pubsub import Subscriber
 from IPython.core.magic import (line_magic,             # pylint: disable=import-error
                                 Magics, magics_class)
-import qiskit.tools.jupyter as jtools
 from .job_widgets import (build_job_viewer, make_clear_button,
                           make_labels, create_job_widget)
 from .watcher_monitor import _job_monitor
@@ -149,10 +148,13 @@ class JobWatcherMagic(Magics):
     def qiskit_job_watcher(self, line='', cell=None):
         """A Jupyter magic function to enable job watcher.
         """
-        jtools._JOB_WATCHER.start_viewer()
+        _JOB_WATCHER.start_viewer()
 
     @line_magic
     def qiskit_disable_job_watcher(self, line='', cell=None):
         """A Jupyter magic function to disable job watcher.
         """
-        jtools._JOB_WATCHER.stop_viewer()
+        _JOB_WATCHER.stop_viewer()
+
+# The Jupyter job watcher instance
+_JOB_WATCHER = JobWatcher()
