@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
--   New `CountOpsLongest` analysis pass to retrieve the number of operations 
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations
     on the longest path of the DAGCircuit.
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
@@ -52,6 +52,8 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
+-   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
+    Otherwise an error is raised.
 -   Set default repetition time to be the first available.
 -   Pulse commands may now start with capitalized letters.
 -   The `pylatexenc` and `pillow` requirements are now optional. These
