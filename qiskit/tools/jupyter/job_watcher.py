@@ -45,7 +45,8 @@ class JobWatcher(Subscriber):
     def stop_viewer(self):
         """Stops the job viewer.
         """
-        self.job_viewer.close()
+        if self.job_viewer:
+            self.job_viewer.close()
         self.job_viewer = None
 
     def start_viewer(self):
@@ -149,6 +150,7 @@ class JobWatcherMagic(Magics):
     def qiskit_job_watcher(self, line='', cell=None):
         """A Jupyter magic function to enable job watcher.
         """
+        _JOB_WATCHER.stop_viewer()
         _JOB_WATCHER.start_viewer()
 
     @line_magic
