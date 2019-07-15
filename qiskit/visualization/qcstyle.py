@@ -19,6 +19,13 @@ class DefaultStyle:
     """IBM Design Style colors
     """
     def __init__(self):
+        # Set colors
+        basis_color = '#20d5d2'
+        clifford_color = '#30b0ff'
+        non_gate_color = '#000000'
+        other_color = '#ee538b'
+        pauli_color = '#d0b0ff'
+
         self.name = 'iqx'
         self.tc = '#000000'
         self.sc = '#000000'
@@ -54,28 +61,28 @@ class DefaultStyle:
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
-            'id': '#d0b0ff',
-            'u0': '#20d5d2',
-            'u1': '#20d5d2',
-            'u2': '#20d5d2',
-            'u3': '#20d5d2',
-            'x': '#d0b0ff',
-            'y': '#d0b0ff',
-            'z': '#d0b0ff',
-            'h': '#30b0ff',
-            'cx': '#30b0ff',
-            's': '#30b0ff',
-            'sdg': '#30b0ff',
-            't': '#ee538b',
-            'tdg': '#ee538b',
-            'rx': '#ee538b',
-            'ry': '#ee538b',
-            'rz': '#ee538b',
-            'reset': '#000000',
+            'u0': basis_color,
+            'u1': basis_color,
+            'u2': basis_color,
+            'u3': basis_color,
+            'id': pauli_color,
+            'x': pauli_color,
+            'y': pauli_color,
+            'z': pauli_color,
+            'h': clifford_color,
+            'cx': clifford_color,
+            's': clifford_color,
+            'sdg': clifford_color,
+            't': other_color,
+            'tdg': other_color,
+            'rx': other_color,
+            'ry': other_color,
+            'rz': other_color,
+            'reset': non_gate_color,
             'target': '#ffffff',
-            'swap': '#ee538b',
-            'multi': '#ee538b',
-            'meas': '#000000'
+            'swap': other_color,
+            'multi': other_color,
+            'meas': non_gate_color
         }
         self.latexmode = True
         self.pimode = False
