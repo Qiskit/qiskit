@@ -17,9 +17,9 @@
 
 from IPython.core.magic import (line_magic,             # pylint: disable=import-error
                                 Magics, magics_class)
+from qiskit.tools.events.pubsub import Subscriber
 from .job_widgets import (build_job_viewer, make_clear_button,
                           make_labels, create_job_widget)
-from qiskit.tools.events.pubsub import Subscriber
 from .watcher_monitor import _job_monitor
 
 
