@@ -48,7 +48,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         result = self.backend.run(self.qobj).result()
         self.assertEqual(result.success, True)
 
-    def test_qasm_simulator_measure_sampler(self):
+    def test_measure_sampler_repeated_qubits(self):
         """Test measure sampler if qubits measured more than once."""
         shots = 100
         qr = QuantumRegister(2, 'qr')
@@ -60,6 +60,55 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit.measure(qr[1], cr[2])
         circuit.measure(qr[0], cr[3])
         target = {'0110': shots}
+        job = execute(
+            circuit,
+            backend=self.backend,
+            shots=shots,
+            seed_simulator=self.seed)
+        result = job.result()
+        counts = result.get_counts(0)
+        self.assertEqual(counts, target)
+
+    def test_measure_sampler_single_qubit(self):
+        """Test measure sampler if single-qubit is measured."""
+        shots = 100
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        
+        for qubit in range(num_qubits):
+            circuit = QuantumCircuit(qr, cr)
+            circuit.x(qr[qubit])
+            circuit.measure(qr[qubit], cr[0])
+            target = {'1': shots}
+            job = execute(
+                circuit,
+                backend=self.backend,
+                shots=shots,
+                seed_simulator=self.seed)
+            result = job.result()
+            counts = result.get_counts(0)
+            self.assertEqual(counts, target)
+    
+    def test_measure_sampler_partial_qubit(self):
+        """Test measure sampler if single-qubit is measured."""
+        shots = 100
+        num_qubits = 5
+        qr = QuantumRegister(num_qubits, 'qr')
+        cr = ClassicalRegister(4, 'cr')
+        
+        circuit = QuantumCircuit(qr, cr)
+        circuit.x(qr[3])
+        circuit.x(qr[1])
+        circuit.barrier(qr)
+        circuit.measure(qr[3], cr[1])
+        circuit.barrier(qr)
+        circuit.measure(qr[1], cr[0])
+        circuit.barrier(qr)
+        circuit.measure(qr[0], cr[2])
+        circuit.barrier(qr)
+        circuit.measure(qr[3], cr[3])
+        target = {'1011': shots}
         job = execute(
             circuit,
             backend=self.backend,
