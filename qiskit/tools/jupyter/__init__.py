@@ -20,10 +20,11 @@ from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
 from .job_watcher import JobWatcher
+from .version_table import VersionTable
 
 if HAS_MATPLOTLIB:
     from .backend_overview import BackendOverview
-    from .backend_monitor import BackendMonitor, _backend_monitor
+    from .backend_monitor import _backend_monitor
 
 try:
     from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
@@ -37,7 +38,7 @@ if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
     if HAS_MATPLOTLIB:
         _IP.register_magics(BackendOverview)
-        _IP.register_magics(BackendMonitor)
+        _IP.register_magics(VersionTable)
         if HAS_IBMQ:
             HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
             # Make _backend_monitor the html repr for IBM Q backends
