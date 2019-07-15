@@ -41,7 +41,7 @@ class SamplePulse(Command):
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
                 it will be clipped by scaling its norm by 1-epsilon. If the sample
-                norm is greater than 1+epsilon an error will be raised.
+                norm is greater than 1+epsilon an error will be raised
         """
         super().__init__(duration=len(samples))
 
@@ -55,16 +55,25 @@ class SamplePulse(Command):
         """Return sample values."""
         return self._samples
 
-    def _clip(self, samples, epsilon=1e-6):
+    def _clip(self, samples: np.ndarray, epsilon: float = 1e-6):
         """If samples are within epsilon of unit norm, clip sample by reducing norm by (1-epsilon).
 
         If difference is greater than epsilon error is raised.
 
+        Args:
+            samples: Complex array of pulse envelope
+            epsilon: Pulse sample norm tolerance for clipping.
+                If any sample's norm exceeds unity by less than or equal to epsilon
+                it will be clipped by scaling its norm by 1-epsilon. If the sample
+                norm is greater than 1+epsilon an error will be raised
+
+        Returns:
+            np.ndarray: Clipped pulse samples
         Raises:
-            PulseError: If there exists a pulse sample with a norm greater than 1+epsilon.
+            PulseError: If there exists a pulse sample with a norm greater than 1+epsilon
         """
         samples_norm = np.abs(samples)
-        to_clip = (1. < samples_norm) & (samples_norm <= 1. + epsilon)
+        to_clip = (samples_norm > 1.) & (samples_norm <= 1. + epsilon)
 
         if np.any(to_clip):
             clip_where = np.argwhere(to_clip)
