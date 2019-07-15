@@ -175,7 +175,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         circuit = QuantumCircuit(qr, cr0, cr1, cr2, name='teleport')
         circuit.h(qr[1])
         circuit.cx(qr[1], qr[2])
-        circuit.ry(pi/4, qr[0])
+        circuit.ry(pi / 4, qr[0])
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[0])
         circuit.barrier(qr)
@@ -202,8 +202,8 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         self.log.info('test_teleport: data %s', data)
         self.log.info('test_teleport: alice %s', alice)
         self.log.info('test_teleport: bob %s', bob)
-        alice_ratio = 1/np.tan(pi/8)**2
-        bob_ratio = bob['0']/float(bob['1'])
+        alice_ratio = 1 / np.tan(pi / 8) ** 2
+        bob_ratio = bob['0'] / float(bob['1'])
         error = abs(alice_ratio - bob_ratio) / alice_ratio
         self.log.info('test_teleport: relative error = %s', error)
         self.assertLess(error, 0.05)
