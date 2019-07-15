@@ -30,7 +30,7 @@ def transpile(circuits,
               basis_gates=None, coupling_map=None, backend_properties=None,
               initial_layout=None, seed_transpiler=None,
               optimization_level=None,
-              pass_manager=None, callback=None):
+              pass_manager=None, callback=None, output_names=None):
     """transpile one or more circuits, according to some desired
     transpilation targets.
 
@@ -147,6 +147,8 @@ def transpile(circuits,
                     ...
 
                 transpile(circ, callback=callback_func)
+        output_names: 
+            A list with strings to identify the output circuits
 
 
     Returns:
@@ -186,8 +188,24 @@ def transpile(circuits,
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
 
+    #naming and returning circuits
+    
+    #single circuit
     if len(circuits) == 1:
+        if type(output_names)==list: 
+                circuits[0]=output_names[0]
+        elif type(output_names)==str:
+                circuits[0].name=output_names
         return circuits[0]
+    
+    #multiple circuits
+    if len(circuits)>len(output_names):
+        for i in range(len(output_names)): 
+            circuits[i-1].name=output_names[i-1]
+    else: 
+        for i in range(len(circuits)):
+            circuits[i-1].name=output_names[i-1]
+            
     return circuits
 
 
