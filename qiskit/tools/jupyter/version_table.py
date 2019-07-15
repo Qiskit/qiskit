@@ -17,12 +17,11 @@
 
 import sys
 import time
-import qiskit
-from qiskit.util import local_hardware_info
-
 from IPython.display import HTML, display               # pylint: disable=import-error
 from IPython.core.magic import (line_magic,             # pylint: disable=import-error
                                 Magics, magics_class)
+import qiskit
+from qiskit.util import local_hardware_info
 
 
 @magics_class
