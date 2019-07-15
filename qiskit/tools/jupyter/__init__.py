@@ -20,6 +20,7 @@ from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
 from .job_watcher import JobWatcher
+from .copyright import Copyright
 
 if HAS_MATPLOTLIB:
     from .backend_overview import BackendOverview
@@ -37,6 +38,7 @@ if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
     if HAS_MATPLOTLIB:
         _IP.register_magics(BackendOverview)
+        _IP.register_magics(Copyright)
         _IP.register_magics(BackendMonitor)
         if HAS_IBMQ:
             HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
