@@ -20,7 +20,7 @@ import time
 import qiskit
 from qiskit.util import local_hardware_info
 
-from IPython.display import HTML                        # pylint: disable=import-error
+from IPython.display import HTML, display               # pylint: disable=import-error
 from IPython.core.magic import (line_magic,             # pylint: disable=import-error
                                 Magics, magics_class)
 
@@ -69,4 +69,4 @@ class VersionTable(Magics):
             '%a %b %d %H:%M:%S %Y %Z')
         html += "</table>"
 
-        return HTML(html)
+        return display(HTML(html))
