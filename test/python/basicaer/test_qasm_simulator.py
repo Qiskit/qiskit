@@ -75,7 +75,7 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
         num_qubits = 5
         qr = QuantumRegister(num_qubits, 'qr')
         cr = ClassicalRegister(1, 'cr')
-        
+
         for qubit in range(num_qubits):
             circuit = QuantumCircuit(qr, cr)
             circuit.x(qr[qubit])
@@ -89,14 +89,14 @@ class TestBasicAerQasmSimulator(providers.BackendTestCase):
             result = job.result()
             counts = result.get_counts(0)
             self.assertEqual(counts, target)
-    
+
     def test_measure_sampler_partial_qubit(self):
         """Test measure sampler if single-qubit is measured."""
         shots = 100
         num_qubits = 5
         qr = QuantumRegister(num_qubits, 'qr')
         cr = ClassicalRegister(4, 'cr')
-        
+
         circuit = QuantumCircuit(qr, cr)
         circuit.x(qr[3])
         circuit.x(qr[1])
