@@ -199,9 +199,9 @@ def transpile(circuits,
         return circuits[0]
     
     #multiple circuits
-    if len(circuits)>len(output_names):
+    if len(circuits)>len(output_names): 
         for i in range(len(output_names)): 
-            circuits[i-1].name=output_names[i-1]
+            circuits[i-1].name=output_names[i-1] #the remaining unnamed circuits will be automatically given some default name
     else: 
         for i in range(len(circuits)):
             circuits[i-1].name=output_names[i-1]
