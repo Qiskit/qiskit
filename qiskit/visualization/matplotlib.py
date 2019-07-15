@@ -381,7 +381,7 @@ class MatplotlibDrawer:
                              linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _tgt_qubit(self, xy, fc=None, ec=None, ac=None, 
+    def _tgt_qubit(self, xy, fc=None, ec=None, ac=None,
                    add_width=None):
         if fc is None:
             fc = self._style.dispcol['target']
@@ -396,7 +396,7 @@ class MatplotlibDrawer:
 
         if self._style.dispcol['target'] == '#ffffff':
             add_width = self._style.colored_add_width
-        
+
         xpos, ypos = xy
 
         box = patches.Circle(xy=(xpos, ypos), radius=HIG * 0.35,
@@ -407,9 +407,9 @@ class MatplotlibDrawer:
         self.ax.plot([xpos, xpos], [ypos - add_width * HIG,
                                     ypos + add_width * HIG],
                      color=ac, linewidth=linewidth, zorder=PORDER_GATE+1)
-        
-        self.ax.plot([xpos - add_width * HIG, xpos + add_width * HIG], 
-                     [ypos, ypos], color=ac, linewidth=linewidth, 
+
+        self.ax.plot([xpos - add_width * HIG, xpos + add_width * HIG],
+                     [ypos, ypos], color=ac, linewidth=linewidth,
                      zorder=PORDER_GATE+1)
 
     def _swap(self, xy):
@@ -417,10 +417,10 @@ class MatplotlibDrawer:
         color = self._style.dispcol['swap']
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos - 0.20 * WID, ypos + 0.20 * WID],
-                     color=color, linewidth=3, zorder=PORDER_LINE+1)
+                     color=color, linewidth=2, zorder=PORDER_LINE+1)
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos + 0.20 * WID, ypos - 0.20 * WID],
-                     color=color, linewidth=3, zorder=PORDER_LINE+1)
+                     color=color, linewidth=2, zorder=PORDER_LINE+1)
 
     def _barrier(self, config, anc):
         xys = config['coord']
@@ -541,7 +541,7 @@ class MatplotlibDrawer:
         this_creg_dict = {}
         for creg in self._creg_dict.values():
             if n_fold == 0:
-                label = creg['label'] 
+                label = creg['label']
             else:
                 label = creg['label']
             y = creg['y'] - n_fold * (self._cond['n_lines'] + 1)
@@ -641,7 +641,7 @@ class MatplotlibDrawer:
 
                 _iswide = op.name in _wide_gate
                 if op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                   'noise', 'cswap', 'swap', 'measure', 
+                                   'noise', 'cswap', 'swap', 'measure',
                                    'reset'] and len(op.name) >= 4:
                     _iswide = True
 
@@ -845,23 +845,23 @@ class MatplotlibDrawer:
                     # cswap gate
                     if op.name == 'cswap':
                         self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['multi'])
-                        self._swap(q_xy[1], fc=self._style.dispcol['multi'])
-                        self._swap(q_xy[2],fc=self._style.dispcol['multi'])
+                        self._swap(q_xy[1])
+                        self._swap(q_xy[2])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # ccx gate
                     elif op.name == 'ccx':
                         self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['multi'],
-                        ec=self._style.dispcol['multi'])
+                                         ec=self._style.dispcol['multi'])
                         self._ctrl_qubit(q_xy[1], fc=self._style.dispcol['multi'],
-                        ec=self._style.dispcol['multi'])
+                                         ec=self._style.dispcol['multi'])
                         if self._style.name != 'bw':
                             self._tgt_qubit(q_xy[2], fc=self._style.dispcol['multi'],
                                             ec=self._style.dispcol['multi'],
-                                            ac=self._style.dispcol['target'] )
+                                            ac=self._style.dispcol['target'])
                         else:
-                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['target'] ,
-                                            ec=self._style.dispcol['multi'] ,
+                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['target'],
+                                            ec=self._style.dispcol['multi'],
                                             ac=self._style.dispcol['multi'])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
