@@ -23,7 +23,7 @@ class DefaultStyle:
         basis_color = '#20d5d2'
         clifford_color = '#30b0ff'
         non_gate_color = '#000000'
-        other_color = '#ee538b'
+        other_color = '#fa75a6'
         pauli_color = '#d0b0ff'
 
         self.name = 'iqx'
