@@ -156,5 +156,6 @@ class JobWatcherMagic(Magics):
         """
         _JOB_WATCHER.stop_viewer()
 
+
 # The Jupyter job watcher instance
 _JOB_WATCHER = JobWatcher()

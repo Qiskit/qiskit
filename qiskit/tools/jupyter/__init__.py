@@ -43,4 +43,3 @@ if _IP is not None:
             HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
             # Make _backend_monitor the html repr for IBM Q backends
             HTML_FORMATTER.for_type(IBMQBackend, _backend_monitor)
-
