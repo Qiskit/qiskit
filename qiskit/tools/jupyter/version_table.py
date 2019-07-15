@@ -70,4 +70,3 @@ class VersionTable(Magics):
         html += "</table>"
 
         return HTML(html)
-        

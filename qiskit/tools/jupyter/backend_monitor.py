@@ -48,6 +48,7 @@ MONTH_NAMES = {1: 'Jan.',
                12: 'Dec.'
                }
 
+
 def _load_jobs_data(self, change):
     """Loads backend jobs data
     """
