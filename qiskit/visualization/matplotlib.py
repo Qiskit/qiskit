@@ -123,7 +123,7 @@ class MatplotlibDrawer:
             'ymax': 0,
         }
         config = user_config.get_config()
-        if config and not style:
+        if config and (style is None):
             config_style = config.get('circuit_mpl_style', 'default')
             if config_style == 'default':
                 self._style = DefaultStyle()
@@ -392,22 +392,24 @@ class MatplotlibDrawer:
         if add_width is None:
             add_width = 0.35
 
+        linewidth = 2
+
         if self._style.dispcol['target'] == '#ffffff':
             add_width = self._style.colored_add_width
         
         xpos, ypos = xy
 
         box = patches.Circle(xy=(xpos, ypos), radius=HIG * 0.35,
-                             fc=fc, ec=ec, linewidth=2,
+                             fc=fc, ec=ec, linewidth=linewidth,
                              zorder=PORDER_GATE)
         self.ax.add_patch(box)
         # add '+' symbol
-
         self.ax.plot([xpos, xpos], [ypos - add_width * HIG,
                                     ypos + add_width * HIG],
-                     color=ac, linewidth=2, zorder=PORDER_GATE+1)
+                     color=ac, linewidth=linewidth, zorder=PORDER_GATE+1)
+        
         self.ax.plot([xpos - add_width * HIG, xpos + add_width * HIG], 
-                     [ypos, ypos], color=ac, linewidth=2, 
+                     [ypos, ypos], color=ac, linewidth=linewidth, 
                      zorder=PORDER_GATE+1)
 
     def _swap(self, xy):
@@ -776,10 +778,16 @@ class MatplotlibDrawer:
                             add_width = None
                         self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['cx'],
                                          ec=self._style.dispcol['cx'])
-                        self._tgt_qubit(q_xy[1], fc=self._style.dispcol['cx'],
-                                        ec=self._style.dispcol['cx'],
-                                        ac=self._style.dispcol['target'],
-                                        add_width=add_width)
+                        if self._style.name != 'bw':
+                            self._tgt_qubit(q_xy[1], fc=self._style.dispcol['cx'],
+                                            ec=self._style.dispcol['cx'],
+                                            ac=self._style.dispcol['target'],
+                                            add_width=add_width)
+                        else:
+                            self._tgt_qubit(q_xy[1], fc=self._style.dispcol['target'],
+                                            ec=self._style.dispcol['cx'],
+                                            ac=self._style.dispcol['cx'],
+                                            add_width=add_width)
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['cx'])
                     # cz for latexmode
@@ -847,9 +855,14 @@ class MatplotlibDrawer:
                         ec=self._style.dispcol['multi'])
                         self._ctrl_qubit(q_xy[1], fc=self._style.dispcol['multi'],
                         ec=self._style.dispcol['multi'])
-                        self._tgt_qubit(q_xy[2], fc=self._style.dispcol['multi'],
-                                        ec=self._style.dispcol['multi'],
-                                        ac=self._style.dispcol['target'] )
+                        if self._style.name != 'bw':
+                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['multi'],
+                                            ec=self._style.dispcol['multi'],
+                                            ac=self._style.dispcol['target'] )
+                        else:
+                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['target'] ,
+                                            ec=self._style.dispcol['multi'] ,
+                                            ac=self._style.dispcol['multi'])
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # custom gate

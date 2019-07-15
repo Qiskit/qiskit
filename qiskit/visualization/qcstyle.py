@@ -19,6 +19,7 @@ class DefaultStyle:
     """IBM Design Style colors
     """
     def __init__(self):
+        self.name = 'iqx'
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
@@ -116,6 +117,7 @@ class DefaultStyle:
 
 class BWStyle:
     def __init__(self):
+        self.name = 'bw'
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
