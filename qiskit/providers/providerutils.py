@@ -30,7 +30,7 @@ def filter_backends(backends, filters=None, **kwargs):
     Args:
         backends (list[BaseBackend]): list of backends.
         filters (callable): filtering conditions as a callable.
-        **kwargs (dict): dict of criteria.
+        **kwargs: dict of criteria.
 
     Returns:
         list[BaseBackend]: a list of backend instances matching the
