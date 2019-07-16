@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Assertion of superposition states.
+Assertion of uniform states.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
@@ -23,21 +23,20 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from scipy.stats import chisquare
 
-class AssertSuperposition(Asserts):
+class AssertUniform(Asserts):
     """
-        Assertion of superposition states and quantum measurement
+        Assertion of uniform states and quantum measurement
         in the computational basis.
     """
     def __init__(self, pcrit, qubit, cbit):
         super().__init__()
-        self._type = "Superposition"
         self._pcrit = pcrit
         self._qubit = AssertManager.syntax4measure(qubit)
         self._cbit = AssertManager.syntax4measure(cbit)
 
     def stat_test(self, counts):
         # chi-squared statistical test to assert
-        # equal superposition of all possible states
+        # uniform superposition of all possible states
         vals_list = list(counts.values())
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
@@ -49,8 +48,8 @@ class AssertSuperposition(Asserts):
         return (chisq, pval, passed)
 
 
-def assertsuperposition(self, pcrit, qubit, cbit):
-    """Create superposition assertion
+def assert_uniform(self, pcrit, qubit, cbit):
+    """Create uniform assertion
 
     Args:
         pcrit: float
@@ -65,10 +64,17 @@ def assertsuperposition(self, pcrit, qubit, cbit):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    assertion = AssertSuperposition(pcrit, qubit, cbit)
+    assertion = AssertUniform(pcrit, qubit, cbit)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
-    AssertManager.StatOutputs[theClone.name] = {"type":"Superposition", \
+    AssertManager.StatOutputs[theClone.name] = {"type":"Uniform", \
         "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
-QuantumCircuit.assertsuperposition = assertsuperposition
+QuantumCircuit.assert_uniform = assert_uniform
+
+def assert_not_uniform(self, pcrit, qubit, cbit):
+    theClone = assert_uniform(pcrit, qubit, cbit)
+    AssertManger.StatOutputs[theClone.name]["type"] = "Not Uniform"
+    return theClone
+
+QuantumCircuit.assert_not_uniform = assert_not_uniform

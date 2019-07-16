@@ -27,20 +27,10 @@ class Asserts(Measure):
 
     def __init__(self):
         super().__init__()
-        self._type = None
         self._qubit = None
         self._cbit = None
         self._pcrit = None
         self._expval = None
-
-    def get_type(self):
-        return self._type
-
-    def get_pcrit(self):
-        return self._pcrit
-
-    def get_expval(self):
-        return self._expval
 
     @abc.abstractmethod
     def stat_test(self, counts):

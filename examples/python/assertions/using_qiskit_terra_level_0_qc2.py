@@ -15,7 +15,7 @@
 """
 Example showing how to use assertions in Qiskit-Terra at level 0 (novice).
 
-It builds a superposition circuit with assertions and
+It builds a uniform circuit with assertions and
 runs it on BasicAer (local Qiskit provider).
 
 This corresponds to the second circuit in using_qiskit_terra_level_0.py 
@@ -32,13 +32,13 @@ from qiskit import execute, BasicAer
 from qiskit.assertions.asserts import Asserts
 from qiskit.assertions.assertmanager import AssertManager
 
-# making another circuit: superpositions
+# making another circuit: uniforms
 qc2 = QuantumCircuit(2, 2)
 qc2.h([0,1])
 
-# Insert a breakpoint, asserting that the 2 qubits are in a superposition state,
+# Insert a breakpoint, asserting that the 2 qubits are in a uniform state,
 # with a critical p-value of 0.05.
-breakpoint = qc2.assertsuperposition(.05, [0,1], [0,1])
+breakpoint = qc2.assert_uniform(.05, [0,1], [0,1])
 
 qc2.measure([0,1], [0,1])
 

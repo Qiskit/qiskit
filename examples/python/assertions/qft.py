@@ -45,15 +45,15 @@ qft5 = QuantumCircuit(5, 5, name="qft5")
 # Below, qft3 is a 3-qubit quantum circuit.
 input_state(qft3, 3) # Initializes the state so that post-QFT, the state should be 1.
 # Insert a breakpoint to the qft3 circuit after initializing the input state.
-# This asserts that the 3 qubits are in superposition, with critical p-value 0.05.
-breakpoint1 = qft3.assertsuperposition(0.05, range(3), range(3))
+# This asserts that the 3 qubits are in uniform, with critical p-value 0.05.
+breakpoint1 = qft3.assert_uniform(0.05, range(3), range(3))
 qft3.barrier()
 qft(qft3, 3)
 qft3.barrier()
 
 # Insert a breakpoint after the quantum Fourier Transform has been performed.
 # This asserts that the 3 qubits are a classical value of 1, with critical p-value 0.05.
-breakpoint2 = qft3.assertclassical(1, 0.05, range(3), range(3))
+breakpoint2 = qft3.assert_classical(1, 0.05, range(3), range(3))
 for j in range(3):
     qft3.measure(j, j)
 

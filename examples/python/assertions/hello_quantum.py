@@ -32,14 +32,14 @@ except:
 # Create a Quantum Circuit
 qc = QuantumCircuit(2, 2)
 
-# Add a H gate on qubit 0, putting this qubit in superposition.
+# Add a H gate on qubit 0, putting this qubit in uniform.
 qc.h(0)
 # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
 # the qubits in a Bell state.
 qc.cx(0, 1)
 
-# Assert a product state.  This should fail because it's maximally entangled.
-breakpoint = qc.assertproduct(0.05, 0, 1, 0, 1)
+# Assert not a product state.  In this case, the state is maximally entangled.
+breakpoint = qc.assert_not_product(0.05, 0, 1, 0, 1)
 
 # Add a Measure gate to see the state.
 qc.measure([0, 1], [0, 1])
@@ -49,8 +49,13 @@ print("BasicAer backends: ", BasicAer.backends())
 backend_sim = BasicAer.get_backend('qasm_simulator')
 
 # Compile and run the Quantum circuit on a simulator backend
-job_sim = execute(qc, backend_sim)
+job_sim = execute([breakpoint, qc], backend_sim)
 result_sim = job_sim.result()
+
+# Show the assertion
+stat_outputs = AssertManager.stat_collect(breakpoint, result_sim)
+print("Full results of our assertion:")
+print(stat_outputs)
 
 # Show the results
 print(result_sim.get_counts(qc))
@@ -71,8 +76,7 @@ print("Running on current least busy device: ", least_busy_device)
 job_exp = execute([breakpoint, qc], least_busy_device, shots=1024, max_credits=10)
 result_exp = job_exp.result()
 
-# Show the assertion, for which the statistical test should fail
-print("We want the statistical test below to fail, to assert the state is not a product state:")
+# Show the assertion
 stat_outputs = AssertManager.stat_collect(breakpoint, result_exp)
 print("Full results of our assertion:")
 print(stat_outputs)
