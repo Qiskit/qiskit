@@ -30,12 +30,12 @@ Getting Started
 
 Learn how members of the Qiskit community
 
-* `Relate to one another <https://github.com/Qiskit/qiskit/blob/master/.github/CODE_OF_CONDUCT.md>`_
+* `Relate to one another <https://github.com/Qiskit/qiskit/blob/master/CODE_OF_CONDUCT.md>`_
 * `Discuss ideas <https://qiskit.slack.com/>`_
 * `Get help when we're stuck <https://quantumcomputing.stackexchange.com/questions/tagged/qiskit>`_
 * `Stay informed of news in the community <https://medium.com/qiskit>`_
 * `Keep a consistent style <https://www.python.org/dev/peps/pep-0008>`_
-* `Work together on GitHub <https://github.com/Qiskit/qiskit/blob/master/.github/CONTRIBUTING.md>`_
+* `Work together on GitHub <https://github.com/Qiskit/qiskit/blob/master/CONTRIBUTING.md>`_
 * :ref:`Build Qiskit packages from source <install_install_from_source_label>`
 
 
