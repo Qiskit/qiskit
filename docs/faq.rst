@@ -29,7 +29,7 @@ for real quantum devices.
 
 .. code:: python
 
-  IBMQ.get_backend('<backend_name>')
+  provider.get_backend('<backend_name>')
 
 For example, if you want to run a job on the ``'ibmqx4'`` backend, the
 following code would throw the error message:
@@ -42,7 +42,7 @@ Instead, the code should be written as
 
 .. code:: python
 
-  my_backend = IBMQ.get_backend('ibmqx4')
+  my_backend = provider.get_backend('ibmqx4')
   job = execute(circuit, backend=my_backend, shots=100)
 
 |

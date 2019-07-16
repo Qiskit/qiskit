@@ -7,9 +7,9 @@ Qiskit 0.11
 ***********
 
 We have bumped up Qiskit minor version to 0.11 because IBM Q Provider has bumped up
-it's minor version too.
+its minor version too.
 On Aer, we have jumped from 0.2.1 to 0.2.3 because there was an issue detected
-right after realasing 0.2.2 and before Qiskit 0.11 went online.
+right after releasing 0.2.2 and before Qiskit 0.11 went online.
 
 Terra 0.8
 =========
@@ -22,14 +22,14 @@ Aer 0.2
 New features
 ------------
 
-- Added support for multi-controlled phaste gates
+- Added support for multi-controlled phase gates
 - Added optimized anti-diagonal single-qubit gates
 
 Improvements
 ------------
 
 - Introduced a technique called Fusion that increments performance of circuit execution
-  Tunned threading strategy to gain performance in most common scenarios.
+  Tuned threading strategy to gain performance in most common scenarios.
 - Some of the already implemented error models have been polished.
 
 
@@ -50,13 +50,13 @@ IBM Q Provider 0.3
 The ``IBMQProvider`` has been updated in order to default to using the new
 `IBM Q Experience v2`_. Accessing the legacy IBM Q Experience v1 and QConsole
 will still be supported during the 0.3.x line until its final deprecation one
-month from the release, but it is encouraged to update to the new IBM Q
-Experience for taking advantage of the new functionality and features.
+month from the release. It is encouraged to update to the new IBM Q
+Experience to take advantage of the new functionality and features.
 
 Updating to the new IBM Q Experience v2
 ---------------------------------------
 
-If you have credentials for the legacy IBM Q Experience stored in disk, you
+If you have credentials for the legacy IBM Q Experience stored on disk, you
 can make use of the interactive helper::
 
     from qiskit import IBMQ
