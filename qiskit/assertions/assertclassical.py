@@ -31,7 +31,6 @@ class AssertClassical(Asserts):
     """
     def __init__(self, expval, pcrit, qubit, cbit):
         super().__init__()
-        self._type = "Classical"
         self._expval = expval if isinstance(expval, int) else int(expval, 2)
         self._pcrit = pcrit
         self._qubit = AssertManager.syntax4measure(qubit)

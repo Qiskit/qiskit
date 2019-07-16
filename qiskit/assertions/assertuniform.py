@@ -30,7 +30,6 @@ class AssertUniform(Asserts):
     """
     def __init__(self, pcrit, qubit, cbit):
         super().__init__()
-        self._type = "Uniform"
         self._pcrit = pcrit
         self._qubit = AssertManager.syntax4measure(qubit)
         self._cbit = AssertManager.syntax4measure(cbit)

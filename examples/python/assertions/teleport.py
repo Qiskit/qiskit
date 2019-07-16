@@ -56,7 +56,7 @@ qc.h(q[1])
 qc.cx(q[1], q[2])
 
 # Assert not product, because it's an entangled state
-# breakpoints.append(qc.assertnotproduct(0.05, q[1], c1[0], q[2], c2[0]))
+breakpoints.append(qc.assert_not_product(0.05, q[1], c1[0], q[2], c2[0]))
 
 # Barrier following state preparation
 qc.barrier(q)

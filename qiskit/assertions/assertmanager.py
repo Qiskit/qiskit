@@ -70,7 +70,6 @@ class AssertManager():
             exp_counts = results.get_counts(exp)
             assertion = exp.data[-1][0]
             cbits = assertion._cbit
-            exp_type = assertion.get_type()
             cbits = AssertManager.clbits2idxs(cbits, exp)
 
             new_counts = {}
@@ -82,17 +81,16 @@ class AssertManager():
             exp_counts = new_counts
 
             chisq, pval, passed = assertion.stat_test(exp_counts)
-            AssertManager.StatOutputs[exp.name]["type"] = assertion.get_type()
-            AssertManager.StatOutputs[exp.name]["expval"] = assertion.get_expval()
-            AssertManager.StatOutputs[exp.name]["pcrit"] = assertion.get_pcrit()
+            AssertManager.StatOutputs[exp.name]["expval"] = assertion._expval
+            AssertManager.StatOutputs[exp.name]["pcrit"] = assertion._pcrit
             AssertManager.StatOutputs[exp.name]["chisq"] = chisq
             AssertManager.StatOutputs[exp.name]["pval"] = pval
-            AssertManager.StatOutputs[exp.name]["passed"] = passed if assertion.get_type()[0:3] != "Not" else not passed
+            AssertManager.StatOutputs[exp.name]["passed"] = passed if AssertManager.StatOutputs[exp.name]["type"][0:3] != "Not" else not passed
             AssertManager.StatOutputs[exp.name]["counts"] = exp_counts
             # now the dict StatOutputs should map each breakpoint.name to another dictionary containing type, chisq, p, as well as other inputs like expvalue:
             stat_output = AssertManager.StatOutputs[exp.name]
             # prints output message:
-            print(stat_output['type'] + " Assertion " + ('PASSED' if stat_output['passed'] else 'FAILED') + " on qubits " + \
+            print(('PASSED: ' if stat_output['passed'] else 'FAILED: ') + stat_output['type'] + " Assertion on qubits " + \
                 ((str(stat_output['qubit'])+" measured to cbits "+str(stat_output['cbit'])) if not 'qubit0' in stat_output \
                 else (str(stat_output['qubit0'])+str(stat_output['qubit1']))+" measured to cbits "+str(stat_output['cbit0'])+str(stat_output['cbit1'])))
         return AssertManager.StatOutputs
