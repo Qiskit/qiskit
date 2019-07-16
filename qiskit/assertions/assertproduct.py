@@ -29,7 +29,7 @@ class AssertProduct(Asserts):
         Assertion of product states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, pcrit, qubit0, cbit0, qubit1, cbit1): #qubit&cbit lists here
+    def __init__(self, pcrit, qubit0, cbit0, qubit1, cbit1): 
         super().__init__()
         self._type = "Product"
         self._pcrit = pcrit
@@ -41,14 +41,10 @@ class AssertProduct(Asserts):
         self._cbit = self._cbit0 + self._cbit1
 
     def stat_test(self, counts):
-        #vals_list = list(counts.values())
-        #numzeros = 2**len(list(counts)[0]) - len(counts)
-        #vals_list.extend([0]*numzeros)
-        # numshots = sum(list(counts.values()))
-        
+        # chi-squared contingency table test to assert for product state
         q0len = len(self._qubit0)
         q1len = len(self._qubit1)
-        #empty contingency table with right dimensions
+        # empty contingency table with right dimensions
         cont_table = np.empty((2**q0len,2**q1len))
         cont_table.fill(1)
         for (key, value) in counts.items():

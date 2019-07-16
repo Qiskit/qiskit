@@ -12,7 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Example used in the README. In this example a Bell state is made."""
+"""Example used in the README with added assertions. In this example a Bell state is made."""
 
 # Import Qiskit
 from qiskit import QuantumCircuit, QiskitError

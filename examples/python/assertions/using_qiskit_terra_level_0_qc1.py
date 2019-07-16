@@ -13,10 +13,13 @@
 # that they have been altered from the originals.
 
 """
-Example showing how to use Qiskit-Terra at level 0 (novice).
+Example showing how to use assertions in Qiskit-Terra at level 0 (novice).
 
-This example shows the most basic way to user Terra. It builds some circuits
-and runs them on both the BasicAer (local Qiskit provider) or IBMQ (remote IBMQ provider).
+It builds a bell state circuit with assertions 
+and runs it on the BasicAer (local Qiskit provider).
+
+This corresponds to the first example in using_qiskit_terra_level_0.py 
+within basic Qiskit Terra examples.
 
 To control the compile parameters we have provided a transpile function which can be used 
 as a level 1 user.
@@ -29,13 +32,15 @@ from qiskit import execute, BasicAer
 from qiskit.assertions.asserts import Asserts
 from qiskit.assertions.assertmanager import AssertManager
 
-# making another circuit: superpositions
+# making first circuit: bell state
 qc1 = QuantumCircuit(2, 2)
-qc1.h([0,1])
+qc1.h(0)
 
-# Insert a breakpoint, asserting that the 2 qubits are in a superposition state,
+# Insert a breakpoint, asserting that the 2 qubits are in a product state,
 # with a critical p-value of 0.05.
-breakpoint = qc1.assertsuperposition(.05, [0,1], [0,1])
+breakpoint = qc1.assertproduct(.05, 0, 0, 1, 1)
+
+qc1.cx(0, 1)
 
 qc1.measure([0,1], [0,1])
 

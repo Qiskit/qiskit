@@ -13,7 +13,9 @@
 # that they have been altered from the originals.
 
 """
-Example showing how to use Qiskit at level 1 (intermediate).
+Example showing how to use assertions in Qiskit at level 1 (intermediate).
+This is identical to the using_qiskit_terra_level_1.py in the ibmq folder
+in Qiskit Python examples exept with added assertions.
 
 This example shows how an intermediate user interacts with Terra.
 It builds some circuits and transpiles them with transpile options.

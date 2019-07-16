@@ -14,6 +14,7 @@
 
 """
 Ripple adder example based on Cuccaro et al., quant-ph/0410184.
+This example has assertions added as well.
 
 """
 

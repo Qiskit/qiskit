@@ -40,11 +40,11 @@ class AssertClassical(Asserts):
             raise QiskitError("AssertClassical expected value %d not in range for %d cbits" % (self._expval, len(self._cbit)))
 
     def stat_test(self, counts):
+        # chi-squared statistical test for classical assertions
         vals_list = list(counts.values())
         numqubits = len(list(counts)[0])
         numzeros = 2**numqubits - len(counts)
         vals_list.extend([0]*numzeros)
-        # numshots = sum(list(counts.values()))
         
         exp_list = [1]*len(vals_list)
         try:

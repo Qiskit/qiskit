@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Quantum Fourier Transform examples.
+Quantum Fourier Transform examples with added assertions.
 """
 
 import math

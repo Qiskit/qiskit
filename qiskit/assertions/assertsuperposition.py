@@ -36,11 +36,13 @@ class AssertSuperposition(Asserts):
         self._cbit = AssertManager.syntax4measure(cbit)
 
     def stat_test(self, counts):
+        # chi-squared statistical test to assert
+        # equal superposition of all possible states
         vals_list = list(counts.values())
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
         chisq, pval = chisquare(vals_list)
-        if pval <= self._pcrit or chisq == 0: #math.isnan(pval):
+        if pval <= self._pcrit or chisq == 0:
             passed = False
         else:
             passed = True
