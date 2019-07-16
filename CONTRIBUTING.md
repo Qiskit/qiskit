@@ -40,21 +40,20 @@ agreement. The [individual CLA] document is available for review as a PDF.
 
 **Note**:
 > If you work for a company that wants to allow you to contribute your
-> work, then you\'ll need to sign a [corporate CLA] and email it to us
+> work, then you will need to sign a [corporate CLA] and email it to us
 > at <qiskit@us.ibm.com>.
 
 
 ### Good first contributions
 
 You are welcome to contribute wherever in the code you want to, of
-course, but we recommend taking a look at the \"Good first
-contribution\" label into the issues and pick one. We would love to
+course, but we recommend taking a look at the [`good first
+contribution`](https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) label into the issues and pick one. We would love to
 mentor you!
 
-### Doc
+### Documentation
 
-Review the parts of the documentation regarding the new changes and
-update it if it\'s needed.
+If you make a change, make sure you update the associated *docstrings* and parts of the [documentation](https://github.com/Qiskit/qiskit/tree/master/docs/terra) that corresponds to it.
 
 ### Pull requests
 
@@ -62,7 +61,7 @@ We use [GitHub pull
 requests](https://help.github.com/articles/about-pull-requests) to
 accept the contributions.
 
-A friendly reminder! We\'d love to have a previous discussion about the
+A friendly reminder! We would love to have a previous discussion about the
 best way to implement the feature/bug you are contributing with. This is
 a good way to improve code quality in our beloved Qiskit!, so remember
 to file a new Issue before starting to code for a solution.
@@ -71,7 +70,7 @@ So after having discussed the best way to land your changes into the
 codebase, you are ready to start coding (yay!). We have two options
 here:
 
-1.  You think your implementation doesn\'t introduce a lot of code,
+1.  You think your implementation does not introduce a lot of code,
     right?. Ok, no problem, you are all set to create the PR once you
     have finished coding. We are waiting for it!
 2.  Your implementation does introduce many things in the codebase. That
@@ -94,7 +93,7 @@ please double check that:
     potential style warnings and fixes.
 -   the documentation has been updated accordingly. In particular, if a
     function or class has been modified during the PR, please update the
-    docstring accordingly.
+    *docstring* accordingly.
 -   your contribution passes the existing tests, and if developing a new
     feature, that you have added new tests that cover those changes.
 -   you add a new line to the `CHANGELOG.rst` file, in the `UNRELEASED`
@@ -179,9 +178,9 @@ go to this
 [page](https://quantumexperience.ng.bluemix.net/qx/account/advanced) and
 register an account. Then you can either set the credentials explicitly
 with the `IBMQ_TOKEN` and `IBMQ_URL` environment variables to specify
-the token and url respectively for the ibmq service. Alternatively, if
+the token and url respectively for the IBMQ service. Alternatively, if
 you already have a single set of credentials configured in your
-environment (using a qiskitrc) then you can just set
+environment (using a `.qiskitrc`) then you can just set
 `QISKIT_TESTS_USE_CREDENTIALS_FILE` to `1` and it will use that.
 
 ##### Test Skip Options
@@ -318,7 +317,9 @@ When backporting a patch from master to stable we want to keep a
 reference to the change on master. When you create the branch for the
 stable PR you can use:
 
-[\$ git cherry-pick -x \$master\_commit\_id]{.title-ref}
+```
+$ git cherry-pick -x $master_commit_id
+```
 
 However, this only works for small self contained patches from master.
 If you need to backport a subset of a larger commit (from a squashed PR
@@ -338,12 +339,12 @@ stable patch.
 Backport Tags
 -------------
 
-Bugs or PRs tagged with [stable backport potential]{.title-ref} are bugs
+Bugs or PRs tagged with `stable backport potential` are bugs
 which apply to the stable release too and may be suitable for
 backporting once a fix lands in master. Once the backport has been
 proposed, the tag should be removed.
 
-The PR against the stable branch should include [\[stable\]]{.title-ref}
+The PR against the stable branch should include `[stable]`
 in the title, as a sign that setting the target branch as stable was not
 a mistake. Also, reference to the PR number in master that you are
 porting.
