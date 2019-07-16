@@ -80,6 +80,7 @@ from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, BasicAer
 from qiskit.transpiler import PassManager
 from qiskit.compiler import transpile
 from qiskit.transpiler.passes import BasicSwap, LookaheadSwap, StochasticSwap, SetLayout
+from qiskit.transpiler.passes import FlexlayerSwap
 from qiskit.transpiler import CouplingMap, Layout
 
 from qiskit.test import QiskitTestCase
@@ -292,6 +293,12 @@ class TestsStochasticSwap(SwapperCommonTestCases, QiskitTestCase):
     """Test SwapperCommonTestCases using StochasticSwap."""
     pass_class = StochasticSwap
     additional_args = {'seed': 0}
+
+
+class TestsFlexlayerSwap(SwapperCommonTestCases, QiskitTestCase):
+    """Test SwapperCommonTestCases using FlexlayerSwap."""
+    pass_class = FlexlayerSwap
+    additional_args = {'dependency_graph_type': 'xz_commute'}
 
 
 if __name__ == '__main__':
