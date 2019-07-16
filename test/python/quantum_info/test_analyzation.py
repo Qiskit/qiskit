@@ -12,14 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for qiskit.quantum_info.analyzation"""
+"""Tests for qiskit.quantum_info.analysis"""
 
 import unittest
 
 import qiskit
 from qiskit import BasicAer
-from qiskit.quantum_info.analyzation.average import average_data
-from qiskit.quantum_info.analyzation.make_observable import make_dict_observable
+from qiskit.quantum_info.analysis.average import average_data
+from qiskit.quantum_info.analysis.make_observable import make_dict_observable
 from qiskit.test import QiskitTestCase
 
 
