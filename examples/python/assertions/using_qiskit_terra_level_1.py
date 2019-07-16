@@ -51,10 +51,10 @@ qc1.h(0)
 qc1.cx(0, 1)
 qc1.measure([0,1], [0,1])
 
-# Making another circuit: superpositions
-qc2 = QuantumCircuit(2, 2, name="superposition")
+# Making another circuit: uniform
+qc2 = QuantumCircuit(2, 2, name="uniform")
 qc2.h([0,1])
-breakpoint = qc2.assertsuperposition(0.05, [0,1], [0,1])
+breakpoint = qc2.assert_uniform(0.05, [0,1], [0,1])
 qc2.measure([0,1], [0,1])
 
 # Setting up the backend
@@ -89,9 +89,9 @@ print("Breakpoint before transpile")
 print(breakpoint)
 print("Breakpoint after transpile:")
 print(breakpoint_new)
-print("Superposition circuit before transpile:")
+print("Uniform circuit before transpile:")
 print(qc2)
-print("Superposition circuit after transpile:")
+print("Uniform circuit after transpile:")
 print(qc2_new)
 
 # Assemble the two circuits into a runnable qobj

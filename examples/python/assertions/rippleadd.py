@@ -77,14 +77,14 @@ qc.x(b)   # Set input b = 1...1111
 # A breakpoint is a copy of the quantum circuit, including all its
 # instructions up to that point, with an assertion at the end.
 # An assertion is a measurement that performs a statistical test.
-breakpoint1 = qc.assertclassical(2**n - 1, 0.05, [b[i] for i in range(n)], \
+breakpoint1 = qc.assert_classical(2**n - 1, 0.05, [b[i] for i in range(n)], \
     [ans[i] for i in range(n)])
 
 # Apply the adder
 qc += adder_subcircuit
 
 # Here's another breakpoint to confirm successful addition
-breakpoint2 = qc.assertclassical(0, 0.05, [b[i] for i in range(n)], \
+breakpoint2 = qc.assert_classical(0, 0.05, [b[i] for i in range(n)], \
     [ans[i] for i in range(n)])
 
 # Measure the output register in the computational basis

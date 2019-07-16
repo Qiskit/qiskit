@@ -16,5 +16,5 @@
 from .assertmanager import AssertManager
 from .asserts import Asserts
 from .assertclassical import AssertClassical
-from .assertsuperposition import AssertSuperposition
+from .assertuniform import AssertUniform
 from .assertproduct import AssertProduct

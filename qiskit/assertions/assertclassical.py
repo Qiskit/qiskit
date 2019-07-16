@@ -63,7 +63,7 @@ class AssertClassical(Asserts):
         return (chisq, pval, passed)
 
 
-def assertclassical(self, expval, pcrit, qubit, cbit):
+def assert_classical(self, expval, pcrit, qubit, cbit):
     """Create classical assertion
 
     Args:
@@ -86,4 +86,11 @@ def assertclassical(self, expval, pcrit, qubit, cbit):
         "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
-QuantumCircuit.assertclassical = assertclassical
+QuantumCircuit.assert_classical = assert_classical
+
+def assert_not_classical(self, expval, pcrit, qubit, cbit):
+    theClone = assert_classical(expval, pcrit, qubit, cbit)
+    AssertManager.StatOutputs[theClone.name]["type"] = "Not Classical"
+    return theClone
+
+QuantumCircuit.assert_not_classical = assert_not_classical

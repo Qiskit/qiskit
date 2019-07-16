@@ -32,14 +32,14 @@ except:
 # Create a Quantum Circuit
 qc = QuantumCircuit(2, 2)
 
-# Add a H gate on qubit 0, putting this qubit in superposition.
+# Add a H gate on qubit 0, putting this qubit in uniform.
 qc.h(0)
 # Add a CX (CNOT) gate on control qubit 0 and target qubit 1, putting
 # the qubits in a Bell state.
 qc.cx(0, 1)
 
 # Assert a product state.  This should fail because it's maximally entangled.
-breakpoint = qc.assertproduct(0.05, 0, 1, 0, 1)
+breakpoint = qc.assert_product(0.05, 0, 1, 0, 1)
 
 # Add a Measure gate to see the state.
 qc.measure([0, 1], [0, 1])

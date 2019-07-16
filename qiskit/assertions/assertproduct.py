@@ -60,7 +60,7 @@ class AssertProduct(Asserts):
         return (chisq, pval, passed)
 
 
-def assertproduct(self, pcrit, qubit0, cbit0, qubit1, cbit1):
+def assert_product(self, pcrit, qubit0, cbit0, qubit1, cbit1):
     """Create product assertion
 
     Args:
@@ -87,4 +87,11 @@ def assertproduct(self, pcrit, qubit0, cbit0, qubit1, cbit1):
     assertion._qubit0 = [assertion._qubit0]
     return theClone
 
-QuantumCircuit.assertproduct = assertproduct
+QuantumCircuit.assert_product = assert_product
+
+def assert_not_product(self, pcrit, qubit0, cbit0, qubit1, cbit1):
+    theClone = assert_product(pcrit, qubit0, cbit0, qubit1, cbit1)
+    AssertManager.StatOutputs[theClone.name]["type"] = "Not Product"
+    return theClone
+
+QuantumCircuit.assert_not_product = assert_not_product
