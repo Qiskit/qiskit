@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 from abc import ABC, abstractmethod
-
+import warnings
 
 class BaseOperator(ABC):
     """Operators relevant for quantum applications."""
@@ -21,7 +21,7 @@ class BaseOperator(ABC):
     @abstractmethod
     def __init__(self):
         """Constructor."""
-        raise NotImplementedError
+        pass
 
     @property
     def name(self):
@@ -90,3 +90,43 @@ class BaseOperator(ABC):
         Time evolution, exp^(-jt H).
         """
         raise NotImplementedError
+
+    @property
+    def coloring(self):
+        warnings.warn("coloring is removed, "
+                      "Use the `TPBGroupedWeightedPauliOperator` class to group a paulis directly", DeprecationWarning)
+        return None
+
+    def _to_dia_matrix(self, mode=None):
+        warnings.warn("_to_dia_matrix() is removed, use the `MatrixOperator` class instead", DeprecationWarning)
+
+    def enable_summarize_circuits(self):
+        warnings.warn("do not enable summary at the operator anymore, enable it at QuantumInstance", DeprecationWarning)
+
+    def disable_summarize_circuits(self):
+        warnings.warn("do not disable summary at the operator anymore, enable it at QuantumInstance", DeprecationWarning)
+
+    @property
+    def representations(self):
+        warnings.warn("each operator is self-defined, no need to check represnetation anymore.", DeprecationWarning)
+        return None
+
+    def eval(self, operator_mode, input_circuit, backend, backend_config=None, compile_config=None,
+             run_config=None, qjob_config=None, noise_config=None):
+        warnings.warn("eval method is removed. please use `construct_evaluate_circuit` and submit circuit by yourself "
+                      "then, use the result along with `evaluate_with_result` to get mean and std.", DeprecationWarning)
+        return None, None
+
+    def convert(self, input_format, output_format, force=False):
+        warnings.warn("convert method is removed. please use to_XXX_operator in each operator class instead.",
+                      DeprecationWarning)
+
+    def two_qubit_reduced_operator(self, m, threshold=10 ** -13):
+        warnings.warn("two_qubit_reduced_operator method is moved to the `TaperedWeightedPauliOperator` class.",
+                      DeprecationWarning)
+        return None
+
+    def qubit_tapering(operator, cliffords, sq_list, tapering_values):
+        warnings.warn("qubit_tapering method is moved to the `TaperedWeightedPauliOperator` class.",
+                      DeprecationWarning)
+        return None

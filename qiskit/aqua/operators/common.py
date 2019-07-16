@@ -16,6 +16,23 @@ import copy
 
 import numpy as np
 from qiskit.quantum_info import Pauli
+from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.qasm import pi
+
+
+class WeightedPauli(Pauli):
+
+    def __init__(self, z=None, x=None, label=None, weight=0.0):
+        super().__init__(z, x, label)
+        self._weight = weight
+
+    @property
+    def weight(self):
+        return self._weight
+
+    @weight.setter
+    def weight(self, new_value):
+        self._weight = new_value
 
 
 def measure_pauli_z(data, pauli):
@@ -29,16 +46,29 @@ def measure_pauli_z(data, pauli):
     Returns:
         float: Expected value of paulis given data
     """
-    observable = 0.0
-    num_shots = sum(data.values())
-    p_z_or_x = np.logical_or(pauli.z, pauli.x)
-    for key, value in data.items():
-        bitstr = np.asarray(list(key))[::-1].astype(np.bool)
-        # pylint: disable=no-member
-        sign = -1.0 if np.logical_xor.reduce(np.logical_and(bitstr, p_z_or_x)) else 1.0
-        observable += sign * value
-    observable /= num_shots
+
+    observable = 0
+    tot = sum(data.values())
+    for key in data:
+        value = 1
+        for j in range(pauli.numberofqubits):
+            if ((pauli.x[j] or pauli.z[j]) and
+                    key[pauli.numberofqubits - j - 1] == '1'):
+                value = -value
+        # print(key, data[key])
+        observable = observable + value * data[key] / tot
     return observable
+
+    # observable = 0.0
+    # num_shots = sum(data.values())
+    # p_z_or_x = np.logical_or(pauli.z, pauli.x)
+    # for key, value in data.items():
+    #     bitstr = np.asarray(list(key))[::-1].astype(np.bool)
+    #     # pylint: disable=no-member
+    #     sign = -1.0 if np.logical_xor.reduce(np.logical_and(bitstr, p_z_or_x)) else 1.0
+    #     observable += sign * value
+    # observable /= num_shots
+    # return observable
 
 
 def covariance(data, pauli_1, pauli_2, avg_1, avg_2):
@@ -182,3 +212,129 @@ def check_commutativity(op_1, op_2, anti=False):
     com = op_1 * op_2 - op_2 * op_1 if not anti else op_1 * op_2 + op_2 * op_1
     com.remove_zero_weights()
     return True if com.is_empty() else False
+
+
+def evolution_instruction(pauli_list, evo_time, num_time_slices, ancillary_registers=None,
+                          ctl_idx=0, unitary_power=None, use_basis_gates=True, shallow_slicing=False):
+    """
+    Construct the evolution circuit according to the supplied specification.
+
+    Args:
+        pauli_list (list([[complex, Pauli]])): The list of pauli terms corresponding to a single time slice to be evolved
+        evo_time (int): The evolution time
+        num_time_slices (int): The number of time slices for the expansion
+        ancillary_registers (QuantumRegister, optional): The optional Qiskit QuantumRegister corresponding to the control
+            qubits for the state_registers of the system
+        ctl_idx (int, optional): The index of the qubit of the control ancillary_registers to use
+        unitary_power (int, optional): The power to which the unitary operator is to be raised
+        use_basis_gates (bool, optional): boolean flag for indicating only using basis gates when building circuit.
+        shallow_slicing (bool, optional): boolean flag for indicating using shallow qc.data reference repetition for slicing
+
+    Returns:
+        InstructionSet: The InstructionSet corresponding to specified evolution.
+    """
+    state_registers = QuantumRegister(pauli_list[0][1].numberofqubits)
+    qc_slice = QuantumCircuit(state_registers, name='Evolution')
+    if ancillary_registers is not None:
+        qc_slice.add_register(ancillary_registers)
+
+    # for each pauli [IXYZ]+, record the list of qubit pairs needing CX's
+    cnot_qubit_pairs = [None] * len(pauli_list)
+    # for each pauli [IXYZ]+, record the highest index of the nontrivial pauli gate (X,Y, or Z)
+    top_XYZ_pauli_indices = [-1] * len(pauli_list)
+
+    for pauli_idx, pauli in enumerate(reversed(pauli_list)):
+        n_qubits = pauli[1].numberofqubits
+        # changes bases if necessary
+        nontrivial_pauli_indices = []
+        for qubit_idx in range(n_qubits):
+            # pauli I
+            if not pauli[1].z[qubit_idx] and not pauli[1].x[qubit_idx]:
+                continue
+
+            if cnot_qubit_pairs[pauli_idx] is None:
+                nontrivial_pauli_indices.append(qubit_idx)
+
+            if pauli[1].x[qubit_idx]:
+                # pauli X
+                if not pauli[1].z[qubit_idx]:
+                    if use_basis_gates:
+                        qc_slice.u2(0.0, pi, state_registers[qubit_idx])
+                    else:
+                        qc_slice.h(state_registers[qubit_idx])
+                # pauli Y
+                elif pauli[1].z[qubit_idx]:
+                    if use_basis_gates:
+                        qc_slice.u3(pi / 2, -pi / 2, pi / 2, state_registers[qubit_idx])
+                    else:
+                        qc_slice.rx(pi / 2, state_registers[qubit_idx])
+            # pauli Z
+            elif pauli[1].z[qubit_idx] and not pauli[1].x[qubit_idx]:
+                pass
+            else:
+                raise ValueError('Unrecognized pauli: {}'.format(pauli[1]))
+
+        if len(nontrivial_pauli_indices) > 0:
+            top_XYZ_pauli_indices[pauli_idx] = nontrivial_pauli_indices[-1]
+
+        # insert lhs cnot gates
+        if cnot_qubit_pairs[pauli_idx] is None:
+            cnot_qubit_pairs[pauli_idx] = list(zip(
+                sorted(nontrivial_pauli_indices)[:-1],
+                sorted(nontrivial_pauli_indices)[1:]
+            ))
+
+        for pair in cnot_qubit_pairs[pauli_idx]:
+            qc_slice.cx(state_registers[pair[0]], state_registers[pair[1]])
+
+        # insert Rz gate
+        if top_XYZ_pauli_indices[pauli_idx] >= 0:
+            if ancillary_registers is None:
+                lam = (2.0 * pauli[0] * evo_time / num_time_slices).real
+                if use_basis_gates:
+                    qc_slice.u1(lam, state_registers[top_XYZ_pauli_indices[pauli_idx]])
+                else:
+                    qc_slice.rz(lam, state_registers[top_XYZ_pauli_indices[pauli_idx]])
+            else:
+                unitary_power = (2 ** ctl_idx) if unitary_power is None else unitary_power
+                lam = (2.0 * pauli[0] * evo_time / num_time_slices * unitary_power).real
+
+                if use_basis_gates:
+                    qc_slice.u1(lam / 2, state_registers[top_XYZ_pauli_indices[pauli_idx]])
+                    qc_slice.cx(ancillary_registers[ctl_idx], state_registers[top_XYZ_pauli_indices[pauli_idx]])
+                    qc_slice.u1(-lam / 2, state_registers[top_XYZ_pauli_indices[pauli_idx]])
+                    qc_slice.cx(ancillary_registers[ctl_idx], state_registers[top_XYZ_pauli_indices[pauli_idx]])
+                else:
+                    qc_slice.crz(lam, ancillary_registers[ctl_idx],
+                                 state_registers[top_XYZ_pauli_indices[pauli_idx]])
+
+        # insert rhs cnot gates
+        for pair in reversed(cnot_qubit_pairs[pauli_idx]):
+            qc_slice.cx(state_registers[pair[0]], state_registers[pair[1]])
+
+        # revert bases if necessary
+        for qubit_idx in range(n_qubits):
+            if pauli[1].x[qubit_idx]:
+                # pauli X
+                if not pauli[1].z[qubit_idx]:
+                    if use_basis_gates:
+                        qc_slice.u2(0.0, pi, state_registers[qubit_idx])
+                    else:
+                        qc_slice.h(state_registers[qubit_idx])
+                # pauli Y
+                elif pauli[1].z[qubit_idx]:
+                    if use_basis_gates:
+                        qc_slice.u3(-pi / 2, -pi / 2, pi / 2, state_registers[qubit_idx])
+                    else:
+                        qc_slice.rx(-pi / 2, state_registers[qubit_idx])
+    # repeat the slice
+    if shallow_slicing:
+        logger.info('Under shallow slicing mode, the qc.data reference is repeated shallowly. '
+                    'Thus, changing gates of one slice of the output circuit might affect other slices.')
+        qc_slice.data *= num_time_slices
+        qc = qc_slice
+    else:
+        qc = QuantumCircuit()
+        for _ in range(num_time_slices):
+            qc += qc_slice
+    return qc.to_instruction()

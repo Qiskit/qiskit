@@ -12,13 +12,18 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+from .pauli_graph import PauliGraph
 from .base_operator import BaseOperator
 from .weighted_pauli_operator import WeightedPauliOperator
 from .tapered_weighed_pauli_operator import TaperedWeightedPauliOperator
 from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
-# from .matrix_operator import MatrixOperator
+from .matrix_operator import MatrixOperator
 
-__all__ = ['BaseOperator',
-           'WeightedPauliOperator',
-           'TaperedWeightedPauliOperator',
-           'TPBGroupedWeightedPauliOperator']
+__all__ = [
+    'PauliGraph',
+    'BaseOperator',
+    'WeightedPauliOperator',
+    'TaperedWeightedPauliOperator',
+    'TPBGroupedWeightedPauliOperator',
+    'MatrixOperator'
+]

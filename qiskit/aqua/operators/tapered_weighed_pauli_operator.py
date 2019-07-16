@@ -26,7 +26,33 @@ logger = logging.getLogger(__name__)
 
 class TaperedWeightedPauliOperator(WeightedPauliOperator):
 
-    def __init__(self, paulis, symmetries, cliffords, sq_list, tapering_values, basis=None, atol=1e-12, name=None):
+    def __init__(self, paulis, symmetries, cliffords, sq_list, tapering_values,
+                 basis=None, atol=1e-12, name=None):
+
+        """
+        The tapered operator, which keeps the tapering information to allow it converts other operators
+        in the same manner.
+
+        However, if you convert a tapered operator into a tpb grouped operator, the tapering information won't
+        keep in the taper tpb grouped operator.
+
+        Args:
+            paulis ([[complex, Pauli]]): the list of weighted Paulis, where a weighted pauli is composed of
+                                         a length-2 list and the first item is the weight and
+                                         the second item is the Pauli object.
+            symmetries ([Pauli]): the list of Pauli objects representing the Z_2 symmetries
+            cliffords ([WeightedPauliOperator]): the list of Clifford unitaries to block diagonalize Operator
+            sq_list ([Pauli]): the list of single-qubit Pauli objects to construct the Cliffors operators
+            tapering_values ([int]): array of +/- 1 used to select the subspace. Length
+                                     has to be equal to the length of cliffords and sq_list
+            basis (list[tuple(object, [int])], optional): the grouping basis, each element is a tuple composed
+                                                          of the basis and the indices to paulis which are belonged
+                                                          to that group. e.g., if tpb basis is used, the object will
+                                                          be a pauli. By default, the group is equal to non-grouping,
+                                                          each pauli is its own basis.
+            atol (float, optional): the threshold used in truncating paulis
+            name (str, optional): the name of operator.
+        """
         super().__init__(paulis, basis, atol, name=name)
         self._symmetries = symmetries
         self._cliffords = cliffords
@@ -50,7 +76,7 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
         return self._tapering_values
 
     @classmethod
-    def taper(cls, operator, symmetries, cliffords, sq_list, tapering_values):
+    def taper(cls, operator, symmetries, cliffords, sq_list, tapering_values, name=None):
         """
         Builds an Operator which has a number of qubits tapered off,
         based on a block-diagonal Operator built using a list of cliffords.
@@ -65,24 +91,25 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
                              with the cliffords
             tapering_values ([int]): array of +/- 1 used to select the subspace. Length
                                      has to be equal to the length of cliffords and sq_list
+            name (str, optional): the name of tapered operator. default name will be the original name appends
+                                  `_tapered_on_{}`.format(sq_list)
         Returns:
             WeightedPauliOperator : the tapered operator, or empty operator if the `operator` is empty.
+
+        Raises:
+            AquaError: if provided arguments are incorrect.
         """
-        if len(cliffords) == 0 or len(sq_list) == 0 or len(tapering_values) == 0:
-            logger.warning("Cliffords, single qubit list and tapering values cannot be empty.\n"
-                           "Return the original operator instead.")
-            return operator
+        if len(symmetries) or len(cliffords) == 0 or len(sq_list) == 0 or len(tapering_values) == 0:
+            raise AquaError("Z2 symmetries, Cliffords, single qubit list and tapering values cannot be empty.")
+
+        if len(symmetries) != len(cliffords):
+            raise AquaError("Number of Z2 symmetries has to be the same as number of Clifford unitaries.")
 
         if len(cliffords) != len(sq_list):
-            logger.warning("Number of Clifford unitaries has to be the same as length of single"
-                           "qubit list and tapering values.\n"
-                           "Return the original operator instead.")
-            return operator
+            raise AquaError("Number of Clifford unitaries has to be the same as length of single-qubit list.")
+
         if len(sq_list) != len(tapering_values):
-            logger.warning("Number of Clifford unitaries has to be the same as length of single"
-                           "qubit list and tapering values.\n"
-                           "Return the original operator instead.")
-            return operator
+            raise AquaError("The length of single-qubit list has to be the same as length of tapering values.")
 
         if operator.is_empty():
             logger.warning("The operator is empty, return the empty operator directly.")
@@ -102,7 +129,7 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
             pauli_term_out = [coeff_out, Pauli(z_temp, x_temp)]
             operator_out.extend([pauli_term_out])
 
-        new_name = operator.name + "_tapered_on_{}".format("_".join(sq_list))
+        new_name = operator.name + "_tapered_on_{}".format("_".join(sq_list)) if name is None else name
 
         return cls(operator_out, symmetries, cliffords, sq_list, tapering_values, name=new_name)
 
@@ -181,4 +208,5 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
             if not operator.commute_with(symmetry):
                 raise AquaError("The given operator does not commute with the symmetry, can not taper it.")
 
-        return TaperedWeightedPauliOperator.taper(operator, self._symmetries, self._cliffords, self._sq_list, self._tapering_values)
+        return TaperedWeightedPauliOperator.taper(operator, self._symmetries, self._cliffords,
+                                                  self._sq_list, self._tapering_values)
