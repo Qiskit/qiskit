@@ -774,7 +774,6 @@ class QuantumCircuit:
           QuantumCircuit: a deepcopy of the current circuit, with the name updated if
                           it was provided
         """
-        print("copy-step")
         cpy = deepcopy(self)
         if name:
             cpy.name = name

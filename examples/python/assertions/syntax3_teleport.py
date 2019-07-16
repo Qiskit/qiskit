@@ -35,15 +35,13 @@ backend = BasicAer.get_backend("qasm_simulator")
 # Make a quantum program for quantum teleportation.
 ###############################################################
 q = QuantumRegister(3, "q")
-c0 = ClassicalRegister(1, "c0")
-c1 = ClassicalRegister(1, "c1")
-c2 = ClassicalRegister(1, "c2")
-qc = QuantumCircuit(q, c0, c1, c2, name="teleport")
+c = ClassicalRegister(3, "c0")
+qc = QuantumCircuit(q, c, name="teleport")
 
 # Assert a classical state of all 0's
-breakpoint1 = qc.assertclassical(0, 0.05, q, [c0[0], c1[0], c2[0]])
+breakpoint1 = qc.assertclassical(0, 0.05, q, c)
 
-qc.measure(q, [c0[0], c1[0], c1[0]])
+qc.measure(q, c)
 
 # Prepare an initial state
 qc.u3(0.3, 0.2, 0.1, q[0])
@@ -59,17 +57,8 @@ qc.barrier(q)
 qc.cx(q[0], q[1])
 qc.h(q[0])
 
-# Assert superposition of 1st qubit
-breakpoint2 = qc.assertsuperposition(0.05, q[0], c0[0])
-
-qc.measure(q[0], c0[0])
-qc.measure(q[1], c1[0])
-
-# Apply a correction
-qc.barrier(q)
-qc.z(q[2]).c_if(c0, 1)
-qc.x(q[2]).c_if(c1, 1)
-qc.measure(q[2], c2[0])
+qc.measure(q[0], c[0])
+qc.measure(q[1], c[1])
 
 ###############################################################
 # Execute.
@@ -80,28 +69,22 @@ qc.measure(q[2], c2[0])
 initial_layout = {q[0]: 0,
                   q[1]: 1,
                   q[2]: 2}
-job = execute(qc, backend=backend, coupling_map=None, shots=1024,
-              initial_layout=initial_layout)
-
-result = job.result()
-print(result.get_counts(qc))
-
-# Execute and show results of statistical assertion tests
-job = execute([breakpoint1, breakpoint2, qc], backend=backend, coupling_map=None, shots=1024,
+job = execute([breakpoint1, qc], backend=backend, coupling_map=None, shots=1024,
                     initial_layout=initial_layout)
 result = job.result()
-print(result.get_counts(qc))
-stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
-print("Results of our statistical test:")
+stat_outputs = AssertManager.stat_collect(breakpoint1, result)
+print("Full results of our assertion, run with no coupling map:")
 print(stat_outputs)
+print(result.get_counts(qc))
+print()
 
 # Second version: mapped to 2x8 array coupling graph
-job = execute([breakpoint1, breakpoint2, qc], backend=backend, coupling_map=coupling_map, shots=1024,
+job = execute([breakpoint1, qc], backend=backend, coupling_map=coupling_map, shots=1024,
               initial_layout=initial_layout)
 result = job.result()
-print(result.get_counts(qc))
-stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
-print("Results of our statistical test:")
+stat_outputs = AssertManager.stat_collect(breakpoint1, result)
+print("Full results of our assertion, run with a coupling map:")
 print(stat_outputs)
+print(result.get_counts(qc))
 
-# Both results should give the same distribution
+print("\nBoth versions should give the same distribution, and therefore the same assertion results.")

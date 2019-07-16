@@ -102,15 +102,16 @@ qc.measure(cout[0], ans[n])
 job = execute([breakpoint1, breakpoint2, qc], backend=backend, coupling_map=None, shots=1024)
 result = job.result()
 stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
-print("Results of our statistical tests:")
+print("Full results of our assertions, run with no coupling map:")
 print(stat_outputs)
-print(result.get_counts(qc))
+#print(result.get_counts(qc))
 
 # Second version: mapped to 2x8 array coupling graph
 job = execute([breakpoint1, breakpoint2, qc], backend=backend, coupling_map=coupling_map, shots=1024)
 result = job.result()
-print("Results of our statistical tests:")
+stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
+print("Full results of our assertions, run with a coupling map:")
 print(stat_outputs)
-print(result.get_counts(qc))
+#print(result.get_counts(qc))
 
 # Both versions should give the same distribution

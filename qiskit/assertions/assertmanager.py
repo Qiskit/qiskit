@@ -80,8 +80,8 @@ class AssertManager():
             exp_counts = new_counts
 
             chisq, pval, passed = assertion.stat_test(exp_counts)
-            print("chisq, pval, passed = ")
-            print(chisq, pval, passed)
+            #print("chisq, pval, passed = ")
+            #print(chisq, pval, passed)
             AssertManager.StatOutputs[exp.name]["type"] = assertion.get_type()
             AssertManager.StatOutputs[exp.name]["expval"] = assertion.get_expval()
             AssertManager.StatOutputs[exp.name]["pcrit"] = assertion.get_pcrit()
@@ -89,7 +89,11 @@ class AssertManager():
             AssertManager.StatOutputs[exp.name]["pval"] = pval
             AssertManager.StatOutputs[exp.name]["passed"] = passed
             AssertManager.StatOutputs[exp.name]["counts"] = exp_counts
-            #now the dict StatOutputs should map each breakpoint.name to another dictionary containing type, chisq, p, as well as other inputs like expval
+            #now the dict StatOutputs should map each breakpoint.name to another dictionary containing type, chisq, p, as well as other inputs like en breakpoints:
+            stat_output = AssertManager.StatOutputs[exp.name]
+            print(stat_output['type'] + " Assertion " + ('PASSED' if stat_output['passed'] else 'FAILED') + " on qubits " + \
+                ((str(stat_output['qubit'])+" measured to cbits "+str(stat_output['cbit'])) if not 'qubit0' in stat_output \
+                else (str(stat_output['qubit0'])+str(stat_output['qubit1']))+" measured to cbits "+str(stat_output['cbit0'])+str(stat_output['cbit1'])))
         return AssertManager.StatOutputs
 
     #def output_csv():

@@ -47,11 +47,11 @@ print(BasicAer.backends())
 job_sim = execute([breakpoint, qc1], BasicAer.get_backend('qasm_simulator'))
 sim_result = job_sim.result()
 
+# We obtain a dictionary of the results from our statistical test on our breakpoint
+stat_outputs = AssertManager.stat_collect(breakpoint, sim_result)
+print("Full results of our assertion:")
+print(stat_outputs)
+
 # Show the results
 print("sim_result.get_counts(qc1) = ")
 print(sim_result.get_counts(qc1))
-
-# We obtain a dictionary of the results from our statistical test on our breakpoint
-stat_outputs = AssertManager.stat_collect(breakpoint, sim_result)
-print("Results of our statistical test:")
-print(stat_outputs)
