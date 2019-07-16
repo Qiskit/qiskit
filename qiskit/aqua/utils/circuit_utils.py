@@ -47,7 +47,7 @@ def summarize_circuits(circuits):
         depth = dag.depth()
         width = dag.width()
         size = dag.size()
-        classical_bits = dag.num_cbits()
+        classical_bits = dag.num_clbits()
         op_counts = dag.count_ops()
         stats[0] += width
         stats[1] += classical_bits
