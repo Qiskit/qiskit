@@ -150,10 +150,24 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_node_added_before_block(self):
-        """Test that a node before a block remains before the block"""
+        """Test that a node before a block remains before the block
+
+        This issue was raised in #2737 where the measure was moved
+        to be after the 2nd ID gate, as the block was added when the
+        first node in the block was seen.
+
+        blocks = [['id', 'cx', 'id']]
+
+                ┌────┐┌───┐
+        q_0: |0>┤ Id ├┤ X ├──────
+                └┬─┬─┘└─┬─┘┌────┐
+        q_1: |0>─┤M├────■──┤ Id ├
+                 └╥┘       └────┘
+        c_0:  0 ══╩══════════════
+        """
         qc = QuantumCircuit(2, 1)
         qc.iden(0)
-        qc.swap(1, 0)
+        qc.measure(1, 0)
         qc.cx(1, 0)
         qc.iden(1)
 
@@ -168,12 +182,27 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(qc, qc1)
 
     def test_node_added_after_block(self):
-        """Test that a node after the block remains after the block"""
+        """Test that a node after the block remains after the block
+
+        This example was raised in #2764, and checks that the final CX
+        stays after the main block, even though one of the nodes in the
+        block was declared after it. This occured when the block was
+        added when the last node in the block was seen.
+
+        blocks = [['cx', 'id', 'id']]
+
+        q_0: |0>─────────────■──
+                     ┌────┐┌─┴─┐
+        q_1: |0>──■──┤ Id ├┤ X ├
+                ┌─┴─┐├────┤└───┘
+        q_2: |0>┤ X ├┤ Id ├─────
+                └───┘└────┘
+        """
         qc = QuantumCircuit(3)
         qc.cx(1, 2)
         qc.iden(1)
-        qc.iden(2)
         qc.cx(0, 1)
+        qc.iden(2)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())
@@ -183,18 +212,33 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(qc, qc1)
 
     def test_node_middle_of_blocks(self):
-        """Test that a node surrounded by blocks stays in the same place"""
+        """Test that a node surrounded by blocks stays in the same place
+
+        This is a larger test to ensure multiple blocks can all be collected
+        and added back in the correct order.
+
+        blocks = [['cx', 'id'], ['cx', 'id'], ['id', 'cx'], ['id', 'cx']]
+
+        q_0: |0>──■───────────────────■──
+                ┌─┴─┐┌────┐   ┌────┐┌─┴─┐
+        q_1: |0>┤ X ├┤ Id ├─X─┤ Id ├┤ X ├
+                ├───┤├────┤ │ ├────┤├───┤
+        q_2: |0>┤ X ├┤ Id ├─X─┤ Id ├┤ X ├
+                └─┬─┘└────┘   └────┘└─┬─┘
+        q_3: |0>──■───────────────────■──
+
+        """
         qc = QuantumCircuit(4)
         qc.cx(0, 1)
-        qc.iden(1)
         qc.cx(3, 2)
+        qc.iden(1)
         qc.iden(2)
 
         qc.swap(1, 2)
 
         qc.iden(1)
-        qc.cx(0, 1)
         qc.iden(2)
+        qc.cx(0, 1)
         qc.cx(3, 2)
 
         pass_manager = PassManager()

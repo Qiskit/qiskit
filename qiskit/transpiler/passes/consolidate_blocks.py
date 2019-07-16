@@ -66,7 +66,7 @@ class ConsolidateBlocks(TransformationPass):
 
         blocks = self.property_set['block_list']
         # just to make checking if a node is in any block easier
-        all_block_nodes = [nd for bl in blocks for nd in bl]
+        all_block_nodes = {nd for bl in blocks for nd in bl}
 
         for node in dag.topological_op_nodes():
             if node not in all_block_nodes:
