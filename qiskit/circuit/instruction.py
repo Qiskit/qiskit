@@ -96,8 +96,19 @@ class Instruction:
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
-            if self_param == other_param:
-                continue
+            try:
+                if self_param == other_param:
+                    continue
+            except ValueError:
+                pass
+
+            try:
+                if numpy.shape(self_param) == numpy.shape(other_param) \
+                   and numpy.allclose(self_param, other_param,
+                                      atol=_CUTOFF_PRECISION):
+                    continue
+            except TypeError:
+                pass
 
             try:
                 if numpy.isclose(float(self_param), float(other_param),
