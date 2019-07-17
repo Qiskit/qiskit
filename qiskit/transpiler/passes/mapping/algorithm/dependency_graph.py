@@ -19,7 +19,7 @@ dependency of two gates. For example, gate g1 must be applied before gate g2 if 
 there exists a path from g1 to g2.
 """
 import copy
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from functools import lru_cache
 from typing import List, FrozenSet, Set, Union
 
@@ -107,6 +107,9 @@ class DependencyGraph:
         for i, _ in enumerate(self._gates):
             self.qubits.update(self.qargs(i))
 
+        # for speed up of _prior_gates_on_wire
+        self._create_gates_by_wire()
+
         if graph_type == "xz_commute":
             self._create_xz_graph()
         elif graph_type == "basic":
@@ -129,7 +132,7 @@ class DependencyGraph:
             if self._gates[n].name in x_gates:
                 b = self._gates[n].qargs[0]  # acting qubit of gate n
                 # pylint: disable=unbalanced-tuple-unpacking
-                [pgow] = self._prior_gates_on_wire(self._gates, n)
+                [pgow] = self._prior_gates_on_wire(n)
                 z_flag = False
                 for m in pgow:
                     gate = self._gates[m]
@@ -149,7 +152,7 @@ class DependencyGraph:
             elif self._gates[n].name in z_gates:
                 b = self._gates[n].qargs[0]  # acting qubit of gate n
                 # pylint: disable=unbalanced-tuple-unpacking
-                [pgow] = self._prior_gates_on_wire(self._gates, n)
+                [pgow] = self._prior_gates_on_wire(n)
                 x_flag = False
                 for m in pgow:
                     gate = self._gates[m]
@@ -169,7 +172,7 @@ class DependencyGraph:
             elif self._gates[n].name == "cx":
                 cbit, tbit = self._gates[n].qargs
                 # pylint: disable=unbalanced-tuple-unpacking
-                [cpgow, tpgow] = self._prior_gates_on_wire(self._gates, n)
+                [cpgow, tpgow] = self._prior_gates_on_wire(n)
 
                 z_flag = False
                 for m in tpgow:  # target bit: bt
@@ -205,7 +208,7 @@ class DependencyGraph:
                     else:
                         raise TranspilerError("Unknown gate: " + gate.name)
             elif self._gates[n].name in b_gates:
-                for i, pgow in enumerate(self._prior_gates_on_wire(self._gates, n)):
+                for i, pgow in enumerate(self._prior_gates_on_wire(n)):
                     b = self._all_args(n)[i]
                     x_flag, z_flag = False, False
                     for m in pgow:
@@ -232,7 +235,7 @@ class DependencyGraph:
 
     def _create_basic_graph(self):
         for n in self._graph.nodes():
-            for pgow in self._prior_gates_on_wire(self._gates, n):
+            for pgow in self._prior_gates_on_wire(n):
                 m = next(pgow, -1)
                 if m != -1:
                     self._graph.add_edge(m, n)
@@ -303,6 +306,7 @@ class DependencyGraph:
         Returns:
             Set of indices of the ancestor gates.
         """
+        # return nx.ancestors(self._graph, i)
         return self._ancestors.ancestors(i)
 
     def gate(self, gidx: int, layout: Layout, physical_qreg: QuantumRegister) -> InstructionContext:
@@ -334,22 +338,21 @@ class DependencyGraph:
             if not nx.has_path(graph, edge[0], edge[1]):
                 graph.add_edge(edge[0], edge[1])
 
-    @staticmethod
-    def _prior_gates_on_wire(gate_list, toidx):
+    def _prior_gates_on_wire(self, toidx):
         res = []
-        for qarg in gate_list[toidx].qargs:
-            gates = []
-            for i, gate in enumerate(gate_list[:toidx]):
-                if qarg in gate.qargs:
-                    gates.append(i)
-            res.append(reversed(gates))
-        for carg in gate_list[toidx].cargs:
-            gates = []
-            for i, gate in enumerate(gate_list[:toidx]):
-                if carg in gate.cargs:
-                    gates.append(i)
-            res.append(reversed(gates))
+        for qarg in self._gates[toidx].qargs:
+            res.append(reversed([i for i in self._gates_by_wire[qarg] if i < toidx]))
+        for carg in self._gates[toidx].cargs:
+            res.append(reversed([i for i in self._gates_by_wire[carg] if i < toidx]))
         return res
+
+    def _create_gates_by_wire(self):
+        self._gates_by_wire = defaultdict(list)
+        for i, gate in enumerate(self._gates):
+            for qarg in gate.qargs:
+                self._gates_by_wire[qarg].append(i)
+            for carg in gate.cargs:
+                self._gates_by_wire[carg].append(i)
 
 
 if __name__ == '__main__':
