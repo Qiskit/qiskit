@@ -29,27 +29,29 @@ class AssertClassical(Asserts):
         Assertion of classical states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, expval, pcrit, qubit, cbit):
+    def __init__(self, qubit, cbit, pcrit, expval):
         super().__init__()
-        self._expval = expval if isinstance(expval, int) else int(expval, 2)
+        self._expval = expval if expval==None or isinstance(expval, int) else int(expval, 2)
         self._pcrit = pcrit
         self._qubit = AssertManager.syntax4measure(qubit)
         self._cbit = AssertManager.syntax4measure(cbit)
-        if not self._expval in range(0, 2**len(self._cbit)):
+        if expval!=None and not self._expval in range(0, 2**len(self._cbit)):
             raise QiskitError("AssertClassical expected value %d not in range for %d cbits" % (self._expval, len(self._cbit)))
 
     def stat_test(self, counts):
         # chi-squared statistical test for classical assertions
         vals_list = list(counts.values())
+        if self._expval == None:
+            index = np.argmax(vals_list)
+        else:
+            try:
+                index = list(map(lambda x: int(x, 2), counts.keys())).index(self._expval)
+            except ValueError:
+                index = -1
         numqubits = len(list(counts)[0])
         numzeros = 2**numqubits - len(counts)
         vals_list.extend([0]*numzeros)
-        
         exp_list = [1]*len(vals_list)
-        try:
-            index = list(map(lambda x: int(x, 2), counts.keys())).index(self._expval)
-        except ValueError:
-            index = -1
         exp_list[index] = 2**16
         vals_list = vals_list / np.sum(vals_list)
         exp_list = exp_list / np.sum(exp_list)
@@ -62,7 +64,7 @@ class AssertClassical(Asserts):
         return (chisq, pval, passed)
 
 
-def assert_classical(self, expval, pcrit, qubit, cbit):
+def assert_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     """Create classical assertion
 
     Args:
@@ -79,7 +81,7 @@ def assert_classical(self, expval, pcrit, qubit, cbit):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    assertion = AssertClassical(expval, pcrit, qubit, cbit)
+    assertion = AssertClassical(qubit, cbit, pcrit, expval)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     AssertManager.StatOutputs[theClone.name] = {"type":"Classical", "expval":expval, \
         "qubit":assertion._qubit, "cbit":assertion._cbit}
@@ -87,8 +89,8 @@ def assert_classical(self, expval, pcrit, qubit, cbit):
 
 QuantumCircuit.assert_classical = assert_classical
 
-def assert_not_classical(self, expval, pcrit, qubit, cbit):
-    theClone = assert_classical(self, expval, pcrit, qubit, cbit)
+def assert_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
+    theClone = assert_classical(self, qubit, cbit, pcrit, expval)
     AssertManager.StatOutputs[theClone.name]["type"] = "Not Classical"
     return theClone
 

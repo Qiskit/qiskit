@@ -46,14 +46,14 @@ qft5 = QuantumCircuit(5, 5, name="qft5")
 input_state(qft3, 3) # Initializes the state so that post-QFT, the state should be 1.
 # Insert a breakpoint to the qft3 circuit after initializing the input state.
 # This asserts that the 3 qubits are in uniform, with critical p-value 0.05.
-breakpoint1 = qft3.assert_uniform(0.05, range(3), range(3))
+breakpoint1 = qft3.assert_uniform(range(3), range(3), 0.05)
 qft3.barrier()
 qft(qft3, 3)
 qft3.barrier()
 
 # Insert a breakpoint after the quantum Fourier Transform has been performed.
 # This asserts that the 3 qubits are a classical value of 1, with critical p-value 0.05.
-breakpoint2 = qft3.assert_classical(1, 0.05, range(3), range(3))
+breakpoint2 = qft3.assert_classical(range(3), range(3), 0.05, 1)
 for j in range(3):
     qft3.measure(j, j)
 
@@ -79,8 +79,8 @@ result = job.result()
 # We obtain a dictionary of the results from each of our statistical tests
 # The line below also prints to command line whether the assertion passed or failed.
 stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
-print("Full results of our assertion:")
-print(stat_outputs)
+# print("Full results of our assertion:")
+# print(stat_outputs)
 
 # Show the results
 print(result.get_counts(qft3))

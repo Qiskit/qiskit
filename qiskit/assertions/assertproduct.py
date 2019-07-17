@@ -29,7 +29,7 @@ class AssertProduct(Asserts):
         Assertion of product states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, pcrit, qubit0, cbit0, qubit1, cbit1): 
+    def __init__(self, qubit0, cbit0, qubit1, cbit1, pcrit): 
         super().__init__()
         self._pcrit = pcrit
         self._qubit0 = AssertManager.syntax4measure(qubit0)
@@ -52,14 +52,14 @@ class AssertProduct(Asserts):
             cont_table[q0index][q1index] = value
 
         chisq, pval, dof, expctd = chi2_contingency(cont_table)
-        if pval <= self._pcrit:
-            passed = False
-        else:
+        if pval >= self._pcrit:
             passed = True
+        else:
+            passed = False
         return (chisq, pval, passed)
 
 
-def assert_product(self, pcrit, qubit0, cbit0, qubit1, cbit1):
+def assert_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
     """Create product assertion
 
     Args:
@@ -78,7 +78,7 @@ def assert_product(self, pcrit, qubit0, cbit0, qubit1, cbit1):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    assertion = AssertProduct(pcrit, qubit0, cbit0, qubit1, cbit1) 
+    assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     AssertManager.StatOutputs[theClone.name] = {"type":"Product", "qubit0":assertion._qubit0, \
         "cbit0":assertion._cbit0, "qubit1":assertion._qubit1, "cbit1":assertion._cbit1, \
@@ -87,8 +87,8 @@ def assert_product(self, pcrit, qubit0, cbit0, qubit1, cbit1):
 
 QuantumCircuit.assert_product = assert_product
 
-def assert_not_product(self, pcrit, qubit0, cbit0, qubit1, cbit1):
-    theClone = assert_product(self, pcrit, qubit0, cbit0, qubit1, cbit1)
+def assert_not_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
+    theClone = assert_product(self, qubit0, cbit0, qubit1, cbit1, pcrit)
     AssertManager.StatOutputs[theClone.name]["type"] = "Not Product"
     return theClone
 

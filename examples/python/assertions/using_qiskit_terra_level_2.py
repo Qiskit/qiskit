@@ -51,8 +51,8 @@ breakpoints = []
 qc1 = QuantumCircuit(4, 4)
 qc1.h(0)
 qc1.cx(0, 1)
-breakpoints.append(qc1.assert_not_product(0.05, 0, 0, 1, 1))
-breakpoints.append(qc1.assert_not_uniform(0.05, [0,1], [0,1]))
+breakpoints.append(qc1.assert_not_product(0, 0, 1, 1, 0.05))
+breakpoints.append(qc1.assert_not_uniform([0,1], [0,1], 0.05))
 qc1.measure([0,1], [0,1])
 
 # Making another circuit: GHZ State
@@ -61,8 +61,8 @@ qc2.h(0)
 qc2.cx(0, 1)
 qc2.cx(0, 2)
 qc2.cx(0, 3)
-breakpoints.append(qc2.assert_not_product(0.05, [0,1], [0,1], [2,3], [2,3]))
-breakpoints.append(qc2.assert_not_uniform(0.05, [0,1,2,3], [0,1,2,3]))
+breakpoints.append(qc2.assert_not_product([0,1], [0,1], [2,3], [2,3], 0.05))
+breakpoints.append(qc2.assert_not_uniform([0,1,2,3], [0,1,2,3], 0.05))
 qc2.measure([0,1,2,3], [0,1,2,3])
 
 # Setting up the backend
@@ -136,8 +136,8 @@ sim_result=sim_job.result()
 
 # Show assertion results
 stat_outputs = AssertManager.stat_collect(breakpoints, sim_result)
-print("Full assertion results:")
-print(stat_outputs)
+# print("Full assertion results:")
+# print(stat_outputs)
 
 # Show the results
 print(sim_result.get_counts(qc1))
@@ -149,6 +149,10 @@ exp_job = least_busy_device.run(qobj)
 
 job_monitor(exp_job)
 exp_result = exp_job.result()
+
+stat_outputs = AssertManager.stat_collect(breakpoints, exp_result)
+# print("Full assertion results:")
+# print(stat_outputs)
 
 # Show the results
 print(exp_result.get_counts(qc1))
