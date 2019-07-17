@@ -38,7 +38,7 @@ qc2.h([0,1])
 
 # Insert a breakpoint, asserting that the 2 qubits are in a uniform state,
 # with a critical p-value of 0.05.
-breakpoint = qc2.assert_uniform(.05, [0,1], [0,1])
+breakpoint = qc2.assert_uniform([0,1], [0,1], 0.05)
 
 qc2.measure([0,1], [0,1])
 
@@ -52,8 +52,8 @@ sim_result = job_sim.result()
 
 # We obtain a dictionary of the results from our statistical test on our breakpoint
 stat_outputs = AssertManager.stat_collect(breakpoint, sim_result)
-print("Full results of our assertion:")
-print(stat_outputs)
+# print("Full results of our assertion:")
+# print(stat_outputs)
 
 # Show the results
 print("sim_result.get_counts(qc2) = ")

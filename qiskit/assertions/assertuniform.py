@@ -28,7 +28,7 @@ class AssertUniform(Asserts):
         Assertion of uniform states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, pcrit, qubit, cbit):
+    def __init__(self, qubit, cbit, pcrit):
         super().__init__()
         self._pcrit = pcrit
         self._qubit = AssertManager.syntax4measure(qubit)
@@ -41,14 +41,14 @@ class AssertUniform(Asserts):
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
         chisq, pval = chisquare(vals_list)
-        if pval <= self._pcrit or chisq == 0:
-            passed = False
-        else:
+        if pval >= self._pcrit:
             passed = True
+        else:
+            passed = False
         return (chisq, pval, passed)
 
 
-def assert_uniform(self, pcrit, qubit, cbit):
+def assert_uniform(self, qubit, cbit, pcrit=0.05):
     """Create uniform assertion
 
     Args:
@@ -64,7 +64,7 @@ def assert_uniform(self, pcrit, qubit, cbit):
             if cbit is not in this circuit or not creg.
     """
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    assertion = AssertUniform(pcrit, qubit, cbit)
+    assertion = AssertUniform(qubit, cbit, pcrit)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     AssertManager.StatOutputs[theClone.name] = {"type":"Uniform", \
         "qubit":assertion._qubit, "cbit":assertion._cbit}
@@ -72,8 +72,8 @@ def assert_uniform(self, pcrit, qubit, cbit):
 
 QuantumCircuit.assert_uniform = assert_uniform
 
-def assert_not_uniform(self, pcrit, qubit, cbit):
-    theClone = assert_uniform(self, pcrit, qubit, cbit)
+def assert_not_uniform(self, qubit, cbit, pcrit=0.05):
+    theClone = assert_uniform(self, qubit, cbit, pcrit)
     AssertManager.StatOutputs[theClone.name]["type"] = "Not Uniform"
     return theClone
 

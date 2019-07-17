@@ -51,13 +51,13 @@ breakpoints = []
 qc1 = QuantumCircuit(2, 2, name="bell")
 qc1.h(0)
 qc1.cx(0, 1)
-breakpoints.append(qc1.assert_not_product(0.05, 0, 0, 1, 1))
+breakpoints.append(qc1.assert_not_product(0, 0, 1, 1, 0.05))
 qc1.measure([0,1], [0,1])
 
 # Making another circuit: superpositions
 qc2 = QuantumCircuit(2, 2, name="uniform")
 qc2.h([0,1])
-breakpoints.append(qc2.assert_uniform(0.05, [0,1], [0,1]))
+breakpoints.append(qc2.assert_uniform([0,1], [0,1], 0.05))
 qc2.measure([0,1], [0,1])
 
 # Setting up the backend
@@ -82,23 +82,20 @@ except:
 print("Running on current least busy device: ", least_busy_device)
 
 # Transpile the circuits to make them compatible with the experimental backend
-[breakpoint_new, qc1_new, qc2_new] = transpile(circuits=[breakpoint, qc1, qc2], backend=least_busy_device)
+[qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
+breakpoints_new = transpile(circuits=breakpoints, backend=least_busy_device)
 
 print("Bell circuit before transpile:")
 print(qc1)
 print("Bell circuit after transpile:")
 print(qc1_new)
-print("Breakpoint before transpile")
-print(breakpoint)
-print("Breakpoint after transpile:")
-print(breakpoint_new)
 print("Uniform circuit before transpile:")
 print(qc2)
 print("Uniform circuit after transpile:")
 print(qc2_new)
 
 # Assemble the two circuits into a runnable qobj
-qobj = assemble([breakpoint_new, qc1_new, qc2_new], shots=1000)
+qobj = assemble(breakpoints_new + [qc1_new, qc2_new], shots=1000)
 
 # Running qobj on the simulator
 sim_job = qasm_simulator.run(qobj)
@@ -107,9 +104,9 @@ sim_job = qasm_simulator.run(qobj)
 sim_result=sim_job.result()
 
 # Perform statistical tests and output the assertion result
-stat_output = AssertManager.stat_collect(breakpoint_new, sim_result)
-print("Full results of our assertion, run on an Aer simulator:")
-print(stat_output)
+stat_output = AssertManager.stat_collect(breakpoints_new, sim_result)
+# print("Full results of our assertion, run on an Aer simulator:")
+# print(stat_output)
 
 # Show the results
 print(sim_result.get_counts(qc1))
@@ -122,9 +119,9 @@ job_monitor(exp_job)
 exp_result = exp_job.result()
 
 # Perform statistical tests and output the assertion result
-stat_output = AssertManager.stat_collect(breakpoint_new, exp_result)
-print("Full results of our assertion, run on IBMQ hardware:")
-print(stat_output)
+stat_output = AssertManager.stat_collect(breakpoints_new, exp_result)
+# print("Full results of our assertion, run on IBMQ hardware:")
+# print(stat_output)
 
 # Show the results
 print(exp_result.get_counts(qc1))
