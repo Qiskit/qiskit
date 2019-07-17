@@ -15,13 +15,11 @@
 
 """Test Qiskit's power instruction operation."""
 
-import os
-import tempfile
 import unittest
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.standard import TGate, SGate
+from qiskit.extensions.standard import SGate, SdgGate
 
 
 class TestGatePower(QiskitTestCase):
@@ -60,6 +58,18 @@ class TestGatePower(QiskitTestCase):
         expected = expected_circ.to_instruction()
 
         result = SGate().power(0)
+
+        self.assertEqual(result.definition, expected.definition)
+
+    def test_standard_1Q_minus_one(self):
+        """Test standard gate.power(-1) method.
+        """
+        qr = QuantumRegister(1, 'qr')
+        expected_circ = QuantumCircuit(qr)
+        expected_circ.append(SdgGate, qr[:])
+        expected = expected_circ.to_instruction()
+
+        result = SGate().power(-1)
 
         self.assertEqual(result.definition, expected.definition)
 

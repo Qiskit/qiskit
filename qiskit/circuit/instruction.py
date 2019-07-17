@@ -340,6 +340,9 @@ class Instruction:
                                   params=self.params)
         qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
-        sub_instruction = (self, qargs[:], cargs[:])
+        if exponent >= 0:
+            sub_instruction = (self, qargs[:], cargs[:])
+        else:
+            sub_instruction = (self.inverse(), qargs[:], cargs[:])
         instruction.definition = [sub_instruction] * exponent
         return instruction
