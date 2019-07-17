@@ -37,8 +37,31 @@ class TestGatePower(QiskitTestCase):
         expected = expected_circ.to_instruction()
 
         result = SGate().power(2)
+
         self.assertEqual(result.definition, expected.definition)
 
+    def test_standard_1Q_one(self):
+        """Test standard gate.power(1) method.
+        """
+        qr = QuantumRegister(1, 'qr')
+        expected_circ = QuantumCircuit(qr)
+        expected_circ.append(SGate(), qr[:])
+        expected = expected_circ.to_instruction()
+
+        result = SGate().power(1)
+
+        self.assertEqual(result.definition, expected.definition)
+
+    def test_standard_1Q_zero(self):
+        """Test standard gate.power(0) method.
+        """
+        qr = QuantumRegister(1, 'qr')
+        expected_circ = QuantumCircuit(qr)
+        expected = expected_circ.to_instruction()
+
+        result = SGate().power(0)
+
+        self.assertEqual(result.definition, expected.definition)
 
 if __name__ == '__main__':
     unittest.main()
