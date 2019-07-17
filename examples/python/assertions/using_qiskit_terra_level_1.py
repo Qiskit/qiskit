@@ -45,16 +45,19 @@ from qiskit.assertions.assertmanager import AssertManager
 
 IBMQ.load_accounts()
 
+breakpoints = []
+
 # Making first circuit: bell state
 qc1 = QuantumCircuit(2, 2, name="bell")
 qc1.h(0)
 qc1.cx(0, 1)
+breakpoints.append(qc1.assert_not_product(0.05, 0, 0, 1, 1))
 qc1.measure([0,1], [0,1])
 
-# Making another circuit: uniform
+# Making another circuit: superpositions
 qc2 = QuantumCircuit(2, 2, name="uniform")
 qc2.h([0,1])
-breakpoint = qc2.assert_uniform(0.05, [0,1], [0,1])
+breakpoints.append(qc2.assert_uniform(0.05, [0,1], [0,1]))
 qc2.measure([0,1], [0,1])
 
 # Setting up the backend

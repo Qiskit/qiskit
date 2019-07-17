@@ -83,7 +83,6 @@ def assert_product(self, pcrit, qubit0, cbit0, qubit1, cbit1):
     AssertManager.StatOutputs[theClone.name] = {"type":"Product", "qubit0":assertion._qubit0, \
         "cbit0":assertion._cbit0, "qubit1":assertion._qubit1, "cbit1":assertion._cbit1, \
         "qubit":assertion._qubit, "cbit":assertion._cbit}
-    assertion._qubit0 = [assertion._qubit0]
     return theClone
 
 QuantumCircuit.assert_product = assert_product
