@@ -334,6 +334,17 @@ class Instruction:
             yield flat_qargs, flat_cargs
 
     def power(self, exponent):
+        """
+        Creates an instruction with the gate repeated `exponent` amount of times.
+        Negative exponent creates an instruction with Gate.inverse().
+        Zero exponent creates an empty instruction.
+
+        Args:
+            exponent (number): Gate^exponent
+
+        Returns:
+            Instruction: Containing the definition.
+        """
         instruction = Instruction(name="%s^%s" % (self.name, exponent),
                                   num_qubits=self.num_qubits,
                                   num_clbits=self.num_clbits,
