@@ -26,8 +26,8 @@ The format is based on [Keep a Changelog].
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
-
--   New `CountOpsLongest` analysis pass to retrieve the number of operations
+-   Added tests for `gate_map` and reference images for testing `plot_gate_map`
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations 
     on the longest path of the DAGCircuit.
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
@@ -108,6 +108,8 @@ The format is based on [Keep a Changelog].
 -   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
 -   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
     was measured into more than one memory cbit (\#2735)
+-   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
+    subset of qubits are measured (\#2790)
 
 
 ## [0.8.2] - 2019-06-14
