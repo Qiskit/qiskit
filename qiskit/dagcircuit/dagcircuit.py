@@ -605,15 +605,8 @@ class DAGCircuit:
         """
         return len(self.wires) - self.num_clbits()
 
-    def num_cbits(self):
-        """Return the total number of bits used by the circuit."""
-        return sum(creg.size for creg in self.cregs.values())
-
     def num_clbits(self):
-        """Return the total number of bits used by the circuit.
-           Replacement for num_cbits() for consistent naming [qiskit-terra #2564].
-           Both defs will stay until num_cbits() changed to num_clbits() in
-           calls from qiskit_tutorials and qiskit-aqua."""
+        """Return the total number of classical bits used by the circuit."""
         return sum(creg.size for creg in self.cregs.values())
 
     def num_tensor_factors(self):
