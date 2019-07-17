@@ -113,6 +113,7 @@ def transpile(circuits,
                 1: light optimization
                 2: heavy optimization
                 3: even heavier optimization
+            If None, level 1 will be chosen as default.
 
         pass_manager (PassManager):
             The pass manager to use for a custom pipeline of transpiler passes.
