@@ -12,6 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+from .common import evolution_instruction, suzuki_expansion_slice_pauli_list
 from .pauli_graph import PauliGraph
 from .base_operator import BaseOperator
 from .weighted_pauli_operator import WeightedPauliOperator
@@ -20,6 +21,8 @@ from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
 from .matrix_operator import MatrixOperator
 
 __all__ = [
+    'evolution_instruction',
+    'suzuki_expansion_slice_pauli_list',
     'PauliGraph',
     'BaseOperator',
     'WeightedPauliOperator',

@@ -13,11 +13,16 @@
 # that they have been altered from the originals.
 
 import copy
+import logging
 
 import numpy as np
 from qiskit.quantum_info import Pauli
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
+
+from qiskit.aqua import AquaError
+
+logger = logging.getLogger(__name__)
 
 
 class WeightedPauli(Pauli):
@@ -214,29 +219,34 @@ def check_commutativity(op_1, op_2, anti=False):
     return True if com.is_empty() else False
 
 
-def evolution_instruction(pauli_list, evo_time, num_time_slices, ancillary_registers=None,
-                          ctl_idx=0, unitary_power=None, use_basis_gates=True, shallow_slicing=False):
+def evolution_instruction(pauli_list, evo_time, num_time_slices,
+                          controlled=False, power=1,
+                          use_basis_gates=True, shallow_slicing=False):
     """
     Construct the evolution circuit according to the supplied specification.
 
     Args:
         pauli_list (list([[complex, Pauli]])): The list of pauli terms corresponding to a single time slice to be evolved
-        evo_time (int): The evolution time
+        evo_time (complex | float): The evolution time
         num_time_slices (int): The number of time slices for the expansion
-        ancillary_registers (QuantumRegister, optional): The optional Qiskit QuantumRegister corresponding to the control
-            qubits for the state_registers of the system
-        ctl_idx (int, optional): The index of the qubit of the control ancillary_registers to use
-        unitary_power (int, optional): The power to which the unitary operator is to be raised
+        controlled (bool, optional): Controlled circuit or not
+        power (int, optional): The power to which the unitary operator is to be raised
         use_basis_gates (bool, optional): boolean flag for indicating only using basis gates when building circuit.
         shallow_slicing (bool, optional): boolean flag for indicating using shallow qc.data reference repetition for slicing
 
     Returns:
         InstructionSet: The InstructionSet corresponding to specified evolution.
     """
+
+    if not isinstance(power, (int, np.int)) or power < 1:
+        raise AquaError("power must be an integer and greater or equal to 1.")
+
     state_registers = QuantumRegister(pauli_list[0][1].numberofqubits)
-    qc_slice = QuantumCircuit(state_registers, name='Evolution')
-    if ancillary_registers is not None:
-        qc_slice.add_register(ancillary_registers)
+    if controlled:
+        ancillary_registers = QuantumRegister(1)
+        qc_slice = QuantumCircuit(state_registers, ancillary_registers, name='Controlled-Evolution^{}'.format(power))
+    else:
+        qc_slice = QuantumCircuit(state_registers, name='Evolution^{}'.format(power))
 
     # for each pauli [IXYZ]+, record the list of qubit pairs needing CX's
     cnot_qubit_pairs = [None] * len(pauli_list)
@@ -289,23 +299,22 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices, ancillary_regis
 
         # insert Rz gate
         if top_XYZ_pauli_indices[pauli_idx] >= 0:
-            if ancillary_registers is None:
-                lam = (2.0 * pauli[0] * evo_time / num_time_slices).real
+            lam = (2.0 * pauli[0] * evo_time / num_time_slices).real
+            if not controlled:
+
                 if use_basis_gates:
                     qc_slice.u1(lam, state_registers[top_XYZ_pauli_indices[pauli_idx]])
                 else:
                     qc_slice.rz(lam, state_registers[top_XYZ_pauli_indices[pauli_idx]])
             else:
-                unitary_power = (2 ** ctl_idx) if unitary_power is None else unitary_power
-                lam = (2.0 * pauli[0] * evo_time / num_time_slices * unitary_power).real
-
+                # unitary_power = (2 ** ctl_idx) if unitary_power is None else unitary_power
                 if use_basis_gates:
                     qc_slice.u1(lam / 2, state_registers[top_XYZ_pauli_indices[pauli_idx]])
-                    qc_slice.cx(ancillary_registers[ctl_idx], state_registers[top_XYZ_pauli_indices[pauli_idx]])
+                    qc_slice.cx(ancillary_registers[0], state_registers[top_XYZ_pauli_indices[pauli_idx]])
                     qc_slice.u1(-lam / 2, state_registers[top_XYZ_pauli_indices[pauli_idx]])
-                    qc_slice.cx(ancillary_registers[ctl_idx], state_registers[top_XYZ_pauli_indices[pauli_idx]])
+                    qc_slice.cx(ancillary_registers[0], state_registers[top_XYZ_pauli_indices[pauli_idx]])
                 else:
-                    qc_slice.crz(lam, ancillary_registers[ctl_idx],
+                    qc_slice.crz(lam, ancillary_registers[0],
                                  state_registers[top_XYZ_pauli_indices[pauli_idx]])
 
         # insert rhs cnot gates
@@ -331,10 +340,12 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices, ancillary_regis
     if shallow_slicing:
         logger.info('Under shallow slicing mode, the qc.data reference is repeated shallowly. '
                     'Thus, changing gates of one slice of the output circuit might affect other slices.')
-        qc_slice.data *= num_time_slices
+        qc_slice.barrier(state_registers)
+        qc_slice.data *= (num_time_slices * power)
         qc = qc_slice
     else:
         qc = QuantumCircuit()
-        for _ in range(num_time_slices):
+        for _ in range(num_time_slices * power):
             qc += qc_slice
+            qc.barrier(state_registers)
     return qc.to_instruction()
