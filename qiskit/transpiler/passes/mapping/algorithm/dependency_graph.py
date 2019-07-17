@@ -20,12 +20,11 @@ there exists a path from g1 to g2.
 """
 import copy
 from collections import namedtuple, defaultdict
-from functools import lru_cache
-from typing import List, FrozenSet, Set, Union
+from typing import List, FrozenSet
 
 import networkx as nx
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit import Qubit, Clbit
+from qiskit.circuit import Qubit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 
@@ -41,37 +40,6 @@ class ArgumentedGate(InstructionContext):
     def name(self) -> str:
         """Name of this instruction."""
         return self.instruction.name
-
-
-CACHE_SIZE = 2 ** 14
-
-
-class Ancestors:
-    """
-    Utility class for speeding up a function to find ancestors in DAG.
-    """
-
-    def __init__(self, G: nx.DiGraph):
-        self._graph = G.reverse()
-
-    @lru_cache(maxsize=CACHE_SIZE)
-    def ancestors(self, n: int) -> set:
-        """
-        Ancestor nodes of the node `n`
-        Args:
-            n: Index of the node in the `self._graph`
-        Returns:
-            Set of indices of the ancestor nodes.
-        """
-        ret = set()
-        frontier = [n]
-        while frontier:
-            node = frontier.pop()
-            for v in self._graph.successors(node):
-                if v not in ret:
-                    ret.add(v)
-                    frontier.append(v)
-        return ret
 
 
 class DependencyGraph:
@@ -121,9 +89,6 @@ class DependencyGraph:
 
         # remove redundant edges in dependency graph
         self.remove_redundancy(self._graph)
-
-        # for speed up, this works only for a graphs remaining unchanged in future
-        self._ancestors = Ancestors(self._graph)
 
     def _create_xz_graph(self):
         z_gates = ["u1", "rz", "s", "t", "z", "sdg", "tdg"]
@@ -210,8 +175,9 @@ class DependencyGraph:
                     else:
                         raise TranspilerError("Unknown gate: " + gate.name)
             elif self._gates[n].name in b_gates:
+                all_args_of_n = self._gates[n].qargs + self._gates[n].cargs
                 for i, pgow in enumerate(self._prior_gates_on_wire(n)):
-                    b = self._all_args(n)[i]
+                    b = all_args_of_n[i]
                     x_flag, z_flag = False, False
                     for m in pgow:
                         gate = self._gates[m]
@@ -258,15 +224,6 @@ class DependencyGraph:
         """
         return self._gates[i].qargs
 
-    def _all_args(self, i: int) -> List[Union[Qubit, Clbit]]:
-        """Qubit and classical-bit arguments of the gate
-        Args:
-            i: Index of the gate in the `self._gates`
-        Returns:
-            List of all arguments.
-        """
-        return self._gates[i].qargs + self._gates[i].cargs
-
     def gate_name(self, i: int) -> str:
         """Name of the gate
         Args:
@@ -292,25 +249,6 @@ class DependencyGraph:
         """
         return self._graph.successors(i)
 
-    def descendants(self, i: int) -> Set[int]:
-        """Descendant gates of gate `i`
-        Args:
-            i: Index of the gate in the `self._gates`
-        Returns:
-            Set of indices of the descendant gates.
-        """
-        return nx.descendants(self._graph, i)
-
-    def ancestors(self, i: int) -> Set[int]:
-        """Ancestor gates of gate `i`
-        Args:
-            i: Index of the gate in the `self._gates`
-        Returns:
-            Set of indices of the ancestor gates.
-        """
-        # return nx.ancestors(self._graph, i)
-        return self._ancestors.ancestors(i)
-
     def gate(self, gidx: int, layout: Layout, physical_qreg: QuantumRegister) -> InstructionContext:
         """Convert acting qubits of gate `gidx` from virtual qubits to physical ones.
         Args:
@@ -330,9 +268,14 @@ class DependencyGraph:
                 raise TranspilerError("virtual_qubit must be in layout")
         return gate
 
+    def nx_graph(self) -> nx.DiGraph:
+        """Return deep copied networkx graph of this dependency graph.
+        """
+        return copy.deepcopy(self._graph)
+
     @staticmethod
     def remove_redundancy(graph):
-        """remove redundant edges in DAG (= change `graph` to its transitive reduction)
+        """Remove redundant edges in DAG (= change `graph` to its transitive reduction)
         """
         edges = list(graph.edges())
         for edge in edges:

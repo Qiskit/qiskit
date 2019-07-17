@@ -89,6 +89,8 @@ class FlexlayerHeuristics:
         self._lookahead_depth = lookahead_depth
         self._decay_rate = decay_rate
 
+        self._residual_graph = dependency_graph.nx_graph()
+
     def search(self) -> (DAGCircuit, Layout):
         """
         Search mapping solution.
@@ -218,17 +220,12 @@ class FlexlayerHeuristics:
         news = set(leading_gates)
         for n in dones:
             news |= set(self._dg.gr_successors(n))
-
         news -= set(dones)
 
-        rmlist = []
-        for n in news:
-            if news & self._dg.ancestors(n):
-                rmlist.append(n)
+        for n in dones:
+            self._residual_graph.remove_node(n)
 
-        news -= set(rmlist)
-
-        return news
+        return [n for n in news if len(self._residual_graph.in_edges(n)) == 0]
 
     def _fix_swap_direction(self, edge):
         if edge in self._coupling.get_edges():
