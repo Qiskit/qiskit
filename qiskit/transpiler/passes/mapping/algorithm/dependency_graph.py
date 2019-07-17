@@ -43,7 +43,7 @@ class ArgumentedGate(InstructionContext):
         return self.instruction.name
 
 
-CACHE_SIZE = 2 ** 10
+CACHE_SIZE = 2 ** 14
 
 
 class Ancestors:
@@ -64,11 +64,13 @@ class Ancestors:
             Set of indices of the ancestor nodes.
         """
         ret = set()
-        for n_succ in self._graph.successors(n):
-            if n_succ in ret:
-                continue
-            ret.add(n_succ)
-            ret.update(self.ancestors(n_succ))
+        frontier = [n]
+        while frontier:
+            node = frontier.pop()
+            for v in self._graph.successors(node):
+                if v not in ret:
+                    ret.add(v)
+                    frontier.append(v)
         return ret
 
 
