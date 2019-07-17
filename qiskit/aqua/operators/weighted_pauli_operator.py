@@ -258,7 +258,6 @@ class WeightedPauliOperator(BaseOperator):
 
         Returns:
             WeightedPauliOperator: the multiplied operator
-
         """
         ret_op = WeightedPauliOperator(paulis=[])
         for existed_weight, existed_pauli in self.paulis:
@@ -271,14 +270,14 @@ class WeightedPauliOperator(BaseOperator):
 
     def __rmul__(self, other):
         """Overload other * self."""
-        if not isinstance(other, self.__class__):
+        if isinstance(other, (int, float, complex, np.int, np.float, np.complex)):
             return self._scaling_weight(other, copy=True)
         else:
             return other.multiply(self)
 
     def __mul__(self, other):
         """Overload self * other."""
-        if not isinstance(other, self.__class__):
+        if isinstance(other, (int, float, complex, np.int, np.float, np.complex)):
             return self._scaling_weight(other, copy=True)
         else:
             return self.multiply(other)
@@ -773,7 +772,8 @@ class WeightedPauliOperator(BaseOperator):
             # pick the first result to get the total number of shots
             num_shots = sum(list(result.get_counts(0).values()))
             results = parallel_map(WeightedPauliOperator._routine_compute_mean_and_var,
-                                   [([self._paulis[idx] for idx in indices], result.get_counts(basis.to_label()))
+                                   [([self._paulis[idx] for idx in indices],
+                                     result.get_counts(circuit_name_prefix + basis.to_label()))
                                     for basis, indices in self._basis],
                                    num_processes=aqua_globals.num_processes)
             for result in results:
@@ -830,7 +830,8 @@ class WeightedPauliOperator(BaseOperator):
 
         return self._paulis
 
-    def evolve(self, state_in=None, evo_time=0, num_time_slices=1, expansion_mode='trotter', expansion_order=1, qr=None):
+    def evolve(self, state_in=None, evo_time=0, num_time_slices=1, expansion_mode='trotter', expansion_order=1,
+               quantum_registers=None):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
 
@@ -855,8 +856,8 @@ class WeightedPauliOperator(BaseOperator):
         if expansion_mode not in ['trotter', 'suzuki']:
             raise NotImplementedError('Expansion mode {} not supported.'.format(expansion_mode))
 
-        if qr is None:
-            qr = QuantumRegister(self.num_qubits)
+        if quantum_registers is None:
+            quantum_registers = QuantumRegister(self.num_qubits)
         # TODO: sanity check between register and qc
 
         pauli_list = self.reorder_paulis()
@@ -874,8 +875,8 @@ class WeightedPauliOperator(BaseOperator):
                     expansion_order
                 )
         instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
-        qc = QuantumCircuit(qr)
-        qc.append(instruction, qr)
+        qc = QuantumCircuit(quantum_registers)
+        qc.append(instruction, quantum_registers)
         return qc
 
     def find_Z2_symmetries(self):

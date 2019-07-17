@@ -183,9 +183,9 @@ class MatrixOperator(BaseOperator):
         ret = str(self._matrix)
         return ret
 
-
     def construct_evaluation_circuit(self, operator_mode=None, input_circuit=None, backend=None, qr=None, cr=None,
-                                     use_simulator_operator_mode=False, wave_function=None, circuit_name_prefix=''):
+                                     use_simulator_operator_mode=False, wave_function=None, is_statevector=None,
+                                     circuit_name_prefix=''):
         """
         Construct the circuits for evaluation.
 
