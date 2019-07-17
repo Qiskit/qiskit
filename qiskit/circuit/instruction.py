@@ -40,6 +40,7 @@ import numpy
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameter import Parameter
 from qiskit.qobj.models.qasm import QasmQobjInstruction
 
@@ -104,8 +105,8 @@ class Instruction:
 
             try:
                 if numpy.shape(self_param) == numpy.shape(other_param) \
-                   and numpy.allclose(self_param, other_param,
-                                      atol=_CUTOFF_PRECISION):
+                        and numpy.allclose(self_param, other_param,
+                                           atol=_CUTOFF_PRECISION):
                     continue
             except TypeError:
                 pass
@@ -331,3 +332,14 @@ class Instruction:
             flat_qargs = [qarg for sublist in qargs for qarg in sublist]
             flat_cargs = [carg for sublist in cargs for carg in sublist]
             yield flat_qargs, flat_cargs
+
+    def power(self, exponent):
+        instruction = Instruction(name="%s^%s" % (self.name, exponent),
+                                  num_qubits=self.num_qubits,
+                                  num_clbits=self.num_clbits,
+                                  params=self.params)
+        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
+        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
+        sub_instruction = (self, qargs[:], cargs[:])
+        instruction.definition = [sub_instruction] * exponent
+        return instruction
