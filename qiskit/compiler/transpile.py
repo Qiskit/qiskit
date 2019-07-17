@@ -185,41 +185,43 @@ def transpile(circuits,
                                       'in the coupling_map')
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
-    #naming and returning circuits
+    # naming and returning circuits
     # output_names could be either a string or a list
-    if output_names != None:
+    if output_names is not None:
         if isinstance(output_names, str):
-            #single circuit
+            # single circuit
             if len(circuits) == 1:
                 circuits[0].name = output_names
                 return circuits[0]
-            #multiple circuits
+            # multiple circuits
             else:
-                raise TranspilerError("Expected a list object of length equal "+
+                raise TranspilerError("Expected a list object of length equal " +
                                       "to that of the number of circuits " +
                                       "being transpiled")
         elif isinstance(output_names, list):
-            #single circuit
+            # single circuit
             if len(circuits) == 1:
                 if len(output_names) == 1:
                     circuits[0].name = output_names[0]
                     return circuits[0]
                 else:
                     raise TranspilerError("the length of output_names list "
-                                          +"must be equal to the number of "
-                                          +"transpiled circuits")
-            #multiple circuits
+                                          + "must be equal to the number of "
+                                          + "transpiled circuits")
+            # multiple circuits
             else:
                 if len(circuits) == len(output_names):
                     for i in range(len(circuits)):
                         circuits[i-1].name = output_names[i-1]
                 else:
                     raise TranspilerError("the length of output_names list "
-                                          +"must be equal to the number of "
-                                          +"transpiled circuits")
+                                          + "must be equal to the number of "
+                                          + "transpiled circuits")
     if len(circuits) == 1:
         return circuits[0]
     return circuits
+
+
 # FIXME: This is a helper function because of parallel tools.
 def _transpile_circuit(circuit_config_tuple):
     """Select a PassManager and run a single circuit through it.
