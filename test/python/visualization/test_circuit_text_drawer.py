@@ -539,7 +539,11 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
     def test_text_measure_html(self):
         """ The measure operator. HTML representation. """
         expected = '\n'.join(["<pre style=\"word-wrap: normal;"
-                              "white-space: pre;line-height: 15px;\">        ┌─┐",
+                              "white-space: pre;"
+                              "line-height: 15px;"
+                              "font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,"
+                              "Courier,monospace\">"
+                              "        ┌─┐",
                               "q_0: |0>┤M├",
                               "        └╥┘",
                               " c_0: 0 ═╩═",
