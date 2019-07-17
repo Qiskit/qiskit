@@ -26,8 +26,8 @@ The format is based on [Keep a Changelog].
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
-
--   New `CountOpsLongest` analysis pass to retrieve the number of operations
+-   Added tests for `gate_map` and reference images for testing `plot_gate_map`
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations 
     on the longest path of the DAGCircuit.
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
