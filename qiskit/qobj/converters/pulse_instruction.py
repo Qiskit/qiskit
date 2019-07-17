@@ -347,9 +347,8 @@ class QobjToInstructionConverter:
             phase_expr = parse_string_expr(phase, partial_binding=False)
 
             def gen_fc_sched(*args, **kwargs):
+                # this should be real value
                 _phase = phase_expr(*args, **kwargs)
-                if isinstance(_phase, complex):
-                    raise PulseError('Phase of FrameChange should be real value.')
                 return commands.FrameChange(_phase)(channel) << t0
 
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
