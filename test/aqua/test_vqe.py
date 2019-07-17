@@ -20,10 +20,11 @@ from parameterized import parameterized
 
 from test.aqua.common import QiskitAquaTestCase
 from qiskit import BasicAer
-from qiskit.aqua import Operator, run_algorithm, QuantumInstance, aqua_globals
+from qiskit.aqua import run_algorithm, QuantumInstance, aqua_globals
 from qiskit.aqua.input import EnergyInput
+from qiskit.aqua.operators import WeightedPauliOperator
 from qiskit.aqua.components.variational_forms import RY
-from qiskit.aqua.components.optimizers import L_BFGS_B, COBYLA
+from qiskit.aqua.components.optimizers import L_BFGS_B, COBYLA, SPSA
 from qiskit.aqua.components.initial_states import Zero
 from qiskit.aqua.algorithms import VQE
 
@@ -41,7 +42,7 @@ class TestVQE(QiskitAquaTestCase):
                        {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"}
                        ]
         }
-        qubit_op = Operator.load_from_dict(pauli_dict)
+        qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
         self.algo_input = EnergyInput(qubit_op)
 
     def test_vqe_via_run_algorithm(self):
@@ -67,19 +68,10 @@ class TestVQE(QiskitAquaTestCase):
         self.assertIn('eval_time', result)
 
     @parameterized.expand([
-        ['CG', 5, 4],
-        ['CG', 5, 1],
-        ['COBYLA', 5, 1],
-        ['L_BFGS_B', 5, 4],
-        ['L_BFGS_B', 5, 1],
-        ['NELDER_MEAD', 5, 1],
-        ['POWELL', 5, 1],
         ['SLSQP', 5, 4],
         ['SLSQP', 5, 1],
         ['SPSA', 3, 2],  # max_evals_grouped=n is considered as max_evals_grouped=2 if n>2
-        ['SPSA', 3, 1],
-        ['TNC', 2, 4],
-        ['TNC', 2, 1]
+        ['SPSA', 3, 1]
     ])
     def test_vqe_optimizers(self, name, places, max_evals_grouped):
         backend = BasicAer.get_backend('statevector_simulator')
@@ -105,22 +97,32 @@ class TestVQE(QiskitAquaTestCase):
         result = run_algorithm(params, self.algo_input, backend=backend)
         self.assertAlmostEqual(result['energy'], -1.85727503, places=places)
 
-    @parameterized.expand([
-        [4],
-        [1]
-    ])
-    def test_vqe_direct(self, max_evals_grouped):
-        backend = BasicAer.get_backend('statevector_simulator')
+    def test_vqe_qasm(self):
+        backend = BasicAer.get_backend('qasm_simulator')
+        num_qubits = self.algo_input.qubit_op.num_qubits
+        init_state = Zero(num_qubits)
+        var_form = RY(num_qubits, 3, initial_state=init_state)
+        optimizer = SPSA(max_trials=300)
+        algo = VQE(self.algo_input.qubit_op, var_form, optimizer, max_evals_grouped=1)
+        quantum_instance = QuantumInstance(backend, shots=2048, optimization_level=0)
+        result = algo.run(quantum_instance)
+        self.assertAlmostEqual(result['energy'], -1.85727503, places=3)
+
+    def test_vqe_aer_mode(self):
+        try:
+            from qiskit import Aer
+        except Exception as e:
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(e)))
+            return
+        backend = Aer.get_backend('statevector_simulator')
         num_qubits = self.algo_input.qubit_op.num_qubits
         init_state = Zero(num_qubits)
         var_form = RY(num_qubits, 3, initial_state=init_state)
         optimizer = L_BFGS_B()
-        algo = VQE(self.algo_input.qubit_op, var_form, optimizer, 'paulis', max_evals_grouped=max_evals_grouped)
+        algo = VQE(self.algo_input.qubit_op, var_form, optimizer, max_evals_grouped=1)
         quantum_instance = QuantumInstance(backend)
         result = algo.run(quantum_instance)
-        self.assertAlmostEqual(result['energy'], -1.85727503)
-        if quantum_instance.has_circuit_caching:
-            self.assertLess(quantum_instance._circuit_cache.misses, 3)
+        self.assertAlmostEqual(result['energy'], -1.85727503, places=6)
 
     def test_vqe_callback(self):
 
@@ -139,8 +141,8 @@ class TestVQE(QiskitAquaTestCase):
         init_state = Zero(num_qubits)
         var_form = RY(num_qubits, 1, initial_state=init_state)
         optimizer = COBYLA(maxiter=3)
-        algo = VQE(self.algo_input.qubit_op, var_form, optimizer, 'paulis',
-                   callback=store_intermediate_result)
+        algo = VQE(self.algo_input.qubit_op, var_form, optimizer,
+                   callback=store_intermediate_result, auto_conversion=False)
         aqua_globals.random_seed = 50
         quantum_instance = QuantumInstance(backend, seed_transpiler=50, shots=1024, seed_simulator=50)
         algo.run(quantum_instance)
@@ -166,7 +168,6 @@ class TestVQE(QiskitAquaTestCase):
         finally:
             if is_file_exist:
                 os.remove(self._get_resource_path(tmp_filename))
-
 
 if __name__ == '__main__':
     unittest.main()
