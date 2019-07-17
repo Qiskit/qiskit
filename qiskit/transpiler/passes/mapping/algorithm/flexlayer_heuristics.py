@@ -70,6 +70,8 @@ class FlexlayerHeuristics:
             initial_layout: Initial layout (layout at the beginning of circuit).
             lookahead_depth: How far gates from blocking gates should be looked ahead.
             decay_rate: Decay rate of look-ahead weight (0 < decay_rate < 1).
+        Raises:
+            TranspilerError: if no (or invalid) initial_layout is given.
         """
         self._qc = qc
 
@@ -89,7 +91,7 @@ class FlexlayerHeuristics:
 
     def search(self) -> (DAGCircuit, Layout):
         """
-
+        Search mapping solution.
         Returns:
             Mapped physical circuit (DAGCircuit) and last qubit layout (Layout)
         Raises:
