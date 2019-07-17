@@ -20,7 +20,7 @@ from shutil import get_terminal_size
 import sys
 import sympy
 from numpy import ndarray
-
+from qiskit.tools._math.pi_check import pi_check
 from .exceptions import VisualizationError
 
 
@@ -646,7 +646,27 @@ class TextDrawing():
         ret = []
         for param in instruction.op.params:
             if isinstance(param, (sympy.Number, float)):
-                ret.append('%.5g' % param)
+                fparam = float(param)
+                val, kind = pi_check(fparam)
+                if kind is None:
+                    ret.append('%.5g' % param)
+                elif kind == 'numer':
+                    # Plus / minus pi is always kind=numer
+                    if val > 0:
+                        if val != 1:
+                            ret.append('%spi' % val)
+                        else:
+                            ret.append('pi')
+                    else:
+                        if val != -1:
+                            ret.append('-%spi' % abs(val))
+                        else:
+                            ret.append('-pi')
+                else:
+                    if val > 0:
+                        ret.append('pi/%s' % val)
+                    else:
+                        ret.append('-pi/%s' % abs(val))
             else:
                 ret.append('%s' % param)
         return ret
