@@ -53,6 +53,7 @@ class Collect2qBlocks(AnalysisPass):
         nodes = list(dag.topological_nodes())
         nodes_seen = dict(zip(nodes, [False] * len(nodes)))
         for nd in dag.topological_op_nodes():
+
             group = []
             # Explore predecessors and successors of cx gates
             if nd.name == "cx" and nd.condition is None and not nodes_seen[nd]:
@@ -94,6 +95,10 @@ class Collect2qBlocks(AnalysisPass):
                         # Examine each predecessor
                         for pnd in sorted_pred:
                             if pnd.name not in good_names:
+                                # remove any qubits that are interrupted by a gate
+                                # e.g. a measure in the middle of the circuit
+                                these_qubits = list(set(these_qubits) -
+                                                    set(pnd.qargs))
                                 continue
                             # If a predecessor is a single qubit gate, add it
                             if pnd.name != "cx":
@@ -163,8 +168,15 @@ class Collect2qBlocks(AnalysisPass):
                         # Examine each successor
                         for snd in sorted_succ:
                             if snd.name not in good_names:
+                                # remove qubits from consideration if interrupted
+                                # by a gate e.g. a measure in the middle of the circuit
+                                these_qubits = list(set(these_qubits) -
+                                                    set(snd.qargs))
                                 continue
+
                             # If a successor is a single qubit gate, add it
+                            # NB as we have eliminated all gates with names not in
+                            # good_names, this check guarantees they are single qubit
                             if snd.name != "cx":
                                 if not nodes_seen[snd]:
                                     group.append(snd)
