@@ -133,6 +133,21 @@ class TestCmdDef(QiskitTestCase):
         self.assertEqual(sched.instructions[1][-1].command.phase, 2)
         self.assertEqual(sched.instructions[2][-1].command.phase, 3)
 
+    def test_negative_phases(self):
+        """Test bind parameters with negative values."""
+        cmd_def = CmdDef()
+        converter = QobjToInstructionConverter([], buffer=0)
+        qobjs = [PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='P1'),
+                 PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='-(P2)')]
+        converted_instruction = [converter(qobj) for qobj in qobjs]
+
+        cmd_def.add('inst_seq', 0, ParameterizedSchedule(*converted_instruction, name='inst_seq'))
+
+        sched = cmd_def.get('inst_seq', 0, -1, 2)
+
+        self.assertEqual(sched.instructions[0][-1].command.phase, -1)
+        self.assertEqual(sched.instructions[1][-1].command.phase, -2)
+
     def test_build_cmd_def(self):
         """Test building of parameterized cmd_def from defaults."""
         defaults = self.backend.defaults()
@@ -151,7 +166,10 @@ class TestCmdDef(QiskitTestCase):
 
         u1_minus_pi = cmd_def.get('u1', 0, P1=1)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
-        self.assertEqual(fc_cmd.phase, np.pi)
+        self.assertEqual(fc_cmd.phase, -np.pi)
+
+        for chan in u1_minus_pi.channels:
+            self.assertEqual(chan.buffer, defaults.buffer)
 
 
 class TestCmdDefWithDeviceSpecification(QiskitTestCase):
@@ -263,6 +281,21 @@ class TestCmdDefWithDeviceSpecification(QiskitTestCase):
         self.assertEqual(sched.instructions[1][-1].command.phase, 2)
         self.assertEqual(sched.instructions[2][-1].command.phase, 3)
 
+    def test_negative_phases(self):
+        """Test bind parameters with negative values."""
+        cmd_def = CmdDef()
+        converter = QobjToInstructionConverter([], buffer=0)
+        qobjs = [PulseQobjInstruction(name='fc', ch='d0', t0=10, phase='P1'),
+                 PulseQobjInstruction(name='fc', ch='d0', t0=20, phase='-(P2)')]
+        converted_instruction = [converter(qobj) for qobj in qobjs]
+
+        cmd_def.add('inst_seq', 0, ParameterizedSchedule(*converted_instruction, name='inst_seq'))
+
+        sched = cmd_def.get('inst_seq', 0, -1, 2)
+
+        self.assertEqual(sched.instructions[0][-1].command.phase, -1)
+        self.assertEqual(sched.instructions[1][-1].command.phase, -2)
+
     def test_build_cmd_def(self):
         """Test building of parameterized cmd_def from defaults."""
         defaults = self.backend.defaults()
@@ -281,7 +314,7 @@ class TestCmdDefWithDeviceSpecification(QiskitTestCase):
 
         u1_minus_pi = cmd_def.get('u1', 0, P1=1)
         fc_cmd = u1_minus_pi.instructions[0][-1].command
-        self.assertEqual(fc_cmd.phase, np.pi)
+        self.assertEqual(fc_cmd.phase, -np.pi)
 
         for chan in u1_minus_pi.channels:
             self.assertEqual(chan.buffer, defaults.buffer)
