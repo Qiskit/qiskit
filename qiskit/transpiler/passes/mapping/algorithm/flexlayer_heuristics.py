@@ -35,6 +35,7 @@ import collections
 import copy
 import logging
 import pprint
+from typing import List
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
@@ -43,7 +44,6 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 
-from .ancestors import Ancestors
 from .dependency_graph import DependencyGraph
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,16 @@ class FlexlayerHeuristics:
                  initial_layout: Layout,
                  lookahead_depth: int = 5,
                  decay_rate: float = 0.5):
-
+        """
+        Initialize a FlexlayerHeuristics instance.
+        Args:
+            qc: A circuit to be mapped.
+            dependency_graph: Dependency graph of the circuit.
+            coupling: CouplingMap of the target backend.
+            initial_layout: Initial layout (layout at the beginning of circuit).
+            lookahead_depth: How far gates from blocking gates should be looked ahead.
+            decay_rate: Decay rate of look-ahead weight (0 < decay_rate < 1).
+        """
         self._qc = qc
 
         if initial_layout is None:
@@ -77,8 +86,6 @@ class FlexlayerHeuristics:
 
         self._lookahead_depth = lookahead_depth
         self._decay_rate = decay_rate
-
-        self._ancestors = Ancestors(self._dg._graph)  # for speed up
 
     def search(self) -> (DAGCircuit, Layout):
         """
@@ -157,7 +164,7 @@ class FlexlayerHeuristics:
                     layout.swap(edge[0], edge[1])
 
                     logger.debug("%d-th inner iter. add a swap (%d, %d)", kin, edge[0], edge[1])
-                    logger.debug("resolved layout = %s", pprint.pformat(sorted(layout.items())))
+                    logger.debug("resolved layout = %s", str(layout))
 
                     dones = self._find_done_gates(blocking_gates, layout=layout)
                     if dones:
@@ -205,16 +212,6 @@ class FlexlayerHeuristics:
 
         return dones
 
-    def ancestors(self, n: int) -> set:
-        """
-        Ancestor gates of the gate `n`
-        Args:
-            n: Index of the gate in the `self._graph`
-        Returns:
-            Set of indices of the ancestor gates.
-        """
-        return self._ancestors.ancestors(n)
-
     def _update_leading_gates(self, leading_gates, dones):
         news = set(leading_gates)
         for n in dones:
@@ -224,7 +221,7 @@ class FlexlayerHeuristics:
 
         rmlist = []
         for n in news:
-            if news & self.ancestors(n):
+            if news & self._dg.ancestors(n):
                 rmlist.append(n)
 
         news -= set(rmlist)
@@ -358,7 +355,7 @@ class EdgeCostEstimator:
         self.coupling = coupling
 
     def cost(self, edge: (int, int),
-             priority: str = None,
+             priority: List[str] = None,
              alpha: float = 0.5) -> collections.namedtuple:
         """
         estimate cost if the edge e is swapped

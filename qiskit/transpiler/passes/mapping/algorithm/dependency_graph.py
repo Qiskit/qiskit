@@ -20,7 +20,8 @@ there exists a path from g1 to g2.
 """
 import copy
 from collections import namedtuple
-from typing import List, Set, Union
+from functools import lru_cache
+from typing import List, FrozenSet, Set, Union
 
 import networkx as nx
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -40,6 +41,35 @@ class ArgumentedGate(InstructionContext):
     def name(self) -> str:
         """Name of this instruction."""
         return self.instruction.name
+
+
+CACHE_SIZE = 2 ** 10
+
+
+class Ancestors:
+    """
+    Utility class for speeding up a function to find ancestors in DAG.
+    """
+
+    def __init__(self, G: nx.DiGraph):
+        self._graph = G.reverse()
+
+    @lru_cache(maxsize=CACHE_SIZE)
+    def ancestors(self, n: int) -> set:
+        """
+        Ancestor nodes of the node `n`
+        Args:
+            n: Index of the node in the `self._graph`
+        Returns:
+            Set of indices of the ancestor nodes.
+        """
+        ret = set()
+        for n_succ in self._graph.successors(n):
+            if n_succ in ret:
+                continue
+            ret.add(n_succ)
+            ret.update(self.ancestors(n_succ))
+        return ret
 
 
 class DependencyGraph:
@@ -86,6 +116,9 @@ class DependencyGraph:
 
         # remove redundant edges in dependency graph
         self.remove_redundancy(self._graph)
+
+        # for speed up, this works only for a graphs remaining unchanged in future
+        self._ancestors = Ancestors(self._graph)
 
     def _create_xz_graph(self):
         z_gates = ["u1", "rz", "s", "t", "z", "sdg", "tdg"]
@@ -238,7 +271,7 @@ class DependencyGraph:
         """
         return self._gates[i].name
 
-    def head_gates(self) -> Set[int]:
+    def head_gates(self) -> FrozenSet[int]:
         """Gates which can be applicable prior to the other gates
         Returns:
             Set of indices of the gates.
@@ -270,7 +303,7 @@ class DependencyGraph:
         Returns:
             Set of indices of the ancestor gates.
         """
-        return nx.ancestors(self._graph, i)
+        return self._ancestors.ancestors(i)
 
     def gate(self, gidx: int, layout: Layout, physical_qreg: QuantumRegister) -> InstructionContext:
         """Convert acting qubits of gate `gidx` from virtual qubits to physical ones.
