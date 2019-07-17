@@ -99,7 +99,7 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
         Raises:
             AquaError: if provided arguments are incorrect.
         """
-        if len(symmetries) or len(cliffords) == 0 or len(sq_list) == 0 or len(tapering_values) == 0:
+        if len(symmetries) == 0 or len(cliffords) == 0 or len(sq_list) == 0 or len(tapering_values) == 0:
             raise AquaError("Z2 symmetries, Cliffords, single qubit list and tapering values cannot be empty.")
 
         if len(symmetries) != len(cliffords):
@@ -129,7 +129,7 @@ class TaperedWeightedPauliOperator(WeightedPauliOperator):
             pauli_term_out = [coeff_out, Pauli(z_temp, x_temp)]
             operator_out.extend([pauli_term_out])
 
-        new_name = operator.name + "_tapered_on_{}".format("_".join(sq_list)) if name is None else name
+        new_name = operator.name + "_tapered_on_{}".format("_".join([str(x) for x in sq_list])) if name is None else name
 
         return cls(operator_out, symmetries, cliffords, sq_list, tapering_values, name=new_name)
 

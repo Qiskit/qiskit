@@ -132,7 +132,7 @@ class WeightedPauliOperator(BaseOperator):
         """Overload == operation"""
         # need to clean up the zeros
         self.simplify()
-        other = other.simplify()
+        other.simplify()
         if len(self._paulis) != len(other.paulis):
             return False
         for weight, pauli in self._paulis:
@@ -830,8 +830,8 @@ class WeightedPauliOperator(BaseOperator):
 
         return self._paulis
 
-    def evolve(self, state_in=None, evo_time=0, num_time_slices=1, expansion_mode='trotter', expansion_order=1,
-               quantum_registers=None):
+    def evolve(self, state_in=None, evo_time=0, num_time_slices=1, quantum_registers=None,
+               expansion_mode='trotter', expansion_order=1):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
 
@@ -839,6 +839,7 @@ class WeightedPauliOperator(BaseOperator):
             state_in (QuantumCircuit): a circuit describes the input state
             evo_time (int): The evolution time
             num_time_slices (int): The number of time slices for the expansion
+            quantum_registers (QuantumRegister): The QuantumRegister to build the QuantumCircuit off of
             expansion_mode (str): The mode under which the expansion is to be done.
                 Currently support 'trotter', which follows the expansion as discussed in
                 http://science.sciencemag.org/content/273/5278/1073,
@@ -1063,16 +1064,28 @@ if __name__ == "__main__":
     qubit_op = WeightedPauliOperator.from_dict(pauli_dict)
 
     pauli_dict = {
-        'paulis': [{"coeff": {"imag": 0.0, "real": -1.052373245772859}, "label": "II"},
-                   {"coeff": {"imag": 0.0, "real": -0.01128010425623538}, "label": "ZZ"},
-                   {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "XX"},
-                   {"coeff": {"imag": 0.0, "real": 0.18093119978423156}, "label": "YY"}
+        'paulis': [{"coeff": {"imag": 0.0, "real": 1}, "label": "II"},
+                   {"coeff": {"imag": 0.0, "real": 2}, "label": "ZZ"},
+                   {"coeff": {"imag": 0.0, "real": 3}, "label": "XX"},
+                   {"coeff": {"imag": 0.0, "real": 4}, "label": "YY"}
                    ]
     }
     qubit_op2 = WeightedPauliOperator.from_dict(pauli_dict)
 
-    qc = qubit_op2.evolve(evo_time=1, num_time_slices=1, expansion_mode='trotter', expansion_order=1)
-    print(qc.decompose())
+    qr = QuantumRegister(qubit_op2.num_qubits, name='q')
+    qra = QuantumRegister(qubit_op2.num_qubits, name='a')
+    qc = QuantumCircuit(qr, qra)
+    pauli_list = qubit_op2.reorder_paulis()
+    inst = evolution_instruction(pauli_list, 1, num_time_slices=1, controlled=True, power=1, use_basis_gates=False)
+    qc.append(inst, [qr[0], qr[1], qra[0]])
+
+    inst = evolution_instruction(pauli_list, 1, num_time_slices=1, controlled=True, power=1, use_basis_gates=False)
+    qc.append(inst, [qr[0], qr[1], qra[1]])
+
+    print(qc.decompose().draw(line_length=1200))
+
+    # qc = qubit_op2.evolve(evo_time=1, num_time_slices=1, expansion_mode='trotter', expansion_order=1)
+    # print(qc.decompose())
 
     # from qiskit.aqua.components.variational_forms import RY
     # ry = RY(qubit_op.num_qubits, depth=1)
@@ -1082,7 +1095,7 @@ if __name__ == "__main__":
     # # for c in ret:
     # #     print(c.draw(line_length=200))
     #
-    c = qubit_op.to_grouped_paulis(TPBGroupedWeightedPauliOperator.unsorted_grouping)
+    # c = qubit_op.to_grouped_paulis(TPBGroupedWeightedPauliOperator.unsorted_grouping)
     # print(c._basis)
     # ret = c.construct_evaluation_circuit(ry_qc, is_statevector=False)
     # for c in ret:
