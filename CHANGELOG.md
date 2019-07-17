@@ -71,6 +71,9 @@ The format is based on [Keep a Changelog].
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
 -   Change Snapshot signature to match simulator.snapshot (\#2592)
+-   DAGCircuit.width() formerly returned number of qubits, now returns total number of qubits + classical bits (\#2564)
+-   Functions assuming the former semantics of DAGCircuit.width() now call DAGCircuit.num_qubits() (\#2564)
+-   DAGCircuit.num_cbits() renamed to DAGCircuit.num_clbits() (\#2564)
 
 ### Removed
 
