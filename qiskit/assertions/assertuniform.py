@@ -73,8 +73,8 @@ def assert_uniform(self, pcrit, qubit, cbit):
 QuantumCircuit.assert_uniform = assert_uniform
 
 def assert_not_uniform(self, pcrit, qubit, cbit):
-    theClone = assert_uniform(pcrit, qubit, cbit)
-    AssertManger.StatOutputs[theClone.name]["type"] = "Not Uniform"
+    theClone = assert_uniform(self, pcrit, qubit, cbit)
+    AssertManager.StatOutputs[theClone.name]["type"] = "Not Uniform"
     return theClone
 
 QuantumCircuit.assert_not_uniform = assert_not_uniform
