@@ -49,7 +49,7 @@ class AssertProduct(Asserts):
         for (key, value) in counts.items():
             q0index = int(key[:q0len], 2)
             q1index = int(key[q0len:], 2)
-            cont_table[q1index][q0index] = value
+            cont_table[q0index][q1index] = value
 
         chisq, pval, dof, expctd = chi2_contingency(cont_table)
         if pval <= self._pcrit:
