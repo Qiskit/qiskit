@@ -335,8 +335,6 @@ class QobjToInstructionConverter:
             instruction (PulseQobjInstruction): frame change qobj
         Returns:
             Schedule: Converted and scheduled Instruction
-        Raises:
-            PulseError: when complex phase value is specified
         """
         t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
