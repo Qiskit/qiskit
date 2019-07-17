@@ -344,5 +344,6 @@ class Instruction:
             sub_instruction = (self, qargs[:], cargs[:])
         else:
             sub_instruction = (self.inverse(), qargs[:], cargs[:])
-        instruction.definition = [sub_instruction] * exponent
+
+        instruction.definition = [sub_instruction] * abs(exponent)
         return instruction

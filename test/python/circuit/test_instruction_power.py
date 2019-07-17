@@ -66,7 +66,7 @@ class TestGatePower(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SdgGate, qr[:])
+        expected_circ.append(SdgGate(), qr[:])
         expected = expected_circ.to_instruction()
 
         result = SGate().power(-1)
