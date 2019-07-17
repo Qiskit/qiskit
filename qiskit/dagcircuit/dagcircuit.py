@@ -1068,20 +1068,6 @@ class DAGCircuit:
                 if op_node.name not in {"barrier", "snapshot", "save", "load", "noise"}
             ]
 
-            # Now add the edges to the multi_graph
-            # By default we just wire inputs to the outputs.
-            wires = {self.input_map[wire]: self.output_map[wire]
-                     for wire in self.wires}
-            # Wire inputs to op nodes, and op nodes to outputs.
-            for op_node in op_nodes:
-                args = self._bits_in_condition(op_node.condition) \
-                       + op_node.cargs + op_node.qargs
-                arg_ids = (self.input_map[arg] for arg in args)
-                for arg_id in arg_ids:
-                    wires[arg_id], wires[op_node] = op_node, wires[arg_id]
-
-            # Add wiring to/from the operations and between unused inputs & outputs.
-            new_layer._multi_graph.add_edges_from(wires.items())
             yield {"graph": new_layer, "partition": support_list}
 
     def serial_layers(self):
