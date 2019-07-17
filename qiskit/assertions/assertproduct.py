@@ -47,12 +47,8 @@ class AssertProduct(Asserts):
         cont_table = np.empty((2**q0len,2**q1len))
         cont_table.fill(1)
         for (key, value) in counts.items():
-            print("key = " + key)
-            print("q0len = " + str(q0len))
             q0index = int(key[:q0len], 2)
             q1index = int(key[q0len:], 2)
-            print("q0index = " + str(q0index))
-            print("q1index = " + str(q1index))
             cont_table[q1index][q0index] = value
 
         chisq, pval, dof, expctd = chi2_contingency(cont_table)
