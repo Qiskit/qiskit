@@ -88,7 +88,7 @@ def assert_classical(self, expval, pcrit, qubit, cbit):
 QuantumCircuit.assert_classical = assert_classical
 
 def assert_not_classical(self, expval, pcrit, qubit, cbit):
-    theClone = assert_classical(expval, pcrit, qubit, cbit)
+    theClone = assert_classical(self, expval, pcrit, qubit, cbit)
     AssertManager.StatOutputs[theClone.name]["type"] = "Not Classical"
     return theClone
 
