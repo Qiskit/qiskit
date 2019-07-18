@@ -1448,7 +1448,7 @@ class TestTextIdleWires(QiskitTestCase):
                               "q_0: |0>┤ U2(pi,-5pi/8) ├",
                               "        └───────────────┘"])
 
-        qr = QuantumRegister(1,'q')
+        qr = QuantumRegister(1, 'q')
         circuit = QuantumCircuit(qr)
         circuit.u2(pi, -5*pi/8, qr[0])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)

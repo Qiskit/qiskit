@@ -84,7 +84,7 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
                     str_out = r'%s\pi/%s' % (numer, denom)
                 else:
                     str_out = '%spi/%s' % (numer, denom)
-         
+
                 return str_out
 
     # nothing found
