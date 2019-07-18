@@ -25,7 +25,7 @@ from qiskit.test import QiskitTestCase
 class TestNamingTranspiledCircuits(QiskitTestCase):
     """Testing the naming fuctionality for transpiled circuits."""
 
-    def no_name(self):
+    def test_no_name(self):
         """
         If no arg for output_names given for transpiled circuits, then
         transpiled circuit assumes the name of the original circuit. This
@@ -55,7 +55,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         self.assertTrue(trans_circuits[0].name, 'circ1-original')
         self.assertTrue(trans_circuits[1].name, 'circ2-original')
 
-    def single_circuit_name_singleton(self):
+    def test_single_circuit_name_singleton(self):
         """
         Given a single circuit and a output name in form of a string, this test
         checks whether that string name is assigned to the transpiled circuit.
@@ -68,7 +68,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
                                  output_names='transpiled-cirkie')
         self.assertTrue(trans_cirkie.name, 'transpiled-cirkie')
 
-    def single_circuit_name_list(self):
+    def test_single_circuit_name_list(self):
         """
         Given a single circuit and an output name in form of a single element
         list, this test checks whether the transpiled circuit is mapped with
@@ -88,7 +88,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
             transpile(cirkie, basis_gates=basis_gates_var,
                       output_names=["cool-cirkie", "new-cirkie", "dope-cirkie", "awesome-cirkie"])
 
-    def multiple_circuits_name_singleton(self):
+    def test_multiple_circuits_name_singleton(self):
         """
         Given multiple circuits and a single string as a name, this test checks
         whether the Transpile function raises an error.
@@ -109,7 +109,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         with self.assertRaises(TranspilerError):
             transpile([circ1, circ2], backendie, output_names='circ')
 
-    def multiple_circuits_name_list(self):
+    def test_multiple_circuits_name_list(self):
         """
         Given multiple circuits and a list for output names, if
         len(list)=len(circuits), then test checks whether transpile func assigns
@@ -138,17 +138,17 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         circuits = [circ1, circ2, circ3]
         backendie = BasicAer.get_backend('qasm_simulator')
         # equal lengths
-        names = ['awesome_circ1', 'awesome_circ2', 'awesome_circ3']
+        names = ['awesome-circ1', 'awesome-circ2', 'awesome-circ3']
         trans_circuits = transpile(circuits, backendie, output_names=names)
-        self.assertTrue(trans_circuits[0].name, 'awesome-circ1')
-        self.assertTrue(trans_circuits[1].name, 'awesome-circ2')
-        self.assertTrue(trans_circuits[2].name, 'awesome-circ3')
+        self.assertEqual(trans_circuits[0].name, 'awesome-circ1')
+        self.assertEqual(trans_circuits[1].name, 'awesome-circ2')
+        self.assertEqual(trans_circuits[2].name, 'awesome-circ3')
         # names list greater than circuits list
-        names = ['awesome_circ1', 'awesome_circ2', 'awesome_circ3', 'awesome-circ4']
+        names = ['awesome-circ1', 'awesome-circ2', 'awesome-circ3', 'awesome-circ4']
         with self.assertRaises(TranspilerError):
             transpile(circuits, backendie, output_names=names)
         # names list smaller than circuits list
-        names = ['awesome_circ1', 'awesome_circ2']
+        names = ['awesome-circ1', 'awesome-circ2']
         with self.assertRaises(TranspilerError):
             transpile(circuits, backendie, output_names=names)
 
