@@ -41,8 +41,8 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
         return str(0)
     val = inpt / np.pi
     if abs(val) >= 1:
-        if abs(val % 1) < eps:
-            val = int(val)
+        if abs(round(val) % 1) < eps:
+            val = int(round(val))
             if latex:
                 if val == 1:
                     str_out = r'\pi'
@@ -78,7 +78,7 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
     # Look for all fracs in 8
     abs_val = abs(inpt)
     frac = np.where(np.abs(abs_val-FRAC_MESH) < 1e-8)
-    if any(frac[0]):
+    if frac[0].shape[0]:
         numer = int(frac[1][0])+1
         denom = int(frac[0][0])+1
         if inpt < 0:
