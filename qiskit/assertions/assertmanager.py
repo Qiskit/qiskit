@@ -32,9 +32,9 @@ class AssertManager():
 
     def syntax4measure(bit):
     # support for all known measure syntaxes
-        if isinstance(bit,(list,Register)):
+        if isinstance(bit,(list, Register)):
             return bit
-        elif isinstance(bit,range):
+        elif isinstance(bit,(range, tuple)):
             return list(bit)
         else: #if single bit
             return [bit]

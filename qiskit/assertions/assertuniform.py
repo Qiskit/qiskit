@@ -63,8 +63,6 @@ def assert_uniform(self, qubit, cbit, pcrit=0.05):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    qubit = list(qubit) if isinstance(qubit, tuple) else qubit
-    cbit = list(cbit) if isinstance(cbit, tuple) else cbit
     theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
