@@ -46,8 +46,9 @@ class Gate(Instruction):
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
     def sqrt(self):
+        from qiskit.extensions.unitary import UnitaryGate
         sqrt_matrix = sqrtm(self.to_matrix())
-        return Gate('√'+self.name, self.num_qubits, [sqrt_matrix], label=self.label)
+        return UnitaryGate(sqrt_matrix)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""

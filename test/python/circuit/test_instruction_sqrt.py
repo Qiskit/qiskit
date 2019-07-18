@@ -20,7 +20,6 @@ import numpy
 
 from qiskit.extensions import UnitaryGate, SGate
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import QuantumRegister, QuantumCircuit
 
 
 class TestGateSqrt(QiskitTestCase):
@@ -32,6 +31,14 @@ class TestGateSqrt(QiskitTestCase):
         expected = numpy.array([[0.5+0.5j,  0.5+0.5j],
                                 [-0.5-0.5j,  0.5+0.5j]])
         result = UnitaryGate([[0, 1j], [-1j, 0]]).sqrt()
+        self.assertEqual(result.name, 'unitary')
+        self.assertTrue(numpy.allclose(result.to_matrix(), expected))
+
+    def test_starndard(self):
+        expected = numpy.array([[1+0.j, 0+0.j],
+                                [0+0.j, 0.70710678+0.70710678j]])
+        result = SGate().sqrt()
+        self.assertEqual(result.name, 'unitary')
         self.assertTrue(numpy.allclose(result.to_matrix(), expected))
 
 

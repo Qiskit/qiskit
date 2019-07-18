@@ -79,10 +79,6 @@ class UnitaryGate(Gate):
         """Return matrix for unitary"""
         return self.params[0]
 
-    def sqrt(self):
-        sqrt_matrix = sqrtm(self.to_matrix())
-        return UnitaryGate(sqrt_matrix)
-
     def inverse(self):
         """Return the adjoint of the Unitary."""
         return self.adjoint()
