@@ -457,5 +457,6 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
                 'The fidelity between matrix and circuit: {}'.format(f_mc))
             self.assertAlmostEqual(f_mc, 1)
 
+
 if __name__ == '__main__':
     unittest.main()

@@ -169,5 +169,6 @@ class TestVQE(QiskitAquaTestCase):
             if is_file_exist:
                 os.remove(self._get_resource_path(tmp_filename))
 
+
 if __name__ == '__main__':
     unittest.main()

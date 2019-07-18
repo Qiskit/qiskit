@@ -36,12 +36,12 @@ class TestMatrixOperator(QiskitAquaTestCase):
         self.qubit_op = MatrixOperator(matrix=matrix)
 
     def test_num_qubits(self):
-        op = MatrixOperator(matrix=np.zeros((2,2)))
+        op = MatrixOperator(matrix=np.zeros((2, 2)))
         self.assertEqual(op.num_qubits, 0)
         self.assertEqual(self.qubit_op.num_qubits, self.num_qubits)
 
     def test_is_empty(self):
-        op = MatrixOperator(matrix=np.zeros((2,2)))
+        op = MatrixOperator(matrix=np.zeros((2, 2)))
         self.assertTrue(op.is_empty())
         self.assertFalse(self.qubit_op.is_empty())
 
