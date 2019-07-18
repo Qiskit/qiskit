@@ -41,8 +41,5 @@ class Asserts(Measure):
 
         Returns:
             tuple containing the chisquare, p-value, and success boolean of the assertion
-
-        Raises:
-            Error if results is not a valid Result object from an experiment
         """
         return
