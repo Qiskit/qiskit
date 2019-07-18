@@ -52,7 +52,7 @@ class Gate(Instruction):
             UnitaryGate: A unitary gate which matrix representation
                          is the square root of self's.
         """
-        from qiskit.extensions.unitary import UnitaryGate
+        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         sqrt_matrix = sqrtm(self.to_matrix())
         return UnitaryGate(sqrt_matrix)
 
