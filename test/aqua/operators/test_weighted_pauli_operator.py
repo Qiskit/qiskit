@@ -411,7 +411,6 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         weights = np.random.random(len(paulis))
         pauli_op = WeightedPauliOperator.from_list(paulis, weights)
         matrix_op = pauli_op.to_matrix_operator()
-
         state_in = Custom(num_qubits, state='random')
 
         # get the exact state_out from raw matrix multiplication
@@ -440,7 +439,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
             qc += pauli_op.copy().evolve(
                 evo_time=evo_time,
                 num_time_slices=num_time_slices,
-                qr=quantum_registers,
+                quantum_registers=quantum_registers,
                 expansion_mode=expansion_mode,
                 expansion_order=expansion_order,
             )
