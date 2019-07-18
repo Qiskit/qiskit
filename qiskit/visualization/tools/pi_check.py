@@ -41,7 +41,7 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
         return str(0)
     val = inpt / np.pi
     if abs(val) >= 1:
-        if abs(round(val) % 1) < eps:
+        if abs(val % 1) < eps:
             val = int(round(val))
             if latex:
                 if val == 1:
@@ -59,21 +59,20 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
                     str_out = '%spi' % val
             return str_out
 
-    else:
-        val = np.pi / inpt
-        if abs(abs(val) - abs(round(val))) < eps:
-            val = int(round(val))
-            if val > 0:
-                if latex:
-                    str_out = r'\pi/%s' % val
-                else:
-                    str_out = 'pi/%s' % val
+    val = np.pi / inpt
+    if abs(abs(val) - abs(round(val))) < eps:
+        val = int(round(val))
+        if val > 0:
+            if latex:
+                str_out = r'\pi/%s' % val
             else:
-                if latex:
-                    str_out = r'-\pi/%s' % abs(val)
-                else:
-                    str_out = '-pi/%s' % abs(val)
-            return str_out
+                str_out = 'pi/%s' % val
+        else:
+            if latex:
+                str_out = r'-\pi/%s' % abs(val)
+            else:
+                str_out = '-pi/%s' % abs(val)
+        return str_out
 
     # Look for all fracs in 8
     abs_val = abs(inpt)
@@ -84,9 +83,36 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
         if inpt < 0:
             numer *= -1
         if latex:
-            str_out = r'%s\pi/%s' % (numer, denom)
+            if numer == 1 and denom == 1:
+                str_out = r'\pi'
+            elif numer == -1 and denom == 1:
+                str_out = r'-\pi'
+            elif numer == 1:
+                str_out = r'\pi/%s' % (denom)
+            elif numer == -1:
+                str_out = r'-\pi/%s' % (denom)
+            elif numer == 1:
+                str_out = r'\pi/%s' % (denom)
+            elif denom == 1:
+                str_out = r'%s\pi' % (numer)
+            else:
+                str_out = r'%s\pi/%s' % (numer, denom)
+
         else:
-            str_out = '%spi/%s' % (numer, denom)
+            if numer == 1 and denom == 1:
+                str_out = 'pi'
+            elif numer == -1 and denom == 1:
+                str_out = '-pi'
+            elif numer == 1:
+                str_out = 'pi/%s' % (denom)
+            elif numer == -1:
+                str_out = '-pi/%s' % (denom)
+            elif numer == 1:
+                str_out = 'pi/%s' % (denom)
+            elif denom == 1:
+                str_out = '%spi' % (numer)
+            else:
+                str_out = '%spi/%s' % (numer, denom)
         return str_out
     # nothing found
     str_out = '%.{}g'.format(ndigits) % inpt
