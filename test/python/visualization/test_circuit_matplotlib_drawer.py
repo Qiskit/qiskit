@@ -113,3 +113,31 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         self.addCleanup(os.remove, no_barriers_filename)
 
         self.assertImagesAreEqual(filename, no_barriers_filename)
+
+    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
+                     'matplotlib not available.')
+    def test_long_name(self):
+        """Test to see that long register names can be seen completely
+        As reported in #2605
+        """
+
+        # add a register with a very long name
+        qr = QuantumRegister(4, 'veryLongQuantumRegisterName012345679')
+        # add another to make sure adjustments are made based on longest
+        qrr = QuantumRegister(1, 'q0')
+        circuit = QuantumCircuit(qr, qrr)
+
+        # check gates are shifted over accordingly
+        circuit.h(qr)
+        circuit.h(qr)
+        circuit.h(qr)
+
+        long_name_filename = self._get_resource_path('current_long_name_matplotlib_ref.png')
+        visualization.circuit_drawer(circuit, output='mpl',
+                                     filename=long_name_filename)
+        self.addCleanup(os.remove, long_name_filename)
+
+        ref_filename = self._get_resource_path(
+            'visualization/references/matplotlib_long_name_ref.png')
+
+        self.assertImagesAreEqual(ref_filename, long_name_filename)
