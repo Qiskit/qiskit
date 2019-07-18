@@ -15,9 +15,9 @@
 """
 Timeslots for channels.
 """
-from collections import defaultdict
 import itertools
-from typing import List, Tuple
+from collections import defaultdict
+from typing import Tuple
 
 from .channels import Channel
 from .exceptions import PulseError
@@ -150,7 +150,7 @@ class Timeslot:
 class TimeslotCollection:
     """Collection of `Timeslot`s."""
 
-    def __init__(self, *timeslots: List[Timeslot]):
+    def __init__(self, *timeslots: Timeslot):
         """Create a new time-slot collection.
 
         Args:
@@ -169,12 +169,12 @@ class TimeslotCollection:
         self._timeslots = tuple(timeslots)
 
     @property
-    def timeslots(self) -> Tuple[Timeslot]:
+    def timeslots(self) -> Tuple[Timeslot, ...]:
         """`Timeslot`s in collection."""
         return self._timeslots
 
     @property
-    def channels(self) -> Tuple[Timeslot]:
+    def channels(self) -> Tuple[Channel, ...]:
         """Channels within the timeslot collection."""
         return tuple(self._table.keys())
 
@@ -193,7 +193,7 @@ class TimeslotCollection:
         """Return maximum duration of timeslots over all channels."""
         return self.stop_time
 
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(self, *channels: Channel) -> int:
         """Return earliest start time in this collection.
 
         Args:
@@ -205,7 +205,7 @@ class TimeslotCollection:
             return min(interval.begin for interval in intervals)
         return 0
 
-    def ch_stop_time(self, *channels: List[Channel]) -> int:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Return maximum time of timeslots over all channels.
 
         Args:
@@ -217,7 +217,7 @@ class TimeslotCollection:
             return max(interval.end for interval in intervals)
         return 0
 
-    def ch_duration(self, *channels: List[Channel]) -> int:
+    def ch_duration(self, *channels: Channel) -> int:
         """Return maximum duration of timeslots over all channels.
 
         Args:
@@ -225,28 +225,39 @@ class TimeslotCollection:
         """
         return self.ch_stop_time(*channels)
 
-    def is_mergeable_with(self, timeslots: 'TimeslotCollection') -> bool:
-        """Return if self is mergeable with `timeslots`.
+    def is_mergeable_with(self, other: 'TimeslotCollection') -> bool:
+        """Return if self is mergeable with `other` collection.
 
         Args:
-            timeslots: TimeslotCollection to be checked
+            other: TimeslotCollection to be checked
         """
-        for slot in timeslots.timeslots:
+        for slot in other.timeslots:
             if slot.channel in self.channels:
                 for interval in self._table[slot.channel]:
                     if slot.interval.has_overlap(interval):
                         return False
         return True
 
-    def merged(self, timeslots: 'TimeslotCollection') -> 'TimeslotCollection':
+    def merged(self, other: 'TimeslotCollection') -> 'TimeslotCollection':
         """Return a new TimeslotCollection merged with a specified `timeslots`
 
         Args:
-            timeslots: TimeslotCollection to be merged
+            other: TimeslotCollection to be merged
         """
-        slots = [Timeslot(slot.interval, slot.channel) for slot in self.timeslots]
-        slots.extend([Timeslot(slot.interval, slot.channel) for slot in timeslots.timeslots])
-        return TimeslotCollection(*slots)
+        res = TimeslotCollection()
+        res.__merge(self)
+        res.__merge(other)
+        return res
+
+    def __merge(self, other: 'TimeslotCollection') -> 'TimeslotCollection':
+        """Merge self with a specified `other` collection.
+
+        Args:
+            other: TimeslotCollection to be merged
+        """
+        self._timeslots += other.timeslots
+        for channel, slots in other._table.items():
+            self._table[channel].extend(slots)
 
     def shift(self, time: int) -> 'TimeslotCollection':
         """Return a new TimeslotCollection shifted by `time`.
