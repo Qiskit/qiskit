@@ -34,16 +34,26 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
         str: string representation of output.
     """
     inpt = float(inpt)
-    if abs(inpt) < eps:
+    if abs(inpt) < 1e-14:
         return str(0)
     val = inpt / np.pi
     if abs(val) >= 1:
         if abs(val % 1) < eps:
             val = int(val)
             if latex:
-                str_out = r'%s\pi' % val
+                if val == 1:
+                    str_out = r'\pi'
+                elif val == -1:
+                    str_out = r'-\pi'
+                else:
+                    str_out = r'%s\pi' % val
             else:
-                str_out = '%spi' % val
+                if val == 1:
+                    str_out = 'pi'
+                elif val == -1:
+                    str_out = '-pi'
+                else:
+                    str_out = '%spi' % val
         else:
             str_out = '%.{}g'.format(ndigits) % inpt
 
