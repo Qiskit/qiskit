@@ -54,8 +54,7 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
                     str_out = '-pi'
                 else:
                     str_out = '%spi' % val
-        else:
-            str_out = '%.{}g'.format(ndigits) % inpt
+            return str_out
 
     else:
         val = np.pi / inpt
@@ -71,7 +70,23 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
                     str_out = r'-\pi/%s' % abs(val)
                 else:
                     str_out = '-pi/%s' % abs(val)
-        else:
-            str_out = '%.{}g'.format(ndigits) % inpt
+            return str_out
 
+    # Look for all fracs in 8
+    abs_val = abs(inpt)
+    for numer in range(1, 9):
+        for denom in range(1, 9):
+            if abs(abs_val - numer / denom * np.pi) < eps:
+                if inpt < 0:
+                    numer *= -1
+                # Found match
+                if latex:
+                    str_out = r'%s\pi/%s' % (numer, denom)
+                else:
+                    str_out = '%spi/%s' % (numer, denom)
+         
+                return str_out
+
+    # nothing found
+    str_out = '%.{}g'.format(ndigits) % inpt
     return str_out

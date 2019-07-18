@@ -1442,6 +1442,17 @@ class TestTextIdleWires(QiskitTestCase):
         circuit = QuantumCircuit()
         self.assertEqual(str(_text_circuit_drawer(circuit, idle_wires=False)), expected)
 
+    def test_text_pifrac(self):
+        """ u2 drawing with -5pi/8 fraction"""
+        expected = '\n'.join(["        ┌───────────────┐",
+                              "q_0: |0>┤ U2(pi,-5pi/8) ├",
+                              "        └───────────────┘"])
+
+        qr = QuantumRegister(1,'q')
+        circuit = QuantumCircuit(qr)
+        circuit.u2(pi, -5*pi/8, qr[0])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
 
 if __name__ == '__main__':
     unittest.main()
