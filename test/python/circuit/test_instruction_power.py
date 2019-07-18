@@ -60,6 +60,7 @@ class TestPower(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         expected_circ = QuantumCircuit(qr)
+        expected_circ.append(U3Gate(0, 0, 0), qr[:])
         expected = expected_circ.to_instruction()
 
         result = SGate().power(0)
@@ -108,8 +109,8 @@ class TestPowerUnroller(QiskitTestCase):
         result = PassManager(Unroller('u3')).run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0,0,pi/2), qr[:])
-        expected.append(U3Gate(0,0,pi/2), qr[:])
+        expected.append(U3Gate(0, 0, pi / 2), qr[:])
+        expected.append(U3Gate(0, 0, pi / 2), qr[:])
 
         self.assertEqual(result, expected)
 
@@ -127,18 +128,19 @@ class TestPowerUnroller(QiskitTestCase):
 
         self.assertEqual(result, expected)
 
-    # def test_unroller_zero(self):
-    #     """Test unrolling gate.power(0).
-    #     """
-    #     qr = QuantumRegister(1, 'qr')
-    #
-    #     circuit = QuantumCircuit(qr)
-    #     circuit.append(SGate().power(0), qr[:])
-    #     result = PassManager(Unroller('u3')).run(circuit)
-    #
-    #     expected = QuantumCircuit(qr)
-    #
-    #     self.assertEqual(result, expected)
+    def test_unroller_zero(self):
+        """Test unrolling gate.power(0).
+        """
+        qr = QuantumRegister(1, 'qr')
+
+        circuit = QuantumCircuit(qr)
+        circuit.append(SGate().power(0), qr[:])
+        result = PassManager(Unroller('u3')).run(circuit)
+
+        expected = QuantumCircuit(qr)
+        expected.append(U3Gate(0, 0, 0), qr[:])
+
+        self.assertEqual(result, expected)
 
     def test_unroller_minus_one(self):
         """Test unrolling gate.power(-1).
@@ -168,6 +170,7 @@ class TestPowerUnroller(QiskitTestCase):
         expected.append(U3Gate(0, 0, -pi / 2), qr[:])
 
         self.assertEqual(result, expected)
+
 
 if __name__ == '__main__':
     unittest.main()

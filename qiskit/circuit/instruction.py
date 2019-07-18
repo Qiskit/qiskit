@@ -351,10 +351,15 @@ class Instruction:
                                   params=self.params)
         qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
-        if exponent >= 0:
+
+        if exponent > 0:
             sub_instruction = (self, qargs[:], cargs[:])
-        else:
+        elif exponent < 0:
             sub_instruction = (self.inverse(), qargs[:], cargs[:])
+        else:
+            from qiskit.extensions.standard.u3 import U3Gate
+            instruction.definition=[(U3Gate(0, 0, 0), qargs[:], cargs[:])]
+            return instruction
 
         instruction.definition = [sub_instruction] * abs(exponent)
         return instruction
