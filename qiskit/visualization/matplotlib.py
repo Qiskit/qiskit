@@ -59,7 +59,7 @@ class Anchor:
         self.__gate_placed = []
         self.gate_anchor = 0
 
-    def plot_coord(self, index, gate_width):
+    def plot_coord(self, index, gate_width, x_offset):
         h_pos = index % self.__fold + 1
         # check folding
         if self.__fold > 0:
@@ -73,7 +73,7 @@ class Anchor:
 
         # could have been updated, so need to store
         self.gate_anchor = index
-        return x_pos, y_pos
+        return x_pos + x_offset, y_pos
 
     def is_locatable(self, index, gate_width):
         hold = [index + i for i in range(gate_width)]
@@ -151,6 +151,8 @@ class MatplotlibDrawer:
         self.ax.set_aspect('equal')
         self.ax.tick_params(labelbottom=False, labeltop=False,
                             labelleft=False, labelright=False)
+
+        self.x_offset = 0
 
     def _registers(self, creg, qreg):
         self._creg = []
@@ -442,12 +444,17 @@ class MatplotlibDrawer:
         return self.figure
 
     def _draw_regs(self):
+
+        len_longest_label = 0
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
                 label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
             else:
                 label = '${}$'.format(reg.reg.name)
+
+            if len(label) > len_longest_label:
+                len_longest_label = len(label)
 
             pos = -ii
             self._qreg_dict[ii] = {
@@ -484,9 +491,14 @@ class MatplotlibDrawer:
                         'index': reg.index,
                         'group': reg.reg
                     }
+                if len(label) > len_longest_label:
+                    len_longest_label = len(label)
 
                 self._cond['n_lines'] += 1
                 idx += 1
+
+        # 7 is the length of the smallest possible label
+        self.x_offset = -.5 + 0.18*(len_longest_label-7)
 
     def _draw_regs_sub(self, n_fold, feedline_l=False, feedline_r=False):
         # quantum register
@@ -496,12 +508,12 @@ class MatplotlibDrawer:
             else:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
-            self.ax.text(-0.5, y, label, ha='right', va='center',
+            self.ax.text(self.x_offset, y, label, ha='right', va='center',
                          fontsize=self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([0, y], [self._cond['xmax'], y])
+            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y])
         # classical register
         this_creg_dict = {}
         for creg in self._creg_dict.values():
@@ -639,9 +651,11 @@ class MatplotlibDrawer:
                         q_anchors[ii].set_index(this_anc, layer_width)
 
                 # qreg coordinate
-                q_xy = [q_anchors[ii].plot_coord(this_anc, layer_width) for ii in q_idxs]
+                q_xy = [q_anchors[ii].plot_coord(this_anc, layer_width, self.x_offset)
+                        for ii in q_idxs]
                 # creg coordinate
-                c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width) for ii in c_idxs]
+                c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width, self.x_offset)
+                        for ii in c_idxs]
                 # bottom and top point of qreg
                 qreg_b = min(q_xy, key=lambda xy: xy[1])
                 qreg_t = max(q_xy, key=lambda xy: xy[1])
@@ -658,7 +672,7 @@ class MatplotlibDrawer:
                     param = None
                 # conditional gate
                 if op.condition:
-                    c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width) for
+                    c_xy = [c_anchors[ii].plot_coord(this_anc, layer_width, self.x_offset) for
                             ii in self._creg_dict]
                     mask = 0
                     for index, cbit in enumerate(self._creg):
@@ -832,10 +846,10 @@ class MatplotlibDrawer:
         n_fold = max(0, max_anc - 1) // self._style.fold
         # window size
         if max_anc > self._style.fold > 0:
-            self._cond['xmax'] = self._style.fold + 1
+            self._cond['xmax'] = self._style.fold + 1 + self.x_offset
             self._cond['ymax'] = (n_fold + 1) * (self._cond['n_lines'] + 1) - 1
         else:
-            self._cond['xmax'] = max_anc + 1
+            self._cond['xmax'] = max_anc + 1 + self.x_offset
             self._cond['ymax'] = self._cond['n_lines']
         # add horizontal lines
         for ii in range(n_fold + 1):
