@@ -80,7 +80,7 @@ def assert_classical(self, qubit, cbit, pcrit=0.05, expval=None):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
+    theClone = self.copy(AssertManager.breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     AssertManager.StatOutputs[theClone.name] = {"type":"Classical", "expval":expval, \

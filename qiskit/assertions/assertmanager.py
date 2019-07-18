@@ -28,7 +28,7 @@ class AssertManager():
     StatOutputs = {}
 
     def breakpoint_name():
-        return datetime.now().isoformat()
+        return "breakpoint_" + datetime.now().isoformat()
 
     def syntax4measure(bit):
     # support for all known measure syntaxes
@@ -39,7 +39,7 @@ class AssertManager():
         else: #if single bit
             return [bit]
 
-    def clbits2idxs(cbits, exp):
+    def cbits2idxs(cbits, exp):
     # gives index wrt counts object for clbits
         if isinstance(cbits[0], int): # syntax 1
             return cbits
@@ -70,7 +70,7 @@ class AssertManager():
             exp_counts = results.get_counts(exp)
             assertion = exp.data[-1][0]
             cbits = assertion._cbit
-            cbits = AssertManager.clbits2idxs(cbits, exp)
+            cbits = AssertManager.cbits2idxs(cbits, exp)
 
             new_counts = {}
             for (key, value) in exp_counts.items():
