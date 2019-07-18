@@ -25,36 +25,6 @@ from qiskit.test import QiskitTestCase
 class TestNamingTranspiledCircuits(QiskitTestCase):
     """Testing the naming fuctionality for transpiled circuits."""
 
-    def test_no_name(self):
-        """
-        If no arg for output_names given for transpiled circuits, then
-        transpiled circuit assumes the name of the original circuit. This
-        test checks that condition.
-        """
-        # single circuit
-        qr = QuantumRegister(4)
-        cirkie = QuantumCircuit(qr, name='cirkie')
-        cirkie.ccx(qr[0], qr[1], qr[2])
-        basis_gates_var = ['u1', 'u2', 'u3', 'cx']
-        trans_cirkie = transpile(cirkie, basis_gates=basis_gates_var)
-        self.assertTrue(trans_cirkie.name, 'cirkie')
-        # multiple Circuits
-        # first circuit
-        qr1 = QuantumRegister(2)
-        cr1 = ClassicalRegister(2)
-        circ1 = QuantumCircuit(qr1, cr1, name='circ1-original')
-        circ1.h(qr1[0])
-        circ1.cx(qr1[0], qr1[1])
-        # second circuit
-        qr2 = QuantumRegister(2)
-        cr2 = ClassicalRegister(2)
-        circ2 = QuantumCircuit(qr2, cr2, name='circ2-original')
-        circ2.measure(qr2, cr2)
-        backendie = BasicAer.get_backend('qasm_simulator')
-        trans_circuits = transpile([circ1, circ2], backend=backendie)
-        self.assertTrue(trans_circuits[0].name, 'circ1-original')
-        self.assertTrue(trans_circuits[1].name, 'circ2-original')
-
     def test_single_circuit_name_singleton(self):
         """
         Given a single circuit and a output name in form of a string, this test
