@@ -42,7 +42,7 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=8):
         if abs(val % 1) < eps:
             val = int(val)
             if latex:
-                str_out = '%s\pi' % val
+                str_out = '%s\\pi' % val
             else:
                 str_out = '%spi' % val
         else:
@@ -54,12 +54,12 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=8):
             val = int(round(val))
             if val > 0:
                 if latex:
-                    str_out = '\pi/%s' % val
+                    str_out = '\\pi/%s' % val
                 else:
                     str_out = 'pi/%s' % val
             else:
                 if latex:
-                    str_out = '-\pi/%s' % abs(val)
+                    str_out = '-\\pi/%s' % abs(val)
                 else:
                     str_out = '-pi/%s' % abs(val)
         else:
