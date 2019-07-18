@@ -26,7 +26,7 @@ class TestGateSqrt(QiskitTestCase):
     """Test Gate.sqrt()"""
 
     def test_unitary(self):
-        """Test standard UnitaryGate.sqrt() method.
+        """Test UnitaryGate.sqrt() method.
         """
         expected = numpy.array([[0.5 + 0.5j, 0.5 + 0.5j],
                                 [-0.5 - 0.5j, 0.5 + 0.5j]])
@@ -35,6 +35,8 @@ class TestGateSqrt(QiskitTestCase):
         self.assertTrue(numpy.allclose(result.to_matrix(), expected))
 
     def test_starndard(self):
+        """Test standard Gate.sqrt() method.
+        """
         expected = numpy.array([[1 + 0.j, 0 + 0.j],
                                 [0 + 0.j, 0.70710678 + 0.70710678j]])
         result = SGate().sqrt()
