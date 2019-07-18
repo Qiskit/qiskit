@@ -17,6 +17,9 @@
 
 import numpy as np
 
+N, D = np.meshgrid(np.arange(1, 9), np.arange(1, 9))
+FRAC_MESH = N/D*np.pi
+
 
 def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
     """ Computes if a number is close to an integer
@@ -74,19 +77,17 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
 
     # Look for all fracs in 8
     abs_val = abs(inpt)
-    for numer in range(1, 9):
-        for denom in range(1, 9):
-            if abs(abs_val - numer / denom * np.pi) < eps:
-                # Found match
-                if inpt < 0:
-                    numer *= -1
-                if latex:
-                    str_out = r'%s\pi/%s' % (numer, denom)
-                else:
-                    str_out = '%spi/%s' % (numer, denom)
-
-                return str_out
-
+    frac = np.where(np.abs(abs_val-FRAC_MESH) < 1e-8)
+    if any(frac[0]):
+        numer = int(frac[1][0])+1
+        denom = int(frac[0][0])+1
+        if inpt < 0:
+            numer *= -1
+        if latex:
+            str_out = r'%s\pi/%s' % (numer, denom)
+        else:
+            str_out = '%spi/%s' % (numer, denom)
+        return str_out
     # nothing found
     str_out = '%.{}g'.format(ndigits) % inpt
     return str_out
