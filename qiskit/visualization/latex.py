@@ -577,9 +577,9 @@ class QCircuitImage:
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
                                     ("\\gate{U_3(%s,%s,%s)}" %
-                                        (pi_check(op.op.params[0], latex=True),
-                                         pi_check(op.op.params[1], latex=True),
-                                         pi_check(op.op.params[2], latex=True)))
+                                     (pi_check(op.op.params[0], latex=True),
+                                      pi_check(op.op.params[1], latex=True),
+                                      pi_check(op.op.params[2], latex=True)))
                             else:
                                 start_pos = min([pos_1, pos_2])
                                 stop_pos = max([pos_1, pos_2])
