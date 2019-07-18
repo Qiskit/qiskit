@@ -15,7 +15,7 @@
 """
 Unitary gate.
 """
-
+from scipy.linalg import sqrtm
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
@@ -44,6 +44,10 @@ class Gate(Instruction):
         will be raised when this base class method is called.
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
+
+    def sqrt(self):
+        sqrt_matrix = sqrtm(self.to_matrix())
+        return Gate('√'+self.name, self.num_qubits, [sqrt_matrix], label=self.label)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""

@@ -17,6 +17,7 @@ Arbitrary unitary circuit instruction.
 """
 
 import numpy
+from scipy.linalg import sqrtm
 
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -77,6 +78,10 @@ class UnitaryGate(Gate):
     def to_matrix(self):
         """Return matrix for unitary"""
         return self.params[0]
+
+    def sqrt(self):
+        sqrt_matrix = sqrtm(self.to_matrix())
+        return UnitaryGate(sqrt_matrix)
 
     def inverse(self):
         """Return the adjoint of the Unitary."""
