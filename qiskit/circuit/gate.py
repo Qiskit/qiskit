@@ -47,9 +47,10 @@ class Gate(Instruction):
 
     def sqrt(self):
         """
+        Applies square root to the gate.
         Returns:
             UnitaryGate: A unitary gate which matrix representation
-            is the square root of self's.
+                         is the square root of self's.
         """
         from qiskit.extensions.unitary import UnitaryGate
         sqrt_matrix = sqrtm(self.to_matrix())
