@@ -18,34 +18,44 @@
 import numpy as np
 
 
-def pi_check(inpt, eps=1e-6):
+def pi_check(inpt, eps=1e-6, ndigits=8):
     """ Computes if a number is close to an integer
-    fraction or multiple of PI.
+    fraction or multiple of PI and returns the
+    corresponding string.
 
     Args:
         inpt (float): Number to check.
         eps (float): EPS to check against.
+        ndigits (int): Number of digits to keep
+                       if returning float.
 
     Returns:
-        tuple: integter value if close and kind where
-               kind is 'numer' if the value is in the
-               numerator or 'denom' if in the denominator.
-               Kind is None if input is not int frac/mult
-               of PI.
+        str: string representation of output.
     """
+    inpt = float(inpt)
     if abs(inpt) < eps:
-        return (0, None)
+        return str(0)
     val = inpt / np.pi
     kind = None
     if abs(val) >= 1:
         if abs(val % 1) < eps:
             val = int(val)
-            kind = 'numer'
+            if val > 0:
+                str_out = '%spi' % val
+            else:
+                str_out = '%spi' % val
+        else:
+            str_out = str(round(inpt, ndigits))
 
     else:
         val = np.pi / inpt
         if abs(abs(val) - abs(round(val))) < eps:
             val = int(round(val))
-            kind = 'denom'
+            if val > 0:
+                str_out = 'pi/%s' % val
+            else:
+                str_out = '-pi/%s' % abs(val)
+        else:
+            str_out = str(round(inpt, ndigits))
 
-    return val, kind
+    return str_out
