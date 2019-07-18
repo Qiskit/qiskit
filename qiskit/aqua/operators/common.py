@@ -349,3 +349,50 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
             qc += qc_slice
             qc.barrier(state_registers)
     return qc.to_instruction()
+
+
+def commutator(op_a, op_b, op_c=None, threshold=None):
+    """
+    Compute commutator of op_a and op_b or the symmetric double commutator of op_a, op_b and op_c.
+
+    See McWeeny chapter 13.6 Equation of motion methods (page 479)
+
+    If only op_a and op_b are provided: result = A*B - B*A;
+    If three operator are provided: result = 0.5 * (2*A*B*C + 2*C*B*A - B*A*C - C*A*B - A*C*B - B*C*A)
+
+    Args:
+        op_a (WeightedPauliOperator): operator a
+        op_b (WeightedPauliOperator): operator b
+        op_c (WeightedPauliOperator): operator c
+        threshold (float): the truncation threshold
+
+    Returns:
+        WeightedPauliOperator: the commutator
+
+    Note:
+        For the final chop, the original codes only contain the paulis with real coefficient.
+    """
+    op_ab = op_a * op_b
+    op_ba = op_b * op_a
+
+    if op_c is None:
+        res = op_ab - op_ba
+    else:
+        op_ac = op_a * op_c
+        op_ca = op_c * op_a
+
+        op_abc = op_ab * op_c
+        op_cba = op_c * op_ba
+        op_bac = op_ba * op_c
+        op_cab = op_c * op_ab
+        op_acb = op_ac * op_b
+        op_bca = op_b * op_ca
+
+        tmp = (op_bac + op_cab + op_acb + op_bca)
+        tmp = 0.5 * tmp
+        res = op_abc + op_cba - tmp
+
+    if threshold is not None:
+        res.chop(1e-12)
+    res.simplify()
+    return res
