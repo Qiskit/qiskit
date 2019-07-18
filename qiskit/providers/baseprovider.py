@@ -30,7 +30,7 @@ class BaseProvider(ABC):
 
         Args:
             name (str): name of the backend.
-            **kwargs (dict): dict used for filtering.
+            **kwargs: dict used for filtering.
 
         Returns:
             BaseBackend: a backend matching the filtering.
@@ -53,7 +53,7 @@ class BaseProvider(ABC):
 
         Args:
             name (str): name of the backend.
-            **kwargs (dict): dict used for filtering.
+            **kwargs: dict used for filtering.
 
         Returns:
             list[BaseBackend]: a list of Backends that match the filtering

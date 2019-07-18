@@ -26,7 +26,7 @@ The format is based on [Keep a Changelog].
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
-
+-   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations 
     on the longest path of the DAGCircuit.
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
@@ -96,6 +96,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+-   Fixes a bug where the CmdDef was getting built without buffers on channels.
 -   Fixed bug in `Pulse` for multiple parameters being added (\#2742)
 -   Fixed bug in `Pulse` for CmdDef arguments (\#2741)
 -   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
@@ -108,6 +109,8 @@ The format is based on [Keep a Changelog].
 -   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
     was measured into more than one memory cbit (\#2735)
 -   Correctly serialize complex numbers with a nonzero real part
+-   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
+    subset of qubits are measured (\#2790)
 
 
 ## [0.8.2] - 2019-06-14
