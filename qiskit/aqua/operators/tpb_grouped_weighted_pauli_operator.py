@@ -52,6 +52,16 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
     # TODO: naming
     @classmethod
     def sorted_grouping(cls, paulis, method="largest-degree", name=None):
+        """
+        Largest-Degree First Coloring for grouping paulis.
+        Args:
+            paulis ([[complex, Pauli]]): the to-be-grouped pauli list.
+            method (str): only `largest-degree` is available now.
+            name (str): the operator name after group.
+
+        Returns:
+            TPBGroupedWeightedPauliOperator
+        """
         p = PauliGraph(paulis, method)
         basis, paulis = _post_format_conversion(p.grouped_paulis)
         kwargs = {'method': method}

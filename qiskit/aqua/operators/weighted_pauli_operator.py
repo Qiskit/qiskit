@@ -669,49 +669,51 @@ class WeightedPauliOperator(BaseOperator):
 
         return circuits
 
-    # def evaluation_instruction(self, is_statevector, use_simulator_operator_mode=False):
-    #     """
-    #
-    #     Args:
-    #         is_statevector (bool): will it be run on statevector simulator or not
-    #         use_simulator_operator_mode: will it use qiskit aer simulator operator mode
-    #
-    #     Returns:
-    #         OrderedDict: Pauli-instruction pair.
-    #     """
-    #     # TODO:
-    #     pass
-    #     instructions = {}
-    #     if is_statevector:
-    #         if use_simulator_operator_mode:
-    #             instructions['aer_mode'] = Instruction('aer_mode', self.num_qubits)
-    #         else:
-    #             instructions['psi'] = Instruction('psi', self.num_qubits)
-    #             for _, pauli in self._paulis:
-    #                 inst = Instruction(pauli.to_label(), self.num_qubits)
-    #                 if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
-    #                     continue
-    #                 for qubit_idx in range(self.num_qubits):
-    #                     if not pauli.z[qubit_idx] and pauli.x[qubit_idx]:
-    #                         inst.u3(pi, 0.0, pi, qr[qubit_idx])  # x gate
-    #                     elif pauli.z[qubit_idx] and not pauli.x[qubit_idx]:
-    #                         inst.u1(pi, qubit_idx)  # z gate
-    #                     elif pauli.z[qubit_idx] and pauli.x[qubit_idx]:
-    #                         inst.u3(pi, pi / 2, pi / 2, qubit_idx)  # y gate
-    #                 instructions[pauli.to_label()] = inst
-    #     else:
-    #         for basis, indices in self._basis:
-    #             inst = Instruction(basis.to_label(), self.num_qubits)
-    #             for qubit_idx in range(self.num_qubits):
-    #                 if basis.x[qubit_idx]:
-    #                     if basis.z[qubit_idx]:  # pauli Y
-    #                         inst.u1(pi / 2, qubit_idx).inverse()  # s
-    #                         inst.u2(0.0, pi, qubit_idx)  # h
-    #                     else:  # pauli X
-    #                         inst.u2(0.0, pi, qubit_idx)  # h
-    #             instructions[basis.to_label()] = inst
-    #
-    #     return instructions
+    def evaluation_instruction(self, is_statevector, use_simulator_operator_mode=False):
+        """
+
+        Args:
+            is_statevector (bool): will it be run on statevector simulator or not
+            use_simulator_operator_mode: will it use qiskit aer simulator operator mode
+
+        Returns:
+            dict: Pauli-instruction pair.
+        """
+        instructions = {}
+        if is_statevector:
+            qc = QuantumCircuit(self.num_qubits, name='')
+            if use_simulator_operator_mode:
+                instructions['aer_mode'] = qc.to_instruction()
+            else:
+                instructions['psi'] = qc.to_instruction()
+                for _, pauli in self._paulis:
+                    tmp_qc = qc.copy()
+                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
+                        continue
+                    for qubit_idx in range(self.num_qubits):
+                        if not pauli.z[qubit_idx] and pauli.x[qubit_idx]:
+                            tmp_qc.u3(pi, 0.0, pi, qr[qubit_idx])  # x gate
+                        elif pauli.z[qubit_idx] and not pauli.x[qubit_idx]:
+                            tmp_qc.u1(pi, qubit_idx)  # z gate
+                        elif pauli.z[qubit_idx] and pauli.x[qubit_idx]:
+                            tmp_qc.u3(pi, pi / 2, pi / 2, qubit_idx)  # y gate
+                    instructions[pauli.to_label()] = tmp_qc.to_instruction()
+        else:
+            qc = QuantumCircuit(self.num_qubits, self.num_qubits, name='')
+            for basis, indices in self._basis:
+                tmp_qc = qc.copy()
+                for qubit_idx in range(self.num_qubits):
+                    if basis.x[qubit_idx]:
+                        if basis.z[qubit_idx]:  # pauli Y
+                            tmp_qc.u1(-pi / 2, qubit_idx)  # sdg
+                            tmp_qc.u2(0.0, pi, qubit_idx)  # h
+                        else:  # pauli X
+                            tmp_qc.u2(0.0, pi, qubit_idx)  # h
+                    tmp_qc.barrier(qubit_idx)
+                    tmp_qc.measure(qubit_idx, qubit_idx)
+                instructions[basis.to_label()] = qc.to_instruction()
+
+        return instructions
 
     def evaluate_with_result(self, operator_mode=None, circuits=None, backend=None, result=None,
                              use_simulator_operator_mode=False, is_statevector=None,
@@ -856,9 +858,18 @@ class WeightedPauliOperator(BaseOperator):
         if expansion_mode not in ['trotter', 'suzuki']:
             raise NotImplementedError('Expansion mode {} not supported.'.format(expansion_mode))
 
-        if quantum_registers is None:
+        if state_in is not None and quantum_registers is not None:
+            if not state_in.has_register(quantum_registers):
+                raise AquaError("quantum_registers must be in the provided state_in circuit.")
+        elif state_in is None and quantum_registers is None:
             quantum_registers = QuantumRegister(self.num_qubits)
-        # TODO: sanity check between register and qc
+            qc = QuantumCircuit(quantum_registers)
+        elif state_in is not None and quantum_registers is None:
+            # assuming the first register is for evolve
+            quantum_registers = state_in.qregs[0]
+            qc = QuantumCircuit() + state_in
+        else:
+            qc = QuantumCircuit(quantum_registers)
 
         pauli_list = self.reorder_paulis()
 
@@ -875,9 +886,51 @@ class WeightedPauliOperator(BaseOperator):
                     expansion_order
                 )
         instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
-        qc = QuantumCircuit(quantum_registers)
+
         qc.append(instruction, quantum_registers)
         return qc
+
+    def evolve_instruction(self, evo_time=0, num_time_slices=1,
+                           expansion_mode='trotter', expansion_order=1):
+        """
+        Carry out the eoh evolution for the operator under supplied specifications.
+
+        Args:
+            evo_time (int): The evolution time
+            num_time_slices (int): The number of time slices for the expansion
+            expansion_mode (str): The mode under which the expansion is to be done.
+                Currently support 'trotter', which follows the expansion as discussed in
+                http://science.sciencemag.org/content/273/5278/1073,
+                and 'suzuki', which corresponds to the discussion in
+                https://arxiv.org/pdf/quant-ph/0508139.pdf
+            expansion_order (int): The order for suzuki expansion
+
+        Returns:
+            The constructed QuantumCircuit.
+
+        """
+        # pylint: disable=no-member
+        if num_time_slices <= 0 or not isinstance(num_time_slices, int):
+            raise ValueError('Number of time slices should be a non-negative integer.')
+        if expansion_mode not in ['trotter', 'suzuki']:
+            raise NotImplementedError('Expansion mode {} not supported.'.format(expansion_mode))
+
+        pauli_list = self.reorder_paulis()
+
+        if len(pauli_list) == 1:
+            slice_pauli_list = pauli_list
+        else:
+            if expansion_mode == 'trotter':
+                slice_pauli_list = pauli_list
+            # suzuki expansion
+            else:
+                slice_pauli_list = suzuki_expansion_slice_pauli_list(
+                    pauli_list,
+                    1,
+                    expansion_order
+                )
+        instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
+        return instruction
 
     def find_Z2_symmetries(self):
         """
@@ -899,7 +952,6 @@ class WeightedPauliOperator(BaseOperator):
 
         if self.is_empty():
             logger.info("Operator is empty.")
-            # TODO: return None or empty list?
             return [], [], [], []
 
         for pauli in self._paulis:
