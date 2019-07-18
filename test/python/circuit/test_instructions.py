@@ -89,7 +89,7 @@ class TestInstructions(QiskitTestCase):
         preserves the circuit"""
         q = QuantumRegister(4)
         c = ClassicalRegister(4)
-        circ1 = QuantumCircuit(q, c, name='circ1')
+        circ1 = QuantumCircuit(q, c, name='circuit1')
         circ1.h(q[0])
         circ1.crz(0.1, q[0], q[1])
         circ1.iden(q[1])
@@ -207,7 +207,7 @@ class TestInstructions(QiskitTestCase):
         little_gate = circ0.to_instruction()
 
         qr1 = QuantumRegister(4)
-        circ1 = QuantumCircuit(qr1, name='circ1')
+        circ1 = QuantumCircuit(qr1, name='circuit1')
         circ1.cu1(-0.1, qr1[0], qr1[2])
         circ1.iden(qr1[1])
         circ1.append(little_gate, [qr1[2], qr1[3]])
