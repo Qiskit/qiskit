@@ -25,6 +25,10 @@ from qiskit.test import QiskitTestCase
 class TestNamingTranspiledCircuits(QiskitTestCase):
     """Testing the naming fuctionality for transpiled circuits."""
 
+    def setUp(self):
+        self.basis_gates = ['u1', 'u2', 'u3', 'cx']
+        self.backend = BasicAer.get_backend('qasm_simulator')
+
     def test_single_circuit_name_singleton(self):
         """Test output_name with a single circuit
         Given a single circuit and a output name in form of a string, this test
@@ -33,8 +37,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         qr = QuantumRegister(4)
         cirkie = QuantumCircuit(qr)
         cirkie.ccx(qr[0], qr[1], qr[2])
-        basis_gates_var = ['u1', 'u2', 'u3', 'cx']
-        trans_cirkie = transpile(cirkie, basis_gates=basis_gates_var,
+        trans_cirkie = transpile(cirkie, basis_gates=self.basis_gates,
                                  output_names='transpiled-cirkie')
         self.assertEqual(trans_cirkie.name, 'transpiled-cirkie')
 
@@ -49,13 +52,12 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         qr = QuantumRegister(4)
         cirkie = QuantumCircuit(qr)
         cirkie.ccx(qr[0], qr[1], qr[2])
-        basis_gates_var = ['u1', 'u2', 'u3', 'cx']
-        trans_cirkie = transpile(cirkie, basis_gates=basis_gates_var,
+        trans_cirkie = transpile(cirkie, basis_gates=self.basis_gates,
                                  output_names=['transpiled-cirkie'])
         self.assertEqual(trans_cirkie.name, 'transpiled-cirkie')
         # If List has multiple elements, transpile function must raise error
         with self.assertRaises(TranspilerError):
-            transpile(cirkie, basis_gates=basis_gates_var,
+            transpile(cirkie, basis_gates=self.basis_gates,
                       output_names=["cool-cirkie", "new-cirkie", "dope-cirkie", "awesome-cirkie"])
 
     def test_multiple_circuits_name_singleton(self):
@@ -74,10 +76,9 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         cr2 = ClassicalRegister(2)
         circ2 = QuantumCircuit(qr2, cr2)
         circ2.measure(qr2, cr2)
-        backend = BasicAer.get_backend('qasm_simulator')
         # Raise Error if single name given to multiple circuits
         with self.assertRaises(TranspilerError):
-            transpile([circ1, circ2], backend, output_names='circ')
+            transpile([circ1, circ2], self.backend, output_names='circ')
 
     def test_multiple_circuits_name_list(self):
         """Test output_name with a list of circuits
@@ -106,21 +107,20 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         circ3.x(qr3[1])
         # combining multiple circuits
         circuits = [circ1, circ2, circ3]
-        backend = BasicAer.get_backend('qasm_simulator')
         # equal lengths
         names = ['awesome-circ1', 'awesome-circ2', 'awesome-circ3']
-        trans_circuits = transpile(circuits, backend, output_names=names)
+        trans_circuits = transpile(circuits, self.backend, output_names=names)
         self.assertEqual(trans_circuits[0].name, 'awesome-circ1')
         self.assertEqual(trans_circuits[1].name, 'awesome-circ2')
         self.assertEqual(trans_circuits[2].name, 'awesome-circ3')
         # names list greater than circuits list
         names = ['awesome-circ1', 'awesome-circ2', 'awesome-circ3', 'awesome-circ4']
         with self.assertRaises(TranspilerError):
-            transpile(circuits, backend, output_names=names)
+            transpile(circuits, self.backend, output_names=names)
         # names list smaller than circuits list
         names = ['awesome-circ1', 'awesome-circ2']
         with self.assertRaises(TranspilerError):
-            transpile(circuits, backend, output_names=names)
+            transpile(circuits, self.backend, output_names=names)
 
 
 if __name__ == '__main__':
