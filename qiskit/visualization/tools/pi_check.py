@@ -18,7 +18,7 @@
 import numpy as np
 
 
-def pi_check(inpt, eps=1e-6, latex=False, ndigits=8):
+def pi_check(inpt, eps=1e-6, latex=False):
     """ Computes if a number is close to an integer
     fraction or multiple of PI and returns the
     corresponding string.
@@ -27,8 +27,6 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=8):
         inpt (float): Number to check.
         eps (float): EPS to check against.
         latex (bool): Return latex string.
-        ndigits (int): Number of digits to keep
-                       if returning float.
 
     Returns:
         str: string representation of output.
@@ -37,7 +35,6 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=8):
     if abs(inpt) < eps:
         return str(0)
     val = inpt / np.pi
-    kind = None
     if abs(val) >= 1:
         if abs(val % 1) < eps:
             val = int(val)
@@ -46,7 +43,7 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=8):
             else:
                 str_out = '%spi' % val
         else:
-            str_out = str(round(inpt, ndigits))
+            str_out = str(inpt)
 
     else:
         val = np.pi / inpt
@@ -63,6 +60,6 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=8):
                 else:
                     str_out = '-pi/%s' % abs(val)
         else:
-            str_out = str(round(inpt, ndigits))
+            str_out = str(inpt)
 
     return str_out
