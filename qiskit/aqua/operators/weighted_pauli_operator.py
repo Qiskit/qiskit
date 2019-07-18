@@ -371,7 +371,6 @@ class WeightedPauliOperator(BaseOperator):
                 new_weight = temp_real + 1j * temp_imag
                 return new_weight
 
-
         op = self.copy() if copy else self
 
         if op.is_empty():
@@ -448,7 +447,7 @@ class WeightedPauliOperator(BaseOperator):
         """
         from qiskit.aqua.operators.matrix_operator import MatrixOperator
         if self.is_empty():
-            raise MatrixOperator(None)
+            return MatrixOperator(None)
 
         hamiltonian = 0
         for weight, pauli in self._paulis:
@@ -900,7 +899,7 @@ class WeightedPauliOperator(BaseOperator):
 
         if self.is_empty():
             logger.info("Operator is empty.")
-            #TODO: return None or empty list?
+            # TODO: return None or empty list?
             return [], [], [], []
 
         for pauli in self._paulis:
@@ -982,7 +981,6 @@ class WeightedPauliOperator(BaseOperator):
             cliffords.append(clifford)
 
         return pauli_symmetries, sq_paulis, cliffords, sq_list
-
 
     @classmethod
     def load_from_file(cls, file_name, before_04=False):

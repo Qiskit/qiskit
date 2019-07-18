@@ -17,6 +17,7 @@ import copy
 from qiskit.aqua.operators.weighted_pauli_operator import WeightedPauliOperator
 from qiskit.aqua.operators.pauli_graph import PauliGraph
 
+
 def _post_format_conversion(grouped_paulis):
     # TODO: edit the codes without applying post formatting.
     basis = []
@@ -109,7 +110,6 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
 
         basis, paulis = _post_format_conversion(grouped_paulis)
         return cls(paulis, basis, cls.unsorted_grouping, name=name)
-
 
     def __str__(self):
         """Overload str()."""

@@ -153,9 +153,16 @@ class MatrixOperator(BaseOperator):
         return MatrixOperator(matrix=ret_matrix)
 
     @property
+    def dia_matrix(self):
+        dia_matrix = self._matrix.diagonal()
+        if not scisparse.csr_matrix(dia_matrix).nnz == self._matrix.nnz:
+            dia_matrix = None
+        return dia_matrix
+
+    @property
     def matrix(self):
         """Getter of matrix."""
-        return self._matrix
+        return self._matrix if self.dia_matrix is None else self.dia_matrix
 
     @property
     def dense_matrix(self):

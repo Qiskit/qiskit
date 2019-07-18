@@ -15,6 +15,7 @@
 from abc import ABC, abstractmethod
 import warnings
 
+
 class BaseOperator(ABC):
     """Operators relevant for quantum applications."""
 
@@ -126,6 +127,7 @@ class BaseOperator(ABC):
                       DeprecationWarning)
         return None
 
+    @staticmethod
     def qubit_tapering(operator, cliffords, sq_list, tapering_values):
         warnings.warn("qubit_tapering method is moved to the `TaperedWeightedPauliOperator` class.",
                       DeprecationWarning)
