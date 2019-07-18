@@ -77,9 +77,9 @@ def pi_check(inpt, eps=1e-6, latex=False, ndigits=5):
     for numer in range(1, 9):
         for denom in range(1, 9):
             if abs(abs_val - numer / denom * np.pi) < eps:
+                # Found match
                 if inpt < 0:
                     numer *= -1
-                # Found match
                 if latex:
                     str_out = r'%s\pi/%s' % (numer, denom)
                 else:
