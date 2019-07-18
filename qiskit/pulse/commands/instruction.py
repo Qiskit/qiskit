@@ -18,10 +18,11 @@ Instruction = Leaf node of schedule.
 from typing import Tuple, List, Iterable, Callable, Optional
 
 from qiskit.pulse.channels import Channel
+from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
-from qiskit.pulse.exceptions import PulseError
+
 
 # pylint: disable=missing-return-doc,missing-type-doc
 
@@ -74,7 +75,7 @@ class Instruction(ScheduleComponent):
         return self._command
 
     @property
-    def channels(self) -> Tuple[Channel]:
+    def channels(self) -> Tuple[Channel, ...]:
         """Returns channels that this schedule uses."""
         return self.timeslots.channels
 
@@ -104,16 +105,16 @@ class Instruction(ScheduleComponent):
         return self._buffer
 
     @property
-    def _children(self) -> Tuple[ScheduleComponent]:
+    def _children(self) -> Tuple[ScheduleComponent, ...]:
         """Instruction has no child nodes."""
         return ()
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
+    def instructions(self) -> Tuple[Tuple[int, 'Instruction'], ...]:
         """Iterable for getting instructions from Schedule tree."""
         return tuple(self._instructions())
 
-    def ch_duration(self, *channels: List[Channel]) -> int:
+    def ch_duration(self, *channels: Channel) -> int:
         """Return duration of the supplied channels in this Instruction.
 
         Args:
@@ -121,7 +122,7 @@ class Instruction(ScheduleComponent):
         """
         return self.timeslots.ch_duration(*channels)
 
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(self, *channels: Channel) -> int:
         """Return minimum start time for supplied channels.
 
         Args:
@@ -129,7 +130,7 @@ class Instruction(ScheduleComponent):
         """
         return self.timeslots.ch_start_time(*channels)
 
-    def ch_stop_time(self, *channels: List[Channel]) -> int:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Return maximum start time for supplied channels.
 
         Args:
@@ -153,7 +154,7 @@ class Instruction(ScheduleComponent):
         """Return itself as already single instruction."""
         return self
 
-    def union(self, *schedules: List[ScheduleComponent], name: Optional[str] = None) -> 'Schedule':
+    def union(self, *schedules: ScheduleComponent, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:

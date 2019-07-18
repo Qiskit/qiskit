@@ -16,11 +16,12 @@
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, Union, Optional
+from typing import Tuple, Union, Optional
 
 from qiskit.pulse.channels import Channel
 
 from .timeslots import TimeslotCollection
+
 
 # pylint: disable=missing-type-doc
 
@@ -36,7 +37,7 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def channels(self) -> List[Channel]:
+    def channels(self) -> Tuple[Channel, ...]:
         """Return channels used by schedule."""
         pass
 
@@ -64,17 +65,17 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def ch_duration(self, *channels: List[Channel]) -> int:
+    def ch_duration(self, *channels: Channel) -> int:
         """Duration of the `channels` in schedule component."""
         pass
 
     @abstractmethod
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(self, *channels: Channel) -> int:
         """Starting time of the `channels` in schedule component. """
         pass
 
     @abstractmethod
-    def ch_stop_time(self, *channels: List[Channel]) -> int:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Stopping of the `channels` in schedule component."""
         pass
 
@@ -86,13 +87,13 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def _children(self) -> Tuple[Union[int, 'ScheduleComponent']]:
+    def _children(self) -> Tuple[Union[int, 'ScheduleComponent'], ...]:
         """Child nodes of this schedule component. """
         pass
 
     @property
     @abstractmethod
-    def instructions(self) -> Tuple[Tuple[int, 'Instructions']]:
+    def instructions(self) -> Tuple[Tuple[int, 'Instructions'], ...]:
         """Return iterable for all `Instruction`s in `Schedule` tree."""
         pass
 
@@ -102,7 +103,7 @@ class ScheduleComponent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def union(self, *schedules: List['ScheduleComponent'],
+    def union(self, *schedules: 'ScheduleComponent',
               name: Optional[str] = None) -> 'ScheduleComponent':
         """Return a new schedule which is the union of the parent `Schedule` and `schedule`.
 
