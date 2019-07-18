@@ -461,7 +461,7 @@ class TextDrawing():
                'white-space: pre;' \
                'background: #fff0;' \
                'line-height: 1.1;' \
-               'font-family: SFMono-Regular,Consolas,&quot;Liberation Mono&quot;,Menlo,Courier,monospace">' \
+               'font-family: &quot;Courier New&quot;,Courier,monospace">' \
                '%s</pre>' % self.single_string()
 
     def _get_qubit_labels(self):
