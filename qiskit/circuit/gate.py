@@ -46,6 +46,11 @@ class Gate(Instruction):
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
     def sqrt(self):
+        """
+        Returns:
+            UnitaryGate: A unitary gate which matrix representation
+            is the square root of self's.
+        """
         from qiskit.extensions.unitary import UnitaryGate
         sqrt_matrix = sqrtm(self.to_matrix())
         return UnitaryGate(sqrt_matrix)

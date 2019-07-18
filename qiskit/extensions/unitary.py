@@ -17,7 +17,6 @@ Arbitrary unitary circuit instruction.
 """
 
 import numpy
-from scipy.linalg import sqrtm
 
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
