@@ -41,6 +41,10 @@ class QuantumRegister(Register):
     prefix = 'q'
     bit_type = Qubit
 
+    def qiskit_code(self):
+        """Return qiskit string for this register."""
+        return "%s = QuantumRegister(%d, '%s')" % (self.name, self.size, self.name)
+
     def qasm(self):
         """Return OPENQASM string for this register."""
         return "qreg %s[%d];" % (self.name, self.size)

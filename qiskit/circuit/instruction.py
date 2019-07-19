@@ -269,6 +269,19 @@ class Instruction:
             cpy.name = name
         return cpy
 
+    def qiskit_code(self):
+        """Return a default Qiskit string for the instruction.
+
+        The returned stirng doesn't include the registers.
+        """
+        name_param = self.name + "("
+        if self.params:
+            name_param += "%s" % (", ".join(
+                [str(i) for i in self.params]))
+            name_param += ", "
+
+        return name_param
+
     def _qasmif(self, string):
         """Print an if statement if needed."""
         if self.control is None:

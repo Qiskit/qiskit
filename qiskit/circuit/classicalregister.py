@@ -42,6 +42,10 @@ class ClassicalRegister(Register):
     prefix = 'c'
     bit_type = Clbit
 
+    def qiskit_code(self):
+        """Return qiskit string for this register."""
+        return "%s = ClassicalRegister(%d, '%s')" % (self.name, self.size, self.name)
+
     def qasm(self):
         """Return OPENQASM string for this register."""
         return "creg %s[%d];" % (self.name, self.size)

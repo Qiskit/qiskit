@@ -140,3 +140,6 @@ src/qasm-simulator-cpp/test/qubit_vector_tests
 
 # Cython pass
 qiskit/transpiler/passes/**/cython/**/*.cpp
+pip-wheel-metadata/qiskit_terra.dist-info/top_level.txt
+pip-wheel-metadata/qiskit_terra.dist-info/METADATA
+pip-wheel-metadata/qiskit_terra.dist-info/LICENSE.txt

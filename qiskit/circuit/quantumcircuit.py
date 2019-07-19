@@ -491,6 +491,37 @@ class QuantumCircuit:
                     if element1 != element2:
                         raise QiskitError("circuits are not compatible")
 
+    def qiskit_code(self):
+        """Return Qiskit string."""
+        string_temp = ""
+        start = True
+        def_string = "qc = QuantumCircuit("
+        for register in self.qregs + self.cregs:
+            string_temp += register.qiskit_code() + "\n"
+            if start:
+                def_string += register.name
+                start = False
+            else:
+                def_string += ", " + register.name
+        string_temp += def_string + ")\n"
+        for instruction, qargs, cargs in self.data:
+            if instruction.name == 'measure':
+                qubit = qargs[0]
+                clbit = cargs[0]
+                string_temp += "qc.%s%s[%d], %s[%d])" % (instruction.qiskit_code(),
+                                                           qubit.register.name, qubit.index,
+                                                           clbit.register.name, clbit.index)
+
+            else:
+                string_temp += "qc.%s%s)" % (instruction.qiskit_code(),
+                                             ", ".join(["%s[%d]" % (j.register.name, j.index)
+                                                       for j in qargs + cargs]))
+            if instruction.control is not None:
+                string_temp += ".c_if(%s, %d)\n" % (instruction.control[0].name, instruction.control[1])
+            else:
+                string_temp += "\n"
+        return string_temp
+
     def qasm(self):
         """Return OpenQASM string."""
         string_temp = self.header + "\n"
