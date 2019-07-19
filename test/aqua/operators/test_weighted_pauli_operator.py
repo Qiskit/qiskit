@@ -23,7 +23,7 @@ from qiskit.quantum_info import Pauli, state_fidelity
 
 from test.aqua.common import QiskitAquaTestCase
 from qiskit.aqua import aqua_globals, QuantumInstance
-from qiskit.aqua.operators import WeightedPauliOperator
+from qiskit.aqua.operators import WeightedPauliOperator, op_converter
 from qiskit.aqua.components.variational_forms import RYRZ
 from qiskit.aqua.components.initial_states import Custom
 
@@ -364,7 +364,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         wave_function = self.var_form.construct_circuit(np.array(np.random.randn(self.var_form.num_parameters)))
         wave_fn_statevector = self.quantum_instance_statevector.execute(wave_function).get_statevector(wave_function)
         # use matrix operator as reference:
-        op_matrix = self.qubit_op.to_matrix_operator()
+        op_matrix = op_converter.to_matrix_operator(self.qubit_op)
         reference = op_matrix.evaluate_with_statevector(wave_fn_statevector)
 
         circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=True)
