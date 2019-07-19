@@ -15,7 +15,9 @@
 """Check if number close to values of PI
 """
 
-import numpy as np
+import numpy as
+
+from qiskit.exceptions import QiskitError
 
 N, D = np.meshgrid(np.arange(1, 9), np.arange(1, 9))
 FRAC_MESH = N / D * np.pi
@@ -49,7 +51,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     elif output == 'mpl':
         pi = '$\\pi$'
     else:
-        pass  # TODO
+        raise QiskitError('pi_check parameter output should be text, latex, or mpl')
 
     if abs(val) >= 1:
         if abs(val % 1) < eps:
