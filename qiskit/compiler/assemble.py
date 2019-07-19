@@ -132,14 +132,14 @@ def assemble(experiments,
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
     experiments = experiments if isinstance(experiments, list) else [experiments]
-    qobj_id, qobj_header, run_configs = _parse_common_run_args(backend, qobj_id, qobj_header,
-                                                               shots, memory, max_credits,
-                                                               seed_simulator, memory_slots,
-                                                               memory_slot_size, rep_time,
-                                                               **run_config)
+    qobj_id, qobj_header, run_config_common = _parse_common_run_args(backend, qobj_id, qobj_header,
+                                                                     shots, memory, max_credits,
+                                                                     seed_simulator, memory_slots,
+                                                                     memory_slot_size, rep_time,
+                                                                     **run_config)
 
-    run_config_schema = run_configs.schema
-    run_config_data = run_config_schema.dump(run_configs).data
+    run_config_schema = run_config_common.schema
+    run_config_data = run_config_schema.dump(run_config_common).data
 
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
         run_config_circuit = _parse_circuit_args(parameter_binds, **run_config)
