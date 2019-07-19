@@ -19,15 +19,22 @@ The format is based on [Keep a Changelog].
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
     `cx`.
+-   The gate `u0` is being deprecated in favor of using multiple `id` gates
+    to insert delays (\#2664)
 -   The decorator `requires_qe_access` is being deprecated in favor of
     `online_test`.
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
-
+-   Added tests for `gate_map` and reference images for testing `plot_gate_map`
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations 
+    on the longest path of the DAGCircuit.
+-   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
     to the `QuantumCircuit.draw` method. The option allows to control
     how much room the text circuit drawing takes.
+-   The option `idle_wires` was added to the drawers to control
+    if wires without any operation should be included in the drawing.
 -   Introduced a visualization for the Pass Manager. (\#2445)
 -   The attribute `PassManager.log_passes` was added to log and time the
     passes when they are executed. The results is stored in the
@@ -40,9 +47,13 @@ The format is based on [Keep a Changelog].
 -   Decomposition of multiplexed single-qubit unitaries (Option: decompose
     up to a diagonal gate) (\#2600)
 -   ZYZ decomposition for single-qubit unitaries (\#2600)
+-   Gray-Synth and Patel–Markov–Hayes algorithms for synthesis of
+    CNOT-Phase and CNOT-only (linear) circuits (\#2457)
+-   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
-
+-   Set default repetition time to be the first available.
+-   Pulse commands may now start with capitalized letters.
 -   The `pylatexenc` and `pillow` requirements are now optional. These
     are only used by the `latex` and `latex_source` circuit
     visualization backends. To continue using them ensure these are
@@ -52,6 +63,14 @@ The format is based on [Keep a Changelog].
     would only be raised if the same register was added twice.
 -   Qubits and classical bits are not represented as a tuples anymore,
     but as instances of `Qubit` and `Clbit` respectively.
+-   The ApplyLayout pass is incorporated in all preset pass managers to
+    delineate a virtual circuit from a physical circuit (\#2672)
+-   Mapping passes (CXDirection, Swap passes, CheckMap, CheckCnotDirection)
+    now operate on a register-less circuit corresponding to
+    an already embedded physical circuit. (\#2672)
+-   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
+-   Uses level 1 by default as transpiler optimization level (\#2672)
+-   Change Snapshot signature to match simulator.snapshot (\#2592)
 
 ### Removed
 
@@ -77,8 +96,62 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+-   Fixes a bug where the CmdDef was getting built without buffers on channels.
+-   Fixed bug in `Pulse` for multiple parameters being added (\#2742)
+-   Fixed bug in `Pulse` for CmdDef arguments (\#2741)
+-   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
+    containing gates without an explicit matrix definition (\#2723)
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
+-   Fixes a bug that removed `id` gates from circuit. id gates are
+    like a `wait` command and will never be removed (\#2663)
+-   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
+-   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
+    was measured into more than one memory cbit (\#2735)
+-   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
+    subset of qubits are measured (\#2790)
+
+
+## [0.8.2] - 2019-06-14
+
+### Fixed
+
+-   Fixed an issue with latex circuit drawer backend that could lead to an
+    empty image output (\#2531)
+-   Fixes for issues with the backend monitors for recent changes to IBMQ
+    backends (\#2637)
+-   Fixed an issue where a `TimeSlotCollection` object would be mutated by
+    the `is_mergable_with()` method (\#2639)
+
+
+## [0.8.1] - 2019-05-29
+
+### Fixed
+
+-   Corrected the deprecation warning message for
+    `qiskit.converters.qobj_to_circuits` (\#2350)
+-   Fixed `execute()` and `transpile()` functions to enable setting
+    optimization level 0. (\#2370)
+-   Set the swapper with the seed transpiler for optimization level 2 and 3
+    (\#2361)
+-   Fix default basis gate set for other transpiler passes (\#2357)
+-   Fix the docstring for transpile to include optimization_level 3 (\#2367)
+-   Fix spacing in the text circuit drawer (\#2382)
+-   Fix for too strict math sanitization pulse instructions (\#2397)
+-   Arguments to `assemble_schedule` were not actually optional, ensure
+    they're required (\#2398)
+-   Fix for framechange instructions being converted to a string instead of a
+    float (\#2437)
+-   Fix for rep_times as a float, now it's an integer (\#2438)
+-   Fix type error for integer framechange instructions (\#2458)
+-   Fix for missing cython source files in sdist (\#2436)
+-   Fix for different pulse schedules created with the same name (\#2431)
+-   Only create a single AquireInstruction for all qubits (\#2485)
+-   Stop modifying layout in stochastic swap pass (\#2507)
+-   Only call CXDirection pass on optimization_level=3 if coupling map is
+    provided (\#2526)
+-   Fix `optimization_level=0` without a coupling map (\#2509)
+
 
 ## [0.8.0] - 2019-05-02
 
@@ -1137,7 +1210,9 @@ The format is based on [Keep a Changelog].
 -   Correct operator precedence when parsing expressions (\#190).
 -   Fix \"math domain error\" in mapping (\#111, \#151).
 
-[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...HEAD
+[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...HEAD
+[0.8.2]: https://github.com/Qiskit/qiskit-terra/compare/0.8.1...0.8.2
+[0.8.1]: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0
 [0.7.2]: https://github.com/Qiskit/qiskit-terra/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/Qiskit/qiskit-terra/compare/0.7.0...0.7.1

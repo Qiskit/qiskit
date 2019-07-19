@@ -19,6 +19,7 @@ from IPython import get_ipython          # pylint: disable=import-error
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
+from .job_watcher import JobWatcher, JobWatcherMagic
 
 if HAS_MATPLOTLIB:
     from .backend_overview import BackendOverview
@@ -34,10 +35,10 @@ except ImportError:
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
-    _IP.register_magics(StatusMagic)
     if HAS_MATPLOTLIB:
         _IP.register_magics(BackendOverview)
         _IP.register_magics(BackendMonitor)
+        _IP.register_magics(JobWatcherMagic)
         if HAS_IBMQ:
             HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
             # Make _backend_monitor the html repr for IBM Q backends

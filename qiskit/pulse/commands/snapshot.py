@@ -15,7 +15,6 @@
 """
 Snapshot.
 """
-
 from qiskit.pulse.channels import SnapshotChannel
 from .instruction import Instruction
 from .command import Command
@@ -24,38 +23,55 @@ from .command import Command
 class Snapshot(Command, Instruction):
     """Snapshot."""
 
-    def __init__(self, name: str, snap_type: str):
+    prefix = 'snap'
+
+    def __init__(self, label: str, snapshot_type: str = 'statevector', name: str = None):
         """Create new snapshot command.
 
         Args:
-            name (str): Snapshot name which is used to identify the snapshot in the output.
-            snap_type (str): Type of snapshot, e.g., “state” (take a snapshot of the quantum state).
+            label: Snapshot label which is used to identify the snapshot in the output
+            snapshot_type: Type of snapshot, e.g., “state” (take a snapshot of the quantum state)
                 The types of snapshots offered are defined in a separate specification
-                document for simulators.
+                document for simulators
+            name: Snapshot name which defaults to label, but can be different than label
+                This parameter is only for display purposes and is not taken into account during
+                comparison
         """
-        self._type = snap_type
+        self._type = snapshot_type
         self._channel = SnapshotChannel()
-        Command.__init__(self, duration=0, name=name)
-        Instruction.__init__(self, self, self._channel, name=name)
+        Command.__init__(self, duration=0)
+        self._label = Snapshot.create_name(label)
+
+        if name is not None:
+            self._name = Snapshot.create_name(name)
+        else:
+            self._name = self._label
+
+        Instruction.__init__(self, self, self._channel, name=self.name)
         self._buffer = 0
+
+    @property
+    def label(self) -> str:
+        """Label of snapshot."""
+        return self._label
 
     @property
     def type(self) -> str:
         """Type of snapshot."""
         return self._type
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Snapshot'):
         """Two Snapshots are the same if they are of the same type
-        and have the same name and type.
+        and have the same label and type.
 
         Args:
-            other (Snapshot): other Snapshot,
+            other: other Snapshot
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if (type(self) is type(other) and
-                self.name == other.name and
+                self.label == other.label and
                 self.type == other.type):
             return True
         return False
@@ -66,5 +82,5 @@ class Snapshot(Command, Instruction):
     # pylint: enable=arguments-differ
 
     def __repr__(self):
-        return '%s(%s, %s) -> %s' % (self.__class__.__name__, self.name,
-                                     self.type, self.channels)
+        return '%s(%s, %s, %s) -> %s' % (self.__class__.__name__, self.label,
+                                         self.type, self.name, self.channels)

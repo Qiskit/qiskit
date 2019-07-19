@@ -156,6 +156,30 @@ class TestDiscretePulses(QiskitTestCase):
         self.assertIsInstance(gaussian_deriv_pulse, SamplePulse)
         np.testing.assert_array_almost_equal(gaussian_deriv_pulse.samples, gaussian_deriv_ref)
 
+    def test_sech(self):
+        """Test sech pulse."""
+        amp = 0.5
+        sigma = 2
+        duration = 10
+        center = duration/2
+        times = np.arange(0, duration)
+        sech_ref = continuous.sech(times, amp, center, sigma)
+        sech_pulse = pulse_lib.sech(duration, amp, sigma)
+        self.assertIsInstance(sech_pulse, SamplePulse)
+        np.testing.assert_array_almost_equal(sech_pulse.samples, sech_ref)
+
+    def test_sech_deriv(self):
+        """Test discrete sampled sech derivative pulse."""
+        amp = 0.5
+        sigma = 2
+        duration = 10
+        center = duration/2
+        times = np.arange(0, duration)
+        sech_deriv_ref = continuous.sech_deriv(times, amp, center, sigma)
+        sech_deriv_pulse = pulse_lib.sech_deriv(duration, amp, sigma)
+        self.assertIsInstance(sech_deriv_pulse, SamplePulse)
+        np.testing.assert_array_almost_equal(sech_deriv_pulse.samples, sech_deriv_ref)
+
     def test_gaussian_square(self):
         """Test discrete sampled gaussian square pulse."""
         amp = 0.5

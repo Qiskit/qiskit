@@ -17,7 +17,7 @@
 
 import os
 
-from hypothesis import assume
+from hypothesis import assume, settings, HealthCheck
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
@@ -52,6 +52,10 @@ mock_backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(),
                  FakeTokyo(), FakePoughkeepsie()]
 
 
+@settings(report_multiple_bugs=False,
+          max_examples=25,
+          deadline=None,
+          suppress_health_check=[HealthCheck.filter_too_much])
 class QCircuitMachine(RuleBasedStateMachine):
     """Build a Hypothesis rule based state machine for constructing, transpiling
     and simulating a series of random QuantumCircuits.
@@ -194,14 +198,15 @@ class QCircuitMachine(RuleBasedStateMachine):
         backend=st.one_of(
             st.none(),
             st.sampled_from(mock_backends)),
-        opt_level=st.one_of(
-            st.none(),
-            st.integers(min_value=0, max_value=3)))
+        opt_level=st.integers(min_value=0, max_value=3))
     def equivalent_transpile(self, backend, opt_level):
         """Simulate, transpile and simulate the present circuit. Verify that the
         counts are not significantly different before and after transpilation.
 
         """
+
+        print('Evaluating circuit at level {} on {}:\n{}'.format(
+            opt_level, backend, self.qc.qasm()))
 
         assume(backend is None or backend.configuration().n_qubits >= len(self.qc.qubits))
 
