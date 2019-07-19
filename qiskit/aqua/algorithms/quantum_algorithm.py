@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2019.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 """
 This module implements the abstract base class for algorithm modules.
@@ -25,11 +22,8 @@ Doing so requires that the required algorithm interface is implemented.
 
 from abc import abstractmethod
 import logging
-
-import numpy as np
 from qiskit.providers import BaseBackend
-
-from qiskit.aqua import Pluggable, QuantumInstance, AquaError
+from qiskit.aqua import aqua_globals, Pluggable, QuantumInstance, AquaError
 
 logger = logging.getLogger(__name__)
 
@@ -44,29 +38,12 @@ class QuantumAlgorithm(Pluggable):
     @abstractmethod
     def __init__(self):
         super().__init__()
-        self._random_seed = None
-        self._random = None
         self._quantum_instance = None
-
-    @property
-    def random_seed(self):
-        """Return random seed."""
-        return self._random_seed
-
-    @random_seed.setter
-    def random_seed(self, seed):
-        """Set random seed."""
-        self._random_seed = seed
 
     @property
     def random(self):
         """Return a numpy random."""
-        if self._random is None:
-            if self._random_seed is None:
-                self._random = np.random
-            else:
-                self._random = np.random.RandomState(self._random_seed)
-        return self._random
+        return aqua_globals.random
 
     def run(self, quantum_instance=None, **kwargs):
         """Execute the algorithm with selected backend.

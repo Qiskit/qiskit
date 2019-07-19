@@ -1,19 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2019.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 """Optimizer interface
 """
 
@@ -72,7 +69,7 @@ class Optimizer(Pluggable):
         self._bounds_support_level = self._configuration['support_level']['bounds']
         self._initial_point_support_level = self._configuration['support_level']['initial_point']
         self._options = {}
-        self._batch_mode = False
+        self._max_evals_grouped = 1
 
     @classmethod
     def init_params(cls, params):
@@ -109,7 +106,7 @@ class Optimizer(Pluggable):
         logger.debug('options: {}'.format(self._options))
 
     @staticmethod
-    def gradient_num_diff(x_center, f, epsilon):
+    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
         """
         We compute the gradient with the numeric differentiation in the parallel way, around the point x_center.
         Args:
@@ -121,7 +118,7 @@ class Optimizer(Pluggable):
 
         """
         forig = f(*((x_center,)))
-        grad = np.zeros((len(x_center),), float)
+        grad = []
         ei = np.zeros((len(x_center),), float)
         todos = []
         for k in range(len(x_center)):
@@ -129,11 +126,30 @@ class Optimizer(Pluggable):
             d = epsilon * ei
             todos.append(x_center + d)
             ei[k] = 0.0
-        parallel_parameters = np.concatenate(todos)
-        todos_results = f(parallel_parameters)
-        for k in range(len(x_center)):
-            grad[k] = (todos_results[k] - forig) / epsilon
-        return grad
+
+        counter = 0
+        chunk = []
+        chunks = []
+        length = len(todos)
+        for i in range(length):  # split all points to chunks, where each chunk has batch_size points
+            x = todos[i]
+            chunk.append(x)
+            counter += 1
+            if counter == max_evals_grouped or i == length-1:  # the last one does not have to reach batch_size
+                chunks.append(chunk)
+                chunk = []
+                counter = 0
+
+        for chunk in chunks:  # eval the chunks in order
+            parallel_parameters = np.concatenate(chunk)
+            todos_results = f(parallel_parameters)  # eval the points in a chunk (order preserved)
+            if isinstance(todos_results, float):
+                grad.append((todos_results - forig) / epsilon)
+            else:
+                for todor in todos_results:
+                    grad.append((todor - forig) / epsilon)
+
+        return np.array(grad)
 
     @staticmethod
     def wrap_function(function, args):
@@ -259,5 +275,5 @@ class Optimizer(Pluggable):
         for name in sorted(self._options):
             logger.debug('{:s} = {:s}'.format(name, str(self._options[name])))
 
-    def set_batch_mode(self, mode):
-        self._batch_mode = mode
+    def set_max_evals_grouped(self, limit):
+        self._max_evals_grouped = limit
