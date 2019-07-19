@@ -358,7 +358,7 @@ class Instruction:
             sub_instruction = (self.inverse(), qargs[:], cargs[:])
         else:
             from qiskit.extensions.standard.u3 import U3Gate
-            instruction.definition=[(U3Gate(0, 0, 0), qargs[:], cargs[:])]
+            instruction.definition = [(U3Gate(0, 0, 0), qargs[:], cargs[:])]
             return instruction
 
         instruction.definition = [sub_instruction] * abs(exponent)
