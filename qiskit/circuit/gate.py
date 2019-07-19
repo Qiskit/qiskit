@@ -15,7 +15,12 @@
 """
 Unitary gate.
 """
-from scipy.linalg import sqrtm
+from typing import Union
+
+import numpy as np
+from scipy.linalg import schur
+from sympy import DiagonalMatrix
+
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
@@ -45,16 +50,19 @@ class Gate(Instruction):
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
-    def sqrt(self):
+    def pow(self, power: Union[int, float]):
         """
-        Applies square root to the gate.
-        Returns:
-            UnitaryGate: A unitary gate which matrix representation
-                         is the square root of self's.
+        Computes integer or float powers of the given gate.
         """
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
-        sqrt_matrix = sqrtm(self.to_matrix())
-        return UnitaryGate(sqrt_matrix)
+        D, V = schur(self.to_matrix(), output='complex')  # Should be diagonalized because it's a unitary.
+        # Raise the diagonal entries to the specified power
+        Dpow = list()
+        for el in D.diagonal():  # assert off-diagonal are 0
+            Dpow.append(pow(el, power))
+        # Then reconstruct the resulting gate.
+        Upow = V @ np.diag(Dpow) @ V.conj().T
+        return UnitaryGate(Upow)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
