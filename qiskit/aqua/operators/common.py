@@ -215,7 +215,7 @@ def check_commutativity(op_1, op_2, anti=False):
         bool: whether or not two operators are commuted or anti-commuted.
     """
     com = op_1 * op_2 - op_2 * op_1 if not anti else op_1 * op_2 + op_2 * op_1
-    com.remove_zero_weights()
+    com.simplify()
     return True if com.is_empty() else False
 
 

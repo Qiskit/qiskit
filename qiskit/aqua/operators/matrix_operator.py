@@ -40,19 +40,18 @@ class MatrixOperator(BaseOperator):
         (It might be a performance issue.)
     """
 
-    def __init__(self, matrix, atol=1e-12, name=None):
+    def __init__(self, matrix, basis=None, z2_symmetries=None, atol=1e-12, name=None):
         """
         Args:
             matrix (numpy.ndarray or scipy.sparse.csr_matrix): a 2-D sparse matrix represents operator
                                                                (using CSR format internally)
         """
-        super().__init__()
+        super().__init__(basis, z2_symmetries, name)
         if matrix is not None:
             matrix = matrix if scisparse.issparse(matrix) else scisparse.csr_matrix(matrix)
             matrix = matrix if scisparse.isspmatrix_csr(matrix) else matrix.to_csr(copy=True)
         self._matrix = matrix
         self._atol = atol
-        self._name = name
 
     @property
     def atol(self):
@@ -265,49 +264,6 @@ class MatrixOperator(BaseOperator):
         avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
         return avg, 0.0
 
-    def to_weighted_pauli_operator(self):
-        """
-        Convert matrix to paulis
-
-        Note:
-            Conversion from Paulis to matrix: H = sum_i alpha_i * Pauli_i
-            Conversion from matrix to Paulis: alpha_i = coeff * Trace(H.Pauli_i) (dot product of trace)
-                where coeff = 2^(- # of qubits), # of qubit = log2(dim of matrix)
-
-        Returns:
-            WeightedPauliOperator:
-        """
-        from qiskit.aqua.operators.weighted_pauli_operator import WeightedPauliOperator
-        if self.is_empty():
-            return WeightedPauliOperator(paulis=[])
-
-        num_qubits = self.num_qubits
-        coeff = 2 ** (-num_qubits)
-
-        paulis = []
-        # generate all possible paulis basis
-        for basis in itertools.product('IXYZ', repeat=num_qubits):
-            pauli = Pauli.from_label(''.join(basis))
-            trace_value = np.sum(self._matrix.dot(pauli.to_spmatrix()).diagonal())
-            weight = trace_value * coeff
-            if weight != 0.0:
-                paulis.append([weight, pauli])
-
-        return WeightedPauliOperator(paulis)
-
-    def to_grouped_weighted_pauli_operator(self, grouping_func=None, **kwargs):
-        """
-        Args:
-            grouping_func (Callable): a grouping callback to group paulis, and this callback will be fed with the paulis
-                                      and kwargs arguments
-            kwargs: other arguments needed for grouping func.
-
-        Returns:
-            object: the type depending on the `grouping_func`.
-        """
-        weighted_pauli_op = self.to_weighted_pauli_operator()
-        return grouping_func(weighted_pauli_op.paulis, **kwargs)
-
     @staticmethod
     def _suzuki_expansion_slice_matrix(pauli_list, lam, expansion_order):
         """
@@ -366,6 +322,7 @@ class MatrixOperator(BaseOperator):
         Returns:
             Return the matrix vector multiplication result.
         """
+        from .op_converter import to_weighted_pauli_operator
         # pylint: disable=no-member
         if num_time_slices < 0 or not isinstance(num_time_slices, int):
             raise ValueError('Number of time slices should be a non-negative integer.')
@@ -375,7 +332,8 @@ class MatrixOperator(BaseOperator):
         if num_time_slices == 0:
             return scila.expm(-1.j * evo_time * self._matrix.tocsc()) @ state_in
         else:
-            pauli_op = self.to_weighted_pauli_operator()
+
+            pauli_op = to_weighted_pauli_operator(self)
             pauli_list = pauli_op.reorder_paulis()
 
             if len(pauli_list) == 1:

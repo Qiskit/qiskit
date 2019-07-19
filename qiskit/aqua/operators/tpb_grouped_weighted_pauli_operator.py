@@ -36,8 +36,8 @@ def _post_format_conversion(grouped_paulis):
 
 class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
 
-    def __init__(self, paulis, basis, grouping_func=None, atol=1e-12, name=None, kwargs=None):
-        super().__init__(paulis, basis, atol, name=name)
+    def __init__(self, paulis, basis, z2_symmetries=None, atol=1e-12, name=None, grouping_func=None, kwargs=None):
+        super().__init__(paulis, basis, z2_symmetries, atol, name)
         self._grouping_func = grouping_func
         self._kwargs = kwargs or {}
 
@@ -49,30 +49,40 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
     def grouping_func(self):
         return self._grouping_func
 
-    # TODO: naming
+    @property
+    def kwargs(self):
+        return self._kwargs
+
     @classmethod
-    def sorted_grouping(cls, paulis, method="largest-degree", name=None):
+    def sorted_grouping(cls, weighted_pauli_operator, method="largest-degree", name=None):
         """
         Largest-Degree First Coloring for grouping paulis.
         Args:
-            paulis ([[complex, Pauli]]): the to-be-grouped pauli list.
+            weighted_pauli_operator (WeightedPauliOperator): the to-be-grouped weighted pauli operator.
             method (str): only `largest-degree` is available now.
             name (str): the operator name after group.
 
         Returns:
             TPBGroupedWeightedPauliOperator
         """
-        p = PauliGraph(paulis, method)
+        p = PauliGraph(weighted_pauli_operator.paulis, method)
         basis, paulis = _post_format_conversion(p.grouped_paulis)
         kwargs = {'method': method}
-        return cls(paulis, basis, cls.sorted_grouping, name, kwargs)
+        return cls(paulis, basis, weighted_pauli_operator.z2_symmetries, weighted_pauli_operator.atol,
+                   name, cls.sorted_grouping, kwargs)
 
     @classmethod
-    def unsorted_grouping(cls, paulis, name=None):
+    def unsorted_grouping(cls, weighted_pauli_operator, name=None):
+        """
+        Greedy and unsorted grouping paulis.
+        Args:
+            weighted_pauli_operator (WeightedPauliOperator): the to-be-grouped weighted pauli operator.
+            name (str): the operator name after group.
 
-        if len(paulis) == 0:
-            return paulis
-
+        Returns:
+            TPBGroupedWeightedPauliOperator
+        """
+        paulis = weighted_pauli_operator.paulis
         temp_paulis = copy.deepcopy(paulis)
         n = paulis[0][1].numberofqubits
         grouped_paulis = []
@@ -118,8 +128,10 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
                             sorted_paulis.append(p_2)
                 grouped_paulis.append(paulis_temp)
 
-        basis, paulis = _post_format_conversion(grouped_paulis)
-        return cls(paulis, basis, cls.unsorted_grouping, name=name)
+        basis, new_paulis = _post_format_conversion(grouped_paulis)
+
+        return cls(new_paulis, basis, weighted_pauli_operator.z2_symmetries, weighted_pauli_operator.atol,
+                   name, cls.unsorted_grouping)
 
     def __str__(self):
         """Overload str()."""

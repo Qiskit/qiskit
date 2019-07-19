@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 class WeightedPauliOperator(BaseOperator):
 
-    def __init__(self, paulis, basis=None, atol=1e-12, name=None):
+    def __init__(self, paulis, basis=None, z2_symmetries=None, atol=1e-12, name=None):
         """
         Args:
             paulis ([[complex, Pauli]]): the list of weighted Paulis, where a weighted pauli is composed of
@@ -51,18 +51,20 @@ class WeightedPauliOperator(BaseOperator):
                                                           and the indices to paulis which are belonged to that group.
                                                           e.g., if tpb basis is used, the object will be a pauli.
                                                           by default, the group is equal to non-grouping, each pauli is its own basis.
+            z2_symmetries (Z2Symmetires): recording the z2 symmetries info
             atol (float, optional): the threshold used in truncating paulis
             name (str, optional): the name of operator.
         """
+        super().__init__(basis, z2_symmetries, name)
         # plain store the paulis, the group information is store in the basis
         self._paulis_table = None
         self._paulis = paulis
         self._basis = [(pauli[1], [i]) for i, pauli in enumerate(paulis)] if basis is None else basis
         # combine the paulis and remove those with zero weight
         self.simplify()
+        self._z2_symmetries = z2_symmetries
         self._aer_paulis = None
         self._atol = atol
-        self._name = name if name is not None else ''
 
     @classmethod
     def from_list(cls, paulis, weights=None, name=None):
@@ -94,10 +96,6 @@ class WeightedPauliOperator(BaseOperator):
     @atol.setter
     def atol(self, new_value):
         self._atol = new_value
-
-    @property
-    def basis(self):
-        return self._basis
 
     @property
     def num_qubits(self):
@@ -425,35 +423,6 @@ class WeightedPauliOperator(BaseOperator):
         else:
             return False
 
-    def to_grouped_weighted_pauli_operator(self, grouping_func=None, **kwargs):
-        """
-
-        Args:
-            grouping_func (Callable): a grouping callback to group paulis, and this callback will be fed with the paulis
-                                      and kwargs arguments
-            kwargs: other arguments needed for grouping func.
-
-        Returns:
-            object: the type depending on the `grouping_func`.
-        """
-        return grouping_func(self._paulis, **kwargs)
-
-    def to_matrix_operator(self):
-        """
-        Convert to matrix operator.
-
-        Returns:
-            MatrixOperator:
-        """
-        from qiskit.aqua.operators.matrix_operator import MatrixOperator
-        if self.is_empty():
-            return MatrixOperator(None)
-
-        hamiltonian = 0
-        for weight, pauli in self._paulis:
-            hamiltonian += weight * pauli.to_spmatrix()
-        return MatrixOperator(matrix=hamiltonian)
-
     @classmethod
     def from_file(cls, file_name, before_04=False):
         """
@@ -560,8 +529,9 @@ class WeightedPauliOperator(BaseOperator):
             float: the standard deviation
         """
         # convert to matrix first?
-        mat_op = self.to_matrix_operator()
-        avg = np.vdot(quantum_state, mat_op.matrix.dot(quantum_state))
+        from .op_converter import to_matrix_operator
+        mat_op = to_matrix_operator(self)
+        avg = np.vdot(quantum_state, mat_op._matrix.dot(quantum_state))
         return avg, 0.0
 
     def construct_evaluation_circuit(self, operator_mode=None, input_circuit=None, backend=None, qr=None, cr=None,
@@ -692,7 +662,7 @@ class WeightedPauliOperator(BaseOperator):
                         continue
                     for qubit_idx in range(self.num_qubits):
                         if not pauli.z[qubit_idx] and pauli.x[qubit_idx]:
-                            tmp_qc.u3(pi, 0.0, pi, qr[qubit_idx])  # x gate
+                            tmp_qc.u3(pi, 0.0, pi, qubit_idx)  # x gate
                         elif pauli.z[qubit_idx] and not pauli.x[qubit_idx]:
                             tmp_qc.u1(pi, qubit_idx)  # z gate
                         elif pauli.z[qubit_idx] and pauli.x[qubit_idx]:
@@ -943,18 +913,166 @@ class WeightedPauliOperator(BaseOperator):
             [int]: the list of support of the single-qubit Pauli objects used to build the clifford operators
         """
 
+        warnings.warn("find_Z2_symmetries() is deprecated and it will be removed after 0.6, "
+                      "Use the class method in the `Z2Symmetries` class instead", DeprecationWarning)
+
+        self._z2_symmetries = Z2Symmetries.find_Z2_symmetries(self)
+
+
+        return self._z2_symmetries.symmetries, self._z2_symmetries.sq_pauli, self._z2_symmetries.cliffords, \
+               self._z2_symmetries.sq_list
+
+    @classmethod
+    def load_from_file(cls, file_name, before_04=False):
+        warnings.warn("load_from_file is deprecated and it will be removed after 0.6, "
+                      "Use `from_file` instead", DeprecationWarning)
+        return cls.from_file(file_name, before_04)
+
+    def save_to_file(self, file_name):
+        warnings.warn("save_to_file is deprecated and it will be removed after 0.6, "
+                      "Use `to_file` instead", DeprecationWarning)
+        self.to_file(file_name)
+
+    @classmethod
+    def load_from_dict(cls, dictionary, before_04=False):
+        warnings.warn("load_from_dict is deprecated and it will be removed after 0.6, "
+                      "Use `from_dict` instead", DeprecationWarning)
+        return cls.from_dict(dictionary, before_04)
+
+    def save_to_dict(self):
+        warnings.warn("save_to_dict is deprecated and it will be removed after 0.6, "
+                      "Use `to_dict` instead", DeprecationWarning)
+        return self.to_dict()
+
+    def print_operators(self):
+        warnings.warn("print_operators() is deprecated and it will be removed after 0.6, "
+                      "Use `print_details()` instead", DeprecationWarning)
+
+        return self.print_details()
+
+    def _simplify_paulis(self):
+        warnings.warn("_simplify_paulis() is deprecated and it will be removed after 0.6, "
+                      "Use `simplify()` instead", DeprecationWarning)
+        self.simplify()
+
+    def _eval_directly(self, quantum_state):
+        warnings.warn("_eval_directly() is deprecated and it will be removed after 0.6, "
+                      "Use `evaluate_with_statevector()` instead, and it returns tuple (mean, std) now.",
+                      DeprecationWarning)
+        return self.evaluate_with_statevector(quantum_state)
+
+    def get_flat_pauli_list(self):
+        warnings.warn("get_flat_pauli_list() is deprecated and it will be removed after 0.6. "
+                      "Use `reorder_paulis()` instead", DeprecationWarning)
+        return self.reorder_paulis()
+
+    def scaling_coeff(self, scaling_factor):
+        warnings.warn("scaling_coeff method is deprecated and it will be removed after 0.6. "
+                      "Use `* operator` with the scalar directly.", DeprecationWarning)
+        self._scaling_weight(scaling_factor)
+
+    def zeros_coeff_elimination(self):
+        warnings.warn("zeros_coeff_elimination method is deprecated and it will be removed after 0.6. "
+                      "Use chop(0.0) to remove terms with 0 weight.", DeprecationWarning)
+        self.chop(0.0)
+
+
+class Z2Symmetries:
+
+    def __init__(self, symmetries, sq_paulis, sq_list, tapering_values=None):
+
+        if len(symmetries) != len(sq_paulis):
+            raise AquaError("Number of Z2 symmetries has to be the same as number of single-qubit pauli x.")
+
+        if len(sq_paulis) != len(sq_list):
+            raise AquaError("Number of single-qubit pauli x has to be the same as length of single-qubit list.")
+
+        if tapering_values is not None:
+            if len(sq_list) != len(tapering_values):
+                raise AquaError("The length of single-qubit list has to be the same as length of tapering values.")
+
+        self._symmetries = symmetries
+        self._sq_paulis = sq_paulis
+        self._sq_list = sq_list
+        self._tapering_values = tapering_values
+
+    @property
+    def symmetries(self):
+        return self._symmetries
+
+    @property
+    def sq_paulis(self):
+        return self._sq_paulis
+
+    @property
+    def cliffords(self):
+        cliffords = [WeightedPauliOperator(paulis=[[1 / np.sqrt(2), pauli_symm], [1 / np.sqrt(2), sq_pauli]])
+                     for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)]
+        return cliffords
+
+    @property
+    def sq_list(self):
+        return self._sq_list
+
+    @property
+    def tapering_values(self):
+        return self._tapering_values
+
+    @tapering_values.setter
+    def tapering_values(self, new_value):
+        self._tapering_values = new_value
+
+    def __str__(self):
+        ret = ["Z2 symmetries:"]
+        ret.append("Symmetries:")
+        for s in self._symmetries:
+            ret.append(s.to_label())
+        ret.append("Cliffords:")
+        for c in self.cliffords:
+            ret.append(c.print_details())
+        ret.append("Qubit index:")
+        ret.append(str(self._sq_list))
+        ret.append("Tapering values:")
+        if self._tapering_values is None:
+            ret.append("None")
+        else:
+            ret.append(str(self._tapering_values))
+
+        ret = "\n".join(ret)
+        return ret
+
+    def copy(self):
+        return deepcopy(self)
+
+    def is_empty(self):
+        if self._symmetries != [] and self._sq_paulis != [] and self._sq_list != []:
+            return False
+        else:
+            return True
+
+    @classmethod
+    def find_Z2_symmetries(cls, operator):
+        """
+        Finds Z2 Pauli-type symmetries of an Operator.
+
+        Returns:
+            [Pauli]: the list of Pauli objects representing the Z_2 symmetries
+            [Pauli]: the list of single - qubit Pauli objects to construct the Cliffors operators
+            [WeightedPauliOperator]: the list of Clifford unitaries to block diagonalize Operator
+            [int]: the list of support of the single-qubit Pauli objects used to build the clifford operators
+        """
+
         pauli_symmetries = []
         sq_paulis = []
-        cliffords = []
         sq_list = []
 
         stacked_paulis = []
 
-        if self.is_empty():
+        if operator.is_empty():
             logger.info("Operator is empty.")
             return [], [], [], []
 
-        for pauli in self._paulis:
+        for pauli in operator.paulis:
             stacked_paulis.append(np.concatenate((pauli[1].x, pauli[1].z), axis=0).astype(np.int))
 
         stacked_matrix = np.array(np.stack(stacked_paulis))
@@ -1028,73 +1146,120 @@ class WeightedPauliOperator(BaseOperator):
                         sq_list.append(col)
                         break
 
-        for sq_pauli, pauli_symm in zip(sq_paulis, pauli_symmetries):
-            clifford = WeightedPauliOperator(paulis=[[1 / np.sqrt(2), pauli_symm], [1 / np.sqrt(2), sq_pauli]])
-            cliffords.append(clifford)
+        return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
-        return pauli_symmetries, sq_paulis, cliffords, sq_list
+    def taper(self, operator, tapering_values=None):
 
-    @classmethod
-    def load_from_file(cls, file_name, before_04=False):
-        warnings.warn("load_from_file is deprecated and it will be removed after 0.6, "
-                      "Use `from_file` instead", DeprecationWarning)
-        return cls.from_file(file_name, before_04)
+        if len(self._symmetries) == 0 or len(self._sq_paulis) == 0 or len(self._sq_list) == 0:
+            raise AquaError("Z2 symmetries, single qubit pauli and single qubit list cannot be empty.")
 
-    def save_to_file(self, file_name):
-        warnings.warn("save_to_file is deprecated and it will be removed after 0.6, "
-                      "Use `to_file` instead", DeprecationWarning)
-        self.to_file(file_name)
+        if operator.is_empty():
+            logger.warning("The operator is empty, return the empty operator directly.")
+            return operator
 
-    @classmethod
-    def load_from_dict(cls, dictionary, before_04=False):
-        warnings.warn("load_from_dict is deprecated and it will be removed after 0.6, "
-                      "Use `from_dict` instead", DeprecationWarning)
-        return cls.from_dict(dictionary, before_04)
+        for clifford in self.cliffords:
+            operator = clifford * operator * clifford
 
-    def save_to_dict(self):
-        warnings.warn("save_to_dict is deprecated and it will be removed after 0.6, "
-                      "Use `to_dict` instead", DeprecationWarning)
-        return self.to_dict()
+        tapering_values = tapering_values if tapering_values is not None else self._tapering_values
 
-    def print_operators(self):
-        warnings.warn("print_operators() is deprecated and it will be removed after 0.6, "
-                      "Use `print_details()` instead", DeprecationWarning)
+        def _taper(op, curr_tapering_values):
+            operator_out = []
+            for pauli_term in op.paulis:
+                coeff_out = pauli_term[0]
+                for idx, qubit_idx in enumerate(self._sq_list):
+                    if not (not pauli_term[1].z[qubit_idx] and not pauli_term[1].x[qubit_idx]):
+                        coeff_out = curr_tapering_values[idx] * coeff_out
+                z_temp = np.delete(pauli_term[1].z.copy(), np.asarray(self._sq_list))
+                x_temp = np.delete(pauli_term[1].x.copy(), np.asarray(self._sq_list))
+                pauli_term_out = [coeff_out, Pauli(z_temp, x_temp)]
+                operator_out.extend([pauli_term_out])
 
-        return self.print_details()
+            z2_symmetries = self.copy()
+            z2_symmetries.tapering_values = curr_tapering_values
 
-    def _simplify_paulis(self):
-        warnings.warn("_simplify_paulis() is deprecated and it will be removed after 0.6, "
-                      "Use `simplify()` instead", DeprecationWarning)
-        self.simplify()
+            return WeightedPauliOperator(operator_out, z2_symmetries=z2_symmetries)
 
-    def _eval_directly(self, quantum_state):
-        warnings.warn("_eval_directly() is deprecated and it will be removed after 0.6, "
-                      "Use `evaluate_with_statevector()` instead, and it returns tuple (mean, std) now.",
-                      DeprecationWarning)
-        return self.evaluate_with_statevector(quantum_state)
+        if tapering_values is None:
+            tapered_ops = []
+            for coeff in itertools.product([1, -1], repeat=len(self._sq_list)):
+                tapered_ops.append(_taper(operator, list(coeff)))
+        else:
+            tapered_ops = _taper(operator, tapering_values)
 
-    def get_flat_pauli_list(self):
-        warnings.warn("get_flat_pauli_list() is deprecated and it will be removed after 0.6. "
-                      "Use `reorder_paulis()` instead", DeprecationWarning)
-        return self.reorder_paulis()
+        return tapered_ops
 
-    def scaling_coeff(self, scaling_factor):
-        warnings.warn("scaling_coeff method is deprecated and it will be removed after 0.6. "
-                      "Use `* operator` with the scalar directly.", DeprecationWarning)
-        self._scaling_weight(scaling_factor)
+    @staticmethod
+    def two_qubit_reduction(operator, num_particles):
+        """
+        Eliminates the central and last qubit in a list of Pauli that has
+        diagonal operators (Z,I) at those positions
 
-    def zeros_coeff_elimination(self):
-        warnings.warn("zeros_coeff_elimination method is deprecated and it will be removed after 0.6. "
-                      "Use chop(0.0) to remove terms with 0 weight.", DeprecationWarning)
-        self.chop(0.0)
+        Chemistry specific method:
+        It can be used to taper two qubits in parity and binary-tree mapped
+        fermionic Hamiltonians when the spin orbitals are ordered in two spin
+        sectors, (block spin order) according to the number of particles in the system.
 
-    def to_grouped_paulis(self):
-        warnings.warn("to_grouped_paulis method is deprecated and it will be removed after 0.6. "
-                      "Use `to_grouped_weighted_pauli_operator` and providing your own grouping func.",
-                      DeprecationWarning)
+        Args:
+            operator (WeightedPauliOperator): the operator
+            num_particles (list, int): number of particles, if it is a list, the first number is alpha
+                                        and the second number if beta.
 
-    def to_matrix(self):
-        warnings.warn("to_matrix method is deprecated and it will be removed after 0.6. "
-                      "Use `to_matrix_operator` instead.",
-                      DeprecationWarning)
-        return self.to_matrix_operator()
+        Returns:
+            Operator: a new operator whose qubit number is reduced by 2.
+
+        """
+        if operator.is_empty():
+            logger.info("Operator is empty, can not do two qubit reduction. Return the empty operator back.")
+            return operator
+
+        if isinstance(num_particles, list):
+            num_alpha = num_particles[0]
+            num_beta = num_particles[1]
+        else:
+            num_alpha = num_particles // 2
+            num_beta = num_particles // 2
+
+        par_1 = 1 if (num_alpha + num_beta) % 2 == 0 else -1
+        par_2 = 1 if num_alpha % 2 == 0 else -1
+        tapering_values = [par_2, par_1]
+
+        num_qubits = operator.num_qubits
+        last_idx = num_qubits - 1
+        mid_idx = num_qubits // 2 - 1
+        sq_list = [mid_idx, last_idx]
+
+        # build symmetries, sq_paulis:
+        symmetries, sq_paulis = [], []
+        for idx in sq_list:
+            pauli_str = ['I'] * num_qubits
+
+            pauli_str[idx] = 'Z'
+            z_sym = Pauli.from_label(''.join(pauli_str)[::-1])
+            symmetries.append(z_sym)
+
+            pauli_str[idx] = 'X'
+            sq_pauli = Pauli.from_label(''.join(pauli_str)[::-1])
+            sq_paulis.append(sq_pauli)
+
+        z2_symmetries = Z2Symmetries(symmetries, sq_paulis, sq_list, tapering_values)
+        return z2_symmetries.taper(operator)
+
+    def consistent_tapering(self, operator):
+        """
+        Tapering the `operator` with the same manner of how this tapered operator is created. i.e., using the same
+        cliffords and tapering values.
+
+        Args:
+            operator (WeightedPauliOperator): the to-be-tapered operator
+
+        Returns:
+            TaperedWeightedPauliOperator: the tapered operator
+        """
+        if operator.is_empty():
+            raise AquaError("Can not taper an empty operator.")
+
+        for symmetry in self._symmetries:
+            if not operator.commute_with(symmetry):
+                raise AquaError("The given operator does not commute with the symmetry, can not taper it.")
+
+        return self.taper(operator)

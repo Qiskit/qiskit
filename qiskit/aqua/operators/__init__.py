@@ -15,8 +15,7 @@
 from .common import evolution_instruction, suzuki_expansion_slice_pauli_list
 from .pauli_graph import PauliGraph
 from .base_operator import BaseOperator
-from .weighted_pauli_operator import WeightedPauliOperator
-from .tapered_weighed_pauli_operator import TaperedWeightedPauliOperator
+from .weighted_pauli_operator import WeightedPauliOperator, Z2Symmetries
 from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
 from .matrix_operator import MatrixOperator
 
@@ -26,7 +25,7 @@ __all__ = [
     'PauliGraph',
     'BaseOperator',
     'WeightedPauliOperator',
-    'TaperedWeightedPauliOperator',
+    'Z2Symmetries',
     'TPBGroupedWeightedPauliOperator',
     'MatrixOperator'
 ]

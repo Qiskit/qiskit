@@ -20,9 +20,11 @@ class BaseOperator(ABC):
     """Operators relevant for quantum applications."""
 
     @abstractmethod
-    def __init__(self):
+    def __init__(self, basis=None, z2_symmetries=None, name=None):
         """Constructor."""
-        pass
+        self._basis = basis
+        self._z2_symmetries = z2_symmetries
+        self._name = name if name is not None else ''
 
     @property
     def name(self):
@@ -31,6 +33,14 @@ class BaseOperator(ABC):
     @name.setter
     def name(self, new_value):
         self._name = new_value
+
+    @property
+    def basis(self):
+        return self._basis
+
+    @property
+    def z2_symmetries(self):
+        return self._z2_symmetries
 
     @abstractmethod
     def __add__(self, other):
@@ -132,3 +142,26 @@ class BaseOperator(ABC):
         warnings.warn("qubit_tapering method is moved to the `TaperedWeightedPauliOperator` class.",
                       DeprecationWarning)
         return None
+
+    def to_grouped_paulis(self):
+        warnings.warn("to_grouped_paulis method is deprecated and it will be removed after 0.6. "
+                      "Please take a look the qiskit.aqua.operators.op_convertor to see instructions. "
+                      "For grouping paulis, you can create your own grouping func to create the class you need.",
+                      DeprecationWarning)
+        from .op_converter import to_tpb_grouped_weighted_pauli_operator
+        from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
+        return to_tpb_grouped_weighted_pauli_operator(grouping_func=TPBGroupedWeightedPauliOperator.sorted_grouping)
+
+    def to_paulis(self):
+        warnings.warn("to_paulis method is deprecated and it will be removed after 0.6. "
+                      "Please take a look the qiskit.aqua.operators.op_convertor to see instructions.",
+                      DeprecationWarning)
+        from .op_converter import to_weighted_pauli_operator
+        return to_weighted_pauli_operator(self)
+
+    def to_matrix(self):
+        warnings.warn("to_matrix method is deprecated and it will be removed after 0.6. "
+                      "Please take a look the qiskit.aqua.operators.op_convertor to see instructions.",
+                      DeprecationWarning)
+        from .op_converter import to_matrix_operator
+        return to_matrix_operator(self)
