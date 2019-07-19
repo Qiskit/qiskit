@@ -48,6 +48,18 @@ class TestFields(QiskitTestCase):
         self.assertEqual(dog.to_dict(), dog_numpy.to_dict())
         self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
 
+    def test_parameter_field_complex(self):
+        """Test InstructionParameter with types equivalent to complex."""
+        dog = Dog(barking=(0.1+0.2j))
+        dog_numpy = Dog(barking=numpy.dtype('complex').type(0.1+0.2j))
+        dog_sympy = Dog(barking=sympy.sympify(0.1+0.2j))
+
+        self.assertEqual(dog_numpy.barking,
+                         numpy.dtype('complex').type(0.1+0.2j))
+        self.assertEqual(dog.to_dict(), dog_numpy.to_dict())
+        self.assertEqual(dog.to_dict(), dog_sympy.to_dict())
+        self.assertEqual(dog.to_dict()['barking'], [0.1, 0.2])
+
     def test_parameter_field_int(self):
         """Test InstructionParameter with types equivalent to int."""
         dog = Dog(barking=1)
