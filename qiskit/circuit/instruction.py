@@ -340,7 +340,7 @@ class Instruction:
         Zero exponent creates an empty instruction.
 
         Args:
-            exponent (number): Gate^exponent
+            exponent (int): Gate^exponent
 
         Returns:
             Instruction: Containing the definition.
