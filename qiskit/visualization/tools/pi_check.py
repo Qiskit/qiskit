@@ -38,6 +38,9 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
 
     Returns:
         str: string representation of output.
+
+    Raise:
+        QiskitError: if output is not a valid option.
     """
     inpt = float(inpt)
     if abs(inpt) < 1e-14:
