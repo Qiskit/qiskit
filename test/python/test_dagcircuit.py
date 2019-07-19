@@ -29,6 +29,7 @@ from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.iden import IdGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cz import CzGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.barrier import Barrier
@@ -796,6 +797,73 @@ class TestDagSubstitute(QiskitTestCase):
 
         with self.assertRaises(DAGCircuitError):
             self.dag.substitute_node_with_dag(instr_node, sub_dag)
+
+
+class TestDagSubstituteNode(QiskitTestCase):
+    """Test substituting a dagnode with a node."""
+
+    def test_substituting_node_with_wrong_width_node_raises(self):
+        """Verify replacing a node with one of a different shape raises."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        dag.add_qreg(qr)
+        node_to_be_replaced = dag.apply_operation_back(CnotGate(), [qr[0], qr[1]])
+
+        with self.assertRaises(DAGCircuitError) as _:
+            dag.substitute_node(node_to_be_replaced, Measure())
+
+    def test_substituting_io_node_raises(self):
+        """Verify replacing an io node raises."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(1)
+        dag.add_qreg(qr)
+
+        io_node = next(dag.nodes())
+
+        with self.assertRaises(DAGCircuitError) as _:
+            dag.substitute_node(io_node, HGate())
+
+    def test_substituting_node_preserves_name_args_condition(self):
+        """Verify name, args and condition are preserved by a substitution."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        dag.apply_operation_back(HGate(), [qr[1]])
+        node_to_be_replaced = dag.apply_operation_back(CnotGate(), [qr[1], qr[0]],
+                                                       condition=(cr, 1))
+        node_to_be_replaced.name = 'test_name'
+        dag.apply_operation_back(HGate(), [qr[1]])
+
+        replacement_node = dag.substitute_node(node_to_be_replaced, CzGate())
+
+        self.assertEqual(replacement_node.name, 'test_name')
+        self.assertEqual(replacement_node.qargs, [qr[1], qr[0]])
+        self.assertEqual(replacement_node.cargs, [])
+        self.assertEqual(replacement_node.condition, (cr, 1))
+
+    def test_substituting_node_preserves_parents_children(self):
+        """Verify parents and children are preserved by a substitution."""
+        qc = QuantumCircuit(3, 2)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.rz(0.1, 2)
+        qc.cx(1, 2)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        node_to_be_replaced = dag.named_nodes('rz')[0]
+        predecessors = set(dag.predecessors(node_to_be_replaced))
+        successors = set(dag.successors(node_to_be_replaced))
+        ancestors = dag.ancestors(node_to_be_replaced)
+        descendants = dag.descendants(node_to_be_replaced)
+
+        replacement_node = dag.substitute_node(node_to_be_replaced, U1Gate(0.1))
+
+        self.assertEqual(set(dag.predecessors(replacement_node)), predecessors)
+        self.assertEqual(set(dag.successors(replacement_node)), successors)
+        self.assertEqual(dag.ancestors(replacement_node), ancestors)
+        self.assertEqual(dag.descendants(replacement_node), descendants)
 
 
 class TestDagProperties(QiskitTestCase):
