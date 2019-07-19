@@ -41,49 +41,34 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     if abs(inpt) < 1e-14:
         return str(0)
     val = inpt / np.pi
+
+    if output == 'text':
+        pi = 'pi'
+    elif output == 'latex':
+        pi = '\\pi'
+    elif output == 'mpl':
+        pi = '$\\pi$'
+    else:
+        pass # TODO
+
     if abs(val) >= 1:
         if abs(val % 1) < eps:
             val = int(round(val))
-            if output == 'latex':
-                if val == 1:
-                    str_out = r'\pi'
-                elif val == -1:
-                    str_out = r'-\pi'
-                else:
-                    str_out = r'%s\pi' % val
-            elif output == 'mpl':
-                if val == 1:
-                    str_out = '$\\pi$'
-                elif val == -1:
-                    str_out = '-$\\pi$'
-                else:
-                    str_out = '%s$\\pi$' % val
+            if val == 1:
+                str_out = '{}'.format(pi)
+            elif val == -1:
+                str_out = '-{}'.format(pi)
             else:
-                if val == 1:
-                    str_out = 'pi'
-                elif val == -1:
-                    str_out = '-pi'
-                else:
-                    str_out = '%spi' % val
+                str_out = '{}{}'.format(val, pi)
             return str_out
 
     val = np.pi / inpt
     if abs(abs(val) - abs(round(val))) < eps:
         val = int(round(val))
         if val > 0:
-            if output == 'latex':
-                str_out = r'\pi/%s' % val
-            elif output == 'mpl':
-                str_out = '$\\pi$/%s' % val
-            else:
-                str_out = 'pi/%s' % val
+            str_out = '{}/{}'.format(pi,val)
         else:
-            if output == 'latex':
-                str_out = r'-\pi/%s' % abs(val)
-            elif output == 'mpl':
-                str_out = '-$\\pi$/%s' % abs(val)
-            else:
-                str_out = '-pi/%s' % abs(val)
+            str_out = '-{}/{}'.format(pi,abs(val))
         return str_out
 
     # Look for all fracs in 8
@@ -94,37 +79,20 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
         denom = int(frac[0][0]) + 1
         if inpt < 0:
             numer *= -1
-        if output == 'latex':
-            if numer == 1 and denom == 1:
-                str_out = r'\pi'
-            elif numer == -1 and denom == 1:
-                str_out = r'-\pi'
-            elif numer == 1:
-                str_out = r'\pi/%s' % (denom)
-            elif numer == -1:
-                str_out = r'-\pi/%s' % (denom)
-            elif numer == 1:
-                str_out = r'\pi/%s' % (denom)
-            elif denom == 1:
-                str_out = r'%s\pi' % (numer)
-            else:
-                str_out = r'%s\pi/%s' % (numer, denom)
 
+        if numer == 1 and denom == 1:
+            str_out = '{}'.format(pi)
+        elif numer == -1 and denom == 1:
+            str_out = '-{}'.format(pi)
+        elif numer == 1:
+            str_out = '{}/{}'.format(pi, denom)
+        elif numer == -1:
+            str_out = '-{}/{}'.format(pi, denom)
+        elif denom == 1:
+            str_out = '{}/{}'.format(numer, pi)
         else:
-            if numer == 1 and denom == 1:
-                str_out = 'pi'
-            elif numer == -1 and denom == 1:
-                str_out = '-pi'
-            elif numer == 1:
-                str_out = 'pi/%s' % (denom)
-            elif numer == -1:
-                str_out = '-pi/%s' % (denom)
-            elif numer == 1:
-                str_out = 'pi/%s' % (denom)
-            elif denom == 1:
-                str_out = '%spi' % (numer)
-            else:
-                str_out = '%spi/%s' % (numer, denom)
+            str_out = '{}{}/{}'.format(numer, pi, denom)
+
         return str_out
     # nothing found
     str_out = '%.{}g'.format(ndigits) % inpt
