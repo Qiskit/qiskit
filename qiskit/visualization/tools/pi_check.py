@@ -15,7 +15,7 @@
 """Check if number close to values of PI
 """
 
-import numpy as
+import numpy as np
 
 from qiskit.exceptions import QiskitError
 
