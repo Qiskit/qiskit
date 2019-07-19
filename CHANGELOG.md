@@ -108,6 +108,7 @@ The format is based on [Keep a Changelog].
 -   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
 -   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
     was measured into more than one memory cbit (\#2735)
+-   Correctly serialize complex numbers with a nonzero real part
 -   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
     subset of qubits are measured (\#2790)
 
