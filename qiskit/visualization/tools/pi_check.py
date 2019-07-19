@@ -49,7 +49,7 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     elif output == 'mpl':
         pi = '$\\pi$'
     else:
-        pass # TODO
+        pass  # TODO
 
     if abs(val) >= 1:
         if abs(val % 1) < eps:
@@ -66,9 +66,9 @@ def pi_check(inpt, eps=1e-6, output='text', ndigits=5):
     if abs(abs(val) - abs(round(val))) < eps:
         val = int(round(val))
         if val > 0:
-            str_out = '{}/{}'.format(pi,val)
+            str_out = '{}/{}'.format(pi, val)
         else:
-            str_out = '-{}/{}'.format(pi,abs(val))
+            str_out = '-{}/{}'.format(pi, abs(val))
         return str_out
 
     # Look for all fracs in 8
