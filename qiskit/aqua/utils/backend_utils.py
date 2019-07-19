@@ -1,41 +1,41 @@
 # -*- coding: utf-8 -*-
 
-# Copyright 2018 IBM.
+# This code is part of Qiskit.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# (C) Copyright IBM 2018, 2019.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# =============================================================================
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 
 from collections import OrderedDict
 import importlib
 import logging
 from qiskit.providers import BaseBackend
+from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.aqua import Preferences
-
-try:
-    from qiskit.providers.ibmq import IBMQProvider
-    HAS_IBMQ = True
-except ImportError:
-    HAS_IBMQ = False
-    pass
-try:
-    from qiskit.providers.aer import AerProvider
-    HAS_AER = True
-except ImportError:
-    HAS_AER = False
-    pass
 
 logger = logging.getLogger(__name__)
 
+try:
+    # pylint: disable=no-name-in-module, import-error
+    from qiskit.providers.ibmq import IBMQFactory
+    from qiskit.providers.ibmq.accountprovider import AccountProvider
+    HAS_IBMQ = True
+except Exception as ex:
+    HAS_IBMQ = False
+    logger.debug("IBMQFactory/AccountProvider not loaded: '{}'".format(str(ex)))
+
+try:
+    from qiskit.providers.aer import AerProvider
+    HAS_AER = True
+except Exception as ex:
+    HAS_AER = False
+    logger.debug("AerProvider not loaded: '{}'".format(str(ex)))
 
 _UNSUPPORTED_BACKENDS = ['unitary_simulator', 'clifford_simulator']
 
@@ -54,10 +54,35 @@ def is_aer_provider(backend):
     Args:
         backend (BaseBackend): backend instance
     Returns:
-        bool: True is statevector
+        bool: True is AerProvider
     """
     if has_aer():
         return isinstance(backend.provider(), AerProvider)
+    else:
+        return False
+
+
+def is_basicaer_provider(backend):
+    """Detect whether or not backend is from BasicAer provider.
+
+    Args:
+        backend (BaseBackend): backend instance
+    Returns:
+        bool: True is BasicAer
+    """
+    return isinstance(backend.provider(), BasicAerProvider)
+
+
+def is_ibmq_provider(backend):
+    """Detect whether or not backend is from IBMQ provider.
+
+    Args:
+        backend (BaseBackend): backend instance
+    Returns:
+        bool: True is IBMQ
+    """
+    if has_ibmq():
+        return isinstance(backend.provider(), AccountProvider)
     else:
         return False
 
@@ -110,18 +135,35 @@ def is_local_backend(backend):
     return backend.configuration().local
 
 
-def is_ibmq_provider(backend):
-    """Detect whether or not backend is from IBMQ provider.
-
+def is_aer_qasm(backend):
+    """
+    Return True if backend is Aer Qasm simulator
     Args:
         backend (BaseBackend): backend instance
+
     Returns:
-        bool: True is statevector
+        bool: True is Aer Qasm simulator
     """
-    if has_ibmq():
-        return isinstance(backend.provider(), IBMQProvider)
-    else:
-        return False
+    ret = False
+    if is_aer_provider(backend):
+        if not is_statevector_backend(backend):
+            ret = True
+    return ret
+
+
+def support_backend_options(backend):
+    """
+    Return True if backend supports backend_options
+    Args:
+        backend (BaseBackend): backend instance
+
+    Returns:
+        bool: True is support backend_options
+    """
+    ret = False
+    if is_basicaer_provider(backend) or is_aer_provider(backend):
+        ret = True
+    return ret
 
 
 def get_aer_backend(backend_name):
@@ -129,7 +171,7 @@ def get_aer_backend(backend_name):
     for provider in providers:
         try:
             return get_backend_from_provider(provider, backend_name)
-        except:
+        except Exception:
             pass
 
     raise ImportError("Backend '{}' not found in providers {}".format(backend_name, providers))
@@ -147,29 +189,24 @@ def get_backends_from_provider(provider_name):
         ImportError: Invalid provider name or failed to find provider
     """
     provider_object = _load_provider(provider_name)
-    if has_ibmq() and isinstance(provider_object, IBMQProvider):
-        preferences = Preferences()
-        url = preferences.get_url()
-        token = preferences.get_token()
-        kwargs = {}
-        if url is not None and url != '':
-            kwargs['url'] = url
-        if token is not None and token != '':
-            kwargs['token'] = token
-        return [x.name() for x in provider_object.backends(**kwargs) if x.name() not in _UNSUPPORTED_BACKENDS]
-
-    try:
-        # try as variable containing provider instance
-        return [x.name() for x in provider_object.backends() if x.name() not in _UNSUPPORTED_BACKENDS]
-    except:
-        # try as provider class then
+    if has_ibmq() and isinstance(provider_object, IBMQFactory):
+        # enable IBMQ account
+        provider = _refresh_ibmq_account()
+        if provider is not None:
+            return [x.name() for x in provider.backends() if x.name() not in _UNSUPPORTED_BACKENDS]
+    else:
         try:
-            provider_instance = provider_object()
-            return [x.name() for x in provider_instance.backends() if x.name() not in _UNSUPPORTED_BACKENDS]
-        except:
-            pass
+            # try as variable containing provider instance
+            return [x.name() for x in provider_object.backends() if x.name() not in _UNSUPPORTED_BACKENDS]
+        except Exception:
+            # try as provider class then
+            try:
+                provider_instance = provider_object()
+                return [x.name() for x in provider_instance.backends() if x.name() not in _UNSUPPORTED_BACKENDS]
+            except Exception:
+                pass
 
-    raise ImportError("'Backends not found for provider '{}'".format(provider_object))
+    raise ImportError("'Backends not found for provider '{}'".format(provider_name))
 
 
 def get_backend_from_provider(provider_name, backend_name):
@@ -184,34 +221,24 @@ def get_backend_from_provider(provider_name, backend_name):
     Raises:
         ImportError: Invalid provider name or failed to find provider
     """
-    backend = None
     provider_object = _load_provider(provider_name)
-    if has_ibmq() and isinstance(provider_object, IBMQProvider):
-        preferences = Preferences()
-        url = preferences.get_url()
-        token = preferences.get_token()
-        kwargs = {}
-        if url is not None and url != '':
-            kwargs['url'] = url
-        if token is not None and token != '':
-            kwargs['token'] = token
-        backend = provider_object.get_backend(backend_name, **kwargs)
+    if has_ibmq() and isinstance(provider_object, IBMQFactory):
+        provider = _refresh_ibmq_account()
+        if provider is not None:
+            return provider.get_backend(backend_name)
     else:
         try:
             # try as variable containing provider instance
-            backend = provider_object.get_backend(backend_name)
-        except:
+            return provider_object.get_backend(backend_name)
+        except Exception:
             # try as provider class then
             try:
                 provider_instance = provider_object()
-                backend = provider_instance.get_backend(backend_name)
-            except:
+                return provider_instance.get_backend(backend_name)
+            except Exception:
                 pass
 
-    if backend is None:
-        raise ImportError("'{} not found in provider '{}'".format(backend_name, provider_object))
-
-    return backend
+    raise ImportError("'{} not found in provider '{}'".format(backend_name, provider_name))
 
 
 def get_local_providers():
@@ -247,7 +274,7 @@ def get_provider_from_backend(backend):
     known_providers = {
                        'BasicAerProvider': 'qiskit.BasicAer',
                        'AerProvider': 'qiskit.Aer',
-                       'IBMQProvider': 'qiskit.IBMQ',
+                       'IBMQFactory': 'qiskit.IBMQ',
                        }
     if isinstance(backend, BaseBackend):
         provider = backend.provider()
@@ -262,7 +289,7 @@ def get_provider_from_backend(backend):
         try:
             if get_backend_from_provider(provider, backend) is not None:
                 return provider
-        except:
+        except Exception:
             pass
 
     raise ImportError("Backend '{}' not found in providers {}".format(backend, list(known_providers.values())))
@@ -284,67 +311,57 @@ def _load_provider(provider_name):
     if provider_object is None:
         raise ImportError("Failed to import provider '{}'".format(provider_name))
 
-    if has_ibmq() and isinstance(provider_object, IBMQProvider):
-        # enable IBMQ account
-        preferences = Preferences()
-        enable_ibmq_account(preferences.get_url(), preferences.get_token(), preferences.get_proxies({}))
-
     return provider_object
 
 
-def enable_ibmq_account(url, token, proxies):
+def _refresh_ibmq_account():
     """
-    Enable IBMQ account, if not alreay enabled.
+    Refresh IBMQ account by enabling or disabling it depending on preferences stored values
     """
-    if not has_ibmq():
-        return
+    preferences = Preferences().ibmq_credentials_preferences
+    token = preferences.token or ''
+    proxies = preferences.proxies or {}
+    hub = preferences.hub
+    group = preferences.group
+    project = preferences.project
+    provider = None
     try:
-        url = url or ''
-        token = token or ''
-        proxies = proxies or {}
-        if url != '' and token != '':
-            from qiskit import IBMQ
-            from qiskit.providers.ibmq.credentials import Credentials
-            credentials = Credentials(token, url, proxies=proxies)
-            unique_id = credentials.unique_id()
-            if unique_id in IBMQ._accounts:
-                # disable first any existent previous account with same unique_id and different properties
-                enabled_credentials = IBMQ._accounts[unique_id].credentials
-                if enabled_credentials.url != url or enabled_credentials.token != token or enabled_credentials.proxies != proxies:
-                    del IBMQ._accounts[unique_id]
+        # pylint: disable=no-name-in-module, import-error
+        from qiskit import IBMQ
+        providers = IBMQ.providers()
+        if token != '':
+            # check if there was a previous account that needs to be disabled first
+            disable_account = False
+            enable_account = True
+            for provider in providers:
+                if provider.credentials.token == token and provider.credentials.proxies == proxies:
+                    enable_account = False
+                else:
+                    disable_account = True
 
-            if unique_id not in IBMQ._accounts:
-                IBMQ.enable_account(token, url=url, proxies=proxies)
-                logger.info("Enabled IBMQ account. Url:'{}' Token:'{}' "
-                            "Proxies:'{}'".format(url, token, proxies))
-    except Exception as e:
-        logger.warning("Failed to enable IBMQ account. Url:'{}' Token:'{}' "
-                       "Proxies:'{}' :{}".format(url, token, proxies, str(e)))
+            if disable_account:
+                IBMQ.disable_account()
+                logger.info('Disabled IBMQ account.')
 
+            if enable_account:
+                IBMQ.enable_account(token, proxies=proxies)
+                logger.info('Enabled IBMQ account.')
 
-def disable_ibmq_account(url, token, proxies):
-    """Disable IBMQ account."""
-    if not has_ibmq():
-        return
-    try:
-        url = url or ''
-        token = token or ''
-        proxies = proxies or {}
-        if url != '' and token != '':
-            from qiskit import IBMQ
-            from qiskit.providers.ibmq.credentials import Credentials
-            credentials = Credentials(token, url, proxies=proxies)
-            unique_id = credentials.unique_id()
-            if unique_id in IBMQ._accounts:
-                del IBMQ._accounts[unique_id]
-                logger.info("Disabled IBMQ account. Url:'{}' "
-                            "Token:'{}' Proxies:'{}'".format(url, token, proxies))
-            else:
-                logger.info("IBMQ account is not active. Not disabled. "
-                            "Url:'{}' Token:'{}' Proxies:'{}'".format(url, token, proxies))
-    except Exception as e:
-        logger.warning("Failed to disable IBMQ account. Url:'{}' "
-                       "Token:'{}' Proxies:'{}' :{}".format(url, token, proxies, str(e)))
+            providers = IBMQ.providers(hub=hub, group=group, project=project)
+            provider = providers[0] if providers else None
+            if provider is None:
+                logger.info("No Provider found for IBMQ account. "
+                            "Hub/Group/Project: '{}/{}/{}' Proxies:'{}'".format(hub, group, project, proxies))
+        else:
+            if providers:
+                IBMQ.disable_account()
+                logger.info('Disabled IBMQ account.')
+    except Exception as ex:
+        logger.warning("IBMQ account Account Failure. "
+                       "Hub/Group/Project: '{}/{}/{}' "
+                       "Proxies:'{}' :{}".format(hub, group, project, proxies, str(ex)))
+
+    return provider
 
 
 def _get_ibmq_provider():
@@ -352,7 +369,7 @@ def _get_ibmq_provider():
     providers = OrderedDict()
     try:
         providers['qiskit.IBMQ'] = get_backends_from_provider('qiskit.IBMQ')
-    except Exception as e:
-        logger.warning("Failed to access IBMQ: {}".format(str(e)))
+    except Exception as ex:
+        logger.warning("Failed to access IBMQ: {}".format(str(ex)))
 
     return providers
