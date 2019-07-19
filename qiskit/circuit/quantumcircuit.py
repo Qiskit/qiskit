@@ -511,7 +511,15 @@ class QuantumCircuit:
                 string_temp += "qc.%s%s[%d], %s[%d])" % (instruction.qiskit_code(),
                                                            qubit.register.name, qubit.index,
                                                            clbit.register.name, clbit.index)
-
+            elif instruction.name == 'unitary':
+                matrix = instruction.params[0]
+                string_temp += "matrix = np."+repr(matrix)+"\n"
+                label_string = ""
+                if instruction.label is not None:
+                    label_string += ", label='%s'" % instruction.label
+                string_temp += "qc.append(UnitaryGate(matrix" + label_string + \
+                               "), [%s])" % (", ".join(["%s[%d]" % (j.register.name, j.index)
+                                                       for j in qargs + cargs]))
             else:
                 string_temp += "qc.%s%s)" % (instruction.qiskit_code(),
                                              ", ".join(["%s[%d]" % (j.register.name, j.index)

@@ -19,6 +19,7 @@
 import os
 import tempfile
 import unittest
+import numpy
 
 import qiskit.extensions.simulator
 from qiskit import BasicAer
@@ -27,6 +28,7 @@ from qiskit import execute
 from qiskit import QiskitError
 from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
+from qiskit.extensions.unitary import UnitaryGate
 
 
 class TestCircuitQiskitCode(QiskitTestCase):
@@ -86,5 +88,34 @@ class TestCircuitQiskitCode(QiskitTestCase):
             """qc.measure(qr1[0], cr[0])\n""" + \
             """qc.measure(qr1[1], cr[1])\n""" + \
             """qc.measure(qr1[2], cr[2])\n"""
+        self.assertEqual(qc.qiskit_code(), expected_python)
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(3, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        matrix = numpy.array([[1, 0], [0, 1]])
+        qc.append(UnitaryGate(matrix), [qr[0]])
+        expected_python = """qr = QuantumRegister(3, 'qr')\n""" + \
+                          """cr = ClassicalRegister(3, 'cr')\n""" + \
+                          """qc = QuantumCircuit(qr, cr)\n""" + \
+                          """matrix = np.array([[1.+0.j, 0.+0.j],\n""" + \
+                          """       [0.+0.j, 1.+0.j]])\n""" + \
+                          """qc.append(UnitaryGate(matrix), [qr[0]])\n"""
+        self.assertEqual(qc.qiskit_code(), expected_python)
+        qr = QuantumRegister(3, 'qr')
+        cr = ClassicalRegister(3, 'cr')
+        qc = QuantumCircuit(qr, cr)
+        sigmax = numpy.array([[0, 1], [1, 0]])
+        sigmay = numpy.array([[0, -1j], [1j, 0]])
+        matrix = numpy.kron(sigmax, sigmay)
+        uni2q = UnitaryGate(matrix, label='test')
+        qc.append(uni2q, [qr[0], qr[1]])
+        expected_python = """qr = QuantumRegister(3, 'qr')\n""" + \
+                          """cr = ClassicalRegister(3, 'cr')\n""" + \
+                          """qc = QuantumCircuit(qr, cr)\n""" + \
+                          """matrix = np.array([[0.+0.j, 0.-0.j, 0.+0.j, 0.-1.j],\n""" + \
+                          """       [0.+0.j, 0.+0.j, 0.+1.j, 0.+0.j],\n""" + \
+                          """       [0.+0.j, 0.-1.j, 0.+0.j, 0.-0.j],\n""" + \
+                          """       [0.+1.j, 0.+0.j, 0.+0.j, 0.+0.j]])\n""" + \
+                          """qc.append(UnitaryGate(matrix, label='test'), [qr[0], qr[1]])\n"""
         self.assertEqual(qc.qiskit_code(), expected_python)
 
