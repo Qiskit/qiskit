@@ -509,8 +509,8 @@ class QuantumCircuit:
                 qubit = qargs[0]
                 clbit = cargs[0]
                 string_temp += "qc.%s%s[%d], %s[%d])" % (instruction.qiskit_code(),
-                                                           qubit.register.name, qubit.index,
-                                                           clbit.register.name, clbit.index)
+                                                         qubit.register.name, qubit.index,
+                                                         clbit.register.name, clbit.index)
             elif instruction.name == 'unitary':
                 matrix = instruction.params[0]
                 string_temp += "matrix = np."+repr(matrix)+"\n"
@@ -525,7 +525,8 @@ class QuantumCircuit:
                                              ", ".join(["%s[%d]" % (j.register.name, j.index)
                                                        for j in qargs + cargs]))
             if instruction.control is not None:
-                string_temp += ".c_if(%s, %d)\n" % (instruction.control[0].name, instruction.control[1])
+                string_temp += ".c_if(%s, %d)\n" % (instruction.control[0].name,
+                                                    instruction.control[1])
             else:
                 string_temp += "\n"
         return string_temp

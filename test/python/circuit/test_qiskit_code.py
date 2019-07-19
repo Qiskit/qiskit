@@ -118,4 +118,3 @@ class TestCircuitQiskitCode(QiskitTestCase):
                           """       [0.+1.j, 0.+0.j, 0.+0.j, 0.+0.j]])\n""" + \
                           """qc.append(UnitaryGate(matrix, label='test'), [qr[0], qr[1]])\n"""
         self.assertEqual(qc.qiskit_code(), expected_python)
-
