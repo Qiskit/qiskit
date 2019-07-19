@@ -15,22 +15,50 @@
 Abstract class and all derived classes for making statistical assertions.
 """
 import abc
+from qiskit.circuit.register import Register
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from scipy.stats import chisquare
+from datetime import datetime
 
 class Asserts(Measure):
     """Superclass for all the asserts, subclass of Measure"""
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self):
+    def __init__(self, qubit, cbit, pcrit, negate):
         super().__init__()
-        self._qubit = None
-        self._cbit = None
-        self._pcrit = None
+        self._qubit = qubit
+        self._cbit = cbit
+        self._pcrit = pcrit
+        self._negate = negate
         self._expval = None
+
+    def breakpoint_name():
+        return datetime.now().isoformat()
+
+    def syntax4measure(self, bit):
+    # support for all known measure syntaxes
+        if isinstance(bit,(list, Register)):
+            return bit
+        elif isinstance(bit,(range, tuple)):
+            return list(bit)
+        else: #if single bit
+            return [bit]
+
+    def clbits2idxs(cbits, exp):
+    # gives index wrt counts object for clbits
+        if isinstance(cbits[0], int): # syntax 1
+            return cbits
+        elif isinstance(cbits[0], Clbit): # syntax 2
+            idxs = [exp.clbits.index(cbit) for cbit in cbits]
+            return idxs
+        elif isinstance(cbits, ClassicalRegister): # syntax 3
+            idxfirst = exp.clbits.index(cbits[0])
+            idxlast = exp.clbits.index(cbits[-1])
+            return range(idxfirst, idxlast+1)
 
     @abc.abstractmethod
     def stat_test(self, counts):

@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 """Module for Assertions."""
-from .assertmanager import AssertManager
 from .asserts import Asserts
 from .assertclassical import AssertClassical
 from .assertuniform import AssertUniform

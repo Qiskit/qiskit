@@ -21,39 +21,14 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.register import Register
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.exceptions import QiskitError
-from datetime import datetime
 
 class AssertManager():
     """An AssertManager object manages all assertions in the experiment and executes them."""
     StatOutputs = {}
 
-    def breakpoint_name():
-        return datetime.now().isoformat()
-
-    def syntax4measure(bit):
-    # support for all known measure syntaxes
-        if isinstance(bit,(list, Register)):
-            return bit
-        elif isinstance(bit,(range, tuple)):
-            return list(bit)
-        else: #if single bit
-            return [bit]
-
-    def clbits2idxs(cbits, exp):
-    # gives index wrt counts object for clbits
-        if isinstance(cbits[0], int): # syntax 1
-            return cbits
-        elif isinstance(cbits[0], Clbit): # syntax 2
-            idxs = [exp.clbits.index(cbit) for cbit in cbits]
-            return idxs
-        elif isinstance(cbits, ClassicalRegister): # syntax 3
-            idxfirst = exp.clbits.index(cbits[0])
-            idxlast = exp.clbits.index(cbits[-1])
-            return range(idxfirst, idxlast+1)
-
     def stat_collect(experiments, results):
         """Calculate and collect results of statistical tests for each experiment
-    
+
         Args:
             experiments (list[QuantumCircuit]): a list of all breakpoints
             results (list[Results]): a list of the results of all the experiments

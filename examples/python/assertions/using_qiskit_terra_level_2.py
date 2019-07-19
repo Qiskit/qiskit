@@ -40,8 +40,7 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import LookaheadSwap
 
-from qiskit.assertions.asserts import Asserts
-from qiskit.assertions.assertmanager import AssertManager
+# from qiskit.assertions.asserts import Asserts
 
 IBMQ.load_accounts()
 
@@ -135,7 +134,11 @@ sim_job = qasm_simulator.run(qobj)
 sim_result=sim_job.result()
 
 # Show assertion results
-stat_outputs = AssertManager.stat_collect(breakpoints, sim_result)
+assert ( sim_result.get_assertion_passed(breakpoints[0]) )
+assert ( sim_result.get_assertion_passed(breakpoints[1]) )
+assert ( sim_result.get_assertion_passed(breakpoints[2]) )
+assert ( sim_result.get_assertion_passed(breakpoints[3]) )
+# stat_outputs = AssertManager.stat_collect(breakpoints, sim_result)
 # print("Full assertion results:")
 # print(stat_outputs)
 
@@ -150,7 +153,12 @@ exp_job = least_busy_device.run(qobj)
 job_monitor(exp_job)
 exp_result = exp_job.result()
 
-stat_outputs = AssertManager.stat_collect(breakpoints, exp_result)
+# Show assertion results
+assert ( sim_result.get_assertion_passed(breakpoints[0]) )
+assert ( sim_result.get_assertion_passed(breakpoints[1]) )
+assert ( sim_result.get_assertion_passed(breakpoints[2]) )
+assert ( sim_result.get_assertion_passed(breakpoints[3]) )
+# stat_outputs = AssertManager.stat_collect(breakpoints, exp_result)
 # print("Full assertion results:")
 # print(stat_outputs)
 

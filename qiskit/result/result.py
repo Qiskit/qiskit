@@ -17,11 +17,11 @@
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
 from qiskit.exceptions import QiskitError
+from qiskit.assertions import Asserts
 
 from qiskit.validation.base import BaseModel, bind_schema
 from qiskit.result import postprocess
 from .models import ResultSchema
-
 
 @bind_schema(ResultSchema)
 class Result(BaseModel):
@@ -180,6 +180,46 @@ class Result(BaseModel):
                                              header)
         except KeyError:
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
+
+    def get_assertion_passed (self, experiment=None):
+        """Calculate and collect results of statistical tests for each experiment.
+
+        Args:
+            experiments (list[QuantumCircuit]): a list of all breakpoints.
+
+        Returns:
+            passed (list[bool]): a list of booleans that is true if each test passed.
+
+        Raises:
+            QiskitError: if experiments and results are not the same length.
+        """
+        counts = self.get_counts(experiment)
+        assertion = experiment.data[-1][0]
+
+        cbits = assertion._cbit
+        cbits = Asserts.clbits2idxs(cbits, experiment)
+
+        new_counts = {}
+        for (key, value) in counts.items():
+            new_key = key.replace(' ', '')
+            new_key = ''.join([new_key[-1*(cbit+1)] for cbit in cbits][::-1])
+            new_counts.setdefault(new_key, 0)
+            new_counts[new_key] += value
+        counts = new_counts
+
+        chisq, pval, passed = assertion.stat_test(counts)
+        return passed if not assertion._negate else not passed
+        # try:
+        #     exp = self._get_experiment(experiment)
+        #     try:
+        #         header = exp.header.to_dict()
+        #     except (AttributeError, QiskitError):  # header is not available
+        #         header = None
+        #
+        #     return postprocess.format_counts(self.data(experiment)['counts'],
+        #                                      header)
+        # except KeyError:
+        #     raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.

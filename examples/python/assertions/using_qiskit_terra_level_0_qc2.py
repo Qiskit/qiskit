@@ -18,10 +18,10 @@ Example showing how to use assertions in Qiskit-Terra at level 0 (novice).
 It builds a uniform circuit with assertions and
 runs it on BasicAer (local Qiskit provider).
 
-This corresponds to the second circuit in using_qiskit_terra_level_0.py 
+This corresponds to the second circuit in using_qiskit_terra_level_0.py
 within the basic Qiskit Terra examples.
 
-To control the compile parameters we have provided a transpile function which can be used 
+To control the compile parameters we have provided a transpile function which can be used
 as a level 1 user.
 
 """
@@ -29,8 +29,7 @@ as a level 1 user.
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
-from qiskit.assertions.asserts import Asserts
-from qiskit.assertions.assertmanager import AssertManager
+# from qiskit.assertions.asserts import Asserts
 
 # making another circuit: uniforms
 qc2 = QuantumCircuit(2, 2)
@@ -50,8 +49,9 @@ print(BasicAer.backends())
 job_sim = execute([breakpoint, qc2], BasicAer.get_backend('qasm_simulator'))
 sim_result = job_sim.result()
 
+assert ( sim_result.get_assertion_passed(breakpoint) )
 # We obtain a dictionary of the results from our statistical test on our breakpoint
-stat_outputs = AssertManager.stat_collect(breakpoint, sim_result)
+# stat_outputs = AssertManager.stat_collect(breakpoint, sim_result)
 # print("Full results of our assertion:")
 # print(stat_outputs)
 

@@ -18,7 +18,6 @@ Assertion of product states.
 import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
-from qiskit.assertions.assertmanager import AssertManager
 from qiskit.assertions.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -29,15 +28,12 @@ class AssertProduct(Asserts):
         Assertion of product states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, qubit0, cbit0, qubit1, cbit1, pcrit): 
-        super().__init__()
-        self._pcrit = pcrit
-        self._qubit0 = AssertManager.syntax4measure(qubit0)
-        self._cbit0 = AssertManager.syntax4measure(cbit0)
-        self._qubit1 = AssertManager.syntax4measure(qubit1)
-        self._cbit1 = AssertManager.syntax4measure(cbit1)
-        self._qubit = self._qubit0 + self._qubit1
-        self._cbit = self._cbit0 + self._cbit1
+    def __init__(self, qubit0, cbit0, qubit1, cbit1, pcrit, negate):
+        self._qubit0 = self.syntax4measure(qubit0)
+        self._cbit0 = self.syntax4measure(cbit0)
+        self._qubit1 = self.syntax4measure(qubit1)
+        self._cbit1 = self.syntax4measure(cbit1)
+        super().__init__(self._qubit0 + self._qubit1, self._cbit0 + self._cbit1, pcrit, negate)
 
     def stat_test(self, counts):
         # chi-squared contingency table test to assert for product state
@@ -58,7 +54,6 @@ class AssertProduct(Asserts):
             passed = False
         return (chisq, pval, passed)
 
-
 def assert_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
     """Create product assertion
 
@@ -77,19 +72,21 @@ def assert_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    theClone = self.copy("breakpoint"+"_"+AssertManager.breakpoint_name())
-    assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit)
+    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
-    AssertManager.StatOutputs[theClone.name] = {"type":"Product", "qubit0":assertion._qubit0, \
-        "cbit0":assertion._cbit0, "qubit1":assertion._qubit1, "cbit1":assertion._cbit1, \
-        "qubit":assertion._qubit, "cbit":assertion._cbit}
+    # AssertManager.StatOutputs[theClone.name] = {"type":"Product", "qubit0":assertion._qubit0, \
+        # "cbit0":assertion._cbit0, "qubit1":assertion._qubit1, "cbit1":assertion._cbit1, \
+        # "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
 QuantumCircuit.assert_product = assert_product
 
 def assert_not_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
-    theClone = assert_product(self, qubit0, cbit0, qubit1, cbit1, pcrit)
-    AssertManager.StatOutputs[theClone.name]["type"] = "Not Product"
+    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, True)
+    theClone.append(assertion, [assertion._qubit], [assertion._cbit])
+    # AssertManager.StatOutputs[theClone.name]["type"] = "Not Product"
     return theClone
 
 QuantumCircuit.assert_not_product = assert_not_product
