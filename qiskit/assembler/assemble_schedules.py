@@ -39,13 +39,15 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         instruction_converter = InstructionToQobjConverter
 
     qobj_config = run_config.to_dict()
-    qubit_lo_range = qobj_config.pop('qubit_lo_range')
-    meas_lo_range = qobj_config.pop('meas_lo_range')
+    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
+    meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
-    lo_converter = LoConfigConverter(PulseQobjExperimentConfig, qubit_lo_range=qubit_lo_range,
-                                     meas_lo_range=meas_lo_range, **qobj_config)
+    lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
+                                     qubit_lo_range=qubit_lo_range,
+                                     meas_lo_range=meas_lo_range,
+                                     **qobj_config)
 
     # Pack everything into the Qobj
     qobj_schedules = []
