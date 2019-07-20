@@ -193,7 +193,6 @@ def transpile(circuits,
             # single circuit
             if len(circuits) == 1:
                 circuits[0].name = output_names
-                return circuits[0]
             # multiple circuits
             else:
                 raise TranspilerError("Expected a list object of length equal " +
@@ -204,7 +203,6 @@ def transpile(circuits,
             if len(circuits) == 1:
                 if len(output_names) == 1:
                     circuits[0].name = output_names[0]
-                    return circuits[0]
                 else:
                     raise TranspilerError("the length of output_names list "
                                           + "must be equal to the number of "
@@ -213,7 +211,7 @@ def transpile(circuits,
             else:
                 if len(circuits) == len(output_names):
                     for i in range(len(circuits)):
-                        circuits[i-1].name = output_names[i-1]
+                        circuits[i].name = output_names[i]
                 else:
                     raise TranspilerError("the length of output_names list "
                                           + "must be equal to the number of "
