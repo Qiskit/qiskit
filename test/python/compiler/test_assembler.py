@@ -616,18 +616,15 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_defaults(self):
         """Test defaults work."""
-        try:
-            assemble(self.schedule,
-                     qubit_lo_freq=self.qubit_lo_freq,
-                     meas_lo_freq=self.meas_lo_freq,
-                     qubit_lo_range=self.qubit_lo_range,
-                     meas_lo_range=self.meas_lo_range,
-                     schedule_los=self.schedule_los,
-                     meas_map=self.meas_map,
-                     memory_slots=self.memory_slots,
-                     rep_time=self.rep_time)
-        except Exception:
-            self.fail('Default assembly did not work.')
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=self.qubit_lo_range,
+                 meas_lo_range=self.meas_lo_range,
+                 schedule_los=self.schedule_los,
+                 meas_map=self.meas_map,
+                 memory_slots=self.memory_slots,
+                 rep_time=self.rep_time)
 
     def test_missing_qubit_lo_freq(self):
         """Test error raised if qubit_lo_freq missing."""
@@ -657,68 +654,54 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
 
     def test_missing_memory_slots(self):
         """Test error is not raised if memory_slots are missing."""
-
-        try:
-            assemble(self.schedule,
-                     qubit_lo_freq=self.qubit_lo_freq,
-                     meas_lo_freq=self.meas_lo_freq,
-                     qubit_lo_range=self.qubit_lo_range,
-                     meas_lo_range=self.meas_lo_range,
-                     schedule_los=self.schedule_los,
-                     meas_map=self.meas_map,
-                     memory_slots=None,
-                     rep_time=self.rep_time)
-        except Exception:
-            self.fail('Assembly did not work with missing memory_slots.')
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=self.qubit_lo_range,
+                 meas_lo_range=self.meas_lo_range,
+                 schedule_los=self.schedule_los,
+                 meas_map=self.meas_map,
+                 memory_slots=None,
+                 rep_time=self.rep_time)
 
     def test_missing_rep_time(self):
         """Test that assembly still works if rep_time is missing.
 
         The case of no rep_time will exist for a simulator.
         """
-        try:
-            assemble(self.schedule,
-                     qubit_lo_freq=self.qubit_lo_freq,
-                     meas_lo_freq=self.meas_lo_freq,
-                     qubit_lo_range=self.qubit_lo_range,
-                     meas_lo_range=self.meas_lo_range,
-                     schedule_los=self.schedule_los,
-                     meas_map=self.meas_map,
-                     memory_slots=self.memory_slots,
-                     rep_time=None)
-        except Exception:
-            self.fail('Assembly did not work with missing rep_time.')
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=self.qubit_lo_range,
+                 meas_lo_range=self.meas_lo_range,
+                 schedule_los=self.schedule_los,
+                 meas_map=self.meas_map,
+                 memory_slots=self.memory_slots,
+                 rep_time=None)
 
     def test_missing_meas_map(self):
         """Test that assembly still works if meas_map is missing."""
-        try:
-            assemble(self.schedule,
-                     qubit_lo_freq=self.qubit_lo_freq,
-                     meas_lo_freq=self.meas_lo_freq,
-                     qubit_lo_range=self.qubit_lo_range,
-                     meas_lo_range=self.meas_lo_range,
-                     schedule_los=self.schedule_los,
-                     meas_map=None,
-                     memory_slots=self.memory_slots,
-                     rep_time=self.rep_time)
-        except Exception:
-            self.fail('Assembly did not work with missing meas_map.')
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=self.qubit_lo_range,
+                 meas_lo_range=self.meas_lo_range,
+                 schedule_los=self.schedule_los,
+                 meas_map=None,
+                 memory_slots=self.memory_slots,
+                 rep_time=self.rep_time)
 
     def test_missing_lo_ranges(self):
         """Test that assembly still works if lo_ranges are missing."""
-        try:
-            assemble(self.schedule,
-                     qubit_lo_freq=self.qubit_lo_freq,
-                     meas_lo_freq=self.meas_lo_freq,
-                     qubit_lo_range=None,
-                     meas_lo_range=None,
-                     schedule_los=self.schedule_los,
-                     meas_map=self.meas_map,
-                     memory_slots=self.memory_slots,
-                     rep_time=self.rep_time)
-        except Exception:
-            self.fail('Assembly did not work with missing lo_ranges.')
-
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=None,
+                 meas_lo_range=None,
+                 schedule_los=self.schedule_los,
+                 meas_map=self.meas_map,
+                 memory_slots=self.memory_slots,
+                 rep_time=self.rep_time)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
