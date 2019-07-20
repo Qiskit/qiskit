@@ -42,6 +42,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     qubit_lo_range = qobj_config.pop('qubit_lo_range')
     meas_lo_range = qobj_config.pop('meas_lo_range')
     meas_map = qobj_config.pop('meas_map', None)
+
+    memory_slots = qobj_config.pop('memory_slots', None)
+    max_memory_slot = 0
+
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
     lo_converter = LoConfigConverter(PulseQobjExperimentConfig, qubit_lo_range=qubit_lo_range,
@@ -70,6 +74,9 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 if meas_map:
                     # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
+                    max_memory_slot = max(max_memory_slot,
+                                          *[slot.index for slot in instruction.mem_slots])
+
             qobj_instructions.append(instruction_converter(shift, instruction))
 
         # experiment header
@@ -81,6 +88,9 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             'header': qobj_experiment_header,
             'instructions': qobj_instructions
         })
+
+    # set number of memoryslots
+    qobj_config['memory_slots'] = memory_slots or max_memory_slot
 
     # setup pulse_library
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
