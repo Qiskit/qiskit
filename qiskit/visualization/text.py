@@ -459,7 +459,10 @@ class TextDrawing():
     def _repr_html_(self):
         return '<pre style="word-wrap: normal;' \
                'white-space: pre;' \
-               'line-height: 15px;">%s</pre>' % self.single_string()
+               'background: #fff0;' \
+               'line-height: 1.1;' \
+               'font-family: &quot;Courier New&quot;,Courier,monospace">' \
+               '%s</pre>' % self.single_string()
 
     def _get_qubit_labels(self):
         qubits = []
