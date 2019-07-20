@@ -703,5 +703,6 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
                  memory_slots=self.memory_slots,
                  rep_time=self.rep_time)
 
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
