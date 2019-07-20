@@ -33,7 +33,7 @@ class Cu3Gate(Gate):
     def _define(self):
         """
         gate cu3(theta,phi,lambda) c, t
-        { u1((lambda-phi)/2) t; cx c,t;
+        { u1((lambda+phi)/2) c; u1((lambda-phi)/2) t; cx c,t;
           u3(-theta/2,0,-(phi+lambda)/2) t; cx c,t;
           u3(theta/2,phi,0) t;
         }
@@ -41,6 +41,7 @@ class Cu3Gate(Gate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
+            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
             (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
             (CnotGate(), [q[0], q[1]], []),
             (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
