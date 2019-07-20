@@ -74,6 +74,8 @@ The format is based on [Keep a Changelog].
 -   `DAGCircuit.width()` formerly returned number of qubits, now returns total number of qubits + classical bits (\#2564)
 -   Functions assuming the former semantics of `DAGCircuit.width()` now call `DAGCircuit.num_qubits()` (\#2564)
 -   `DAGCircuit.num_cbits()` renamed to `DAGCircuit.num_clbits()` (\#2564)
+-   Changed definition of `Cu3Gate` to to equivalent to the canonical
+    definition of a controlled `U3Gate` (\#2755)
 
 ### Removed
 
