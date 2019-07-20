@@ -39,6 +39,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         instruction_converter = InstructionToQobjConverter
 
     qobj_config = run_config.to_dict()
+
     qubit_lo_freq = qobj_config.get('qubit_lo_freq', None)
     if qubit_lo_freq is None:
         raise QiskitError('qubit_lo_freq must be supplied.')
