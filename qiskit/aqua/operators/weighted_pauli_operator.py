@@ -602,6 +602,7 @@ class WeightedPauliOperator(BaseOperator):
                     if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
                         continue
                     for qubit_idx in range(n_qubits):
+                        circuit.barrier(qr[qubit_idx])
                         if not pauli.z[qubit_idx] and pauli.x[qubit_idx]:
                             circuit.u3(pi, 0.0, pi, qr[qubit_idx])  # x
                         elif pauli.z[qubit_idx] and not pauli.x[qubit_idx]:
@@ -633,8 +634,8 @@ class WeightedPauliOperator(BaseOperator):
                         else:
                             # Measure X
                             circuit.u2(0.0, pi, qr[qubit_idx])  # h
-                circuit.barrier(qr)
-                circuit.measure(qr, cr)
+                    circuit.barrier(qr[qubit_idx])
+                    circuit.measure(qr[qubit_idx], cr[qubit_idx])
                 circuits.append(circuit)
 
         return circuits
@@ -734,8 +735,8 @@ class WeightedPauliOperator(BaseOperator):
                     if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
                         avg += weight
                     else:
-                        quantum_state_i = np.asarray(result.get_statevector(circuit_name_prefix + pauli.to_label()))
-                        avg += weight * (np.vdot(quantum_state, quantum_state_i))
+                        quantum_state_i = result.get_statevector(circuit_name_prefix + pauli.to_label())
+                        avg += (weight * (np.vdot(quantum_state, quantum_state_i)))
         else:
             if logger.isEnabledFor(logging.DEBUG):
                 logger.debug("Computing the expectation from measurement results:")
@@ -918,9 +919,8 @@ class WeightedPauliOperator(BaseOperator):
 
         self._z2_symmetries = Z2Symmetries.find_Z2_symmetries(self)
 
-
-        return self._z2_symmetries.symmetries, self._z2_symmetries.sq_pauli, self._z2_symmetries.cliffords, \
-               self._z2_symmetries.sq_list
+        return self._z2_symmetries.symmetries, self._z2_symmetries.sq_pauli, \
+               self._z2_symmetries.cliffords, self._z2_symmetries.sq_list
 
     @classmethod
     def load_from_file(cls, file_name, before_04=False):
