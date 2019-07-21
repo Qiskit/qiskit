@@ -24,10 +24,12 @@
     "install_command": [
         "return-code=any python -c \"import shutil; shutil.rmtree('{build_dir}/build')\"",
         "return-code=any python -c \"import shutil; shutil.rmtree('{build_dir}/qiskit_terra.egg-info')\"",
-        "python -mpip install {wheel_file}"
+        "python -mpip install {wheel_file}",
+        "python -mpip install -U qiskit-ignis==0.1.1"
       ],
     "uninstall_command": [
-        "return-code=any python -mpip uninstall -y {project}"
+        "return-code=any python -mpip uninstall -y {project}",
+        "return-code=any python -mpip uninstall -y qiskit-ignis"
     ],
     "build_command": [
         "pip install -U Cython",
