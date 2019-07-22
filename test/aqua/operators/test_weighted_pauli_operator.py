@@ -43,11 +43,10 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         self.qubit_op = WeightedPauliOperator.from_list(paulis, weights)
         self.var_form = RYRZ(self.qubit_op.num_qubits, 1)
 
-        statevector_simulator = BasicAer.get_backend('statevector_simulator')
         qasm_simulator = BasicAer.get_backend('qasm_simulator')
-
         self.quantum_instance_qasm = QuantumInstance(qasm_simulator, shots=65536,
                                                      seed_simulator=seed, seed_transpiler=seed)
+        statevector_simulator = BasicAer.get_backend('statevector_simulator')
         self.quantum_instance_statevector = QuantumInstance(statevector_simulator, shots=1,
                                                             seed_simulator=seed, seed_transpiler=seed)
 
@@ -296,17 +295,17 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         wave_function = QuantumCircuit(qr)
         # + 1 eigenstate
         wave_function.h(qr[0])
-        circuits = op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=False)
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
         result = self.quantum_instance_qasm.execute(circuits)
-        actual_value = op.evaluate_with_result(result=result, is_statevector=False)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=False)
         self.assertAlmostEqual(1.0, actual_value[0].real, places=5)
         # - 1 eigenstate
         wave_function = QuantumCircuit(qr)
         wave_function.x(qr[0])
         wave_function.h(qr[0])
-        circuits = op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=False)
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
         result = self.quantum_instance_qasm.execute(circuits)
-        actual_value = op.evaluate_with_result(result=result, is_statevector=False)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=False)
         self.assertAlmostEqual(-1.0, actual_value[0].real, places=5)
 
         # Y
@@ -316,18 +315,18 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         # + 1 eigenstate
         wave_function.h(qr[0])
         wave_function.s(qr[0])
-        circuits = op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=False)
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
         result = self.quantum_instance_qasm.execute(circuits)
-        actual_value = op.evaluate_with_result(result=result, is_statevector=False)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=False)
         self.assertAlmostEqual(1.0, actual_value[0].real, places=5)
         # - 1 eigenstate
         wave_function = QuantumCircuit(qr)
         wave_function.x(qr[0])
         wave_function.h(qr[0])
         wave_function.s(qr[0])
-        circuits = op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=False)
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
         result = self.quantum_instance_qasm.execute(circuits)
-        actual_value = op.evaluate_with_result(result=result, is_statevector=False)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=False)
         self.assertAlmostEqual(-1.0, actual_value[0].real, places=5)
 
         # Z
@@ -335,41 +334,98 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         qr = QuantumRegister(1, name='q')
         wave_function = QuantumCircuit(qr)
         # + 1 eigenstate
-        circuits = op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=False)
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
         result = self.quantum_instance_qasm.execute(circuits)
-        actual_value = op.evaluate_with_result(result=result, is_statevector=False)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=False)
         self.assertAlmostEqual(1.0, actual_value[0].real, places=5)
         # - 1 eigenstate
         wave_function = QuantumCircuit(qr)
         wave_function.x(qr[0])
-        circuits = op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=False)
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
         result = self.quantum_instance_qasm.execute(circuits)
-        actual_value = op.evaluate_with_result(result=result, is_statevector=False)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=False)
+        self.assertAlmostEqual(-1.0, actual_value[0].real, places=5)
+
+    def test_evaluate_single_pauli_statevector(self):
+        # X
+        op = WeightedPauliOperator.from_list([Pauli.from_label('X')])
+        qr = QuantumRegister(1, name='q')
+        wave_function = QuantumCircuit(qr)
+        # + 1 eigenstate
+        wave_function.h(qr[0])
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
+        result = self.quantum_instance_statevector.execute(circuits)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=True)
+        self.assertAlmostEqual(1.0, actual_value[0].real, places=5)
+        # - 1 eigenstate
+        wave_function = QuantumCircuit(qr)
+        wave_function.x(qr[0])
+        wave_function.h(qr[0])
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
+        result = self.quantum_instance_statevector.execute(circuits)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=True)
+        self.assertAlmostEqual(-1.0, actual_value[0].real, places=5)
+
+        # Y
+        op = WeightedPauliOperator.from_list([Pauli.from_label('Y')])
+        qr = QuantumRegister(1, name='q')
+        wave_function = QuantumCircuit(qr)
+        # + 1 eigenstate
+        wave_function.h(qr[0])
+        wave_function.s(qr[0])
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
+        result = self.quantum_instance_statevector.execute(circuits)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=True)
+        self.assertAlmostEqual(1.0, actual_value[0].real, places=5)
+        # - 1 eigenstate
+        wave_function = QuantumCircuit(qr)
+        wave_function.x(qr[0])
+        wave_function.h(qr[0])
+        wave_function.s(qr[0])
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
+        result = self.quantum_instance_statevector.execute(circuits)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=True)
+        self.assertAlmostEqual(-1.0, actual_value[0].real, places=5)
+
+        # Z
+        op = WeightedPauliOperator.from_list([Pauli.from_label('Z')])
+        qr = QuantumRegister(1, name='q')
+        wave_function = QuantumCircuit(qr)
+        # + 1 eigenstate
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
+        result = self.quantum_instance_statevector.execute(circuits)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=True)
+        self.assertAlmostEqual(1.0, actual_value[0].real, places=5)
+        # - 1 eigenstate
+        wave_function = QuantumCircuit(qr)
+        wave_function.x(qr[0])
+        circuits = op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
+        result = self.quantum_instance_statevector.execute(circuits)
+        actual_value = op.evaluate_with_result(result=result, statevector_mode=True)
         self.assertAlmostEqual(-1.0, actual_value[0].real, places=5)
 
     def test_evaluate_qasm_mode(self):
         wave_function = self.var_form.construct_circuit(np.array(np.random.randn(self.var_form.num_parameters)))
 
-        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=True)
+        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
         reference = self.qubit_op.evaluate_with_result(result=self.quantum_instance_statevector.execute(circuits),
-                                                       is_statevector=True)
-        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=False)
+                                                       statevector_mode=True)
+        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
         result = self.quantum_instance_qasm.execute(circuits)
-        actual_value = self.qubit_op.evaluate_with_result(result=result, is_statevector=False)
+        actual_value = self.qubit_op.evaluate_with_result(result=result, statevector_mode=False)
 
-        self.assertGreaterEqual(reference[0].real, actual_value[0].real - actual_value[1].real)
-        self.assertLessEqual(reference[0].real, actual_value[0].real + actual_value[1].real)
+        self.assertGreaterEqual(reference[0].real, actual_value[0].real - 3 * actual_value[1].real)
+        self.assertLessEqual(reference[0].real, actual_value[0].real + 3 * actual_value[1].real)
 
     def test_evaluate_statevector_mode(self):
         wave_function = self.var_form.construct_circuit(np.array(np.random.randn(self.var_form.num_parameters)))
         wave_fn_statevector = self.quantum_instance_statevector.execute(wave_function).get_statevector(wave_function)
         # use matrix operator as reference:
-        op_matrix = op_converter.to_matrix_operator(self.qubit_op)
-        reference = op_matrix.evaluate_with_statevector(wave_fn_statevector)
+        reference = self.qubit_op.evaluate_with_statevector(wave_fn_statevector)
 
-        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=True)
+        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
         actual_value = self.qubit_op.evaluate_with_result(result=self.quantum_instance_statevector.execute(circuits),
-                                                          is_statevector=True)
+                                                          statevector_mode=True)
         self.assertAlmostEqual(reference[0], actual_value[0], places=10)
 
     def test_evaluate_with_aer_mode(self):
@@ -384,11 +440,11 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
 
         wave_function = self.var_form.construct_circuit(np.array(np.random.randn(self.var_form.num_parameters)))
 
-        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=True)
+        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True)
         reference = self.qubit_op.evaluate_with_result(result=quantum_instance_statevector.execute(circuits),
-                                                       is_statevector=True)
+                                                       statevector_mode=True)
 
-        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, is_statevector=True,
+        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=True,
                                                               use_simulator_operator_mode=True)
         extra_args = {
             'expectation': {
@@ -396,7 +452,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
                 'num_qubits': self.qubit_op.num_qubits}
         }
         actual_value = self.qubit_op.evaluate_with_result(result=quantum_instance_statevector.execute(circuits, **extra_args),
-                                                          is_statevector=True,
+                                                          statevector_mode=True,
                                                           use_simulator_operator_mode=True)
         self.assertAlmostEqual(reference[0], actual_value[0], places=10)
 
@@ -410,7 +466,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         paulis = [Pauli.from_label(pauli_label) for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
         weights = np.random.random(len(paulis))
         pauli_op = WeightedPauliOperator.from_list(paulis, weights)
-        matrix_op = pauli_op.to_matrix_operator()
+        matrix_op = op_converter.to_matrix_operator(pauli_op)
         state_in = Custom(num_qubits, state='random')
 
         # get the exact state_out from raw matrix multiplication
