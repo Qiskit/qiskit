@@ -20,10 +20,10 @@ controlled-H gate.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.t import TGate
+from qiskit.extensions.standard.t import TdgGate
 from qiskit.extensions.standard.s import SGate
 from qiskit.extensions.standard.s import SdgGate
 
@@ -38,13 +38,13 @@ class CHGate(Gate):
     def _define(self):
         """
         gate ch a,b {
-        s b;
-        h b;
-        t b;
-        cx a, b;
-        tdg b;
-        h b;
-        sdg b;
+            s b;
+            h b;
+            t b;
+            cx a, b;
+            tdg b;
+            h b;
+            sdg b;
         }
         """
         definition = []
@@ -65,6 +65,13 @@ class CHGate(Gate):
     def inverse(self):
         """Invert this gate."""
         return CHGate()  # self-inverse
+
+    def to_matrix(self):
+        """Return a Numpy.array for the Ch gate."""
+        return numpy.array([[1, 0, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 0, 0.707, 0.707],
+                            [0, 0, 0.707, -0.707]], dtype=complex)
 
 
 def ch(self, ctl, tgt):
