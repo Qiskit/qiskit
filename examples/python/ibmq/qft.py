@@ -23,6 +23,8 @@ from qiskit.providers.ibmq import least_busy, IBMQ
 ###############################################################
 # make the qft
 ###############################################################
+
+
 def input_state(circ, n):
     """n-qubit input state for QFT that produces output 1."""
     for j in range(n):
@@ -70,7 +72,7 @@ print(qft5)
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-provider = IBMQ.load_accounts()
+provider = IBMQ.load_account()
 
 # Second version: real device
 least_busy_device = least_busy(
