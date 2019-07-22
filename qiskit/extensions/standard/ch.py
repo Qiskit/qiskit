@@ -17,6 +17,8 @@
 """
 controlled-H gate.
 """
+import numpy
+
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
