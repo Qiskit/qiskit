@@ -18,6 +18,7 @@
 """Main Qiskit public functionality."""
 
 import pkgutil
+import warnings
 
 # First, check for required Python and API version
 from . import util
@@ -50,11 +51,18 @@ from qiskit.providers.basicaer import BasicAer
 try:
     from qiskit.providers.aer import Aer
 except ImportError:
+    warnings.warn('The qiskit-aer package was not importable and qiskit.Aer '
+                  'will not be accessible. If you installed qiskit-aer package'
+                  ' already check your installation')
     pass
 # Try to import the IBMQ provider if installed.
 try:
     from qiskit.providers.ibmq import IBMQ
 except ImportError:
+    warnings.warn('The qiskit-ibmq-provider package was not importable and '
+                  'qiskit.IBMQ will not be accessible. If you installed '
+                  'qiskit-ibmq-provider package already check your '
+                  'installation')
     pass
 
 from .version import __version__
