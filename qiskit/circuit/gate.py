@@ -15,7 +15,7 @@
 """
 Unitary gate.
 """
-
+from scipy.linalg import sqrtm
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
 
@@ -44,6 +44,17 @@ class Gate(Instruction):
         will be raised when this base class method is called.
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
+
+    def sqrt(self):
+        """
+        Applies square root to the gate.
+        Returns:
+            UnitaryGate: A unitary gate which matrix representation
+                         is the square root of self's.
+        """
+        from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        sqrt_matrix = sqrtm(self.to_matrix())
+        return UnitaryGate(sqrt_matrix)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
