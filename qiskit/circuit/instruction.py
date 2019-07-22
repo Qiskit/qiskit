@@ -344,7 +344,14 @@ class Instruction:
 
         Returns:
             Instruction: Containing the definition.
+
+        Raises:
+            QiskitError: If called by a non-integer exponent.
         """
+        if int(exponent) != exponent:
+            raise QiskitError("Instruction only supports integer exponentiation.")
+        exponent = int(exponent)
+
         instruction = Instruction(name="%s^%s" % (self.name, exponent),
                                   num_qubits=self.num_qubits,
                                   num_clbits=self.num_clbits,

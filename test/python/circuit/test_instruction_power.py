@@ -16,6 +16,7 @@
 """Test Qiskit's power instruction operation."""
 
 import unittest
+from ddt import ddt, data
 from numpy import pi, array
 from numpy.testing import assert_allclose
 from numpy.linalg import matrix_power
@@ -25,9 +26,6 @@ from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate
 from qiskit.transpiler.passes import Unroller
-
-ATOL = 1e-8
-RTOL = 1e-7
 
 
 class TestPowerInt(QiskitTestCase):
@@ -177,8 +175,8 @@ class TestPowerUnroller(QiskitTestCase):
         self.assertEqual(result, expected)
 
 
-class TestGateFloat(QiskitTestCase):
-    """Test Gate.power() with float"""
+class TestGateSqrt(QiskitTestCase):
+    """Test square root using Gate.power()"""
 
     def test_unitary_sqrt(self):
         """Test UnitaryGate.power(1/2) method.
@@ -190,7 +188,7 @@ class TestGateFloat(QiskitTestCase):
         assert_allclose(result.to_matrix(), expected)
 
     def test_starndard_sqrt(self):
-        """Test standard Gate.sqrt() method.
+        """Test standard Gate.power(1/2) method.
         """
         expected = array([[1 + 0.j, 0 + 0.j],
                           [0 + 0.j, 0.70710678 + 0.70710678j]])
@@ -199,13 +197,21 @@ class TestGateFloat(QiskitTestCase):
         assert_allclose(result.to_matrix(), expected)
 
 
-class TestGateSqrt(QiskitTestCase):
-    def test_sqrt(self):
-        for degree in range(2, 10):
-            result = SGate().power(1 / degree)
-            self.assertEqual(result.name, 'unitary')
-            assert_allclose(matrix_power(result.to_matrix(), degree), SGate().to_matrix(), rtol=RTOL,
-                            atol=ATOL)
+@ddt
+class TestGateFloat(QiskitTestCase):
+    """Test power generalization to root calculation"""
+
+    @data(2, 3, 4, 5, 6, 7, 8, 9)
+    def test_direct_root(self, degree):
+        result = SGate().power(1 / degree)
+        self.assertEqual(result.name, 'unitary')
+        assert_allclose(matrix_power(result.to_matrix(), degree), SGate().to_matrix())
+
+    @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8)
+    def test_float_gt_one(self, exponent):
+        result = SGate().power(exponent)
+        self.assertEqual(result.name, 'unitary')
+        assert_allclose(SGate().to_matrix()**exponent, result.to_matrix())
 
 
 if __name__ == '__main__':

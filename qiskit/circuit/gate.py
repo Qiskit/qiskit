@@ -51,7 +51,7 @@ class Gate(Instruction):
 
     def power(self, exponent):
         if int(exponent) == exponent:
-            return super().power(int(exponent))
+            return super().power(exponent)
 
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         # Should be diagonalized because it's a unitary.
