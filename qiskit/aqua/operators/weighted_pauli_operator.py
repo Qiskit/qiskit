@@ -895,7 +895,7 @@ class WeightedPauliOperator(BaseOperator):
         self._z2_symmetries = Z2Symmetries.find_Z2_symmetries(self)
 
         return self._z2_symmetries.symmetries, self._z2_symmetries.sq_pauli, \
-               self._z2_symmetries.cliffords, self._z2_symmetries.sq_list
+            self._z2_symmetries.cliffords, self._z2_symmetries.sq_list
 
     @classmethod
     def load_from_file(cls, file_name, before_04=False):
