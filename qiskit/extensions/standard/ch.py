@@ -38,32 +38,25 @@ class CHGate(Gate):
     def _define(self):
         """
         gate ch a,b {
+        s b;
+        h b;
+        t b;
+        cx a, b;
+        tdg b;
         h b;
         sdg b;
-        cx a,b;
-        h b;
-        t b;
-        cx a,b;
-        t b;
-        h b;
-        s b;
-        x b;
-        s a;}
+        }
         """
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (HGate(), [q[1]], []),
-            (SdgGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (HGate(), [q[1]], []),
-            (TGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (TGate(), [q[1]], []),
-            (HGate(), [q[1]], []),
             (SGate(), [q[1]], []),
-            (XGate(), [q[1]], []),
-            (SGate(), [q[0]], [])
+            (HGate(), [q[1]], []),
+            (TGate(), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (TdgGate(), [q[1]], []),
+            (HGate(), [q[1]], []),
+            (SdgGate(), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
