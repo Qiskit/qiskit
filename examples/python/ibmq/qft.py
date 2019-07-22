@@ -17,7 +17,7 @@ Quantum Fourier Transform examples.
 """
 
 import math
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, execute
 from qiskit.providers.ibmq import least_busy, IBMQ
 
 ###############################################################
@@ -70,11 +70,12 @@ print(qft5)
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-IBMQ.load_accounts()
+provider = IBMQ.load_accounts()
 
 # Second version: real device
-least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration().n_qubits > 4))
+least_busy_device = least_busy(
+    provider.backends(simulator=False,
+                      filters=lambda x: x.configuration().n_qubits > 4))
 print("Running on current least busy device: ", least_busy_device)
 job = execute([qft3, qft4, qft5], least_busy_device, shots=1024)
 result = job.result()
