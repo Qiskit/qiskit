@@ -563,7 +563,7 @@ class WeightedPauliOperator(BaseOperator):
             AquaError: Can not find quantum register with `q` as the name and do not provide
                        quantum register explicitly
             AquaError: The provided qr is not in the input_circuit
-            AquaError: Neither backend nor is_statevector is provided
+            AquaError: Neither backend nor statevector_mode is provided
         """
         if operator_mode is not None:
             warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
@@ -588,11 +588,11 @@ class WeightedPauliOperator(BaseOperator):
 
         if backend is not None:
             warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "Use `is_statevector` instead", DeprecationWarning)
+                          "Use `statevector_mode` instead", DeprecationWarning)
             statevector_mode = is_statevector_backend(backend)
         else:
             if statevector_mode is None:
-                raise AquaError("Either backend or is_statevector need to be provided.")
+                raise AquaError("Either backend or statevector_mode need to be provided.")
 
         n_qubits = self.num_qubits
         circuits = []
@@ -694,11 +694,11 @@ class WeightedPauliOperator(BaseOperator):
         avg, std_dev, variance = 0.0, 0.0, 0.0
         if backend is not None:
             warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "Use `is_statevector` instead", DeprecationWarning)
+                          "Use `statevector_mode` instead", DeprecationWarning)
             statevector_mode = is_statevector_backend(backend)
         else:
             if statevector_mode is None:
-                raise AquaError("Either backend or is_statevector need to be provided.")
+                raise AquaError("Either backend or statevector_mode need to be provided.")
 
         if statevector_mode:
             if use_simulator_operator_mode:
@@ -777,7 +777,7 @@ class WeightedPauliOperator(BaseOperator):
 
         return self._paulis
 
-    def evolve(self, state_in=None, evo_time=0, num_time_slices=1, quantum_registers=None,
+    def evolve(self, state_in=None, evo_time=0, evo_mode=None, num_time_slices=1, quantum_registers=None,
                expansion_mode='trotter', expansion_order=1):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
@@ -799,6 +799,11 @@ class WeightedPauliOperator(BaseOperator):
 
         """
         # pylint: disable=no-member
+        if evo_mode is not None:
+            warnings.warn("evo_mode option is deprecated and it will be removed after 0.6, "
+                          "Every operator knows which mode is using, not need to indicate the mode.",
+                          DeprecationWarning)
+
         if num_time_slices <= 0 or not isinstance(num_time_slices, int):
             raise ValueError('Number of time slices should be a non-negative integer.')
         if expansion_mode not in ['trotter', 'suzuki']:
