@@ -26,13 +26,13 @@ as a level 1 user.
 import time
 
 # Import the Qiskit modules
-from qiskit import QuantumCircuit, QiskitError
+from qiskit import QuantumCircuit
 from qiskit import execute, IBMQ, BasicAer
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
 
 
-IBMQ.load_accounts()
+provider = IBMQ.load_account()
 
 
 # making first circuit: bell state
@@ -65,7 +65,7 @@ print(IBMQ.backends())
 # Compile and run on a real device backend
 try:
     # select least busy available device and execute.
-    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+    least_busy_device = least_busy(provider.backends(simulator=False))
 except:
     print("All devices are currently unavailable.")
 
