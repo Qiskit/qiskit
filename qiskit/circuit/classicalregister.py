@@ -18,9 +18,8 @@ Classical register reference object.
 import itertools
 
 from qiskit.exceptions import QiskitError
-from .register import Register
+from .register import Register, _check_register_name
 from .bit import Bit
-from .quantumcircuit import _check_register_name
 
 
 class Clbit(Bit):
