@@ -18,7 +18,6 @@ Assertion of classical states.
 import numpy as np
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
-from qiskit.assertions.assertmanager import AssertManager
 from qiskit.assertions.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -29,12 +28,9 @@ class AssertClassical(Asserts):
         Assertion of classical states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, qubit, cbit, pcrit, expval):
-        super().__init__()
+    def __init__(self, qubit, cbit, pcrit, expval, negate):
+        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate)
         self._expval = expval if expval==None or isinstance(expval, int) else int(expval, 2)
-        self._pcrit = pcrit
-        self._qubit = AssertManager.syntax4measure(qubit)
-        self._cbit = AssertManager.syntax4measure(cbit)
         if expval!=None and not self._expval in range(0, 2**len(self._cbit)):
             raise QiskitError("AssertClassical expected value %d not in range for %d cbits" % (self._expval, len(self._cbit)))
 
@@ -80,18 +76,20 @@ def assert_classical(self, qubit, cbit, pcrit=0.05, expval=None):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    theClone = self.copy(AssertManager.breakpoint_name())
-    assertion = AssertClassical(qubit, cbit, pcrit, expval)
+    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    assertion = AssertClassical(qubit, cbit, pcrit, expval, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
-    AssertManager.StatOutputs[theClone.name] = {"type":"Classical", "expval":expval, \
-        "qubit":assertion._qubit, "cbit":assertion._cbit}
+    # AssertManager.StatOutputs[theClone.name] = {"type":"Classical", "expval":expval, \
+        # "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
 QuantumCircuit.assert_classical = assert_classical
 
 def assert_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
-    theClone = assert_classical(self, qubit, cbit, pcrit, expval)
-    AssertManager.StatOutputs[theClone.name]["type"] = "Not Classical"
+    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    assertion = AssertClassical(qubit, cbit, pcrit, expval, True)
+    theClone.append(assertion, [assertion._qubit], [assertion._cbit])
+    # AssertManager.StatOutputs[theClone.name]["type"] = "Not Classical"
     return theClone
 
 QuantumCircuit.assert_not_classical = assert_not_classical

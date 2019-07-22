@@ -17,16 +17,15 @@
 # Import Qiskit
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, IBMQ, BasicAer
+from qiskit.assertions import AssertProduct
 from qiskit.providers.ibmq import least_busy
-from qiskit.assertions.asserts import Asserts
-from qiskit.assertions.assertmanager import AssertManager
 
 # Authenticate for access to remote backends
 try:
     IBMQ.load_accounts()
 except:
-    print("""WARNING: No valid IBMQ credentials found on disk. 
-             You must store your credentials using IBMQ.save_account(token, url). 
+    print("""WARNING: No valid IBMQ credentials found on disk.
+             You must store your credentials using IBMQ.save_account(token, url).
              For now, there's only access to local simulator backends...""")
 
 # Create a Quantum Circuit
@@ -53,9 +52,10 @@ job_sim = execute([breakpoint, qc], backend_sim)
 result_sim = job_sim.result()
 
 # Show the assertion
-stat_outputs = AssertManager.stat_collect(breakpoint, result_sim)
+# stat_outputs = AssertManager.stat_collect(breakpoint, result_sim)
 print("Full results of our assertion:")
-print(stat_outputs)
+print(result_sim.get_assertion_passed(breakpoint))
+assert ( result_sim.get_assertion_passed(breakpoint) )
 
 # Show the results
 print(result_sim.get_counts(qc))

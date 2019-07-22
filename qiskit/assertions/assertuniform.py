@@ -17,7 +17,6 @@ Assertion of uniform states.
 """
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
-from qiskit.assertions.assertmanager import AssertManager
 from qiskit.assertions.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -28,11 +27,8 @@ class AssertUniform(Asserts):
         Assertion of uniform states and quantum measurement
         in the computational basis.
     """
-    def __init__(self, qubit, cbit, pcrit):
-        super().__init__()
-        self._pcrit = pcrit
-        self._qubit = AssertManager.syntax4measure(qubit)
-        self._cbit = AssertManager.syntax4measure(cbit)
+    def __init__(self, qubit, cbit, pcrit, negate):
+        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate)
 
     def stat_test(self, counts):
         # chi-squared statistical test to assert
@@ -46,7 +42,6 @@ class AssertUniform(Asserts):
         else:
             passed = False
         return (chisq, pval, passed)
-
 
 def assert_uniform(self, qubit, cbit, pcrit=0.05):
     """Create uniform assertion
@@ -63,18 +58,20 @@ def assert_uniform(self, qubit, cbit, pcrit=0.05):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    theClone = self.copy(AssertManager.breakpoint_name())
-    assertion = AssertUniform(qubit, cbit, pcrit)
+    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    assertion = AssertUniform(qubit, cbit, pcrit, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
-    AssertManager.StatOutputs[theClone.name] = {"type":"Uniform", \
-        "qubit":assertion._qubit, "cbit":assertion._cbit}
+    # AssertManager.StatOutputs[theClone.name] = {"type":"Uniform", \
+        # "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
 QuantumCircuit.assert_uniform = assert_uniform
 
 def assert_not_uniform(self, qubit, cbit, pcrit=0.05):
-    theClone = assert_uniform(self, qubit, cbit, pcrit)
-    AssertManager.StatOutputs[theClone.name]["type"] = "Not Uniform"
+    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    assertion = AssertUniform(qubit, cbit, pcrit, True)
+    theClone.append(assertion, [assertion._qubit], [assertion._cbit])
+    # AssertManager.StatOutputs[theClone.name]["type"] = "Not Uniform"
     return theClone
 
 QuantumCircuit.assert_not_uniform = assert_not_uniform

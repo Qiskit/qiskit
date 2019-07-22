@@ -23,8 +23,7 @@ used `pip install`, the examples only work from the root directory.
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
 from qiskit import execute
-from qiskit.assertions.asserts import Asserts
-from qiskit.assertions.assertmanager import AssertManager
+# from qiskit.assertions.asserts import Asserts
 
 ###############################################################
 # Set the backend name and coupling map.
@@ -97,7 +96,10 @@ job = execute(breakpoints + [qc], backend=backend, coupling_map=None, shots=1024
                     initial_layout=initial_layout)
 result = job.result()
 print(result.get_counts(qc))
-stat_outputs = AssertManager.stat_collect(breakpoints, result)
+assert ( result.get_assertion_passed(breakpoints[0]) )
+assert ( result.get_assertion_passed(breakpoints[1]) )
+assert ( result.get_assertion_passed(breakpoints[2]) )
+# stat_outputs = AssertManager.stat_collect(breakpoints, result)
 # print("Full results of our assertions, run with no coupling map:")
 # print(stat_outputs)
 
@@ -106,8 +108,11 @@ job = execute(breakpoints + [qc], backend=backend, coupling_map=coupling_map, sh
               initial_layout=initial_layout)
 result = job.result()
 print(result.get_counts(qc))
-stat_outputs = AssertManager.stat_collect(breakpoints, result)
-print("Full results of our assertions, run with a coupling map:")
-print(stat_outputs)
+assert ( result.get_assertion_passed(breakpoints[0]) )
+assert ( result.get_assertion_passed(breakpoints[1]) )
+assert ( result.get_assertion_passed(breakpoints[2]) )
+# stat_outputs = AssertManager.stat_collect(breakpoints, result)
+# print("Full results of our assertions, run with a coupling map:")
+# print(stat_outputs)
 
 print("\nBoth results should give the same distribution, and therefore the same assertion results.")

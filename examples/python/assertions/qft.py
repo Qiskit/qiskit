@@ -19,8 +19,7 @@ Quantum Fourier Transform examples with added assertions.
 import math
 from qiskit import QuantumCircuit
 from qiskit import execute, BasicAer
-from qiskit.assertions.asserts import Asserts
-from qiskit.assertions.assertmanager import AssertManager
+# from qiskit.assertions.asserts import Asserts
 
 ###############################################################
 # make the qft
@@ -78,7 +77,9 @@ result = job.result()
 
 # We obtain a dictionary of the results from each of our statistical tests
 # The line below also prints to command line whether the assertion passed or failed.
-stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
+# stat_outputs = AssertManager.stat_collect([breakpoint1, breakpoint2], result)
+assert ( result.get_assertion_passed(breakpoint1) )
+assert ( result.get_assertion_passed(breakpoint2) )
 # print("Full results of our assertion:")
 # print(stat_outputs)
 
