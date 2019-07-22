@@ -150,7 +150,7 @@ class BaseOperator(ABC):
                       DeprecationWarning)
         from .op_converter import to_tpb_grouped_weighted_pauli_operator
         from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
-        return to_tpb_grouped_weighted_pauli_operator(grouping_func=TPBGroupedWeightedPauliOperator.sorted_grouping)
+        return to_tpb_grouped_weighted_pauli_operator(self, grouping_func=TPBGroupedWeightedPauliOperator.sorted_grouping)
 
     def to_paulis(self):
         warnings.warn("to_paulis method is deprecated and it will be removed after 0.6. "
