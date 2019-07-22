@@ -35,7 +35,10 @@ def get_unique_backends():
     Raises:
         QiskitError: No backends available.
     """
-    backends = IBMQ.backends()
+    backends = []
+    for provider in IBMQ.providers():
+        for backend in provider.backends():
+            backends.append(backend)
     unique_hardware_backends = []
     unique_names = []
     for back in backends:

@@ -191,6 +191,7 @@ class TestUnroller(QiskitTestCase):
         ref_circuit.u3(0, 0, -pi/4, qr[0])
         ref_circuit.u3(0, 0, pi/4, qr[1])
         ref_circuit.cx(qr[1], qr[0])
+        ref_circuit.u3(0, 0, 0.05, qr[1])
         ref_circuit.u3(0, 0, pi/4, qr[2])
         ref_circuit.u3(pi/2, 0, pi, qr[2])
         ref_circuit.cx(qr[2], qr[0])
