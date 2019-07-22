@@ -15,7 +15,6 @@
 """
 Unitary gate.
 """
-from typing import Union
 
 import numpy as np
 from scipy.linalg import schur
@@ -50,16 +49,17 @@ class Gate(Instruction):
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
-    def pow(self, power: Union[int, float]):
-        """
-        Computes integer or float powers of the given gate.
-        """
+    def power(self, exponent):
+        if int(exponent) == exponent:
+            return super().power(int(exponent))
+
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
-        D, V = schur(self.to_matrix(), output='complex')  # Should be diagonalized because it's a unitary.
+        # Should be diagonalized because it's a unitary.
+        D, V = schur(self.to_matrix(), output='complex')
         # Raise the diagonal entries to the specified power
         Dpow = list()
         for el in D.diagonal():  # assert off-diagonal are 0
-            Dpow.append(pow(el, power))
+            Dpow.append(pow(el, exponent))
         # Then reconstruct the resulting gate.
         Upow = V @ np.diag(Dpow) @ V.conj().T
         return UnitaryGate(Upow)

@@ -16,13 +16,18 @@
 """Test Qiskit's power instruction operation."""
 
 import unittest
-from numpy import pi, array, allclose
+from numpy import pi, array
+from numpy.testing import assert_allclose
+from numpy.linalg import matrix_power
 
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate
 from qiskit.transpiler.passes import Unroller
+
+ATOL = 1e-8
+RTOL = 1e-7
 
 
 class TestPowerInt(QiskitTestCase):
@@ -170,6 +175,37 @@ class TestPowerUnroller(QiskitTestCase):
         expected.append(U3Gate(0, 0, -pi / 2), qr[:])
 
         self.assertEqual(result, expected)
+
+
+class TestGateFloat(QiskitTestCase):
+    """Test Gate.power() with float"""
+
+    def test_unitary_sqrt(self):
+        """Test UnitaryGate.power(1/2) method.
+        """
+        expected = array([[0.5 + 0.5j, 0.5 + 0.5j],
+                          [-0.5 - 0.5j, 0.5 + 0.5j]])
+        result = UnitaryGate([[0, 1j], [-1j, 0]]).power(1 / 2)
+        self.assertEqual(result.name, 'unitary')
+        assert_allclose(result.to_matrix(), expected)
+
+    def test_starndard_sqrt(self):
+        """Test standard Gate.sqrt() method.
+        """
+        expected = array([[1 + 0.j, 0 + 0.j],
+                          [0 + 0.j, 0.70710678 + 0.70710678j]])
+        result = SGate().power(1 / 2)
+        self.assertEqual(result.name, 'unitary')
+        assert_allclose(result.to_matrix(), expected)
+
+
+class TestGateSqrt(QiskitTestCase):
+    def test_sqrt(self):
+        for degree in range(2, 10):
+            result = SGate().power(1 / degree)
+            self.assertEqual(result.name, 'unitary')
+            assert_allclose(matrix_power(result.to_matrix(), degree), SGate().to_matrix(), rtol=RTOL,
+                            atol=ATOL)
 
 
 if __name__ == '__main__':
