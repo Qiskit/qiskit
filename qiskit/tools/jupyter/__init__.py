@@ -37,11 +37,11 @@ except ImportError:
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
+    _IP.register_magics(VersionTable)
+    _IP.register_magics(Copyright)
+    _IP.register_magics(JobWatcherMagic)
     if HAS_MATPLOTLIB:
         _IP.register_magics(BackendOverview)
-        _IP.register_magics(VersionTable)
-        _IP.register_magics(Copyright)
-        _IP.register_magics(JobWatcherMagic)
         if HAS_IBMQ:
             HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
             # Make _backend_monitor the html repr for IBM Q backends
