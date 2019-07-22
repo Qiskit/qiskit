@@ -357,7 +357,7 @@ class Instruction:
         elif exponent < 0:
             sub_instruction = (self.inverse(), qargs[:], cargs[:])
         else:
-            from qiskit.extensions.standard.u3 import U3Gate  # pylint: cyclic-import
+            from qiskit.extensions.standard.u3 import U3Gate  # pylint: disable=cyclic-import
             instruction.definition = [(U3Gate(0, 0, 0), qargs[:], cargs[:])]
             return instruction
 
