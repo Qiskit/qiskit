@@ -16,17 +16,17 @@
 """Test Qiskit's power instruction operation."""
 
 import unittest
-from numpy import pi
+from numpy import pi, array, allclose
 
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.extensions.standard import SGate, SdgGate, U3Gate
+from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate
 from qiskit.transpiler.passes import Unroller
 
 
-class TestPower(QiskitTestCase):
-    """Test Gate.power"""
+class TestPowerInt(QiskitTestCase):
+    """Test Instruction.power() with integer"""
 
     def test_standard_1Q_two(self):
         """Test standard gate.power(2) method.
