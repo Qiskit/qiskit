@@ -17,31 +17,36 @@
 
 import unittest
 import numpy
+from numpy.testing import assert_allclose
+from numpy.linalg import matrix_power
 
-from qiskit.extensions import UnitaryGate, SGate
+from qiskit.extensions import UnitaryGate, SGate, YGate
 from qiskit.test import QiskitTestCase
 
+ATOL = 1e-8
+RTOL = 1e-7
 
 class TestGateSqrt(QiskitTestCase):
     """Test Gate.sqrt()"""
 
-    def test_unitary(self):
-        """Test UnitaryGate.sqrt() method.
+    def test_pauliy_roots(self):
         """
-        expected = numpy.array([[0.5 + 0.5j, 0.5 + 0.5j],
-                                [-0.5 - 0.5j, 0.5 + 0.5j]])
-        result = UnitaryGate([[0, 1j], [-1j, 0]]).sqrt()
-        self.assertEqual(result.name, 'unitary')
-        self.assertTrue(numpy.allclose(result.to_matrix(), expected))
+        Test whether roots of pauli-Y are found.
 
-    def test_starndard(self):
-        """Test standard Gate.sqrt() method.
+        We test a range of roots, for 1/x where x \in [1,10]
         """
-        expected = numpy.array([[1 + 0.j, 0 + 0.j],
-                                [0 + 0.j, 0.70710678 + 0.70710678j]])
-        result = SGate().sqrt()
+        for x in range(1, 10):
+            result = YGate().pow(1/x)
+            self.assertEqual(result.name, 'unitary')
+            assert_allclose(matrix_power(result.to_matrix(), x), YGate().to_matrix(), rtol=RTOL, atol=ATOL)
+
+    def test_inverse_sgate(self):
+        """
+        Test whether inverse of Sgate is found
+        """
+        result = SGate().pow(-1)
         self.assertEqual(result.name, 'unitary')
-        self.assertTrue(numpy.allclose(result.to_matrix(), expected))
+        assert_allclose(result.to_matrix() @ SGate().to_matrix(), numpy.identity(2), rtol=RTOL, atol=ATOL)
 
 
 if __name__ == '__main__':
