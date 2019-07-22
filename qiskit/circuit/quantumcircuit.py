@@ -29,7 +29,7 @@ from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
 from .parametervector import ParameterVector
 from .instructionset import InstructionSet
-from .register import Register
+from .register import Register, _check_register_name
 from .bit import Bit
 
 
@@ -495,38 +495,46 @@ class QuantumCircuit:
         """Return Qiskit string."""
         string_temp = ""
         start = True
-        def_string = "qc = QuantumCircuit("
+        def_string = "gcn_qc = QuantumCircuit("
         for register in self.qregs + self.cregs:
             string_temp += register.qiskit_code() + "\n"
             if start:
-                def_string += register.name
+                def_string += _check_register_name(register.name)
                 start = False
             else:
-                def_string += ", " + register.name
+                def_string += ", " + _check_register_name(register.name)
         string_temp += def_string + ")\n"
         for instruction, qargs, cargs in self.data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
-                string_temp += "qc.%s%s[%d], %s[%d])" % (instruction.qiskit_code(),
-                                                         qubit.register.name, qubit.index,
-                                                         clbit.register.name, clbit.index)
+                string_temp += "gcn_qc.%s%s[%d], %s[%d])" % \
+                               (instruction.qiskit_code(),
+                                _check_register_name(qubit.register.name),
+                                qubit.index,
+                                _check_register_name(clbit.register.name),
+                                clbit.index)
             elif instruction.name == 'unitary':
                 matrix = instruction.params[0]
                 string_temp += "matrix = np."+repr(matrix)+"\n"
                 label_string = ""
                 if instruction.label is not None:
                     label_string += ", label='%s'" % instruction.label
-                string_temp += "qc.append(UnitaryGate(matrix" + label_string + \
-                               "), [%s])" % (", ".join(["%s[%d]" % (j.register.name, j.index)
+                string_temp += "gcn_qc.append(UnitaryGate(matrix" + label_string + \
+                               "), [%s])" % (", ".join(["%s[%d]" %
+                                                        (_check_register_name(j.register.name),
+                                                         j.index)
                                                         for j in qargs + cargs]))
             else:
-                string_temp += "qc.%s%s)" % (instruction.qiskit_code(),
-                                             ", ".join(["%s[%d]" % (j.register.name, j.index)
-                                                        for j in qargs + cargs]))
+                string_temp += "gcn_qc.%s%s)" % (instruction.qiskit_code(),
+                                                 ", ".join(["%s[%d]" %
+                                                            (_check_register_name(j.register.name),
+                                                             j.index)
+                                                            for j in qargs + cargs]))
             if instruction.control is not None:
-                string_temp += ".c_if(%s, %d)\n" % (instruction.control[0].name,
-                                                    instruction.control[1])
+                string_temp += ".c_if(%s, %d)\n" % \
+                               (_check_register_name(instruction.control[0].name),
+                                instruction.control[1])
             else:
                 string_temp += "\n"
         return string_temp

@@ -20,6 +20,7 @@ import itertools
 from qiskit.exceptions import QiskitError
 from .register import Register
 from .bit import Bit
+from .quantumcircuit import _check_register_name
 
 
 class Clbit(Bit):
@@ -44,7 +45,8 @@ class ClassicalRegister(Register):
 
     def qiskit_code(self):
         """Return qiskit string for this register."""
-        return "%s = ClassicalRegister(%d, '%s')" % (self.name, self.size, self.name)
+        return "%s = ClassicalRegister(%d, '%s')" % (_check_register_name(self.name),
+                                                     self.size, _check_register_name(self.name))
 
     def qasm(self):
         """Return OPENQASM string for this register."""

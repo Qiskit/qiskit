@@ -18,7 +18,7 @@ Quantum register reference object.
 import itertools
 
 from qiskit.exceptions import QiskitError
-from .register import Register
+from .register import Register, _check_register_name
 from .bit import Bit
 
 
@@ -43,7 +43,8 @@ class QuantumRegister(Register):
 
     def qiskit_code(self):
         """Return qiskit string for this register."""
-        return "%s = QuantumRegister(%d, '%s')" % (self.name, self.size, self.name)
+        return "%s = QuantumRegister(%d, '%s')" % (_check_register_name(self.name),
+                                                   self.size, _check_register_name(self.name))
 
     def qasm(self):
         """Return OPENQASM string for this register."""

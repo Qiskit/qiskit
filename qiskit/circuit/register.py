@@ -23,6 +23,17 @@ import itertools
 from qiskit.exceptions import QiskitError
 
 
+def _check_register_name(name):
+    """Return the appropriate name for a register"""
+    if name.isidentifier() and name != "gcn_qc":
+        return name
+    valid_name = "grn_"
+    for char in name:
+        if char.isalnum() or char == '_':
+            valid_name += char
+    return valid_name
+
+
 class Register:
     """Implement a generic register."""
 
