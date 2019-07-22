@@ -307,7 +307,7 @@ class Instruction:
             raise QiskitError(
                 'The amount of qubit arguments does not match the instruction expectation.')
 
-        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], r[0]], [q[1], r[1]]
+        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
         flat_cargs = [carg for sublist in cargs for carg in sublist]
         yield flat_qargs, flat_cargs
