@@ -54,8 +54,8 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
         paulis = [Pauli.from_label(pauli_label) for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
         weights = np.random.random(len(paulis))
         op = WeightedPauliOperator.from_list(paulis, weights)
-        grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(op,
-            TPBGroupedWeightedPauliOperator.sorted_grouping)
+        grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(
+            op, TPBGroupedWeightedPauliOperator.sorted_grouping)
 
         # check all paulis are still existed.
         for gp in grouped_op.paulis:
@@ -76,8 +76,8 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
         paulis = [Pauli.from_label(pauli_label) for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
         weights = np.random.random(len(paulis))
         op = WeightedPauliOperator.from_list(paulis, weights)
-        grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(op,
-            TPBGroupedWeightedPauliOperator.unsorted_grouping)
+        grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(
+            op, TPBGroupedWeightedPauliOperator.unsorted_grouping)
 
         for gp in grouped_op.paulis:
             passed = False
@@ -93,8 +93,8 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
         paulis = [Pauli.from_label(x) for x in ['IIXX', 'ZZXX', 'ZZZZ', 'XXZZ', 'XXXX', 'IXXX']]
         coeffs = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
         op = WeightedPauliOperator.from_list(paulis, coeffs)
-        grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(op,
-            TPBGroupedWeightedPauliOperator.sorted_grouping)
+        grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(
+            op, TPBGroupedWeightedPauliOperator.sorted_grouping)
 
         original_num_basis = len(grouped_op.basis)
         chopped_grouped_op = grouped_op.chop(0.35, copy=True)
