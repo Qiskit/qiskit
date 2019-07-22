@@ -89,7 +89,7 @@ class QuantumCircuit:
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
-        self.data = []
+        self._data = []
 
         # This is a map of registers bound to this circuit, by name.
         self.qregs = []
@@ -100,6 +100,36 @@ class QuantumCircuit:
         self._parameter_table = ParameterTable()
 
         self._layout = None
+
+    @property
+    def data(self):
+        """Return the circuit data (instructions and context)
+
+        Returns:
+            List: a list of the tuples for the circuit's data. Each tuple is
+               in the format (instruction, qargs, cargs). Where instruction
+               is an Instruction (or subclass) object, qargs is a list of
+               Qubit objects, and cargs is a list of Clbit objects.
+        """
+        return self._data
+
+    @data.setter
+    def data(self, data_input):
+        """Deprecated method to set circuit data list
+
+        Setting the circuit data directly is deprecated and will be removed in
+        the future. Instead you should use the circuit.append() method and
+        other circuit API methods.
+
+        Args:
+            data_input (list): A list of instructions with context
+                in the format (instruction, qargs, cargs). Where Instruction
+                is an Instruction (or subclass) object, qargs is a list of
+                Qubit objects, and cargs is a list of Clbit objects.
+        """
+        warn('Setting the circuit data directly is deprecated, use '
+             'circuit.append() instead', DeprecationWarning)
+        self._data = data_input
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -153,9 +183,9 @@ class QuantumCircuit:
             QuantumCircuit: the mirrored circuit
         """
         reverse_circ = self.copy(name=self.name + '_mirror')
-        reverse_circ.data = []
+        reverse_circ._data = []
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ.data.append((inst.mirror(), qargs, cargs))
+            reverse_circ.append((inst.mirror(), qargs, cargs))
         return reverse_circ
 
     def inverse(self):
@@ -170,9 +200,9 @@ class QuantumCircuit:
             QiskitError: if the circuit cannot be inverted.
         """
         inverse_circ = self.copy(name=self.name + '_dg')
-        inverse_circ.data = []
-        for inst, qargs, cargs in reversed(self.data):
-            inverse_circ.data.append((inst.inverse(), qargs, cargs))
+        inverse_circ._data = []
+        for inst, qargs, cargs in reversed(self._data):
+            inverse_circ._data.append((inst.inverse(), qargs, cargs))
         return inverse_circ
 
     def combine(self, rhs):
@@ -255,11 +285,11 @@ class QuantumCircuit:
 
     def __len__(self):
         """Return number of operations in circuit."""
-        return len(self.data)
+        return len(self._data)
 
     def __getitem__(self, item):
         """Return indexed operation."""
-        return self.data[item]
+        return self._data[item]
 
     @staticmethod
     def cast(value, _type):
@@ -401,7 +431,7 @@ class QuantumCircuit:
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
-        self.data.append(instruction_context)
+        self._data.append(instruction_context)
 
         # track variable parameters in instruction
         for param_index, param in enumerate(instruction.params):
@@ -516,7 +546,7 @@ class QuantumCircuit:
             string_temp += register.qasm() + "\n"
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
-        for instruction, qargs, cargs in self.data:
+        for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
@@ -609,7 +639,7 @@ class QuantumCircuit:
             int: Total number of gate operations.
         """
         gate_ops = 0
-        for instr, _, _ in self.data:
+        for instr, _, _ in self._data:
             if instr.name not in ['barrier', 'snapshot']:
                 gate_ops += 1
         return gate_ops
@@ -648,7 +678,7 @@ class QuantumCircuit:
         # We treat barriers or snapshots different as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        for instr, qargs, cargs in self.data:
+        for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
             # If count then add one to stack heights
@@ -706,7 +736,7 @@ class QuantumCircuit:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops = {}
-        for instr, _, _ in self.data:
+        for instr, _, _ in self._data:
             if instr.name in count_ops.keys():
                 count_ops[instr.name] += 1
             else:
@@ -741,7 +771,7 @@ class QuantumCircuit:
 
         # Here we are traversing the gates and looking to see
         # which of the sub_graphs the gate joins together.
-        for instr, qargs, cargs in self.data:
+        for instr, qargs, cargs in self._data:
             if unitary_only:
                 args = qargs
                 num_qargs = len(args)

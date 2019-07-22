@@ -26,6 +26,9 @@ The format is based on [Keep a Changelog].
 -   The decorator `requires_qe_access` is being deprecated in favor of
     `online_test`.
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
+-   Directly setting the circuit's internal data by setting
+    `QuantumCircuit.data` is deprecated, instead `QuantumCircuit.append`
+    and the rest of the circuit API should be used instead.
 
 ### Added
 
