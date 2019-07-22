@@ -54,7 +54,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         return self._kwargs
 
     @classmethod
-    def sorted_grouping(cls, weighted_pauli_operator, method="largest-degree", name=None):
+    def sorted_grouping(cls, weighted_pauli_operator, method="largest-degree"):
         """
         Largest-Degree First Coloring for grouping paulis.
         Args:
@@ -69,10 +69,10 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         basis, paulis = _post_format_conversion(p.grouped_paulis)
         kwargs = {'method': method}
         return cls(paulis, basis, weighted_pauli_operator.z2_symmetries, weighted_pauli_operator.atol,
-                   name, cls.sorted_grouping, kwargs)
+                   weighted_pauli_operator.name, cls.sorted_grouping, kwargs)
 
     @classmethod
-    def unsorted_grouping(cls, weighted_pauli_operator, name=None):
+    def unsorted_grouping(cls, weighted_pauli_operator):
         """
         Greedy and unsorted grouping paulis.
         Args:
@@ -131,7 +131,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         basis, new_paulis = _post_format_conversion(grouped_paulis)
 
         return cls(new_paulis, basis, weighted_pauli_operator.z2_symmetries, weighted_pauli_operator.atol,
-                   name, cls.unsorted_grouping)
+                   weighted_pauli_operator.name, cls.unsorted_grouping)
 
     def __str__(self):
         """Overload str()."""
@@ -168,18 +168,16 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         appended.
 
         Args:
-            other (WeightedPauliOperator): to-be-combined operator
+            other (TPBGroupedWeightedPauliOperator): to-be-combined operator
             operation (callable or str): add or sub callable from operator
             copy (bool): working on a copy or self
 
         Returns:
-            WeightedPauliOperator
-
-        TODO: is there any incremental approach for grouping?
+            TPBGroupedWeightedPauliOperator
         """
         # perform add or sub in paulis and then re-group it again
         ret_op = super()._add_or_sub(other, operation, copy)
-        ret_op = ret_op.to_grouped_paulis(self._grouping_func, **self._kwargs)
+        ret_op = ret_op._grouping_func(ret_op, **self._kwargs)
         return ret_op
 
     def multiply(self, other):
@@ -187,11 +185,11 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         Perform self * other.
 
         Args:
-            other (WeightedPauliOperator): an operator
+            other (TPBGroupedWeightedPauliOperator): an operator
 
         Returns:
-            WeightedPauliOperator: the multiplied operator
+            TPBGroupedWeightedPauliOperator: the multiplied operator
         """
         ret_op = super().multiply(other)
-        ret_op = ret_op.to_grouped_paulis(self._grouping_func, **self._kwargs)
+        ret_op = ret_op._grouping_func(ret_op, **self._kwargs)
         return ret_op

@@ -25,19 +25,31 @@ from qiskit.aqua import AquaError
 logger = logging.getLogger(__name__)
 
 
-class WeightedPauli(Pauli):
+def pauli_measurement(circuit, pauli, qr, cr):
+    """
+    Add the proper post-rotation gate on the circuit.
+    Args:
+        circuit (QuantumCircuit): the circuit to be modified.
+        pauli (Pauli): the pauli will be added.
+        qr (QuantumRegister): the quantum register associated with the circuit.
+        cr (ClassicalRegister): the classical register associated with the circuit.
+    Returns:
+        QuantumCircuit: the original circuit object with post-rotation gate
+    """
+    num_qubits = pauli.numberofqubits
+    for qubit_idx in range(num_qubits):
+        if pauli.x[qubit_idx]:
+            if pauli.z[qubit_idx]:
+                # Measure Y
+                circuit.u1(-np.pi / 2, qr[qubit_idx])  # sdg
+                circuit.u2(0.0, pi, qr[qubit_idx])  # h
+            else:
+                # Measure X
+                circuit.u2(0.0, pi, qr[qubit_idx])  # h
+        circuit.barrier(qr[qubit_idx])
+        circuit.measure(qr[qubit_idx], cr[qubit_idx])
 
-    def __init__(self, z=None, x=None, label=None, weight=0.0):
-        super().__init__(z, x, label)
-        self._weight = weight
-
-    @property
-    def weight(self):
-        return self._weight
-
-    @weight.setter
-    def weight(self, new_value):
-        self._weight = new_value
+    return circuit
 
 
 def measure_pauli_z(data, pauli):
@@ -51,29 +63,16 @@ def measure_pauli_z(data, pauli):
     Returns:
         float: Expected value of paulis given data
     """
-
-    observable = 0
-    tot = sum(data.values())
-    for key in data:
-        value = 1
-        for j in range(pauli.numberofqubits):
-            if ((pauli.x[j] or pauli.z[j]) and
-                    key[pauli.numberofqubits - j - 1] == '1'):
-                value = -value
-        # print(key, data[key])
-        observable = observable + value * data[key] / tot
+    observable = 0.0
+    num_shots = sum(data.values())
+    p_z_or_x = np.logical_or(pauli.z, pauli.x)
+    for key, value in data.items():
+        bitstr = np.asarray(list(key))[::-1].astype(np.bool)
+        # pylint: disable=no-member
+        sign = -1.0 if np.logical_xor.reduce(np.logical_and(bitstr, p_z_or_x)) else 1.0
+        observable += sign * value
+    observable /= num_shots
     return observable
-
-    # observable = 0.0
-    # num_shots = sum(data.values())
-    # p_z_or_x = np.logical_or(pauli.z, pauli.x)
-    # for key, value in data.items():
-    #     bitstr = np.asarray(list(key))[::-1].astype(np.bool)
-    #     # pylint: disable=no-member
-    #     sign = -1.0 if np.logical_xor.reduce(np.logical_and(bitstr, p_z_or_x)) else 1.0
-    #     observable += sign * value
-    # observable /= num_shots
-    # return observable
 
 
 def covariance(data, pauli_1, pauli_2, avg_1, avg_2):
@@ -112,8 +111,7 @@ def covariance(data, pauli_1, pauli_2, avg_1, avg_2):
 
 def row_echelon_F2(matrix_in):
     """
-    Computes the row Echelon form of a binary matrix on the binary
-    finite field
+    Computes the row Echelon form of a binary matrix on the binary finite field
 
     Args:
         matrix_in (numpy.ndarray): binary matrix
@@ -174,14 +172,13 @@ def kernel_F2(matrix_in):
 
 def suzuki_expansion_slice_pauli_list(pauli_list, lam_coef, expansion_order):
     """
-    Similar to _suzuki_expansion_slice_matrix, with the difference that this method
-    computes the list of pauli terms for a single slice of the suzuki expansion,
-    which can then be fed to construct_evolution_circuit to build the QuantumCircuit.
-    #TODO: polish the docstring
+    Compute the list of pauli terms for a single slice of the suzuki expansion following the paper
+    https://arxiv.org/pdf/quant-ph/0508139.pdf.
+
     Args:
         pauli_list (list[list[complex, Pauli]]): the weighted pauli list??
         lam_coef (float): ???
-        expansion_order (int): ???
+        expansion_order (int): The order for suzuki expansion
     """
     if expansion_order == 1:
         half = [[lam_coef / 2 * c, p] for c, p in pauli_list]
@@ -204,11 +201,11 @@ def suzuki_expansion_slice_pauli_list(pauli_list, lam_coef, expansion_order):
 
 def check_commutativity(op_1, op_2, anti=False):
     """
-    Check the commutativity between two operators.
+    Check the (anti-)commutativity between two operators.
 
     Args:
-        op_1 (WeightedPauliOperator):
-        op_2 (WeightedPauliOperator):
+        op_1 (WeightedPauliOperator): operator
+        op_2 (WeightedPauliOperator): operator
         anti (bool): if True, check anti-commutativity, otherwise check commutativity.
 
     Returns:

@@ -951,6 +951,26 @@ class WeightedPauliOperator(BaseOperator):
                       "Use chop(0.0) to remove terms with 0 weight.", DeprecationWarning)
         self.chop(0.0)
 
+    @staticmethod
+    def construct_evolution_circuit(slice_pauli_list, evo_time, num_time_slices, state_registers,
+                                    ancillary_registers=None, ctl_idx=0, unitary_power=None, use_basis_gates=True,
+                                    shallow_slicing=False):
+        warnings.warn("The `construct_evolution_circuit` method is deprecated, use the evolution_instruction in "
+                      "the common module instead.", DeprecationWarning)
+
+        if state_registers is None:
+            raise ValueError('Quantum state registers are required.')
+
+        qc_slice = QuantumCircuit(state_registers)
+        if ancillary_registers is not None:
+            qc_slice.add_register(ancillary_registers)
+        controlled = ancillary_registers is not None
+        inst = evolution_instruction(slice_pauli_list, evo_time, num_time_slices, controlled, 2 ** ctl_idx,
+                                     use_basis_gates, shallow_slicing)
+
+        qc_slice.append(inst, [q for qreg in qc_slice.qregs for q in qreg])
+        return qc_slice
+
 
 class Z2Symmetries:
 
@@ -1151,8 +1171,7 @@ class Z2Symmetries:
 
             z2_symmetries = self.copy()
             z2_symmetries.tapering_values = curr_tapering_values
-
-            return WeightedPauliOperator(operator_out, z2_symmetries=z2_symmetries)
+            return WeightedPauliOperator(operator_out, z2_symmetries=z2_symmetries, name=operator.name)
 
         if tapering_values is None:
             tapered_ops = []
