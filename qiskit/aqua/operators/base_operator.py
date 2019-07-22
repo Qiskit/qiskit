@@ -150,18 +150,21 @@ class BaseOperator(ABC):
                       DeprecationWarning)
         from .op_converter import to_tpb_grouped_weighted_pauli_operator
         from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
-        return to_tpb_grouped_weighted_pauli_operator(grouping_func=TPBGroupedWeightedPauliOperator.sorted_grouping)
+        self = to_tpb_grouped_weighted_pauli_operator(self, grouping_func=TPBGroupedWeightedPauliOperator.sorted_grouping)
+        return self
 
     def to_paulis(self):
         warnings.warn("to_paulis method is deprecated and it will be removed after 0.6. "
                       "Please take a look the qiskit.aqua.operators.op_convertor to see instructions.",
                       DeprecationWarning)
         from .op_converter import to_weighted_pauli_operator
-        return to_weighted_pauli_operator(self)
+        self = to_weighted_pauli_operator(self)
+        return self
 
     def to_matrix(self):
         warnings.warn("to_matrix method is deprecated and it will be removed after 0.6. "
                       "Please take a look the qiskit.aqua.operators.op_convertor to see instructions.",
                       DeprecationWarning)
         from .op_converter import to_matrix_operator
-        return to_matrix_operator(self)
+        self = to_matrix_operator(self)
+        return self
