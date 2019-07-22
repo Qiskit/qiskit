@@ -71,6 +71,8 @@ The format is based on [Keep a Changelog].
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
 -   Change Snapshot signature to match simulator.snapshot (\#2592)
+-   Changed definition of `Cu3Gate` to to equivalent to the canonical
+    definition of a controlled `U3Gate` (\#2755)
 
 ### Removed
 
@@ -108,6 +110,7 @@ The format is based on [Keep a Changelog].
 -   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
 -   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
     was measured into more than one memory cbit (\#2735)
+-   Correctly serialize complex numbers with a nonzero real part
 -   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
     subset of qubits are measured (\#2790)
 

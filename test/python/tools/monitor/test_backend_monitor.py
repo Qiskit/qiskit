@@ -30,10 +30,11 @@ class TestBackendOverview(QiskitTestCase):
         """Test backend_overview"""
         from qiskit import IBMQ  # pylint: disable: import-error
         IBMQ.enable_account(qe_token, qe_url)
+        self.addCleanup(IBMQ.disable_account)
 
-        with patch('sys.stdout', new=StringIO()) as fake_stout:
+        with patch('sys.stdout', new=StringIO()) as fake_stdout:
             backend_overview()
-        stdout = fake_stout.getvalue()
+        stdout = fake_stdout.getvalue()
         self.assertIn('Operational:', stdout)
         self.assertIn('Avg. T1:', stdout)
         self.assertIn('Num. Qubits:', stdout)
@@ -43,14 +44,16 @@ class TestBackendOverview(QiskitTestCase):
         """Test backend_monitor"""
         from qiskit import IBMQ  # pylint: disable: import-error
         IBMQ.enable_account(qe_token, qe_url)
+        self.addCleanup(IBMQ.disable_account)
+
         for back in IBMQ.backends():
             if not back.configuration().simulator:
                 backend = back
                 break
-        with patch('sys.stdout', new=StringIO()) as fake_stout:
+        with patch('sys.stdout', new=StringIO()) as fake_stdout:
             backend_monitor(backend)
 
-        stdout = fake_stout.getvalue()
+        stdout = fake_stdout.getvalue()
         self.assertIn('Configuration', stdout)
         self.assertIn('Qubits [Name / Freq / T1 / T2 / U1 err / U2 err / U3 err / Readout err]',
                       stdout)
