@@ -180,8 +180,9 @@ class WeightedPauliOperator(BaseOperator):
             else:
                 ret_op._paulis_table[pauli_label] = len(ret_op._paulis)
                 ret_op._basis.append((pauli[1], [len(ret_op._paulis)]))
-                pauli[0] = operation(0.0, pauli[0])
-                ret_op._paulis.append(pauli)
+                new_pauli = deepcopy(pauli)
+                new_pauli[0] = operation(0.0, pauli[0])
+                ret_op._paulis.append(new_pauli)
         return ret_op
 
     def add(self, other, copy=False):

@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 from copy import deepcopy
-import itertools
 from functools import reduce
 import logging
 import warnings
@@ -22,7 +21,6 @@ import numpy as np
 from scipy import sparse as scisparse
 from scipy import linalg as scila
 from qiskit import QuantumCircuit
-from qiskit.quantum_info import Pauli
 
 from qiskit.aqua.operators.base_operator import BaseOperator
 from qiskit.aqua import AquaError
