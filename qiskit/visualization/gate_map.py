@@ -16,6 +16,7 @@
 
 from qiskit.exceptions import QiskitError
 from .matplotlib import HAS_MATPLOTLIB
+from .exceptions import VisualizationError
 if HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
@@ -231,12 +232,12 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
         Figure: A matplotlib figure showing layout.
 
     Raises:
-        Exception: Circuit has no layout attribute.
-        ValueError: Invalid view type given.
+        QiskitError: Invalid view type given.
+        VisualizationError: Circuit has no layout attribute.
     """
     if circuit.layout is None:
-        raise Exception('Circuit has no layout. '
-                        'Perhaps it has not been transpiled.')
+        raise QiskitError('Circuit has no layout. '
+                          'Perhaps it has not been transpiled.')
 
     n_qubits = backend.configuration().n_qubits
 
@@ -258,7 +259,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
                 qubit_labels[key] = key
 
     else:
-        raise ValueError("Layout view must be 'virtual' or 'physical'.")
+        raise VisualizationError("Layout view must be 'virtual' or 'physical'.")
 
     qcolors = ['#648fff']*n_qubits
     for k in qubits:
