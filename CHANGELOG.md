@@ -26,8 +26,8 @@ The format is based on [Keep a Changelog].
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
-
--   New `CountOpsLongest` analysis pass to retrieve the number of operations
+-   Added tests for `gate_map` and reference images for testing `plot_gate_map`
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations 
     on the longest path of the DAGCircuit.
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
@@ -52,6 +52,8 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
+-   All circuit drawers now express most commonly used fractions 
+    of PI (\#2808).
 -   Set default repetition time to be the first available.
 -   Pulse commands may now start with capitalized letters.
 -   The `pylatexenc` and `pillow` requirements are now optional. These
@@ -71,6 +73,9 @@ The format is based on [Keep a Changelog].
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
 -   Change Snapshot signature to match simulator.snapshot (\#2592)
+-   Changed definition of `Cu3Gate` to to equivalent to the canonical
+    definition of a controlled `U3Gate` (\#2755)
+-   coupling_map now required to validate a backend.configuration() (\#2836)
 
 ### Removed
 
@@ -108,6 +113,9 @@ The format is based on [Keep a Changelog].
 -   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
 -   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
     was measured into more than one memory cbit (\#2735)
+-   Correctly serialize complex numbers with a nonzero real part
+-   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
+    subset of qubits are measured (\#2790)
 
 
 ## [0.8.2] - 2019-06-14

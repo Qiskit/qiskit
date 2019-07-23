@@ -85,7 +85,6 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = True
-        self.pimode = False
         self.fold = 20
         self.bundle = False
         self.barrier = True
@@ -109,7 +108,6 @@ class DefaultStyle:
         self.disptex = dic.get('displaytext', self.disptex)
         self.dispcol = dic.get('displaycolor', self.dispcol)
         self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
-        self.pimode = dic.get('usepiformat', self.pimode)
         self.fold = dic.get('fold', self.fold)
         if self.fold < 2:
             self.fold = -1
@@ -183,7 +181,6 @@ class BWStyle:
             'multi': '#000000'
         }
         self.latexmode = True
-        self.pimode = False
         self.fold = 20
         self.bundle = False
         self.barrier = True
@@ -209,7 +206,6 @@ class BWStyle:
             self.dispcol[key] = self.gc
         self.dispcol = dic.get('displaycolor', self.dispcol)
         self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
-        self.pimode = dic.get('usepiformat', self.pimode)
         self.fold = dic.get('fold', self.fold)
         if self.fold < 2:
             self.fold = -1
