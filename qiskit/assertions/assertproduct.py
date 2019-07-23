@@ -72,7 +72,7 @@ def assert_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     # AssertManager.StatOutputs[theClone.name] = {"type":"Product", "qubit0":assertion._qubit0, \
@@ -83,7 +83,7 @@ def assert_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
 QuantumCircuit.assert_product = assert_product
 
 def assert_not_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
-    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, True)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     # AssertManager.StatOutputs[theClone.name]["type"] = "Not Product"

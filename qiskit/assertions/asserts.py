@@ -37,7 +37,7 @@ class Asserts(Measure):
         self._expval = None
 
     def breakpoint_name():
-        return datetime.now().isoformat()
+        return "breakpoint_" + datetime.now().isoformat()
 
     def syntax4measure(self, bit):
     # support for all known measure syntaxes

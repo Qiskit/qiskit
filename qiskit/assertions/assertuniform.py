@@ -58,7 +58,7 @@ def assert_uniform(self, qubit, cbit, pcrit=0.05):
         QiskitError: if qubit is not in this circuit or bad format;
             if cbit is not in this circuit or not creg.
     """
-    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     # AssertManager.StatOutputs[theClone.name] = {"type":"Uniform", \
@@ -68,7 +68,7 @@ def assert_uniform(self, qubit, cbit, pcrit=0.05):
 QuantumCircuit.assert_uniform = assert_uniform
 
 def assert_not_uniform(self, qubit, cbit, pcrit=0.05):
-    theClone = self.copy("breakpoint"+"_"+Asserts.breakpoint_name())
+    theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, True)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     # AssertManager.StatOutputs[theClone.name]["type"] = "Not Uniform"
