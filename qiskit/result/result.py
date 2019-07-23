@@ -182,14 +182,15 @@ class Result(BaseModel):
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
     def get_assertion (self, experiment=None):
-        """Calculate and collect results of statistical tests for each experiment.
+        """Calculate and collect results of statistical tests for an experiment.
 
         Args:
-            experiments (list[QuantumCircuit]): a list of all breakpoints.
+            experiment (QuantumCircuit): a breakpoint.
 
         Returns:
-            chisq: a list of chi-squared test statistics.
-            passed: a list of booleans that is true if each test passed.
+            chisq: chi-squared test statistic.
+            pval: p-value from statistical test.
+            passed: boolean that is true if test passed.
 
         Raises:
             QiskitError: if experiments and results are not the same length.
@@ -211,14 +212,26 @@ class Result(BaseModel):
         chisq, pval, passed = assertion.stat_test(counts)
         return chisq, pval, passed if not assertion._negate else not passed
 
+    def get_assertion_pval (self, experiment=None):
+        """Calculate and collect results of statistical tests for an experiment.
+        Args:
+            experiment (QuantumCircuit): a breakpoint.
+        Returns:
+            pval: p-value from statistical test.
+        Raises:
+            QiskitError: if experiments and results are not the same length.
+        """
+        chisq, pval, passed = self.get_assertion (experiment)
+        return pval
+
     def get_assertion_chisq (self, experiment=None):
-        """Calculate and collect results of statistical tests for each experiment.
+        """Calculate and collect results of statistical tests for an experiment.
 
         Args:
-            experiments (list[QuantumCircuit]): a list of all breakpoints.
+            experiment (QuantumCircuit): a breakpoint.
 
         Returns:
-            chisq: a list of chi-squared test statistics.
+            chisq: chi-squared test statistic.
 
         Raises:
             QiskitError: if experiments and results are not the same length.
@@ -227,13 +240,13 @@ class Result(BaseModel):
         return chisq
 
     def get_assertion_passed (self, experiment=None):
-        """Calculate and collect results of statistical tests for each experiment.
+        """Calculate and collect results of statistical tests for an experiment.
 
         Args:
-            experiments (list[QuantumCircuit]): a list of all breakpoints.
+            experiment (QuantumCircuit): a breakpoint.
 
         Returns:
-            passed: a list of booleans that is true if each test passed.
+            passed: a boolean that is true if the test passed.
 
         Raises:
             QiskitError: if experiments and results are not the same length.
