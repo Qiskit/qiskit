@@ -55,14 +55,14 @@ class Gate(Instruction):
 
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         # Should be diagonalized because it's a unitary.
-        D, V = schur(self.to_matrix(), output='complex')
+        decomposition, unitary = schur(self.to_matrix(), output='complex')
         # Raise the diagonal entries to the specified power
-        Dpow = list()
-        for el in D.diagonal():  # assert off-diagonal are 0
-            Dpow.append(pow(el, exponent))
+        decomposition_power = list()
+        for element in decomposition.diagonal():  # assert off-diagonal are 0
+            decomposition_power.append(pow(element, exponent))
         # Then reconstruct the resulting gate.
-        Upow = V @ np.diag(Dpow) @ V.conj().T
-        return UnitaryGate(Upow)
+        unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
+        return UnitaryGate(unitary_power)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
