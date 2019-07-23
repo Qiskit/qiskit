@@ -222,43 +222,6 @@ class TestFunctionalPulse(QiskitTestCase):
             self.assertEqual(len(pulse_command.samples), _duration)
 
 
-class TestPersistentValue(QiskitTestCase):
-    """PersistentValue tests."""
-
-    def test_default(self):
-        """Test default persistent value.
-        """
-        pv_command = PersistentValue(value=0.5 - 0.5j)
-
-        self.assertEqual(pv_command.value, 0.5-0.5j)
-        self.assertEqual(pv_command.duration, 0)
-        self.assertTrue(pv_command.name.startswith('pv'))
-
-
-class TestSnapshot(QiskitTestCase):
-    """Snapshot tests."""
-
-    def test_default(self):
-        """Test default snapshot.
-        """
-        snap_command = Snapshot(label='test_name', snapshot_type='state')
-
-        self.assertEqual(snap_command.name, "test_name")
-        self.assertEqual(snap_command.type, "state")
-        self.assertEqual(snap_command.duration, 0)
-
-
-class TestDelay(QiskitTestCase):
-    """Delay tests."""
-
-    def test_delay(self):
-        """Test delay."""
-        delay_command = Delay(10, name='test_name')
-
-        self.assertEqual(delay_command.name, "test_name")
-        self.assertEqual(delay_command.duration, 10)
-
-
 class TestKernel(QiskitTestCase):
     """Kernel tests."""
 
