@@ -119,8 +119,12 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         pauli_term_b = [coeff_b, Pauli.from_label(pauli_b)]
         op_a = WeightedPauliOperator(paulis=[pauli_term_a])
         op_b = WeightedPauliOperator(paulis=[pauli_term_b])
+        ori_op_a = op_a.copy()
+        ori_op_b = op_b.copy()
         op_a += op_b
 
+        self.assertNotEqual(op_a, ori_op_a)
+        self.assertEqual(op_b, ori_op_b)
         self.assertEqual(2, len(op_a.paulis))
 
         pauli_c = 'IXYZ'
@@ -140,8 +144,12 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         pauli_term_b = [coeff_b, Pauli.from_label(pauli_b)]
         op_a = WeightedPauliOperator(paulis=[pauli_term_a])
         op_b = WeightedPauliOperator(paulis=[pauli_term_b])
+        ori_op_a = op_a.copy()
+        ori_op_b = op_b.copy()
         new_op = op_a + op_b
 
+        self.assertEqual(op_a, ori_op_a)
+        self.assertEqual(op_b, ori_op_b)
         self.assertEqual(1, len(op_a.paulis))
         self.assertEqual(2, len(new_op.paulis))
 
@@ -162,8 +170,12 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         pauli_term_b = [coeff_b, Pauli.from_label(pauli_b)]
         op_a = WeightedPauliOperator(paulis=[pauli_term_a])
         op_b = WeightedPauliOperator(paulis=[pauli_term_b])
+        ori_op_a = op_a.copy()
+        ori_op_b = op_b.copy()
         new_op = op_a - op_b
 
+        self.assertEqual(op_a, ori_op_a)
+        self.assertEqual(op_b, ori_op_b)
         self.assertEqual(1, len(op_a.paulis))
         self.assertEqual(2, len(new_op.paulis))
         self.assertEqual(0.5, new_op.paulis[0][0])
@@ -186,8 +198,12 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         pauli_term_b = [coeff_b, Pauli.from_label(pauli_b)]
         op_a = WeightedPauliOperator(paulis=[pauli_term_a])
         op_b = WeightedPauliOperator(paulis=[pauli_term_b])
+        ori_op_a = op_a.copy()
+        ori_op_b = op_b.copy()
         op_a -= op_b
 
+        self.assertNotEqual(op_a, ori_op_a)
+        self.assertEqual(op_b, ori_op_b)
         self.assertEqual(2, len(op_a.paulis))
 
         pauli_c = 'IXYZ'
