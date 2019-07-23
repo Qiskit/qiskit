@@ -166,5 +166,16 @@ class TestKernel(QiskitTestCase):
         self.assertEqual(kernel.params, {})
 
 
+class TestDiscriminator(QiskitTestCase):
+    """Discriminator tests."""
+
+    def test_can_construct_discriminator_with_default_values(self):
+        """Test if Discriminator can be constructed with default name and params."""
+        discriminator = Discriminator()
+
+        self.assertEqual(discriminator.name, None)
+        self.assertEqual(discriminator.params, {})
+
+
 if __name__ == '__main__':
     unittest.main()
