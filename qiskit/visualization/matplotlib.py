@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+5# -*- coding: utf-8 -*-
 
 # This code is part of Qiskit.
 #
@@ -545,7 +545,7 @@ class MatplotlibDrawer:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
             self.ax.text(self.x_offset, y, label, ha='right', va='center',
-                         fontsize=1.5*self._style.fs,
+                         fontsize=1.25*self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
