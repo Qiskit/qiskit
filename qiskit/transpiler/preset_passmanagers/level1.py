@@ -37,6 +37,7 @@ from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes import DenseLayout
 
 
 def level_1_pass_manager(transpile_config):
@@ -67,10 +68,14 @@ def level_1_pass_manager(transpile_config):
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
 
-    def _choose_layout_condition(property_set):
+    def _dense_layout_condition(property_set):
+        return not initial_layout and not property_set['is_swap_mapped']
+
+    def _trivial_layout_condition(property_set):
         return not property_set['layout']
 
-    _choose_layout = TrivialLayout(coupling_map)
+    _dense_layout = DenseLayout(coupling_map)
+    _trivial_layout = TrivialLayout(coupling_map)
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
     _layout_check = CheckMap(coupling_map)
@@ -112,7 +117,9 @@ def level_1_pass_manager(transpile_config):
     pm1 = PassManager()
     if coupling_map:
         pm1.append(_given_layout)
-        pm1.append(_choose_layout, condition=_choose_layout_condition)
+        pm1.append(_trivial_layout, condition=_trivial_layout_condition)
+        pm1.append(_swap_check)
+        pm1.append(_dense_layout, condition=_dense_layout_condition)
         pm1.append(_layout_check)
         pm1.append(_embed)
     pm1.append(_unroll)
