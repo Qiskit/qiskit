@@ -20,7 +20,7 @@ import unittest
 import numpy as np
 
 from qiskit.pulse import (Acquire, FrameChange, PersistentValue,
-                          Snapshot, Kernel, Discriminator, functional_pulse)
+                          Snapshot, Kernel, Discriminator, Delay, functional_pulse)
 from qiskit.test import QiskitTestCase
 
 
@@ -144,12 +144,22 @@ class TestSnapshot(QiskitTestCase):
         self.assertEqual(snap_command.duration, 0)
 
 
+class TestDelay(QiskitTestCase):
+    """Delay tests."""
+
+    def test_delay(self):
+        """Test delay."""
+        delay_command = Delay(10, name='test_name')
+
+        self.assertEqual(delay_command.name, "test_name")
+        self.assertEqual(delay_command.duration, 10)
+
+
 class TestKernel(QiskitTestCase):
     """Kernel tests."""
 
     def test_can_construct_kernel_with_default_values(self):
-        """Test if Kernel can be constructed with default name and params.
-        """
+        """Test if Kernel can be constructed with default name and params."""
         kernel = Kernel()
 
         self.assertEqual(kernel.name, None)
