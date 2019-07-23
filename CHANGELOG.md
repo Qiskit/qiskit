@@ -73,6 +73,7 @@ The format is based on [Keep a Changelog].
 -   Change Snapshot signature to match simulator.snapshot (\#2592)
 -   Changed definition of `Cu3Gate` to to equivalent to the canonical
     definition of a controlled `U3Gate` (\#2755)
+-   coupling_map now required to validate a backend.configuration() (\#2836)
 
 ### Removed
 
