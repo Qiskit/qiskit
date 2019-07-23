@@ -18,10 +18,8 @@
 
 import collections
 import io
-import itertools
 import json
 import math
-import operator
 import re
 
 try:
@@ -33,6 +31,7 @@ except ImportError:
 import numpy as np
 from qiskit.visualization import qcstyle as _qcstyle
 from qiskit.visualization import exceptions
+from .tools.pi_check import pi_check
 
 
 class QCircuitImage:
@@ -44,14 +43,13 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    def __init__(self, qregs, cregs, ops, scale, style=None,
+    def __init__(self, qubits, clbits, ops, scale, style=None,
                  plot_barriers=True, reverse_bits=False):
         """
         Args:
-            qregs (list): A list of tuples for the quantum registers
-            cregs (list): A list of tuples for the classical registers
-            ops (list): A list of dicts where each entry is a operation from
-                the circuit.
+            qubits (list[Qubit]): list of qubits
+            clbits (list[Clbit]): list of clbits
+            ops (list[list[DAGNode]]): list of circuit instructions, grouped by layer
             scale (float): image scaling
             style (dict or str): dictionary of style or file name of style file
             reverse_bits (bool): When set to True reverse the bit order inside
@@ -122,17 +120,17 @@ class QCircuitImage:
         self.plot_barriers = plot_barriers
 
         #################################
-        self.qregs = collections.OrderedDict(_get_register_specs(qregs))
-        self.qubit_list = qregs
-        self.ordered_regs = qregs + cregs
-        self.cregs = collections.OrderedDict(_get_register_specs(cregs))
-        self.clbit_list = cregs
+        self.qregs = _get_register_specs(qubits)
+        self.qubit_list = qubits
+        self.ordered_regs = qubits + clbits
+        self.cregs = _get_register_specs(clbits)
+        self.clbit_list = clbits
         self.img_regs = {bit: ind for ind, bit in
                          enumerate(self.ordered_regs)}
         self.img_width = len(self.img_regs)
         self.wire_type = {}
-        for key, value in self.ordered_regs:
-            self.wire_type[(key, value)] = key in self.cregs.keys()
+        for bit in self.ordered_regs:
+            self.wire_type[bit] = bit.register in self.cregs.keys()
 
     def latex(self, aliases=None):
         """Return LaTeX string representation of circuit.
@@ -214,13 +212,13 @@ class QCircuitImage:
         self._latex.append([" "] * (self.img_depth + 1))
         for i in range(self.img_width):
             if self.wire_type[self.ordered_regs[i]]:
-                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i][0].name + \
-                                    "_{" + str(self.ordered_regs[i][1]) + "}" + \
+                self._latex[i][0] = "\\lstick{" + self.ordered_regs[i].register.name + \
+                                    "_{" + str(self.ordered_regs[i].index) + "}" + \
                                     ": 0}"
             else:
                 self._latex[i][0] = "\\lstick{" + \
-                                    self.ordered_regs[i][0].name + "_{" + \
-                                    str(self.ordered_regs[i][1]) + "}" + \
+                                    self.ordered_regs[i].register.name + "_{" + \
+                                    str(self.ordered_regs[i].index) + "}" + \
                                     ": \\ket{0}}"
 
     def _get_image_depth(self):
@@ -387,28 +385,29 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{T^\\dag}"
                             elif nm == "u0":
                                 self._latex[pos_1][column] = "\\gate{U_0(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "u1":
                                 self._latex[pos_1][column] = "\\gate{U_1(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "u2":
                                 self._latex[pos_1][column] = \
                                     "\\gate{U_2\\left(%s,%s\\right)}" % (
-                                        op.op.params[0], op.op.params[1])
+                                        pi_check(op.op.params[0], output='latex'),
+                                        pi_check(op.op.params[1], output='latex'))
                             elif nm == "u3":
                                 self._latex[pos_1][column] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                    op.op.params[0],
-                                    op.op.params[1],
-                                    op.op.params[2]))
+                                    pi_check(op.op.params[0], output='latex'),
+                                    pi_check(op.op.params[1], output='latex'),
+                                    pi_check(op.op.params[2], output='latex')))
                             elif nm == "rx":
                                 self._latex[pos_1][column] = "\\gate{R_x(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "ry":
                                 self._latex[pos_1][column] = "\\gate{R_y(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "rz":
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             else:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % utf8tolatex(nm))
 
@@ -442,28 +441,29 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{T^\\dag}"
                             elif nm == "u0":
                                 self._latex[pos_1][column] = "\\gate{U_0(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "u1":
                                 self._latex[pos_1][column] = "\\gate{U_1(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "u2":
                                 self._latex[pos_1][column] = \
                                     "\\gate{U_2\\left(%s,%s\\right)}" % (
-                                        op.op.params[0], op.op.params[1])
+                                        pi_check(op.op.params[0], output='latex'),
+                                        pi_check(op.op.params[1], output='latex'))
                             elif nm == "u3":
                                 self._latex[pos_1][column] = ("\\gate{U_3(%s,%s,%s)}" % (
-                                    op.op.params[0],
-                                    op.op.params[1],
-                                    op.op.params[2]))
+                                    pi_check(op.op.params[0], output='latex'),
+                                    pi_check(op.op.params[1], output='latex'),
+                                    pi_check(op.op.params[2], output='latex')))
                             elif nm == "rx":
                                 self._latex[pos_1][column] = "\\gate{R_x(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "ry":
                                 self._latex[pos_1][column] = "\\gate{R_y(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "rz":
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
-                                    op.op.params[0])
+                                    pi_check(op.op.params[0], output='latex'))
                             elif nm == "reset":
                                 self._latex[pos_1][column] = (
                                     "\\push{\\rule{.6em}{0em}\\ket{0}\\"
@@ -516,13 +516,13 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = \
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
-                                    "\\gate{R_z(%s)}" % (op.op.params[0])
+                                    "\\gate{R_z(%s)}" % (pi_check(op.op.params[0], output='latex'))
                             elif nm == "cu1":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (op.op.params[0])
+                                    "\\dstick{%s}\\qw" % (pi_check(op.op.params[0], output='latex'))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 # this is because this gate takes up 2 columns,
                                 # and we have just written to the next column
@@ -531,9 +531,10 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = \
                                     "\\ctrl{" + str(pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
-                                    "\\gate{U_3(%s,%s,%s)}" % (op.op.params[0],
-                                                               op.op.params[1],
-                                                               op.op.params[2])
+                                    "\\gate{U_3(%s,%s,%s)}" % \
+                                    (pi_check(op.op.params[0], output='latex'),
+                                     pi_check(op.op.params[1], output='latex'),
+                                     pi_check(op.op.params[2], output='latex'))
                         else:
                             temp = [pos_1, pos_2]
                             temp.sort(key=int)
@@ -562,22 +563,23 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = \
-                                    "\\gate{R_z(%s)}" % (op.op.params[0])
+                                    "\\gate{R_z(%s)}" % (pi_check(op.op.params[0], output='latex'))
                             elif nm == "cu1":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
                                 self._latex[pos_2][column] = "\\control \\qw"
                                 self._latex[min(pos_1, pos_2)][column + 1] = \
-                                    "\\dstick{%s}\\qw" % (op.op.params[0])
+                                    "\\dstick{%s}\\qw" % (pi_check(op.op.params[0], output='latex'))
                                 self._latex[max(pos_1, pos_2)][column + 1] = "\\qw"
                                 num_cols_used = 2
                             elif nm == "cu3":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
-                                self._latex[pos_2][column] = ("\\gate{U_3(%s,%s,%s)}" %
-                                                              (op.op.params[0],
-                                                               op.op.params[1],
-                                                               op.op.params[2]))
+                                self._latex[pos_2][column] = \
+                                    ("\\gate{U_3(%s,%s,%s)}" %
+                                     (pi_check(op.op.params[0], output='latex'),
+                                      pi_check(op.op.params[1], output='latex'),
+                                      pi_check(op.op.params[2], output='latex')))
                             else:
                                 start_pos = min([pos_1, pos_2])
                                 stop_pos = max([pos_1, pos_2])
@@ -792,36 +794,30 @@ class QCircuitImage:
         return origin - 1
 
 
-def _get_register_specs(bit_labels):
-    """Get the number and size of unique registers from bit_labels list.
+def _get_register_specs(bits):
+    """Get the number and size of unique registers from bits list.
 
     Args:
-        bit_labels (list): this list is of the form::
+        bits (list[Bit]): this list is of the form::
+            [Qubit(v0, 0), Qubit(v0, 1), Qubit(v0, 2), Qubit(v0, 3), Qubit(v1, 0)]
+            which indicates a size-4 register and a size-1 register
 
-            [['reg1', 0], ['reg1', 1], ['reg2', 0]]
-
-            which indicates a register named "reg1" of size 2
-            and a register named "reg2" of size 1. This is the
-            format of classic and quantum bit labels in qobj
-            header.
-
-    Yields:
-        tuple: iterator of register_name:size pairs.
+    Returns:
+        OrderedDict: ordered map of Registers to their sizes
     """
-    it = itertools.groupby(bit_labels, operator.itemgetter(0))
-    for register_name, sub_it in it:
-        yield register_name, max(ind[1] for ind in sub_it) + 1
+    regs = collections.OrderedDict([(bit.register, bit.register.size) for bit in bits])
+    return regs
 
 
-def _truncate_float(matchobj, format_str='0.2g'):
+def _truncate_float(matchobj, ndigits=3):
     """Truncate long floats
 
     Args:
         matchobj (re.Match): contains original float
-        format_str (str): format specifier
+        ndigits (int): Number of digits to print
     Returns:
        str: returns truncated float
     """
     if matchobj.group(0):
-        return format(float(matchobj.group(0)), format_str)
+        return '%.{}g'.format(ndigits) % float(matchobj.group(0))
     return ''

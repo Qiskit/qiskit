@@ -72,23 +72,20 @@ class BackendConfigurationSchema(BaseSchema):
     backend_version = String(required=True,
                              validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
     n_qubits = Integer(required=True, validate=Range(min=1))
-    basis_gates = List(String(), required=True,
-                       validate=Length(min=1))
-    gates = Nested(GateConfigSchema, required=True, many=True,
-                   validate=Length(min=1))
+    basis_gates = List(String(), required=True)
+    gates = Nested(GateConfigSchema, required=True, many=True)
     local = Boolean(required=True)
     simulator = Boolean(required=True)
     conditional = Boolean(required=True)
     open_pulse = Boolean(required=True)
     memory = Boolean(required=True)
     max_shots = Integer(required=True, validate=Range(min=1))
+    coupling_map = List(List(Integer(), validate=Length(min=1)),
+                        validate=Length(min=1), allow_none=True, required=True)
 
     # Optional properties.
     max_experiments = Integer(validate=Range(min=1))
     sample_name = String()
-    coupling_map = List(List(Integer(),
-                             validate=Length(min=1)),
-                        validate=Length(min=1), allow_none=True)
     n_registers = Integer(validate=Range(min=1))
     register_map = List(List(Integer(validate=OneOf([0, 1])),
                              validate=Length(min=1)),

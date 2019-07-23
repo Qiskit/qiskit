@@ -20,7 +20,7 @@ from shutil import get_terminal_size
 import sys
 import sympy
 from numpy import ndarray
-
+from .tools.pi_check import pi_check
 from .exceptions import VisualizationError
 
 
@@ -459,18 +459,21 @@ class TextDrawing():
     def _repr_html_(self):
         return '<pre style="word-wrap: normal;' \
                'white-space: pre;' \
-               'line-height: 15px;">%s</pre>' % self.single_string()
+               'background: #fff0;' \
+               'line-height: 1.1;' \
+               'font-family: &quot;Courier New&quot;,Courier,monospace">' \
+               '%s</pre>' % self.single_string()
 
     def _get_qubit_labels(self):
         qubits = []
         for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit[0].name, qubit[1]))
+            qubits.append("%s_%s" % (qubit.register.name, qubit.index))
         return qubits
 
     def _get_clbit_labels(self):
         clbits = []
         for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit[0].name, clbit[1]))
+            clbits.append("%s_%s" % (clbit.register.name, clbit.index))
         return clbits
 
     def single_string(self):
@@ -646,7 +649,8 @@ class TextDrawing():
         ret = []
         for param in instruction.op.params:
             if isinstance(param, (sympy.Number, float)):
-                ret.append('%.5g' % param)
+                str_param = pi_check(param, ndigits=5)
+                ret.append('%s' % str_param)
             else:
                 ret.append('%s' % param)
         return ret
@@ -959,7 +963,7 @@ class Layer:
             label (string): The label for the multi clbit box.
             top_connect (char): The char to connect the box on the top.
         """
-        clbit = [bit for bit in self.cregs if bit[0] == creg]
+        clbit = [bit for bit in self.cregs if bit.register == creg]
         self._set_multibox("cl", clbit, label, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, conditional=False):

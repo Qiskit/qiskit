@@ -17,7 +17,7 @@
 
 import os
 
-from hypothesis import assume
+from hypothesis import assume, settings, HealthCheck
 from hypothesis.stateful import multiple, rule, precondition, invariant
 from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
@@ -52,6 +52,10 @@ mock_backends = [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(),
                  FakeTokyo(), FakePoughkeepsie()]
 
 
+@settings(report_multiple_bugs=False,
+          max_examples=25,
+          deadline=None,
+          suppress_health_check=[HealthCheck.filter_too_much])
 class QCircuitMachine(RuleBasedStateMachine):
     """Build a Hypothesis rule based state machine for constructing, transpiling
     and simulating a series of random QuantumCircuits.
@@ -115,7 +119,8 @@ class QCircuitMachine(RuleBasedStateMachine):
 
     @rule(gate=st.sampled_from(oneQ_oneP_gates),
           qarg=qubits,
-          param=st.floats(allow_nan=False, allow_infinity=False))
+          param=st.floats(allow_nan=False, allow_infinity=False,
+                          min_value=-1.0e10, max_value=1.0e10))
     def add_1q1p_gate(self, gate, qarg, param):
         """Append a random 1q gate with 1 random float parameter."""
         self.qc.append(gate(param), [qarg])
@@ -123,7 +128,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(gate=st.sampled_from(oneQ_twoP_gates),
           qarg=qubits,
           params=st.lists(
-              st.floats(allow_nan=False, allow_infinity=False),
+              st.floats(allow_nan=False, allow_infinity=False,
+                        min_value=-1.0e10, max_value=1.0e10),
               min_size=2, max_size=2))
     def add_1q2p_gate(self, gate, qarg, params):
         """Append a random 1q gate with 2 random float parameters."""
@@ -132,7 +138,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(gate=st.sampled_from(oneQ_threeP_gates),
           qarg=qubits,
           params=st.lists(
-              st.floats(allow_nan=False, allow_infinity=False),
+              st.floats(allow_nan=False, allow_infinity=False,
+                        min_value=-1.0e10, max_value=1.0e10),
               min_size=3, max_size=3))
     def add_1q3p_gate(self, gate, qarg, params):
         """Append a random 1q gate with 3 random float parameters."""
@@ -140,7 +147,8 @@ class QCircuitMachine(RuleBasedStateMachine):
 
     @rule(gate=st.sampled_from(twoQ_oneP_gates),
           qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
-          param=st.floats(allow_nan=False, allow_infinity=False))
+          param=st.floats(allow_nan=False, allow_infinity=False,
+                          min_value=-1.0e10, max_value=1.0e10))
     def add_2q1p_gate(self, gate, qargs, param):
         """Append a random 2q gate with 1 random float parameter."""
         self.qc.append(gate(param), qargs)
@@ -148,7 +156,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(gate=st.sampled_from(twoQ_threeP_gates),
           qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
           params=st.lists(
-              st.floats(allow_nan=False, allow_infinity=False),
+              st.floats(allow_nan=False, allow_infinity=False,
+                        min_value=-1.0e10, max_value=1.0e10),
               min_size=3, max_size=3))
     def add_2q3p_gate(self, gate, qargs, params):
         """Append a random 2q gate with 3 random float parameters."""
@@ -194,14 +203,15 @@ class QCircuitMachine(RuleBasedStateMachine):
         backend=st.one_of(
             st.none(),
             st.sampled_from(mock_backends)),
-        opt_level=st.one_of(
-            st.none(),
-            st.integers(min_value=0, max_value=3)))
+        opt_level=st.integers(min_value=0, max_value=3))
     def equivalent_transpile(self, backend, opt_level):
         """Simulate, transpile and simulate the present circuit. Verify that the
         counts are not significantly different before and after transpilation.
 
         """
+
+        print('Evaluating circuit at level {} on {}:\n{}'.format(
+            opt_level, backend, self.qc.qasm()))
 
         assume(backend is None or backend.configuration().n_qubits >= len(self.qc.qubits))
 
