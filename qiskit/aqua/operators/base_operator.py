@@ -145,9 +145,9 @@ class BaseOperator(ABC):
 
     def to_grouped_paulis(self):
         warnings.warn("to_grouped_paulis method is deprecated and it will be removed after 0.6. "
-                      "Please take a look the qiskit.aqua.operators.op_convertor to see instructions. "
-                      "For grouping paulis, you can create your own grouping func to create the class you need.",
-                      DeprecationWarning)
+                      "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
+                      "operators. For grouping paulis, you can create your own grouping func to create the "
+                      "class you need.", DeprecationWarning)
         from .op_converter import to_tpb_grouped_weighted_pauli_operator
         from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
         self = to_tpb_grouped_weighted_pauli_operator(self, grouping_func=TPBGroupedWeightedPauliOperator.sorted_grouping)
@@ -155,16 +155,39 @@ class BaseOperator(ABC):
 
     def to_paulis(self):
         warnings.warn("to_paulis method is deprecated and it will be removed after 0.6. "
-                      "Please take a look the qiskit.aqua.operators.op_convertor to see instructions.",
-                      DeprecationWarning)
+                      "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
+                      "operators", DeprecationWarning)
         from .op_converter import to_weighted_pauli_operator
         self = to_weighted_pauli_operator(self)
         return self
 
     def to_matrix(self):
         warnings.warn("to_matrix method is deprecated and it will be removed after 0.6. "
-                      "Please take a look the qiskit.aqua.operators.op_convertor to see instructions.",
-                      DeprecationWarning)
+                      "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
+                      "operators", DeprecationWarning)
         from .op_converter import to_matrix_operator
         self = to_matrix_operator(self)
         return self
+
+    def to_weighted_pauli_operator(self):
+        warnings.warn("to_weighted_apuli_operator method is temporary helper method and it will be removed after 0.6. "
+                      "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
+                      "operators", DeprecationWarning)
+        from .op_converter import to_weighted_pauli_operator
+        return to_weighted_pauli_operator(self)
+
+    def to_matrix_operator(self):
+        warnings.warn("to_matrix_operator method is temporary helper method and it will be removed after 0.6. "
+                      "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
+                      "operators", DeprecationWarning)
+        from .op_converter import to_matrix_operator
+        return to_matrix_operator(self)
+
+    def to_tpb_grouped_weighted_pauli_operator(self):
+        warnings.warn("to_tpb_grouped_weighted_pauli_operator method is temporary helper method and it will be "
+                      "removed after 0.6. Please check the qiskit.aqua.operators.op_convertor for converting to "
+                      "different types of operators", DeprecationWarning)
+        from .op_converter import to_tpb_grouped_weighted_pauli_operator
+        from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
+        return to_tpb_grouped_weighted_pauli_operator(
+            self, grouping_func=TPBGroupedWeightedPauliOperator.sorted_grouping)
