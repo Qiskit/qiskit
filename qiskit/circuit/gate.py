@@ -18,7 +18,6 @@ Unitary gate.
 
 import numpy as np
 from scipy.linalg import schur
-from sympy import DiagonalMatrix
 
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
