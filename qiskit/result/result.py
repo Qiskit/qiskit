@@ -191,15 +191,13 @@ class Result(BaseModel):
             chisq: chi-squared test statistic.
             pval: p-value from statistical test.
             passed: boolean that is true if test passed.
-
-        Raises:
-            QiskitError: if experiments and results are not the same length.
         """
-        counts = self.get_counts(experiment)
-        assertion = experiment.data[-1][0]
+        exp = self._get_experiment(experiment)
+        counts = self.get_counts(exp)
+        assertion = exp.data[-1][0]
 
         cbits = assertion._cbit
-        cbits = Asserts.clbits2idxs(cbits, experiment)
+        cbits = Asserts.clbits2idxs(cbits, exp)
 
         new_counts = {}
         for (key, value) in counts.items():
@@ -218,8 +216,6 @@ class Result(BaseModel):
             experiment (QuantumCircuit): a breakpoint.
         Returns:
             pval: p-value from statistical test.
-        Raises:
-            QiskitError: if experiments and results are not the same length.
         """
         chisq, pval, passed = self.get_assertion (experiment)
         return pval
@@ -232,9 +228,6 @@ class Result(BaseModel):
 
         Returns:
             chisq: chi-squared test statistic.
-
-        Raises:
-            QiskitError: if experiments and results are not the same length.
         """
         chisq, pval, passed = self.get_assertion (experiment)
         return chisq
@@ -247,9 +240,6 @@ class Result(BaseModel):
 
         Returns:
             passed: a boolean that is true if the test passed.
-
-        Raises:
-            QiskitError: if experiments and results are not the same length.
         """
         chisq, pval, passed = self.get_assertion (experiment)
         return passed
