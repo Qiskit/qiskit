@@ -70,7 +70,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 if meas_map:
                     # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
-            qobj_instructions.append(instruction_converter(shift, instruction))
+
+            converted_instruction = instruction_converter(shift, instruction)
+            if converted_instruction:
+                qobj_instructions.append(converted_instruction)
 
         # experiment header
         qobj_experiment_header = QobjExperimentHeader(
