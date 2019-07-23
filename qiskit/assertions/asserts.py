@@ -68,6 +68,6 @@ class Asserts(Measure):
             counts (results.get_counts): counts of result of an experiment
 
         Returns:
-            tuple containing the chisquare, p-value, and success boolean of the assertion
+            tuple containing the chisquare, p-value, and passed boolean of the assertion
         """
         return

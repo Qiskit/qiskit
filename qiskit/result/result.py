@@ -192,7 +192,7 @@ class Result(BaseModel):
             pval: p-value from statistical test.
             passed: boolean that is true if test passed.
         """
-        exp = self._get_experiment(experiment)
+        exp = experiment
         counts = self.get_counts(exp)
         assertion = exp.data[-1][0]
 

@@ -31,8 +31,19 @@ class AssertUniform(Asserts):
         super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate)
 
     def stat_test(self, counts):
-        # chi-squared statistical test to assert
-        # uniform superposition of all possible states
+        """Performs a chi-squared statistical test on the experimental outcomes.  Internally, compares
+        a normalized table of experimental counts to the scipy.stats.chisquare default, for which all
+        outcomes are equally likely.
+
+        Args:
+            counts: the counts dictionary from result.get_counts()
+
+        Returns:
+            chisq: the chi-square value
+            pval: the p-value
+            passed: a boolean that is True iff the test passed
+        """
+
         vals_list = list(counts.values())
         numzeros = 2**len(list(counts)[0]) - len(counts)
         vals_list.extend([0]*numzeros)
@@ -53,16 +64,10 @@ def assert_uniform(self, qubit, cbit, pcrit=0.05):
 
     Returns:
         qiskit.QuantumCircuit: copy of quantum circuit at the assert point.
-
-    Raises:
-        QiskitError: if qubit is not in this circuit or bad format;
-            if cbit is not in this circuit or not creg.
     """
     theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
-    # AssertManager.StatOutputs[theClone.name] = {"type":"Uniform", \
-        # "qubit":assertion._qubit, "cbit":assertion._cbit}
     return theClone
 
 QuantumCircuit.assert_uniform = assert_uniform
@@ -71,7 +76,6 @@ def assert_not_uniform(self, qubit, cbit, pcrit=0.05):
     theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, True)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
-    # AssertManager.StatOutputs[theClone.name]["type"] = "Not Uniform"
     return theClone
 
 QuantumCircuit.assert_not_uniform = assert_not_uniform
