@@ -210,8 +210,8 @@ def transpile(circuits,
             # multiple circuits
             else:
                 if len(circuits) == len(output_names):
-                    for i in range(len(circuits)):
-                        circuits[i].name = output_names[i]
+                    for index,circuit in enumerate(circuits):
+                        circuit.name = output_names[index]
                 else:
                     raise TranspilerError("the length of output_names list "
                                           + "must be equal to the number of "
