@@ -366,7 +366,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(actual.stop_time, expected.stop_time)
 
         self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
-
+    
 
 class TestScheduleFilter(BaseTestSchedule):
     def test_filter_channels(self):

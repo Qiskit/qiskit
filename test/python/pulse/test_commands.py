@@ -24,7 +24,7 @@ from qiskit.pulse import (Acquire, FrameChange, PersistentValue,
 from qiskit.test import QiskitTestCase
 
 
-class TestAcquire(QiskitTestCase):
+class TestAcquireCommand(QiskitTestCase):
     """Acquisition tests."""
 
     def test_can_construct_valid_acquire_command(self):
@@ -66,7 +66,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq_command_b.name, 'acq' + str(int(acq_command_a.name[3:]) + 1))
 
 
-class TestFrameChange(QiskitTestCase):
+class TestFrameChangeCommand(QiskitTestCase):
     """FrameChange tests."""
 
     def test_default(self):
@@ -77,6 +77,43 @@ class TestFrameChange(QiskitTestCase):
         self.assertEqual(fc_command.phase, 1.57)
         self.assertEqual(fc_command.duration, 0)
         self.assertTrue(fc_command.name.startswith('fc'))
+
+
+class TestPersistentValueCommand(QiskitTestCase):
+    """PersistentValue tests."""
+
+    def test_default(self):
+        """Test default persistent value.
+        """
+        pv_command = PersistentValue(value=0.5 - 0.5j)
+
+        self.assertEqual(pv_command.value, 0.5-0.5j)
+        self.assertEqual(pv_command.duration, 0)
+        self.assertTrue(pv_command.name.startswith('pv'))
+
+
+class TestSnapshotCommand(QiskitTestCase):
+    """Snapshot tests."""
+
+    def test_default(self):
+        """Test default snapshot.
+        """
+        snap_command = Snapshot(label='test_name', snapshot_type='state')
+
+        self.assertEqual(snap_command.name, "test_name")
+        self.assertEqual(snap_command.type, "state")
+        self.assertEqual(snap_command.duration, 0)
+
+
+class TestDelayCommand(QiskitTestCase):
+    """Delay tests."""
+
+    def test_delay(self):
+        """Test delay."""
+        delay_command = Delay(10, name='test_name')
+
+        self.assertEqual(delay_command.name, "test_name")
+        self.assertEqual(delay_command.duration, 10)
 
 
 class TestFunctionalPulse(QiskitTestCase):
@@ -116,43 +153,6 @@ class TestFunctionalPulse(QiskitTestCase):
         for _duration in _durations:
             pulse_command = gaussian(duration=_duration, amp=1, t0=5, sig=1)
             self.assertEqual(len(pulse_command.samples), _duration)
-
-
-class TestPersistentValue(QiskitTestCase):
-    """PersistentValue tests."""
-
-    def test_default(self):
-        """Test default persistent value.
-        """
-        pv_command = PersistentValue(value=0.5 - 0.5j)
-
-        self.assertEqual(pv_command.value, 0.5-0.5j)
-        self.assertEqual(pv_command.duration, 0)
-        self.assertTrue(pv_command.name.startswith('pv'))
-
-
-class TestSnapshot(QiskitTestCase):
-    """Snapshot tests."""
-
-    def test_default(self):
-        """Test default snapshot.
-        """
-        snap_command = Snapshot(label='test_name', snapshot_type='state')
-
-        self.assertEqual(snap_command.name, "test_name")
-        self.assertEqual(snap_command.type, "state")
-        self.assertEqual(snap_command.duration, 0)
-
-
-class TestDelay(QiskitTestCase):
-    """Delay tests."""
-
-    def test_delay(self):
-        """Test delay."""
-        delay_command = Delay(10, name='test_name')
-
-        self.assertEqual(delay_command.name, "test_name")
-        self.assertEqual(delay_command.duration, 10)
 
 
 class TestKernel(QiskitTestCase):
