@@ -592,7 +592,7 @@ class MatplotlibDrawer:
                     box_width = round(len(op.name) / 8)
                     # handle params/subtext longer than op names
                     if op.type == 'op' and hasattr(op.op, 'params'):
-                        param = self.param_parse(op.op.params, self._style.pimode)
+                        param = self.param_parse(op.op.params)
                         if len(param) > len(op.name):
                             box_width = round(len(param) / 8)
                             # If more than 4 characters min width is 2
@@ -668,7 +668,7 @@ class MatplotlibDrawer:
                     print(op)
 
                 if op.type == 'op' and hasattr(op.op, 'params'):
-                    param = self.param_parse(op.op.params, self._style.pimode)
+                    param = self.param_parse(op.op.params)
                 else:
                     param = None
                 # conditional gate
@@ -872,20 +872,15 @@ class MatplotlibDrawer:
                              zorder=PORDER_TEXT)
 
     @staticmethod
-    def param_parse(v, pimode=False):
+    def param_parse(v):
         # create an empty list to store the parameters in
         param_parts = [None] * len(v)
         for i, e in enumerate(v):
-            if pimode:
-                try:
-                    param_parts[i] = pi_check(e, output='mpl')
-                except TypeError:
-                    param_parts[i] = str(e)
-            else:
-                try:
-                    param_parts[i] = MatplotlibDrawer.format_numeric(e)
-                except TypeError:
-                    param_parts[i] = str(e)
+            try:
+                param_parts[i] = pi_check(e, output='mpl')
+            except TypeError:
+                param_parts[i] = str(e)
+
             if param_parts[i].startswith('-'):
                 param_parts[i] = '$-$' + param_parts[i][1:]
 
