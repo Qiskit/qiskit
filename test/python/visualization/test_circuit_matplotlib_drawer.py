@@ -122,7 +122,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         """
 
         # add a register with a very long name
-        qr = QuantumRegister(4, 'veryLongQuantumRegisterName012345679')
+        qr = QuantumRegister(4, 'veryLongQuantumRegisterName')
         # add another to make sure adjustments are made based on longest
         qrr = QuantumRegister(1, 'q0')
         circuit = QuantumCircuit(qr, qrr)
