@@ -159,7 +159,7 @@ def transpile(circuits,
 
     # transpiling schedules is not supported yet.
     if isinstance(circuits, Schedule) or \
-       (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
+            (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
         return circuits
 
     if optimization_level is None:
@@ -181,7 +181,7 @@ def transpile(circuits,
             max_qubits = parsed_coupling_map.size()
             if n_qubits > max_qubits:
                 raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
-                                      'in {} '. format(circuit.name) +
+                                      'in {} '.format(circuit.name) +
                                       'is greater than maximum ({}) '.format(max_qubits) +
                                       'in the coupling_map')
     # Transpile circuits in parallel
@@ -210,7 +210,7 @@ def transpile(circuits,
             # multiple circuits
             else:
                 if len(circuits) == len(output_names):
-                    for index,circuit in enumerate(circuits):
+                    for index, circuit in enumerate(circuits):
                         circuit.name = output_names[index]
                 else:
                     raise TranspilerError("the length of output_names list "
@@ -352,9 +352,10 @@ def _parse_initial_layout(initial_layout, circuits):
         elif isinstance(initial_layout, dict):
             initial_layout = Layout(initial_layout)
         return initial_layout
+
     # multiple layouts?
     if isinstance(initial_layout, list) and \
-       any(isinstance(i, (list, dict)) for i in initial_layout):
+            any(isinstance(i, (list, dict)) for i in initial_layout):
         initial_layout = [_layout_from_raw(lo, circ) if isinstance(lo, (list, dict)) else lo
                           for lo, circ in zip(initial_layout, circuits)]
     else:
