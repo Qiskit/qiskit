@@ -2,6 +2,42 @@
 Release Notes
 #############
 
+*************
+Qiskit 0.11.1
+*************
+
+We have bumped up Qiskit micro version to 0.11.1 because IBM Q Provider has
+bumped its micro version as well.
+
+Terra 0.8
+=========
+
+No Change
+
+Aer 0.2
+=======
+
+No change
+
+Ignis 0.1
+=========
+
+No Change
+
+Aqua 0.5
+========
+
+``qiskit-aqua`` has been updated to ``0.5.3`` to fix code related to
+changes in how gates inverses are done.
+
+IBM Q Provider 0.3
+==================
+
+The ``IBMQProvider`` has been updated to version ``0.3.1`` to fix
+backward compatibility issues and work with the default 10 job
+limit in single calls to the IBM Q API v2.
+
+
 ***********
 Qiskit 0.11
 ***********
@@ -1329,6 +1365,13 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
      - qiskit-ibmq-provider
      - qiskit-aqua
      - qiskit-chemistry
+   * - 0.11.1
+     - 0.8.2
+     - 0.2.3
+     - 0.1.1
+     - 0.3.1
+     - 0.5.3
+     - 0.5.0
    * - 0.11.0
      - 0.8.2
      - 0.2.3
