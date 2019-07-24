@@ -95,7 +95,7 @@ class InstructionParameter(ModelTypeValidator):
         if isinstance(value, sympy.Symbol):
             return str(value)
         if isinstance(value, sympy.Basic):
-            if sympy.im(value) != 0:
+            if sympy.is_complex:
                 return [float(sympy.re(value)), float(sympy.im(value))]
             if value.is_Integer:
                 return int(value.evalf())
