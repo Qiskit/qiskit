@@ -31,14 +31,13 @@ class Schedule(ScheduleComponent):
     """Schedule of `ScheduleComponent`s. The composite node of a schedule tree."""
     # pylint: disable=missing-type-doc
     def __init__(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
-                 name: Optional[str] = None, check_overlap: bool = True):
+                 name: Optional[str] = None):
         """Create empty schedule.
 
         Args:
             *schedules: Child Schedules of this parent Schedule. May either be passed as
                 the list of schedules, or a list of (start_time, schedule) pairs
             name: Name of this schedule
-            check_overlap: True if check overlap of time slots
 
         Raises:
             PulseError: If timeslots intercept.
@@ -58,7 +57,7 @@ class Schedule(ScheduleComponent):
                 sched_timeslots = sched.timeslots
                 if insert_time:
                     sched_timeslots = sched_timeslots.shift(insert_time)
-                if check_overlap and not self._timeslots.is_mergeable_with(sched_timeslots):
+                if not self._timeslots.is_mergeable_with(sched_timeslots):
                     raise PulseError("Cannot create from overlapped schedules")
                 self._timeslots = self._timeslots.merged(sched_timeslots)
                 _children.append(sched_pair)
@@ -146,17 +145,16 @@ class Schedule(ScheduleComponent):
 
     # pylint: disable=arguments-differ
     def union(self, *schedules: ScheduleComponent,
-              name: Optional[str] = None, check_overlap: bool = True) -> 'Schedule':
+              name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `schedule`.
 
         Args:
             *schedules: Schedules to be take the union with this `Schedule`.
             name: Name of the new schedule. Defaults to name of self
-            check_overlap: True if check overlap of time slots
         """
         if name is None:
             name = self.name
-        return Schedule(self, *schedules, name=name, check_overlap=check_overlap)
+        return Schedule(self, *schedules, name=name)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
@@ -167,10 +165,10 @@ class Schedule(ScheduleComponent):
         """
         if name is None:
             name = self.name
-        return Schedule((time, self), name=name, check_overlap=False)
+        return Schedule((time, self), name=name)
 
     def insert(self, start_time: int, schedule: ScheduleComponent, buffer: bool = False,
-               name: Optional[str] = None, check_overlap: bool = True) -> 'Schedule':
+               name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule with `schedule` inserted within `self` at `start_time`.
 
         Args:
@@ -178,11 +176,10 @@ class Schedule(ScheduleComponent):
             schedule: Schedule to insert
             buffer: Whether to obey buffer when inserting
             name: Name of the new schedule. Defaults to name of self
-            check_overlap: True if check overlap of time slots
         """
         if buffer and schedule.buffer and start_time > 0:
             start_time += self.buffer
-        return self.union((start_time, schedule), name=name, check_overlap=check_overlap)
+        return self.union((start_time, schedule), name=name)
     # pylint: enable=arguments-differ
 
     def append(self, schedule: ScheduleComponent, buffer: bool = True,
@@ -199,7 +196,7 @@ class Schedule(ScheduleComponent):
         """
         common_channels = set(self.channels) & set(schedule.channels)
         time = self.ch_stop_time(*common_channels)
-        return self.insert(time, schedule, buffer=buffer, name=name, check_overlap=True)
+        return self.insert(time, schedule, buffer=buffer, name=name)
 
     def flatten(self) -> 'Schedule':
         """Return a new schedule which is the flattened schedule contained all `instructions`."""
