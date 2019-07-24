@@ -100,13 +100,12 @@ class TestVQE(QiskitAquaTestCase):
     def test_vqe_qasm(self):
         backend = BasicAer.get_backend('qasm_simulator')
         num_qubits = self.algo_input.qubit_op.num_qubits
-        init_state = Zero(num_qubits)
-        var_form = RY(num_qubits, 3, initial_state=init_state)
-        optimizer = SPSA(max_trials=300)
+        var_form = RY(num_qubits, 3)
+        optimizer = SPSA(max_trials=300, last_avg=5)
         algo = VQE(self.algo_input.qubit_op, var_form, optimizer, max_evals_grouped=1)
-        quantum_instance = QuantumInstance(backend, shots=2048, optimization_level=0)
+        quantum_instance = QuantumInstance(backend, shots=10000, optimization_level=0)
         result = algo.run(quantum_instance)
-        self.assertAlmostEqual(result['energy'], -1.85727503, places=3)
+        self.assertAlmostEqual(result['energy'], -1.85727503, places=2)
 
     def test_vqe_aer_mode(self):
         try:
