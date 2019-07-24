@@ -596,6 +596,7 @@ class WeightedPauliOperator(BaseOperator):
                 raise AquaError("Either backend or statevector_mode need to be provided.")
 
         n_qubits = self.num_qubits
+        # instructions = self.evaluation_instruction(statevector_mode, use_simulator_operator_mode)
         circuits = []
         if statevector_mode:
             if use_simulator_operator_mode:
@@ -603,13 +604,17 @@ class WeightedPauliOperator(BaseOperator):
             else:
                 circuits.append(wave_function.copy(name=circuit_name_prefix + 'psi'))
                 for _, pauli in self._paulis:
-                    circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
                     if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
                         continue
-                    #  this barrier is used to assure the circuit optimization on `wave_function` are the same.
-                    circuit.barrier(qr)
-                    circuit.append(pauli, qr)
+                    circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
+                    circuit.barrier([x for x in range(self.num_qubits)])
+                    circuit.append(pauli, [x for x in range(self.num_qubits)])
                     circuits.append(circuit)
+                    # inst = instructions.get(pauli.to_label(), None)
+                    # if inst is not None:
+                    #     circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
+                    #     circuit.append(inst, qr)
+                    #     circuits.append(circuit)
         else:
             base_circuit = wave_function.copy()
             if cr is not None:
@@ -623,7 +628,9 @@ class WeightedPauliOperator(BaseOperator):
 
             for basis, indices in self._basis:
                 circuit = base_circuit.copy(name=circuit_name_prefix + basis.to_label())
-                circuit = pauli_measurement(circuit, basis, qr, cr)
+                # TODO: change to this after custom instruction always work
+                # circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
+                circuit = pauli_measurement(circuit, basis, qr, cr, barrier=True)
                 circuits.append(circuit)
 
         return circuits
@@ -643,9 +650,8 @@ class WeightedPauliOperator(BaseOperator):
         qc = QuantumCircuit(qr)
         if statevector_mode:
             if use_simulator_operator_mode:
-                instructions['aer_mode'] = qc.to_instruction()
+                pass
             else:
-                instructions['psi'] = qc.to_instruction()
                 for _, pauli in self._paulis:
                     tmp_qc = qc.copy(name=pauli.to_label())
                     if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
@@ -658,7 +664,7 @@ class WeightedPauliOperator(BaseOperator):
             qc.add_register(cr)
             for basis, _ in self._basis:
                 tmp_qc = qc.copy(name=basis.to_label())
-                tmp_qc = pauli_measurement(tmp_qc, basis, qr, cr)
+                tmp_qc = pauli_measurement(tmp_qc, basis, qr, cr, barrier=True)
                 instructions[basis.to_label()] = tmp_qc.to_instruction()
         return instructions
 

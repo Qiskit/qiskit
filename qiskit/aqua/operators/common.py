@@ -25,7 +25,7 @@ from qiskit.aqua import AquaError
 logger = logging.getLogger(__name__)
 
 
-def pauli_measurement(circuit, pauli, qr, cr):
+def pauli_measurement(circuit, pauli, qr, cr, barrier=False):
     """
     Add the proper post-rotation gate on the circuit.
     Args:
@@ -33,6 +33,7 @@ def pauli_measurement(circuit, pauli, qr, cr):
         pauli (Pauli): the pauli will be added.
         qr (QuantumRegister): the quantum register associated with the circuit.
         cr (ClassicalRegister): the classical register associated with the circuit.
+        barrier (bool, optional): whether or not add barrier before measurement.
     Returns:
         QuantumCircuit: the original circuit object with post-rotation gate
     """
@@ -46,7 +47,8 @@ def pauli_measurement(circuit, pauli, qr, cr):
             else:
                 # Measure X
                 circuit.u2(0.0, pi, qr[qubit_idx])  # h
-        circuit.barrier(qr[qubit_idx])
+        if barrier:
+            circuit.barrier(qr[qubit_idx])
         circuit.measure(qr[qubit_idx], cr[qubit_idx])
 
     return circuit
