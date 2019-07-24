@@ -60,12 +60,12 @@ You can build a local copy of the documentation from your local clone of the
 
 2. `Install Sphinx <http://www.sphinx-doc.org/en/master/usage/installation.html>`_.
 
-3. Install the `Material Design HTML Theme for Sphinx` by running the following
+3. Install the required dependencies by running the following
    in a terminal window:
 
    .. code-block:: sh
 
-      pip install sphinx_materialdesign_theme
+      pip install -r requirements-dev.txt
 
 4. Build the documentation by navigating to your local clone of `Qiskit/qiskit`
    and running the following command in a terminal window:
@@ -367,26 +367,20 @@ universally depending on operating system.
 
       3. Install dependencies.
 
-         To use the `Clang`_ compiler on macOS, you need to install an extra library for
-         supporting `OpenMP`_.  You can use `brew`_ to install this and other
-         dependencies.
-
-         .. _brew: https://brew.sh/
-         .. _Clang: https://clang.llvm.org/
-         .. _OpenMP: https://www.openmp.org/
+         To use the `Clang <https://clang.llvm.org/>`_ compiler on macOS, you need to install
+         an extra library for supporting `OpenMP <https://www.openmp.org/>`_.  You can use `brew <https://brew.sh/>`_
+         to install this and other dependencies.
 
          .. code:: sh
 
             brew install libomp
 
-         You then also have to install a BLAS implementation, `OpenBLAS`_ is the
-         default choice.
+         You then also have to install a BLAS implementation, `OpenBLAS <https://www.openblas.net/>`_
+         is the default choice.
 
          .. code:: sh
 
             brew install openblas
-
-         .. _OpenBlas: https://www.openblas.net/
 
          You also need to have ``Xcode Command Line Tools`` installed.
 
@@ -430,11 +424,9 @@ universally depending on operating system.
 
    .. tab:: Windows
 
-      On Windows you need to use `Anaconda3`_ or `Miniconda3`_ to install all the
+      On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`_
+      or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_ to install all the
       dependencies.
-
-      .. _Anaconda3: https://www.anaconda.com/distribution/#windows
-      .. _Miniconda3: https://docs.conda.io/en/latest/miniconda.html
 
       3. Install compiler requirements
 
@@ -479,64 +471,60 @@ universally depending on operating system.
          The exact filename of the output wheel file depends on the current version of
          Aer under development.
 
-         .. _aer_wheel_build_options:
+.. _aer_wheel_build_options:
 
-   .. tab:: Custom options during wheel builds
+Custom options during wheel builds
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-      The Aer build system uses `scikit-build`_ to run the compilation when building
-      it with the python interface. It acts as an interface for `setuptools`_ to
-      call `CMake`_ and compile the binaries for your local system.
+The Aer build system uses `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
+to run the compilation when building it with the python interface. It acts as an interface for
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`_ to call `CMake <https://cmake.org/>`_
+and compile the binaries for your local system.
 
-      .. _scikit-build: https://scikit-build.readthedocs.io/en/latest/index.html
-      .. _setuptools: https://setuptools.readthedocs.io/en/latest/
-      .. _CMake: https://cmake.org/
+Due to the complexity of compiling the binaries you may need to pass options
+to a certain part of the build process. The way to pass variables is:
 
-      Due to the complexity of compiling the binaries you may need to pass options
-      to a certain part of the build process. The way to pass variables is:
+.. code:: sh
 
-      .. code:: sh
+   python setup.py bdist_wheel [skbuild_opts] [-- [cmake_opts] [-- build_tool_opts]]
 
-          python setup.py bdist_wheel [skbuild_opts] [-- [cmake_opts] [-- build_tool_opts]]
+where the elements within square brackets `[]` are optional, and
+``skbuild_opts``, ``cmake_opts``, ``build_tool_opts`` are to be replaced by
+flags of your choice. A list of *CMake* options is available here:
+https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options. For
+example, you could run something like:
 
-      where the elements within square brackets `[]` are optional, and
-      ``skbuild_opts``, ``cmake_opts``, ``build_tool_opts`` are to be replaced by
-      flags of your choice. A list of *CMake* options is available here:
-      https://cmake.org/cmake/help/v3.6/manual/cmake.1.html#options . For
-      example, you could run something like:
+.. code:: sh
 
-      .. code:: sh
+   python setup.py bdist_wheel -- -- -j8
 
-          python setup.py bdist_wheel -- -- -j8
+This is passing the flag `-j8` to the underlying build system (which in this
+case is `Automake <https://www.gnu.org/software/automake/>`_) telling it that you want
+to build in parallel using 8 processes.
 
-      This is passing the flag `-j8` to the underlying build system (which in this
-      case is `Automake`_) telling it that you want to build in parallel using 8
-      processes.
+For example, a common use case for these flags on linux is to specify a
+specific version of the C++ compiler to use (normally if the default is too
+old).
 
-      .. _Automake: https://www.gnu.org/software/automake/
+.. code:: sh
 
-      For example, a common use case for these flags on linux is to specify a
-      specific version of the C++ compiler to use (normally if the default is too
-      old).
+   python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7
 
-      .. code:: sh
+which will tell CMake to use the g++-7 command instead of the default g++ when
+compiling Aer
 
-          python setup.py bdist_wheel -- -DCMAKE_CXX_COMPILER=g++-7
+Another common use case for this, depending on your environment, is that you may
+need to specify your platform name and turn off static linking.
 
-      which will tell CMake to use the g++-7 command instead of the default g++ when
-      compiling Aer
+.. code:: sh
 
-      Another common use case for this, depending on your environment, is that you may
-      need to specify your platform name and turn off static linking.
+   python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 \
+   -- -DSTATIC_LINKING=False -- -j8
 
-      .. code:: sh
-
-          python setup.py bdist_wheel --plat-name macosx-10.9-x86_64 \
-          -- -DSTATIC_LINKING=False -- -j8
-
-      Here ``--plat-name`` is a flag to setuptools, to specify the platform name to
-      use in the package metadata, ``-DSTATIC_LINKING`` is a flag to CMake being used
-      to disable static linking, and ``-j8`` is a flag to Automake being used to use
-      8 processes for compilation.
+Here ``--plat-name`` is a flag to setuptools, to specify the platform name to
+use in the package metadata, ``-DSTATIC_LINKING`` is a flag to CMake being used
+to disable static linking, and ``-j8`` is a flag to Automake being used to use
+8 processes for compilation.
 
 A list of common options depending on platform are:
 
