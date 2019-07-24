@@ -300,7 +300,3 @@ class DependencyGraph:
                 self._gates_by_qubit[qarg].append(i)
             for carg in gate.cargs:
                 self._gates_by_qubit[carg].append(i)
-
-
-if __name__ == '__main__':
-    pass
