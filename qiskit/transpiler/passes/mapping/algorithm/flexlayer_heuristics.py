@@ -125,11 +125,11 @@ class FlexlayerHeuristics:
             if not blocking_gates:
                 break
 
-            ece = EdgeCostEstimator(gates=blocking_gates,
-                                    layout=layout,
-                                    coupling=self._coupling,
-                                    dg=self._dg,
-                                    max_depth=self._lookahead_depth)
+            ece = _EdgeCostEstimator(gates=blocking_gates,
+                                     layout=layout,
+                                     coupling=self._coupling,
+                                     dg=self._dg,
+                                     max_depth=self._lookahead_depth)
 
             costs = [ece.cost(e, alpha=self._decay_rate) for e in ece.cand_edges]
 
@@ -150,11 +150,11 @@ class FlexlayerHeuristics:
 
                 max_n_inner_loops = len(focus_gates) * self._coupling.size()
                 for kin in range(max_n_inner_loops):  # escape infinite loop
-                    ece = EdgeCostEstimator(gates=focus_gates,
-                                            layout=layout,
-                                            coupling=self._coupling,
-                                            dg=self._dg,
-                                            max_depth=self._lookahead_depth)
+                    ece = _EdgeCostEstimator(gates=focus_gates,
+                                             layout=layout,
+                                             coupling=self._coupling,
+                                             dg=self._dg,
+                                             max_depth=self._lookahead_depth)
 
                     costs = [ece.cost(e,
                                       priority=['immediate_cost', 'lookahead_cost'],
@@ -239,7 +239,7 @@ class FlexlayerHeuristics:
             return gates
 
         paths = {g: self._path_of(g, layout) for g in gates}
-        gce = GateCostEstimator(gates, paths)
+        gce = _GateCostEstimator(gates, paths)
 
         costs = [gce.cost(g) for g in gce.gates]
 
@@ -267,26 +267,6 @@ class FlexlayerHeuristics:
                 raise TranspilerError("%s is not in _coupling but in initial_layout" %
                                       pprint.pformat(q))
 
-    def _add_ancilla_qubits(self):
-        virtual_qubits = sorted(self._dg.qubits)
-        physical_qubits = sorted(self._coupling.physical_qubits)
-        for b in self._initial_layout.get_virtual_bits():
-            if b not in virtual_qubits:
-                del self._initial_layout[b]
-                logger.info("remove unused qubit in initial_layout %s", pprint.pformat(b))
-
-        ancilla_qubits = set(physical_qubits) - set(self._initial_layout.get_physical_bits().keys())
-
-        # add ancilla qubits
-        if ancilla_qubits:
-            anc_qreg = QuantumRegister(len(ancilla_qubits), name="ancilla")
-            for i, anq in enumerate(ancilla_qubits):
-                virtual_qubits.append((anc_qreg, i))
-                self._initial_layout[(anc_qreg, i)] = anq
-
-        assert len(physical_qubits) == len(virtual_qubits), \
-            "physical_qubits=%d, virtual_qubits=%d" % (len(physical_qubits), len(virtual_qubits))
-
     def _create_empty_dagcircuit(self, physical_qreg):
         new_dag = DAGCircuit()
         new_dag.add_qreg(physical_qreg)
@@ -295,7 +275,7 @@ class FlexlayerHeuristics:
         return new_dag
 
 
-class GateCostEstimator:
+class _GateCostEstimator:
     """
     Define cost of gate used for selecting the gate to be resolved first in the special loops
     to avoid cyclic swaps.
@@ -330,7 +310,7 @@ class GateCostEstimator:
         return Cost(dependent_cost=dependent_cost)
 
 
-class EdgeCostEstimator:
+class _EdgeCostEstimator:
     """
     Define cost of edge (in coupling graph) used for selecting the edge to be swapped.
     """
