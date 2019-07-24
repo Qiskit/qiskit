@@ -19,6 +19,7 @@ import logging
 from typing import List, Dict, Set, Tuple, Mapping
 
 from qiskit.transpiler.routing import complete, util, Permutation, Swap
+import networkx as nx
 
 LOGGER = logging.getLogger(__name__)
 
@@ -165,44 +166,44 @@ def _distinct_permutation(mapping: Mapping[int, int],
 
     # Construct bipartite graph.
     # The edge set with attributes: the node that added the edge; and weight.
-    edges: List[Tuple[int, int]] = []
-    edge_nodes: List[int] = []
+    destination_graph = nx.MultiGraph()
+    destination_graph.add_nodes_from(range(modules))
+    destination_graph.add_nodes_from((right_node(i) for i in range(modules)))
     for from_node, to_node in mapping.items():
         if from_node not in already_mapped:
             from_module = _in_module(from_node, modulesize)
             to_module = _in_module(to_node, modulesize)
-            # if from_module != to_module:
-            edges.append((from_module, right_node(to_module)))
-            edge_nodes.append(from_node)
-    destination_graph: igraph.Graph = igraph.Graph.Bipartite([True] * modules + [False] * modules,
-                                                             edges)
+            destination_graph.add_edge(from_module, right_node(to_module), node=from_node)
 
     # Then add unmapped nodes
-    # epsilon = 1 / (modules + 1)
-    # epsilon = 1
-    degree = list(destination_graph.degree(range(2*modules)))  # Fix current degree map
-    max_degree = destination_graph.maxdegree()
-    unmapped_edges : Dict[Tuple[int, int], int] = {}
+    degree = dict(destination_graph.degree) # Fix current degree map
+    max_degree = max(degree.values())
+    unmapped_graph = nx.Graph()
     for from_module, unmapped_nodes in enumerate(module_unmapped_nodes):
         # Check if the originating module can support outgoing unmapped qubits.
-        if unmapped_nodes and degree[from_module] < max_degree:
-            # Add edges to all destinations for an arbitrary unmapped node.
-            unmapped_node = next(iter(unmapped_nodes))
-            unmapped_edges.update({(from_module, right_node(to_module)): unmapped_node
-                 for to_module in range(modules)
-                 # Multi-edges are not properly handled.
-                 if not destination_graph.are_connected(from_module, right_node(to_module))
-                                   # There must be at least one available slot in the destination
-                                   and degree[right_node(to_module)] < max_degree})
-    destination_graph.add_edges(unmapped_edges.keys())
-    destination_graph.es["node"] = edge_nodes + list(unmapped_edges.values())
-    # destination_graph.es["weight"] = [1] * len(edges) + [epsilon] * len(unmapped_edges)
+        if not(unmapped_nodes) or degree[from_module] >= max_degree:
+            continue
 
+        # Add edges to all destinations for an arbitrary unmapped node.
+        unmapped_node = next(iter(unmapped_nodes))
+        for to_node in (right_node(to_module) for to_module in range(modules)):
+            # Only when there is no mapped vertex that needs to be sent do we allow an unmapped vertex to move
+            # Moreover, the destination module need to have empty "slots" available from incoming unmapped vertices
+            if not(destination_graph.has_edge(from_module, to_node)) and degree[to_node] < max_degree:
+                unmapped_graph.add_edge(from_module, to_node, node=unmapped_node)
 
-    matching: igraph.Matching = destination_graph.maximum_bipartite_matching()
+    # Merge destination_graph and unmapped_graph to simple graph
+    simple_graph = nx.Graph()
+    simple_graph.add_nodes_from(range(modules))
+    simple_graph.add_nodes_from((right_node(i) for i in range(modules)))
+    for graph in (destination_graph, unmapped_graph):
+        for e0, e1, data in graph.edges(data=True):
+            simple_graph.add_edge(e0, e1, node=data["node"])
+
+    matching = nx.algorithms.bipartite.maximum_matching(simple_graph, top_nodes=range(modules))
     if len(matching) != modules:
         LOGGER.warning("The matching is not perfect. Ignoring...")
 
     # Then use the full matching and the inverse edge map to find the nodes
     # to be moved into destination modules.
-    return {e["node"] for e in matching.edges()}
+    return {simple_graph[e0][e1]["node"] for e0, e1 in matching.items()}
