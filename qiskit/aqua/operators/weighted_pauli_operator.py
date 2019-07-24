@@ -906,7 +906,7 @@ class WeightedPauliOperator(BaseOperator):
 
         self._z2_symmetries = Z2Symmetries.find_Z2_symmetries(self)
 
-        return self._z2_symmetries.symmetries, self._z2_symmetries.sq_pauli, \
+        return self._z2_symmetries.symmetries, self._z2_symmetries.sq_paulis, \
             self._z2_symmetries.cliffords, self._z2_symmetries.sq_list
 
     @classmethod
