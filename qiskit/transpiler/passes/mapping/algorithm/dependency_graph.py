@@ -16,7 +16,8 @@
 A dependency graph represents precedence relations of the gates in a quantum circuit considering
 commutation rules. Each node represents gates in the circuit. Each directed edge represents
 dependency of two gates. For example, gate g1 must be applied before gate g2 if and only if
-there exists a path from g1 to g2.
+there exists a path from g1 to g2. In this file, we use the term `gate` instead of `operation`
+(or `instruction`) with or without its qu/cl-bit arguments.
 """
 import copy
 from collections import namedtuple, defaultdict
@@ -28,23 +29,24 @@ from qiskit.circuit import Qubit
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 
-InstructionContext = namedtuple("InstructionContext", "instruction qargs cargs")
+InstructionContext = namedtuple("InstructionContext", "op qargs cargs")
 
 
 class ArgumentedGate(InstructionContext):
     """
-    A wrapper class of `InstructionContext` (instruction with args context).
+    A wrapper class of `InstructionContext` (operation with args context).
     """
 
     @property
     def name(self) -> str:
         """Name of this instruction."""
-        return self.instruction.name
+        return self.op.name
 
 
 class DependencyGraph:
     """
-    Create a dependency graph of a quantum circuit with a chosen commutation rule.
+    Create a dependency graph of a quantum circuit (say `qc`) with a chosen commutation rule.
+    All of its nodes (i.e. gates) are considered as integers, which are the indices of `qc.data`.
     """
 
     def __init__(self,
@@ -78,7 +80,7 @@ class DependencyGraph:
             self.qubits.update(self.qargs(i))
 
         # for speed up of _prior_gates_on_wire
-        self._create_gates_by_wire()
+        self._create_gates_by_qubit()
 
         if graph_type == "xz_commute":
             self._create_xz_graph()
@@ -99,7 +101,7 @@ class DependencyGraph:
             if self._gates[n].name in x_gates:
                 b = self._gates[n].qargs[0]  # acting qubit of gate n
                 # pylint: disable=unbalanced-tuple-unpacking
-                [pgow] = self._prior_gates_on_wire(n)
+                [pgow] = self._prior_gates_on_sharing_qubits_of(n)
                 z_flag = False
                 for m in pgow:
                     gate = self._gates[m]
@@ -119,7 +121,7 @@ class DependencyGraph:
             elif self._gates[n].name in z_gates:
                 b = self._gates[n].qargs[0]  # acting qubit of gate n
                 # pylint: disable=unbalanced-tuple-unpacking
-                [pgow] = self._prior_gates_on_wire(n)
+                [pgow] = self._prior_gates_on_sharing_qubits_of(n)
                 x_flag = False
                 for m in pgow:
                     gate = self._gates[m]
@@ -139,7 +141,7 @@ class DependencyGraph:
             elif self._gates[n].name == "cx":
                 cbit, tbit = self._gates[n].qargs
                 # pylint: disable=unbalanced-tuple-unpacking
-                [cpgow, tpgow] = self._prior_gates_on_wire(n)
+                [cpgow, tpgow] = self._prior_gates_on_sharing_qubits_of(n)
 
                 z_flag = False
                 for m in tpgow:  # target bit: bt
@@ -176,7 +178,7 @@ class DependencyGraph:
                         raise TranspilerError("Unknown gate: " + gate.name)
             elif self._gates[n].name in b_gates:
                 all_args_of_n = self._gates[n].qargs + self._gates[n].cargs
-                for i, pgow in enumerate(self._prior_gates_on_wire(n)):
+                for i, pgow in enumerate(self._prior_gates_on_sharing_qubits_of(n)):
                     b = all_args_of_n[i]
                     x_flag, z_flag = False, False
                     for m in pgow:
@@ -203,7 +205,7 @@ class DependencyGraph:
 
     def _create_basic_graph(self):
         for n in self._graph.nodes():
-            for pgow in self._prior_gates_on_wire(n):
+            for pgow in self._prior_gates_on_sharing_qubits_of(n):
                 m = next(pgow, -1)
                 if m != -1:
                     self._graph.add_edge(m, n)
@@ -283,21 +285,21 @@ class DependencyGraph:
             if not nx.has_path(graph, edge[0], edge[1]):
                 graph.add_edge(edge[0], edge[1])
 
-    def _prior_gates_on_wire(self, toidx):
+    def _prior_gates_on_sharing_qubits_of(self, toidx):
         res = []
         for qarg in self._gates[toidx].qargs:
-            res.append(reversed([i for i in self._gates_by_wire[qarg] if i < toidx]))
+            res.append(reversed([i for i in self._gates_by_qubit[qarg] if i < toidx]))
         for carg in self._gates[toidx].cargs:
-            res.append(reversed([i for i in self._gates_by_wire[carg] if i < toidx]))
+            res.append(reversed([i for i in self._gates_by_qubit[carg] if i < toidx]))
         return res
 
-    def _create_gates_by_wire(self):
-        self._gates_by_wire = defaultdict(list)
+    def _create_gates_by_qubit(self):
+        self._gates_by_qubit = defaultdict(list)
         for i, gate in enumerate(self._gates):
             for qarg in gate.qargs:
-                self._gates_by_wire[qarg].append(i)
+                self._gates_by_qubit[qarg].append(i)
             for carg in gate.cargs:
-                self._gates_by_wire[carg].append(i)
+                self._gates_by_qubit[carg].append(i)
 
 
 if __name__ == '__main__':
