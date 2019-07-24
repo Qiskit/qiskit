@@ -63,7 +63,10 @@ def permute_path_partial(mapping: Mapping[int, int],
     Fills a partial mapping up to a full permutation then calls the full permutation algorithm.
     """
     if length is None:
-        length = max(set(mapping.keys() | set(mapping.values())))
+        if mapping:
+            length = max(set(mapping.keys() | set(mapping.values())))
+        else:  # The mapping is empty
+            return iter(list())
 
     if len(mapping) == 1:
         # Handle common case quickly.
