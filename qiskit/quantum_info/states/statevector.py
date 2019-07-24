@@ -175,7 +175,7 @@ class Statevector(QuantumState):
         return Statevector(self.data - other.data, self.dims())
 
     def multiply(self, other):
-        """Return the linear operator self + other.
+        """Return the linear operator self * other.
 
         Args:
             other (complex): a complex number.

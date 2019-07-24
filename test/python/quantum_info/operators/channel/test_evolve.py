@@ -44,7 +44,7 @@ class TestEvolve(ChannelTestCase):
                 mat = self.rand_matrix(dim, dim)
                 chan = Operator(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
-                rho2 = rep(chan)._evolve(rho).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _other_to_operator(self, rep, qubits_test_cases, repetitions):
@@ -55,7 +55,7 @@ class TestEvolve(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim, dim)
                 chan = rep(Operator(mat))
-                rho1 = chan._evolve(rho).data
+                rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(Operator(chan)).data
                 self.assertAllClose(rho1, rho2)
 
@@ -66,10 +66,9 @@ class TestEvolve(ChannelTestCase):
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 mat = dim * self.rand_rho(dim**2)
-                chan1 = Choi(mat)
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = Choi(mat)
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _choi_to_other_noncp(self, rep, qubits_test_cases, repetitions):
@@ -79,10 +78,9 @@ class TestEvolve(ChannelTestCase):
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim**2, dim**2)
-                chan1 = Choi(mat)
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = Choi(mat)
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _superop_to_other(self, rep, qubits_test_cases, repetitions):
@@ -92,10 +90,9 @@ class TestEvolve(ChannelTestCase):
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim**2, dim**2)
-                chan1 = SuperOp(mat)
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = SuperOp(mat)
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _kraus_to_other_single(self, rep, qubits_test_cases, repetitions):
@@ -105,10 +102,9 @@ class TestEvolve(ChannelTestCase):
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 kraus = self.rand_kraus(dim, dim, dim**2)
-                chan1 = Kraus(kraus)
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = Kraus(kraus)
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _kraus_to_other_double(self, rep, qubits_test_cases, repetitions):
@@ -119,10 +115,9 @@ class TestEvolve(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 kraus_l = self.rand_kraus(dim, dim, dim**2)
                 kraus_r = self.rand_kraus(dim, dim, dim**2)
-                chan1 = Kraus((kraus_l, kraus_r))
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = Kraus((kraus_l, kraus_r))
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _stinespring_to_other_single(self, rep, qubits_test_cases,
@@ -133,10 +128,9 @@ class TestEvolve(ChannelTestCase):
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim**2, dim)
-                chan1 = Stinespring(mat)
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = Stinespring(mat)
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _stinespring_to_other_double(self, rep, qubits_test_cases,
@@ -148,10 +142,9 @@ class TestEvolve(ChannelTestCase):
                 rho = self.rand_rho(dim)
                 mat_l = self.rand_matrix(dim**2, dim)
                 mat_r = self.rand_matrix(dim**2, dim)
-                chan1 = Stinespring((mat_l, mat_r))
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = Stinespring((mat_l, mat_r))
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _chi_to_other(self, rep, qubits_test_cases, repetitions):
@@ -161,10 +154,9 @@ class TestEvolve(ChannelTestCase):
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim**2, dim**2, real=True)
-                chan1 = Chi(mat)
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = Chi(mat)
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def _ptm_to_other(self, rep, qubits_test_cases, repetitions):
@@ -174,10 +166,9 @@ class TestEvolve(ChannelTestCase):
             for _ in range(repetitions):
                 rho = self.rand_rho(dim)
                 mat = self.rand_matrix(dim**2, dim**2, real=True)
-                chan1 = PTM(mat)
-                rho1 = chan1._evolve(rho).data
-                chan2 = rep(chan1)
-                rho2 = chan2._evolve(rho).data
+                chan = PTM(mat)
+                rho1 = DensityMatrix(rho).evolve(chan).data
+                rho2 = DensityMatrix(rho).evolve(rep(chan)).data
                 self.assertAllClose(rho1, rho2)
 
     def test_unitary_to_choi(self):

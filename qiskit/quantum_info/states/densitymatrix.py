@@ -189,7 +189,7 @@ class DensityMatrix(QuantumState):
         return DensityMatrix(self.data - other.data, self.dims())
 
     def multiply(self, other):
-        """Return the linear operator self + other.
+        """Return the linear operator self * other.
 
         Args:
             other (complex): a complex number.
