@@ -16,6 +16,7 @@
 Statevector quantum state class.
 """
 
+import re
 from numbers import Number
 
 import numpy as np
@@ -23,6 +24,7 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
 
@@ -37,17 +39,6 @@ class Statevector(QuantumState):
             vec = data.data
             if dims is None:
                 dims = data.dims()
-        elif isinstance(data, (QuantumCircuit, Instruction)):
-            # If the input is a Terra QuantumCircuit or Instruction we
-            # perform a simulation to construct the output statevector
-            # for that circuit assuming that the input is the zero state
-            # |0,...,0>.
-            # This will only work if the cirucit or instruction can be
-            # defined in terms of unitary gate instructions which have a
-            # 'to_matrix' method defined. Any other instructions such as
-            # conditional gates, measure, or reset will cause an
-            # exception to be raised.
-            vec = self._init_instruction(data).data
         elif isinstance(data, Operator):
             # We allow conversion of column-vector operators to Statevectors
             input_dim, output_dim = data.dim
@@ -237,6 +228,92 @@ class Statevector(QuantumState):
         # Replace evolved dimensions
         return Statevector(np.reshape(tensor, np.product(new_dims)), dims=new_dims)
 
+    @classmethod
+    def from_label(cls, label):
+        """Return a tensor product of Pauli X,Y,Z eigenstates.
+
+        Args:
+            label (string): a eigenstate string ket label 0,1,+,-,r,l.
+
+        Returns:
+            Statevector: The N-qubit basis state density matrix.
+
+        Raises:
+            QiskitError: if the label contains invalid characters, or the length
+            of the label is larger than an explicitly specified num_qubits.
+
+        Additional Information:
+            The labels correspond to the single-qubit states:
+            '0': [1, 0]
+            '1': [0, 1]
+            '+': [1 / sqrt(2), 1 / sqrt(2)]
+            '-': [1 / sqrt(2), -1 / sqrt(2)]
+            'r': [1 / sqrt(2), 1j / sqrt(2)]
+            'l': [1 / sqrt(2), -1j / sqrt(2)]
+        """
+        # Check label is valid
+        if re.match('^[01rl\-+]+$', label) == None:
+            raise QiskitError('Label contains invalid characters.')
+        # We can prepare Z-eigenstates by converting the computational
+        # basis bit-string to an integer and preparing that unit vector
+        # However, for X-basis states, we will prepare a Z-eigenstate first
+        # then apply Hadamard gates to rotate 0 and 1s to + and -.
+        z_label = label
+        xy_states = False
+        if re.match('^[01]+$', label) == None:
+            # We have X or Y eigenstates so replace +,r with 0 and
+            # -,l with 1 and prepare the corresponding Z state
+            xy_states = True
+            z_label = z_label.replace('+', '0') 
+            z_label = z_label.replace('r', '0') 
+            z_label = z_label.replace('-', '1')
+            z_label = z_label.replace('l', '1') 
+        # Initialize Z eigenstate vector
+        num_qubits = len(label)
+        data = np.zeros(1 << num_qubits, dtype=complex)
+        pos = int(z_label, 2)
+        data[pos] = 1
+        state = Statevector(data)
+        if xy_states:
+            # Apply hadamards to all qubits in X eigenstates
+            x_mat = np.array([[1, 1], [1, -1]], dtype=complex) / np.sqrt(2)
+            # Apply S.H to qubits in Y eigenstates
+            y_mat = np.dot(np.diag([1, 1j]), x_mat)
+            for qubit, char in enumerate(reversed(label)):
+                if char in ['+', '-']:
+                    state = state.evolve(x_mat, qargs=[qubit])
+                elif char in ['r', 'l']:
+                    state = state.evolve(y_mat, qargs=[qubit])                
+        return state
+
+    @classmethod
+    def from_instruction(cls, instruction):
+        """Return the output statevector of an instruction.
+
+        The statevector is initialized in the state |0,...,0> of the same
+        number of qubits as the input instruction or circuit, evolved
+        by the input instruction, and the output statevector returned. 
+
+        Args:
+            instruction (Instruction or QuantumCircuit): instruction or circuit
+
+        Returns:
+            Statevector: The final statevector.
+        
+        Raises:
+            QiskitError: if the instruction contains invalid instructions for
+            the statevector simulation.
+        """
+        # Convert circuit to an instruction
+        if isinstance(instruction, QuantumCircuit):
+            instruction = instruction.to_instruction()
+        # Initialize an the statevector in the all |0> state
+        init = np.zeros(2 ** instruction.num_qubits, dtype=complex)
+        init[0] = 1
+        vec = Statevector(init, dims=instruction.num_qubits * [2])
+        vec._append_instruction(instruction)
+        return vec
+
     @property
     def _shape(self):
         """Return the tensor shape of the matrix operator"""
@@ -270,17 +347,4 @@ class Statevector(QuantumState):
             obj = obj.to_instruction()
         vec = Statevector(self.data, dims=self.dims())
         vec._append_instruction(obj, qargs=qargs)
-        return vec
-
-    @classmethod
-    def _init_instruction(cls, instruction):
-        """Initialize from output of an instruction applied to zero state."""
-        # Convert circuit to an instruction
-        if isinstance(instruction, QuantumCircuit):
-            instruction = instruction.to_instruction()
-        # Initialize an the statevector in the all |0> state
-        init = np.zeros(2 ** instruction.num_qubits, dtype=complex)
-        init[0] = 1
-        vec = Statevector(init, dims=instruction.num_qubits * [2])
-        vec._append_instruction(instruction)
         return vec

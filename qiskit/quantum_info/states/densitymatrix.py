@@ -23,11 +23,14 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
+from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
 from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_matrix
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
+from qiskit.quantum_info.operators.channel.superop import SuperOp
+from qiskit.quantum_info.states.statevector import Statevector
 
 
 class DensityMatrix(QuantumState):
@@ -35,18 +38,12 @@ class DensityMatrix(QuantumState):
 
     def __init__(self, data, dims=None):
         """Initialize a state object."""
-        # TODO: conversion form Statevector
-        if isinstance(data, (QuantumCircuit, Instruction)):
-            # If the input is a Terra QuantumCircuit or Instruction we
-            # perform a simulation to construct the output statevector
-            # for that circuit assuming that the input is the zero state
-            # |0,...,0>.
-            # This will only work if the cirucit or instruction can be
-            # defined in terms of unitary gate instructions which have a
-            # 'to_matrix' method defined. Any other instructions such as
-            # conditional gates, measure, or reset will cause an
-            # exception to be raised.
-            mat = self._init_instruction(data).data
+        if isinstance(data, Statevector):
+            # We convert a statevector into a density matrix by taking the projector
+            state_vec = data.data
+            mat = np.outer(state_vec, np.conjugate(state_vec))
+            if dims is None:
+                dims = data.dims()
         elif hasattr(data, 'to_operator'):
             # If the data object has a 'to_operator' attribute this is given
             # higher preference than the 'to_matrix' method for initializing
@@ -233,6 +230,65 @@ class DensityMatrix(QuantumState):
         # Unitary evolution by an Operator
         return self._evolve_operator(other, qargs=qargs)
 
+    @classmethod
+    def from_label(cls, label, num_qubits=None):
+        """Return a tensor product of Pauli X,Y,Z eigenstates.
+
+        Args:
+            label (string): a eigenstate string ket label 0,1,+,-,r,l.
+
+        Returns:
+            Statevector: The N-qubit basis state density matrix.
+
+        Raises:
+            QiskitError: if the label contains invalid characters, or the length
+            of the label is larger than an explicitly specified num_qubits.
+
+        Additional Information:
+            The labels correspond to the single-qubit states:
+            '0': [[1, 0], [0, 0]]
+            '1': [[0, 0], [0, 1]]
+            '+': [[0.5, 0.5], [0.5 , 0.5]]
+            '-': [[0.5, -0.5], [-0.5 , 0.5]]
+            'r': [[0.5, -0.5j], [0.5j , 0.5]]
+            'l': [[0.5, 0.5j], [-0.5j , 0.5]]
+        """
+        return DensityMatrix(Statevector.from_label(label))
+
+    @classmethod
+    def from_instruction(cls, instruction):
+        """Return the output density matrix of an instruction.
+
+        The statevector is initialized in the state |0,...,0> of the same
+        number of qubits as the input instruction or circuit, evolved
+        by the input instruction, and the output statevector returned. 
+
+        Args:
+            instruction (Instruction or QuantumCircuit): instruction or circuit
+
+        Returns:
+            DensityMatrix: the final density matrix.
+        
+        Raises:
+            QiskitError: if the instruction contains invalid instructions for
+            density matrix simulation.
+        """
+        # Convert circuit to an instruction
+        if isinstance(instruction, QuantumCircuit):
+            instruction = instruction.to_instruction()
+        # Initialize an the statevector in the all |0> state
+        n_qubits = instruction.num_qubits
+        init = np.zeros((2**n_qubits, 2**n_qubits), dtype=complex)
+        init[0, 0] = 1
+        vec = DensityMatrix(init, dims=n_qubits * [2])
+        vec._append_instruction(instruction)
+        return vec
+
+    @property
+    def _shape(self):
+        """Return the tensor shape of the matrix operator"""
+        return 2 * tuple(reversed(self.dims()))
+
     def _evolve_operator(self, other, qargs=None):
         """Evolve density matrix by an operator"""
         if not isinstance(other, Operator):
@@ -315,18 +371,4 @@ class DensityMatrix(QuantumState):
             obj = obj.to_instruction()
         vec = DensityMatrix(self.data, dims=self.dims())
         vec._append_instruction(obj, qargs=qargs)
-        return vec
-
-    @classmethod
-    def _init_instruction(cls, instruction):
-        """Initialize from output of an instruction applied to zero state."""
-        # Convert circuit to an instruction
-        if isinstance(instruction, QuantumCircuit):
-            instruction = instruction.to_instruction()
-        # Initialize an the statevector in the all |0> state
-        n_qubits = instruction.num_qubits
-        init = np.zeros((2**n_qubits, 2**n_qubits), dtype=complex)
-        init[0, 0] = 1
-        vec = DensityMatrix(init, dims=n_qubits * [2])
-        vec._append_instruction(instruction)
         return vec

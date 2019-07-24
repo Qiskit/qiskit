@@ -93,7 +93,7 @@ class TestStatevector(QiskitTestCase):
         vec2 = Statevector(vec1)
         self.assertEqual(vec1, vec2)
 
-    def test_circuit_init(self):
+    def test_from_circuit(self):
         """Test initialization from a circuit."""
         # random unitaries
         u0 = random_unitary(2).data
@@ -104,15 +104,36 @@ class TestStatevector(QiskitTestCase):
         circ.unitary(u0, [qr[0]])
         circ.unitary(u1, [qr[1]])
         target = Statevector(np.kron(u1, u0).dot([1, 0, 0, 0]))
-        vec = Statevector(circ)
+        vec = Statevector.from_instruction(circ)
         self.assertEqual(vec, target)
 
-    def test_instruction_init(self):
+    def test_from_instruction(self):
         """Test initialization from an instruction."""
         target = np.dot(HGate().to_matrix(), [1, 0])
-        vec = Statevector(HGate()).data
+        vec = Statevector.from_instruction(HGate()).data
         global_phase_equivalent = matrix_equal(vec, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
+
+    def test_from_label(self):
+        """Test initialization from a label"""
+        x_p = Statevector(np.array([1, 1]) / np.sqrt(2))
+        x_m = Statevector(np.array([1, -1]) / np.sqrt(2))
+        y_p = Statevector(np.array([1, 1j]) / np.sqrt(2))
+        y_m = Statevector(np.array([1, -1j]) / np.sqrt(2))
+        z_p = Statevector(np.array([1, 0]))
+        z_m = Statevector(np.array([0, 1]))
+
+        label = '01'
+        target = z_p.tensor(z_m)
+        self.assertEqual(target, Statevector.from_label(label))
+
+        label = '+-'
+        target = x_p.tensor(x_m)
+        self.assertEqual(target, Statevector.from_label(label))
+
+        label = 'rl'
+        target = y_p.tensor(y_m)
+        self.assertEqual(target, Statevector.from_label(label))
 
     def test_equal(self):
         """Test __eq__ method"""
