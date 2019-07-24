@@ -16,14 +16,13 @@
 #  along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import random
-from typing import List, TypeVar, Iterator, Callable, Iterable, Mapping
+from typing import List, TypeVar, Iterator, Callable, Iterable, Mapping, Collection
 from unittest import TestCase
 
 import networkx as nx
 
-from qiskit.transpiler.routing import util, Swap, Permutation, path, fast_path
+from qiskit.transpiler.routing import util, Swap, Permutation, path, fast_path, complete
 from qiskit.transpiler.routing.cartesian import permute_grid, permute_cartesian_partial
-from qiskit.transpiler.routing.complete import permute as permute_complete
 from test.python.transpiler.routing.test_util import TestUtil
 
 _V = TypeVar('_V')
@@ -35,9 +34,9 @@ def square(permutation: Permutation[int]) -> Iterator[List[Swap[int]]]:
     return permute_grid(permutation, 2)
 
 
-def permute_complete_wrapper(permutation: Permutation[int]) -> Iterable[List[Swap[int]]]:
-    """used to convert output of permute_complete to list due to mypy requirements"""
-    return permute_complete(permutation)
+def construct_partial_complete(nodes: Collection[_V]) -> Callable[[Mapping[_V,_V]], Iterable[List[Swap[_V]]]]:
+    """Set up a partial permuter on the complete graph."""
+    return lambda p: complete.partial_permute(p, nodes)
 
 
 class TestCartesian(TestCase):
@@ -51,7 +50,7 @@ class TestCartesian(TestCase):
         size = nx.number_of_nodes(g)
         width = size // height
 
-        out = list(permute_cartesian_partial(permutation, height, height, permute_x, permute_y))
+        out = list(permute_cartesian_partial(permutation, width, height, permute_x, permute_y))
 
         self.assertEqual(len(out) <= height + height + width, True)
         TestUtil.valid_parallel_swaps(self, out)
@@ -143,8 +142,8 @@ class TestCartesian(TestCase):
 
         self.cartesian_generic_test(P, permutation, 4, square, square)
 
-    def test_cartesian_grid_compelete(self) -> None:
-        """Test a permutation of a grid-compelete cartesian product"""
+    def test_cartesian_grid_complete(self) -> None:
+        """Test a permutation of a grid-complete cartesian product"""
         permutation = {0: 9, 1: 3, 2: 15, 3: 4, 4: 1, 5: 8, 6: 12,
                        7: 14, 8: 13, 9: 6, 10: 2, 11: 10, 12: 5, 13: 11, 14: 0, 15: 7}
 
@@ -153,7 +152,7 @@ class TestCartesian(TestCase):
         P = nx.cartesian_product(H, G)
         P = nx.relabel.convert_node_labels_to_integers(P)
 
-        self.cartesian_generic_test(P, permutation, 4, square, permute_complete_wrapper)
+        self.cartesian_generic_test(P, permutation, 4, square, construct_partial_complete(H.nodes))
 
     # todo professional edition, right click on test, profile
     def test_grid_random(self) -> None:
@@ -180,7 +179,7 @@ class TestCartesian(TestCase):
         P = nx.cartesian_product(H, G)
         P = nx.relabel.convert_node_labels_to_integers(P)
 
-        self.cartesian_generic_test(P, permutation, height, permute_complete_wrapper,
+        self.cartesian_generic_test(P, permutation, height, construct_partial_complete(G.nodes),
                                     path.permute_path_partial)
 
     def test_k_n_path_5_random(self) -> None:
@@ -197,7 +196,7 @@ class TestCartesian(TestCase):
         P = nx.cartesian_product(H, G)
         P = nx.relabel.convert_node_labels_to_integers(P)
 
-        self.cartesian_generic_test(P, permutation, height, permute_complete_wrapper,
+        self.cartesian_generic_test(P, permutation, height, construct_partial_complete(G.nodes),
                                     path.permute_path_partial)
 
     def test_grid_small1_partial(self) -> None:
@@ -221,6 +220,14 @@ class TestCartesian(TestCase):
 
         TestUtil.valid_parallel_swaps(self, out)
         self.assertListEqual([[(3, 2)]], out)
+
+    def test_grid_small3_partial(self) -> None:
+        mapping = {1: 0, 4: 4, 3: 5}
+        permute_x = lambda m: path.permute_path_partial(m, length=3)
+        permute_y = lambda m: path.permute_path_partial(m, length=2)
+        out = list(permute_cartesian_partial(mapping, 3, 2, permute_x, permute_y))
+
+        TestUtil.valid_parallel_swaps(self, out)
 
     def test_grid_perfect_matching(self) -> None:
         """Test a case where perfect matching was not found."""

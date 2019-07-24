@@ -23,7 +23,7 @@ from typing import List, Dict, Tuple, TypeVar, Callable, Iterator, Iterable, Map
     Union, Any
 import networkx as nx
 
-from qiskit.transpiler.routing import util, Permutation, Swap, path, fast_path
+from qiskit.transpiler.routing import util, Permutation, Swap, fast_path
 
 _V = TypeVar('_V')
 PERMUTER = Callable[[Permutation[int]], Iterable[List[Swap[int]]]]
@@ -157,60 +157,66 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
     remaining_destinations = dest.copy()
     while remaining_rows:
         row = remaining_rows.pop()
-        # Construct the edgeset, and add in one go. Mutating the graph in-place is slow.
-        edges: Dict[Tuple[int, int], Tuple[Union[Point, UnmappedQubit], float]] = dict()
-        in_degree: Dict[int, int] = defaultdict(lambda: 0)
+
+        destination_graph = nx.MultiGraph()
+        destination_graph.add_nodes_from(range(width), bipartite=0)
+        destination_graph.add_nodes_from((right_node(node) for node in range(width)), bipartite=1)
 
         # Add edges for the "real" mapped qubits
         for origin, destination in remaining_destinations.items():
             c = cost(origin, destination, row)
-            edge = (origin.x, right_node(destination.x))
-            in_degree[edge[1]] += 1
-            if edge not in edges or c < edges[edge][1]:
-                edges[edge] = (origin, c)
+            destination_graph.add_edge(origin.x, right_node(destination.x), weight=c, origin=origin)
 
         # Add connectivity with weight epsilon for each column with an unmapped qubit.
         # Only add edges to columns where the in-degree is less
         # than the remaining "slots" (nr of rows remaining) in the column.
-        out_columns = {x for x in range(width) if unmapped_qubits[x] > 0}
-        in_columns = {x for x in range(width)
-                      if in_degree[right_node(x)] < len(remaining_rows) + 1}
-        # out_columns × in_columns are all pairs of vertices with unmapped-qubit edges
-        for (out_col, in_col) in itertools.product(out_columns, in_columns):
-            edge = (out_col, right_node(in_col))
-            if edge not in edges or epsilon < edges[edge][1]:
-                edges[edge] = (unmapped_qubit, epsilon)
+        unmapped_graph = nx.Graph()
+        for out_col in range(width):
+            if unmapped_qubits[out_col] == 0:
+                continue
+            for in_col in (right_node(v) for v in range(width)):
+                if destination_graph.degree(in_col) < len(remaining_rows) + 1:
+                    unmapped_graph.add_edge(out_col, in_col, weight=epsilon, origin=unmapped_qubit)
 
-        # Convert "costs" that need to minimized to "weights" that need to be maximized.
+        # Merge destination graph and unmapped graph to weighted simple graph
+        # with the minimum weight on each edge
+        simple_graph = nx.Graph()
+        for graph in (destination_graph, unmapped_graph):
+            for e0, e1, data in graph.edges(data=True):
+                weight = data["weight"]
+                if not(simple_graph.has_edge(e0, e1)) or weight < simple_graph[e0][e1]["weight"]:
+                    simple_graph.add_edge(e0, e1, **data)
+
+        # Convert "costs" that need to be minimized to "weights" that need to be maximized.
         # We shrink the range of weights to (-1, 1) by dividing by the absolute maximum cost size+1
-        max_cost = max(abs(v[1]) for v in edges.values())
+        max_cost = max(abs(v[2]) for v in simple_graph.edges(data='weight'))
         if max_cost == 0:  # Avoid divide by zero
             # All costs are 0; set all weights to 1.
-            edges = {k: (node, 1) for k, (node, weight) in edges.items()}
+            for e0, e1 in simple_graph.edges:
+                simple_graph[e0][e1]["weight"] = 1
         else:
             # High cost means low weight. But it still needs to be positive or it won't be included.
             # Furthermore, we need to guarantee the maximum weighted matching is perfect.
             # Therefore, we divide by height, so that no height-1 weighted edges are larger
             # than height in weight.
-            edges = {k: (node, (-weight / (max_cost + 1) + 1) / (2 * height) + 1)
-                     for k, (node, weight) in edges.items()}
+            for e0, e1 in simple_graph.edges:
+                weight = simple_graph[e0][e1]["weight"]
+                # Calculate the new weight and overwrite the old weight
+                simple_graph[e0][e1]["weight"] = (-weight / (max_cost + 1) + 1) / (2 * height) + 1
 
-        # Construct bipartite graph with the edges
-        destination_graph = igraph.Graph.Bipartite([True] * width + [False] * width, edges.keys())
-        # Then add attributes to the edges. Asserts that the ordering is the same for values()
-        destination_graph.es["node"] = [v[0] for v in edges.values()]
-        destination_graph.es["weight"] = [v[1] for v in edges.values()]
-
-        matching = destination_graph.maximum_bipartite_matching(weights="weight")
+        matching = nx.algorithms.max_weight_matching(simple_graph, maxcardinality=True)
         assert len(matching) == width, "The matching is not perfect."
-        for e in matching.edges():
-            node = e.attributes()["node"]
-            if isinstance(node, UnmappedQubit):
+        for e0, e1 in matching:
+            origin = simple_graph[e0][e1]["origin"]
+            if isinstance(origin, UnmappedQubit):
+                # Sort e0 and e1 since e0 is on the "left" side of the bipartition
+                # and is used for indexing unmapped_qubits.
+                e0, e1 = sorted((e0, e1))
                 # We dont map unmapped qubits, but now one less is available in the column
-                unmapped_qubits[e.source] -= 1
+                unmapped_qubits[e0] -= 1
             else:
-                current_mappings[node.x][node.y] = row
-                del remaining_destinations[node]
+                current_mappings[origin.x][origin.y] = row
+                del remaining_destinations[origin]
 
         # No qubits left to route
         if not remaining_destinations:
