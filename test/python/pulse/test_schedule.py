@@ -20,9 +20,9 @@ import numpy as np
 from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit, RegisterSlot,
                                    MemorySlot, DriveChannel, AcquireChannel, ControlChannel,
                                    MeasureChannel)
-from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot,
+from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
-                                   PulseInstruction, FrameChangeInstruction)
+                                   PulseInstruction, FrameChangeInstruction, DelayInstruction)
 from qiskit.pulse import pulse_lib, SamplePulse, CmdDef
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
@@ -366,7 +366,52 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(actual.stop_time, expected.stop_time)
 
         self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
-    
+
+
+class TestDelay(BaseTestSchedule):
+    """Test Delay Instruction"""
+
+    def setUp(self):
+        super().setUp()
+        self.delay_time = 10
+        self.delay = Delay(self.delay_time)
+
+    def test_delay_drive_channel(self):
+        """Test Delay on DriveChannel"""
+
+        drive_ch = self.two_qubit_device.qubits[0].drive
+        pulse = SamplePulse(np.full(10, 0.1))
+        # should pass as is an append
+        self.delay(drive_ch) + pulse(drive_ch)
+
+        # should fail as is an insert
+        with self.assertRaises(PulseError):
+            self.delay(drive_ch) | pulse(drive_ch)
+
+    def test_delay_measure_channel(self):
+        """Test Delay on MeasureChannel"""
+
+        measure_ch = self.two_qubit_device.qubits[0].measure
+        pulse = SamplePulse(np.full(10, 0.1))
+        # should pass as is an append
+        self.delay(measure_ch) + pulse(measure_ch)
+
+        # should fail as is an insert
+        with self.assertRaises(PulseError):
+            self.delay(measure_ch) | pulse(measure_ch)
+
+    def test_delay_control_channel(self):
+        """Test Delay on ControlChannel"""
+
+        control_ch = self.two_qubit_device.controls[0]
+        pulse = SamplePulse(np.full(10, 0.1))
+        # should pass as is an append
+        self.delay(control_ch) + pulse(control_ch)
+
+        # should fail as is an insert
+        with self.assertRaises(PulseError):
+            self.delay(control_ch) | pulse(control_ch)
+
 
 class TestScheduleFilter(BaseTestSchedule):
     def test_filter_channels(self):
