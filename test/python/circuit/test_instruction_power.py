@@ -209,7 +209,8 @@ class TestGateFloat(QiskitTestCase):
         result = SGate().power(1 / degree)
         self.assertEqual(result.name, 's^'+str(1/degree))
         self.assertEqual(len(result.definition), 1)
-        assert_allclose(matrix_power(result.definition[0][0].to_matrix(), degree), SGate().to_matrix())
+        assert_allclose(matrix_power(result.definition[0][0].to_matrix(), degree),
+                        SGate().to_matrix())
 
     @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8)
     def test_float_gt_one(self, exponent):
