@@ -19,6 +19,9 @@
 
 import pkgutil
 
+# Import pi because we use it a lot.
+from math import pi
+
 # First, check for required Python and API version
 from . import util
 
