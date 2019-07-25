@@ -18,8 +18,12 @@ Base command.
 import re
 
 from abc import ABCMeta, abstractmethod
+from typing import List, Optional, Union
+import numpy as np
 
 from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.channels import Channel
+from qiskit.pulse.timeslots import TimeslotCollection
 
 from .instruction import Instruction
 
@@ -33,22 +37,22 @@ class MetaCount(ABCMeta):
 
 
 class Command(metaclass=MetaCount):
-    """Super abstract class of command group."""
+    """Abstract command class."""
 
     # Counter for the number of instances in this class
     prefix = 'c'
 
     @abstractmethod
-    def __init__(self, duration: int = None):
+    def __init__(self, duration: Union[int, np.integer] = None):
         """Create a new command.
 
         Args:
-            duration (int): Duration of this command.
+            duration: Duration of this command.
         Raises:
-            PulseError: when duration is not number of points.
+            PulseError: when duration is not number of points
         """
-        if isinstance(duration, int):
-            self._duration = duration
+        if isinstance(duration, (int, np.integer)):
+            self._duration = int(duration)
         else:
             raise PulseError('Pulse duration should be integer.')
 
@@ -56,7 +60,7 @@ class Command(metaclass=MetaCount):
 
     @classmethod
     def create_name(cls, name: str = None) -> str:
-        """Method to create names for pulse commands."""
+        """Autogenerate names for pulse commands."""
         if name is None:
             try:
                 name = '%s%i' % (cls.prefix, cls.instances_counter)  # pylint: disable=E1101
@@ -68,7 +72,7 @@ class Command(metaclass=MetaCount):
             except Exception:
                 raise PulseError("The pulse command name should be castable to a string "
                                  "(or None for autogenerate a name).")
-            name_format = re.compile('[a-z][a-zA-Z0-9_]*')
+            name_format = re.compile('[a-zA-Z][a-zA-Z0-9_]*')
             if name_format.match(name) is None:
                 raise PulseError("%s is an invalid OpenPulse command name." % name)
 
@@ -78,16 +82,18 @@ class Command(metaclass=MetaCount):
 
     @property
     def duration(self) -> int:
-        """Duration of this command. """
+        """Duration of this command."""
         return self._duration
 
     @property
     def name(self) -> str:
-        """Name of this command. """
+        """Name of this command."""
         return self._name
 
     @abstractmethod
-    def to_instruction(self, command, *channels, timeslots=None, name=None) -> Instruction:
+    def to_instruction(self, command, *channels: List[Channel],
+                       timeslots: Optional[TimeslotCollection] = None,
+                       name: Optional[str] = None) -> Instruction:
         """Create an instruction from command."""
         pass
 
@@ -95,15 +101,15 @@ class Command(metaclass=MetaCount):
         """Creates an Instruction obtained from call to `to_instruction` wrapped in a Schedule."""
         return self.to_instruction(*args, **kwargs)
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Command'):
         """Two Commands are the same if they are of the same type
         and have the same duration and name.
 
         Args:
-            other (Command): other Command.
+            other: other Command
 
         Returns:
-            bool: are self and other equal.
+            bool: are self and other equal
         """
         if type(self) is type(other) and \
                 self._duration == other._duration and \

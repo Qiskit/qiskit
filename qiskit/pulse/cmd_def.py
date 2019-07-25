@@ -15,7 +15,7 @@
 """
 Command definition module. Relates circuit gates to pulse commands.
 """
-from typing import List, Tuple, Iterable, Union, Dict
+from typing import List, Tuple, Iterable, Union, Dict, Optional
 
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -50,7 +50,7 @@ def _to_qubit_tuple(qubit_tuple: Union[int, Iterable[int]]) -> Tuple[int]:
 class CmdDef:
     """Command definition class. Relates `Gate`s to `Schedule`s."""
 
-    def __init__(self, schedules: Dict = None):
+    def __init__(self, schedules: Optional[Dict] = None):
         """Create command definition from backend.
 
         Args:
@@ -65,13 +65,15 @@ class CmdDef:
 
     @classmethod
     def from_defaults(cls, flat_cmd_def: List[PulseQobjInstruction],
-                      pulse_library: Dict[str, SamplePulse]) -> 'CmdDef':
+                      pulse_library: Dict[str, SamplePulse],
+                      buffer: int = 0) -> 'CmdDef':
         """Create command definition from backend defaults output.
         Args:
             flat_cmd_def: Command definition list returned by backend
             pulse_library: Dictionary of `SamplePulse`s
+            buffer: Buffer between instructions on channel
         """
-        converter = QobjToInstructionConverter(pulse_library, buffer=0)
+        converter = QobjToInstructionConverter(pulse_library, buffer=buffer)
         cmd_def = cls()
 
         for cmd in flat_cmd_def:

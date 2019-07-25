@@ -39,11 +39,12 @@ for i in range(num_qubits):
 ###############################################################
 # Set up the API and execute the program.
 ###############################################################
-IBMQ.load_accounts()
+provider = IBMQ.load_account()
 
 # Second version: real device
-least_busy_device = least_busy(IBMQ.backends(simulator=False,
-                                             filters=lambda x: x.configuration().n_qubits > 4))
+least_busy_device = least_busy(
+    provider.backends(simulator=False,
+                      filters=lambda x: x.configuration().n_qubits > 4))
 print("Running on current least busy device: ", least_busy_device)
 job = execute(qc, least_busy_device, shots=1024)
 result = job.result()

@@ -29,6 +29,7 @@ from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.circuit import Parameter
+from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.transpiler.exceptions import TranspilerError
 
 
@@ -74,9 +75,8 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
 
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
-        circuit2 = transpile(circuit, basis_gates=basis_gates)
-        dag_circuit = circuit_to_dag(circuit2)
-        resources_after = dag_circuit.count_ops()
+        circuit2 = transpile(circuit, basis_gates=basis_gates, optimization_level=0)
+        resources_after = circuit2.count_ops()
         self.assertEqual({'u2': 2, 'cx': 4}, resources_after)
 
     def test_transpile_non_adjacent_layout(self):
@@ -396,7 +396,7 @@ class TestTranspile(QiskitTestCase):
                               QuantumRegister(3, 'q')[1],
                               QuantumRegister(3, 'q')[2]]
 
-        self.assertRaises(KeyError, transpile,
+        self.assertRaises(DAGCircuitError, transpile,
                           qc, backend, initial_layout=bad_initial_layout)
 
     def test_parameterized_circuit_for_simulator(self):
@@ -524,13 +524,10 @@ class TestTranspile(QiskitTestCase):
 
         expected = QuantumCircuit(qr)
         expected.u3(1.5708, 0, 0, qr[0])
-        expected.u3(0, 0, 0, qr[0])
         expected.reset(qr[0])
-        expected.u3(1.5708, 0, 0, qr[0])
-        expected.u3(0, 0, 3.1416, qr[0])
+        expected.u3(1.5708, 3.1416, 0, qr[0])
 
-        after = transpile(qc, basis_gates=['reset', 'u3'])
-
+        after = transpile(qc, basis_gates=['reset', 'u3'], optimization_level=1)
         self.assertEqual(after, expected)
 
     def test_initialize_FakeMelbourne(self):

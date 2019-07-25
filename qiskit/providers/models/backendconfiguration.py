@@ -80,13 +80,12 @@ class BackendConfigurationSchema(BaseSchema):
     open_pulse = Boolean(required=True)
     memory = Boolean(required=True)
     max_shots = Integer(required=True, validate=Range(min=1))
+    coupling_map = List(List(Integer(), validate=Length(min=1)),
+                        validate=Length(min=1), allow_none=True, required=True)
 
     # Optional properties.
     max_experiments = Integer(validate=Range(min=1))
     sample_name = String()
-    coupling_map = List(List(Integer(),
-                             validate=Length(min=1)),
-                        validate=Length(min=1), allow_none=True)
     n_registers = Integer(validate=Range(min=1))
     register_map = List(List(Integer(validate=OneOf([0, 1])),
                              validate=Length(min=1)),

@@ -16,6 +16,6 @@
 
 from .base import QiskitTestCase
 from .decorators import requires_aer_provider, online_test, slow_test, requires_qe_access, \
-    mpl_test, latex_test
+    mpl_test, latex_test, combine
 from .reference_circuits import ReferenceCircuits
 from .utils import Path

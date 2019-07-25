@@ -20,6 +20,9 @@ import numpy as np
 from qiskit.providers.basicaer import StatevectorSimulatorPy
 from qiskit.test import ReferenceCircuits
 from qiskit.test import providers
+from qiskit import QuantumRegister, QuantumCircuit, execute
+from qiskit.quantum_info.random import random_unitary
+from qiskit.quantum_info import state_fidelity
 
 
 class StatevectorSimulatorTest(providers.BackendTestCase):
@@ -57,6 +60,30 @@ class StatevectorSimulatorTest(providers.BackendTestCase):
                    or np.allclose([diff_00, diff_11], [2, 0]))
         # state is 1/sqrt(2)|00> + 1/sqrt(2)|11>, up to a global phase
         self.assertTrue(success)
+
+    def test_unitary(self):
+        """Test unitary gate instruction"""
+        num_trials = 10
+        max_qubits = 3
+        # Test 1 to max_qubits for random n-qubit unitary gate
+        for i in range(max_qubits):
+            num_qubits = i + 1
+            psi_init = np.zeros(2 ** num_qubits)
+            psi_init[0] = 1.0
+            qr = QuantumRegister(num_qubits, 'qr')
+            for _ in range(num_trials):
+                # Create random unitary
+                unitary = random_unitary(2 ** num_qubits)
+                # Compute expected output state
+                psi_target = unitary.data.dot(psi_init)
+                # Simulate output on circuit
+                circuit = QuantumCircuit(qr)
+                circuit.unitary(unitary, qr)
+                job = execute(circuit, self.backend)
+                result = job.result()
+                psi_out = result.get_statevector(0)
+                fidelity = state_fidelity(psi_target, psi_out)
+                self.assertGreater(fidelity, 0.999)
 
 
 if __name__ == '__main__':

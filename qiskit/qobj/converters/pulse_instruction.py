@@ -216,7 +216,7 @@ class InstructionToQobjConverter:
         command_dict = {
             'name': 'snapshot',
             't0': shift+instruction.start_time,
-            'label': instruction.name,
+            'label': instruction.label,
             'type': instruction.type
         }
         return self._qobj_model(**command_dict)
@@ -345,8 +345,9 @@ class QobjToInstructionConverter:
             phase_expr = parse_string_expr(phase, partial_binding=False)
 
             def gen_fc_sched(*args, **kwargs):
-                phase = abs(phase_expr(*args, **kwargs))
-                return commands.FrameChange(phase)(channel) << t0
+                # this should be real value
+                _phase = phase_expr(*args, **kwargs)
+                return commands.FrameChange(_phase)(channel) << t0
 
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 

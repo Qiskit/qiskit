@@ -102,6 +102,21 @@ class TestFunctionalPulse(QiskitTestCase):
         # check duration
         self.assertEqual(pulse_command.duration, 10)
 
+    def test_variable_duration(self):
+        """Test generation of sample pulse with variable duration.
+        """
+
+        @functional_pulse
+        def gaussian(duration, amp, t0, sig):
+            x = np.linspace(0, duration - 1, duration)
+            return amp * np.exp(-(x - t0) ** 2 / sig ** 2)
+
+        _durations = np.arange(10, 15, 1)
+
+        for _duration in _durations:
+            pulse_command = gaussian(duration=_duration, amp=1, t0=5, sig=1)
+            self.assertEqual(len(pulse_command.samples), _duration)
+
 
 class TestPersistentValue(QiskitTestCase):
     """PersistentValue tests."""
@@ -122,7 +137,7 @@ class TestSnapshot(QiskitTestCase):
     def test_default(self):
         """Test default snapshot.
         """
-        snap_command = Snapshot(name='test_name', snap_type='state')
+        snap_command = Snapshot(label='test_name', snapshot_type='state')
 
         self.assertEqual(snap_command.name, "test_name")
         self.assertEqual(snap_command.type, "state")

@@ -14,6 +14,7 @@
 
 # pylint: disable=missing-docstring
 
+
 from unittest.mock import patch
 
 from qiskit import QuantumCircuit
@@ -63,8 +64,7 @@ class TestCircuitDrawer(QiskitTestCase):
     def test_default_backend_auto_output_without_mpl(self):
         with patch('qiskit.user_config.get_config', return_value={'circuit_drawer': 'auto'}):
             with patch.object(
-                    visualization.circuit_visualization, '_matplotlib',
-                    autospec=True) as mpl_mock:
+                    visualization.circuit_visualization, '_matplotlib', autospec=True) as mpl_mock:
                 mpl_mock.HAS_MATPLOTLIB = False
                 circuit = QuantumCircuit()
                 out = visualization.circuit_drawer(circuit)
