@@ -249,6 +249,26 @@ class TestInstructions(QiskitTestCase):
         opaque_gate = Gate(name='crz_2', num_qubits=2, params=[0.5])
         self.assertRaises(QiskitError, opaque_gate.inverse)
 
+    def test_no_broadcast(self):
+        """See https://github.com/Qiskit/qiskit-terra/issues/2777
+        When creating custom instructions, do not broadcast parameters"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        subcircuit = QuantumCircuit(qr, cr, name='subcircuit')
+
+        subcircuit.x(qr[0])
+        subcircuit.h(qr[1])
+        subcircuit.measure(qr[0], cr[0])
+        subcircuit.measure(qr[1], cr[1])
+
+        inst = subcircuit.to_instruction()
+        circuit = QuantumCircuit(qr, cr, name='circuit')
+        circuit.append(inst, qr[:], cr[:])
+        self.assertEqual(circuit.qregs, [qr])
+        self.assertEqual(circuit.cregs, [cr])
+        self.assertEqual(circuit.qubits, [qr[0], qr[1]])
+        self.assertEqual(circuit.clbits, [cr[0], cr[1]])
+
 
 if __name__ == '__main__':
     unittest.main()

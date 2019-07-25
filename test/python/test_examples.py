@@ -57,8 +57,8 @@ class TestPythonExamples(QiskitTestCase):
     def test_all_ibmq_examples(self, qe_token, qe_url):
         """Execute the ibmq example python files and pass if it returns 0."""
         from qiskit import IBMQ  # pylint: disable: import-error
-        IBMQ.save_account(qe_token, qe_url)
-        self.addCleanup(IBMQ.delete_accounts, token=qe_token, url=qe_url)
+        IBMQ.enable_account(qe_token, qe_url)
+        self.addCleanup(IBMQ.disable_account, token=qe_token, url=qe_url)
         ibmq_examples = []
         if os.path.isdir(ibmq_examples_dir):
             ibmq_examples = [
