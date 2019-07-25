@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit, RegisterSlot,
                                    MemorySlot, DriveChannel, AcquireChannel, ControlChannel,
-                                   MeasureChannel)
+                                   MeasureChannel, SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
                                    PulseInstruction, FrameChangeInstruction, DelayInstruction)
@@ -384,7 +384,7 @@ class TestDelay(BaseTestSchedule):
         # should pass as is an append
         self.delay(drive_ch) + pulse(drive_ch)
 
-        # should fail as is an insert
+        # should fail due to overlap
         with self.assertRaises(PulseError):
             self.delay(drive_ch) | pulse(drive_ch)
 
@@ -396,7 +396,7 @@ class TestDelay(BaseTestSchedule):
         # should pass as is an append
         self.delay(measure_ch) + pulse(measure_ch)
 
-        # should fail as is an insert
+        # should fail due to overlap
         with self.assertRaises(PulseError):
             self.delay(measure_ch) | pulse(measure_ch)
 
@@ -408,9 +408,33 @@ class TestDelay(BaseTestSchedule):
         # should pass as is an append
         self.delay(control_ch) + pulse(control_ch)
 
-        # should fail as is an insert
+        # should fail due to overlap
         with self.assertRaises(PulseError):
             self.delay(control_ch) | pulse(control_ch)
+
+    def test_delay_acquire_channel(self):
+        """Test Delay on DriveChannel"""
+
+        acquire_ch = self.two_qubit_device.qubits[0].acquire
+        acquire = Acquire(10)
+        # should pass as is an append
+        self.delay(acquire_ch) + acquire(acquire_ch, MemorySlot(0))
+
+        # should fail due to overlap
+        with self.assertRaises(PulseError):
+            self.delay(acquire_ch) | acquire(acquire_ch)
+
+    def test_delay_snapshot_channel(self):
+        """Test Delay on DriveChannel"""
+
+        snapshot_ch = SnapshotChannel()
+        snapshot = Snapshot(label='test')
+        # should pass as is an append
+        self.delay(snapshot_ch) + snapshot
+
+        # should fail due to overlap
+        with self.assertRaises(PulseError):
+            self.delay(snapshot_ch) | snapshot << 5
 
 
 class TestScheduleFilter(BaseTestSchedule):
