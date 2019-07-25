@@ -21,7 +21,6 @@ from numbers import Number
 
 import numpy as np
 
-from qiskit import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError

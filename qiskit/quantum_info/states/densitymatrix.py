@@ -20,7 +20,6 @@ from numbers import Number
 
 import numpy as np
 
-from qiskit import QiskitError
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
@@ -231,7 +230,7 @@ class DensityMatrix(QuantumState):
         return self._evolve_operator(other, qargs=qargs)
 
     @classmethod
-    def from_label(cls, label, num_qubits=None):
+    def from_label(cls, label):
         """Return a tensor product of Pauli X,Y,Z eigenstates.
 
         Args:
@@ -335,9 +334,6 @@ class DensityMatrix(QuantumState):
 
     def _append_instruction(self, other, qargs=None):
         """Update the current Statevector by applying an instruction."""
-        # Prevent cyclic imports by importing SuperOp here
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.channel.superop import SuperOp
 
         # Try evolving by a matrix operator (unitary-like evolution)
         mat = Operator._instruction_to_matrix(other)

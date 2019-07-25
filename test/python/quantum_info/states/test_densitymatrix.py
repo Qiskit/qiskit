@@ -29,7 +29,6 @@ from qiskit.extensions.standard import HGate
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.predicates import matrix_equal
 
 logger = logging.getLogger(__name__)
 
