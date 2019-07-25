@@ -28,9 +28,9 @@ from qiskit.validation.exceptions import ModelValidationError
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
 def assemble(experiments,
              backend=None,
-             qobj_id=None, qobj_header=None,  # common run options
+             qobj_id=None, qobj_header=None,
              shots=1024, memory=False, max_credits=None, seed_simulator=None,
-             qubit_lo_freq=None, meas_lo_freq=None,  # schedule run options
+             qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=2, meas_return='avg', meas_map=None,
              memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
@@ -132,21 +132,14 @@ def assemble(experiments,
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
     experiments = experiments if isinstance(experiments, list) else [experiments]
-    qobj_id, qobj_header, run_config_common = _parse_common_run_args(backend, qobj_id, qobj_header,
-                                                                     shots, memory, max_credits,
-                                                                     seed_simulator, memory_slots,
-                                                                     memory_slot_size, rep_time,
-                                                                     **run_config)
-
-    run_config_schema = run_config_common.schema
-    run_config_data = run_config_schema.dump(run_config_common).data
+    qobj_id, qobj_header, run_config_common_dict = _parse_common_args(backend, qobj_id, qobj_header,
+                                                                      shots, memory, max_credits,
+                                                                      seed_simulator, memory_slots,
+                                                                      memory_slot_size, rep_time,
+                                                                      **run_config)
 
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
-        run_config_circuit = _parse_circuit_args(parameter_binds, **run_config)
-        run_config_circuit_data = run_config_circuit.schema.dump(run_config_circuit).data
-
-        run_config = run_config_schema.make_model(
-            run_config_schema.load_additional_data(run_config_data, False, run_config_circuit_data))
+        run_config = _parse_circuit_args(parameter_binds, **run_config_common_dict)
 
         # If circuits are parameterized, bind parameters and remove from run_config
         bound_experiments, run_config = _expand_parameters(circuits=experiments,
@@ -155,14 +148,10 @@ def assemble(experiments,
                                  qobj_header=qobj_header, run_config=run_config)
 
     elif all(isinstance(exp, ScheduleComponent) for exp in experiments):
-        run_config_pulse = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
-                                             qubit_lo_range, meas_lo_range,
-                                             schedule_los, meas_level, meas_return,
-                                             meas_map, **run_config)
-
-        run_config_pulse_data = run_config_pulse.schema.dump(run_config_pulse).data
-        run_config = run_config_schema.make_model(
-            run_config_schema.load_additional_data(run_config_data, False, run_config_pulse_data))
+        run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
+                                       qubit_lo_range, meas_lo_range,
+                                       schedule_los, meas_level, meas_return,
+                                       meas_map, **run_config_common_dict)
 
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
                                   qobj_header=qobj_header, run_config=run_config)
@@ -173,10 +162,10 @@ def assemble(experiments,
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
-def _parse_common_run_args(backend, qobj_id, qobj_header,
-                           shots, memory, max_credits, seed_simulator,
-                           memory_slots, memory_slot_size,
-                           rep_time, **run_config):
+def _parse_common_args(backend, qobj_id, qobj_header,
+                       shots, memory, max_credits, seed_simulator,
+                       memory_slots, memory_slot_size,
+                       rep_time, **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
     what types of inputs are allowed.
@@ -222,9 +211,8 @@ def _parse_common_run_args(backend, qobj_id, qobj_header,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
                            **run_config)
-    run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
-    return qobj_id, qobj_header, run_config
+    return qobj_id, qobj_header, run_config_dict
 
 
 def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
