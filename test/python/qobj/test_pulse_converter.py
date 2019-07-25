@@ -22,7 +22,7 @@ from qiskit.qobj import (PulseQobjInstruction, PulseQobjExperimentConfig, PulseL
 from qiskit.qobj.converters import (InstructionToQobjConverter, QobjToInstructionConverter,
                                     LoConfigConverter)
 from qiskit.pulse.commands import (SamplePulse, FrameChange, PersistentValue, Snapshot, Acquire,
-                                   Discriminator, Kernel)
+                                   Delay, Discriminator, Kernel)
 from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit, AcquireChannel,
                                    DriveChannel, ControlChannel, MeasureChannel, RegisterSlot,
                                    MemorySlot)
@@ -113,7 +113,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_snapshot(self):
-        """Test converted qobj from SnapShot."""
+        """Test converted qobj from Snapshot."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         instruction = Snapshot(label='label', snapshot_type='type')
 
@@ -125,6 +125,13 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         )
 
         self.assertEqual(converter(0, instruction), valid_qobj)
+
+    def test_delay(self):
+        """Test converted qobj from Delay."""
+        converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
+        instruction = Delay(10)(self.device.drives[0])
+
+        self.assertEqual(converter(0, instruction), None)
 
 
 class TestQobjToInstructionConverter(QiskitTestCase):

@@ -221,6 +221,18 @@ class InstructionToQobjConverter:
         }
         return self._qobj_model(**command_dict)
 
+    @bind_instruction(commands.DelayInstruction)
+    def convert_delay(self, shift, instruction):
+        """Returns None.
+
+        Args:
+            shift(int): Offset time.
+            instruction (DelayInstruction): delay instruction.
+        Returns:
+            None
+        """
+        return None
+
 
 class QobjToInstructionConverter:
     """Converts Qobj models to pulse Instructions
@@ -411,14 +423,3 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         return commands.Snapshot(instruction.label, instruction.type) << t0
-
-    @bind_name('delay')
-    def convert_delay(self, instruction):
-        """Return converted `Delay`.
-
-        Args:
-            instruction (PulseQobjInstruction): delay qobj
-        Returns:
-            Schedule: Converted and scheduled Delay
-        """
-        return None
