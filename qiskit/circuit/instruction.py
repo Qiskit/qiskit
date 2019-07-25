@@ -354,4 +354,3 @@ class Instruction:
 
         instruction.definition = [sub_instruction] * abs(exponent)
         return instruction
-
