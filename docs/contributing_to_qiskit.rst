@@ -48,6 +48,10 @@ Qiskit documentation is shaped by the `docs as code
 `IBM style guidelines
 <https://www.ibm.com/developerworks/library/styleguidelines/>`_.
 
+You can find templates for writing new documentation topics, such as helping users understand a
+concept, perform a task, or find technical specifications in the
+`**Docs Templates** folder <../.github/DOCS_TEMPLATES>`_.
+
 The `published documentation <https://qiskit.org/documentation/index.html>`_ is
 built from the master branch of `Qiskit/qiskit/docs
 <https://github.com/Qiskit/qiskit/tree/master/docs>`_ using `Sphinx
