@@ -204,7 +204,7 @@ def _distinct_permutation(mapping: Mapping[int, int],
     # Check that the matching is perfect.
     # Edges are included in both directions so it's twice as large as the number of modules.
     if len(matching) != 2*modules:
-        LOGGER.error("The matching is not perfect. Ignoring...")
+        LOGGER.warning("Routing internal error: The matching is not perfect.")
 
     # Then use the full matching and the inverse edge map to find the nodes
     # to be moved into destination modules.

@@ -29,7 +29,7 @@ _V = TypeVar('_V')
 PERMUTER = Callable[[Permutation[int]], Iterable[List[Swap[int]]]]
 PARTIAL_PERMUTER = Callable[[Mapping[int, int]], Iterable[List[Swap[int]]]]
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 class Point(NamedTuple):
@@ -205,7 +205,9 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
                 simple_graph[e0][e1]["weight"] = (-weight / (max_cost + 1) + 1) / (2 * height) + 1
 
         matching = nx.algorithms.max_weight_matching(simple_graph, maxcardinality=True)
-        assert len(matching) == width, "The matching is not perfect."
+        if len(matching) != width:
+            LOGGER.warning("Routing internal error: The matching was not perfect.")
+
         for e0, e1 in matching:
             origin = simple_graph[e0][e1]["origin"]
             if isinstance(origin, UnmappedQubit):
