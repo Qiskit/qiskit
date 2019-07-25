@@ -38,7 +38,7 @@ qc.h(0)
 qc.cx(0, 1)
 
 # Assert not a product state.  In this case, the state is maximally entangled.
-breakpoint = qc.assert_not_product(0, 1, 0, 1, 0.05)
+breakpoint = qc.get_breakpoint_not_product(0, 1, 0, 1, 0.05)
 
 # Add a Measure gate to see the state.
 qc.measure([0, 1], [0, 1])

@@ -43,7 +43,7 @@ qc = QuantumCircuit(q, c0, c1, c2, name="teleport")
 breakpoints = []
 
 # Assert a classical state of all 0's
-breakpoints.append(qc.assert_classical(q, [c0[0], c1[0], c2[0]], 0.05, 0))
+breakpoints.append(qc.get_breakpoint_classical(q, [c0[0], c1[0], c2[0]], 0.05, 0))
 
 qc.measure(q, [c0[0], c1[0], c2[0]])
 
@@ -55,7 +55,7 @@ qc.h(q[1])
 qc.cx(q[1], q[2])
 
 # Assert not product, because it's an entangled state
-breakpoints.append(qc.assert_not_product(q[1], c1[0], q[2], c2[0], 0.05))
+breakpoints.append(qc.get_breakpoint_not_product(q[1], c1[0], q[2], c2[0], 0.05))
 
 # Barrier following state preparation
 qc.barrier(q)
@@ -65,7 +65,7 @@ qc.cx(q[0], q[1])
 qc.h(q[0])
 
 # Assert uniform of 1st qubit
-breakpoints.append(qc.assert_uniform(q[0], c0[0], 0.05))
+breakpoints.append(qc.get_breakpoint_uniform(q[0], c0[0], 0.05))
 
 qc.measure(q[0], c0[0])
 qc.measure(q[1], c1[0])

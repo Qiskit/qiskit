@@ -50,13 +50,13 @@ breakpoints = []
 qc1 = QuantumCircuit(2, 2, name="bell")
 qc1.h(0)
 qc1.cx(0, 1)
-breakpoints.append(qc1.assert_not_product(0, 0, 1, 1, 0.05))
+breakpoints.append(qc1.get_breakpoint_not_product(0, 0, 1, 1, 0.05))
 qc1.measure([0,1], [0,1])
 
 # Making another circuit: superpositions
 qc2 = QuantumCircuit(2, 2, name="uniform")
 qc2.h([0,1])
-breakpoints.append(qc2.assert_uniform([0,1], [0,1], 0.05))
+breakpoints.append(qc2.get_breakpoint_uniform([0,1], [0,1], 0.05))
 qc2.measure([0,1], [0,1])
 
 # Setting up the backend

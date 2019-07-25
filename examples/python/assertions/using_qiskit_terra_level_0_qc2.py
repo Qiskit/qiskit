@@ -37,7 +37,7 @@ qc2.h([0,1])
 
 # Insert a breakpoint, asserting that the 2 qubits are in a uniform state,
 # with a critical p-value of 0.05.
-breakpoint = qc2.assert_uniform([0,1], [0,1], 0.05)
+breakpoint = qc2.get_breakpoint_uniform([0,1], [0,1], 0.05)
 
 qc2.measure([0,1], [0,1])
 

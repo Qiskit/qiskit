@@ -78,13 +78,13 @@ qc.x(a[0])  # Set input a = 0...0001
 # instructions up to that point, with an assertion at the end.
 # An assertion is a measurement that performs a statistical test.
 # This breakpoint is to assert that a = 1.
-breakpoints.append(qc.assert_classical([a[i] for i in range(n)], \
+breakpoints.append(qc.get_breakpoint_classical([a[i] for i in range(n)], \
     [ans[i] for i in range(n)], 0.05, 1))
 
 qc.x(b)   # Set input b = 1...1111
 
 # Here's another breakpoint to assert that b = 1...1111
-breakpoints.append(qc.assert_classical([b[i] for i in range(n)], \
+breakpoints.append(qc.get_breakpoint_classical([b[i] for i in range(n)], \
     [ans[i] for i in range(n)], 0.05, 2**n - 1))
 
 # Apply the adder
@@ -93,7 +93,7 @@ qc += adder_subcircuit
 # This breakpoint confirms successful addition: a + b = 0.
 # You can comment out the line below if you don't want that
 # breakpoint anymore.
-breakpoints.append(qc.assert_classical([b[i] for i in range(n)], \
+breakpoints.append(qc.get_breakpoint_classical([b[i] for i in range(n)], \
     [ans[i] for i in range(n)], 0.05, 0))
 
 # Measure the output register in the computational basis

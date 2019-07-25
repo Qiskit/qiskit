@@ -50,8 +50,8 @@ breakpoints = []
 qc1 = QuantumCircuit(4, 4)
 qc1.h(0)
 qc1.cx(0, 1)
-breakpoints.append(qc1.assert_not_product(0, 0, 1, 1, 0.05))
-breakpoints.append(qc1.assert_not_uniform([0,1], [0,1], 0.05))
+breakpoints.append(qc1.get_breakpoint_not_product(0, 0, 1, 1, 0.05))
+breakpoints.append(qc1.get_breakpoint_not_uniform([0,1], [0,1], 0.05))
 qc1.measure([0,1], [0,1])
 
 # Making another circuit: GHZ State
@@ -60,8 +60,8 @@ qc2.h(0)
 qc2.cx(0, 1)
 qc2.cx(0, 2)
 qc2.cx(0, 3)
-breakpoints.append(qc2.assert_not_product([0,1], [0,1], [2,3], [2,3], 0.05))
-breakpoints.append(qc2.assert_not_uniform([0,1,2,3], [0,1,2,3], 0.05))
+breakpoints.append(qc2.get_breakpoint_not_product([0,1], [0,1], [2,3], [2,3], 0.05))
+breakpoints.append(qc2.get_breakpoint_not_uniform([0,1,2,3], [0,1,2,3], 0.05))
 qc2.measure([0,1,2,3], [0,1,2,3])
 
 # Setting up the backend

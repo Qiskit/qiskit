@@ -37,7 +37,7 @@ qc1.h(0)
 
 # Insert a breakpoint, asserting that the 2 qubits are in a product state,
 # with a critical p-value of 0.05.
-breakpoint = qc1.assert_product(0, 0, 1, 1, 0.05)
+breakpoint = qc1.get_breakpoint_product(0, 0, 1, 1, 0.05)
 
 qc1.cx(0, 1)
 
