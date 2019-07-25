@@ -20,6 +20,7 @@ import numpy as np
 from scipy.linalg import schur
 
 from qiskit.exceptions import QiskitError
+from qiskit.circuit import ClassicalRegister, QuantumRegister
 from .instruction import Instruction
 
 
@@ -61,7 +62,14 @@ class Gate(Instruction):
             decomposition_power.append(pow(element, exponent))
         # Then reconstruct the resulting gate.
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-        return UnitaryGate(unitary_power)
+        sub_instruction = UnitaryGate(unitary_power)
+
+        instruction = Instruction(name="%s^%s" % (self.name, exponent), num_qubits=self.num_qubits,
+                                  num_clbits=self.num_clbits, params=self.params)
+        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
+        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
+        instruction.definition = [(sub_instruction, qargs[:], cargs[:])]
+        return instruction
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""

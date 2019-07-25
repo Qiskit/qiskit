@@ -184,8 +184,9 @@ class TestGateSqrt(QiskitTestCase):
         expected = array([[0.5 + 0.5j, 0.5 + 0.5j],
                           [-0.5 - 0.5j, 0.5 + 0.5j]])
         result = UnitaryGate([[0, 1j], [-1j, 0]]).power(1 / 2)
-        self.assertEqual(result.name, 'unitary')
-        assert_allclose(result.to_matrix(), expected)
+        self.assertEqual(result.name, 'unitary^0.5')
+        self.assertEqual(len(result.definition), 1)
+        assert_allclose(result.definition[0][0].to_matrix(), expected)
 
     def test_starndard_sqrt(self):
         """Test standard Gate.power(1/2) method.
@@ -193,8 +194,9 @@ class TestGateSqrt(QiskitTestCase):
         expected = array([[1 + 0.j, 0 + 0.j],
                           [0 + 0.j, 0.70710678 + 0.70710678j]])
         result = SGate().power(1 / 2)
-        self.assertEqual(result.name, 'unitary')
-        assert_allclose(result.to_matrix(), expected)
+        self.assertEqual(result.name, 's^0.5')
+        self.assertEqual(len(result.definition), 1)
+        assert_allclose(result.definition[0][0].to_matrix(), expected)
 
 
 @ddt
@@ -205,15 +207,17 @@ class TestGateFloat(QiskitTestCase):
     def test_direct_root(self, degree):
         """Test nth root"""
         result = SGate().power(1 / degree)
-        self.assertEqual(result.name, 'unitary')
-        assert_allclose(matrix_power(result.to_matrix(), degree), SGate().to_matrix())
+        self.assertEqual(result.name, 's^'+str(1/degree))
+        self.assertEqual(len(result.definition), 1)
+        assert_allclose(matrix_power(result.definition[0][0].to_matrix(), degree), SGate().to_matrix())
 
     @data(2.1, 3.2, 4.3, 5.4, 6.5, 7.6, 8.7, 9.8)
     def test_float_gt_one(self, exponent):
         """Test greater-than-one exponents """
         result = SGate().power(exponent)
-        self.assertEqual(result.name, 'unitary')
-        assert_allclose(SGate().to_matrix() ** exponent, result.to_matrix())
+        self.assertEqual(result.name, 's^'+str(exponent))
+        self.assertEqual(len(result.definition), 1)
+        assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
 
 
 if __name__ == '__main__':
