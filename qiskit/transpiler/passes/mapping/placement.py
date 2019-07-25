@@ -22,8 +22,8 @@ from typing import TypeVar, Generic, Mapping, Callable, Iterable, List, Union, A
 
 import networkx as nx
 
-import arct.permutation as pm
-import arct.permutation.util
+import qiskit.transpiler.routing as rt
+import qiskit.transpiler.routing.util
 
 Reg = TypeVar("Reg")
 ArchNode = TypeVar('ArchNode')
@@ -78,7 +78,7 @@ class Placement(Generic[Reg, ArchNode]):
         return Placement({**self.current_mapping, **other.current_mapping},
                          {**self.mapped_to, **other.mapped_to})
 
-    def place(self, permutation: pm.Permutation[ArchNode]) -> None:
+    def place(self, permutation: rt.Permutation[ArchNode]) -> None:
         """Place this placement in the permutation.
 
             To place the qubits in the mapping and keep the mapping consistent,
@@ -105,8 +105,8 @@ class Placement(Generic[Reg, ArchNode]):
             inv_permutation[succ_current] = prev_to
 
     def permutation_circuit(self,
-                            arch_permuter: Callable[[pm.Permutation[ArchNode]],
-                                                    Iterable[List[pm.Swap[ArchNode]]]],
+                            arch_permuter: Callable[[rt.Permutation[ArchNode]],
+                                                    Iterable[List[rt.Swap[ArchNode]]]],
                             arch_graph: Union[nx.Graph, nx.DiGraph],
                             allow_swaps: bool = False) -> 'pm.util.PermutationCircuit':
         """Construct a circuit that implements this placement as a (complete) permutation.
@@ -118,7 +118,7 @@ class Placement(Generic[Reg, ArchNode]):
         arch_perm = {i: i for i in arch_graph.nodes}
         self.place(arch_perm)
         swaps = arch_permuter(arch_perm)
-        mapping_circuit = pm.util.circuit(swaps)
+        mapping_circuit = rt.util.circuit(swaps)
         return mapping_circuit
 
     def __str__(self) -> str:
