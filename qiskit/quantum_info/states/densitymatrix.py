@@ -261,14 +261,14 @@ class DensityMatrix(QuantumState):
 
         The statevector is initialized in the state |0,...,0> of the same
         number of qubits as the input instruction or circuit, evolved
-        by the input instruction, and the output statevector returned. 
+        by the input instruction, and the output statevector returned.
 
         Args:
             instruction (Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             DensityMatrix: the final density matrix.
-        
+
         Raises:
             QiskitError: if the instruction contains invalid instructions for
             density matrix simulation.

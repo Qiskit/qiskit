@@ -252,7 +252,7 @@ class Statevector(QuantumState):
             'l': [1 / sqrt(2), -1j / sqrt(2)]
         """
         # Check label is valid
-        if re.match('^[01rl\-+]+$', label) == None:
+        if re.match('^[01rl\-+]+$', label) is None:
             raise QiskitError('Label contains invalid characters.')
         # We can prepare Z-eigenstates by converting the computational
         # basis bit-string to an integer and preparing that unit vector
@@ -260,14 +260,14 @@ class Statevector(QuantumState):
         # then apply Hadamard gates to rotate 0 and 1s to + and -.
         z_label = label
         xy_states = False
-        if re.match('^[01]+$', label) == None:
+        if re.match('^[01]+$', label) is None:
             # We have X or Y eigenstates so replace +,r with 0 and
             # -,l with 1 and prepare the corresponding Z state
             xy_states = True
-            z_label = z_label.replace('+', '0') 
-            z_label = z_label.replace('r', '0') 
+            z_label = z_label.replace('+', '0')
+            z_label = z_label.replace('r', '0')
             z_label = z_label.replace('-', '1')
-            z_label = z_label.replace('l', '1') 
+            z_label = z_label.replace('l', '1')
         # Initialize Z eigenstate vector
         num_qubits = len(label)
         data = np.zeros(1 << num_qubits, dtype=complex)
@@ -283,7 +283,7 @@ class Statevector(QuantumState):
                 if char in ['+', '-']:
                     state = state.evolve(x_mat, qargs=[qubit])
                 elif char in ['r', 'l']:
-                    state = state.evolve(y_mat, qargs=[qubit])                
+                    state = state.evolve(y_mat, qargs=[qubit])
         return state
 
     @classmethod
@@ -292,14 +292,14 @@ class Statevector(QuantumState):
 
         The statevector is initialized in the state |0,...,0> of the same
         number of qubits as the input instruction or circuit, evolved
-        by the input instruction, and the output statevector returned. 
+        by the input instruction, and the output statevector returned.
 
         Args:
             instruction (Instruction or QuantumCircuit): instruction or circuit
 
         Returns:
             Statevector: The final statevector.
-        
+
         Raises:
             QiskitError: if the instruction contains invalid instructions for
             the statevector simulation.
