@@ -15,6 +15,7 @@
 # pylint: disable=invalid-name,missing-docstring
 
 import os
+import unittest
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import visualization
