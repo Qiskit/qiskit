@@ -20,7 +20,8 @@ Rotation around the z-axis.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U1Gate
+import qiskit.extensions.standard.u1 as u1
+import qiskit.extensions.standard.crz as crz
 
 
 class RZGate(Gate):
@@ -37,7 +38,7 @@ class RZGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U1Gate(self.params[0]), [q[0]], [])
+            (u1.U1Gate(self.params[0]), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -49,6 +50,26 @@ class RZGate(Gate):
         rz(phi)^dagger = rz(-phi)
         """
         return RZGate(-self.params[0])
+
+    def q_if(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits to add. Default 1.
+            label (str): optional label for returned gate.
+
+        Raise:
+            QiskitError: unallowed num_ctrl_qubits specified.
+        """
+        if num_ctrl_qubits == 1:
+            return crz.CrzGate(*self.params)
+        elif isinstance(num_ctrl_qubits, int) and num_ctrl_qubits > 1:
+            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
+                                  num_ctrl_qubits+1, self.params,
+                                  num_ctrl_qubits=num_ctrl_qubits, label=label)
+        else:
+            raise QiskitError('Number of control qubits must be >=1')
+    
 
 
 def rz(self, phi, q):

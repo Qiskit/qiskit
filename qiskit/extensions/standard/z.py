@@ -20,7 +20,8 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u1 import U1Gate
+import qiskit.extensions.standard.u1 as u1
+import qiskit.extensions.standard.cz as cz
 
 
 class ZGate(Gate):
@@ -34,7 +35,7 @@ class ZGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U1Gate(pi), [q[0]], [])
+            (u1.U1Gate(pi), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -49,6 +50,16 @@ class ZGate(Gate):
         return numpy.array([[1, 0],
                             [0, -1]], dtype=complex)
 
+    def q_if(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate."""
+        if num_ctrl_qubits == 1:
+            return cz.CzGate()
+        elif isinstance(num_ctrl_qubits, int) and num_ctrl_qubits > 1:
+            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
+                                  num_ctrl_qubits+1, self.params,
+                                  num_ctrl_qubits=num_ctrl_qubits, label=label)
+        else:
+            raise QiskitError('Number of control qubits must be >=1')
 
 def z(self, q):
     """Apply Z to q."""

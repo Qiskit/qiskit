@@ -17,20 +17,20 @@
 """
 controlled-Y gate.
 """
-from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.s import SGate
-from qiskit.extensions.standard.s import SdgGate
-from qiskit.extensions.standard.cx import CnotGate
+from qiskit.circuit import ControlledGate
+import qiskit.extensions.standard.s as s
+import qiskit.extensions.standard.cx as cx
 
 
-class CyGate(Gate):
+class CyGate(ControlledGate):
     """controlled-Y gate."""
 
     def __init__(self):
         """Create new CY gate."""
-        super().__init__("cy", 2, [])
+        super().__init__("cy", 2, [], num_ctrl_qubits=1)
 
     def _define(self):
         """
@@ -39,9 +39,9 @@ class CyGate(Gate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (SdgGate(), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (SGate(), [q[1]], [])
+            (s.SdgGate(), [q[1]], []),
+            (cx.CnotGate(), [q[0], q[1]], []),
+            (s.SGate(), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

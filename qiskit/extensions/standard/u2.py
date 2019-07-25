@@ -21,7 +21,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
+import qiskit.extensions.standard.u3 as u3
 
 
 class U2Gate(Gate):
@@ -34,7 +34,7 @@ class U2Gate(Gate):
     def _define(self):
         definition = []
         q = QuantumRegister(1, "q")
-        rule = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
+        rule = [(u3.U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
         for inst in rule:
             definition.append(inst)
         self.definition = definition
@@ -57,7 +57,6 @@ class U2Gate(Gate):
                                 numpy.exp(1j * (phi + lam)) * isqrt2
                             ]],
                            dtype=complex)
-
 
 def u2(self, phi, lam, q):
     """Apply u2 to q."""

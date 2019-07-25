@@ -22,7 +22,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u1 import U1Gate
+import qiskit.extensions.standard.u1 as u1
 
 
 class TGate(Gate):
@@ -39,7 +39,7 @@ class TGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U1Gate(pi/4), [q[0]], [])
+            (u1.U1Gate(pi/4), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -69,7 +69,7 @@ class TdgGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U1Gate(-pi/4), [q[0]], [])
+            (u1.U1Gate(-pi/4), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)

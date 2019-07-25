@@ -17,10 +17,12 @@ Pauli Y (bit-phase-flip) gate.
 """
 import numpy
 from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
+import qiskit.extensions.standard.u3 as u3
+import qiskit.extensions.standard.cy as cy
 
 
 class YGate(Gate):
@@ -34,7 +36,7 @@ class YGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U3Gate(pi, pi/2, pi/2), [q[0]], [])
+            (u3.U3Gate(pi, pi/2, pi/2), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -49,6 +51,16 @@ class YGate(Gate):
         return numpy.array([[0, -1j],
                             [1j, 0]], dtype=complex)
 
+    def q_if(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate."""
+        if num_ctrl_qubits == 1:
+            return cy.CyGate()
+        elif isinstance(num_ctrl_qubits, int) and num_ctrl_qubits > 1:
+            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
+                                  num_ctrl_qubits+1, self.params,
+                                  num_ctrl_qubits=num_ctrl_qubits, label=label)
+        else:
+            raise QiskitError('Number of control qubits must be >=1')
 
 def y(self, q):
     """Apply Y to q."""

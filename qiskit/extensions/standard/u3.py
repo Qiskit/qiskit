@@ -19,6 +19,8 @@ Two-pulse single-qubit gate.
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
+import qiskit.extensions.standard.cu3 as cu3
+from qiskit.exceptions import QiskitError
 
 
 class U3Gate(Gate):
@@ -50,6 +52,25 @@ class U3Gate(Gate):
              ]],
             dtype=complex)
 
+    def q_if(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits to add. Default 1.
+            label (str): optional label for returned gate.
+
+        Raise:
+            QiskitError: unallowed num_ctrl_qubits specified.
+        """
+        if num_ctrl_qubits == 1:
+            return cu3.Cu3Gate(*self.params)
+        elif isinstance(num_ctrl_qubits, int) and num_ctrl_qubits > 1:
+            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
+                                  num_ctrl_qubits+1, self.params,
+                                  num_ctrl_qubits=num_ctrl_qubits, label=label)
+        else:
+            raise QiskitError('Number of control qubits must be >=1')
+        
 
 def u3(self, theta, phi, lam, q):
     """Apply u3 to q."""

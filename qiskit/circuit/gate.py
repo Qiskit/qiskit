@@ -13,10 +13,8 @@
 # that they have been altered from the originals.
 
 """Unitary gate."""
-
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
-
 
 class Gate(Instruction):
     """Unitary gate."""
@@ -72,6 +70,44 @@ class Gate(Instruction):
             self._label = name
         else:
             raise TypeError('label expects a string or None')
+
+    def q_if(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate
+        
+        Args:
+            num_ctrl_qubits (int): number of controls for returned gate (default=1).
+            label (str): optional gate label
+        Returns:
+            ControlledGate: controlled version of gate.
+        """
+        import qiskit.circuit.controlledgate as controlledgate
+        from qiskit.circuit import QuantumRegister
+        new_num_qubits = self.num_qubits + num_ctrl_qubits
+        if hasattr(self, 'num_ctrl_qubits'):
+            new_num_ctrl_qubits = self.num_ctrl_qubits + num_ctrl_qubits
+        else:
+            new_num_ctrl_qubits = num_ctrl_qubits
+        if hasattr(self, 'definition') and self.definition is not None:
+            definition = []
+            qreg = QuantumRegister(new_num_qubits, name='q')
+            for rule in self.definition:
+                rule_gate = rule[0].q_if(num_ctrl_qubits)
+                # shift count
+                rule_qubits = []
+                for ctrl in range(num_ctrl_qubits):
+                    rule_qubits.append(qreg[ctrl])
+                for qubit in rule[1]:
+                    rule_qubits.append(qreg[num_ctrl_qubits + qubit.index])
+                definition.append((rule_gate, rule_qubits, []))
+        else:
+            definition = None
+        cgate = controlledgate.ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
+                                              new_num_qubits,
+                                              self.params,
+                                              label=label,
+                                              num_ctrl_qubits=new_num_ctrl_qubits,
+                                              definition=definition)
+        return cgate
 
     @staticmethod
     def _broadcast_single_argument(qarg):

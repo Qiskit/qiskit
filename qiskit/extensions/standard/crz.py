@@ -15,19 +15,19 @@
 """
 controlled-rz gate.
 """
-from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u1 import U1Gate
-from qiskit.extensions.standard.cx import CnotGate
+import qiskit.extensions.standard.u1 as u1
+import qiskit.extensions.standard.cx as cx
 
 
-class CrzGate(Gate):
+class CrzGate(ControlledGate):
     """controlled-rz gate."""
 
     def __init__(self, theta):
         """Create new crz gate."""
-        super().__init__("crz", 2, [theta])
+        super().__init__("crz", 2, [theta], num_ctrl_qubits=1)
 
     def _define(self):
         """
@@ -39,10 +39,10 @@ class CrzGate(Gate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (U1Gate(self.params[0] / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], []),
-            (U1Gate(-self.params[0] / 2), [q[1]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (u1.U1Gate(self.params[0] / 2), [q[1]], []),
+            (cx.CnotGate(), [q[0], q[1]], []),
+            (u1.U1Gate(-self.params[0] / 2), [q[1]], []),
+            (cx.CnotGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

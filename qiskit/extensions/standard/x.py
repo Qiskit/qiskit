@@ -19,10 +19,13 @@ Pauli X (bit-flip) gate.
 import numpy
 
 from qiskit.circuit import Gate
+from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-from qiskit.extensions.standard.u3 import U3Gate
+import qiskit.extensions.standard.u3 as u3
+import qiskit.extensions.standard.cx as cx
+import qiskit.extensions.standard.ccx as ccx
 
 
 class XGate(Gate):
@@ -41,7 +44,7 @@ class XGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U3Gate(pi, 0, pi), [q[0]], [])
+            (u3.U3Gate(pi, 0, pi), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -55,6 +58,17 @@ class XGate(Gate):
         """Return a Numpy.array for the X gate."""
         return numpy.array([[0, 1],
                             [1, 0]], dtype=complex)
+
+    def q_if(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate."""
+        if num_ctrl_qubits == 1:
+            return cx.CnotGate()
+        elif num_ctrl_qubits == 2:
+            return ccx.ToffoliGate()            
+        else:
+            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
+                                  num_ctrl_qubits+1, self.params,
+                                  num_ctrl_qubits=num_ctrl_qubits, label=label)
 
 
 def x(self, q):

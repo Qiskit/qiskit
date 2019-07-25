@@ -21,7 +21,8 @@ import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.cx import CnotGate
+import qiskit.extensions.standard.cx as cx
+import qiskit.extensions.standard.cswap as cswap
 
 
 class SwapGate(Gate):
@@ -38,9 +39,9 @@ class SwapGate(Gate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (CnotGate(), [q[0], q[1]], []),
-            (CnotGate(), [q[1], q[0]], []),
-            (CnotGate(), [q[0], q[1]], [])
+            (cx.CnotGate(), [q[0], q[1]], []),
+            (cx.CnotGate(), [q[1], q[0]], []),
+            (cx.CnotGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -57,6 +58,25 @@ class SwapGate(Gate):
                             [0, 1, 0, 0],
                             [0, 0, 0, 1]], dtype=complex)
 
+    def q_if(self, num_ctrl_qubits=1, label=None):
+        """Return controlled version of gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits to add. Default 1.
+            label (str): optional label for returned gate.
+
+        Raise:
+            QiskitError: unallowed num_ctrl_qubits specified.
+        """
+        if num_ctrl_qubits == 1:
+            return cswap.FredkinGate()
+        elif isinstance(num_ctrl_qubits, int) and num_ctrl_qubits > 1:
+            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
+                                  num_ctrl_qubits+1, self.params,
+                                  num_ctrl_qubits=num_ctrl_qubits, label=label)
+        else:
+            raise QiskitError('Number of control qubits must be >=1')
+    
 
 def swap(self, qubit1, qubit2):
     """Apply SWAP from qubit1 to qubit2."""

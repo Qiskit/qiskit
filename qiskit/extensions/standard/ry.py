@@ -22,7 +22,7 @@ import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.extensions.standard.u3 import U3Gate
+import qiskit.extensions.standard.u3 as u3
 
 
 class RYGate(Gate):
@@ -39,7 +39,7 @@ class RYGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (U3Gate(self.params[0], 0, 0), [q[0]], [])
+            (u3.U3Gate(self.params[0], 0, 0), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
