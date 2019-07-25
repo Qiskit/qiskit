@@ -29,7 +29,6 @@ as a level 1 user.
 # Import the Qiskit modules
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, BasicAer
-# from qiskit.assertions.asserts import Asserts
 
 # making another circuit: uniforms
 qc2 = QuantumCircuit(2, 2)
@@ -47,14 +46,14 @@ print(BasicAer.backends())
 
 # running the breakpoint and the job
 job_sim = execute([breakpoint, qc2], BasicAer.get_backend('qasm_simulator'))
-sim_result = job_sim.result()
+result = job_sim.result()
 
-assert ( sim_result.get_assertion_passed(breakpoint) )
-# We obtain a dictionary of the results from our statistical test on our breakpoint
-# stat_outputs = AssertManager.stat_collect(breakpoint, sim_result)
-# print("Full results of our assertion:")
-# print(stat_outputs)
+# Show the assertion
+print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
+tup = result.get_assertion(breakpoint)
+print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+assert ( result.get_assertion_passed(breakpoint) )
 
 # Show the results
-print("sim_result.get_counts(qc2) = ")
-print(sim_result.get_counts(qc2))
+print("result.get_counts(qc2) = ")
+print(result.get_counts(qc2))

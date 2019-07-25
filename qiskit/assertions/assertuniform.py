@@ -28,7 +28,8 @@ class AssertUniform(Asserts):
         to assert whether the state is a uniform superposition state or not.
     """
     def __init__(self, qubit, cbit, pcrit, negate):
-        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate)
+        type = "Not Uniform" if negate else "Uniform"
+        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate, type)
 
     def stat_test(self, counts):
         """

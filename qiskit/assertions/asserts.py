@@ -28,12 +28,13 @@ class Asserts(Measure):
     """A superclass for all assertions, and a subclass of Measure"""
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, qubit, cbit, pcrit, negate):
+    def __init__(self, qubit, cbit, pcrit, negate, type):
         super().__init__()
         self._qubit = qubit
         self._cbit = cbit
         self._pcrit = pcrit
         self._negate = negate
+        self._type = type
         self._expval = None
 
     def breakpoint_name():

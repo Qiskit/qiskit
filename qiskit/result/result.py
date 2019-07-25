@@ -250,6 +250,18 @@ class Result(BaseModel):
         chisq, pval, passed = self.get_assertion (experiment)
         return passed
 
+    def get_assertion_type(self, experiment=None):
+        """
+        Return the type of the assertion for an experiment.
+        Args:
+            experiment (QuantumCircuit): a breakpoint
+        Returns:
+            string: the type of assertion
+        """
+        assertion = experiment.data[-1][0]
+        return assertion._type
+
+
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
 

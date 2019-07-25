@@ -33,7 +33,8 @@ class AssertProduct(Asserts):
         self._cbit0 = self.syntax4measure(cbit0)
         self._qubit1 = self.syntax4measure(qubit1)
         self._cbit1 = self.syntax4measure(cbit1)
-        super().__init__(self._qubit0 + self._qubit1, self._cbit0 + self._cbit1, pcrit, negate)
+        type = "Not Product" if negate else "Product"
+        super().__init__(self._qubit0 + self._qubit1, self._cbit0 + self._cbit1, pcrit, negate, type)
 
     def stat_test(self, counts):
         """

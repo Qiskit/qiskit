@@ -21,7 +21,6 @@ This example has assertions added as well.
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
 from qiskit import execute
-# from qiskit.assertions.asserts import Asserts
 
 ###############################################################
 # Set the backend name and coupling map.
@@ -108,26 +107,26 @@ qc.measure(cout[0], ans[n])
 # execute the program.
 ###############################################################
 
-# First version: not mapped
+print("\n\nFirst version: not mapped")
 job = execute(breakpoints +[qc], backend=backend, coupling_map=None, shots=1024)
 result = job.result()
-# stat_outputs = AssertManager.stat_collect(breakpoints, result)
-# print("Full results of our assertions, run with no coupling map:")
-# print(stat_outputs)
-assert ( result.get_assertion_passed(breakpoints[0]) )
-assert ( result.get_assertion_passed(breakpoints[1]) )
-assert ( result.get_assertion_passed(breakpoints[2]) )
+# Show the assertion
+for breakpoint in breakpoints:
+    print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
+    tup = result.get_assertion(breakpoint)
+    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    assert ( result.get_assertion_passed(breakpoint) )
 #print(result.get_counts(qc))
 
-# Second version: mapped to 2x8 array coupling graph
+print("\n\nSecond version: mapped to 2x8 array coupling graph")
 job = execute(breakpoints + [qc], backend=backend, coupling_map=coupling_map, shots=1024)
 result = job.result()
-# stat_outputs = AssertManager.stat_collect(breakpoints, result)
-# print("Full results of our assertions, run with a coupling map:")
-# print(stat_outputs)
-assert ( result.get_assertion_passed(breakpoints[0]) )
-assert ( result.get_assertion_passed(breakpoints[1]) )
-assert ( result.get_assertion_passed(breakpoints[2]) )
+# Show the assertion
+for breakpoint in breakpoints:
+    print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
+    tup = result.get_assertion(breakpoint)
+    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    assert ( result.get_assertion_passed(breakpoint) )
 #print(result.get_counts(qc))
 
 # Both versions should give the same distribution

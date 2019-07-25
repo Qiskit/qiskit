@@ -17,7 +17,6 @@
 # Import Qiskit
 from qiskit import QuantumCircuit, QiskitError
 from qiskit import execute, IBMQ, BasicAer
-from qiskit.assertions import AssertProduct
 from qiskit.providers.ibmq import least_busy
 
 # Authenticate for access to remote backends
@@ -52,9 +51,9 @@ job_sim = execute([breakpoint, qc], backend_sim)
 result_sim = job_sim.result()
 
 # Show the assertion
-# stat_outputs = AssertManager.stat_collect(breakpoint, result_sim)
-print("Full results of our assertion:")
-print(result_sim.get_assertion_passed(breakpoint))
+print("Simulated Results of our " + result_sim.get_assertion_type(breakpoint) + " Assertion:")
+tup = result_sim.get_assertion(breakpoint)
+print('chisq = %s\npval = %s\npassed = %s' % tuple(map(str,tup)))
 assert ( result_sim.get_assertion_passed(breakpoint) )
 
 # Show the results
@@ -77,9 +76,10 @@ job_exp = execute([breakpoint, qc], least_busy_device, shots=1024, max_credits=1
 result_exp = job_exp.result()
 
 # Show the assertion
-stat_outputs = AssertManager.stat_collect(breakpoint, result_exp)
-# print("Full results of our assertion:")
-# print(stat_outputs)
+print("Experimental Results of our " + result_exp.get_assertion_type(breakpoint) + " Assertion:")
+tup = result_exp.get_assertion(breakpoint)
+print('chisq = %s\npval = %s\npassed = %s' % tuple(map(str,tup)))
+assert ( result_exp.get_assertion_passed(breakpoint) )
 
 # Show the results
 print('Counts: ', result_exp.get_counts(qc))

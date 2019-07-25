@@ -23,7 +23,6 @@ used `pip install`, the examples only work from the root directory.
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
 from qiskit import execute
-# from qiskit.assertions.asserts import Asserts
 
 ###############################################################
 # Set the backend name and coupling map.
@@ -81,38 +80,32 @@ qc.measure(q[2], c2[0])
 # Experiment does not support feedback, so we use the simulator
 ###############################################################
 
-# First version: not mapped
+print("\n\nFirst version: not mapped")
 initial_layout = {q[0]: 0,
                   q[1]: 1,
                   q[2]: 2}
-job = execute(qc, backend=backend, coupling_map=None, shots=1024,
-              initial_layout=initial_layout)
-
-result = job.result()
-print(result.get_counts(qc))
-
 # Execute and show results of statistical assertion tests
 job = execute(breakpoints + [qc], backend=backend, coupling_map=None, shots=1024,
                     initial_layout=initial_layout)
 result = job.result()
+# Show the assertion
+for breakpoint in breakpoints:
+    print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
+    tup = result.get_assertion(breakpoint)
+    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    assert ( result.get_assertion_passed(breakpoint) )
 print(result.get_counts(qc))
-assert ( result.get_assertion_passed(breakpoints[0]) )
-assert ( result.get_assertion_passed(breakpoints[1]) )
-assert ( result.get_assertion_passed(breakpoints[2]) )
-# stat_outputs = AssertManager.stat_collect(breakpoints, result)
-# print("Full results of our assertions, run with no coupling map:")
-# print(stat_outputs)
 
-# Second version: mapped to 2x8 array coupling graph
+print("\n\nSecond version: mapped to 2x8 array coupling graph")
 job = execute(breakpoints + [qc], backend=backend, coupling_map=coupling_map, shots=1024,
               initial_layout=initial_layout)
 result = job.result()
+# Show the assertion
+for breakpoint in breakpoints:
+    print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
+    tup = result.get_assertion(breakpoint)
+    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    assert ( result.get_assertion_passed(breakpoint) )
 print(result.get_counts(qc))
-assert ( result.get_assertion_passed(breakpoints[0]) )
-assert ( result.get_assertion_passed(breakpoints[1]) )
-assert ( result.get_assertion_passed(breakpoints[2]) )
-# stat_outputs = AssertManager.stat_collect(breakpoints, result)
-# print("Full results of our assertions, run with a coupling map:")
-# print(stat_outputs)
 
 print("\nBoth results should give the same distribution, and therefore the same assertion results.")

@@ -40,7 +40,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.compiler import transpile, assemble
 from qiskit.providers.ibmq import least_busy
 from qiskit.tools.monitor import job_monitor
-# from qiskit.assertions.asserts import Asserts
 
 IBMQ.load_accounts()
 
@@ -103,11 +102,12 @@ sim_job = qasm_simulator.run(qobj)
 sim_result=sim_job.result()
 
 # Perform statistical tests and output the assertion result
-assert ( sim_result.get_assertion_passed(breakpoints_new[0]) )
-assert ( sim_result.get_assertion_passed(breakpoints_new[1]) )
-# stat_output = AssertManager.stat_collect(breakpoints_new, sim_result)
-# print("Full results of our assertion, run on an Aer simulator:")
-# print(stat_output)
+for breakpoint in breakpoints_new:
+    print("Simulated Results of our " + sim_result.get_assertion_type(breakpoint) + " Assertion:")
+    tup = sim_result.get_assertion(breakpoint)
+    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    assert ( sim_result.get_assertion_passed(breakpoint) )
+
 
 # Show the results
 print(sim_result.get_counts(qc1))
@@ -120,11 +120,11 @@ job_monitor(exp_job)
 exp_result = exp_job.result()
 
 # Perform statistical tests and output the assertion result
-assert ( sim_result.get_assertion_passed(breakpoints_new[0]) )
-assert ( sim_result.get_assertion_passed(breakpoints_new[1]) )
-# stat_output = AssertManager.stat_collect(breakpoints_new, exp_result)
-# print("Full results of our assertion, run on IBMQ hardware:")
-# print(stat_output)
+for breakpoint in breakpoints_new:
+    print("Experimental Results of our " + exp_result.get_assertion_type(breakpoint) + " Assertion:")
+    tup = exp_result.get_assertion(breakpoint)
+    print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
+    assert ( exp_result.get_assertion_passed(breakpoint) )
 
 # Show the results
 print(exp_result.get_counts(qc1))

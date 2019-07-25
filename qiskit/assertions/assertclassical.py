@@ -29,7 +29,8 @@ class AssertClassical(Asserts):
 	to assert whether the state is a classical state or not.
     """
     def __init__(self, qubit, cbit, pcrit, expval, negate):
-        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate)
+        type = "Not Classical" if negate else "Classical"
+        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate, type)
         self._expval = expval if expval==None or isinstance(expval, int) else int(expval, 2)
         if expval!=None and not self._expval in range(0, 2**len(self._cbit)):
             raise QiskitError("AssertClassical expected value %d not in range for %d cbits" % (self._expval, len(self._cbit)))
