@@ -253,6 +253,7 @@ class Result(BaseModel):
     def get_assertion_type(self, experiment=None):
         """
         Return the type of the assertion for an experiment.
+        
         Args:
             experiment (QuantumCircuit): a breakpoint
         Returns:
