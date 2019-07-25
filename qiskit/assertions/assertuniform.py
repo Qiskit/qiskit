@@ -24,24 +24,27 @@ from scipy.stats import chisquare
 
 class AssertUniform(Asserts):
     """
-        Assertion of uniform states and quantum measurement
-        in the computational basis.
+        A measurement instruction that additionally performs statistical tests on the measurement outcomes
+        to assert whether the state is a uniform superposition state or not.
     """
     def __init__(self, qubit, cbit, pcrit, negate):
         super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate)
 
     def stat_test(self, counts):
-        """Performs a chi-squared statistical test on the experimental outcomes.  Internally, compares
+        """
+        Performs a chi-squared statistical test on the experimental outcomes.  Internally, compares
         a normalized table of experimental counts to the scipy.stats.chisquare default, for which all
         outcomes are equally likely.
 
         Args:
-            counts: the counts dictionary from result.get_counts()
+            counts(dictionary): result.get_counts(experiment)
 
         Returns:
-            chisq: the chi-square value
-            pval: the p-value
-            passed: a boolean that is True iff the test passed
+	    tuple: tuple containing:
+
+                chisq(float): the chi-square value
+                pval(float): the p-value
+                passed(Boolean): if the test passed
         """
 
         vals_list = list(counts.values())
@@ -54,28 +57,44 @@ class AssertUniform(Asserts):
             passed = False
         return (chisq, pval, passed)
 
-def assert_uniform(self, qubit, cbit, pcrit=0.05):
-    """Create uniform assertion
-
+def get_breakpoint_uniform(self, qubit, cbit, pcrit=0.05):
+    """
+    Creates a breakpoint, which is a renamed deep copy of the QuantumCircuit, and creates and
+    appends an AssertUniform instruction to its end.  If the statistical test passes, the
+    assertion passes; if the test fails, the assertion fails.
+    
     Args:
-        pcrit: float
+        pcrit (float): critical p-value for the hypothesis test
         qubit (QuantumRegister|list|tuple): quantum register
         cbit (ClassicalRegister|list|tuple): classical register
 
     Returns:
-        qiskit.QuantumCircuit: copy of quantum circuit at the assert point.
+        QuantumCircuit: copy of quantum circuit at the assert point
     """
     theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     return theClone
 
-QuantumCircuit.assert_uniform = assert_uniform
+QuantumCircuit.get_breakpoint_uniform = get_breakpoint_uniform
 
-def assert_not_uniform(self, qubit, cbit, pcrit=0.05):
+def get_breakpoint_not_uniform(self, qubit, cbit, pcrit=0.05):
+    """
+    Creates a breakpoint, which is a renamed deep copy of the QuantumCircuit, and creates and
+    appends an AssertUniform instruction to its end.  If the statistical test passes, the
+    assertion fails; if the test fails, the assertion passes.
+
+    Args:
+        pcrit (float): critical p-value for the hypothesis test
+        qubit (QuantumRegister|list|tuple): quantum register
+        cbit (ClassicalRegister|list|tuple): classical register
+
+    Returns:
+        QuantumCircuit: copy of quantum circuit at the assert point
+    """
     theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, True)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     return theClone
 
-QuantumCircuit.assert_not_uniform = assert_not_uniform
+QuantumCircuit.get_breakpoint_not_uniform = get_breakpoint_not_uniform

@@ -25,8 +25,8 @@ from scipy.stats import chisquare
 
 class AssertClassical(Asserts):
     """
-        Assertion of classical states and quantum measurement
-        in the computational basis.
+        A measurement instruction that additionally performs statistical tests on the measurement outcomes
+	to assert whether the state is a classical state or not.
     """
     def __init__(self, qubit, cbit, pcrit, expval, negate):
         super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate)
@@ -35,16 +35,20 @@ class AssertClassical(Asserts):
             raise QiskitError("AssertClassical expected value %d not in range for %d cbits" % (self._expval, len(self._cbit)))
 
     def stat_test(self, counts):
-        """Performs a chi-squared statistical test on the experimental outcomes.  Internally, it builds a table of all 1's 
-        except is 2^16 for the expected value, normalizes it, and compares to a normalized table of experimental counts. 
+        """
+        Performs a chi-squared statistical test on the experimental outcomes.  Internally, it
+        builds a table of all 1's except is 2^16 for the expected value, normalizes it, and
+        compares to a normalized table of experimental counts. 
         
         Args:
-            counts: the counts dictionary from result.get_counts()
+            counts(dictionary): result.get_counts(experiment)
 
         Returns:
-            chisq: the chi-squared value
-            pval: the p-value
-            passed: a boolean that is True iff the test passed
+            tuple: tuple containing:
+            
+                chisq(float): the chi-squared value
+                pval(float): the p-value
+                passed(Boolean): if the test passed
         """
 
         vals_list = list(counts.values())
@@ -71,29 +75,50 @@ class AssertClassical(Asserts):
         return (chisq, pval, passed)
 
 
-def assert_classical(self, qubit, cbit, pcrit=0.05, expval=None):
-    """Create classical assertion
+def get_breakpoint_classical(self, qubit, cbit, pcrit=0.05, expval=None):
+    """
+    Creates a breakpoint, which is a renamed deep copy of the QuantumCircuit, and creates and
+    appends an AssertClassical instruction to its end.  If no expected value is specified, the
+    default behavior is that the statistical test assumes the mode of the measurement results
+    is the expected value.  If the statistical test passes, the assertion passes; if the test
+    fails, the assertion fails. 
 
     Args:
-        expval: integer of 0's and 1's or a string of 0's and 1's
-        pcrit: critical p-value for the hypothesis test
+        expval (integer|string): integer in base 10, or a string of 0's and 1's
+        pcrit (float): critical p-value for the hypothesis test
         qubit (QuantumRegister|list|tuple): quantum register
         cbit (ClassicalRegister|list|tuple): classical register
 
     Returns:
-        qiskit.QuantumCircuit: copy of quantum circuit at the assert point.
+        QuantumCircuit: copy of quantum circuit at the assert point
     """
     theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     return theClone
 
-QuantumCircuit.assert_classical = assert_classical
+QuantumCircuit.get_breakpoint_classical = get_breakpoint_classical
 
-def assert_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
+def get_breakpoint_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
+    """
+    Creates a breakpoint, which is a renamed deep copy of the QuantumCircuit, and creates and
+    appends an AssertClassical instruction to its end.  If no expected value is specified, the
+    default behavior is that the statistical test assumes the mode of the measurement results
+    is the expected value.  If the statistical test passes, the assertion fails; if the test
+    fails, the assertion passes.
+
+    Args:
+        expval (integer|string): integer in base 10, or a string of 0's and 1's
+        pcrit (float): critical p-value for the hypothesis test
+        qubit (QuantumRegister|list|tuple): quantum register
+        cbit (ClassicalRegister|list|tuple): classical register
+
+    Returns:
+        QuantumCircuit: copy of quantum circuit at the assert point
+    """
     theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval, True)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     return theClone
 
-QuantumCircuit.assert_not_classical = assert_not_classical
+QuantumCircuit.get_breakpoint_not_classical = get_breakpoint_not_classical

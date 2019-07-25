@@ -25,8 +25,8 @@ from scipy.stats import chi2_contingency
 
 class AssertProduct(Asserts):
     """
-        Assertion of product states and quantum measurement
-        in the computational basis.
+        A measurement instruction that additionally performs statistical tests on the measurement outcomes
+        to assert whether the state is a product state or not.
     """
     def __init__(self, qubit0, cbit0, qubit1, cbit1, pcrit, negate):
         self._qubit0 = self.syntax4measure(qubit0)
@@ -36,17 +36,20 @@ class AssertProduct(Asserts):
         super().__init__(self._qubit0 + self._qubit1, self._cbit0 + self._cbit1, pcrit, negate)
 
     def stat_test(self, counts):
-        """Performs a chi-squared contingency test on the experimental outcomes.
+        """
+        Performs a chi-squared contingency test on the experimental outcomes.
         Internally, constructs a contingency table from the experimental counts.
         
 
         Args:
-            counts: the counts dictionary from result.get_counts()
+            counts(dictionary): result.get_counts(experiment)
         
         Returns:
-            chisq: the chi-square value
-            pval: the p-value
-            passed: a boolean that is True iff the assertion passed
+            tuple: tuple containing:
+
+                chisq(float): the chi-square value
+                pval(float): the p-value
+                passed(Boolean): if the test passed
         """
         q0len = len(self._qubit0)
         q1len = len(self._qubit1)
@@ -64,30 +67,50 @@ class AssertProduct(Asserts):
             passed = False
         return (chisq, pval, passed)
 
-def assert_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
-    """Create product assertion
-
+def get_breakpoint_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
+    """
+    Creates a breakpoint, which is a renamed deep copy of the QuantumCircuit, and creates and
+    appends an AssertProduct instruction to its end.  It tests whether qubit0 and qubit1, measured
+    to cbit0 and cbit1, have any entanglement between them.  If the statistical test passes, the
+    assertion passes; if the test fails, the assertion fails.
+    
     Args:
-        pcrit: critical p-value for the hypothesis test
         qubit0 (QuantumRegister|list|tuple): quantum register
         cbit0 (ClassicalRegister|list|tuple): classical register
         qubit1 (QuantumRegister|list|tuple): quantum register
         cbit1 (ClassicalRegister|list|tuple): classical register
+        pcrit (float): critical p-value for the hypothesis test
 
     Returns:
-        qiskit.QuantumCircuit: copy of quantum circuit at the assert point.
+        QuantumCircuit: copy of quantum circuit at the assert point
     """
     theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, False)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     return theClone
 
-QuantumCircuit.assert_product = assert_product
+QuantumCircuit.get_breakpoint_product = get_breakpoint_product
 
-def assert_not_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
+def get_breakpoint_not_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
+    """
+    Creates a breakpoint, which is a renamed deep copy of the QuantumCircuit, and creates and
+    appends an AssertProduct instruction to its end.  It tests whether qubit0 and qubit1, measured
+    to cbit0 and cbit1, have any entanglement between them.  If the statistical test passes, the
+    assertion fails; if the test fails, the assertion passes.
+   
+    Args:
+        qubit0 (QuantumRegister|list|tuple): quantum register
+        cbit0 (ClassicalRegister|list|tuple): classical register
+        qubit1 (QuantumRegister|list|tuple): quantum register
+        cbit1 (ClassicalRegister|list|tuple): classical register 
+        pcrit (float): critical p-value for the hypothesis test
+    
+    Returns:
+        QuantumCircuit: copy of quantum circuit at the assert point
+    """
     theClone = self.copy(Asserts.breakpoint_name())
     assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, True)
     theClone.append(assertion, [assertion._qubit], [assertion._cbit])
     return theClone
 
-QuantumCircuit.assert_not_product = assert_not_product
+QuantumCircuit.get_breakpoint_not_product = get_breakpoint_not_product
