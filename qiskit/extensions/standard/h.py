@@ -65,17 +65,13 @@ class HGate(Gate):
             num_ctrl_qubits (int): number of control qubits to add. Default 1.
             label (str): optional label for returned gate.
 
-        Raise:
-            QiskitError: unallowed num_ctrl_qubits specified.
+        Returns:
+            ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
             return ch.CHGate()
-        elif isinstance(num_ctrl_qubits, int) and num_ctrl_qubits > 1:
-            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
-                                  num_ctrl_qubits+1, self.params,
-                                  num_ctrl_qubits=num_ctrl_qubits, label=label)
         else:
-            raise QiskitError('Number of control qubits must be >=1')
+            return super().q_if(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
 
 def h(self, q):

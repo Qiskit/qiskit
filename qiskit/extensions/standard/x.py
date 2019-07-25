@@ -60,15 +60,21 @@ class XGate(Gate):
                             [1, 0]], dtype=complex)
 
     def q_if(self, num_ctrl_qubits=1, label=None):
-        """Return controlled version of gate."""
+        """Return controlled version of gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits to add. Default 1.
+            label (str): optional label for returned gate.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
         if num_ctrl_qubits == 1:
             return cx.CnotGate()
         elif num_ctrl_qubits == 2:
             return ccx.ToffoliGate()            
         else:
-            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
-                                  num_ctrl_qubits+1, self.params,
-                                  num_ctrl_qubits=num_ctrl_qubits, label=label)
+            return super().q_if(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
 
 def x(self, q):

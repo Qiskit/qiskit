@@ -13,8 +13,10 @@
 # that they have been altered from the originals.
 
 """Unitary gate."""
+import copy
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
+
 
 class Gate(Instruction):
     """Unitary gate."""
@@ -75,39 +77,97 @@ class Gate(Instruction):
         """Return controlled version of gate
         
         Args:
-            num_ctrl_qubits (int): number of controls for returned gate (default=1).
+            num_ctrl_qubits (int): number of controls to add to gate (default=1)
             label (str): optional gate label
         Returns:
-            ControlledGate: controlled version of gate.
+            ControlledGate: controlled version of gate. This default algorithm
+                uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
+                num_qubits + 2*num_ctrl_qubits - 1.
         """
+        basis_gates = {'u1', 'u3', 'id', 'cx'}
         import qiskit.circuit.controlledgate as controlledgate
         from qiskit.circuit import QuantumRegister
-        new_num_qubits = self.num_qubits + num_ctrl_qubits
-        if hasattr(self, 'num_ctrl_qubits'):
+        import qiskit.extensions.standard.ccx as ccx
+        new_num_qubits = num_ctrl_qubits + self.num_qubits
+        if isinstance(self, controlledgate.ControlledGate):
             new_num_ctrl_qubits = self.num_ctrl_qubits + num_ctrl_qubits
         else:
             new_num_ctrl_qubits = num_ctrl_qubits
-        if hasattr(self, 'definition') and self.definition is not None:
+        print('q_if')
+        if (hasattr(self, 'definition')
+            and self.definition is not None
+            and self.name not in basis_gates):
             definition = []
-            qreg = QuantumRegister(new_num_qubits, name='q')
-            for rule in self.definition:
-                rule_gate = rule[0].q_if(num_ctrl_qubits)
-                # shift count
-                rule_qubits = []
-                for ctrl in range(num_ctrl_qubits):
-                    rule_qubits.append(qreg[ctrl])
-                for qubit in rule[1]:
-                    rule_qubits.append(qreg[num_ctrl_qubits + qubit.index])
-                definition.append((rule_gate, rule_qubits, []))
+            print('definition')
+            print(len(self.definition), num_ctrl_qubits)
+            if num_ctrl_qubits > 0:
+                bgate = self._unroll_gate(basis_gates=basis_gates)
+                qr = QuantumRegister(self.num_qubits + 1)
+                for rule in bgate.definition:
+                    if isinstance(rule[0], Gate):
+                        bgate_bits = list(
+                            [qr[0]]
+                            + [qr[1 + bit.index] for bit in rule[1]])
+                        q_if_rule = (rule[0].q_if(), bgate_bits, [])
+                        definition.append(q_if_rule)
+                    else:
+                        raise QiskitError('gate contains non-controllable intructions')
+                if isinstance(self, controlledgate.ControlledGate):
+                    new_num_ctrl_qubits = self.num_ctrl_qubits + 1
+                else:
+                    new_num_ctrl_qubits = 1
+                cgate = controlledgate.ControlledGate('c{0:d}{1}'.format(
+                    new_num_ctrl_qubits, self.name),
+                    self.num_qubits+1,
+                    self.params,
+                    label=label,
+                    num_ctrl_qubits =new_num_ctrl_qubits,
+                    definition=definition)
+                return cgate.q_if(num_ctrl_qubits - 1)
+            else:
+                cgate = controlledgate.ControlledGate('c{0:d}{1}'.format(
+                    num_ctrl_qubits, self.name),
+                    new_num_qubits,
+                    self.params,
+                    label=label,
+                    num_ctrl_qubits=new_num_ctrl_qubits)
+                    #definition=copy.copy(self.definition))
         else:
-            definition = None
-        cgate = controlledgate.ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
-                                              new_num_qubits,
-                                              self.params,
-                                              label=label,
-                                              num_ctrl_qubits=new_num_ctrl_qubits,
-                                              definition=definition)
+            print('no definition')
+            definiiton = []
+            if num_ctrl_qubits > 0:
+                qr = QuantumRegister(self.num_qubits + 1)
+                definition = [(self, qr, [])]
+                if isinstance(self, controlledgate.ControlledGate):
+                    new_num_ctrl_qubits = self.num_ctrl_qubits + 1
+                else:
+                    new_num_ctrl_qubits = 1
+                return self.q_if(num_ctrl_qubits - 1)
+            else:
+                import ipdb;ipdb.set_trace()
+                cgate = controlledgate.ControlledGate('c{0:d}{1}'.format(
+                    num_ctrl_qubits, self.name),
+                    new_num_qubits,
+                    self.params,
+                    label=label,
+                    num_ctrl_qubits=new_num_ctrl_qubits)
         return cgate
+
+    def _gate_to_circuit(self):
+        from qiskit.circuit import QuantumCircuit, QuantumRegister
+        qr = QuantumRegister(self.num_qubits)
+        qc = QuantumCircuit(qr, name=self.name)
+        for rule in self.definition:
+            qc.append(rule[0], qargs=[qr[bit.index] for bit in rule[1]], cargs=[])
+        return qc
+        
+    def _unroll_gate(self, basis_gates=['u1', 'u2', 'u3', 'id', 'cx']):
+        from qiskit.converters import circuit_to_dag, dag_to_circuit, instruction_to_gate
+        from qiskit.transpiler.passes import Unroller
+        unroller = Unroller(basis_gates)
+        dag = circuit_to_dag(self._gate_to_circuit())
+        qc = dag_to_circuit(unroller.run(dag))
+        return instruction_to_gate(qc.to_instruction())
 
     @staticmethod
     def _broadcast_single_argument(qarg):
@@ -188,6 +248,7 @@ class Gate(Instruction):
                 arguments does not match the gate expectation.
         """
         if len(qargs) != self.num_qubits or cargs:
+            import ipdb;ipdb.set_trace()
             raise QiskitError(
                 'The amount of qubit/clbit arguments does not match the gate expectation.')
 

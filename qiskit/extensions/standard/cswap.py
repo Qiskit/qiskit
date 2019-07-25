@@ -20,6 +20,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 import qiskit.extensions.standard.cx as cx
 import qiskit.extensions.standard.ccx as ccx
+import qiskit.extensions.standard.swap as swap
 
 
 class FredkinGate(ControlledGate):

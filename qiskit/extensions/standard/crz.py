@@ -20,6 +20,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 import qiskit.extensions.standard.u1 as u1
 import qiskit.extensions.standard.cx as cx
+import qiskit.extensions.standard.rz as rz
 
 
 class CrzGate(ControlledGate):

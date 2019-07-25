@@ -83,7 +83,6 @@ class Unroller(TransformationPass):
                 decomposition.add_creg(creg)
             for inst in rule:
                 decomposition.apply_operation_back(*inst)
-
             unrolled_dag = self.run(decomposition)  # recursively unroll ops
             dag.substitute_node_with_dag(node, unrolled_dag)
         return dag

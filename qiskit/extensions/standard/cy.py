@@ -23,6 +23,7 @@ from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ControlledGate
 import qiskit.extensions.standard.s as s
 import qiskit.extensions.standard.cx as cx
+import qiskit.extensions.standard.y as y
 
 
 class CyGate(ControlledGate):

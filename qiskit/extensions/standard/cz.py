@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 import qiskit.extensions.standard.h as h
 import qiskit.extensions.standard.cx as cx
+import qiskit.extensions.standard.z as z
 
 
 class CzGate(ControlledGate):
