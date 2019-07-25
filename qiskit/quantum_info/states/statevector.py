@@ -252,7 +252,7 @@ class Statevector(QuantumState):
             'l': [1 / sqrt(2), -1j / sqrt(2)]
         """
         # Check label is valid
-        if re.match('^[01rl\-+]+$', label) is None:
+        if re.match(r'^[01rl\-+]+$', label) is None:
             raise QiskitError('Label contains invalid characters.')
         # We can prepare Z-eigenstates by converting the computational
         # basis bit-string to an integer and preparing that unit vector

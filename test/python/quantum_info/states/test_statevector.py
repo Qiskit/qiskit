@@ -17,6 +17,7 @@
 """Tests for Statevector quantum state class."""
 
 import unittest
+import logging
 import numpy as np
 
 from qiskit.test import QiskitTestCase
@@ -29,6 +30,8 @@ from qiskit.quantum_info.states import Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
+logger = logging.getLogger(__name__)
+
 
 class TestStatevector(QiskitTestCase):
     """Tests for Statevector class."""
@@ -36,7 +39,11 @@ class TestStatevector(QiskitTestCase):
     @classmethod
     def rand_vec(cls, n, normalize=False):
         """Return complex vector or statevector"""
-        vec = np.random.rand(n) + 1j * np.random.rand(n)
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        logger.debug("rand_vec RandomState seeded with seed=%s", seed)
+        rng = np.random.RandomState(seed)
+
+        vec = rng.rand(n) + 1j * rng.rand(n)
         if normalize:
             vec /= np.sqrt(np.dot(vec, np.conj(vec)))
         return vec

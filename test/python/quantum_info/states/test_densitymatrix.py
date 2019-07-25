@@ -17,6 +17,8 @@
 """Tests for DensityMatrix quantum state class."""
 
 import unittest
+import logging
+
 import numpy as np
 
 from qiskit.test import QiskitTestCase
@@ -29,6 +31,8 @@ from qiskit.quantum_info.states import DensityMatrix, Statevector
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
+logger = logging.getLogger(__name__)
+
 
 class TestDensityMatrix(QiskitTestCase):
     """Tests for DensityMatrix class."""
@@ -36,7 +40,10 @@ class TestDensityMatrix(QiskitTestCase):
     @classmethod
     def rand_vec(cls, n, normalize=False):
         """Return complex vector or statevector"""
-        vec = np.random.rand(n) + 1j * np.random.rand(n)
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        logger.debug("rand_vec RandomState seeded with seed=%s", seed)
+        rng = np.random.RandomState(seed)
+        vec = rng.rand(n) + 1j * rng.rand(n)
         if normalize:
             vec /= np.sqrt(np.dot(vec, np.conj(vec)))
         return vec
@@ -97,7 +104,7 @@ class TestDensityMatrix(QiskitTestCase):
         """Test initialization from DensityMatrix."""
         rho1 = DensityMatrix(self.rand_rho(4))
         rho2 = DensityMatrix(rho1)
-        self.assertEqual(rho1,rho2)
+        self.assertEqual(rho1, rho2)
 
     def test_init_statevector(self):
         """Test initialization from DensityMatrix."""
