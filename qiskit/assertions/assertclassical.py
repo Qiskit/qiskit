@@ -16,44 +16,58 @@
 Assertion of classical states.
 """
 import numpy as np
-from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.measure import Measure
+from scipy.stats import chisquare
 from qiskit.assertions.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from scipy.stats import chisquare
+
 
 class AssertClassical(Asserts):
     """
-        A measurement instruction that additionally performs statistical tests on the measurement outcomes
-	to assert whether the state is a classical state or not.
+        A measurement instruction that additionally performs statistical tests on the measurement
+        outcomes to assert whether the state is a classical state or not.
     """
     def __init__(self, qubit, cbit, pcrit, expval, negate):
-        type = "Not Classical" if negate else "Classical"
-        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate, type)
-        self._expval = expval if expval==None or isinstance(expval, int) else int(expval, 2)
-        if expval!=None and not self._expval in range(0, 2**len(self._cbit)):
-            raise QiskitError("AssertClassical expected value %d not in range for %d cbits" % (self._expval, len(self._cbit)))
+        """
+        Constructor for AssertClassical
+
+        Args:
+            qubit(QuantumRegister|list|tuple): quantum register
+            cbit(ClassicalRegister|list|tuple): classical register
+            pcrit(float): the critical p-value
+            expval(int|string|None): the expected value
+            negate(bool): True if assertion passed is negation of statistical test passed
+
+        Raises:
+            QiskitError
+        """
+        type_str = "Not Classical" if negate else "Classical"
+        super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate,
+                         type_str)
+        self._expval = expval if expval is None or isinstance(expval, int) else int(expval, 2)
+        if expval is not None and self._expval not in range(0, 2 ** len(self._cbit)):
+            raise QiskitError("AssertClassical expected value %d not in range for %d cbits" %
+                              (self._expval, len(self._cbit)))
 
     def stat_test(self, counts):
         """
         Performs a chi-squared statistical test on the experimental outcomes.  Internally, it
         builds a table of all 1's except is 2^16 for the expected value, normalizes it, and
-        compares to a normalized table of experimental counts. 
-        
+        compares to a normalized table of experimental counts.
+
         Args:
             counts(dictionary): result.get_counts(experiment)
 
         Returns:
             tuple: tuple containing:
-            
+
                 chisq(float): the chi-squared value
                 pval(float): the p-value
                 passed(Boolean): if the test passed
         """
 
         vals_list = list(counts.values())
-        if self._expval == None:
+        if self._expval is None:
             index = np.argmax(vals_list)
         else:
             try:
@@ -61,18 +75,18 @@ class AssertClassical(Asserts):
             except ValueError:
                 index = -1
         numqubits = len(list(counts)[0])
-        numzeros = 2**numqubits - len(counts)
-        vals_list.extend([0]*numzeros)
-        exp_list = [1]*len(vals_list)
-        exp_list[index] = 2**16
+        numzeros = 2 ** numqubits - len(counts)
+        vals_list.extend([0] * numzeros)
+        exp_list = [1] * len(vals_list)
+        exp_list[index] = 2 ** 16
         vals_list = vals_list / np.sum(vals_list)
         exp_list = exp_list / np.sum(exp_list)
-        chisq, pval = chisquare(vals_list, f_exp = exp_list, ddof=1)
+        chisq, pval = chisquare(vals_list, f_exp=exp_list, ddof=1)
         if len(list(counts.keys())[0]) == 1:
             pval = vals_list[index]
-            passed = True if pval >= 1 - self._pcrit else False
+            passed = bool(pval >= 1 - self._pcrit)
         else:
-            passed = True if pval >= self._pcrit else False
+            passed = bool(pval >= self._pcrit)
         return (chisq, pval, passed)
 
 
@@ -82,10 +96,10 @@ def get_breakpoint_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     appends an AssertClassical instruction to its end.  If no expected value is specified, the
     default behavior is that the statistical test assumes the mode of the measurement results
     is the expected value.  If the statistical test passes, the assertion passes; if the test
-    fails, the assertion fails. 
+    fails, the assertion fails.
 
     Args:
-        expval (integer|string): integer in base 10, or a string of 0's and 1's
+        expval (integer|string|None): integer in base 10, or a string of 0's and 1's
         pcrit (float): critical p-value for the hypothesis test
         qubit (QuantumRegister|list|tuple): quantum register
         cbit (ClassicalRegister|list|tuple): classical register
@@ -93,12 +107,14 @@ def get_breakpoint_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    theClone = self.copy(Asserts.breakpoint_name())
+    clone = self.copy(Asserts.breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval, False)
-    theClone.append(assertion, [assertion._qubit], [assertion._cbit])
-    return theClone
+    clone.append(assertion, [assertion._qubit], [assertion._cbit])
+    return clone
+
 
 QuantumCircuit.get_breakpoint_classical = get_breakpoint_classical
+
 
 def get_breakpoint_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     """
@@ -117,9 +133,10 @@ def get_breakpoint_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    theClone = self.copy(Asserts.breakpoint_name())
+    clone = self.copy(Asserts.breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval, True)
-    theClone.append(assertion, [assertion._qubit], [assertion._cbit])
-    return theClone
+    clone.append(assertion, [assertion._qubit], [assertion._cbit])
+    return clone
+
 
 QuantumCircuit.get_breakpoint_not_classical = get_breakpoint_not_classical

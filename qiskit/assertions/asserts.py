@@ -15,28 +15,36 @@
 Abstract class and all derived classes for making statistical assertions.
 """
 import abc
+from datetime import datetime
 from qiskit.circuit.register import Register
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
-from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from scipy.stats import chisquare
-from datetime import datetime
+
 
 class Asserts(Measure):
     """A superclass for all assertions, and a subclass of Measure"""
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, qubit, cbit, pcrit, negate, type):
+    def __init__(self, qubit, cbit, pcrit, negate, type_str):
+        """
+        Constructor for Asserts
+
+        Args:
+            qubit(QuantumRegister|list|tuple): quantum register
+            cbit(ClassicalRegister|list|tuple): classical register
+            pcrit(float): the critical p-value
+            negate(bool): True if assertion passed is negation of statistical test passed
+        """
         super().__init__()
         self._qubit = qubit
         self._cbit = cbit
         self._pcrit = pcrit
         self._negate = negate
-        self._type = type
+        self._type = type_str
         self._expval = None
 
+    @staticmethod
     def breakpoint_name():
         """
         Returns the name of the breakpoint.  A breakpoint is a QuantumCircuit
@@ -47,7 +55,8 @@ class Asserts(Measure):
         """
         return "breakpoint_" + datetime.now().isoformat()
 
-    def syntax4measure(self, bit):
+    @staticmethod
+    def syntax4measure(bit):
         """
         Returns the input qubit or cbit, suitable for the syntax of the measure
         instruction, as a list.
@@ -56,15 +65,16 @@ class Asserts(Measure):
             bit(QuantumRegister|ClassicalRegister|list|tuple): quantum or classical register
 
         Returns:
-            list: bit as a list
+            list|Register: bit as a list
         """
-        if isinstance(bit,(list, Register)):
+        if isinstance(bit, (list, Register)):
             return bit
-        elif isinstance(bit,(range, tuple)):
+        elif isinstance(bit, (range, tuple)):
             return list(bit)
-        else: #if single bit
+        else:
             return [bit]
 
+    @staticmethod
     def clbits2idxs(cbits, exp):
         """
         Returns the indices of cbits with respect to exp, the QuantumCircuit.
@@ -75,6 +85,9 @@ class Asserts(Measure):
 
         Returns:
             list|range: the indices
+
+        Raises:
+            QiskitError
         """
         if isinstance(cbits[0], int):
             return cbits
@@ -85,6 +98,8 @@ class Asserts(Measure):
             idxfirst = exp.clbits.index(cbits[0])
             idxlast = exp.clbits.index(cbits[-1])
             return range(idxfirst, idxlast+1)
+        else:
+            raise QiskitError("Invalid syntax for cbit")
 
     @abc.abstractmethod
     def stat_test(self, counts):

@@ -23,6 +23,7 @@ from qiskit.validation.base import BaseModel, bind_schema
 from qiskit.result import postprocess
 from .models import ResultSchema
 
+
 @bind_schema(ResultSchema)
 class Result(BaseModel):
     """Model for Results.
@@ -181,7 +182,7 @@ class Result(BaseModel):
         except KeyError:
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
-    def get_assertion (self, experiment=None):
+    def get_assertion(self, experiment=None):
         """
         Calculate and collect results of statistical tests for an experiment.
 
@@ -213,7 +214,7 @@ class Result(BaseModel):
         chisq, pval, passed = assertion.stat_test(counts)
         return chisq, pval, passed if not assertion._negate else not passed
 
-    def get_assertion_pval (self, experiment=None):
+    def get_assertion_pval(self, experiment=None):
         """
         Calculate and collect results of statistical tests for an experiment.
         Args:
@@ -221,10 +222,10 @@ class Result(BaseModel):
         Returns:
             float: p-value of statistical test
         """
-        chisq, pval, passed = self.get_assertion (experiment)
+        _, pval, _ = self.get_assertion(experiment)
         return pval
 
-    def get_assertion_chisq (self, experiment=None):
+    def get_assertion_chisq(self, experiment=None):
         """
         Calculate and collect results of statistical tests for an experiment.
 
@@ -234,10 +235,10 @@ class Result(BaseModel):
         Returns:
             float: chi-squared test statistic
         """
-        chisq, pval, passed = self.get_assertion (experiment)
+        chisq, _, _ = self.get_assertion(experiment)
         return chisq
 
-    def get_assertion_passed (self, experiment=None):
+    def get_assertion_passed(self, experiment=None):
         """
         Calculate and collect results of statistical tests for an experiment.
 
@@ -247,13 +248,13 @@ class Result(BaseModel):
         Returns:
             Boolean: if assertion passed
         """
-        chisq, pval, passed = self.get_assertion (experiment)
+        _, _, passed = self.get_assertion(experiment)
         return passed
 
     def get_assertion_type(self, experiment=None):
         """
         Return the type of the assertion for an experiment.
-        
+
         Args:
             experiment (QuantumCircuit): a breakpoint
         Returns:
@@ -261,7 +262,6 @@ class Result(BaseModel):
         """
         assertion = experiment.data[-1][0]
         return assertion._type
-
 
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.
