@@ -201,9 +201,11 @@ def _distinct_permutation(mapping: Mapping[int, int],
             simple_graph.add_edge(e0, e1, node=data["node"])
 
     matching = nx.algorithms.bipartite.maximum_matching(simple_graph, top_nodes=range(modules))
-    if len(matching) != modules:
-        LOGGER.warning("The matching is not perfect. Ignoring...")
+    # Check that the matching is perfect.
+    # Edges are included in both directions so it's twice as large as the number of modules.
+    if len(matching) != 2*modules:
+        LOGGER.error("The matching is not perfect. Ignoring...")
 
     # Then use the full matching and the inverse edge map to find the nodes
     # to be moved into destination modules.
-    return {simple_graph[e0][e1]["node"] for e0, e1 in matching.items()}
+    return {simple_graph[module][matching[module]]["node"] for module in range(modules)}
