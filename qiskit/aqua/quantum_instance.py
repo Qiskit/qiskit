@@ -18,7 +18,7 @@ import time
 
 from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
-from qiskit.transpiler import Layout, CouplingMap
+from qiskit.transpiler import CouplingMap
 
 from .aqua_error import AquaError
 from .utils import (run_qobj, compile_circuits, CircuitCache,
@@ -133,8 +133,6 @@ class QuantumInstance:
         }
 
         # setup compile config
-        if initial_layout is not None and not isinstance(initial_layout, Layout):
-            initial_layout = Layout(initial_layout)
         self._compile_config = {
             'pass_manager': pass_manager,
             'initial_layout': initial_layout,
