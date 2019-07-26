@@ -314,9 +314,11 @@ class WeightedPauliOperator(BaseOperator):
 
     def simplify(self, copy=False):
         """
-        #TODO: note change the behavior
         Merge the paulis whose bases are identical and the pauli with zero coefficient
         would be removed.
+
+        Notes:
+            This behavior of this method is slightly changed, it will remove the paulis whose weights are zero.
 
         Args:
             copy (bool): simplify on a copy or self
