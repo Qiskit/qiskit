@@ -43,30 +43,27 @@ class Schedule(ScheduleComponent):
             PulseError: If timeslots intercept.
         """
         self._name = name
-        try:
-            self._timeslots = TimeslotCollection()
+        self._timeslots = TimeslotCollection()
 
-            _children = []
-            for sched_pair in schedules:
-                # recreate as sequence starting at 0.
-                if not isinstance(sched_pair, (list, tuple)):
-                    sched_pair = (0, sched_pair)
-                # convert to tuple
-                sched_pair = tuple(sched_pair)
-                insert_time, sched = sched_pair
-                sched_timeslots = sched.timeslots
-                if insert_time:
-                    sched_timeslots = sched_timeslots.shift(insert_time)
-                if not self._timeslots.is_mergeable_with(sched_timeslots):
-                    raise PulseError("Cannot create from overlapped schedules")
+        _children = []
+        for sched_pair in schedules:
+            # recreate as sequence starting at 0.
+            if not isinstance(sched_pair, (list, tuple)):
+                sched_pair = (0, sched_pair)
+            # convert to tuple
+            sched_pair = tuple(sched_pair)
+            insert_time, sched = sched_pair
+            sched_timeslots = sched.timeslots
+            if insert_time:
+                sched_timeslots = sched_timeslots.shift(insert_time)
+            try:
                 self._timeslots = self._timeslots.merged(sched_timeslots)
-                _children.append(sched_pair)
+            except PulseError as ts_err:
+                raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+            _children.append(sched_pair)
 
-            self.__children = tuple(_children)
-            self._buffer = max([child.buffer for _, child in _children]) if _children else 0
-
-        except PulseError as ts_err:
-            raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+        self.__children = tuple(_children)
+        self._buffer = max([child.buffer for _, child in _children]) if _children else 0
 
     @property
     def name(self) -> str:
@@ -143,7 +140,6 @@ class Schedule(ScheduleComponent):
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
-    # pylint: disable=arguments-differ
     def union(self, *schedules: ScheduleComponent,
               name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule which is the union of `self` and `schedule`.
@@ -180,7 +176,6 @@ class Schedule(ScheduleComponent):
         if buffer and schedule.buffer and start_time > 0:
             start_time += self.buffer
         return self.union((start_time, schedule), name=name)
-    # pylint: enable=arguments-differ
 
     def append(self, schedule: ScheduleComponent, buffer: bool = True,
                name: Optional[str] = None) -> 'Schedule':
