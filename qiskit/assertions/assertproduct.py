@@ -31,10 +31,10 @@ class AssertProduct(Asserts):
         Constructor for AssertProduct
 
         Args:
-            qubit0(QuantumRegister|list|tuple): quantum register
-            cbit0(ClassicalRegister|list|tuple): classical register
-            qubit1(QuantumRegister|list|tuple): quantum register
-            cbit01ClassicalRegister|list|tuple): classical register
+            qubit0(QuantumRegister or list or tuple): quantum register
+            cbit0(ClassicalRegister or list or tuple): classical register
+            qubit1(QuantumRegister or list or tuple): quantum register
+            cbit1(ClassicalRegister or list or tuple): classical register
             pcrit(float): the critical p-value
             negate(bool): True if assertion passed is negation of statistical test passed
         """
@@ -60,7 +60,7 @@ class AssertProduct(Asserts):
 
                 chisq(float): the chi-square value
                 pval(float): the p-value
-                passed(Boolean): if the test passed
+                passed(bool): if the test passed
         """
         q0len = len(self._qubit0)
         q1len = len(self._qubit1)
@@ -84,10 +84,10 @@ def get_breakpoint_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
     assertion passes; if the test fails, the assertion fails.
 
     Args:
-        qubit0(QuantumRegister|list|tuple): quantum register
-        cbit0(ClassicalRegister|list|tuple): classical register
-        qubit1(QuantumRegister|list|tuple): quantum register
-        cbit1(ClassicalRegister|list|tuple): classical register
+        qubit0(QuantumRegister or list or tuple): quantum register
+        cbit0(ClassicalRegister or list or tuple): classical register
+        qubit1(QuantumRegister or list or tuple): quantum register
+        cbit1(ClassicalRegister or list or tuple): classical register
         pcrit(float): critical p-value for the hypothesis test
 
     Returns:
@@ -110,10 +110,10 @@ def get_breakpoint_not_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
     assertion fails; if the test fails, the assertion passes.
 
     Args:
-        qubit0(QuantumRegister|list|tuple): quantum register
-        cbit0(ClassicalRegister|list|tuple): classical register
-        qubit1(QuantumRegister|list|tuple): quantum register
-        cbit1(ClassicalRegister|list|tuple): classical register
+        qubit0(QuantumRegister or list or tuple): quantum register
+        cbit0(ClassicalRegister or list or tuple): classical register
+        qubit1(QuantumRegister or list or tuple): quantum register
+        cbit1(ClassicalRegister or list or tuple): classical register
         pcrit(float): critical p-value for the hypothesis test
 
     Returns:

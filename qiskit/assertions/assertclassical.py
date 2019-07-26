@@ -32,14 +32,14 @@ class AssertClassical(Asserts):
         Constructor for AssertClassical
 
         Args:
-            qubit(QuantumRegister|list|tuple): quantum register
-            cbit(ClassicalRegister|list|tuple): classical register
+            qubit(QuantumRegister or list or tuple): quantum register
+            cbit(ClassicalRegister or list or tuple): classical register
             pcrit(float): the critical p-value
-            expval(int|string|None): the expected value
+            expval(int or string or None): the expected value
             negate(bool): True if assertion passed is negation of statistical test passed
 
         Raises:
-            QiskitError
+            QiskitError: AssertClassical expected value not in range
         """
         type_str = "Not Classical" if negate else "Classical"
         super().__init__(self.syntax4measure(qubit), self.syntax4measure(cbit), pcrit, negate,
@@ -63,7 +63,7 @@ class AssertClassical(Asserts):
 
                 chisq(float): the chi-squared value
                 pval(float): the p-value
-                passed(Boolean): if the test passed
+                passed(bool): if the test passed
         """
 
         vals_list = list(counts.values())
@@ -99,10 +99,10 @@ def get_breakpoint_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     fails, the assertion fails.
 
     Args:
-        expval (integer|string|None): integer in base 10, or a string of 0's and 1's
+        expval (integer or string or None): integer in base 10, or a string of 0's and 1's
         pcrit (float): critical p-value for the hypothesis test
-        qubit (QuantumRegister|list|tuple): quantum register
-        cbit (ClassicalRegister|list|tuple): classical register
+        qubit (QuantumRegister or list or tuple): quantum register
+        cbit (ClassicalRegister or list or tuple): classical register
 
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
@@ -125,10 +125,10 @@ def get_breakpoint_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     fails, the assertion passes.
 
     Args:
-        expval (integer|string): integer in base 10, or a string of 0's and 1's
+        expval (integer or string): integer in base 10, or a string of 0's and 1's
         pcrit (float): critical p-value for the hypothesis test
-        qubit (QuantumRegister|list|tuple): quantum register
-        cbit (ClassicalRegister|list|tuple): classical register
+        qubit (QuantumRegister or list or tuple): quantum register
+        cbit (ClassicalRegister or list or tuple): classical register
 
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
