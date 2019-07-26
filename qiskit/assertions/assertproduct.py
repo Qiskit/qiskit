@@ -19,6 +19,7 @@ import numpy as np
 from scipy.stats import chi2_contingency
 from qiskit.assertions.asserts import Asserts
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.circuit.quantumcircuit import Register
 
 
 class AssertProduct(Asserts):
@@ -43,8 +44,11 @@ class AssertProduct(Asserts):
         self._qubit1 = self.syntax4measure(qubit1)
         self._cbit1 = self.syntax4measure(cbit1)
         type_str = "Not Product" if negate else "Product"
-        super().__init__(self._qubit0 + self._qubit1, self._cbit0 + self._cbit1, pcrit, negate,
-                         type_str)
+        qubit0 = list(self._qubit0) if isinstance(self._qubit0, Register) else self._qubit0
+        qubit1 = list(self._qubit1) if isinstance(self._qubit1, Register) else self._qubit1
+        cbit0 = list(self._cbit0) if isinstance(self._cbit0, Register) else self._cbit0
+        cbit1 = list(self._cbit1) if isinstance(self._cbit1, Register) else self._cbit1
+        super().__init__(qubit0 + qubit1, cbit0 + cbit1, pcrit, negate, type_str)
 
     def stat_test(self, counts):
         """
@@ -67,8 +71,9 @@ class AssertProduct(Asserts):
         cont_table = np.empty((2 ** q0len, 2 ** q1len))
         cont_table.fill(1)
         for (key, value) in counts.items():
-            q0index = int(key[:q0len], 2)
-            q1index = int(key[q0len:], 2)
+            key_rev = key[::-1]
+            q0index = int(key_rev[:q0len], 2)
+            q1index = int(key_rev[q0len:], 2)
             cont_table[q0index][q1index] = value
 
         chisq, pval, _, _ = chi2_contingency(cont_table)

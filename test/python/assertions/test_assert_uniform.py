@@ -14,7 +14,7 @@
 
 # pylint: disable=invalid-name
 
-"""Test Qiskit's AssertProduct class."""
+"""Test Qiskit's AssertUniform class."""
 
 import unittest
 import qiskit.extensions.simulator
@@ -26,54 +26,53 @@ from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
 
 
-class TestAssertProduct(QiskitTestCase):
-    """AssertProduct tests."""
+class TestAssertUniform(QiskitTestCase):
+    """AssertUniform tests."""
 
-    def test_assert_product(self):
-        """Test AssertProduct
+    def test_assert_uniform(self):
+        """Test AssertUniform
         """
         qc1 = QuantumCircuit(2, 2)
-        qc1.h(0)
-        breakpoint = qc1.get_breakpoint_product(0, 0, 1, 1, 0.01)
+        qc1.h([0, 1])
+        breakpoint = qc1.get_breakpoint_uniform([0, 1], [0, 1], 0.01)
         BasicAer.backends()
         job = execute(breakpoint, BasicAer.get_backend('qasm_simulator'))
         self.assertTrue(job.result().get_assertion_passed(breakpoint))
 
-    def test_assert_not_product(self):
-        """Test AssertProduct with negate True
+    def test_assert_not_uniform(self):
+        """Test AssertUniform with negate True
         """
         qc1 = QuantumCircuit(2, 2)
-        qc1.h(0)
-        qc1.cx(0, 1)
-        breakpoint = qc1.get_breakpoint_not_product(0, 0, 1, 1, 0.01)
+        qc1.h(1)
+        breakpoint = qc1.get_breakpoint_not_uniform([0, 1], [0, 1], 0.01)
         BasicAer.backends()
         job = execute(breakpoint, BasicAer.get_backend('qasm_simulator'))
         self.assertTrue(job.result().get_assertion_passed(breakpoint))
 
     def test_with_bits(self):
-        """Test AssertProduct with bit syntax
+        """Test AssertUniform with bit syntax
         """
         q0 = QuantumRegister(1)
         q1 = QuantumRegister(2)
         c0 = ClassicalRegister(1)
         c1 = ClassicalRegister(2)
         qc1 = QuantumCircuit(q0, q1, c0, c1)
-        qc1.h(0)
-        breakpoint = qc1.get_breakpoint_product(q0[0], c0[0], [q1[0], q1[1]], [c1[0], c1[1]], 0.01)
+        qc1.h([0, 2])
+        breakpoint = qc1.get_breakpoint_uniform([q0[0], q1[1]], [c0[0], c1[1]], 0.01)
         BasicAer.backends()
         job = execute(breakpoint, BasicAer.get_backend('qasm_simulator'))
         self.assertTrue(job.result().get_assertion_passed(breakpoint))
 
     def test_with_registers(self):
-        """Test AssertProduct with register syntax
+        """Test AssertUniform with register syntax
         """
         q0 = QuantumRegister(1)
         q1 = QuantumRegister(2)
         c0 = ClassicalRegister(1)
         c1 = ClassicalRegister(2)
-        qc1 = QuantumCircuit(q0, c0, q1, c1)
-        qc1.h(0)
-        breakpoint = qc1.get_breakpoint_product(q0, c0, q1, c1, 0.01)
+        qc1 = QuantumCircuit(q0, q1, c0, c1)
+        qc1.h([0, 1, 2])
+        breakpoint = qc1.get_breakpoint_uniform(q1, c1, 0.01)
         BasicAer.backends()
         job = execute(breakpoint, BasicAer.get_backend('qasm_simulator'))
         self.assertTrue(job.result().get_assertion_passed(breakpoint))
