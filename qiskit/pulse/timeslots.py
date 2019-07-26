@@ -243,7 +243,11 @@ class TimeslotCollection:
 
         Args:
             other: TimeslotCollection to be merged
+        Raises:
+            PulseError: when invalid time or duration is specified
         """
+        if not self.is_mergeable_with(other):
+            raise PulseError("Cannot merge with overlapped TimeslotCollection")
         res = TimeslotCollection()
         res.__merge(self)
         res.__merge(other)
