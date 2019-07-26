@@ -50,6 +50,7 @@ The format is based on [Keep a Changelog].
 -   Gray-Synth and Patel–Markov–Hayes algorithms for synthesis of
     CNOT-Phase and CNOT-only (linear) circuits (\#2457)
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
+-   Statistical assertions for debugging (\#2866)
 
 ### Changed
 -   All circuit drawers now express most commonly used fractions 
