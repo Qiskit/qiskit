@@ -15,6 +15,7 @@
 import copy
 import logging
 import time
+import os
 
 from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
@@ -184,8 +185,17 @@ class QuantumInstance:
                         "and re-build it after that.".format(self._cals_matrix_refresh_period))
 
         # setup others
-        self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
-                                           cache_file=cache_file) if circuit_caching else None
+        # TODO: allow an external way to overwrite the setting circuit cache temporally
+        if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False):
+            self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
+                                               cache_file=cache_file)
+        else:
+            if circuit_caching:
+                self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
+                                                   cache_file=cache_file)
+            else:
+                self._circuit_cache = None
+
         if is_ibmq_provider(self._backend):
             if skip_qobj_validation:
                 logger.warning("The skip Qobj validation does not work for IBMQ provider. Disable it.")
