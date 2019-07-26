@@ -12,8 +12,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum States."""
-
-from .statevector import Statevector
-from .densitymatrix import DensityMatrix
-from .states import basis_state, projector, purity
+"""Qiskit quantum information state tests."""
