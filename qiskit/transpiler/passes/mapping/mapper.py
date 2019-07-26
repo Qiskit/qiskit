@@ -17,21 +17,23 @@
 
 import sys
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, Mapping, Set, Tuple, Iterable, Dict, FrozenSet, List, Optional
+from typing import Generic, TypeVar, Mapping, Set, FrozenSet, List, Optional
 
 import networkx as nx
 from qiskit.dagcircuit import DAGCircuit, DAGNode
+from qiskit.transpiler import AnalysisPass, Layout
 
 ArchNode = TypeVar('ArchNode')
 Reg = TypeVar('Reg')
 
 
-class Mapper(ABC, Generic[Reg, ArchNode]):
-    """A mapper class has a mapper method that maps a circuit (layer) to an architecture."""
+class Mapper(Generic[Reg, ArchNode], AnalysisPass):
+    """The abstract mapper class has a mapper method that maps a circuit (layer) to an architecture."""
 
     def __init__(self,
                  arch_graph: nx.Graph
                  ) -> None:
+        super().__init__()
         self.arch_graph = arch_graph
 
         float_distances = nx.floyd_warshall(arch_graph)
@@ -44,6 +46,10 @@ class Mapper(ABC, Generic[Reg, ArchNode]):
     def __call__(self, circuit: DAGCircuit, current_mapping: Mapping[Reg, ArchNode]) \
             -> Mapping[Reg, ArchNode]:
         return self.map(circuit, current_mapping)
+
+    def run(self, dag: DAGCircuit) -> None:
+        new_mapping = self.map(circuit=dag, current_mapping=self.property_set['layout'])
+        self.property_set['new_mapping'] = Layout(input_dict=new_mapping)
 
     @abstractmethod
     def map(self, circuit: DAGCircuit,
