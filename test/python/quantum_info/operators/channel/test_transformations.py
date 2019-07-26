@@ -21,6 +21,7 @@ import unittest
 import numpy as np
 
 from qiskit import QiskitError
+from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.channel.choi import Choi
@@ -156,11 +157,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Kraus(self.depol_kraus(p))._evolve(rho)
-            chan = Kraus(Choi(self.depol_choi(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Kraus(self.depol_kraus(p)))
+            output = rho.evolve(Kraus(Choi(self.depol_choi(p))))
+            self.assertEqual(output, target)
 
     def test_choi_to_stinespring(self):
         """Test Choi to Stinespring transformation."""
@@ -171,11 +172,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p))._evolve(rho)
-            chan = Stinespring(Choi(self.depol_choi(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Stinespring(self.depol_stine(p)))
+            output = rho.evolve(Stinespring(Choi(self.depol_choi(p))))
+            self.assertEqual(output, target)
 
     def test_choi_to_chi(self):
         """Test Choi to Chi transformation."""
@@ -247,11 +248,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Kraus(self.depol_kraus(p))._evolve(rho)
-            chan = Kraus(SuperOp(self.depol_sop(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Kraus(self.depol_kraus(p)))
+            output = rho.evolve(Kraus(SuperOp(self.depol_sop(p))))
+            self.assertEqual(output, target)
 
     def test_superop_to_stinespring(self):
         """Test SuperOp to Stinespring transformation."""
@@ -262,11 +263,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p))._evolve(rho)
-            chan = Stinespring(SuperOp(self.depol_sop(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Stinespring(self.depol_stine(p)))
+            output = rho.evolve(Stinespring(SuperOp(self.depol_sop(p))))
+            self.assertEqual(output, target)
 
     def test_superop_to_chi(self):
         """Test SuperOp to Chi transformation."""
@@ -351,11 +352,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p))._evolve(rho)
-            chan = Stinespring(Kraus(self.depol_kraus(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Stinespring(self.depol_stine(p)))
+            output = rho.evolve(Stinespring(Kraus(self.depol_kraus(p))))
+            self.assertEqual(output, target)
 
     def test_kraus_to_chi(self):
         """Test Kraus to Chi transformation."""
@@ -515,11 +516,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Kraus(self.depol_kraus(p))._evolve(rho)
-            chan = Kraus(Chi(self.depol_chi(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Kraus(self.depol_kraus(p)))
+            output = rho.evolve(Kraus(Chi(self.depol_chi(p))))
+            self.assertEqual(output, target)
 
     def test_chi_to_stinespring(self):
         """Test Chi to Stinespring transformation."""
@@ -530,11 +531,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p))._evolve(rho)
-            chan = Stinespring(Chi(self.depol_chi(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Stinespring(self.depol_stine(p)))
+            output = rho.evolve(Stinespring(Chi(self.depol_chi(p))))
+            self.assertEqual(output, target)
 
     def test_chi_to_chi(self):
         """Test Chi to Chi transformation."""
@@ -606,11 +607,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Kraus(self.depol_kraus(p))._evolve(rho)
-            chan = Kraus(PTM(self.depol_ptm(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Kraus(self.depol_kraus(p)))
+            output = rho.evolve(Kraus(PTM(self.depol_ptm(p))))
+            self.assertEqual(output, target)
 
     def test_ptm_to_stinespring(self):
         """Test PTM to Stinespring transformation."""
@@ -621,11 +622,11 @@ class TestTransformations(ChannelTestCase):
             self.assertTrue(
                 matrix_equal(chan2.data[0], chan1.data[0], ignore_phase=True))
         # Test depolarizing channels
-        rho = np.diag([1, 0])
+        rho = DensityMatrix(np.diag([1, 0]))
         for p in [0.25, 0.5, 0.75, 1]:
-            targ = Stinespring(self.depol_stine(p))._evolve(rho)
-            chan = Stinespring(PTM(self.depol_ptm(p)))
-            self.assertAllClose(chan._evolve(rho), targ)
+            target = rho.evolve(Stinespring(self.depol_stine(p)))
+            output = rho.evolve(Stinespring(PTM(self.depol_ptm(p))))
+            self.assertEqual(output, target)
 
     def test_ptm_to_chi(self):
         """Test PTM to Chi transformation."""
