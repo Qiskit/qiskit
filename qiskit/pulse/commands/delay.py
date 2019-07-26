@@ -28,9 +28,11 @@ class Delay(Command):
     prefix = 'delay'
 
     def __init__(self, duration: int, name: Optional[str] = None):
-        """A delay command.
+        """Create a new delay command.
 
         No other may be scheduled within a delay command.
+
+        Delays that exist as the last instruction on a channel will be removed.
 
         Args:
             duration: int
@@ -48,7 +50,9 @@ class Delay(Command):
 class DelayInstruction(Instruction):
     """Instruction to add a blocking delay on a `Channel`.
 
-    No other may be scheduled during a delay.
+    No other may be scheduled within a delay command.
+
+    Delays that exist as the last instruction on a channel will be removed.
     """
 
     def __init__(self, command: Delay, channel: Delay, name=None):
