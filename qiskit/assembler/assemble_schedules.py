@@ -89,7 +89,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             'instructions': qobj_instructions
         })
 
-    # set number of memoryslots
+    # set number of memory slots
     qobj_config['memory_slots'] = memory_slots or max_memory_slot
 
     # setup pulse_library
