@@ -12,11 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint:disable=abstract-method
-
 """
 Abstract base class for Quantum Channels.
 """
+
+from abc import abstractmethod
 
 import numpy as np
 
@@ -133,6 +133,24 @@ class QuantumChannel(BaseOperator):
         if density_matrix and ndim == 1:
             state = np.outer(state, np.transpose(np.conj(state)))
         return state
+
+    @abstractmethod
+    def _evolve(self, state, qargs=None):
+        """Evolve a quantum state by the quantum channel.
+
+        Args:
+            state (DensityMatrix or Statevector): The input state.
+            qargs (list): a list of quantum state subsystem positions to apply
+                           the quantum channel on.
+
+        Returns:
+            DensityMatrix: the output quantum state as a density matrix.
+
+        Raises:
+            QiskitError: if the quantum channel dimension does not match the
+            specified quantum state subsystem dimensions.
+        """
+        pass
 
     @classmethod
     def _init_transformer(cls, data):
