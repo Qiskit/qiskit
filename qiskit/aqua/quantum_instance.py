@@ -61,7 +61,7 @@ class QuantumInstance:
                  # job
                  timeout=None, wait=5,
                  # others
-                 circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True,
+                 circuit_caching=False, cache_file=None, skip_qobj_deepcopy=False,
                  skip_qobj_validation=True,
                  measurement_error_mitigation_cls=None, cals_matrix_refresh_period=30,
                  measurement_error_mitigation_shots=None,
