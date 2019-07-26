@@ -12,17 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Test Qiskit's AssertUniform class."""
 
 import unittest
-import qiskit.extensions.simulator
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import execute
-from qiskit import QiskitError
-from qiskit.quantum_info import state_fidelity
 from qiskit.test import QiskitTestCase
 
 
@@ -32,50 +27,51 @@ class TestAssertUniform(QiskitTestCase):
     def test_assert_uniform(self):
         """Test AssertUniform
         """
-        qc1 = QuantumCircuit(2, 2)
-        qc1.h([0, 1])
-        breakpoint = qc1.get_breakpoint_uniform([0, 1], [0, 1], 0.01)
+        qc = QuantumCircuit(2, 2)
+        qc.h([0, 1])
+        bkpt = qc.get_breakpoint_uniform([0, 1], [0, 1], 0.01)
         BasicAer.backends()
-        job = execute(breakpoint, BasicAer.get_backend('qasm_simulator'))
-        self.assertTrue(job.result().get_assertion_passed(breakpoint))
+        job = execute(bkpt, BasicAer.get_backend('qasm_simulator'))
+        self.assertTrue(job.result().get_assertion_passed(bkpt))
 
     def test_assert_not_uniform(self):
         """Test AssertUniform with negate True
         """
-        qc1 = QuantumCircuit(2, 2)
-        qc1.h(1)
-        breakpoint = qc1.get_breakpoint_not_uniform([0, 1], [0, 1], 0.01)
+        qc = QuantumCircuit(2, 2)
+        qc.h(1)
+        bkpt = qc.get_breakpoint_not_uniform([0, 1], [0, 1], 0.01)
         BasicAer.backends()
-        job = execute(breakpoint, BasicAer.get_backend('qasm_simulator'))
-        self.assertTrue(job.result().get_assertion_passed(breakpoint))
+        job = execute(bkpt, BasicAer.get_backend('qasm_simulator'))
+        self.assertTrue(job.result().get_assertion_passed(bkpt))
 
     def test_with_bits(self):
         """Test AssertUniform with bit syntax
         """
-        q0 = QuantumRegister(1)
-        q1 = QuantumRegister(2)
-        c0 = ClassicalRegister(1)
-        c1 = ClassicalRegister(2)
-        qc1 = QuantumCircuit(q0, q1, c0, c1)
-        qc1.h([0, 2])
-        breakpoint = qc1.get_breakpoint_uniform([q0[0], q1[1]], [c0[0], c1[1]], 0.01)
+        q = QuantumRegister(1)
+        qq = QuantumRegister(2)
+        c = ClassicalRegister(1)
+        cc = ClassicalRegister(2)
+        qc = QuantumCircuit(q, qq, c, cc)
+        qc.h([0, 2])
+        bkpt = qc.get_breakpoint_uniform([q[0], qq[1]], [c[0], cc[1]], 0.01)
         BasicAer.backends()
-        job = execute(breakpoint, BasicAer.get_backend('qasm_simulator'))
-        self.assertTrue(job.result().get_assertion_passed(breakpoint))
+        job = execute(bkpt, BasicAer.get_backend('qasm_simulator'))
+        self.assertTrue(job.result().get_assertion_passed(bkpt))
 
     def test_with_registers(self):
         """Test AssertUniform with register syntax
         """
-        q0 = QuantumRegister(1)
-        q1 = QuantumRegister(2)
-        c0 = ClassicalRegister(1)
-        c1 = ClassicalRegister(2)
-        qc1 = QuantumCircuit(q0, q1, c0, c1)
-        qc1.h([0, 1, 2])
-        breakpoint = qc1.get_breakpoint_uniform(q1, c1, 0.01)
+        q = QuantumRegister(1)
+        qq = QuantumRegister(2)
+        c = ClassicalRegister(1)
+        cc = ClassicalRegister(2)
+        qc = QuantumCircuit(q, qq, c, cc)
+        qc.h([0, 1, 2])
+        bkpt = qc.get_breakpoint_uniform(qq, cc, 0.01)
         BasicAer.backends()
-        job = execute(breakpoint, BasicAer.get_backend('qasm_simulator'))
-        self.assertTrue(job.result().get_assertion_passed(breakpoint))
+        job = execute(bkpt, BasicAer.get_backend('qasm_simulator'))
+        self.assertTrue(job.result().get_assertion_passed(bkpt))
+
 
 if __name__ == '__main__':
     unittest.main()
