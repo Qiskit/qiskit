@@ -231,6 +231,7 @@ class InstructionToQobjConverter:
         Returns:
             None
         """
+        # pylint: disable=unused-argument
         return None
 
 

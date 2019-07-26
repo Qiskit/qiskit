@@ -22,7 +22,7 @@ from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit,
                                    MeasureChannel, SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
-                                   PulseInstruction, FrameChangeInstruction, DelayInstruction)
+                                   PulseInstruction, FrameChangeInstruction)
 from qiskit.pulse import pulse_lib, SamplePulse, CmdDef
 from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
@@ -44,6 +44,8 @@ class BaseTestSchedule(QiskitTestCase):
 
 
 class TestScheduleBuilding(BaseTestSchedule):
+    """Test construction of schedules."""
+
     def test_append_an_instruction_to_empty_schedule(self):
         """Test append instructions to an empty schedule."""
         device = self.two_qubit_device
@@ -382,11 +384,12 @@ class TestDelay(BaseTestSchedule):
         drive_ch = self.two_qubit_device.qubits[0].drive
         pulse = SamplePulse(np.full(10, 0.1))
         # should pass as is an append
-        self.delay(drive_ch) + pulse(drive_ch)
-
+        sched = self.delay(drive_ch) + pulse(drive_ch)
+        self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            self.delay(drive_ch) | pulse(drive_ch)
+            sched = self.delay(drive_ch) | pulse(drive_ch)
+            self.assertIsInstance(sched, Schedule)
 
     def test_delay_measure_channel(self):
         """Test Delay on MeasureChannel"""
@@ -394,11 +397,12 @@ class TestDelay(BaseTestSchedule):
         measure_ch = self.two_qubit_device.qubits[0].measure
         pulse = SamplePulse(np.full(10, 0.1))
         # should pass as is an append
-        self.delay(measure_ch) + pulse(measure_ch)
-
+        sched = self.delay(measure_ch) + pulse(measure_ch)
+        self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            self.delay(measure_ch) | pulse(measure_ch)
+            sched = self.delay(measure_ch) | pulse(measure_ch)
+            self.assertIsInstance(sched, Schedule)
 
     def test_delay_control_channel(self):
         """Test Delay on ControlChannel"""
@@ -406,11 +410,12 @@ class TestDelay(BaseTestSchedule):
         control_ch = self.two_qubit_device.controls[0]
         pulse = SamplePulse(np.full(10, 0.1))
         # should pass as is an append
-        self.delay(control_ch) + pulse(control_ch)
-
+        sched = self.delay(control_ch) + pulse(control_ch)
+        self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            self.delay(control_ch) | pulse(control_ch)
+            sched = self.delay(control_ch) | pulse(control_ch)
+            self.assertIsInstance(sched, Schedule)
 
     def test_delay_acquire_channel(self):
         """Test Delay on DriveChannel"""
@@ -418,11 +423,12 @@ class TestDelay(BaseTestSchedule):
         acquire_ch = self.two_qubit_device.qubits[0].acquire
         acquire = Acquire(10)
         # should pass as is an append
-        self.delay(acquire_ch) + acquire(acquire_ch, MemorySlot(0))
-
+        sched = self.delay(acquire_ch) + acquire(acquire_ch, MemorySlot(0))
+        self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            self.delay(acquire_ch) | acquire(acquire_ch)
+            sched = self.delay(acquire_ch) | acquire(acquire_ch)
+            self.assertIsInstance(sched, Schedule)
 
     def test_delay_snapshot_channel(self):
         """Test Delay on DriveChannel"""
@@ -430,14 +436,17 @@ class TestDelay(BaseTestSchedule):
         snapshot_ch = SnapshotChannel()
         snapshot = Snapshot(label='test')
         # should pass as is an append
-        self.delay(snapshot_ch) + snapshot
-
+        sched = self.delay(snapshot_ch) + snapshot
+        self.assertIsInstance(sched, Schedule)
         # should fail due to overlap
         with self.assertRaises(PulseError):
-            self.delay(snapshot_ch) | snapshot << 5
+            sched = self.delay(snapshot_ch) | snapshot << 5
+            self.assertIsInstance(sched, Schedule)
 
 
 class TestScheduleFilter(BaseTestSchedule):
+    """Test filtering of schedules."""
+
     def test_filter_channels(self):
         """Test filtering over channels."""
         device = self.two_qubit_device

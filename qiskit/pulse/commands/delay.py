@@ -52,6 +52,9 @@ class Delay(Command):
         Args:
             channel: Channel for delay instruction to be created.
             name: Name of delay instruction for display purposes.
+
+        Returns:
+            DelayInstruction
         """
         return DelayInstruction(self, channel, name=name)
     # pylint: enable=arguments-differ
@@ -69,11 +72,11 @@ class DelayInstruction(Instruction):
     for instructions that will be submitted directly to the backend.
     """
 
-    def __init__(self, command: Delay, channel: Delay, name=None):
+    def __init__(self, command: Delay, channel: Delay, name: str = None):
         """Create a delay instruction from a delay command.
 
         Args:
-            delay: Delay command to create instruction from.
+            command: Delay command to create instruction from.
             channel: Channel for delay instruction to be created.
             name: Name of delay instruction for display purposes.
         """
