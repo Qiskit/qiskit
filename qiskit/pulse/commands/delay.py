@@ -34,6 +34,10 @@ class Delay(Command):
 
         Delays that exist as the last instruction on a channel will be removed.
 
+        Note: Delay's are not explicitly sent to backends with the current Qobj
+        transport layer. They are only used to enforce the correct offset in time
+        for instructions that will be submitted directly to the backend.
+
         Args:
             duration: int
             name: Name of delay command for display purposes.
@@ -42,7 +46,13 @@ class Delay(Command):
         self._name = Delay.create_name(name)
 
     # pylint: disable=arguments-differ
-    def to_instruction(self, channel: Channel, name=None) -> 'DelayInstruction':
+    def to_instruction(self, channel: Channel, name: str = None) -> 'DelayInstruction':
+        """Create a delay instruction on the given channel.
+
+        Args:
+            channel: Channel for delay instruction to be created.
+            name: Name of delay instruction for display purposes.
+        """
         return DelayInstruction(self, channel, name=name)
     # pylint: enable=arguments-differ
 
@@ -53,7 +63,18 @@ class DelayInstruction(Instruction):
     No other may be scheduled within a delay command.
 
     Delays that exist as the last instruction on a channel will be removed.
+
+    Note: Delay's are not explicitly sent to backends with the current Qobj
+    transport layer. They are only used to enforce the correct offset in time
+    for instructions that will be submitted directly to the backend.
     """
 
     def __init__(self, command: Delay, channel: Delay, name=None):
+        """Create a delay instruction from a delay command.
+
+        Args:
+            delay: Delay command to create instruction from.
+            channel: Channel for delay instruction to be created.
+            name: Name of delay instruction for display purposes.
+        """
         super().__init__(command, channel, name=name)
