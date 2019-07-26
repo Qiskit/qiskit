@@ -48,12 +48,12 @@ class TestAssertClassical(QiskitTestCase):
         """Test AssertClassical with bit syntax
         """
         q = QuantumRegister(1)
-        qq = QuantumRegister(2)
+        q_2 = QuantumRegister(2)
         c = ClassicalRegister(1)
-        cc = ClassicalRegister(2)
-        qc = QuantumCircuit(q, qq, c, cc)
+        c_2 = ClassicalRegister(2)
+        qc = QuantumCircuit(q, q_2, c, c_2)
         qc.x(0)
-        bkpt = qc.get_breakpoint_classical([q[0], qq[0], qq[1]], [c[0], cc[0], cc[1]],
+        bkpt = qc.get_breakpoint_classical([q[0], q_2[0], q_2[1]], [c[0], c_2[0], c_2[1]],
                                            0.01, 1)
         BasicAer.backends()
         job = execute(bkpt, BasicAer.get_backend('qasm_simulator'))
@@ -63,13 +63,13 @@ class TestAssertClassical(QiskitTestCase):
         """Test AssertProduct with register syntax
         """
         q = QuantumRegister(1)
-        qq = QuantumRegister(2)
+        q_2 = QuantumRegister(2)
         c = ClassicalRegister(1)
-        cc = ClassicalRegister(2)
-        qc = QuantumCircuit(q, qq, c, cc)
+        c_2 = ClassicalRegister(2)
+        qc = QuantumCircuit(q, q_2, c, c_2)
         qc.h(0)
         qc.x(2)
-        bkpt = qc.get_breakpoint_classical(qq, cc, 0.01)
+        bkpt = qc.get_breakpoint_classical(q_2, c_2, 0.01)
         BasicAer.backends()
         job = execute(bkpt, BasicAer.get_backend('qasm_simulator'))
         self.assertTrue(job.result().get_assertion_passed(bkpt))
