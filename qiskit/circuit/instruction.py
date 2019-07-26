@@ -105,8 +105,7 @@ class Instruction:
 
             try:
                 if numpy.shape(self_param) == numpy.shape(other_param) \
-                        and numpy.allclose(self_param, other_param,
-                                           atol=_CUTOFF_PRECISION):
+                        and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
                     continue
             except TypeError:
                 pass
