@@ -114,17 +114,6 @@ class Interval:
             return True
         return False
 
-    def __lt__(self, other):
-        """If interval ends before other interval.
-
-        Args:
-            other (Interval): other Interval
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return self.ends_before(other)
-
     def starts_after(self, other):
         """Whether intervals starts at time greater than or equal to the
         other interval's ending time.
@@ -138,6 +127,17 @@ class Interval:
         if self.begin >= other.end:
             return True
         return False
+
+    def __lt__(self, other):
+        """If interval ends before other interval.
+
+        Args:
+            other (Interval): other Interval
+
+        Returns:
+            bool: are self and other equal.
+        """
+        return self.ends_before(other)
 
     def __gt__(self, other):
         """Interval is greater than other if it starts at a time less than or equal to the
