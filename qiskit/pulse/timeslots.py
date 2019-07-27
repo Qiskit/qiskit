@@ -96,6 +96,57 @@ class Interval:
         """
         return self.start == other.start and self.stop == other.stop
 
+    def ends_before(self, other):
+        """Whether intervals ends at time less than or equal to the
+        other interval's starting time.
+
+        Args:
+            other (Interval): other Interval
+
+        Returns:
+            bool: are self and other equal.
+        """
+        if self.end <= other.begin:
+            return True
+        return False
+
+    def __lt__(self, other):
+        """If interval ends before other interval.
+
+        Args:
+            other (Interval): other Interval
+
+        Returns:
+            bool: are self and other equal.
+        """
+        return self.ends_before(other)
+
+    def starts_after(self, other):
+        """Whether intervals starts at time greater than or equal to the
+        other interval's ending time.
+
+        Args:
+            other (Interval): other Interval
+
+        Returns:
+            bool: are self and other equal.
+        """
+        if self.begin >= other.end:
+            return True
+        return False
+
+    def __gt__(self, other):
+        """Interval is greater than other if it starts at a time less than or equal to the
+        other interval's ending time.
+
+        Args:
+            other (Interval): other Interval
+
+        Returns:
+            bool: are self and other equal.
+        """
+        return self.starts_after(other)
+
     def __repr__(self):
         """Return a readable representation of Interval Object"""
         return "{}({}, {})".format(self.__class__.__name__, self.start, self.stop)
@@ -357,6 +408,7 @@ class TimeslotCollection:
         """
         if set(self.channels) != set(other.channels):
             return False
+
         for channel in self.channels:
             if self.ch_timeslots(channel) != self.ch_timeslots(channel):
                 return False
