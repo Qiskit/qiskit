@@ -133,11 +133,13 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        return self.stops_before(other)
+        if self.begin >= other.end:
+            return True
+        return False
 
     def __gt__(self, other):
         """Interval is greater than other if it starts at a time less than or equal to the
-        other interval's stopping time.
+        other interval's ending time.
 
         Args:
             other (Interval): other Interval
