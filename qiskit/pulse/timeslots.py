@@ -17,7 +17,7 @@ Timeslots for channels.
 """
 from collections import defaultdict
 import itertools
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 
 from .channels import Channel
 from .exceptions import PulseError
@@ -400,6 +400,22 @@ class TimeslotCollection:
         slots = [slot.shift(time) for slot in self.timeslots]
         return TimeslotCollection(*slots)
 
+    def complement(self, stop_time: Optional[int] = None) -> 'TimeslotCollection':
+        """Return a complement TimeSlotCollection containing all empty Timeslot's
+        up to stop_time.
+
+        Args:
+            stop_time: Final time too which complement Timeslot's will be returned.
+                If not set, defaults to last time in this TimeSlotCollection
+        """
+        timeslots = []
+
+        stop_time = stop_time or self.stop_time
+
+        curr_time = 0
+        for channel in self.channels:
+            for timeslot in self.ch_timeslots(channel):
+                next_time = timeslot.interval.end_time
     def __eq__(self, other) -> bool:
         """Two time-slot collections are the same if they have the same time-slots.
 
