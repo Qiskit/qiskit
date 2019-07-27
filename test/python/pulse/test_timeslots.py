@@ -120,7 +120,7 @@ class TestTimeslotCollection(QiskitTestCase):
         normal = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0)),
                                     Timeslot(Interval(3, 5), AcquireChannel(0)))
         self.assertEqual(True, empty.is_mergeable_with(normal))
-        self.assertEqual(normal, empty.merged(normal))
+        self.assertEqual(normal, empty.merge(normal))
 
     def test_can_merge_two_mergeable_collections(self):
         """Test if merge two mergeable time-slot collections.
@@ -131,7 +131,7 @@ class TestTimeslotCollection(QiskitTestCase):
         self.assertEqual(True, col1.is_mergeable_with(col2))
         expected = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0)),
                                       Timeslot(Interval(1, 3), AcquireChannel(1)))
-        self.assertEqual(expected, col1.merged(col2))
+        self.assertEqual(expected, col1.merge(col2))
 
         # same channel but different interval
         col1 = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0)))
@@ -139,7 +139,7 @@ class TestTimeslotCollection(QiskitTestCase):
         self.assertEqual(True, col1.is_mergeable_with(col2))
         expected = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0)),
                                       Timeslot(Interval(3, 5), AcquireChannel(0)))
-        self.assertEqual(expected, col1.merged(col2))
+        self.assertEqual(expected, col1.merge(col2))
 
     def test_unmergeable_collections(self):
         """Test if return false for unmergeable collections.
@@ -171,6 +171,19 @@ class TestTimeslotCollection(QiskitTestCase):
         col2 = TimeslotCollection(Timeslot(Interval(1, 2), AcquireChannel(1)))
         col1.is_mergeable_with(col2)
         self.assertEqual(col1.channels, expected_channels)
+
+    def test_merged_timeslots_do_not_overlap_internally(self):
+        """Test to make sure the timeslots do not overlap internally."""
+        # same interval but different channel
+        int1 = Timeslot(Interval(1, 3), AcquireChannel(0))
+        col1 = TimeslotCollection(Timeslot(Interval(5, 7), AcquireChannel(0)))
+        col2 = TimeslotCollection(Timeslot(Interval(5, 7), AcquireChannel(1)))
+
+        merged = TimeslotCollection(int1, col1, col2)
+
+        from_interal = TimeslotCollection(*merged.timeslots)
+
+        self.assertEqual(merged, from_interal)
 
 
 if __name__ == '__main__':

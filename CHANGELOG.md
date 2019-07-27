@@ -66,6 +66,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   TimeslotCollections now are sorted by default and have more efficient merges.
 -   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
     Otherwise an error is raised.
 -   `Schedule.instructions` now returns with time-ordering.
