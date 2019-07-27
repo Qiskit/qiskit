@@ -21,9 +21,9 @@ from typing import List, Optional
 
 import numpy as np
 
-from .channels import Channel, AcquireChannel, MemorySlot
+from .channels import AcquireChannel, MemorySlot
 from .cmd_def import CmdDef
-from .commands import Acquire, AcquireInstruction, Delay
+from .commands import Acquire, AcquireInstruction
 from .exceptions import PulseError
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
@@ -131,16 +131,3 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
             new_schedule |= inst << time
 
     return new_schedule
-
-
-def pad(schedule: Schedule, channels: Optional[List[Channel]] = None,
-        until: Optional[int] = None) -> Schedule:
-    """Pad the input Schedule with `Delay`s on all unoccupied timeslots until `schedule.duration`.
-
-    Args:
-        schedule: Schedule to pad.
-        channels: List of channels to pad. Defaults to all channels in
-            `schedule` if not provided. If the supplied channel is not a member
-            of `schedule` it will be added.
-        until: Time to pad until. Defaults to `schedule.duration` if not provided.
-    """
