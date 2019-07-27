@@ -14,7 +14,6 @@
 
 """Schedule."""
 
-import itertools
 import abc
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 
@@ -56,10 +55,10 @@ class Schedule(ScheduleComponent):
                 sched_timeslots = sched.timeslots
                 if insert_time:
                     sched_timeslots = sched_timeslots.shift(insert_time)
-                timeslots.append(sched_timeslots.timeslots)
+                timeslots.append(sched_timeslots)
                 _children.append(sched_pair)
 
-            self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
+            self._timeslots = TimeslotCollection(*timeslots)
             self.__children = tuple(_children)
             self._buffer = max([child.buffer for _, child in _children]) if _children else 0
 
