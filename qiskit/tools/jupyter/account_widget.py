@@ -129,7 +129,9 @@ def _account_widget(account):
 
         hub_widgets.append(widgets.VBox(projects))
 
-    hubs = widgets.Accordion(children=hub_widgets, layout=widgets.Layout(width='99%'))
+    hubs = widgets.Accordion(children=hub_widgets, layout=widgets.Layout(width='99%',
+                                                                         max_height='600px',
+                                                                         overflow_y='scroll'))
 
     for idx, hub in enumerate(acct.keys()):
         hubs.set_title(idx, hub)
