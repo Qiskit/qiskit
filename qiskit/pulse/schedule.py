@@ -348,12 +348,15 @@ class Schedule(ScheduleComponent):
         if channels != other_channels:
             return False
 
-        # if they are the same iterate through instructions on each channel
-        for channel in channels:
-            chan_intructions = self.filter(channels=[channel]).instructions
-            other_chan_instructions = other.filter(channels=[channel]).instructions
+        # then verify same number of instructions in each
+        instructions = self.instructions
+        other_instructions = other.instructions
+        if len(instructions) != len(other_instructions):
+            return False
 
-            if chan_intructions != other_chan_instructions:
+        # finally check each instruction in `other` is in this schedule
+        for inst in other_instructions:
+            if inst not in instructions:
                 return False
 
         return True
