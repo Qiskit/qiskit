@@ -52,6 +52,7 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
+-   Intervals are now defined by start and stop, rather than begin and end.
 -   TimeslotCollections now are sorted by default and have more efficient merges.
 -   All circuit drawers now express most commonly used fractions
     of PI (\#2808).
