@@ -29,8 +29,8 @@ class TestInterval(QiskitTestCase):
         """Test valid interval creation without error.
         """
         interval = Interval(1, 3)
-        self.assertEqual(1, interval.begin)
-        self.assertEqual(3, interval.end)
+        self.assertEqual(1, interval.start)
+        self.assertEqual(3, interval.stop)
         self.assertEqual(2, interval.duration)
 
     def test_check_overlap(self):
@@ -48,11 +48,11 @@ class TestInterval(QiskitTestCase):
         """
         interval = Interval(1, 3)
         shift = interval.shift(10)
-        self.assertEqual(11, shift.begin)
-        self.assertEqual(13, shift.end)
+        self.assertEqual(11, shift.start)
+        self.assertEqual(13, shift.stop)
         self.assertEqual(2, shift.duration)
         # keep original interval unchanged
-        self.assertEqual(1, interval.begin)
+        self.assertEqual(1, interval.start)
 
     def test_invalid_interval(self):
         """Test invalid instantiation with negative time bounds."""

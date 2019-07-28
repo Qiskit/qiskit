@@ -239,8 +239,8 @@ class Schedule(ScheduleComponent):
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 for i in ranges:
-                    if all([(i.begin <= ts.interval.shift(time_inst[0]).begin
-                             and ts.interval.shift(time_inst[0]).end <= i.end)
+                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
+                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
                             for ts in time_inst[1].timeslots.timeslots]):
                         return True
                 return False
@@ -253,7 +253,7 @@ class Schedule(ScheduleComponent):
             filter_funcs.append(only_instruction_types(instruction_types))
         if time_ranges:
             filter_funcs.append(
-                only_intervals([Interval(start, end) for start, end in time_ranges]))
+                only_intervals([Interval(start, stop) for start, stop in time_ranges]))
         if intervals:
             filter_funcs.append(only_intervals(intervals))
 

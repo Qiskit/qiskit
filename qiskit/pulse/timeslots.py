@@ -29,39 +29,39 @@ from .exceptions import PulseError
 class Interval:
     """Time interval."""
 
-    def __init__(self, begin: int, end: int):
-        """Create an interval = (begin, end))
+    def __init__(self, start: int, stop: int):
+        """Create an interval, (start, stop).
 
         Args:
-            begin: begin time of this interval
-            end: end time of this interval
+            start: Starting value of interval
+            stop: Stopping value of interval
 
         Raises:
             PulseError: when invalid time or duration is specified
         """
-        if begin < 0:
-            raise PulseError("Cannot create Interval with negative begin time")
-        if end < 0:
-            raise PulseError("Cannot create Interval with negative end time")
-        if begin > end:
-            raise PulseError("Cannot create Interval with time beginning after end")
-        self._begin = begin
-        self._end = end
+        if start < 0:
+            raise PulseError("Cannot create Interval with negative starting value")
+        if stop < 0:
+            raise PulseError("Cannot create Interval with negative stopping value")
+        if start > stop:
+            raise PulseError("Cannot create Interval with value start after stop")
+        self._start = start
+        self._stop = stop
 
     @property
-    def begin(self):
-        """Begin time of this interval."""
-        return self._begin
+    def start(self):
+        """Start of interval."""
+        return self._start
 
     @property
-    def end(self):
-        """End time of this interval."""
-        return self._end
+    def stop(self):
+        """Stop of interval."""
+        return self._stop
 
     @property
     def duration(self):
         """Duration of this interval."""
-        return self._end - self._begin
+        return self.stop - self.start
 
     def has_overlap(self, interval: 'Interval') -> bool:
         """Check if self has overlap with `interval`.
@@ -72,7 +72,7 @@ class Interval:
         Returns:
             bool: True if self has overlap with `interval` otherwise False
         """
-        if self.begin < interval.end and interval.begin < self.end:
+        if self.start < interval.stop and interval.start < self.stop:
             return True
         return False
 
@@ -85,10 +85,10 @@ class Interval:
         Returns:
             Interval: interval shifted by `time`
         """
-        return Interval(self.begin + time, self.end + time)
+        return Interval(self.start + time, self.stop + time)
 
     def __eq__(self, other):
-        """Two intervals are the same if they have the same begin and end.
+        """Two intervals are the same if they have the same starting and stopping values.
 
         Args:
             other (Interval): other Interval
@@ -96,12 +96,12 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self.begin == other.begin and self.end == other.end:
+        if self.start == other.start and self.stop == other.stop:
             return True
         return False
 
-    def ends_before(self, other):
-        """Whether intervals ends at time less than or equal to the
+    def stops_before(self, other):
+        """Whether intervals stops at value less than or equal to the
         other interval's starting time.
 
         Args:
@@ -110,13 +110,13 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self.end <= other.begin:
+        if self.stop <= other.start:
             return True
         return False
 
     def starts_after(self, other):
-        """Whether intervals starts at time greater than or equal to the
-        other interval's ending time.
+        """Whether intervals starts at value greater than or equal to the
+        other interval's stopping time.
 
         Args:
             other (Interval): other Interval
@@ -124,12 +124,12 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self.begin >= other.end:
+        if self.start >= other.stop:
             return True
         return False
 
     def __lt__(self, other):
-        """If interval ends before other interval.
+        """If interval stops before other interval.
 
         Args:
             other (Interval): other Interval
@@ -137,11 +137,11 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        return self.ends_before(other)
+        return self.stops_before(other)
 
     def __gt__(self, other):
         """Interval is greater than other if it starts at a time less than or equal to the
-        other interval's ending time.
+        other interval's stopping time.
 
         Args:
             other (Interval): other Interval
@@ -153,7 +153,7 @@ class Interval:
 
     def __repr__(self):
         """Return a readable representation of Interval Object"""
-        return "{}({}, {})".format(self.__class__.__name__, self.begin, self.end)
+        return "{}({}, {})".format(self.__class__.__name__, self.start, self.stop)
 
 
 class Timeslot:
@@ -195,7 +195,7 @@ class Timeslot:
         """Return a readable representation of Timeslot Object"""
         return "{}({}, {})".format(self.__class__.__name__,
                                    self.channel,
-                                   (self.interval.begin, self.interval.end))
+                                   (self.interval.start, self.interval.stop))
 
 
 class TimeslotCollection:
@@ -326,7 +326,7 @@ class TimeslotCollection:
         timeslots = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
         if timeslots:
-            return min(timeslot.interval.begin for timeslot in timeslots)
+            return min(timeslot.interval.start for timeslot in timeslots)
 
         return 0
 
@@ -339,7 +339,7 @@ class TimeslotCollection:
         timeslots = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
         if timeslots:
-            return max(timeslot.interval.end for timeslot in timeslots)
+            return max(timeslot.interval.stop for timeslot in timeslots)
 
         return 0
 
@@ -418,5 +418,5 @@ class TimeslotCollection:
         """Return a readable representation of TimeslotCollection Object"""
         rep = dict()
         for key, val in self._table.items():
-            rep[key] = [(timeslot.interval.begin, timeslot.interval.end) for timeslot in val]
+            rep[key] = [(timeslot.interval.start, timeslot.interval.stop) for timeslot in val]
         return self.__class__.__name__ + str(rep)
