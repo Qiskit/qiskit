@@ -53,6 +53,7 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
+-   `Schedule.instructions` now returns with time-ordering.
 -   All circuit drawers now express most commonly used fractions
     of PI (\#2808).
 -   Set default repetition time to be the first available.
