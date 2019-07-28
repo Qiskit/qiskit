@@ -40,6 +40,14 @@ def circuit_2532():
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
 
+    def assertEqualLayout(self, result_layout, expected_layout):
+        if expected_layout is None:
+            self.assertIsNone(result_layout)
+        else:
+            print('\n'.join(
+                [str((i, j)) for i, j in result_layout._p2v.values() if i.name != 'ancilla']))
+            self.assertEqual()
+
     @combine(level=[0, 1, 2, 3],
              dsc='Test that coupling_map can be None (level={level})',
              name='coupling_map_none_level{level}')
@@ -172,3 +180,49 @@ class TestInitialLayouts(QiskitTestCase):
         self.assertEqual(qubits_0[0].index, 6)
         self.assertIsInstance(gate_1, U2Gate)
         self.assertEqual(qubits_1[0].index, 12)
+
+
+@ddt
+class TestFinalLayouts(QiskitTestCase):
+    @data(0, 1, 2, 3)
+    def test_layout_tokyo_2845(self, level):
+        """Test that final layout in tokyo #2845
+        See: https://github.com/Qiskit/qiskit-terra/issues/2845
+        """
+        qr = QuantumRegister(5, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+        qc.cx(qr[1], qr[2])
+        qc.cx(qr[2], qr[3])
+        qc.cx(qr[3], qr[4])
+
+        ancilla = QuantumRegister(15, 'ancilla')
+        expected_layout_level0 = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4], 5: ancilla[0],
+                                  6: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4],
+                                  10: ancilla[5], 11: ancilla[6], 12: ancilla[7], 13: ancilla[8],
+                                  14: ancilla[9], 15: ancilla[10], 16: ancilla[11], 17: ancilla[12],
+                                  18: ancilla[13], 19: ancilla[14]}
+        expected_layout_level1 = {0: qr[4], 1: ancilla[0], 2: ancilla[1], 3: ancilla[2],
+                                  4: ancilla[3], 5: qr[3], 6: qr[2], 7: ancilla[4], 8: ancilla[5],
+                                  9: ancilla[6], 10: qr[1], 11: qr[0], 12: ancilla[7],
+                                  13: ancilla[8],
+                                  14: ancilla[9], 15: ancilla[10], 16: ancilla[11], 17: ancilla[12],
+                                  18: ancilla[13], 19: ancilla[14]}
+        expected_layout_level2 = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4], 5: ancilla[0],
+                                  6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
+                                  9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
+                                  13: ancilla[8],
+                                  14: ancilla[9], 15: ancilla[10], 16: ancilla[11], 17: ancilla[12],
+                                  18: ancilla[13], 19: ancilla[14]}
+        expected_layout_level3 = {0: qr[0], 1: qr[1], 2: qr[2], 3: qr[3], 4: qr[4], 5: ancilla[0],
+                                  6: ancilla[1], 7: ancilla[2], 8: ancilla[3], 9: ancilla[4],
+                                  10: ancilla[5], 11: ancilla[6], 12: ancilla[7], 13: ancilla[8],
+                                  14: ancilla[9], 15: ancilla[10], 16: ancilla[11], 17: ancilla[12],
+                                  18: ancilla[13], 19: ancilla[14]}
+        expected_layouts = [expected_layout_level0,
+                            expected_layout_level1,
+                            expected_layout_level2,
+                            expected_layout_level3]
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
+        self.assertEqual(result.layout._p2v, expected_layouts[level])
