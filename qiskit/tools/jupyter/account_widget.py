@@ -135,7 +135,9 @@ def _account_widget(account):
 
     for idx, hub in enumerate(acct.keys()):
         hubs.set_title(idx, hub)
-    hubs.selected_index = None
+    # If more than one hub, start with all closed
+    if len(hub_widgets) > 1:
+        hubs.selected_index = None
 
     acct_widget = widgets.VBox(children=[title_widget, hubs])
 
