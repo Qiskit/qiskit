@@ -17,7 +17,7 @@ Timeslots for channels.
 """
 from collections import defaultdict
 import itertools
-from typing import List, Tuple, Union
+from typing import Tuple, Union
 
 from .channels import Channel
 from .exceptions import PulseError
@@ -317,7 +317,7 @@ class TimeslotCollection:
 
         return tuple()
 
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def ch_start_time(self, *channels: Channel) -> int:
         """Return earliest start time in this collection.
 
         Args:
@@ -330,7 +330,7 @@ class TimeslotCollection:
 
         return 0
 
-    def ch_stop_time(self, *channels: List[Channel]) -> int:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Return maximum time of timeslots over all channels.
 
         Args:
@@ -343,7 +343,7 @@ class TimeslotCollection:
 
         return 0
 
-    def ch_duration(self, *channels: List[Channel]) -> int:
+    def ch_duration(self, *channels: Channel) -> int:
         """Return maximum duration of timeslots over all channels.
 
         Args:
