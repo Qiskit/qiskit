@@ -401,21 +401,36 @@ class TimeslotCollection:
         return TimeslotCollection(*slots)
 
     def complement(self, stop_time: Optional[int] = None) -> 'TimeslotCollection':
-        """Return a complement TimeSlotCollection containing all empty Timeslot's
-        up to stop_time.
+        """Return a complement TimeSlotCollection containing all unoccupied Timeslots
+        within this TimeSlotCollection.
+
 
         Args:
             stop_time: Final time too which complement Timeslot's will be returned.
                 If not set, defaults to last time in this TimeSlotCollection
         """
+
         timeslots = []
 
         stop_time = stop_time or self.stop_time
 
+        def add_empty_timeslot(curr, next, channel):
+            """Create empty Timeslot."""
+            if next-curr > 0:
+                timeslots.append(Timeslot(Interval(curr, next), channel))
+
         curr_time = 0
         for channel in self.channels:
             for timeslot in self.ch_timeslots(channel):
-                next_time = timeslot.interval.end_time
+                next_time = timeslot.interval.start
+                add_empty_timeslot(curr_time, next_time, channel)
+                curr_time = timeslot.interval.stop
+
+            # pad out to stop_time
+            add_empty_timeslot(curr_time, stop_time, channel)
+
+        return TimeslotCollection(*timeslots)
+
     def __eq__(self, other) -> bool:
         """Two time-slot collections are the same if they have the same time-slots.
 
