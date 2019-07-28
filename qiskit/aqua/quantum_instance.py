@@ -187,6 +187,7 @@ class QuantumInstance:
         # setup others
         # TODO: allow an external way to overwrite the setting circuit cache temporally
         if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False):
+            skip_qobj_deepcopy = True
             self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
                                                cache_file=cache_file)
         else:
