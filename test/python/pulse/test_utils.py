@@ -24,7 +24,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
-from qiskit.pulse.utils import add_implicit_acquires, align_measures
+from qiskit.pulse.utils import add_implicit_acquires, align_measures, pad
 
 
 class TestAutoMerge(QiskitTestCase):
@@ -289,6 +289,29 @@ class TestAddImplicitAcquiresWithDeviceSpecification(QiskitTestCase):
             if isinstance(inst, AcquireInstruction):
                 acquired_qubits.update({a.index for a in inst.acquires})
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
+
+
+class TestPad(QiskitTestCase):
+    """Test padding of schedule with delays."""
+
+    def test_padding_empty_schedule(self):
+        """Test padding of empty schedule."""
+        self.assertEqual(pulse.Schedule(), pad(pulse.Schedule()))
+
+    def test_padding_schedule(self):
+        """Test padding schedule."""
+        delay = pulse.Delay(10)
+        double_delay = pulse.Delay(20)
+        sched = (delay(pulse.DriveChannel(0)) << 10 +
+                 delay(pulse.DriveChannel(0)) << 10 +
+                 delay(pulse.DriveChannel(1)) << 10)
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     delay(pulse.DriveChannel(0)) << 20 |
+                     double_delay(pulse.DriveChannel(0)) << 20)
+
+        self.assertEqual(sched, ref_sched)
 
 
 if __name__ == '__main__':

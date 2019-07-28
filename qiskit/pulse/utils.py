@@ -17,7 +17,7 @@ Pulse utilities.
 """
 import warnings
 
-from typing import List, Optional
+from typing import List, Optional, Iterable
 
 import numpy as np
 
@@ -29,8 +29,8 @@ from .interfaces import ScheduleComponent
 from .schedule import Schedule
 
 
-def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef, cal_gate: str = 'u3',
-                   max_calibration_duration: Optional[int] = None,
+def align_measures(schedules: Iterable[ScheduleComponent], cmd_def: CmdDef,
+                   cal_gate: str = 'u3', max_calibration_duration: Optional[int] = None,
                    align_time: Optional[int] = None) -> Schedule:
     """Return new schedules where measurements occur at the same physical time. Minimum measurement
     wait time (to allow for calibration pulses) is enforced.
@@ -133,14 +133,30 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
     return new_schedule
 
 
-def pad(schedule: Schedule, channels: Optional[List[Channel]] = None,
+def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
         until: Optional[int] = None) -> Schedule:
     """Pad the input Schedule with `Delay`s on all unoccupied timeslots until `schedule.duration`.
 
     Args:
         schedule: Schedule to pad.
-        channels: List of channels to pad. Defaults to all channels in
+        channels: Channels to pad. Defaults to all channels in
             `schedule` if not provided. If the supplied channel is not a member
             of `schedule` it will be added.
         until: Time to pad until. Defaults to `schedule.duration` if not provided.
     """
+    until = until or schedule.duration
+
+    channels = channels or []
+    occupied_channels = schedule.channels
+
+    unoccupied_channels = set(occupied_channels) & set(channels)
+
+    empty_timeslot_collection = schedule.timeslots.complement(until)
+
+    for empty_timeslot in empty_timeslot_collection.timeslots:
+        schedule |= Delay(empty_timeslot.duration)(empty_timeslot.channel)
+
+    for channel in unoccupied_channels:
+        schedule |= Delay(until)(channel)
+
+    return schedule
