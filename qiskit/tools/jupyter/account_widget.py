@@ -72,7 +72,7 @@ def _project_widget(hgp_info, name):
 
     devices_widget = widgets.HTML(device_html, layout=widgets.Layout(grid_area='names'))
 
-    services_html = '<font size=2><b>Services</b></font><br>'
+    services_html = '<font size=2><b>Access Level</b></font><br>'
 
     device_ser = ['Gates']*len(hgp_info['backends'])
 
@@ -83,7 +83,7 @@ def _project_widget(hgp_info, name):
     for item in device_ser:
         services_html += item+'<br>'
 
-    services_widget = widgets.HTML(services_html, layout=widgets.Layout(grid_area='services'))
+    services_widget = widgets.HTML(services_html, layout=widgets.Layout(grid_area='access'))
 
     project_name = widgets.HTML("<font size=4>{name}</font>".format(name=name),
                                 layout=widgets.Layout(grid_area='top'))
@@ -93,7 +93,7 @@ def _project_widget(hgp_info, name):
                                                          grid_template_columns='5% 30% 30%',
                                                          grid_template_rows='auto',
                                                          grid_template_areas='''
-                                                        ". names services "
+                                                        ". names access "
                                                             '''))
 
     project_widget = widgets.VBox(children=[project_name, items_widget])
