@@ -106,7 +106,7 @@ class Stinespring(QuantumChannel):
             if isinstance(data, (QuantumCircuit, Instruction)):
                 # If the input is a Terra QuantumCircuit or Instruction we
                 # convert it to a SuperOp
-                data = SuperOp._instruction_to_superop(data)
+                data = SuperOp._init_instruction(data)
             else:
                 # We use the QuantumChannel init transform to intialize
                 # other objects into a QuantumChannel or Operator object.
@@ -336,45 +336,21 @@ class Stinespring(QuantumChannel):
                            self.output_dims())
 
     def _evolve(self, state, qargs=None):
-        """Evolve a quantum state by the QuantumChannel.
+        """Evolve a quantum state by the quantum channel.
 
         Args:
-            state (QuantumState): The input statevector or density matrix.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
+            state (DensityMatrix or Statevector): The input state.
+            qargs (list): a list of quantum state subsystem positions to apply
+                           the quantum channel on.
 
         Returns:
-            QuantumState: the output quantum state.
+            DensityMatrix: the output quantum state as a density matrix.
 
         Raises:
-            QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
+            QiskitError: if the quantum channel dimension does not match the
+            specified quantum state subsystem dimensions.
         """
-        # If subsystem evolution we use the SuperOp representation
-        if qargs is not None:
-            return SuperOp(self)._evolve(state, qargs)
-
-        # Otherwise we compute full evolution directly
-        state = self._format_state(state)
-        if state.shape[0] != self._input_dim:
-            raise QiskitError(
-                "QuantumChannel input dimension is not equal to state dimension."
-            )
-        if state.ndim == 1 and self._data[1] is None and \
-           self._data[0].shape[0] // self._output_dim == 1:
-            # If the shape of the Stinespring operator is equal to the output_dim
-            # evolution of a state vector psi -> stine.psi
-            return np.dot(self._data[0], state)
-        # Otherwise we always return a density matrix
-        state = self._format_state(state, density_matrix=True)
-        stine_l, stine_r = self._data
-        if stine_r is None:
-            stine_r = stine_l
-        din, dout = self.dim
-        dtr = stine_l.shape[0] // dout
-        shape = (dout, dtr, din)
-        return np.einsum('iAB,BC,jAC->ij', np.reshape(stine_l, shape), state,
-                         np.reshape(np.conjugate(stine_r), shape))
+        return SuperOp(self)._evolve(state, qargs)
 
     def _tensor_product(self, other, reverse=False):
         """Return the tensor product channel.
