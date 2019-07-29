@@ -135,7 +135,6 @@ def assemble(experiments,
     qobj_id, qobj_header, run_config_common_dict = _parse_common_args(backend, qobj_id, qobj_header,
                                                                       shots, memory, max_credits,
                                                                       seed_simulator, memory_slots,
-                                                                      memory_slot_size, rep_time,
                                                                       **run_config)
 
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
@@ -151,7 +150,8 @@ def assemble(experiments,
         run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
-                                       meas_map, **run_config_common_dict)
+                                       meas_map, memory_slot_size, rep_time,
+                                       **run_config_common_dict)
 
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
                                   qobj_header=qobj_header, run_config=run_config)
@@ -164,8 +164,7 @@ def assemble(experiments,
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
 def _parse_common_args(backend, qobj_id, qobj_header,
                        shots, memory, max_credits, seed_simulator,
-                       memory_slots, memory_slot_size,
-                       rep_time, **run_config):
+                       memory_slots, **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
     what types of inputs are allowed.
@@ -182,11 +181,6 @@ def _parse_common_args(backend, qobj_id, qobj_header,
     backend_config = None
     if backend:
         backend_config = backend.configuration()
-
-    memory_slots = memory_slots or getattr(backend_config, 'memory_slots', None)
-    rep_time = rep_time or getattr(backend_config, 'rep_times', None)
-    if isinstance(rep_time, list):
-        rep_time = rep_time[0]
 
     # an identifier for the Qobj
     qobj_id = qobj_id or str(uuid.uuid4())
@@ -208,8 +202,6 @@ def _parse_common_args(backend, qobj_id, qobj_header,
                            max_credits=max_credits,
                            seed_simulator=seed_simulator,
                            memory_slots=memory_slots,
-                           memory_slot_size=memory_slot_size,
-                           rep_time=rep_time,
                            **run_config)
 
     return qobj_id, qobj_header, run_config_dict
@@ -217,15 +209,11 @@ def _parse_common_args(backend, qobj_id, qobj_header,
 
 def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                       meas_lo_range, schedule_los, meas_level,
-                      meas_return, meas_map, **run_config):
-    """Resolve the various types of args allowed to the assemble() function through
-    duck typing, overriding args, etc. The args provided are all required args for assembling a
-    pulse based experiment. Refer to the assemble() docstring for details on
-    what types of inputs are allowed.
-
-    Here the args are resolved by converting them to standard instances, and prioritizing
-    them in case a run option is passed through multiple args (explicitly setting an arg
-    has more priority than the arg set by backend)
+                      meas_return, meas_map,
+                      memory_slot_size, rep_time,
+                      **run_config):
+    """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
+    See `assemble` for more information on the required arguments.
 
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
@@ -264,6 +252,10 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', [])
     meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', [])
 
+    rep_time = rep_time or getattr(backend_config, 'rep_times', None)
+    if isinstance(rep_time, list):
+        rep_time = rep_time[0]
+
     # create run configuration and populate
     run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
                            meas_lo_freq=meas_lo_freq,
@@ -273,6 +265,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            meas_level=meas_level,
                            meas_return=meas_return,
                            meas_map=meas_map,
+                           memory_slot_size=memory_slot_size,
+                           rep_time=rep_time,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
@@ -280,14 +274,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
 
 
 def _parse_circuit_args(parameter_binds, **run_config):
-    """Resolve the various types of args allowed to the assemble() function through
-    duck typing, overriding args, etc. The args provided are all required args for assembling a
-    circuit based experiment. Refer to the assemble() docstring for details on
-    what types of inputs are allowed.
-
-    Here the args are resolved by converting them to standard instances, and prioritizing
-    them in case a run option is passed through multiple args (explicitly setting an arg
-    has more priority than the arg set by backend)
+    """Build a circuit RunConfig replacing unset arguments with defaults derived from the `backend`.
+    See `assemble` for more information on the required arguments.
 
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
