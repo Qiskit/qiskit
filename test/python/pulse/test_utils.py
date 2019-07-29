@@ -302,16 +302,17 @@ class TestPad(QiskitTestCase):
         """Test padding schedule."""
         delay = pulse.Delay(10)
         double_delay = pulse.Delay(20)
-        sched = (delay(pulse.DriveChannel(0)) << 10 +
-                 delay(pulse.DriveChannel(0)) << 10 +
-                 delay(pulse.DriveChannel(1)) << 10)
+
+        sched = (delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(1)).shift(10))
 
         ref_sched = (sched |
                      delay(pulse.DriveChannel(0)) |
-                     delay(pulse.DriveChannel(0)) << 20 |
-                     double_delay(pulse.DriveChannel(0)) << 20)
+                     delay(pulse.DriveChannel(0)).shift(20) |
+                     double_delay(pulse.DriveChannel(1)).shift(20))
 
-        self.assertEqual(sched, ref_sched)
+        self.assertEqual(pad(sched), ref_sched)
 
 
 if __name__ == '__main__':
