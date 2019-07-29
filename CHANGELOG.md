@@ -52,7 +52,11 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
--   The number of memory slots required will now be inferred from the supplied schedules if `memory_slots` is not supplied.
+
+-   The number of memory slots required will now be inferred from the supplied
+    schedules if `memory_slots` is not supplied.
+-   All circuit drawers now express most commonly used fractions
+    of PI (\#2808).
 -   Set default repetition time to be the first available.
 -   Pulse commands may now start with capitalized letters.
 -   The `pylatexenc` and `pillow` requirements are now optional. These
@@ -74,6 +78,7 @@ The format is based on [Keep a Changelog].
 -   Change Snapshot signature to match simulator.snapshot (\#2592)
 -   Changed definition of `Cu3Gate` to to equivalent to the canonical
     definition of a controlled `U3Gate` (\#2755)
+-   coupling_map now required to validate a backend.configuration() (\#2836)
 
 ### Removed
 
