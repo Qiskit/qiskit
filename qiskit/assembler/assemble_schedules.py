@@ -70,11 +70,11 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
             if isinstance(instruction, AcquireInstruction):
+                max_memory_slot = max(max_memory_slot,
+                                      *[slot.index for slot in instruction.mem_slots])
                 if meas_map:
                     # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
-                    max_memory_slot = max(max_memory_slot,
-                                          *[slot.index for slot in instruction.mem_slots])
 
             qobj_instructions.append(instruction_converter(shift, instruction))
 
