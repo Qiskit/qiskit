@@ -354,7 +354,7 @@ class TimeslotCollection:
         timeslots = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
         if timeslots:
-            return min(timeslot.interval.start for timeslot in timeslots)
+            return min(timeslot.start for timeslot in timeslots)
 
         return 0
 
@@ -367,7 +367,7 @@ class TimeslotCollection:
         timeslots = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
         if timeslots:
-            return max(timeslot.interval.stop for timeslot in timeslots)
+            return max(timeslot.stop for timeslot in timeslots)
 
         return 0
 
@@ -426,7 +426,7 @@ class TimeslotCollection:
         Args:
             time: time to be shifted by
         """
-        slots = [Timeslot(slot.interval.shift(time), slot.channel) for slot in self.timeslots]
+        slots = [slot.shift(time) for slot in self.timeslots]
         return TimeslotCollection(*slots)
 
     def __eq__(self, other) -> bool:
@@ -446,5 +446,5 @@ class TimeslotCollection:
         """Return a readable representation of TimeslotCollection Object"""
         rep = dict()
         for key, val in self._table.items():
-            rep[key] = [(timeslot.interval.start, timeslot.interval.stop) for timeslot in val]
+            rep[key] = [(timeslot.start, timeslot.stop) for timeslot in val]
         return self.__class__.__name__ + str(rep)
