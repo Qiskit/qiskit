@@ -845,8 +845,8 @@ class MatplotlibDrawer:
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp)
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t,lc=color)
-                    
+                        self._line(qreg_b, qreg_t, lc=color)
+
                     # rzz gate
                     elif op.name == 'rzz':
                         self._ctrl_qubit(q_xy[0])
