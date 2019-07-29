@@ -173,6 +173,21 @@ class Timeslot:
         """Channel of this time slot."""
         return self._channel
 
+    @property
+    def start(self):
+        """Start of timeslot."""
+        return self.interval.start
+
+    @property
+    def stop(self):
+        """Stop of timeslot."""
+        return self.interval.stop
+
+    @property
+    def duration(self):
+        """Duration of this timeslot."""
+        return self.interval.duration
+
     def shift(self, time: int) -> 'Timeslot':
         """Return a new Timeslot shifted by `time`.
 
@@ -180,6 +195,19 @@ class Timeslot:
             time: time to be shifted
         """
         return Timeslot(self.interval.shift(time), self.channel)
+
+    def has_overlap(self, other: 'Timeslot') -> bool:
+        """Check if self has overlap with `interval`.
+
+        Args:
+            other: Other Timeslot to check for overlap with
+
+        Returns:
+            bool: True if intervals overlap and are on the same channel
+        """
+        if self.interval.has_overlap(other) and self.channel == other.channel:
+            return True
+        return False
 
     def __eq__(self, other) -> bool:
         """Two time-slots are the same if they have the same interval and channel.
