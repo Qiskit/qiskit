@@ -70,7 +70,7 @@ class Snapshot(Command, Instruction):
         Returns:
             bool: are self and other equal
         """
-        if (type(self) is type(other) and
+        if (super().__eq__(other) and
                 self.label == other.label and
                 self.type == other.type):
             return True

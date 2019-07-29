@@ -529,6 +529,12 @@ class TestScheduleEquality(QiskitTestCase):
 
         self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
 
+    def test_different_name_equal(self):
+        """Test that names are ignored when checking equality."""
+
+        self.assertEqual(Schedule((0, FrameChange(0, name='fc1')(DriveChannel(1))), name='s1'),
+                         Schedule((0, FrameChange(0, name='fc2')(DriveChannel(1))), name='s2'))
+
 
 class TestScheduleWithDeviceSpecification(QiskitTestCase):
     """Schedule tests."""

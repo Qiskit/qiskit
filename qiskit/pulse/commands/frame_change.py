@@ -52,8 +52,7 @@ class FrameChange(Command):
         Returns:
             bool: are self and other equal
         """
-        if type(self) is type(other) and \
-                self.phase == other.phase:
+        if super().__eq__(other) and (self.phase == other.phase):
             return True
         return False
 

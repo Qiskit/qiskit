@@ -61,8 +61,7 @@ class PersistentValue(Command):
         Returns:
             bool: are self and other equal
         """
-        if type(self) is type(other) and \
-                self.value == other.value:
+        if super().__eq__(other) and self.value == other.value:
             return True
         return False
 

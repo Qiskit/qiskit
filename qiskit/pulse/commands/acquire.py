@@ -86,9 +86,9 @@ class Acquire(Command):
         Returns:
             bool: are self and other equal.
         """
-        if type(self) is type(other) and \
-                self.kernel == other.kernel and \
-                self.discriminator == other.discriminator:
+        if (super().__eq__(other) and
+                self.kernel == other.kernel and
+                self.discriminator == other.discriminator):
             return True
         return False
 

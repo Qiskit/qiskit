@@ -111,9 +111,7 @@ class Command(metaclass=MetaCount):
         Returns:
             bool: are self and other equal
         """
-        if type(self) is type(other) and \
-                self._duration == other._duration and \
-                self._name == other._name:
+        if (type(self) is type(other)) and (self._duration == other._duration):
             return True
         return False
 
