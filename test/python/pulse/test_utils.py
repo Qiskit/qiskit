@@ -312,8 +312,50 @@ class TestPad(QiskitTestCase):
                      delay(pulse.DriveChannel(0)).shift(20) |
                      double_delay(pulse.DriveChannel(1)).shift(20))
 
-        import pdb;pdb.set_trace()
         self.assertEqual(pad(sched), ref_sched)
+
+    def test_padding_until_less(self):
+        """Test padding until time that is less than schedule duration."""
+        delay = pulse.Delay(10)
+
+        sched = (delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(1)))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     pulse.Delay(5)(pulse.DriveChannel(1)).shift(10))
+
+        self.assertEqual(pad(sched, until=15), ref_sched)
+
+    def test_padding_until_greater(self):
+        """Test padding until time that is greater than schedule duration."""
+        delay = pulse.Delay(10)
+
+        sched = (delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(1)))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     pulse.Delay(30)(pulse.DriveChannel(0)).shift(20) |
+                     pulse.Delay(40)(pulse.DriveChannel(1)).shift(10))
+
+        self.assertEqual(pad(sched, until=50), ref_sched)
+
+    def test_padding_supplied_channels(self):
+        """Test padding of only specified channels."""
+        delay = pulse.Delay(10)
+        double_delay = pulse.Delay(20)
+
+        sched = (delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(1)))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     double_delay(pulse.DriveChannel(2)))
+
+        channels = [pulse.DriveChannel(0), pulse.DriveChannel(2)]
+
+        self.assertEqual(pad(sched, channels=channels), ref_sched)
 
 
 if __name__ == '__main__':

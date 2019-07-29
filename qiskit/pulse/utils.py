@@ -143,18 +143,21 @@ def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
             `schedule` if not provided. If the supplied channel is not a member
             of `schedule` it will be added.
         until: Time to pad until. Defaults to `schedule.duration` if not provided.
+    Returns:
+        Schedule: The padded schedule
     """
     until = until or schedule.duration
 
-    channels = channels or []
+    channels = channels or schedule.channels
     occupied_channels = schedule.channels
 
-    unoccupied_channels = set(occupied_channels) & set(channels)
+    unoccupied_channels = set(channels) - set(occupied_channels)
 
     empty_timeslot_collection = schedule.timeslots.complement(until)
 
-    for timeslot in empty_timeslot_collection.timeslots:
-        schedule |= Delay(timeslot.duration)(timeslot.channel).shift(timeslot.start)
+    for channel in channels:
+        for timeslot in empty_timeslot_collection.ch_timeslots(channel):
+            schedule |= Delay(timeslot.duration)(timeslot.channel).shift(timeslot.start)
 
     for channel in unoccupied_channels:
         schedule |= Delay(until)(channel)

@@ -240,15 +240,13 @@ class TestTimeslotCollection(QiskitTestCase):
     def test_complement(self):
         """Test complement of TimeslotCollection is properly created."""
         test_collection = TimeslotCollection(
-                                Timeslot(Interval(5, 7), DriveChannel(0)),
-                                Timeslot(Interval(10, 12), DriveChannel(0)),
-                                Timeslot(Interval(0, 3), DriveChannel(1))
-                            )
+            Timeslot(Interval(5, 7), DriveChannel(0)),
+            Timeslot(Interval(10, 12), DriveChannel(0)),
+            Timeslot(Interval(0, 3), DriveChannel(1)))
         ref_complement = TimeslotCollection(
-                                Timeslot(Interval(0, 5), DriveChannel(0)),
-                                Timeslot(Interval(7, 10), DriveChannel(0)),
-                                Timeslot(Interval(3, 12), DriveChannel(1))
-                            )
+            Timeslot(Interval(0, 5), DriveChannel(0)),
+            Timeslot(Interval(7, 10), DriveChannel(0)),
+            Timeslot(Interval(3, 12), DriveChannel(1)))
         complement_collection = test_collection.complement()
 
         self.assertEqual(ref_complement, complement_collection)
@@ -258,16 +256,14 @@ class TestTimeslotCollection(QiskitTestCase):
         stop_time = 20
 
         test_collection = TimeslotCollection(
-                                Timeslot(Interval(5, 7), DriveChannel(0)),
-                                Timeslot(Interval(10, 12), DriveChannel(0)),
-                                Timeslot(Interval(0, 3), DriveChannel(1))
-                            )
+            Timeslot(Interval(5, 7), DriveChannel(0)),
+            Timeslot(Interval(10, 12), DriveChannel(0)),
+            Timeslot(Interval(0, 3), DriveChannel(1)))
         ref_complement = TimeslotCollection(
-                                Timeslot(Interval(0, 5), DriveChannel(0)),
-                                Timeslot(Interval(7, 10), DriveChannel(0)),
-                                Timeslot(Interval(12, stop_time), DriveChannel(0)),
-                                Timeslot(Interval(3, stop_time), DriveChannel(1))
-                            )
+            Timeslot(Interval(0, 5), DriveChannel(0)),
+            Timeslot(Interval(7, 10), DriveChannel(0)),
+            Timeslot(Interval(12, stop_time), DriveChannel(0)),
+            Timeslot(Interval(3, stop_time), DriveChannel(1)))
         complement_collection = test_collection.complement(stop_time=stop_time)
 
         self.assertEqual(ref_complement, complement_collection)

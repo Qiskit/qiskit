@@ -414,10 +414,10 @@ class TimeslotCollection:
 
         stop_time = stop_time or self.stop_time
 
-        def add_empty_timeslot(curr, next, channel):
+        def add_empty_timeslot(curr_time, next_time, channel):
             """Create empty Timeslot."""
-            if next-curr > 0:
-                timeslots.append(Timeslot(Interval(curr, next), channel))
+            if next_time-curr_time > 0:
+                timeslots.append(Timeslot(Interval(curr_time, next_time), channel))
 
         curr_time = 0
         for channel in self.channels:
