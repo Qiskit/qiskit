@@ -27,7 +27,7 @@ The format is based on [Keep a Changelog].
 
 ### Added
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
--   New `CountOpsLongest` analysis pass to retrieve the number of operations 
+-   New `CountOpsLongest` analysis pass to retrieve the number of operations
     on the longest path of the DAGCircuit.
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
@@ -52,7 +52,10 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 
 ### Changed
--   All circuit drawers now express most commonly used fractions 
+
+-   The number of memory slots required will now be inferred from the supplied
+    schedules if `memory_slots` is not supplied.
+-   All circuit drawers now express most commonly used fractions
     of PI (\#2808).
 -   Set default repetition time to be the first available.
 -   Pulse commands may now start with capitalized letters.
