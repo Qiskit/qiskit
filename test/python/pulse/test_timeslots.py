@@ -16,7 +16,7 @@
 
 import unittest
 
-from qiskit.pulse.channels import AcquireChannel
+from qiskit.pulse.channels import AcquireChannel, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.test import QiskitTestCase
@@ -87,6 +87,10 @@ class TestTimeslot(QiskitTestCase):
         self.assertEqual(Interval(1, 3), slot.interval)
         self.assertEqual(AcquireChannel(0), slot.channel)
 
+        self.assertEqual(1, slot.start)
+        self.assertEqual(3, slot.stop)
+        self.assertEqual(2, slot.duration)
+
     def test_shift(self):
         """Test shifting of Timeslot."""
         slot_1 = Timeslot(Interval(1, 3), AcquireChannel(0))
@@ -98,6 +102,31 @@ class TestTimeslot(QiskitTestCase):
         """Test representation of Timeslot object."""
         slot = Timeslot(Interval(1, 5), AcquireChannel(0))
         self.assertEqual(repr(slot), 'Timeslot(AcquireChannel(0), (1, 5))')
+
+    def test_check_overlap(self):
+        """Test valid interval creation without error.
+        """
+        dc0 = DriveChannel(0)
+        dc1 = DriveChannel(1)
+
+        self.assertEqual(True, Timeslot(Interval(1, 3), dc0).has_overlap(
+                               Timeslot(Interval(2, 4), dc0)))
+
+        self.assertEqual(True, Timeslot(Interval(1, 3), dc0).has_overlap(
+                               Timeslot(Interval(2, 2), dc0)))
+
+        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
+                                Timeslot(Interval(1, 1), dc0)))
+        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
+                                Timeslot(Interval(3, 3), dc0)))
+        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
+                                Timeslot(Interval(0, 1), dc0)))
+        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
+                                Timeslot(Interval(3, 4), dc0)))
+
+        # check no overlap if different channels
+        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
+                               Timeslot(Interval(1, 3), dc1)))
 
 
 class TestTimeslotCollection(QiskitTestCase):
