@@ -312,6 +312,7 @@ class TestPad(QiskitTestCase):
                      delay(pulse.DriveChannel(0)).shift(20) |
                      double_delay(pulse.DriveChannel(1)).shift(20))
 
+        import pdb;pdb.set_trace()
         self.assertEqual(pad(sched), ref_sched)
 
 

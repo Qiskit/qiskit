@@ -153,8 +153,8 @@ def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
 
     empty_timeslot_collection = schedule.timeslots.complement(until)
 
-    for empty_timeslot in empty_timeslot_collection.timeslots:
-        schedule |= Delay(empty_timeslot.duration)(empty_timeslot.channel)
+    for timeslot in empty_timeslot_collection.timeslots:
+        schedule |= Delay(timeslot.duration)(timeslot.channel).shift(timeslot.start)
 
     for channel in unoccupied_channels:
         schedule |= Delay(until)(channel)
