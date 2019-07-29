@@ -43,7 +43,6 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     meas_lo_range = qobj_config.pop('meas_lo_range')
     meas_map = qobj_config.pop('meas_map', None)
 
-    memory_slots = qobj_config.pop('memory_slots', None)
     max_memory_slot = 0
 
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
@@ -90,7 +89,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         })
 
     # set number of memoryslots
-    qobj_config['memory_slots'] = memory_slots or max_memory_slot
+    qobj_config['memory_slots'] = max_memory_slot
 
     # setup pulse_library
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
