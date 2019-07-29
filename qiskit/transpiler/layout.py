@@ -48,26 +48,29 @@ class Layout():
         return "Layout({\n" + "\n".join(str_list) + "\n})"
 
     def from_dict(self, input_dict):
-        """
-        Populates a Layout from a dictionary.
+        """Populates a Layout from a dictionary.
+
         The dictionary must be a bijective mapping between
         virtual qubits (tuple) and physical qubits (int).
 
         Args:
             input_dict (dict):
-                e.g.:
+                e.g.::
+
                 {(QuantumRegister(3, 'qr'), 0): 0,
                  (QuantumRegister(3, 'qr'), 1): 1,
                  (QuantumRegister(3, 'qr'), 2): 2}
 
                 Can be written more concisely as follows:
 
-                virtual to physical:
+                * virtual to physical::
+
                     {qr[0]: 0,
                      qr[1]: 1,
                      qr[2]: 2}
 
-                physical to virtual:
+                * physical to virtual::
+
                     {0: qr[0],
                      1: qr[1],
                      2: qr[2]}
