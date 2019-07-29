@@ -53,6 +53,8 @@ The format is based on [Keep a Changelog].
 -   Added pass for optimizing phase-shift gates (#2229)
 
 ### Changed
+-   All circuit drawers now express most commonly used fractions 
+    of PI (\#2808).
 -   Set default repetition time to be the first available.
 -   Pulse commands may now start with capitalized letters.
 -   The `pylatexenc` and `pillow` requirements are now optional. These
@@ -72,6 +74,9 @@ The format is based on [Keep a Changelog].
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
 -   Change Snapshot signature to match simulator.snapshot (\#2592)
+-   Changed definition of `Cu3Gate` to to equivalent to the canonical
+    definition of a controlled `U3Gate` (\#2755)
+-   coupling_map now required to validate a backend.configuration() (\#2836)
 
 ### Removed
 
