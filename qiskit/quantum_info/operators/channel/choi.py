@@ -100,7 +100,7 @@ class Choi(QuantumChannel):
             if isinstance(data, (QuantumCircuit, Instruction)):
                 # If the input is a Terra QuantumCircuit or Instruction we
                 # convert it to a SuperOp
-                data = SuperOp._instruction_to_superop(data)
+                data = SuperOp._init_instruction(data)
             else:
                 # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
@@ -221,7 +221,18 @@ class Choi(QuantumChannel):
         Raises:
             QiskitError: if other cannot be converted to a channel.
         """
-        return self._tensor_product(other, reverse=False)
+        # Convert other to Choi
+        if not isinstance(other, Choi):
+            other = Choi(other)
+
+        input_dims = other.input_dims() + self.input_dims()
+        output_dims = other.output_dims() + self.output_dims()
+        data = _bipartite_tensor(
+            self._data,
+            other.data,
+            shape1=self._bipartite_shape,
+            shape2=other._bipartite_shape)
+        return Choi(data, input_dims, output_dims)
 
     def expand(self, other):
         """Return the tensor product channel other ⊗ self.
@@ -235,7 +246,18 @@ class Choi(QuantumChannel):
         Raises:
             QiskitError: if other cannot be converted to a channel.
         """
-        return self._tensor_product(other, reverse=True)
+        # Convert other to Choi
+        if not isinstance(other, Choi):
+            other = Choi(other)
+
+        input_dims = self.input_dims() + other.input_dims()
+        output_dims = self.output_dims() + other.output_dims()
+        data = _bipartite_tensor(
+            other.data,
+            self._data,
+            shape1=other._bipartite_shape,
+            shape2=self._bipartite_shape)
+        return Choi(data, input_dims, output_dims)
 
     def add(self, other):
         """Return the QuantumChannel self + other.
@@ -294,63 +316,18 @@ class Choi(QuantumChannel):
         return Choi(other * self._data, self._input_dims, self._output_dims)
 
     def _evolve(self, state, qargs=None):
-        """Evolve a quantum state by the QuantumChannel.
+        """Evolve a quantum state by the quantum channel.
 
         Args:
-            state (QuantumState): The input statevector or density matrix.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
+            state (DensityMatrix or Statevector): The input state.
+            qargs (list): a list of quantum state subsystem positions to apply
+                           the quantum channel on.
 
         Returns:
             DensityMatrix: the output quantum state as a density matrix.
 
         Raises:
-            QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
+            QiskitError: if the quantum channel dimension does not match the
+            specified quantum state subsystem dimensions.
         """
-        # If subsystem evolution we use the SuperOp representation
-        if qargs is not None:
-            return SuperOp(self)._evolve(state, qargs)
-        # Otherwise we compute full evolution directly
-        state = self._format_state(state, density_matrix=True)
-        if state.shape[0] != self._input_dim:
-            raise QiskitError(
-                "QuantumChannel input dimension is not equal to state dimension."
-            )
-        return np.einsum('AB,AiBj->ij', state,
-                         np.reshape(self._data, self._bipartite_shape))
-
-    def _tensor_product(self, other, reverse=False):
-        """Return the tensor product channel.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            reverse (bool): If False return self ⊗ other, if True return
-                            if True return (other ⊗ self) [Default: False
-        Returns:
-            Choi: the tensor product channel as a Choi object.
-
-        Raises:
-            QiskitError: if other is not a QuantumChannel subclass.
-        """
-        # Convert other to Choi
-        if not isinstance(other, Choi):
-            other = Choi(other)
-
-        if reverse:
-            input_dims = self.input_dims() + other.input_dims()
-            output_dims = self.output_dims() + other.output_dims()
-            data = _bipartite_tensor(
-                other.data,
-                self._data,
-                shape1=other._bipartite_shape,
-                shape2=self._bipartite_shape)
-        else:
-            input_dims = other.input_dims() + self.input_dims()
-            output_dims = other.output_dims() + self.output_dims()
-            data = _bipartite_tensor(
-                self._data,
-                other.data,
-                shape1=self._bipartite_shape,
-                shape2=other._bipartite_shape)
-        return Choi(data, input_dims, output_dims)
+        return SuperOp(self)._evolve(state, qargs)
