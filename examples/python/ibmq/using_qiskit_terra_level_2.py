@@ -19,11 +19,8 @@ This example shows how an advanced user interacts with Terra.
 It builds some circuits and transpiles them with the pass_manager.
 """
 
-import pprint, time
-
 # Import the Qiskit modules
 from qiskit import IBMQ, BasicAer
-from qiskit import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.extensions import SwapGate
 from qiskit.compiler import assemble
@@ -41,7 +38,8 @@ from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import LookaheadSwap
 
 
-IBMQ.load_accounts()
+provider = IBMQ.load_account()
+
 # Making first circuit: superpositions
 qc1 = QuantumCircuit(4, 4)
 qc1.h(0)
@@ -66,12 +64,12 @@ qasm_simulator = BasicAer.get_backend('qasm_simulator')
 # Compile and run the circuit on a real device backend
 # See a list of available remote backends
 print("\n(IBMQ Backends)")
-for backend in IBMQ.backends():
+for backend in provider.backends():
     print(backend.status())
 
 try:
     # select least busy available device and execute.
-    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+    least_busy_device = least_busy(provider.backends(simulator=False))
 except:
     print("All devices are currently unavailable.")
 

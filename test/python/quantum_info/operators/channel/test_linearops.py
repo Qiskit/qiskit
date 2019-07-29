@@ -75,7 +75,7 @@ class TestEquivalence(ChannelTestCase):
                 sop1 = np.kron(np.conj(mat1), mat1)
             else:
                 sop1 = self.rand_matrix(dim * dim, dim * dim)
-            val = 2 * (np.random.rand() - 0.5)
+            val = 0.7
             targ = SuperOp(val * sop1)
             channel = SuperOp(rep(SuperOp(sop1)).multiply(val))
             self.assertEqual(channel, targ)
