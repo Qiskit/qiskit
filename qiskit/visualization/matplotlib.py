@@ -871,7 +871,9 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 3:
                     # cswap gate
                     if op.name == 'cswap':
-                        self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['multi'])
+                        self._ctrl_qubit(q_xy[0],
+                                         fc=self._style.dispcol['multi'],
+                                         ec=self._style.dispcol['multi'])
                         self._swap(q_xy[1])
                         self._swap(q_xy[2])
                         # add qubit-qubit wiring
