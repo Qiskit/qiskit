@@ -109,24 +109,24 @@ class TestTimeslot(QiskitTestCase):
         dc0 = DriveChannel(0)
         dc1 = DriveChannel(1)
 
-        self.assertEqual(True, Timeslot(Interval(1, 3), dc0).has_overlap(
-                               Timeslot(Interval(2, 4), dc0)))
+        self.assertEqual(True,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(2, 4), dc0)))
 
-        self.assertEqual(True, Timeslot(Interval(1, 3), dc0).has_overlap(
-                               Timeslot(Interval(2, 2), dc0)))
+        self.assertEqual(True,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(2, 2), dc0)))
 
-        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
-                                Timeslot(Interval(1, 1), dc0)))
-        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
-                                Timeslot(Interval(3, 3), dc0)))
-        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
-                                Timeslot(Interval(0, 1), dc0)))
-        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
-                                Timeslot(Interval(3, 4), dc0)))
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(1, 1), dc0)))
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(3, 3), dc0)))
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(0, 1), dc0)))
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(3, 4), dc0)))
 
         # check no overlap if different channels
-        self.assertEqual(False, Timeslot(Interval(1, 3), dc0).has_overlap(
-                               Timeslot(Interval(1, 3), dc1)))
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(1, 3), dc1)))
 
 
 class TestTimeslotCollection(QiskitTestCase):
