@@ -807,34 +807,46 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['cx'])
                     # cz for latexmode
                     elif op.name == 'cz':
-                        if self._style.latexmode:
-                            self._ctrl_qubit(q_xy[0])
-                            self._ctrl_qubit(q_xy[1])
-                        else:
-                            disp = op.name.replace('c', '')
-                            self._ctrl_qubit(q_xy[0])
-                            self._gate(q_xy[1], wide=_iswide, text=disp)
-                        # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
-                    # control gate
-                    elif op.name in ['cy', 'ch', 'cu3', 'crz']:
                         disp = op.name.replace('c', '')
-                        self._ctrl_qubit(q_xy[0])
+                        if self._style.name != 'bw':
+                            self._ctrl_qubit(q_xy[0],
+                                             fc=self._style.dispcol['z'],
+                                             ec=self._style.dispcol['z'])
+                        else:
+                            self._ctrl_qubit(q_xy[0])
+                        self._gate(q_xy[1], wide=_iswide, text=disp)
+                        # add qubit-qubit wiring
+                        if self._style.name != 'bw':
+                            self._line(qreg_b, qreg_t, lc=self._style.dispcol['z'])
+                        else:
+                            self._line(qreg_b, qreg_t)
+                    # control gate
+                    elif op.name in ['cy', 'ch', 'cu3', 'cu1', 'crz']:
+                        disp = op.name.replace('c', '')
+
+                        color = None
+                        if self._style.name != 'bw':
+                            if op.name == 'cy':
+                                color = self._style.dispcol['y']
+                            elif op.name == 'ch':
+                                color = self._style.dispcol['h']
+                            elif op.name == 'cu3':
+                                color = self._style.dispcol['u3']
+                            elif op.name == 'cu1':
+                                color = self._style.dispcol['u3']
+                            # crz
+                            else:
+                                color = self._style.dispcol['rz']
+
+                        self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         if param:
                             self._gate(q_xy[1], wide=_iswide, text=disp,
                                        subtext='{}'.format(param))
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp)
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
-                    # cu1
-                    elif op.name == 'cu1':
-                        self._ctrl_qubit(q_xy[0])
-                        self._ctrl_qubit(q_xy[1])
-                        self._sidetext(qreg_b, param)
-
-                        # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t,lc=color)
+                    
                     # rzz gate
                     elif op.name == 'rzz':
                         self._ctrl_qubit(q_xy[0])

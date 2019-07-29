@@ -84,7 +84,7 @@ class DefaultStyle:
             'multi': other_color,
             'meas': non_gate_color
         }
-        self.latexmode = True
+        self.latexmode = False
         self.fold = 20
         self.bundle = False
         self.barrier = True
@@ -180,7 +180,7 @@ class BWStyle:
             'swap': '#000000',
             'multi': '#000000'
         }
-        self.latexmode = True
+        self.latexmode = False
         self.fold = 20
         self.bundle = False
         self.barrier = True
