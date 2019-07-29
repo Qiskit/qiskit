@@ -40,14 +40,6 @@ def circuit_2532():
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
 
-    def assertEqualLayout(self, result_layout, expected_layout):
-        if expected_layout is None:
-            self.assertIsNone(result_layout)
-        else:
-            print('\n'.join(
-                [str((i, j)) for i, j in result_layout._p2v.values() if i.name != 'ancilla']))
-            self.assertEqual()
-
     @combine(level=[0, 1, 2, 3],
              dsc='Test that coupling_map can be None (level={level})',
              name='coupling_map_none_level{level}')
@@ -184,6 +176,7 @@ class TestInitialLayouts(QiskitTestCase):
 
 @ddt
 class TestFinalLayouts(QiskitTestCase):
+    """Test final layouts after preset transpilation"""
     @data(0, 1, 2, 3)
     def test_layout_tokyo_2845(self, level):
         """Test that final layout in tokyo #2845
