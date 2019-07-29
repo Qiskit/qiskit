@@ -15,10 +15,11 @@
 import copy
 import logging
 import time
+import os
 
 from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
-from qiskit.transpiler import Layout, CouplingMap
+from qiskit.transpiler import CouplingMap
 
 from .aqua_error import AquaError
 from .utils import (run_qobj, compile_circuits, CircuitCache,
@@ -61,7 +62,7 @@ class QuantumInstance:
                  # job
                  timeout=None, wait=5,
                  # others
-                 circuit_caching=True, cache_file=None, skip_qobj_deepcopy=True,
+                 circuit_caching=False, cache_file=None, skip_qobj_deepcopy=False,
                  skip_qobj_validation=True,
                  measurement_error_mitigation_cls=None, cals_matrix_refresh_period=30,
                  measurement_error_mitigation_shots=None,
@@ -133,8 +134,6 @@ class QuantumInstance:
         }
 
         # setup compile config
-        if initial_layout is not None and not isinstance(initial_layout, Layout):
-            initial_layout = Layout(initial_layout)
         self._compile_config = {
             'pass_manager': pass_manager,
             'initial_layout': initial_layout,
@@ -186,8 +185,18 @@ class QuantumInstance:
                         "and re-build it after that.".format(self._cals_matrix_refresh_period))
 
         # setup others
-        self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
-                                           cache_file=cache_file) if circuit_caching else None
+        # TODO: allow an external way to overwrite the setting circuit cache temporally
+        if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False):
+            skip_qobj_deepcopy = True
+            self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
+                                               cache_file=cache_file)
+        else:
+            if circuit_caching:
+                self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
+                                                   cache_file=cache_file)
+            else:
+                self._circuit_cache = None
+
         if is_ibmq_provider(self._backend):
             if skip_qobj_validation:
                 logger.warning("The skip Qobj validation does not work for IBMQ provider. Disable it.")
