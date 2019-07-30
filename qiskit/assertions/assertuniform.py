@@ -78,7 +78,7 @@ def get_breakpoint_uniform(self, qubit, cbit, pcrit=0.05):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.breakpoint_name())
+    clone = self.copy(Asserts.new_breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, False)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone
@@ -101,7 +101,7 @@ def get_breakpoint_not_uniform(self, qubit, cbit, pcrit=0.05):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.breakpoint_name())
+    clone = self.copy(Asserts.new_breakpoint_name())
     assertion = AssertUniform(qubit, cbit, pcrit, True)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone

@@ -98,7 +98,7 @@ def get_breakpoint_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.breakpoint_name())
+    clone = self.copy(Asserts.new_breakpoint_name())
     assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, False)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone
@@ -124,7 +124,7 @@ def get_breakpoint_not_product(self, qubit0, cbit0, qubit1, cbit1, pcrit=0.05):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.breakpoint_name())
+    clone = self.copy(Asserts.new_breakpoint_name())
     assertion = AssertProduct(qubit0, cbit0, qubit1, cbit1, pcrit, True)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone

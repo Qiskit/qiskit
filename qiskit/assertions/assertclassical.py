@@ -107,7 +107,7 @@ def get_breakpoint_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.breakpoint_name())
+    clone = self.copy(Asserts.new_breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval, False)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone
@@ -133,7 +133,7 @@ def get_breakpoint_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
     """
-    clone = self.copy(Asserts.breakpoint_name())
+    clone = self.copy(Asserts.new_breakpoint_name())
     assertion = AssertClassical(qubit, cbit, pcrit, expval, True)
     clone.append(assertion, [assertion._qubit], [assertion._cbit])
     return clone

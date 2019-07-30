@@ -46,13 +46,13 @@ class Asserts(Measure):
         self._expval = None
 
     @staticmethod
-    def breakpoint_name():
+    def new_breakpoint_name():
         """
-        Returns the name of the breakpoint.  A breakpoint is a QuantumCircuit
+        Returns the name of a new breakpoint.  A breakpoint is a QuantumCircuit
         whose last instruction is an assertion instruction.
 
         Returns:
-            string: the breakpoint name
+            string: the new breakpoint name
         """
         return "breakpoint_" + datetime.now().isoformat()
 
