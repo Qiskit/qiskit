@@ -288,9 +288,6 @@ class ScheduleDrawer:
         acquire_channels = collections.OrderedDict()
         snapshot_channels = collections.OrderedDict()
 
-        if isinstance(channels_to_plot[0], str):
-            channels_to_plot = _get_channel_object(channels_to_plot)
-
         _channels = list(schedule.channels) + channels_to_plot
         _channels = list(set(_channels))
 
@@ -556,6 +553,9 @@ class ScheduleDrawer:
 
         if not channels_to_plot:
             channels_to_plot = []
+        elif all(isinstance(ch, str) for ch in channels_to_plot):
+            channels_to_plot = _get_channel_object(channels_to_plot)
+
         interp_method = interp_method or interpolation.step_wise
 
         # setup plot range
