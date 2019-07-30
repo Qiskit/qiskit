@@ -31,8 +31,8 @@ class Asserts(Measure):
         Constructor for Asserts
 
         Args:
-            qubit(QuantumRegister or list or tuple): quantum register
-            cbit(ClassicalRegister or list or tuple): classical register
+            qubit(QuantumRegister or list): quantum register
+            cbit(ClassicalRegister or list): classical register
             pcrit(float): the critical p-value
             negate(bool): True if assertion passed is negation of statistical test passed
             type_str(string): the type of the assertion
@@ -63,14 +63,14 @@ class Asserts(Measure):
         instruction, as a list.
 
         Args:
-            bit(QuantumRegister or ClassicalRegister or list or tuple): register
+            bit(QuantumRegister or ClassicalRegister or list): register
 
         Returns:
-            list or Register: bit as a list
+            list or Register: bit as a list or Register
         """
         if isinstance(bit, (list, Register)):
             return bit
-        elif isinstance(bit, (range, tuple)):
+        elif isinstance(bit, range):
             return list(bit)
         else:
             return [bit]
@@ -81,7 +81,7 @@ class Asserts(Measure):
         Returns the indices of cbits with respect to exp, the QuantumCircuit.
 
         Args:
-            cbits(ClassicalRegister or list or tuple): cbit of a measurement instruction
+            cbits(ClassicalRegister or list): cbit of a measurement instruction
             exp(QuantumCircuit): an experiment
 
         Returns:
@@ -116,5 +116,8 @@ class Asserts(Measure):
                 chisq(float): the chi-squared value
                 pval(float): the p-value
                 passed(bool): if the test passed
+
+        Raises:
+            NotImplementedError
         """
-        return
+        raise NotImplementedError

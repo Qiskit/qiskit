@@ -32,8 +32,8 @@ class AssertClassical(Asserts):
         Constructor for AssertClassical
 
         Args:
-            qubit(QuantumRegister or list or tuple): quantum register
-            cbit(ClassicalRegister or list or tuple): classical register
+            qubit(QuantumRegister or list): quantum register
+            cbit(ClassicalRegister or list): classical register
             pcrit(float): the critical p-value
             expval(int or string or None): the expected value
             negate(bool): True if assertion passed is negation of statistical test passed
@@ -101,8 +101,8 @@ def get_breakpoint_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     Args:
         expval (integer or string or None): integer in base 10, or a string of 0's and 1's
         pcrit (float): critical p-value for the hypothesis test
-        qubit (QuantumRegister or list or tuple): quantum register
-        cbit (ClassicalRegister or list or tuple): classical register
+        qubit (QuantumRegister or list): quantum register
+        cbit (ClassicalRegister or list): classical register
 
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point
@@ -127,8 +127,8 @@ def get_breakpoint_not_classical(self, qubit, cbit, pcrit=0.05, expval=None):
     Args:
         expval (integer or string): integer in base 10, or a string of 0's and 1's
         pcrit (float): critical p-value for the hypothesis test
-        qubit (QuantumRegister or list or tuple): quantum register
-        cbit (ClassicalRegister or list or tuple): classical register
+        qubit (QuantumRegister or list): quantum register
+        cbit (ClassicalRegister or list): classical register
 
     Returns:
         QuantumCircuit: copy of quantum circuit at the assert point

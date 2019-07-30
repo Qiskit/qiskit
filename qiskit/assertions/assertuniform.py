@@ -30,8 +30,8 @@ class AssertUniform(Asserts):
         Constructor for AssertUniform
 
         Args:
-            qubit(QuantumRegister or list or tuple): quantum register
-            cbit(ClassicalRegister or list or tuple): classical register
+            qubit(QuantumRegister or list): quantum register
+            cbit(ClassicalRegister or list): classical register
             pcrit(float): the critical p-value
             negate(bool): True if assertion passed is negation of statistical test passed
         """
@@ -71,8 +71,8 @@ def get_breakpoint_uniform(self, qubit, cbit, pcrit=0.05):
     assertion passes; if the test fails, the assertion fails.
 
     Args:
-        qubit (QuantumRegister or list or tuple): quantum register
-        cbit (ClassicalRegister or list or tuple): classical register
+        qubit (QuantumRegister or list): quantum register
+        cbit (ClassicalRegister or list): classical register
         pcrit (float): critical p-value for the hypothesis test
 
     Returns:
@@ -94,8 +94,8 @@ def get_breakpoint_not_uniform(self, qubit, cbit, pcrit=0.05):
     assertion fails; if the test fails, the assertion passes.
 
     Args:
-        qubit (QuantumRegister or list or tuple): quantum register
-        cbit (ClassicalRegister or list or tuple): classical register
+        qubit (QuantumRegister or list): quantum register
+        cbit (ClassicalRegister or list): classical register
         pcrit (float): critical p-value for the hypothesis test
 
     Returns:
