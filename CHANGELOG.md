@@ -50,8 +50,13 @@ The format is based on [Keep a Changelog].
 -   Gray-Synth and Patel–Markov–Hayes algorithms for synthesis of
     CNOT-Phase and CNOT-only (linear) circuits (\#2457)
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
+-   Added a ``random_circuit`` function under ``qiskit.circuit.random``
+    (#2553)
 
 ### Changed
+
+-   The number of memory slots required will now be inferred from the supplied
+    schedules if `memory_slots` is not supplied.
 -   All circuit drawers now express most commonly used fractions
     of PI (\#2808).
 -   Set default repetition time to be the first available.
