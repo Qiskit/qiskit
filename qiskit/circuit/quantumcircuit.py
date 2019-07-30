@@ -32,6 +32,47 @@ from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
 
+from collections import UserList
+
+class CircuitData(UserList):
+    def __init__(self, circuit_data, *circuit):
+        self.data = circuit_data
+        self._circuit = circuit
+    def __setitem__(self, key, value):
+        instruction, qargs, cargs = value
+
+        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
+            instruction = instruction.to_instruction()
+
+        expanded_qargs = [self._circuit.qbit_argument_conversion(qarg)
+                          for qarg in qargs or []]
+        expanded_cargs = [self._circuit.cbit_argument_conversion(carg)
+                          for carg in cargs or []]
+
+        instructions = InstructionSet()
+        for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
+            #instructions.add(self._append(instruction, qarg, carg), qarg, carg)
+            self._circuit._check_dups(qargs)
+            self._circuit._check_qargs(qargs)
+            self._circuit._check_cargs(cargs)
+
+            # add the instruction onto the given wires
+            instruction_context = instruction, qargs, cargs
+            self.data.__setitem(key, instruction_context)
+
+            # track variable parameters in instruction
+            for param_index, param in enumerate(instruction.params):
+                if isinstance(param, Parameter):
+                    current_symbols = self.circuit.parameters
+
+                    if param in current_symbols:
+                        self._circuit._parameter_table[param].append((instruction, param_index))
+                    else:
+                        if param.name in {p.name for p in current_symbols}:
+                            raise QiskitError(
+                                'Name conflict on adding parameter: {}'.format(param.name))
+                        self._circuit._parameter_table[param] = [(instruction, param_index)]
+
 
 def _is_bit(obj):
     """Determine if obj is a bit"""
@@ -111,7 +152,7 @@ class QuantumCircuit:
                is an Instruction (or subclass) object, qargs is a list of
                Qubit objects, and cargs is a list of Clbit objects.
         """
-        return self._data
+        return CircuitData(self._data)
 
     @data.setter
     def data(self, data_input):
