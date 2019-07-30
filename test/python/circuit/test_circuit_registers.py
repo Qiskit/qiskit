@@ -93,6 +93,7 @@ class TestCircuitRegisters(QiskitTestCase):
         self.assertEqual(qr1[-1], qr1[9])
         self.assertEqual(qr1[-3:-1], [qr1[7], qr1[8]])
         self.assertEqual(len(cr1[0:-2]), 8)
+        self.assertEqual(qr1[[-1, -3, -5]], [qr1[9], qr1[7], qr1[5]])
 
     def test_reg_equal(self):
         """Test getting quantum registers from circuit.
