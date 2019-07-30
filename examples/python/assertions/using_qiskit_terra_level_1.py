@@ -49,12 +49,16 @@ breakpoints = []
 qc1 = QuantumCircuit(2, 2, name="bell")
 qc1.h(0)
 qc1.cx(0, 1)
+# Since the breakpoint below and qc1 are identical, we can transpile
+# and run just qc1 and use qc1's results for the statistical test.
 breakpoints.append(qc1.get_breakpoint_not_product(0, 0, 1, 1, 0.05))
 qc1.measure([0,1], [0,1])
 
 # Making another circuit: superpositions
 qc2 = QuantumCircuit(2, 2, name="uniform")
 qc2.h([0,1])
+# Since the breakpoint below and qc2 are identical, we can transpile
+# and run just qc2 and use qc2's results for the statistical test.
 breakpoints.append(qc2.get_breakpoint_uniform([0,1], [0,1], 0.05))
 qc2.measure([0,1], [0,1])
 
