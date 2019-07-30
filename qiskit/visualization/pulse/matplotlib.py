@@ -33,6 +33,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
                           Acquire, PulseError)
+from .utils import _get_channel_object
 
 
 class EventsOutputChannels:
@@ -287,6 +288,9 @@ class ScheduleDrawer:
         acquire_channels = collections.OrderedDict()
         snapshot_channels = collections.OrderedDict()
 
+        if isinstance(channels_to_plot[0], str):
+            channels_to_plot = _get_channel_object(channels_to_plot)
+
         _channels = list(schedule.channels) + channels_to_plot
         _channels = list(set(_channels))
 
@@ -537,7 +541,7 @@ class ScheduleDrawer:
                 See `qiskit.visualization.interpolation` for more information
             plot_range (tuple[float]): plot range
             scaling (float): Relative visual scaling of waveform amplitudes
-            channels_to_plot (list[OutputChannel]): channels to draw
+            channels_to_plot (list[Channel] or list[str]): channels to draw
             plot_all (bool): if plot all channels even it is empty
             table (bool): Draw event table
             label (bool): Label individual instructions

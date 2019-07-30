@@ -20,6 +20,9 @@ import os
 import unittest
 
 from qiskit.tools.visualization import HAS_MATPLOTLIB, pulse_drawer
+from qiskit.visualization.pulse.utils import _get_channel_object
+from qiskit.visualization.exceptions import VisualizationError
+
 from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit,
                                    RegisterSlot, MemorySlot)
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel, MeasureChannel
@@ -73,6 +76,22 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         sched |= Snapshot("snapshot_1", "snap_type") << 60
         sched |= Snapshot("snapshot_2", "snap_type") << 120
         return sched
+
+    def test_str_to_channel(self):
+        """Test helper function to convert list of strings to corresponding channels."""
+        channels = _get_channel_object(channels_str=['d0', 'm0', 'u0', 'a0'])
+        self.assertEqual(channels[0], DriveChannel(index=0))
+        self.assertEqual(channels[1], MeasureChannel(index=0))
+        self.assertEqual(channels[2], ControlChannel(index=0))
+        self.assertEqual(channels[3], AcquireChannel(index=0))
+
+        # not existing channel
+        with self.assertRaises(VisualizationError):
+            _get_channel_object(channels_str=['x0'])
+
+        # invalid channel format
+        with self.assertRaises(VisualizationError):
+            _get_channel_object(channels_str=['12345'])
 
     # TODO: Enable for refactoring purposes and enable by default when we can
     # decide if the backend is available or not.
