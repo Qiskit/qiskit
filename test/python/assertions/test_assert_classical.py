@@ -39,7 +39,7 @@ class TestAssertClassical(QiskitTestCase):
         """
         qc = QuantumCircuit(2, 2)
         qc.h(1)
-        bkpt = qc.get_breakpoint_not_classical([0, 1], [0, 1], 0.01, "10")
+        bkpt = qc.get_breakpoint_not_classical([0, 1], [0, 1], 0.01)
         BasicAer.backends()
         job = execute(bkpt, BasicAer.get_backend('qasm_simulator'))
         self.assertTrue(job.result().get_assertion_passed(bkpt))
@@ -69,7 +69,7 @@ class TestAssertClassical(QiskitTestCase):
         qc = QuantumCircuit(q, q_2, c, c_2)
         qc.h(0)
         qc.x(2)
-        bkpt = qc.get_breakpoint_classical(q_2, c_2, 0.01)
+        bkpt = qc.get_breakpoint_classical(q_2, c_2, 0.01, "10")
         BasicAer.backends()
         job = execute(bkpt, BasicAer.get_backend('qasm_simulator'))
         self.assertTrue(job.result().get_assertion_passed(bkpt))
