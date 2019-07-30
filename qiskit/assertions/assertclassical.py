@@ -62,7 +62,9 @@ class AssertClassical(Asserts):
             tuple: tuple containing:
 
                 chisq(float): the chi-squared value
+
                 pval(float): the p-value
+
                 passed(bool): if the test passed
         """
 

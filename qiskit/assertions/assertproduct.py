@@ -63,7 +63,9 @@ class AssertProduct(Asserts):
             tuple: tuple containing:
 
                 chisq(float): the chi-square value
+
                 pval(float): the p-value
+
                 passed(bool): if the test passed
         """
         q0len = len(self._qubit0)

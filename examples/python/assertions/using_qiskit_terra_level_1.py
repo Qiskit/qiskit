@@ -81,7 +81,7 @@ print("Running on current least busy device: ", least_busy_device)
 
 # Transpile the circuits to make them compatible with the experimental backend
 [qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
-breakpoints_new = transpile(circuits=breakpoints, backend=least_busy_device)
+# breakpoints_new = transpile(circuits=breakpoints, backend=least_busy_device)
 
 print("Bell circuit before transpile:")
 print(qc1)
@@ -93,7 +93,8 @@ print("Uniform circuit after transpile:")
 print(qc2_new)
 
 # Assemble the two circuits into a runnable qobj
-qobj = assemble(breakpoints_new + [qc1_new, qc2_new], shots=1000)
+qobj = assemble([qc1_new, qc2_new], shots=1000)
+# qobj = assemble(breakpoints_new + [qc1_new, qc2_new], shots=1000)
 
 # Running qobj on the simulator
 sim_job = qasm_simulator.run(qobj)
@@ -102,11 +103,11 @@ sim_job = qasm_simulator.run(qobj)
 sim_result=sim_job.result()
 
 # Perform statistical tests and output the assertion result
-for breakpoint in breakpoints_new:
+for (breakpoint, qc) in zip(breakpoints, [qc1_new, qc2_new]):
     print("Simulated Results of our " + sim_result.get_assertion_type(breakpoint) + " Assertion:")
-    tup = sim_result.get_assertion(breakpoint)
+    tup = sim_result.get_assertion(breakpoint, qc)
     print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
-    assert ( sim_result.get_assertion_passed(breakpoint) )
+    assert ( sim_result.get_assertion_passed(breakpoint, qc) )
 
 
 # Show the results
@@ -120,11 +121,11 @@ job_monitor(exp_job)
 exp_result = exp_job.result()
 
 # Perform statistical tests and output the assertion result
-for breakpoint in breakpoints_new:
+for (breakpoint, qc) in zip(breakpoints, [qc1_new, qc2_new]):
     print("Experimental Results of our " + exp_result.get_assertion_type(breakpoint) + " Assertion:")
-    tup = exp_result.get_assertion(breakpoint)
+    tup = exp_result.get_assertion(breakpoint, qc)
     print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
-    assert ( exp_result.get_assertion_passed(breakpoint) )
+    assert ( exp_result.get_assertion_passed(breakpoint, qc) )
 
 # Show the results
 print(exp_result.get_counts(qc1))

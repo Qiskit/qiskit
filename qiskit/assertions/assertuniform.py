@@ -52,7 +52,9 @@ class AssertUniform(Asserts):
             tuple: tuple containing:
 
                 chisq(float): the chi-square value
+
                 pval(float): the p-value
+
                 passed(Boolean): if the test passed
         """
 

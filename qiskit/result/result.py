@@ -182,21 +182,33 @@ class Result(BaseModel):
         except KeyError:
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
-    def get_assertion(self, experiment=None):
+    def get_assertion(self, experiment=None, result_experiment=None):
         """
         Calculate and collect results of statistical tests for an experiment.
+        The optional argument result_experiment is only for when experiment and
+        result_experiment are the exact same quantum circuit (other than the final
+        assertion or measure instruction) as it is more efficient to transpile and execute
+        only result_experiment, and use the result of result_experiment for the statistical
+        test of experiment.
 
         Args:
             experiment (QuantumCircuit): a breakpoint
+            result_experiment (:obj:`QuantumCircuit`, optional): another QuantumCircuit
+                which can be a breakpoint
 
         Returns:
             tuple: tuple containing:
 
                 chisq(float): the chi-squared value
+
                 pval(float): the p-value
-                passed(Boolean): if assertion passed
+
+                passed(bool): if assertion passed
         """
-        counts = self.get_counts(experiment)
+        if result_experiment is None:
+            counts = self.get_counts(experiment)
+        else:
+            counts = self.get_counts(result_experiment)
         assertion = experiment.data[-1][0]
 
         cbits = assertion._cbit
@@ -213,41 +225,19 @@ class Result(BaseModel):
         chisq, pval, passed = assertion.stat_test(counts)
         return chisq, pval, passed if not assertion._negate else not passed
 
-    def get_assertion_pval(self, experiment=None):
-        """
-        Calculate and collect results of statistical tests for an experiment.
-        Args:
-            experiment (QuantumCircuit): a breakpoint
-        Returns:
-            float: p-value of statistical test
-        """
-        _, pval, _ = self.get_assertion(experiment)
-        return pval
-
-    def get_assertion_chisq(self, experiment=None):
+    def get_assertion_passed(self, experiment=None, result_experiment=None):
         """
         Calculate and collect results of statistical tests for an experiment.
 
         Args:
             experiment (QuantumCircuit): a breakpoint
+            result_experiment (:obj:`QuantumCircuit`, optional): another QuantumCircuit;
+                could be a breakpoint
 
         Returns:
-            float: chi-squared test statistic
+            bool: if assertion passed
         """
-        chisq, _, _ = self.get_assertion(experiment)
-        return chisq
-
-    def get_assertion_passed(self, experiment=None):
-        """
-        Calculate and collect results of statistical tests for an experiment.
-
-        Args:
-            experiment (QuantumCircuit): a breakpoint
-
-        Returns:
-            Boolean: if assertion passed
-        """
-        _, _, passed = self.get_assertion(experiment)
+        _, _, passed = self.get_assertion(experiment, result_experiment)
         return passed
 
     def get_assertion_type(self, experiment=None):
