@@ -196,12 +196,11 @@ class Result(BaseModel):
                 pval(float): the p-value
                 passed(Boolean): if assertion passed
         """
-        exp = experiment
-        counts = self.get_counts(exp)
-        assertion = exp.data[-1][0]
+        counts = self.get_counts(experiment)
+        assertion = experiment.data[-1][0]
 
         cbits = assertion._cbit
-        cbits = Asserts.clbits2idxs(cbits, exp)
+        cbits = Asserts.clbits2idxs(cbits, experiment)
 
         new_counts = {}
         for (key, value) in counts.items():
