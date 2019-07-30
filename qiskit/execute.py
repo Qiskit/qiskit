@@ -107,6 +107,8 @@ def execute(experiments, backend,
                 0: no optimization
                 1: light optimization
                 2: heavy optimization
+                3: even heavier optimization
+            If None, level 1 will be chosen as default.
 
         pass_manager (PassManager):
             The pass manager to use during transpilation. If this arg is present,
