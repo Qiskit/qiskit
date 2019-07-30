@@ -12,17 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Object to represent the information at a node in the DAGCircuit
-"""
+"""Object to represent the information at a node in the DAGCircuit"""
 
 from qiskit.exceptions import QiskitError
 
 
 class DAGNode:
-    """
-    Object to represent the information at a node in the DAGCircuit
+    """Object to represent the information at a node in the DAGCircuit
 
-    It is used as the return value from *_nodes() functions and can
+    It is used as the return value from `*_nodes()` functions and can
     be supplied to functions that take a node.
     """
 
