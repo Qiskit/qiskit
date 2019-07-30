@@ -182,14 +182,14 @@ class Result(BaseModel):
         except KeyError:
             raise QiskitError('No counts for experiment "{0}"'.format(experiment))
 
-    def get_assertion(self, experiment=None, result_experiment=None):
+    def get_assertion_stats(self, experiment=None, result_experiment=None):
         """
         Calculate and collect results of statistical tests for an experiment.
         The optional argument result_experiment is only for when experiment and
-        result_experiment are the exact same quantum circuit (other than the final
-        assertion or measure instruction) as it is more efficient to transpile and execute
-        only result_experiment, and use the result of result_experiment for the statistical
-        test of experiment.
+        result_experiment are the exact same quantum circuit (with the final
+        assertion or measure instruction doing the same measurement) as it is
+        more efficient to transpile and execute only result_experiment, and use
+        the result of result_experiment for the statistical test of experiment.
 
         Args:
             experiment (QuantumCircuit): a breakpoint
@@ -237,7 +237,7 @@ class Result(BaseModel):
         Returns:
             bool: if assertion passed
         """
-        _, _, passed = self.get_assertion(experiment, result_experiment)
+        _, _, passed = self.get_assertion_stats(experiment, result_experiment)
         return passed
 
     def get_assertion_type(self, experiment=None):
@@ -251,6 +251,17 @@ class Result(BaseModel):
         """
         assertion = experiment.data[-1][0]
         return assertion._type
+
+    def get_assertion(self, experiment=None):
+        """
+        Return the assertion object for an experiment.
+
+        Args:
+            experiment (QuantumCircuit): a breakpoint
+        Returns:
+            Asserts: the assertion
+        """
+        return experiment.data[-1][0]
 
     def get_statevector(self, experiment=None, decimals=None):
         """Get the final statevector of an experiment.

@@ -113,7 +113,7 @@ result = job.result()
 # Show the assertion
 for breakpoint in breakpoints:
     print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
-    tup = result.get_assertion(breakpoint)
+    tup = result.get_assertion_stats(breakpoint)
     print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
     assert ( result.get_assertion_passed(breakpoint) )
 #print(result.get_counts(qc))
@@ -124,7 +124,7 @@ result = job.result()
 # Show the assertion
 for breakpoint in breakpoints:
     print("Results of our " + result.get_assertion_type(breakpoint) + " Assertion:")
-    tup = result.get_assertion(breakpoint)
+    tup = result.get_assertion_stats(breakpoint)
     print('chisq = %s\npval = %s\npassed = %s\n' % tuple(map(str,tup)))
     assert ( result.get_assertion_passed(breakpoint) )
 #print(result.get_counts(qc))
