@@ -17,10 +17,9 @@
 import os
 import logging
 import unittest
-from inspect import signature
-import numpy as np
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit.random import random_circuit
 from qiskit.visualization import utils
 from qiskit.visualization import circuit_drawer
 from qiskit.test import QiskitTestCase
@@ -31,60 +30,10 @@ logger = logging.getLogger(__name__)
 class TestLatexSourceGenerator(QiskitTestCase):
     """Qiskit latex source generator tests."""
 
-    def random_circuit(self, width=3, depth=3, max_operands=3):
-        """Generate random circuit of arbitrary size.
-        Note: the depth is the layers of independent operation. true depth
-        in the image may be more for visualization purposes, if gates overlap.
-
-        Args:
-            width (int): number of quantum wires
-            depth (int): layers of operations
-            max_operands (int): maximum operands of each gate
-
-        Returns:
-            QuantumCircuit: constructed circuit
-        """
-        qr = QuantumRegister(width, "q")
-        qc = QuantumCircuit(qr)
-
-        one_q_ops = "iden,u0,u1,u2,u3,x,y,z,h,s,sdg,t,tdg,rx,ry,rz"
-        two_q_ops = "cx,cy,cz,ch,crz,cu1,cu3,swap"
-        three_q_ops = "ccx"
-
-        seed = np.random.randint(0, np.iinfo(np.int32).max)
-        logger.debug("random_circuit RandomState seeded with seed=%s", seed)
-        rng = np.random.RandomState(seed)
-        # apply arbitrary random operations at every depth
-        for _ in range(depth):
-            # choose either 1, 2, or 3 qubits for the operation
-            remaining_qubits = list(range(width))
-            while remaining_qubits:
-                max_possible_operands = min(len(remaining_qubits), max_operands)
-                num_operands = rng.choice(range(max_possible_operands)) + 1
-                rng.shuffle(remaining_qubits)
-                operands = remaining_qubits[:num_operands]
-                remaining_qubits = [q for q in remaining_qubits if q not in operands]
-                if num_operands == 1:
-                    operation = rng.choice(one_q_ops.split(','))
-                elif num_operands == 2:
-                    operation = rng.choice(two_q_ops.split(','))
-                elif num_operands == 3:
-                    operation = rng.choice(three_q_ops.split(','))
-                # every gate is defined as a method of the QuantumCircuit class
-                # the code below is so we can call a gate by its name
-                gate = getattr(QuantumCircuit, operation)
-                op_args = list(signature(gate).parameters.keys())
-                num_angles = len(op_args) - num_operands - 1  # -1 for the 'self' arg
-                angles = [rng.uniform(0, 3.14) for x in range(num_angles)]
-                register_operands = [qr[i] for i in operands]
-                gate(qc, *angles, *register_operands)
-
-        return qc
-
     def test_tiny_circuit(self):
         """Test draw tiny circuit."""
         filename = self._get_resource_path('test_tiny.tex')
-        qc = self.random_circuit(1, 1, 1)
+        qc = random_circuit(1, 1, 1)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -95,7 +44,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_normal_circuit(self):
         """Test draw normal size circuit."""
         filename = self._get_resource_path('test_normal.tex')
-        qc = self.random_circuit(5, 5, 3)
+        qc = random_circuit(5, 5, 3)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -106,7 +55,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_wide_circuit(self):
         """Test draw wide circuit."""
         filename = self._get_resource_path('test_wide.tex')
-        qc = self.random_circuit(100, 1, 1)
+        qc = random_circuit(100, 1, 1)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -117,7 +66,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_deep_circuit(self):
         """Test draw deep circuit."""
         filename = self._get_resource_path('test_deep.tex')
-        qc = self.random_circuit(1, 100, 1)
+        qc = random_circuit(1, 100, 1)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
@@ -128,7 +77,7 @@ class TestLatexSourceGenerator(QiskitTestCase):
     def test_huge_circuit(self):
         """Test draw huge circuit."""
         filename = self._get_resource_path('test_huge.tex')
-        qc = self.random_circuit(40, 40, 1)
+        qc = random_circuit(40, 40, 1)
         try:
             circuit_drawer(qc, filename=filename, output='latex_source')
             self.assertNotEqual(os.path.exists(filename), False)
