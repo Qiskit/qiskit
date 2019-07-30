@@ -81,7 +81,6 @@ print("Running on current least busy device: ", least_busy_device)
 
 # Transpile the circuits to make them compatible with the experimental backend
 [qc1_new, qc2_new] = transpile(circuits=[qc1, qc2], backend=least_busy_device)
-# breakpoints_new = transpile(circuits=breakpoints, backend=least_busy_device)
 
 print("Bell circuit before transpile:")
 print(qc1)
@@ -94,7 +93,6 @@ print(qc2_new)
 
 # Assemble the two circuits into a runnable qobj
 qobj = assemble([qc1_new, qc2_new], shots=1000)
-# qobj = assemble(breakpoints_new + [qc1_new, qc2_new], shots=1000)
 
 # Running qobj on the simulator
 sim_job = qasm_simulator.run(qobj)
