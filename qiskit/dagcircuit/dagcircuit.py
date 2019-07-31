@@ -1244,7 +1244,8 @@ class DAGCircuit:
         """Return a dictionary of circuit properties."""
         summary = {"size": self.size(),
                    "depth": self.depth(),
-                   "width": self.num_qubits(),
+                   "width": self.width(),
+                   "qubits": self.num_qubits(),
                    "bits": self.num_clbits(),
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
