@@ -993,6 +993,9 @@ class Z2Symmetries:
         ret.append("Symmetries:")
         for s in self._symmetries:
             ret.append(s.to_label())
+        ret.append("Single-Qubit Pauli X:")
+        for x in self._sq_paulis:
+            ret.append(x.to_label())
         ret.append("Cliffords:")
         for c in self.cliffords:
             ret.append(c.print_details())
@@ -1000,7 +1003,9 @@ class Z2Symmetries:
         ret.append(str(self._sq_list))
         ret.append("Tapering values:")
         if self._tapering_values is None:
-            ret.append("None")
+            possible_values = [str(list(coeff)) for coeff in itertools.product([1, -1], repeat=len(self._sq_list))]
+            possible_values = ', '.join(x for x in possible_values)
+            ret.append("  - Possible values: " + possible_values)
         else:
             ret.append(str(self._tapering_values))
 

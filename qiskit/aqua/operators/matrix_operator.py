@@ -136,6 +136,10 @@ class MatrixOperator(BaseOperator):
         op._matrix.eliminate_zeros()
         return op
 
+    def _scaling_weight(self, scaling_factor):
+        # TODO: existed for supporting the deprecated method, will remove it.
+        self._matrix = scaling_factor * self._matrix
+
     def __mul__(self, other):
         """
         Overload * operation. Only support two Operators have the same representation mode.
