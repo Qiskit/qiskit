@@ -15,6 +15,7 @@
 
 import itertools
 import warnings
+import logging
 
 import numpy as np
 from qiskit.quantum_info import Pauli
@@ -24,6 +25,8 @@ from qiskit.aqua import Operator
 from .weighted_pauli_operator import WeightedPauliOperator
 from .matrix_operator import MatrixOperator
 from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
+
+logger = logging.getLogger(__name__)
 
 
 def to_weighted_pauli_operator(operator):
@@ -44,7 +47,8 @@ def to_weighted_pauli_operator(operator):
     elif operator.__class__ == MatrixOperator:
         if operator.is_empty():
             return WeightedPauliOperator(paulis=[])
-
+        logger.warning("Convert from a MatrixOperator to a Pauli-type Operator requires exponential time. "
+                       "Please be patient.")
         num_qubits = operator.num_qubits
         coeff = 2 ** (-num_qubits)
 
