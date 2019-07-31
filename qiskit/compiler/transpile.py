@@ -219,13 +219,18 @@ def transpile(circuits,
                                           + "transpiled circuits")
             # multiple circuits
             else:
-                if len(circuits) == len(output_names):
+                if len(circuits) == len(output_names) and \
+                        all(isinstance(name, str) for name in output_names):
                     for index, circuit in enumerate(circuits):
                         circuit.name = output_names[index]
                 else:
-                    raise TranspilerError("the length of output_names list "
-                                          + "must be equal to the number of "
-                                          + "transpiled circuits")
+                    raise TranspilerError("The length of output_names list "
+                                          "must be equal to the number of "
+                                          "transpiled circuits and the output_names "
+                                          "list should be strings.")
+        else:
+            raise TranspilerError("The parameter output_names should be a string or a"
+                                  "list of strings: %s was used." % type(output_names))
     if len(circuits) == 1:
         return circuits[0]
     return circuits
