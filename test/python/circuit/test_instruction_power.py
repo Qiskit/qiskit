@@ -24,7 +24,7 @@ from numpy.linalg import matrix_power
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate
+from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate, CnotGate
 from qiskit.transpiler.passes import Unroller
 
 
@@ -36,8 +36,8 @@ class TestPowerInt(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SGate(), qr[:])
-        expected_circ.append(SGate(), qr[:])
+        expected_circ.append(SGate(), [qr[0]])
+        expected_circ.append(SGate(), [qr[0]])
         expected = expected_circ.to_instruction()
 
         result = SGate().power(2)
@@ -50,7 +50,7 @@ class TestPowerInt(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SGate(), qr[:])
+        expected_circ.append(SGate(), [qr[0]])
         expected = expected_circ.to_instruction()
 
         result = SGate().power(1)
@@ -63,7 +63,7 @@ class TestPowerInt(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(U3Gate(0, 0, 0), qr[:])
+        expected_circ.append(U3Gate(0, 0, 0), [qr[0]])
         expected = expected_circ.to_instruction()
 
         result = SGate().power(0)
@@ -76,7 +76,7 @@ class TestPowerInt(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SdgGate(), qr[:])
+        expected_circ.append(SdgGate(), [qr[0]])
         expected = expected_circ.to_instruction()
 
         result = SGate().power(-1)
@@ -89,13 +89,81 @@ class TestPowerInt(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SdgGate(), qr[:])
-        expected_circ.append(SdgGate(), qr[:])
+        expected_circ.append(SdgGate(), [qr[0]])
+        expected_circ.append(SdgGate(), [qr[0]])
         expected = expected_circ.to_instruction()
 
         result = SGate().power(-2)
 
         self.assertEqual(result.name, 's^-2')
+        self.assertEqual(result.definition, expected.definition)
+
+    def test_standard_2Q_two(self):
+        """Test standard 2Q gate.power(2) method.
+        """
+        qr = QuantumRegister(2, 'qr')
+        expected_circ = QuantumCircuit(qr)
+        expected_circ.append(CnotGate(), [qr[0], qr[1]])
+        expected_circ.append(CnotGate(), [qr[0], qr[1]])
+        expected = expected_circ.to_instruction()
+
+        result = CnotGate().power(2)
+
+        self.assertEqual(result.name, 'cx^2')
+        self.assertEqual(result.definition, expected.definition)
+
+    def test_standard_2Q_one(self):
+        """Test standard 2Q gate.power(1) method.
+        """
+        qr = QuantumRegister(2, 'qr')
+        expected_circ = QuantumCircuit(qr)
+        expected_circ.append(CnotGate(), [qr[0], qr[1]])
+        expected = expected_circ.to_instruction()
+
+        result = CnotGate().power(1)
+
+        self.assertEqual(result.name, 'cx^1')
+        self.assertEqual(result.definition, expected.definition)
+
+    def test_standard_2Q_zero(self):
+        """Test standard 2Q gate.power(0) method.
+        """
+        qr = QuantumRegister(2, 'qr')
+        expected_circ = QuantumCircuit(qr)
+        expected_circ.append(U3Gate(0, 0, 0), [qr[0]])
+        expected_circ.append(U3Gate(0, 0, 0), [qr[1]])
+        expected = expected_circ.to_instruction()
+
+        result = CnotGate().power(0)
+
+        self.assertEqual(result.name, 'cx^0')
+        self.assertEqual(result.definition, expected.definition)
+
+    def test_standard_2Q_minus_one(self):
+        """Test standard 2Q gate.power(-1) method.
+        """
+        qr = QuantumRegister(2, 'qr')
+        expected_circ = QuantumCircuit(qr)
+        expected_circ.append(CnotGate(), [qr[0], qr[1]])
+        expected = expected_circ.to_instruction()
+
+        result = CnotGate().power(-1)
+
+        self.assertEqual(result.name, 'cx^-1')
+        self.assertEqual(result.definition, expected.definition)
+
+    def test_standard_2Q_minus_two(self):
+        """Test standard 2Q gate.power(-2) method.
+        """
+        qr = QuantumRegister(2, 'qr')
+        expected_circ = QuantumCircuit(qr)
+        expected_circ.append(CnotGate(), [qr[0],qr[1]])
+        expected_circ.append(CnotGate(), [qr[0],qr[1]])
+        expected = expected_circ.to_instruction()
+
+        result = CnotGate().power(-2)
+
+        self.assertEqual(result.name, 'cx^-2')
         self.assertEqual(result.definition, expected.definition)
 
 
@@ -108,12 +176,12 @@ class TestPowerUnroller(QiskitTestCase):
         qr = QuantumRegister(1, 'qr')
 
         circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(2), qr[:])
+        circuit.append(SGate().power(2), [qr[0]])
         result = PassManager(Unroller('u3')).run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), qr[:])
-        expected.append(U3Gate(0, 0, pi / 2), qr[:])
+        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
+        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
 
         self.assertEqual(result, expected)
 
@@ -123,11 +191,11 @@ class TestPowerUnroller(QiskitTestCase):
         qr = QuantumRegister(1, 'qr')
 
         circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(1), qr[:])
+        circuit.append(SGate().power(1), [qr[0]])
         result = PassManager(Unroller('u3')).run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), qr[:])
+        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
 
         self.assertEqual(result, expected)
 
@@ -137,11 +205,11 @@ class TestPowerUnroller(QiskitTestCase):
         qr = QuantumRegister(1, 'qr')
 
         circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(0), qr[:])
+        circuit.append(SGate().power(0), [qr[0]])
         result = PassManager(Unroller('u3')).run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, 0), qr[:])
+        expected.append(U3Gate(0, 0, 0), [qr[0]])
 
         self.assertEqual(result, expected)
 
@@ -151,11 +219,11 @@ class TestPowerUnroller(QiskitTestCase):
         qr = QuantumRegister(1, 'qr')
 
         circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(-1), qr[:])
+        circuit.append(SGate().power(-1), [qr[0]])
         result = PassManager(Unroller('u3')).run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, -pi / 2), qr[:])
+        expected.append(U3Gate(0, 0, -pi / 2), [qr[0]])
 
         self.assertEqual(result, expected)
 
@@ -165,12 +233,12 @@ class TestPowerUnroller(QiskitTestCase):
         qr = QuantumRegister(1, 'qr')
 
         circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(-2), qr[:])
+        circuit.append(SGate().power(-2), [qr[0]])
         result = PassManager(Unroller('u3')).run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, -pi / 2), qr[:])
-        expected.append(U3Gate(0, 0, -pi / 2), qr[:])
+        expected.append(U3Gate(0, 0, -pi / 2), [qr[0]])
+        expected.append(U3Gate(0, 0, -pi / 2), [qr[0]])
 
         self.assertEqual(result, expected)
 
@@ -207,7 +275,7 @@ class TestGateFloat(QiskitTestCase):
     def test_direct_root(self, degree):
         """Test nth root"""
         result = SGate().power(1 / degree)
-        self.assertEqual(result.name, 's^'+str(1/degree))
+        self.assertEqual(result.name, 's^' + str(1 / degree))
         self.assertEqual(len(result.definition), 1)
         assert_allclose(matrix_power(result.definition[0][0].to_matrix(), degree),
                         SGate().to_matrix())
@@ -216,7 +284,7 @@ class TestGateFloat(QiskitTestCase):
     def test_float_gt_one(self, exponent):
         """Test greater-than-one exponents """
         result = SGate().power(exponent)
-        self.assertEqual(result.name, 's^'+str(exponent))
+        self.assertEqual(result.name, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
 
