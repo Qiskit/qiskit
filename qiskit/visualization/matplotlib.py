@@ -35,6 +35,7 @@ except ImportError:
 from qiskit.visualization import exceptions
 from qiskit.visualization.qcstyle import DefaultStyle, BWStyle
 from qiskit import user_config
+from .tools.pi_check import pi_check
 
 
 logger = logging.getLogger(__name__)
@@ -591,7 +592,7 @@ class MatplotlibDrawer:
                     box_width = round(len(op.name) / 8)
                     # handle params/subtext longer than op names
                     if op.type == 'op' and hasattr(op.op, 'params'):
-                        param = self.param_parse(op.op.params, self._style.pimode)
+                        param = self.param_parse(op.op.params)
                         if len(param) > len(op.name):
                             box_width = round(len(param) / 8)
                             # If more than 4 characters min width is 2
@@ -667,7 +668,7 @@ class MatplotlibDrawer:
                     print(op)
 
                 if op.type == 'op' and hasattr(op.op, 'params'):
-                    param = self.param_parse(op.op.params, self._style.pimode)
+                    param = self.param_parse(op.op.params)
                 else:
                     param = None
                 # conditional gate
@@ -871,46 +872,20 @@ class MatplotlibDrawer:
                              zorder=PORDER_TEXT)
 
     @staticmethod
-    def param_parse(v, pimode=False):
+    def param_parse(v):
         # create an empty list to store the parameters in
         param_parts = [None] * len(v)
         for i, e in enumerate(v):
-            if pimode:
-                try:
-                    param_parts[i] = MatplotlibDrawer.format_pi(e)
-                except TypeError:
-                    param_parts[i] = str(e)
-            else:
-                try:
-                    param_parts[i] = MatplotlibDrawer.format_numeric(e)
-                except TypeError:
-                    param_parts[i] = str(e)
+            try:
+                param_parts[i] = pi_check(e, output='mpl')
+            except TypeError:
+                param_parts[i] = str(e)
+
             if param_parts[i].startswith('-'):
                 param_parts[i] = '$-$' + param_parts[i][1:]
 
         param_parts = ', '.join(param_parts)
         return param_parts
-
-    @staticmethod
-    def format_pi(val):
-        fracvals = MatplotlibDrawer.fraction(val)
-        buf = ''
-        if fracvals:
-            nmr, dnm = fracvals.numerator, fracvals.denominator
-            if nmr == 1:
-                buf += '$\\pi$'
-            elif nmr == -1:
-                buf += '-$\\pi$'
-            else:
-                buf += '{}$\\pi$'.format(nmr)
-            if dnm > 1:
-                buf += '/{}'.format(dnm)
-            return buf
-        else:
-            coef = MatplotlibDrawer.format_numeric(val / np.pi)
-            if coef == '0':
-                return '0'
-            return '{}$\\pi$'.format(coef)
 
     @staticmethod
     def format_numeric(val, tol=1e-5):
