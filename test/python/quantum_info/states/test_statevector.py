@@ -114,6 +114,33 @@ class TestStatevector(QiskitTestCase):
         vec = Statevector.from_instruction(circ)
         self.assertEqual(vec, target)
 
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        target = Statevector.from_label('000').evolve(Operator(circuit))
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test decomposition of Controlled-u1 gate
+        lam = np.pi / 4
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.cu1(lam, 0, 1)
+        target = Statevector.from_label('00').evolve(Operator(circuit))
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test decomposition of controlled-H gate
+        circuit = QuantumCircuit(2)
+        circ.x(0)
+        circuit.ch(0, 1)
+        target = Statevector.from_label('00').evolve(Operator(circuit))
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
     def test_from_instruction(self):
         """Test initialization from an instruction."""
         target = np.dot(HGate().to_matrix(), [1, 0])
