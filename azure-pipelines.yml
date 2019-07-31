@@ -39,6 +39,11 @@ jobs:
       displayName: 'Install dependencies'
 
     - script: |
+        pycodestyle --max-line-length=100 qiskit test
+        pylint -rn qiskit test
+      displayName: 'Style and lint'
+
+    - script: |
         stestr run
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
