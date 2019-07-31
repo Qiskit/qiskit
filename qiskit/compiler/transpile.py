@@ -182,7 +182,7 @@ def transpile(circuits,
     transpile_configs = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                               backend_properties, initial_layout,
                                               seed_transpiler, optimization_level,
-                                              pass_manager, callback)
+                                              pass_manager, callback, output_name)
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config.coupling_map for config in transpile_configs)
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
@@ -197,41 +197,7 @@ def transpile(circuits,
                                       'in the coupling_map')
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
-    # naming and returning circuits
-    # output_name could be either a string or a list
-    if output_name is not None:
-        if isinstance(output_name, str):
-            # single circuit
-            if len(circuits) == 1:
-                circuits[0].name = output_name
-            # multiple circuits
-            else:
-                raise TranspilerError("Expected a list object of length equal " +
-                                      "to that of the number of circuits " +
-                                      "being transpiled")
-        elif isinstance(output_name, list):
-            # single circuit
-            if len(circuits) == 1:
-                if len(output_name) == 1:
-                    circuits[0].name = output_name[0]
-                else:
-                    raise TranspilerError("the length of output_name list "
-                                          + "must be equal to the number of "
-                                          + "transpiled circuits")
-            # multiple circuits
-            else:
-                if len(circuits) == len(output_name) and \
-                        all(isinstance(name, str) for name in output_name):
-                    for index, circuit in enumerate(circuits):
-                        circuit.name = output_name[index]
-                else:
-                    raise TranspilerError("The length of output_name list "
-                                          "must be equal to the number of "
-                                          "transpiled circuits and the output_name "
-                                          "list should be strings.")
-        else:
-            raise TranspilerError("The parameter output_name should be a string or a"
-                                  "list of strings: %s was used." % type(output_name))
+
     if len(circuits) == 1:
         return circuits[0]
     return circuits
@@ -257,7 +223,7 @@ def _transpile_circuit(circuit_config_tuple):
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, seed_transpiler, optimization_level,
-                          pass_manager, callback):
+                          pass_manager, callback, output_name):
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -288,10 +254,12 @@ def _parse_transpile_args(circuits, backend,
 
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
 
+    output_name = _parse_output_name(output_name, num_circuits)
+
     transpile_configs = []
     for args in zip(basis_gates, coupling_map, backend_properties,
                     initial_layout, seed_transpiler, optimization_level,
-                    pass_manager):
+                    pass_manager, output_name):
         transpile_config = TranspileConfig(basis_gates=args[0],
                                            coupling_map=args[1],
                                            backend_properties=args[2],
@@ -299,7 +267,8 @@ def _parse_transpile_args(circuits, backend,
                                            seed_transpiler=args[4],
                                            optimization_level=args[5],
                                            pass_manager=args[6],
-                                           callback=callback)
+                                           callback=callback,
+                                           output_name=args[7])
         transpile_configs.append(transpile_config)
 
     return transpile_configs
@@ -398,3 +367,30 @@ def _parse_pass_manager(pass_manager, num_circuits):
     if not isinstance(pass_manager, list):
         pass_manager = [pass_manager] * num_circuits
     return pass_manager
+
+
+def _parse_output_name(output_name, num_circuits):
+    # naming and returning circuits
+    # output_name could be either a string or a list
+    if output_name is not None:
+        if isinstance(output_name, str):
+            # single circuit
+            if num_circuits == 1:
+                return [output_name]
+            # multiple circuits
+            else:
+                raise TranspilerError("Expected a list object of length equal " +
+                                      "to that of the number of circuits " +
+                                      "being transpiled")
+        elif isinstance(output_name, list):
+            if num_circuits == len(output_name) and \
+                    all(isinstance(name, str) for name in output_name):
+                return output_name
+            else:
+                raise TranspilerError("The length of output_name list "
+                                      "must be equal to the number of "
+                                      "transpiled circuits and the output_name "
+                                      "list should be strings.")
+        else:
+            raise TranspilerError("The parameter output_name should be a string or a"
+                                  "list of strings: %s was used." % type(output_name))
