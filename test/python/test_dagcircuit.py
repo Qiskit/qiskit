@@ -497,6 +497,10 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(self.dag.depth(), 4)
 
     def test_circuit_width(self):
+        """Test number of qubits + clbits in circuit."""
+        self.assertEqual(self.dag.width(), 6)
+
+    def test_circuit_num_qubits(self):
         """Test number of qubits in circuit."""
         self.assertEqual(self.dag.num_qubits(), 6)
 
