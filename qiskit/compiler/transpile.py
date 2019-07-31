@@ -31,7 +31,7 @@ def transpile(circuits,
               basis_gates=None, coupling_map=None, backend_properties=None,
               initial_layout=None, seed_transpiler=None,
               optimization_level=None,
-              pass_manager=None, callback=None, output_names=None):
+              pass_manager=None, callback=None, output_name=None):
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     All arguments may be given as either singleton or list. In case of list,
@@ -158,7 +158,7 @@ def transpile(circuits,
                     ...
 
                 transpile(circ, callback=callback_func)
-        output_names (str or list[str]) :
+        output_name (str or list[str]) :
             A list with strings to identify the output circuits. The length of
             `list[str]` should be exactly the length of `circuits` parameter.
     Returns:
@@ -198,40 +198,40 @@ def transpile(circuits,
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
     # naming and returning circuits
-    # output_names could be either a string or a list
-    if output_names is not None:
-        if isinstance(output_names, str):
+    # output_name could be either a string or a list
+    if output_name is not None:
+        if isinstance(output_name, str):
             # single circuit
             if len(circuits) == 1:
-                circuits[0].name = output_names
+                circuits[0].name = output_name
             # multiple circuits
             else:
                 raise TranspilerError("Expected a list object of length equal " +
                                       "to that of the number of circuits " +
                                       "being transpiled")
-        elif isinstance(output_names, list):
+        elif isinstance(output_name, list):
             # single circuit
             if len(circuits) == 1:
-                if len(output_names) == 1:
-                    circuits[0].name = output_names[0]
+                if len(output_name) == 1:
+                    circuits[0].name = output_name[0]
                 else:
-                    raise TranspilerError("the length of output_names list "
+                    raise TranspilerError("the length of output_name list "
                                           + "must be equal to the number of "
                                           + "transpiled circuits")
             # multiple circuits
             else:
-                if len(circuits) == len(output_names) and \
-                        all(isinstance(name, str) for name in output_names):
+                if len(circuits) == len(output_name) and \
+                        all(isinstance(name, str) for name in output_name):
                     for index, circuit in enumerate(circuits):
-                        circuit.name = output_names[index]
+                        circuit.name = output_name[index]
                 else:
-                    raise TranspilerError("The length of output_names list "
+                    raise TranspilerError("The length of output_name list "
                                           "must be equal to the number of "
-                                          "transpiled circuits and the output_names "
+                                          "transpiled circuits and the output_name "
                                           "list should be strings.")
         else:
-            raise TranspilerError("The parameter output_names should be a string or a"
-                                  "list of strings: %s was used." % type(output_names))
+            raise TranspilerError("The parameter output_name should be a string or a"
+                                  "list of strings: %s was used." % type(output_name))
     if len(circuits) == 1:
         return circuits[0]
     return circuits
