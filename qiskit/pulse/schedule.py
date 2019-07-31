@@ -141,9 +141,9 @@ class Schedule(ScheduleComponent):
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
-    def union(self, *schedules: List[ScheduleComponent],
+    def union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
               name: Optional[str] = None) -> 'Schedule':
-        """Return a new schedule which is the union of `self` and `schedule`.
+        """Return a new schedule which is the union of both children of `self` and `schedules`.
 
         Args:
             *schedules: Schedules to be take the union with this `Schedule`.
@@ -151,7 +151,29 @@ class Schedule(ScheduleComponent):
         """
         if name is None:
             name = self.name
-        return Schedule(self, *schedules, name=name)
+        new_sched = Schedule(name=name)
+        new_sched._union((0, self))
+        for sched_pair in schedules:
+            if not isinstance(sched_pair, tuple):
+                sched_pair = (0, sched_pair)
+            new_sched._union(sched_pair)
+        return new_sched
+
+    def _union(self, other: Tuple[int, ScheduleComponent]) -> 'Schedule':
+        """Mutably union `self` and `other` Schedule with shift time.
+
+        Args:
+            other: Schedule with shift time to be take the union with this `Schedule`.
+        """
+        shift_time, sched = other
+        sched_timeslots = sched.timeslots
+        shifted_children = sched._children
+        if shift_time != 0:
+            sched_timeslots = sched_timeslots.shift(shift_time)
+            shifted_children = [(t+shift_time, child) for t, child in shifted_children]
+        self._timeslots = self.timeslots.merged(sched_timeslots)
+        self.__children += tuple(shifted_children if shifted_children else [other])
+        self._buffer = max(self.buffer, sched.buffer)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.

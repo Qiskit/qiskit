@@ -55,6 +55,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   Union among schedules is now defined by union of their children.
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
 -   All circuit drawers now express most commonly used fractions
