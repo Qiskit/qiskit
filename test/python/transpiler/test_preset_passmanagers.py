@@ -75,8 +75,10 @@ class TestPassesInspection(QiskitTestCase):
     def setUp(self):
         """Sets self.callback to set self.passes with the passes that have been executed"""
         self.passes = []
+
         def callback(**kwargs):
             self.passes.append(kwargs['pass_'].__class__.__name__)
+
         self.callback = callback
 
     @data(0, 1, 2, 3)
@@ -129,6 +131,7 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn('SetLayout', self.passes)
         self.assertIn('ApplyLayout', self.passes)
         self.assertNotIn('CheckCXDirection', self.passes)
+
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):
