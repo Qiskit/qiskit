@@ -159,7 +159,8 @@ def transpile(circuits,
 
                 transpile(circ, callback=callback_func)
         output_names (str or list[str]) :
-            A list with strings to identify the output circuits
+            A list with strings to identify the output circuits. The length of
+            `list[str]` should be exactly the length of `circuits` parameter.
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
 
