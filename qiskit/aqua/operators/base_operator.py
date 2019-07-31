@@ -104,6 +104,19 @@ class BaseOperator(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
+    def print_details(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def _scaling_weight(self, scaling_factor):
+        # TODO: will be removed after the deprecated method is removed.
+        raise NotImplementedError
+
+    @abstractmethod
+    def chop(self, threshold, copy=False):
+        raise NotImplementedError
+
     def print_operators(self, mode='paulis'):
         warnings.warn("print_operators() is deprecated and it will be removed after 0.6, "
                       "Use `print_details()` instead",
@@ -154,10 +167,11 @@ class BaseOperator(ABC):
                       " And the current deprecated method does NOT modify the original object, it returns.",
                       DeprecationWarning)
         from .op_converter import to_weighted_pauli_operator, to_matrix_operator, to_tpb_grouped_weighted_pauli_operator
+        from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
         if output_format == 'paulis':
             return to_weighted_pauli_operator(self)
         elif output_format == 'grouped_paulis':
-            return to_tpb_grouped_weighted_pauli_operator(self)
+            return to_tpb_grouped_weighted_pauli_operator(self, TPBGroupedWeightedPauliOperator.sorted_grouping)
         elif output_format == 'matrix':
             return to_matrix_operator(self)
 
