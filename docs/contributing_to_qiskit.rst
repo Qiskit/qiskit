@@ -11,7 +11,7 @@ backgrounds. This page describes how you can join the Qiskit community in this g
 Where Things Are
 ****************
 
-The code for Qiskit is located in the `Qiskit GitHub organization <https://github.com/Qiskit>`_,
+The code for Qiskit is located in the `Qiskit GitHub organization <https://github.com/Qiskit>`__,
 where you can find the individual projects that make up Qiskit, including
 
 * `Qiskit Terra <https://github.com/Qiskit/qiskit-terra>`__
@@ -30,12 +30,12 @@ Getting Started
 
 Learn how members of the Qiskit community
 
-* `Relate to one another <https://github.com/Qiskit/qiskit/blob/master/CODE_OF_CONDUCT.md>`_
-* `Discuss ideas <https://qiskit.slack.com/>`_
-* `Get help when we're stuck <https://quantumcomputing.stackexchange.com/questions/tagged/qiskit>`_
-* `Stay informed of news in the community <https://medium.com/qiskit>`_
-* `Keep a consistent style <https://www.python.org/dev/peps/pep-0008>`_
-* `Work together on GitHub <https://github.com/Qiskit/qiskit/blob/master/CONTRIBUTING.md>`_
+* `Relate to one another <https://github.com/Qiskit/qiskit/blob/master/CODE_OF_CONDUCT.md>`__
+* `Discuss ideas <https://qiskit.slack.com/>`__
+* `Get help when we're stuck <https://quantumcomputing.stackexchange.com/questions/tagged/qiskit>`__
+* `Stay informed of news in the community <https://medium.com/qiskit>`__
+* `Keep a consistent style <https://www.python.org/dev/peps/pep-0008>`__
+* `Work together on GitHub <https://github.com/Qiskit/qiskit/blob/master/CONTRIBUTING.md>`__
 * :ref:`Build Qiskit packages from source <install_install_from_source_label>`
 
 
@@ -44,25 +44,25 @@ Writing and Building Documentation
 **********************************
 
 Qiskit documentation is shaped by the `docs as code
-<https://www.writethedocs.org/guide/docs-as-code/>`_ philosophy and follows the
+<https://www.writethedocs.org/guide/docs-as-code/>`__ philosophy and follows the
 `IBM style guidelines
-<https://www.ibm.com/developerworks/library/styleguidelines/>`_.
+<https://www.ibm.com/developerworks/library/styleguidelines/>`__.
 
 You can find templates for writing new documentation topics, such as helping users understand a
 concept, perform a task, or find technical specifications in the
-`Docs Templates folder <https://github.com/Qiskit/qiskit/tree/master/.github/DOCS_TEMPLATES>`_.
+`Docs Templates folder <https://github.com/Qiskit/qiskit/tree/master/.github/DOCS_TEMPLATES>`__.
 
-The `published documentation <https://qiskit.org/documentation/index.html>`_ is
+The `published documentation <https://qiskit.org/documentation/index.html>`__ is
 built from the master branch of `Qiskit/qiskit/docs
-<https://github.com/Qiskit/qiskit/tree/master/docs>`_ using `Sphinx
-<http://www.sphinx-doc.org/en/master/>`_.
+<https://github.com/Qiskit/qiskit/tree/master/docs>`__ using `Sphinx
+<http://www.sphinx-doc.org/en/master/>`__.
 
 You can build a local copy of the documentation from your local clone of the
 `Qiskit/qiskit` repository as follows:
 
 1. Clone `Qiskit/qiskit` (or your personal fork).
 
-2. `Install Sphinx <http://www.sphinx-doc.org/en/master/usage/installation.html>`_.
+2. `Install Sphinx <http://www.sphinx-doc.org/en/master/usage/installation.html>`__.
 
 3. Install the required dependencies by running the following
    in a terminal window:
@@ -154,7 +154,7 @@ The following steps show the installation process for Ignis.
        conda activate QiskitDevenv
 
 3. Install the package in `editable mode <https://pip.pypa.io/en/stable/
-   reference/pip_install/#editable-installs>`_ from the root directory of the
+   reference/pip_install/#editable-installs>`__ from the root directory of the
    repository. The following example shows the installation for Ignis.
 
    .. code:: sh
@@ -191,7 +191,7 @@ c++-11.
    .. tab:: Compiler for Windows
 
       On Windows, it is easiest to install the Visual C++ compiler from the
-      `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`_.
+      `Build Tools for Visual Studio 2017 <https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2017>`__.
       You can instead install Visual Studio version 2015 or 2017, making sure to select the
       options for installing the C++ compiler.
 
@@ -371,15 +371,15 @@ universally depending on operating system.
 
       3. Install dependencies.
 
-         To use the `Clang <https://clang.llvm.org/>`_ compiler on macOS, you need to install
-         an extra library for supporting `OpenMP <https://www.openmp.org/>`_.  You can use `brew <https://brew.sh/>`_
+         To use the `Clang <https://clang.llvm.org/>`__ compiler on macOS, you need to install
+         an extra library for supporting `OpenMP <https://www.openmp.org/>`__.  You can use `brew <https://brew.sh/>`__
          to install this and other dependencies.
 
          .. code:: sh
 
             brew install libomp
 
-         You then also have to install a BLAS implementation, `OpenBLAS <https://www.openblas.net/>`_
+         You then also have to install a BLAS implementation, `OpenBLAS <https://www.openblas.net/>`__
          is the default choice.
 
          .. code:: sh
@@ -428,8 +428,8 @@ universally depending on operating system.
 
    .. tab:: Windows
 
-      On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`_
-      or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`_ to install all the
+      On Windows you need to use `Anaconda3 <https://www.anaconda.com/distribution/#windows>`__
+      or `Miniconda3 <https://docs.conda.io/en/latest/miniconda.html>`__ to install all the
       dependencies.
 
       3. Install compiler requirements
@@ -480,9 +480,9 @@ universally depending on operating system.
 Custom options during wheel builds
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The Aer build system uses `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`_
+The Aer build system uses `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`__
 to run the compilation when building it with the python interface. It acts as an interface for
-`setuptools <https://setuptools.readthedocs.io/en/latest/>`_ to call `CMake <https://cmake.org/>`_
+`setuptools <https://setuptools.readthedocs.io/en/latest/>`__ to call `CMake <https://cmake.org/>`__
 and compile the binaries for your local system.
 
 Due to the complexity of compiling the binaries you may need to pass options
@@ -503,7 +503,7 @@ example, you could run something like:
    python setup.py bdist_wheel -- -- -j8
 
 This is passing the flag `-j8` to the underlying build system (which in this
-case is `Automake <https://www.gnu.org/software/automake/>`_) telling it that you want
+case is `Automake <https://www.gnu.org/software/automake/>`__) telling it that you want
 to build in parallel using 8 processes.
 
 For example, a common use case for these flags on linux is to specify a

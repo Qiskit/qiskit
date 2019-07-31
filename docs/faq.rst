@@ -7,7 +7,7 @@ Frequently Asked Questions
 **Q: How should I cite Qiskit in my research?**
 
 **A:** Please cite Qiskit by using the included `BibTeX file
-<https://raw.githubusercontent.com/Qiskit/qiskit/master/Qiskit.bib>`_.
+<https://raw.githubusercontent.com/Qiskit/qiskit/master/Qiskit.bib>`__.
 
 |
 

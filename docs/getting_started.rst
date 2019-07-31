@@ -242,10 +242,9 @@ Next Steps
 
 Now that you have learnt the basics, consider these learning resources:
 
-- `Notebook tutorials <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/start_here.ipynb>`_
-- `Video tutorials <https://www.youtube.com/channel/UClBNq7mCMf5xm8baE_VMl3A/featured>`_
-- `Interactive tutorials in IBM Q Experience`_
+- `Notebook tutorials <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/start_here.ipynb>`__
+- `Video tutorials <https://www.youtube.com/channel/UClBNq7mCMf5xm8baE_VMl3A/featured>`__
+- `Interactive tutorials in IBM Q Experience <https://www.research.ibm.com/ibm-q/technology/experience/>`__
 - :ref:`Frequently Asked Questions <faq>`
 
-.. _Interactive tutorials in IBM Q Experience:
-   https://www.research.ibm.com/ibm-q/technology/experience/
+
