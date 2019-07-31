@@ -23,7 +23,6 @@ import warnings
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.quantum_info import Pauli
-from qiskit.qasm import pi
 from qiskit.tools import parallel_map
 from qiskit.tools.events import TextProgressBar
 
@@ -568,13 +567,16 @@ class WeightedPauliOperator(BaseOperator):
             AquaError: The provided qr is not in the input_circuit
             AquaError: Neither backend nor statevector_mode is provided
         """
+        # TODO: re-use the `evaluation_instruction` method after terra#2858
         if operator_mode is not None:
             warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.", DeprecationWarning)
+                          "Every operator knows which mode is using, not need to indicate the mode.",
+                          DeprecationWarning)
 
         if input_circuit is not None:
             warnings.warn("input_circuit option is deprecated and it will be removed after 0.6, "
-                          "Use `wave_function` instead.", DeprecationWarning)
+                          "Use `wave_function` instead.",
+                          DeprecationWarning)
             wave_function = input_circuit
         else:
             if wave_function is None:
@@ -591,7 +593,8 @@ class WeightedPauliOperator(BaseOperator):
 
         if backend is not None:
             warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "Use `statevector_mode` instead", DeprecationWarning)
+                          "Use `statevector_mode` instead",
+                          DeprecationWarning)
             statevector_mode = is_statevector_backend(backend)
         else:
             if statevector_mode is None:
@@ -630,7 +633,6 @@ class WeightedPauliOperator(BaseOperator):
 
             for basis, indices in self._basis:
                 circuit = base_circuit.copy(name=circuit_name_prefix + basis.to_label())
-                # TODO: change to this after custom instruction always work
                 # circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
                 circuit = pauli_measurement(circuit, basis, qr, cr, barrier=True)
                 circuits.append(circuit)
@@ -695,15 +697,18 @@ class WeightedPauliOperator(BaseOperator):
         """
         if operator_mode is not None:
             warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.", DeprecationWarning)
+                          "Every operator knows which mode is using, not need to indicate the mode.",
+                          DeprecationWarning)
         if circuits is not None:
             warnings.warn("circuits option is deprecated and it will be removed after 0.6, "
-                          "we will retrieve the circuit via its unique name directly.", DeprecationWarning)
+                          "we will retrieve the circuit via its unique name directly.",
+                          DeprecationWarning)
 
         avg, std_dev, variance = 0.0, 0.0, 0.0
         if backend is not None:
             warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "Use `statevector_mode` instead", DeprecationWarning)
+                          "Use `statevector_mode` instead",
+                          DeprecationWarning)
             statevector_mode = is_statevector_backend(backend)
         else:
             if statevector_mode is None:
@@ -892,57 +897,38 @@ class WeightedPauliOperator(BaseOperator):
         instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
         return instruction
 
-    def find_Z2_symmetries(self):
-        """
-        Finds Z2 Pauli-type symmetries of an Operator.
-
-        Returns:
-            [Pauli]: the list of Pauli objects representing the Z_2 symmetries
-            [Pauli]: the list of single - qubit Pauli objects to construct the Cliffors operators
-            [WeightedPauliOperator]: the list of Clifford unitaries to block diagonalize Operator
-            [int]: the list of support of the single-qubit Pauli objects used to build the clifford operators
-        """
-
-        warnings.warn("find_Z2_symmetries() is deprecated and it will be removed after 0.6, "
-                      "Use the class method in the `Z2Symmetries` class instead", DeprecationWarning)
-
-        self._z2_symmetries = Z2Symmetries.find_Z2_symmetries(self)
-
-        return self._z2_symmetries.symmetries, self._z2_symmetries.sq_paulis, \
-            self._z2_symmetries.cliffords, self._z2_symmetries.sq_list
-
     @classmethod
     def load_from_file(cls, file_name, before_04=False):
         warnings.warn("load_from_file is deprecated and it will be removed after 0.6, "
-                      "Use `from_file` instead", DeprecationWarning)
+                      "Use `from_file` instead",
+                      DeprecationWarning)
         return cls.from_file(file_name, before_04)
 
     def save_to_file(self, file_name):
         warnings.warn("save_to_file is deprecated and it will be removed after 0.6, "
-                      "Use `to_file` instead", DeprecationWarning)
+                      "Use `to_file` instead",
+                      DeprecationWarning)
         self.to_file(file_name)
 
     @classmethod
     def load_from_dict(cls, dictionary, before_04=False):
         warnings.warn("load_from_dict is deprecated and it will be removed after 0.6, "
-                      "Use `from_dict` instead", DeprecationWarning)
+                      "Use `from_dict` instead",
+                      DeprecationWarning)
         return cls.from_dict(dictionary, before_04)
 
     def save_to_dict(self):
         warnings.warn("save_to_dict is deprecated and it will be removed after 0.6, "
-                      "Use `to_dict` instead", DeprecationWarning)
+                      "Use `to_dict` instead",
+                      DeprecationWarning)
         return self.to_dict()
-
-    def print_operators(self):
-        warnings.warn("print_operators() is deprecated and it will be removed after 0.6, "
-                      "Use `print_details()` instead", DeprecationWarning)
-
-        return self.print_details()
 
     def _simplify_paulis(self):
         warnings.warn("_simplify_paulis() is deprecated and it will be removed after 0.6, "
-                      "Use `simplify()` instead", DeprecationWarning)
+                      "Use `simplify()` instead",
+                      DeprecationWarning)
         self.simplify()
+        return self
 
     def _eval_directly(self, quantum_state):
         warnings.warn("_eval_directly() is deprecated and it will be removed after 0.6, "
@@ -952,38 +938,9 @@ class WeightedPauliOperator(BaseOperator):
 
     def get_flat_pauli_list(self):
         warnings.warn("get_flat_pauli_list() is deprecated and it will be removed after 0.6. "
-                      "Use `reorder_paulis()` instead", DeprecationWarning)
+                      "Use `reorder_paulis()` instead",
+                      DeprecationWarning)
         return self.reorder_paulis()
-
-    def scaling_coeff(self, scaling_factor):
-        warnings.warn("scaling_coeff method is deprecated and it will be removed after 0.6. "
-                      "Use `* operator` with the scalar directly.", DeprecationWarning)
-        self._scaling_weight(scaling_factor)
-
-    def zeros_coeff_elimination(self):
-        warnings.warn("zeros_coeff_elimination method is deprecated and it will be removed after 0.6. "
-                      "Use chop(0.0) to remove terms with 0 weight.", DeprecationWarning)
-        self.chop(0.0)
-
-    @staticmethod
-    def construct_evolution_circuit(slice_pauli_list, evo_time, num_time_slices, state_registers,
-                                    ancillary_registers=None, ctl_idx=0, unitary_power=None, use_basis_gates=True,
-                                    shallow_slicing=False):
-        warnings.warn("The `construct_evolution_circuit` method is deprecated, use the evolution_instruction in "
-                      "the common module instead.", DeprecationWarning)
-
-        if state_registers is None:
-            raise ValueError('Quantum state registers are required.')
-
-        qc_slice = QuantumCircuit(state_registers)
-        if ancillary_registers is not None:
-            qc_slice.add_register(ancillary_registers)
-        controlled = ancillary_registers is not None
-        inst = evolution_instruction(slice_pauli_list, evo_time, num_time_slices, controlled, 2 ** ctl_idx,
-                                     use_basis_gates, shallow_slicing)
-
-        qc_slice.append(inst, [q for qreg in qc_slice.qregs for q in qreg])
-        return qc_slice
 
 
 class Z2Symmetries:

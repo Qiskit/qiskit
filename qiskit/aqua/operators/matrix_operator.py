@@ -61,12 +61,12 @@ class MatrixOperator(BaseOperator):
 
     def add(self, other, copy=False):
         out = self.copy() if copy else self
-        out._matrix += other.matrix
+        out._matrix += other._matrix
         return out
 
     def sub(self, other, copy=False):
         out = self.copy() if copy else self
-        out._matrix -= other.matrix
+        out._matrix -= other._matrix
         return out
 
     def __add__(self, other):
@@ -203,11 +203,13 @@ class MatrixOperator(BaseOperator):
         """
         if operator_mode is not None:
             warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.", DeprecationWarning)
+                          "Every operator knows which mode is using, not need to indicate the mode.",
+                          DeprecationWarning)
 
         if input_circuit is not None:
             warnings.warn("input_circuit option is deprecated and it will be removed after 0.6, "
-                          "Use `wave_function` instead.", DeprecationWarning)
+                          "Use `wave_function` instead.",
+                          DeprecationWarning)
             wave_function = input_circuit
         else:
             if wave_function is None:
@@ -215,7 +217,8 @@ class MatrixOperator(BaseOperator):
 
         if backend is not None:
             warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "No need for backend when using matrix operator", DeprecationWarning)
+                          "No need for backend when using matrix operator",
+                          DeprecationWarning)
 
         return [wave_function.copy(name=circuit_name_prefix + 'psi')]
 
@@ -235,13 +238,16 @@ class MatrixOperator(BaseOperator):
         """
         if operator_mode is not None:
             warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.", DeprecationWarning)
+                          "Every operator knows which mode is using, not need to indicate the mode.",
+                          DeprecationWarning)
         if circuits is not None:
             warnings.warn("circuits option is deprecated and it will be removed after 0.6, "
-                          "we will retrieve the circuit via its unique name directly.", DeprecationWarning)
+                          "we will retrieve the circuit via its unique name directly.",
+                          DeprecationWarning)
         if backend is not None:
             warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "No need for backend when using matrix operator", DeprecationWarning)
+                          "No need for backend when using matrix operator",
+                          DeprecationWarning)
 
         avg, std_dev = 0.0, 0.0
         quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
@@ -302,7 +308,8 @@ class MatrixOperator(BaseOperator):
             )
             return side @ middle @ side
 
-    def evolve(self, state_in, evo_time=0, num_time_slices=0, expansion_mode='trotter', expansion_order=1):
+    def evolve(self, state_in, evo_time=0, evo_mode=None, num_time_slices=0, quantum_registers=None,
+               expansion_mode='trotter', expansion_order=1):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
 
@@ -320,6 +327,16 @@ class MatrixOperator(BaseOperator):
         Returns:
             Return the matrix vector multiplication result.
         """
+        if evo_mode is not None:
+            warnings.warn("evo_mode option is deprecated and it will be removed after 0.6, "
+                          "Every operator knows which mode is using, not need to indicate the mode.",
+                          DeprecationWarning)
+
+        if quantum_registers is not None:
+            warnings.warn("quantum_registers option is not required by `MatrixOperator` and it will be removed "
+                          "after 0.6.",
+                          DeprecationWarning)
+
         from .op_converter import to_weighted_pauli_operator
         # pylint: disable=no-member
         if num_time_slices < 0 or not isinstance(num_time_slices, int):

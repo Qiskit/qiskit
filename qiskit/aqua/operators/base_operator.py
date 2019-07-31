@@ -15,6 +15,8 @@
 from abc import ABC, abstractmethod
 import warnings
 
+from qiskit import QuantumCircuit
+
 
 class BaseOperator(ABC):
     """Operators relevant for quantum applications."""
@@ -102,52 +104,147 @@ class BaseOperator(ABC):
         """
         raise NotImplementedError
 
+    def print_operators(self, mode='paulis'):
+        warnings.warn("print_operators() is deprecated and it will be removed after 0.6, "
+                      "Use `print_details()` instead",
+                      DeprecationWarning)
+        return self.print_details()
+
     @property
     def coloring(self):
         warnings.warn("coloring is removed, "
-                      "Use the `TPBGroupedWeightedPauliOperator` class to group a paulis directly", DeprecationWarning)
+                      "Use the `TPBGroupedWeightedPauliOperator` class to group a paulis directly",
+                      DeprecationWarning)
         return None
 
     def _to_dia_matrix(self, mode=None):
-        warnings.warn("_to_dia_matrix() is removed, use the `MatrixOperator` class instead", DeprecationWarning)
+        warnings.warn("_to_dia_matrix method is removed, use the `MatrixOperator` class to get diagonal matrix",
+                      DeprecationWarning)
+        from .op_converter import to_matrix_operator
+        self = to_matrix_operator(self)
+        return self.dia_matrix
 
     def enable_summarize_circuits(self):
-        warnings.warn("do not enable summary at the operator anymore, enable it at QuantumInstance", DeprecationWarning)
+        warnings.warn("enable_summarize_circuits method is removed. Enable the summary at QuantumInstance",
+                      DeprecationWarning)
 
     def disable_summarize_circuits(self):
-        warnings.warn("do not disable summary at the operator anymore, enable it at QuantumInstance", DeprecationWarning)
+        warnings.warn("disable_summarize_circuits method is removed. Disable the summary at QuantumInstance",
+                      DeprecationWarning)
 
     @property
     def representations(self):
-        warnings.warn("each operator is self-defined, no need to check represnetation anymore.", DeprecationWarning)
+        warnings.warn("representations method is removed. each operator is self-defined, ",
+                      DeprecationWarning)
         return None
 
     def eval(self, operator_mode, input_circuit, backend, backend_config=None, compile_config=None,
              run_config=None, qjob_config=None, noise_config=None):
         warnings.warn("eval method is removed. please use `construct_evaluate_circuit` and submit circuit by yourself "
-                      "then, use the result along with `evaluate_with_result` to get mean and std.", DeprecationWarning)
+                      "then, use the result along with `evaluate_with_result` to get mean and std. "
+                      "Furthermore, if you compute the expectation against a statevector (numpy array), you can "
+                      "use evaluate_with_statevector directly.",
+                      DeprecationWarning)
         return None, None
 
     def convert(self, input_format, output_format, force=False):
-        warnings.warn("convert method is removed. please use to_XXX_operator in each operator class instead.",
+        warnings.warn("convert method is removed. please use the conversion functions in the "
+                      "qiskit.aqua.operators.op_converter module. There are different `to_xxx_operator` functions",
                       DeprecationWarning)
 
     def two_qubit_reduced_operator(self, m, threshold=10 ** -13):
-        warnings.warn("two_qubit_reduced_operator method is moved to the `TaperedWeightedPauliOperator` class.",
+        warnings.warn("two_qubit_reduced_operator method is deprecated and it will be removed after 0.6. "
+                      "Now it is moved to the `Z2Symmetries` class as a classmethod. """
+                      "Z2Symmeteries.two_qubit_reduction(num_particles)",
                       DeprecationWarning)
-        return None
+        from .op_converter import to_weighted_pauli_operator
+        from .weighted_pauli_operator import Z2Symmetries
+        return Z2Symmetries.two_qubit_reduction(to_weighted_pauli_operator(self), m)
 
     @staticmethod
     def qubit_tapering(operator, cliffords, sq_list, tapering_values):
-        warnings.warn("qubit_tapering method is moved to the `TaperedWeightedPauliOperator` class.",
+        warnings.warn("qubit_tapering method is deprecated and it will be removed after 0.6. "
+                      "Now it is moved to the `Z2Symmetries` class.",
                       DeprecationWarning)
-        return None
+        from .op_converter import to_weighted_pauli_operator
+        from .weighted_pauli_operator import Z2Symmetries
+        sq_paulis = [x.paulis[1][1] for x in cliffords]
+        symmetries = [x.paulis[0][1] for x in cliffords]
+        tmp_op = to_weighted_pauli_operator(operator)
+        z2_symmetries = Z2Symmetries(symmetries, sq_paulis, sq_list, tapering_values)
+        return z2_symmetries.taper(tmp_op)
+
+    def scaling_coeff(self, scaling_factor):
+        warnings.warn("scaling_coeff method is deprecated and it will be removed after 0.6. "
+                      "Use `* operator` with the scalar directly.",
+                      DeprecationWarning)
+        self = scaling_factor * self
+        return self
+
+    def zeros_coeff_elimination(self):
+        warnings.warn("zeros_coeff_elimination method is deprecated and it will be removed after 0.6. "
+                      "Use chop(0.0) to remove terms with 0 weight.",
+                      DeprecationWarning)
+        self.chop(0.0)
+        return self
+
+    @staticmethod
+    def construct_evolution_circuit(slice_pauli_list, evo_time, num_time_slices, state_registers,
+                                    ancillary_registers=None, ctl_idx=0, unitary_power=None, use_basis_gates=True,
+                                    shallow_slicing=False):
+        from .common import evolution_instruction
+        warnings.warn("The `construct_evolution_circuit` method is deprecated, use the `evolution_instruction` in "
+                      "the qiskit.aqua.operators.common module instead.",
+                      DeprecationWarning)
+
+        if state_registers is None:
+            raise ValueError('Quantum state registers are required.')
+
+        qc_slice = QuantumCircuit(state_registers)
+        if ancillary_registers is not None:
+            qc_slice.add_register(ancillary_registers)
+        controlled = ancillary_registers is not None
+        inst = evolution_instruction(slice_pauli_list, evo_time, num_time_slices, controlled, 2 ** ctl_idx,
+                                     use_basis_gates, shallow_slicing)
+
+        qc_slice.append(inst, [q for qreg in qc_slice.qregs for q in qreg])
+        qc_slice = qc_slice.decompose()
+        return qc_slice
+
+    @staticmethod
+    def row_echelon_F2(matrix_in):
+        from .common import row_echelon_F2
+        warnings.warn("The `row_echelon_F2` method is deprecated, use the row_echelon_F2 function in "
+                      "the qiskit.aqua.operators.common module instead.",
+                      DeprecationWarning)
+        return row_echelon_F2(matrix_in)
+
+    @staticmethod
+    def kernel_F2(matrix_in):
+        from .common import kernel_F2
+        warnings.warn("The `kernel_F2` method is deprecated, use the kernel_F2 function in "
+                      "the qiskit.aqua.operators.common module instead.",
+                      DeprecationWarning)
+        return kernel_F2(matrix_in)
+
+    def find_Z2_symmetries(self):
+        warnings.warn("The `find_Z2_symmetries` method is deprecated and it will be removed after 0.6, "
+                      "Use the class method in the `Z2Symmetries` class instead",
+                      DeprecationWarning)
+        from .weighted_pauli_operator import Z2Symmetries
+        from .op_converter import to_weighted_pauli_operator
+        self = to_weighted_pauli_operator(self)
+        self._z2_symmetries = Z2Symmetries.find_Z2_symmetries(self)
+
+        return self._z2_symmetries.symmetries, self._z2_symmetries.sq_paulis, \
+            self._z2_symmetries.cliffords, self._z2_symmetries.sq_list
 
     def to_grouped_paulis(self):
         warnings.warn("to_grouped_paulis method is deprecated and it will be removed after 0.6. "
                       "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
                       "operators. For grouping paulis, you can create your own grouping func to create the "
-                      "class you need.", DeprecationWarning)
+                      "class you need.",
+                      DeprecationWarning)
         from .op_converter import to_tpb_grouped_weighted_pauli_operator
         from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
         self = to_tpb_grouped_weighted_pauli_operator(self, grouping_func=TPBGroupedWeightedPauliOperator.sorted_grouping)
@@ -156,7 +253,8 @@ class BaseOperator(ABC):
     def to_paulis(self):
         warnings.warn("to_paulis method is deprecated and it will be removed after 0.6. "
                       "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
-                      "operators", DeprecationWarning)
+                      "operators",
+                      DeprecationWarning)
         from .op_converter import to_weighted_pauli_operator
         self = to_weighted_pauli_operator(self)
         return self
@@ -164,7 +262,8 @@ class BaseOperator(ABC):
     def to_matrix(self):
         warnings.warn("to_matrix method is deprecated and it will be removed after 0.6. "
                       "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
-                      "operators", DeprecationWarning)
+                      "operators",
+                      DeprecationWarning)
         from .op_converter import to_matrix_operator
         self = to_matrix_operator(self)
         return self
@@ -172,21 +271,24 @@ class BaseOperator(ABC):
     def to_weighted_pauli_operator(self):
         warnings.warn("to_weighted_apuli_operator method is temporary helper method and it will be removed after 0.6. "
                       "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
-                      "operators", DeprecationWarning)
+                      "operators",
+                      DeprecationWarning)
         from .op_converter import to_weighted_pauli_operator
         return to_weighted_pauli_operator(self)
 
     def to_matrix_operator(self):
         warnings.warn("to_matrix_operator method is temporary helper method and it will be removed after 0.6. "
                       "Please check the qiskit.aqua.operators.op_convertor for converting to different types of "
-                      "operators", DeprecationWarning)
+                      "operators",
+                      DeprecationWarning)
         from .op_converter import to_matrix_operator
         return to_matrix_operator(self)
 
     def to_tpb_grouped_weighted_pauli_operator(self):
         warnings.warn("to_tpb_grouped_weighted_pauli_operator method is temporary helper method and it will be "
                       "removed after 0.6. Please check the qiskit.aqua.operators.op_convertor for converting to "
-                      "different types of operators", DeprecationWarning)
+                      "different types of operators",
+                      DeprecationWarning)
         from .op_converter import to_tpb_grouped_weighted_pauli_operator
         from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
         return to_tpb_grouped_weighted_pauli_operator(
