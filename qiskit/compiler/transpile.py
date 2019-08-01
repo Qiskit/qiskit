@@ -254,7 +254,7 @@ def _parse_transpile_args(circuits, backend,
 
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
 
-    output_name = _parse_output_name(output_name, num_circuits)
+    output_name = _parse_output_name(output_name, circuits)
 
     transpile_configs = []
     for args in zip(basis_gates, coupling_map, backend_properties,
@@ -369,13 +369,13 @@ def _parse_pass_manager(pass_manager, num_circuits):
     return pass_manager
 
 
-def _parse_output_name(output_name, num_circuits):
+def _parse_output_name(output_name, circuits):
     # naming and returning circuits
     # output_name could be either a string or a list
     if output_name is not None:
         if isinstance(output_name, str):
             # single circuit
-            if num_circuits == 1:
+            if len(circuits) == 1:
                 return [output_name]
             # multiple circuits
             else:
@@ -383,7 +383,7 @@ def _parse_output_name(output_name, num_circuits):
                                       "to that of the number of circuits " +
                                       "being transpiled")
         elif isinstance(output_name, list):
-            if num_circuits == len(output_name) and \
+            if len(circuits) == len(output_name) and \
                     all(isinstance(name, str) for name in output_name):
                 return output_name
             else:
@@ -394,3 +394,5 @@ def _parse_output_name(output_name, num_circuits):
         else:
             raise TranspilerError("The parameter output_name should be a string or a"
                                   "list of strings: %s was used." % type(output_name))
+    else:
+        return [circuit.name for circuit in circuits]
