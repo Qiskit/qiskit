@@ -12,16 +12,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass for calculating the width of a DAG circuit.
+""" An analysis pass for calculating the number of qubits of a DAG circuit.
 """
 from qiskit.transpiler.basepasses import AnalysisPass
 
 
-class Width(AnalysisPass):
-    """ An analysis pass for calculating the width of a DAG circuit.
+class NumQubits(AnalysisPass):
+    """ An analysis pass for calculating the number of qubits of a DAG circuit.
     """
 
     def run(self, dag):
-        """ Return num qubits + num clbits
+        """ Return num qubits
         """
-        self.property_set['width'] = dag.width()
+        self.property_set['num_qubits'] = dag.num_qubits()
