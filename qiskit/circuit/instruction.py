@@ -319,7 +319,7 @@ class Instruction:
     def power(self, exponent):
         """
         Creates an instruction with the gate repeated `exponent` amount of times.
-        Negative exponent creates an instruction with Gate.inverse().
+        Negative exponent creates an instruction with Instruction.inverse().
         Zero exponent creates an instruction with u3(0,0,0).
 
         Args:
