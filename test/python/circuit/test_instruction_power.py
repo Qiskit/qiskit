@@ -372,6 +372,7 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(result.name, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
+        # SGate().to_matrix() is diagonal so `**` is equivalent.
         assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
 
     def test_zero_two(self, exponent=0.2):
