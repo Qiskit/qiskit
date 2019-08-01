@@ -288,6 +288,14 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(len(result.definition), 1)
         assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
 
+    @data(-0.2, 0.2)
+    def test_float_lt_abs_one(self, exponent):
+        """Test (-1,1)-range exponents """
+        result = SGate().power(exponent)
+        self.assertEqual(result.name, 's^' + str(exponent))
+        self.assertEqual(len(result.definition), 1)
+        assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
+
 
 if __name__ == '__main__':
     unittest.main()
