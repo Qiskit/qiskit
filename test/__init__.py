@@ -12,8 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""With some utils"""
+
 from ddt import data, unpack
 from qiskit.test.utils import generate_cases
+
 
 def combine(**kwargs):
     """Decorator to create combinations and tests

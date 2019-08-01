@@ -184,4 +184,3 @@ def online_test(func):
 
 
 TEST_OPTIONS = get_test_options()
-
