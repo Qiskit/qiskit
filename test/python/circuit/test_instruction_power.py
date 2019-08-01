@@ -22,11 +22,12 @@ from numpy.testing import assert_allclose
 from numpy.linalg import matrix_power
 
 from qiskit.transpiler import PassManager
-from qiskit import QuantumRegister, QuantumCircuit
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
 from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate, CnotGate
-from qiskit.circuit import Instruction
+from qiskit.circuit import Instruction, Measure
 from qiskit.transpiler.passes import Unroller
+from qiskit.exceptions import QiskitError
 
 
 class TestPowerInt1Q(QiskitTestCase):
@@ -180,6 +181,69 @@ class TestPowerInt2Q(QiskitTestCase):
         self.assertEqual(result.name, 'cx^-2')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Instruction)
+
+
+class TestPowerIntMeasure(QiskitTestCase):
+    """Test Measure.power() with integer"""
+
+    def test_measure_two(self):
+        """Test Measure.power(2) method.
+        """
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        expected_circ = QuantumCircuit(qr, cr)
+        expected_circ.append(Measure(), [qr[0]], [cr[0]])
+        expected_circ.append(Measure(), [qr[0]], [cr[0]])
+        expected = expected_circ.to_instruction()
+
+        result = Measure().power(2)
+
+        self.assertEqual(result.name, 'measure^2')
+        self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
+
+    def test_measure_one(self):
+        """Test Measure.power(1) method.
+        """
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        expected_circ = QuantumCircuit(qr, cr)
+        expected_circ.append(Measure(), [qr[0]], [cr[0]])
+        expected = expected_circ.to_instruction()
+
+        result = Measure().power(1)
+
+        self.assertEqual(result.name, 'measure^1')
+        self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
+
+    def test_measure_zero(self):
+        """Test Measure.power(0) method.
+        """
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        expected_circ = QuantumCircuit(qr, cr)
+        expected_circ.append(U3Gate(0, 0, 0), [qr[0]])
+        expected = expected_circ.to_instruction()
+
+        result = Measure().power(0)
+
+        self.assertEqual(result.name, 'measure^0')
+        self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
+
+    def test_measure_minus_one(self):
+        """Test Measure.power(-1) method.
+        """
+        qr = QuantumRegister(1, 'qr')
+        cr = ClassicalRegister(1, 'cr')
+        expected_circ = QuantumCircuit(qr, cr)
+        expected_circ.append(U3Gate(0, 0, 0), [qr[0]])
+        expected = expected_circ.to_instruction()
+
+        with self.assertRaises(QiskitError) as cm:
+            _ = Measure().power(-1)
+        self.assertIn('inverse', str(cm.exception))
 
 
 class TestPowerUnroller(QiskitTestCase):
