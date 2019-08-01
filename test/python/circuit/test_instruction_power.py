@@ -19,7 +19,6 @@ import unittest
 from ddt import ddt, data
 from numpy import pi, array
 from numpy.testing import assert_allclose
-from numpy.linalg import matrix_power
 
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit
@@ -157,8 +156,8 @@ class TestPowerInt(QiskitTestCase):
         """
         qr = QuantumRegister(2, 'qr')
         expected_circ = QuantumCircuit(qr)
-        expected_circ.append(CnotGate(), [qr[0],qr[1]])
-        expected_circ.append(CnotGate(), [qr[0],qr[1]])
+        expected_circ.append(CnotGate(), [qr[0], qr[1]])
+        expected_circ.append(CnotGate(), [qr[0], qr[1]])
         expected = expected_circ.to_instruction()
 
         result = CnotGate().power(-2)
@@ -288,13 +287,25 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(len(result.definition), 1)
         assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
 
-    @data(-0.2, 0.2)
-    def test_float_lt_abs_one(self, exponent):
-        """Test (-1,1)-range exponents """
+    def test_zero_two(self, exponent=0.2):
+        """Test Sgate^(0.2)"""
         result = SGate().power(exponent)
         self.assertEqual(result.name, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
-        assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
+
+        assert_allclose(array([[1. + 0.j, 0. + 0.j],
+                               [0. + 0.j, 0.95105652 + 0.30901699j]], dtype=complex),
+                        result.definition[0][0].to_matrix(), rtol=1e-07, atol=1e-8)
+
+    def test_minus_zero_two(self, exponent=-0.2):
+        """Test Sgate^(-0.2)"""
+        result = SGate().power(exponent)
+        self.assertEqual(result.name, 's^' + str(exponent))
+        self.assertEqual(len(result.definition), 1)
+
+        assert_allclose(array([[1. + 0.j, 0. + 0.j],
+                               [0. + 0.j, 0.95105652 - 0.30901699j]], dtype=complex),
+                        result.definition[0][0].to_matrix(), rtol=1e-07, atol=1e-8)
 
 
 if __name__ == '__main__':
