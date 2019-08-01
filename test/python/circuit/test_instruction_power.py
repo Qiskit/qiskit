@@ -238,9 +238,9 @@ class TestPowerIntMeasure(QiskitTestCase):
     def test_measure_minus_one(self):
         """Test Measure.power(-1) method. Raises, since no Measure.inverse()
         """
-        with self.assertRaises(QiskitError) as cm:
+        with self.assertRaises(QiskitError) as context:
             _ = Measure().power(-1)
-        self.assertIn('inverse', str(cm.exception))
+        self.assertIn('inverse', str(context.exception))
 
 
 class TestPowerUnroller(QiskitTestCase):
