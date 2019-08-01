@@ -404,7 +404,7 @@ class TestPowerInvariant(QiskitTestCase):
 
     @data(-3, -2, -1, 1, 2, 3)
     def test_invariant1_int(self, n):
-        """Test (op^(n))^(1/n) == op
+        """Test (op^(1/n))^(n) == op
         """
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr)
