@@ -316,6 +316,10 @@ class Instruction:
         flat_cargs = [carg for sublist in cargs for carg in sublist]
         yield flat_qargs, flat_cargs
 
+    def _return_power(self, exponent):
+        return Instruction(name="%s^%s" % (self.name, exponent), num_qubits=self.num_qubits,
+                           num_clbits=self.num_clbits, params=self.params)
+
     def power(self, exponent):
         """
         Creates an instruction with the gate repeated `exponent` amount of times.
@@ -335,17 +339,14 @@ class Instruction:
             raise QiskitError("Instruction only supports integer exponentiation.")
         exponent = int(exponent)
 
-        instruction = Instruction(name="%s^%s" % (self.name, exponent),
-                                  num_qubits=self.num_qubits,
-                                  num_clbits=self.num_clbits,
-                                  params=self.params)
+        instruction = self._return_power(exponent)
         qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
 
         if exponent > 0:
             sub_instruction = (self, qargs[:], cargs[:])
         elif exponent < 0:
-            sub_instruction = (self.inverse(), qargs[:], cargs[:])
+            sub_instruction = (self.inverse(), qargs[:], [])
         else:
             from qiskit.extensions.standard.u3 import U3Gate  # pylint: disable=cyclic-import
             instruction.definition = [(U3Gate(0, 0, 0), [q], []) for q in qargs]

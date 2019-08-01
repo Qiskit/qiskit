@@ -47,6 +47,10 @@ class Gate(Instruction):
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
+    def _return_power(self, exponent):
+        return Gate(name="%s^%s" % (self.name, exponent), num_qubits=self.num_qubits,
+                    params=self.params)
+
     def power(self, exponent):
         """Creates an instruction with `gate^exponent`. If `exponent` is an
         integer `self` is repeated `exponent` amount of times. If float the
@@ -75,8 +79,8 @@ class Gate(Instruction):
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
         sub_instruction = UnitaryGate(unitary_power)
 
-        instruction = Instruction(name="%s^%s" % (self.name, exponent), num_qubits=self.num_qubits,
-                                  num_clbits=self.num_clbits, params=self.params)
+        instruction = Gate(name="%s^%s" % (self.name, exponent), num_qubits=self.num_qubits,
+                           params=self.params)
         qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
         cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
         instruction.definition = [(sub_instruction, qargs[:], cargs[:])]
