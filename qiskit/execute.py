@@ -107,6 +107,8 @@ def execute(experiments, backend,
                 0: no optimization
                 1: light optimization
                 2: heavy optimization
+                3: even heavier optimization
+            If None, level 1 will be chosen as default.
 
         pass_manager (PassManager):
             The pass manager to use during transpilation. If this arg is present,
@@ -121,7 +123,7 @@ def execute(experiments, backend,
             copied to the corresponding Result header. Headers do not affect the run.
 
         shots (int):
-            Number of repetitions of each circuit, for sampling. Default: 2014
+            Number of repetitions of each circuit, for sampling. Default: 1024
 
         memory (bool):
             If True, per-shot measurement bitstrings are returned as well

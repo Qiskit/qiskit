@@ -21,6 +21,7 @@ import numpy as np
 from qiskit import execute
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.providers.basicaer import UnitarySimulatorPy
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.test import ReferenceCircuits
 from qiskit.test import providers
 from qiskit.quantum_info.random import random_unitary
@@ -39,10 +40,8 @@ class BasicAerUnitarySimulatorPyTest(providers.BackendTestCase):
         job = execute(circuits, backend=self.backend)
         sim_unitaries = [job.result().get_unitary(circ) for circ in circuits]
         reference_unitaries = self._reference_unitaries()
-        norms = [np.trace(np.dot(np.transpose(np.conj(target)), actual))
-                 for target, actual in zip(reference_unitaries, sim_unitaries)]
-        for norm in norms:
-            self.assertAlmostEqual(norm, 8)
+        for u_sim, u_ref in zip(sim_unitaries, reference_unitaries):
+            self.assertTrue(matrix_equal(u_sim, u_ref, ignore_phase=True))
 
     def _test_circuits(self):
         """Return test circuits for unitary simulator"""

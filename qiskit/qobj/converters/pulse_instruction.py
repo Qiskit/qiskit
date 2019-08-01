@@ -67,24 +67,23 @@ class InstructionToQobjConverter:
     providing custom converter methods.
 
 
-    To create a custom converter for custom instruction
-    ```
-    class CustomConverter(InstructionToQobjConverter):
+    To create a custom converter for custom instruction::
 
-        @bind_instruction(CustomInstruction)
-        def convert_custom_command(self, shift, instruction):
-            command_dict = {
-                'name': 'custom_command',
-                't0': shift+instruction.start_time,
-                'param1': instruction.param1,
-                'param2': instruction.param2
-            }
-            if self._run_config('option1', True):
-                command_dict.update({
-                    'param3': instruction.param3
-                })
-            return self.qobj_model(**command_dict)
-    ```
+        class CustomConverter(InstructionToQobjConverter):
+
+            @bind_instruction(CustomInstruction)
+            def convert_custom_command(self, shift, instruction):
+                command_dict = {
+                    'name': 'custom_command',
+                    't0': shift+instruction.start_time,
+                    'param1': instruction.param1,
+                    'param2': instruction.param2
+                }
+                if self._run_config('option1', True):
+                    command_dict.update({
+                        'param3': instruction.param3
+                    })
+                return self.qobj_model(**command_dict)
     """
     # class level tracking of conversion methods
     bind_instruction = ConversionMethodBinder()
@@ -345,8 +344,9 @@ class QobjToInstructionConverter:
             phase_expr = parse_string_expr(phase, partial_binding=False)
 
             def gen_fc_sched(*args, **kwargs):
-                phase = abs(phase_expr(*args, **kwargs))
-                return commands.FrameChange(phase)(channel) << t0
+                # this should be real value
+                _phase = phase_expr(*args, **kwargs)
+                return commands.FrameChange(_phase)(channel) << t0
 
             return ParameterizedSchedule(gen_fc_sched, parameters=phase_expr.params)
 
