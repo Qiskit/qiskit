@@ -48,6 +48,19 @@ class Gate(Instruction):
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
     def power(self, exponent):
+        """Creates an instruction with `gate^exponent`. If `exponent` is an
+        integer `self` is repeated `exponent` amount of times. If float the
+        instruction contains a UnitaryGate with `gate^exponent`.
+        Negative integer exponent creates an instruction with
+        Instruction.inverse().
+        Zero exponent creates an instruction with u3(0,0,0).
+
+        Args:
+            exponent (float): Gate^exponent
+
+        Returns:
+            Instruction: Containing the definition.
+        """
         if int(exponent) == exponent:
             return super().power(exponent)
 

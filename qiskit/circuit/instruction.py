@@ -323,7 +323,7 @@ class Instruction:
         Zero exponent creates an instruction with u3(0,0,0).
 
         Args:
-            exponent (int): Gate^exponent
+            exponent (int): Instruction^exponent
 
         Returns:
             Instruction: Containing the definition.
