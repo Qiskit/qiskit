@@ -61,7 +61,7 @@ def assemble(experiments,
             copied to the corresponding Result header. Headers do not affect the run.
 
         shots (int):
-            Number of repetitions of each circuit, for sampling. Default: 2014
+            Number of repetitions of each circuit, for sampling. Default: 1024
 
         memory (bool):
             If True, per-shot measurement bitstrings are returned as well
