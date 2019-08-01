@@ -26,7 +26,7 @@ from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
 from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate, CnotGate
 from qiskit.circuit import Instruction, Measure, Gate
-from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import Unroller, Optimize1qGates
 from qiskit.exceptions import QiskitError
 
 
@@ -396,6 +396,26 @@ class TestGateFloat(QiskitTestCase):
         assert_allclose(array([[1. + 0.j, 0. + 0.j],
                                [0. + 0.j, 0.95105652 - 0.30901699j]], dtype=complex),
                         result.definition[0][0].to_matrix())
+
+
+@ddt
+class TestPowerInvariant(QiskitTestCase):
+    """Test Gate.power invariants"""
+
+    @data(-3, -2, -1, 1, 2, 3)
+    def test_invariant1_int(self, n):
+        """Test (op^(n))^(1/n) == op
+        """
+        qr = QuantumRegister(1, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit.append(SGate().power(1/n).power(n), [qr[0]])
+        result = PassManager([Unroller('u3'), Optimize1qGates()]).run(circuit)
+
+        expected_circuit = QuantumCircuit(qr)
+        expected_circuit.append(SGate(), [qr[0]])
+        expected = PassManager([Unroller('u3'), Optimize1qGates()]).run(expected_circuit)
+
+        self.assertEqual(result, expected)
 
 
 if __name__ == '__main__':
