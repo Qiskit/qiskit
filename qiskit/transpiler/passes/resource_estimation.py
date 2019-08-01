@@ -21,15 +21,16 @@ from qiskit.transpiler.passes.width import Width
 from qiskit.transpiler.passes.size import Size
 from qiskit.transpiler.passes.count_ops import CountOps
 from qiskit.transpiler.passes.num_tensor_factors import NumTensorFactors
+from qiskit.transpiler.passes.num_qubits import NumQubits
 
 
 class ResourceEstimation(AnalysisPass):
-    """ Requires Depth(), Width(), Size(), CountOps(), and NumTensorFactors().
+    """ Requires Depth(), Width(), Size(), CountOps(), NumTensorFactors(), and NumQubits.
     """
 
     def __init__(self):
         super().__init__()
-        self.requires += [Depth(), Width(), Size(), CountOps(), NumTensorFactors()]
+        self.requires += [Depth(), Width(), Size(), CountOps(), NumTensorFactors(), NumQubits()]
 
     def run(self, _):
         pass

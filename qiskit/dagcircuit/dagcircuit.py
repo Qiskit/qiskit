@@ -588,29 +588,25 @@ class DAGCircuit:
         return depth if depth != -1 else 0
 
     def width(self):
-        """Return the total number of qubits used by the circuit."""
-        return len(self.wires) - self.num_clbits()
+        """Return the total number of qubits + clbits used by the circuit.
+           This function formerly returned the number of qubits by the calculation
+           return len(self.wires) - self.num_clbits()
+           but was changed by issue #2564 to return number of qubits + clbits
+           with the new function DAGCircuit.num_qubits replacing the former
+           semantic of DAGCircuit.width().
+        """
+        return len(self.wires)
 
     def num_qubits(self):
         """Return the total number of qubits used by the circuit.
-           num_qubits() intends to replace current use of width().
-           DAGCircuit.width() should return qubits + cbits for
+           num_qubits() replaces former use of width().
+           DAGCircuit.width() now returns qubits + clbits for
            consistency with Circuit.width() [qiskit-terra #2564].
-           After all calling code has been edited to replace DAGCircuit.width()
-           with DAGCircuit.num_qubits(), then DAGCircuit.width() can be modified
-           to express the desired semantic.
         """
         return len(self.wires) - self.num_clbits()
 
-    def num_cbits(self):
-        """Return the total number of bits used by the circuit."""
-        return sum(creg.size for creg in self.cregs.values())
-
     def num_clbits(self):
-        """Return the total number of bits used by the circuit.
-           Replacement for num_cbits() for consistent naming [qiskit-terra #2564].
-           Both defs will stay until num_cbits() changed to num_clbits() in
-           calls from qiskit_tutorials and qiskit-aqua."""
+        """Return the total number of classical bits used by the circuit."""
         return sum(creg.size for creg in self.cregs.values())
 
     def num_tensor_factors(self):
@@ -1249,6 +1245,7 @@ class DAGCircuit:
         summary = {"size": self.size(),
                    "depth": self.depth(),
                    "width": self.width(),
+                   "qubits": self.num_qubits(),
                    "bits": self.num_clbits(),
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
