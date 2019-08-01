@@ -19,6 +19,7 @@ import unittest
 from ddt import ddt, data
 from numpy import pi, array
 from numpy.testing import assert_allclose
+from numpy.linalg import matrix_power
 
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit
