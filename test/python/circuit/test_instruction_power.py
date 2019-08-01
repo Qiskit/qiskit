@@ -25,11 +25,12 @@ from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate, CnotGate
+from qiskit.circuit import Instruction
 from qiskit.transpiler.passes import Unroller
 
 
-class TestPowerInt(QiskitTestCase):
-    """Test Instruction.power() with integer"""
+class TestPowerInt1Q(QiskitTestCase):
+    """Test gate_q1.power() with integer"""
 
     def test_standard_1Q_two(self):
         """Test standard gate.power(2) method.
@@ -44,6 +45,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 's^2')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
     def test_standard_1Q_one(self):
         """Test standard gate.power(1) method.
@@ -57,6 +59,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 's^1')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
     def test_standard_1Q_zero(self):
         """Test standard gate.power(0) method.
@@ -70,6 +73,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 's^0')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
     def test_standard_1Q_minus_one(self):
         """Test standard gate.power(-1) method.
@@ -83,6 +87,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 's^-1')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
     def test_standard_1Q_minus_two(self):
         """Test standard gate.power(-2) method.
@@ -97,6 +102,11 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 's^-2')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
+
+
+class TestPowerInt2Q(QiskitTestCase):
+    """Test gate_q2.power() with integer"""
 
     def test_standard_2Q_two(self):
         """Test standard 2Q gate.power(2) method.
@@ -111,6 +121,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 'cx^2')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
     def test_standard_2Q_one(self):
         """Test standard 2Q gate.power(1) method.
@@ -124,6 +135,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 'cx^1')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
     def test_standard_2Q_zero(self):
         """Test standard 2Q gate.power(0) method.
@@ -138,6 +150,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 'cx^0')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
     def test_standard_2Q_minus_one(self):
         """Test standard 2Q gate.power(-1) method.
@@ -151,6 +164,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 'cx^-1')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
     def test_standard_2Q_minus_two(self):
         """Test standard 2Q gate.power(-2) method.
@@ -165,6 +179,7 @@ class TestPowerInt(QiskitTestCase):
 
         self.assertEqual(result.name, 'cx^-2')
         self.assertEqual(result.definition, expected.definition)
+        self.assertIsInstance(result, Instruction)
 
 
 class TestPowerUnroller(QiskitTestCase):
@@ -251,9 +266,12 @@ class TestGateSqrt(QiskitTestCase):
         """
         expected = array([[0.5 + 0.5j, 0.5 + 0.5j],
                           [-0.5 - 0.5j, 0.5 + 0.5j]])
+
         result = UnitaryGate([[0, 1j], [-1j, 0]]).power(1 / 2)
+
         self.assertEqual(result.name, 'unitary^0.5')
         self.assertEqual(len(result.definition), 1)
+        self.assertIsInstance(result, Instruction)
         assert_allclose(result.definition[0][0].to_matrix(), expected)
 
     def test_starndard_sqrt(self):
@@ -261,9 +279,12 @@ class TestGateSqrt(QiskitTestCase):
         """
         expected = array([[1 + 0.j, 0 + 0.j],
                           [0 + 0.j, 0.70710678 + 0.70710678j]])
+
         result = SGate().power(1 / 2)
+
         self.assertEqual(result.name, 's^0.5')
         self.assertEqual(len(result.definition), 1)
+        self.assertIsInstance(result, Instruction)
         assert_allclose(result.definition[0][0].to_matrix(), expected)
 
 
@@ -275,8 +296,10 @@ class TestGateFloat(QiskitTestCase):
     def test_direct_root(self, degree):
         """Test nth root"""
         result = SGate().power(1 / degree)
+
         self.assertEqual(result.name, 's^' + str(1 / degree))
         self.assertEqual(len(result.definition), 1)
+        self.assertIsInstance(result, Instruction)
         assert_allclose(matrix_power(result.definition[0][0].to_matrix(), degree),
                         SGate().to_matrix())
 
@@ -284,16 +307,19 @@ class TestGateFloat(QiskitTestCase):
     def test_float_gt_one(self, exponent):
         """Test greater-than-one exponents """
         result = SGate().power(exponent)
+
         self.assertEqual(result.name, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
+        self.assertIsInstance(result, Instruction)
         assert_allclose(SGate().to_matrix() ** exponent, result.definition[0][0].to_matrix())
 
     def test_zero_two(self, exponent=0.2):
         """Test Sgate^(0.2)"""
         result = SGate().power(exponent)
+
         self.assertEqual(result.name, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
-
+        self.assertIsInstance(result, Instruction)
         assert_allclose(array([[1. + 0.j, 0. + 0.j],
                                [0. + 0.j, 0.95105652 + 0.30901699j]], dtype=complex),
                         result.definition[0][0].to_matrix(), rtol=1e-07, atol=1e-8)
@@ -301,9 +327,10 @@ class TestGateFloat(QiskitTestCase):
     def test_minus_zero_two(self, exponent=-0.2):
         """Test Sgate^(-0.2)"""
         result = SGate().power(exponent)
+
         self.assertEqual(result.name, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
-
+        self.assertIsInstance(result, Instruction)
         assert_allclose(array([[1. + 0.j, 0. + 0.j],
                                [0. + 0.j, 0.95105652 - 0.30901699j]], dtype=complex),
                         result.definition[0][0].to_matrix(), rtol=1e-07, atol=1e-8)
