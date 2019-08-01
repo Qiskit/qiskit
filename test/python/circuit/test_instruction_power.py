@@ -233,14 +233,8 @@ class TestPowerIntMeasure(QiskitTestCase):
         self.assertIsInstance(result, Instruction)
 
     def test_measure_minus_one(self):
-        """Test Measure.power(-1) method.
+        """Test Measure.power(-1) method. Raises, since no Measure.inverse()
         """
-        qr = QuantumRegister(1, 'qr')
-        cr = ClassicalRegister(1, 'cr')
-        expected_circ = QuantumCircuit(qr, cr)
-        expected_circ.append(U3Gate(0, 0, 0), [qr[0]])
-        expected = expected_circ.to_instruction()
-
         with self.assertRaises(QiskitError) as cm:
             _ = Measure().power(-1)
         self.assertIn('inverse', str(cm.exception))
