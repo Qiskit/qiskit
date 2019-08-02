@@ -96,53 +96,6 @@ class Interval:
         """
         return self.start == other.start and self.stop == other.stop
 
-    def stops_before(self, other):
-        """Whether intervals stops at value less than or equal to the
-        other interval's starting time.
-
-        Args:
-            other (Interval): other Interval
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return self.stop <= other.start
-
-    def starts_after(self, other):
-        """Whether intervals starts at value greater than or equal to the
-        other interval's stopping time.
-
-        Args:
-            other (Interval): other Interval
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return self.start >= other.stop
-
-    def __lt__(self, other):
-        """If interval stops before other interval.
-
-        Args:
-            other (Interval): other Interval
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return self.stops_before(other)
-
-    def __gt__(self, other):
-        """Interval is greater than other if it starts at a time less than or equal to the
-        other interval's stopping time.
-
-        Args:
-            other (Interval): other Interval
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return self.starts_after(other)
-
     def __repr__(self):
         """Return a readable representation of Interval Object"""
         return "{}({}, {})".format(self.__class__.__name__, self.start, self.stop)
@@ -314,7 +267,7 @@ class TimeslotCollection:
         for ch_timeslot in reversed(ch_timeslots):
             ch_interval = ch_timeslot.interval
 
-            if interval > ch_interval:
+            if interval.start >= ch_interval.stop:
                 break
             elif interval.has_overlap(ch_interval):
                 raise PulseError("Timeslot: {0} overlaps with existing"
@@ -385,7 +338,7 @@ class TimeslotCollection:
                 append = True
                 for ch_timeslot in ch_timeslots:
                     ch_interval = ch_timeslot.interval
-                    if other_ch_interval > ch_interval:
+                    if other_ch_interval.start >= ch_interval.stop:
                         break
                     if ch_interval.has_overlap(other_ch_interval):
                         return False
