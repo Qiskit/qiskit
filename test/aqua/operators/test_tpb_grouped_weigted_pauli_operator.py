@@ -136,6 +136,13 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
         # this check assure the std of grouped pauli is less than pauli mode under a fixed amount of total shots
         self.assertLessEqual(grouped_pauli_value[1].real, pauli_value[1].real)
 
+    def test_equal(self):
+        gop_1 = op_converter.to_tpb_grouped_weighted_pauli_operator(self.qubit_op,
+                                                                    TPBGroupedWeightedPauliOperator.sorted_grouping)
+        gop_2 = op_converter.to_tpb_grouped_weighted_pauli_operator(self.qubit_op,
+                                                                    TPBGroupedWeightedPauliOperator.unsorted_grouping)
+        self.assertNotEqual(gop_1, gop_2)
+
 
 if __name__ == '__main__':
     unittest.main()
