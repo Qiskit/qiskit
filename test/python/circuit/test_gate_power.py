@@ -107,8 +107,8 @@ class TestPowerInt1Q(QiskitTestCase):
         self.assertIsInstance(result, Gate)
 
 
-class TestPowerInt2Q(QiskitTestCase):
-    """Test gate_q2.power() with integer"""
+class TestPowerIntCX(QiskitTestCase):
+    """Test CX.power() with integer"""
 
     def setUp(self) -> None:
         self.identity = array([[1, 0, 0, 0],
@@ -117,7 +117,7 @@ class TestPowerInt2Q(QiskitTestCase):
                                [0, 0, 0, 1]], dtype=complex)
 
     def test_standard_2Q_two(self):
-        """Test standard 2Q gate.power(2) method.
+        """Test CX.power(2) method.
         """
         result = CnotGate().power(2)
 
@@ -126,7 +126,7 @@ class TestPowerInt2Q(QiskitTestCase):
         assert_array_almost_equal(result.to_matrix(), self.identity)
 
     def test_standard_2Q_one(self):
-        """Test standard 2Q gate.power(1) method.
+        """Test CX.power(1) method.
         """
         result = CnotGate().power(1)
 
@@ -135,7 +135,7 @@ class TestPowerInt2Q(QiskitTestCase):
         assert_array_almost_equal(result.to_matrix(), CnotGate().to_matrix())
 
     def test_standard_2Q_zero(self):
-        """Test standard 2Q gate.power(0) method.
+        """Test CX.power(0) method.
         """
         result = CnotGate().power(0)
 
@@ -144,7 +144,7 @@ class TestPowerInt2Q(QiskitTestCase):
         assert_array_almost_equal(result.to_matrix(), self.identity)
 
     def test_standard_2Q_minus_one(self):
-        """Test standard 2Q gate.power(-1) method.
+        """Test CX.power(-1) method.
         """
         result = CnotGate().power(-1)
 
@@ -153,7 +153,7 @@ class TestPowerInt2Q(QiskitTestCase):
         assert_array_almost_equal(result.to_matrix(), CnotGate().to_matrix())
 
     def test_standard_2Q_minus_two(self):
-        """Test standard 2Q gate.power(-2) method.
+        """Test CX.power(-2) method.
         """
         result = CnotGate().power(-2)
 
