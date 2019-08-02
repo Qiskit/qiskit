@@ -18,6 +18,7 @@ import logging
 import os
 import unittest
 from enum import Enum
+from itertools import product
 
 from qiskit import __path__ as qiskit_path
 
@@ -85,3 +86,23 @@ class _AssertNoLogsContext(unittest.case._AssertLogsContext):
                                                   record.getMessage())
 
             self._raiseFailure(msg)
+
+
+class Case(dict):
+    """ A test case, see https://ddt.readthedocs.io/en/latest/example.html MyList."""
+    pass
+
+
+def generate_cases(dsc=None, name=None, **kwargs):
+    """Combines kwargs in cartesian product and creates Case with them"""
+    ret = []
+    keys = kwargs.keys()
+    vals = kwargs.values()
+    for values in product(*vals):
+        case = Case(zip(keys, values))
+        if dsc is not None:
+            setattr(case, "__doc__", dsc.format(**case))
+        if name is not None:
+            setattr(case, "__name__", name.format(**case))
+        ret.append(case)
+    return ret
