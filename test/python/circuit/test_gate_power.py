@@ -18,7 +18,7 @@
 import unittest
 from ddt import ddt, data
 from numpy import pi, array, eye
-from numpy.testing import assert_allclose, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_almost_equal
 from numpy.linalg import matrix_power
 
 from qiskit.transpiler import PassManager
@@ -110,78 +110,56 @@ class TestPowerInt1Q(QiskitTestCase):
 class TestPowerInt2Q(QiskitTestCase):
     """Test gate_q2.power() with integer"""
 
+    def setUp(self) -> None:
+        self.identity = array([[1, 0, 0, 0],
+                               [0, 1, 0, 0],
+                               [0, 0, 1, 0],
+                               [0, 0, 0, 1]], dtype=complex)
+
     def test_standard_2Q_two(self):
         """Test standard 2Q gate.power(2) method.
         """
-        qr = QuantumRegister(2, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
-        expected = expected_circ.to_instruction()
-
         result = CnotGate().power(2)
 
         self.assertEqual(result.label, 'cx^2')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), self.identity)
 
     def test_standard_2Q_one(self):
         """Test standard 2Q gate.power(1) method.
         """
-        qr = QuantumRegister(2, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
-        expected = expected_circ.to_instruction()
-
         result = CnotGate().power(1)
 
         self.assertEqual(result.label, 'cx^1')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), CnotGate().to_matrix())
 
     def test_standard_2Q_zero(self):
         """Test standard 2Q gate.power(0) method.
         """
-        qr = QuantumRegister(2, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(U3Gate(0, 0, 0), [qr[0]])
-        expected_circ.append(U3Gate(0, 0, 0), [qr[1]])
-        expected = expected_circ.to_instruction()
-
         result = CnotGate().power(0)
 
         self.assertEqual(result.label, 'cx^0')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), self.identity)
 
     def test_standard_2Q_minus_one(self):
         """Test standard 2Q gate.power(-1) method.
         """
-        qr = QuantumRegister(2, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
-        expected = expected_circ.to_instruction()
-
         result = CnotGate().power(-1)
 
         self.assertEqual(result.label, 'cx^-1')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), CnotGate().to_matrix())
 
     def test_standard_2Q_minus_two(self):
         """Test standard 2Q gate.power(-2) method.
         """
-        qr = QuantumRegister(2, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
-        expected_circ.append(CnotGate(), [qr[0], qr[1]])
-        expected = expected_circ.to_instruction()
-
         result = CnotGate().power(-2)
 
         self.assertEqual(result.label, 'cx^-2')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), self.identity)
 
 
 class TestGateSqrt(QiskitTestCase):
