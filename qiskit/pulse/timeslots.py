@@ -217,14 +217,12 @@ class TimeslotCollection:
         Args:
             other: TimeSlotCollection to merge
         """
-        common_channels = set(self.channels) & set(other.channels)
-
         for channel in other.channels:
             ch_timeslots = self._table[channel]
             other_ch_timeslots = other._table[channel]
             # if channel is in self there might be an overlap
             timeslot_idx = 0
-            if channel in common_channels:
+            if channel in self._table:
                 for other_ch_timeslot in other_ch_timeslots:
                     insert_idx = self._merge_timeslot(other_ch_timeslot)
 
