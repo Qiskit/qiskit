@@ -170,6 +170,7 @@ class FakeQasmSimulator(FakeBackend):
             basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                          'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                          'snapshot', 'unitary'],
+            coupling_map=None,
             simulator=True,
             local=True,
             conditional=True,
@@ -394,7 +395,7 @@ class FakeTokyo(FakeBackend):
         configuration = QasmBackendConfiguration(
             backend_name='fake_tokyo',
             backend_version='0.0.0',
-            n_qubits=16,
+            n_qubits=20,
             basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
             simulator=False,
             local=True,

@@ -11,9 +11,12 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+# pylint: disable=unused-argument
 
 """A module for the job watcher"""
 
+from IPython.core.magic import (line_magic,             # pylint: disable=import-error
+                                Magics, magics_class)
 from qiskit.tools.events.pubsub import Subscriber
 from .job_widgets import (build_job_viewer, make_clear_button,
                           make_labels, create_job_widget)
@@ -21,13 +24,13 @@ from .watcher_monitor import _job_monitor
 
 
 class JobWatcher(Subscriber):
-    """An abstract progress bar with some shared functionality.
+    """An IBM Q job watcher.
     """
     def __init__(self):
         super().__init__()
         self.jobs = []
         self._init_subscriber()
-        self.job_viewer = build_job_viewer()
+        self.job_viewer = None
         self._clear_button = make_clear_button(self)
         self._labels = make_labels()
         self.refresh_viewer()
@@ -42,7 +45,8 @@ class JobWatcher(Subscriber):
     def stop_viewer(self):
         """Stops the job viewer.
         """
-        self.job_viewer.close()
+        if self.job_viewer:
+            self.job_viewer.close()
         self.job_viewer = None
 
     def start_viewer(self):
@@ -136,3 +140,25 @@ class JobWatcher(Subscriber):
             _job_monitor(job, status, self)
 
         self.subscribe("ibmq.job.start", _add_job)
+
+
+@magics_class
+class JobWatcherMagic(Magics):
+    """A class for enabling/disabling the job watcher.
+    """
+    @line_magic
+    def qiskit_job_watcher(self, line='', cell=None):
+        """A Jupyter magic function to enable job watcher.
+        """
+        _JOB_WATCHER.stop_viewer()
+        _JOB_WATCHER.start_viewer()
+
+    @line_magic
+    def qiskit_disable_job_watcher(self, line='', cell=None):
+        """A Jupyter magic function to disable job watcher.
+        """
+        _JOB_WATCHER.stop_viewer()
+
+
+# The Jupyter job watcher instance
+_JOB_WATCHER = JobWatcher()

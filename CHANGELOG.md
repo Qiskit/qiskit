@@ -50,10 +50,17 @@ The format is based on [Keep a Changelog].
 -   Gray-Synth and Patel–Markov–Hayes algorithms for synthesis of
     CNOT-Phase and CNOT-only (linear) circuits (\#2457)
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
+-   Added a ``random_circuit`` function under ``qiskit.circuit.random``
+    (#2553)
 
 ### Changed
+
 -   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
     Otherwise an error is raised.
+-   The number of memory slots required will now be inferred from the supplied
+    schedules if `memory_slots` is not supplied.
+-   All circuit drawers now express most commonly used fractions
+    of PI (\#2808).
 -   Set default repetition time to be the first available.
 -   Pulse commands may now start with capitalized letters.
 -   The `pylatexenc` and `pillow` requirements are now optional. These
@@ -73,6 +80,12 @@ The format is based on [Keep a Changelog].
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
 -   Change Snapshot signature to match simulator.snapshot (\#2592)
+-   `DAGCircuit.width()` formerly returned number of qubits, now returns total number of qubits + classical bits (\#2564)
+-   Functions assuming the former semantics of `DAGCircuit.width()` now call `DAGCircuit.num_qubits()` (\#2564)
+-   `DAGCircuit.num_cbits()` renamed to `DAGCircuit.num_clbits()` (\#2564)
+-   Changed definition of `Cu3Gate` to to equivalent to the canonical
+    definition of a controlled `U3Gate` (\#2755)
+-   coupling_map now required to validate a backend.configuration() (\#2836)
 
 ### Removed
 
@@ -98,6 +111,7 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
+-   Fixes a bug where the CmdDef was getting built without buffers on channels.
 -   Fixed bug in `Pulse` for multiple parameters being added (\#2742)
 -   Fixed bug in `Pulse` for CmdDef arguments (\#2741)
 -   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
@@ -109,6 +123,9 @@ The format is based on [Keep a Changelog].
 -   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
 -   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
     was measured into more than one memory cbit (\#2735)
+-   Correctly serialize complex numbers with a nonzero real part
+-   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
+    subset of qubits are measured (\#2790)
 
 
 ## [0.8.2] - 2019-06-14
