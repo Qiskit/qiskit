@@ -12,16 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" An analysis pass for calculating the width of a DAG circuit.
-"""
-from qiskit.transpiler.basepasses import AnalysisPass
+"""Method for generating random circuits."""
 
-
-class Width(AnalysisPass):
-    """ An analysis pass for calculating the width of a DAG circuit.
-    """
-
-    def run(self, dag):
-        """ Return num qubits + num clbits
-        """
-        self.property_set['width'] = dag.width()
+from .utils import random_circuit

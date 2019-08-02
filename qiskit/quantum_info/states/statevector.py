@@ -337,7 +337,10 @@ class Statevector(QuantumState):
                         'Cannot apply instruction with classical registers: {}'.format(
                             instr.name))
                 # Get the integer position of the flat register
-                new_qargs = [tup.index for tup in qregs]
+                if qargs is None:
+                    new_qargs = [tup.index for tup in qregs]
+                else:
+                    new_qargs = [qargs[tup.index] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):

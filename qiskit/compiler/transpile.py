@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
+
 import warnings
 
 from qiskit.transpiler import Layout, CouplingMap
@@ -30,9 +31,8 @@ def transpile(circuits,
               basis_gates=None, coupling_map=None, backend_properties=None,
               initial_layout=None, seed_transpiler=None,
               optimization_level=None,
-              pass_manager=None, callback=None):
-    """transpile one or more circuits, according to some desired
-    transpilation targets.
+              pass_manager=None, callback=None, output_names=None):
+    """Transpile one or more circuits, according to some desired transpilation targets.
 
     All arguments may be given as either singleton or list. In case of list,
     the length must be equal to the number of circuits being transpiled.
@@ -48,24 +48,28 @@ def transpile(circuits,
             backend.configuration() and backend.properties().
             If any other option is explicitly set (e.g. coupling_map), it
             will override the backend's.
+
             Note: the backend arg is purely for convenience. The resulting
-                circuit may be run on any backend as long as it is compatible.
+            circuit may be run on any backend as long as it is compatible.
 
         basis_gates (list[str]):
             List of basis gate names to unroll to.
-            e.g:
+            e.g::
+
                 ['u1', 'u2', 'u3', 'cx']
+
             If None, do not unroll.
 
         coupling_map (CouplingMap or list):
             Coupling map (perhaps custom) to target in mapping.
             Multiple formats are supported:
-            a. CouplingMap instance
 
-            b. list
+            1. CouplingMap instance
+            2. list
                 Must be given as an adjacency matrix, where each entry
                 specifies all two-qubit interactions supported by backend
-                e.g:
+                e.g::
+
                     [[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]
 
         backend_properties (BackendProperties):
@@ -82,24 +86,28 @@ def transpile(circuits,
             may permute qubits through swaps or other means.
 
             Multiple formats are supported:
-            a. Layout instance
 
-            b. dict
-                virtual to physical:
+            1. Layout instance
+            2. dict
+                * virtual to physical::
+
                     {qr[0]: 0,
                      qr[1]: 3,
                      qr[2]: 5}
 
-                physical to virtual:
+                * physical to virtual::
+
                     {0: qr[0],
                      3: qr[1],
                      5: qr[2]}
 
-            c. list
-                virtual to physical:
+            3. list
+                * virtual to physical::
+
                     [0, 3, 5]  # virtual qubits are ordered (in addition to named)
 
-                physical to virtual:
+                * physical to virtual::
+
                     [qr[0], None, None, qr[1], None, qr[2]]
 
         seed_transpiler (int):
@@ -109,10 +117,12 @@ def transpile(circuits,
             How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
-                0: no optimization
-                1: light optimization
-                2: heavy optimization
-                3: even heavier optimization
+
+                * 0: no optimization
+                * 1: light optimization
+                * 2: heavy optimization
+                * 3: even heavier optimization
+
             If None, level 1 will be chosen as default.
 
         pass_manager (PassManager):
@@ -148,8 +158,8 @@ def transpile(circuits,
                     ...
 
                 transpile(circ, callback=callback_func)
-
-
+        output_names (str or list[str]) :
+            A list with strings to identify the output circuits
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
 
@@ -159,7 +169,7 @@ def transpile(circuits,
 
     # transpiling schedules is not supported yet.
     if isinstance(circuits, Schedule) or \
-       (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
+            (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
         return circuits
 
     if optimization_level is None:
@@ -181,12 +191,41 @@ def transpile(circuits,
             max_qubits = parsed_coupling_map.size()
             if n_qubits > max_qubits:
                 raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
-                                      'in {} '. format(circuit.name) +
+                                      'in {} '.format(circuit.name) +
                                       'is greater than maximum ({}) '.format(max_qubits) +
                                       'in the coupling_map')
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
-
+    # naming and returning circuits
+    # output_names could be either a string or a list
+    if output_names is not None:
+        if isinstance(output_names, str):
+            # single circuit
+            if len(circuits) == 1:
+                circuits[0].name = output_names
+            # multiple circuits
+            else:
+                raise TranspilerError("Expected a list object of length equal " +
+                                      "to that of the number of circuits " +
+                                      "being transpiled")
+        elif isinstance(output_names, list):
+            # single circuit
+            if len(circuits) == 1:
+                if len(output_names) == 1:
+                    circuits[0].name = output_names[0]
+                else:
+                    raise TranspilerError("the length of output_names list "
+                                          + "must be equal to the number of "
+                                          + "transpiled circuits")
+            # multiple circuits
+            else:
+                if len(circuits) == len(output_names):
+                    for index, circuit in enumerate(circuits):
+                        circuit.name = output_names[index]
+                else:
+                    raise TranspilerError("the length of output_names list "
+                                          + "must be equal to the number of "
+                                          + "transpiled circuits")
     if len(circuits) == 1:
         return circuits[0]
     return circuits
@@ -323,9 +362,10 @@ def _parse_initial_layout(initial_layout, circuits):
         elif isinstance(initial_layout, dict):
             initial_layout = Layout(initial_layout)
         return initial_layout
+
     # multiple layouts?
     if isinstance(initial_layout, list) and \
-       any(isinstance(i, (list, dict)) for i in initial_layout):
+            any(isinstance(i, (list, dict)) for i in initial_layout):
         initial_layout = [_layout_from_raw(lo, circ) if isinstance(lo, (list, dict)) else lo
                           for lo, circ in zip(initial_layout, circuits)]
     else:
