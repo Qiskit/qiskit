@@ -256,7 +256,7 @@ class DAGCircuit:
         cargs = cargs or []
 
         all_cbits = self._bits_in_condition(condition)
-        all_cbits.extend(cargs)
+        all_cbits = set(all_cbits).union(cargs)
 
         self._check_condition(op.name, condition)
         self._check_bits(qargs, self.output_map)
@@ -799,6 +799,20 @@ class DAGCircuit:
         pred_map, succ_map = self._make_pred_succ_maps(node)
         full_pred_map, full_succ_map = self._full_pred_succ_maps(pred_map, succ_map,
                                                                  input_dag, wire_map)
+
+        if condition_bit_list:
+            # If we are replacing a conditional node, map input dag through
+            # wire_map to verify that it will not modify any of the conditioning
+            # bits.
+            condition_bits = set(condition_bit_list)
+
+            for op_node in input_dag.op_nodes():
+                mapped_cargs = {wire_map[carg] for carg in op_node.cargs}
+
+                if condition_bits & mapped_cargs:
+                    raise DAGCircuitError('Mapped DAG would alter clbits '
+                                          'on which it would be conditioned.')
+
         # Now that we know the connections, delete node
         self._multi_graph.remove_node(node)
 
