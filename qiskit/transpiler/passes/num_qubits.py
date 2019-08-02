@@ -12,8 +12,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum States."""
+""" An analysis pass for calculating the number of qubits of a DAG circuit.
+"""
+from qiskit.transpiler.basepasses import AnalysisPass
 
-from .statevector import Statevector
-from .densitymatrix import DensityMatrix
-from .states import basis_state, projector, purity
+
+class NumQubits(AnalysisPass):
+    """ An analysis pass for calculating the number of qubits of a DAG circuit.
+    """
+
+    def run(self, dag):
+        """ Return num qubits
+        """
+        self.property_set['num_qubits'] = dag.num_qubits()

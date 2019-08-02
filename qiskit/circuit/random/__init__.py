@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Quantum States."""
+"""Method for generating random circuits."""
 
-from .statevector import Statevector
-from .densitymatrix import DensityMatrix
-from .states import basis_state, projector, purity
+from .utils import random_circuit

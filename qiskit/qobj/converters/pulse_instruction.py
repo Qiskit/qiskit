@@ -67,24 +67,23 @@ class InstructionToQobjConverter:
     providing custom converter methods.
 
 
-    To create a custom converter for custom instruction
-    ```
-    class CustomConverter(InstructionToQobjConverter):
+    To create a custom converter for custom instruction::
 
-        @bind_instruction(CustomInstruction)
-        def convert_custom_command(self, shift, instruction):
-            command_dict = {
-                'name': 'custom_command',
-                't0': shift+instruction.start_time,
-                'param1': instruction.param1,
-                'param2': instruction.param2
-            }
-            if self._run_config('option1', True):
-                command_dict.update({
-                    'param3': instruction.param3
-                })
-            return self.qobj_model(**command_dict)
-    ```
+        class CustomConverter(InstructionToQobjConverter):
+
+            @bind_instruction(CustomInstruction)
+            def convert_custom_command(self, shift, instruction):
+                command_dict = {
+                    'name': 'custom_command',
+                    't0': shift+instruction.start_time,
+                    'param1': instruction.param1,
+                    'param2': instruction.param2
+                }
+                if self._run_config('option1', True):
+                    command_dict.update({
+                        'param3': instruction.param3
+                    })
+                return self.qobj_model(**command_dict)
     """
     # class level tracking of conversion methods
     bind_instruction = ConversionMethodBinder()
