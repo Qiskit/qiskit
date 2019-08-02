@@ -276,8 +276,14 @@ class QCircuitImage:
         # the wires poking out at the ends is 2 more
         sum_column_widths = sum(1 + v / 3 for v in max_column_widths)
 
+        max_reg_name = 3
+        for reg in self.ordered_regs:
+            max_reg_name = max(max_reg_name,
+                               len(reg.register.name))
+        sum_column_widths += 5 + max_reg_name / 3
+
         # could be a fraction so ceil
-        return columns, math.ceil(sum_column_widths) + 4
+        return columns, math.ceil(sum_column_widths)
 
     def _get_beamer_page(self):
         """Get height, width & scale attributes for the beamer page.
