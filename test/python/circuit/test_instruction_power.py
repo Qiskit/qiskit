@@ -17,8 +17,8 @@
 
 import unittest
 from ddt import ddt, data
-from numpy import pi, array
-from numpy.testing import assert_allclose
+from numpy import pi, array, eye
+from numpy.testing import assert_allclose, assert_array_equal
 from numpy.linalg import matrix_power
 
 from qiskit.transpiler import PassManager
@@ -28,7 +28,7 @@ from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate, CnotGate
 from qiskit.circuit import Instruction, Measure, Gate
 from qiskit.transpiler.passes import Unroller, Optimize1qGates
 from qiskit.exceptions import QiskitError
-
+from qiskit.quantum_info.operators import Operator
 
 class TestPowerInt1Q(QiskitTestCase):
     """Test gate_q1.power() with integer"""
@@ -408,7 +408,7 @@ class TestPowerInvariant(QiskitTestCase):
         """
         qr = QuantumRegister(1, 'qr')
         circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(1/n).power(n), [qr[0]])
+        circuit.append(SGate().power(1 / n).power(n), [qr[0]])
         result = PassManager([Unroller('u3'), Optimize1qGates()]).run(circuit)
 
         expected_circuit = QuantumCircuit(qr)
@@ -416,6 +416,16 @@ class TestPowerInvariant(QiskitTestCase):
         expected = PassManager([Unroller('u3'), Optimize1qGates()]).run(expected_circuit)
 
         self.assertEqual(result, expected)
+
+    @data(-3, -2, -1, 1, 2, 3)
+    def test_invariant2(self, n):
+        """Test op^(n) * op^(-n) == I
+        """
+        result = Operator(SGate().power(n)) @ Operator(SGate().power(-n))
+        expected = Operator(eye(2))
+
+        self.assertEqual(len(result.data), len(expected.data))
+        assert_array_equal(result.data, expected.data)
 
 
 if __name__ == '__main__':
