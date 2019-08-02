@@ -38,6 +38,12 @@ jobs:
         python setup.py build_ext --inplace
       displayName: 'Install dependencies'
 
+    # Our pylintheader rules fail every file on windows
+    # - script: |
+    #     pycodestyle --max-line-length=100 qiskit test
+    #     pylint -rn qiskit test
+    #   displayName: 'Style and lint'
+
     - script: |
         stestr run
         stestr last --subunit > test_results.subunit
@@ -69,3 +75,79 @@ jobs:
       inputs: {pathtoPublish: 'wheelhouse'}
     - bash: |
         twine upload wheelhouse\*
+
+- job: 'Linux_Tests'
+  pool: {vmImage: 'ubuntu-16.04'}
+  condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+  strategy:
+    matrix:
+      Python35:
+        python.version: '3.5'
+      Python36:
+        python.version: '3.6'
+      Python37:
+        python.version: '3.7'
+
+  steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+      displayName: 'Use Python $(python.version)'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+        pip install -e .
+        pip install "qiskit-ibmq-provider" -c constraints.txt
+        python setup.py build_ext --inplace
+      displayName: 'Install dependencies'
+
+    - script: |
+        pycodestyle --max-line-length=100 qiskit test
+        pylint -rn qiskit test
+      displayName: 'Style and lint'
+      condition: eq(variables['python.version'], '3.5')
+
+    - script: |
+        stestr run
+        stestr last --subunit > test_results.subunit
+      displayName: 'Run tests'
+
+- job: 'MacOS_Mojave_Tests'
+  pool: {vmImage: 'macOS-10.14'}
+  condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+  variables:
+    MPLBACKEND: ps
+  strategy:
+    matrix:
+      Python35:
+        python.version: '3.5'
+      Python36:
+        python.version: '3.6'
+      Python37:
+        python.version: '3.7'
+
+  steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python.version)'
+      displayName: 'Use Python $(python.version)'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+        pip install -e .
+        pip install "qiskit-ibmq-provider" -c constraints.txt
+        python setup.py build_ext --inplace
+      displayName: 'Install dependencies'
+
+    - script: |
+        pycodestyle --max-line-length=100 qiskit test
+        pylint -rn qiskit test
+      displayName: 'Style and lint'
+      condition: eq(variables['python.version'], '3.5')
+
+    - script: |
+        stestr run
+        stestr last --subunit > test_results.subunit
+      displayName: 'Run tests'

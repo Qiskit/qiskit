@@ -301,24 +301,6 @@ class BaseOperator(ABC):
         """
         pass
 
-    @abstractmethod
-    def _evolve(self, state, qargs=None):
-        """Evolve a quantum state by the operator.
-
-        Args:
-            state (QuantumState): The input statevector or density matrix.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
-
-        Returns:
-            QuantumState: the output quantum state.
-
-        Raises:
-            QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
-        """
-        pass
-
     @classmethod
     def _automatic_dims(cls, dims, size):
         """Check if input dimension corresponds to qubit subsystems."""

@@ -283,7 +283,6 @@ class TestPulseAssembler(QiskitTestCase):
 
         self.config = {
             'meas_level': 1,
-            'memory_slots': 2,
             'memory_slot_size': 100,
             'meas_return': 'avg',
             'rep_time': 100
@@ -405,6 +404,15 @@ class TestPulseAssembler(QiskitTestCase):
                      qubit_lo_freq=self.default_qubit_lo_freq,
                      meas_lo_freq=self.default_meas_lo_freq,
                      meas_map=[[0, 1, 2]])
+
+    def test_assemble_memory_slots(self):
+        """Test assembling a schedule and inferring number of memoryslots."""
+        acquire = pulse.Acquire(5)
+        n_memoryslots = 10
+        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots))
+
+        qobj = assemble(schedule, meas_map=[[0], [1]])
+        self.assertEqual(qobj.config.memory_slots, n_memoryslots)
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""

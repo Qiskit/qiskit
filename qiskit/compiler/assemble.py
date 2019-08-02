@@ -33,7 +33,7 @@ def assemble(experiments,
              qubit_lo_freq=None, meas_lo_freq=None,  # schedule run options
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=2, meas_return='avg', meas_map=None,
-             memory_slots=None, memory_slot_size=100, rep_time=None, parameter_binds=None,
+             memory_slot_size=100, rep_time=None, parameter_binds=None,
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
 
@@ -61,7 +61,7 @@ def assemble(experiments,
             copied to the corresponding Result header. Headers do not affect the run.
 
         shots (int):
-            Number of repetitions of each circuit, for sampling. Default: 2014
+            Number of repetitions of each circuit, for sampling. Default: 1024
 
         memory (bool):
             If True, per-shot measurement bitstrings are returned as well
@@ -90,7 +90,7 @@ def assemble(experiments,
             List of meas lo ranges used to validate that the supplied measurement los
             are valid.
 
-        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
@@ -100,14 +100,11 @@ def assemble(experiments,
         meas_return (str):
             Level of measurement data for the backend to return
             For `meas_level` 0 and 1:
-                "single" returns information from every shot.
-                "avg" returns average measurement output (averaged over number of shots).
+                * "single" returns information from every shot.
+                * "avg" returns average measurement output (averaged over number of shots).
 
         meas_map (list):
             List of lists, containing qubits that must be measured together.
-
-        memory_slots (int):
-            Number of classical memory slots used in this job.
 
         memory_slot_size (int):
             Size of each memory slot if the output is Level 0.
@@ -142,8 +139,7 @@ def assemble(experiments,
                                                        qubit_lo_freq, meas_lo_freq,
                                                        qubit_lo_range, meas_lo_range,
                                                        schedule_los, meas_level, meas_return,
-                                                       meas_map, memory_slots,
-                                                       memory_slot_size, rep_time,
+                                                       meas_map, memory_slot_size, rep_time,
                                                        parameter_binds, **run_config)
 
     # assemble either circuits or schedules
@@ -169,8 +165,7 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                     qubit_lo_freq, meas_lo_freq,
                     qubit_lo_range, meas_lo_range,
                     schedule_los, meas_level, meas_return,
-                    meas_map, memory_slots,
-                    memory_slot_size, rep_time,
+                    meas_map, memory_slot_size, rep_time,
                     parameter_binds, **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
@@ -202,7 +197,7 @@ def _parse_run_args(backend, qobj_id, qobj_header,
             )
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
-    memory_slots = memory_slots or getattr(backend_config, 'memory_slots', None)
+
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
     if isinstance(rep_time, list):
         rep_time = rep_time[0]
@@ -250,7 +245,6 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                            meas_level=meas_level,
                            meas_return=meas_return,
                            meas_map=meas_map,
-                           memory_slots=memory_slots,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
                            parameter_binds=parameter_binds,

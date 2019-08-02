@@ -170,6 +170,7 @@ class FakeQasmSimulator(FakeBackend):
             basis_gates=['u1', 'u2', 'u3', 'cx', 'cz', 'id', 'x', 'y', 'z',
                          'h', 's', 'sdg', 't', 'tdg', 'ccx', 'swap',
                          'snapshot', 'unitary'],
+            coupling_map=None,
             simulator=True,
             local=True,
             conditional=True,
