@@ -318,37 +318,29 @@ class TimeslotCollection:
         """
         return self.ch_stop_time(*channels)
 
-    def is_mergeable_with(self, timeslot_collection: 'TimeslotCollection') -> bool:
+    def is_mergeable_with(self, other: 'TimeslotCollection') -> bool:
         """Return if self is mergeable with `timeslots`.
 
         Args:
-            timeslot_collection: TimeslotCollection to be checked for mergeability
+            other: TimeslotCollection to be checked for mergeability
         """
-        common_channels = set(self.channels) & set(timeslot_collection.channels)
+        common_channels = set(self.channels) & set(other.channels)
 
         for channel in common_channels:
-            ch_timeslots = self._table[channel]
-            other_ch_timeslots = timeslot_collection._table[channel]
+            ch_timeslots = self.ch_timeslots(channel)
+            other_ch_timeslots = other.ch_timeslots(channel)
+            if ch_timeslots[-1].stop < other_ch_timeslots[0].start:
+                continue  # We are appending along this channel
 
-            for other_ch_timeslot in other_ch_timeslots:
-                other_ch_interval = other_ch_timeslot.interval
-
-                append = True
-                for ch_timeslot in ch_timeslots:
-                    ch_interval = ch_timeslot.interval
-                    if other_ch_interval.start >= ch_interval.stop:
-                        break
-                    if ch_interval.has_overlap(other_ch_interval):
-                        return False
-
-                    append = False
-
-                # since timeslots are sorted along channel
-                # if instruction can be appended, all other instructions on channel
-                # can be appended.
-                if append:
-                    break
-
+            i = 0  # iterate through this
+            j = 0  # iterate through other
+            while i < len(ch_timeslots) and j < len(other_ch_timeslots):
+                if ch_timeslots[i].interval.has_overlap(other_ch_timeslots[j].interval):
+                    return False
+                if ch_timeslots[i].stop <= other_ch_timeslots[j].start:
+                    i += 1
+                else:
+                    j += 1
         return True
 
     def merge(self, timeslots: 'TimeslotCollection') -> 'TimeslotCollection':
