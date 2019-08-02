@@ -186,8 +186,8 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         last_gate = self.qc.data[-1]
 
-        # Work around for https://github.com/Qiskit/qiskit-terra/issues/2567
-        assume(not isinstance(last_gate[0], Measure) or creg != last_gate[2][0].register)
+        # Conditional instructions are not supported
+        assume(isinstance(last_gate[0], Gate))
 
         last_gate[0].c_if(creg, val)
 
