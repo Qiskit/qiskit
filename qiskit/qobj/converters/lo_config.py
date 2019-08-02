@@ -43,10 +43,13 @@ class LoConfigConverter:
 
         self.default_lo_config = LoConfig()
 
-        for i, lo_range in enumerate(qubit_lo_range or []):
-            self.default_lo_config.add_lo_range(DriveChannel(i), lo_range)
-        for i, lo_range in enumerate(meas_lo_range or []):
-            self.default_lo_config.add_lo_range(MeasureChannel(i), lo_range)
+        if qubit_lo_range:
+            for i, lo_range in enumerate(qubit_lo_range):
+                self.default_lo_config.add_lo_range(DriveChannel(i), lo_range)
+
+        if meas_lo_range:
+            for i, lo_range in enumerate(meas_lo_range):
+                self.default_lo_config.add_lo_range(MeasureChannel(i), lo_range)
 
     def __call__(self, user_lo_config):
         """Return PulseQobjExperimentConfig
