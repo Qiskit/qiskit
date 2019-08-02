@@ -16,13 +16,12 @@
 """Test Qiskit's repeat instruction operation."""
 
 import unittest
-from numpy import pi, array
-from numpy.testing import assert_allclose
+from numpy import pi
 
 from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate, CnotGate
+from qiskit.extensions import SGate, U3Gate, UnitaryGate, CnotGate
 from qiskit.circuit import Instruction, Measure, Gate
 from qiskit.transpiler.passes import Unroller
 from qiskit.exceptions import QiskitError
