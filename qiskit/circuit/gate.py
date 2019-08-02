@@ -42,7 +42,6 @@ class Gate(Instruction):
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
-
     def _return_repeat(self, exponent):
         return Gate(name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits,
                     params=self.params)
