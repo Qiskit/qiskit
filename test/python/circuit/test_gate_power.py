@@ -30,6 +30,7 @@ from qiskit.transpiler.passes import Unroller, Optimize1qGates
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 
+
 class TestPowerInt1Q(QiskitTestCase):
     """Test gate_q1.power() with integer"""
 
@@ -44,7 +45,7 @@ class TestPowerInt1Q(QiskitTestCase):
 
         result = SGate().power(2)
 
-        self.assertEqual(result.name, 's^2')
+        self.assertEqual(result.label, 's^2')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -58,7 +59,7 @@ class TestPowerInt1Q(QiskitTestCase):
 
         result = SGate().power(1)
 
-        self.assertEqual(result.name, 's^1')
+        self.assertEqual(result.label, 's^1')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -72,7 +73,7 @@ class TestPowerInt1Q(QiskitTestCase):
 
         result = SGate().power(0)
 
-        self.assertEqual(result.name, 's^0')
+        self.assertEqual(result.label, 's^0')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -86,7 +87,7 @@ class TestPowerInt1Q(QiskitTestCase):
 
         result = SGate().power(-1)
 
-        self.assertEqual(result.name, 's^-1')
+        self.assertEqual(result.label, 's^-1')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -101,7 +102,7 @@ class TestPowerInt1Q(QiskitTestCase):
 
         result = SGate().power(-2)
 
-        self.assertEqual(result.name, 's^-2')
+        self.assertEqual(result.label, 's^-2')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -120,7 +121,7 @@ class TestPowerInt2Q(QiskitTestCase):
 
         result = CnotGate().power(2)
 
-        self.assertEqual(result.name, 'cx^2')
+        self.assertEqual(result.label, 'cx^2')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -134,7 +135,7 @@ class TestPowerInt2Q(QiskitTestCase):
 
         result = CnotGate().power(1)
 
-        self.assertEqual(result.name, 'cx^1')
+        self.assertEqual(result.label, 'cx^1')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -149,7 +150,7 @@ class TestPowerInt2Q(QiskitTestCase):
 
         result = CnotGate().power(0)
 
-        self.assertEqual(result.name, 'cx^0')
+        self.assertEqual(result.label, 'cx^0')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -163,7 +164,7 @@ class TestPowerInt2Q(QiskitTestCase):
 
         result = CnotGate().power(-1)
 
-        self.assertEqual(result.name, 'cx^-1')
+        self.assertEqual(result.label, 'cx^-1')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
 
@@ -178,145 +179,9 @@ class TestPowerInt2Q(QiskitTestCase):
 
         result = CnotGate().power(-2)
 
-        self.assertEqual(result.name, 'cx^-2')
+        self.assertEqual(result.label, 'cx^-2')
         self.assertEqual(result.definition, expected.definition)
         self.assertIsInstance(result, Gate)
-
-
-class TestPowerIntMeasure(QiskitTestCase):
-    """Test Measure.power() with integer"""
-
-    def test_measure_two(self):
-        """Test Measure.power(2) method.
-        """
-        qr = QuantumRegister(1, 'qr')
-        cr = ClassicalRegister(1, 'cr')
-        expected_circ = QuantumCircuit(qr, cr)
-        expected_circ.append(Measure(), [qr[0]], [cr[0]])
-        expected_circ.append(Measure(), [qr[0]], [cr[0]])
-        expected = expected_circ.to_instruction()
-
-        result = Measure().power(2)
-
-        self.assertEqual(result.name, 'measure^2')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Instruction)
-        self.assertNotIsInstance(result, Gate)
-
-    def test_measure_one(self):
-        """Test Measure.power(1) method.
-        """
-        qr = QuantumRegister(1, 'qr')
-        cr = ClassicalRegister(1, 'cr')
-        expected_circ = QuantumCircuit(qr, cr)
-        expected_circ.append(Measure(), [qr[0]], [cr[0]])
-        expected = expected_circ.to_instruction()
-
-        result = Measure().power(1)
-
-        self.assertEqual(result.name, 'measure^1')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Instruction)
-        self.assertNotIsInstance(result, Gate)
-
-    def test_measure_zero(self):
-        """Test Measure.power(0) method.
-        """
-        qr = QuantumRegister(1, 'qr')
-        cr = ClassicalRegister(1, 'cr')
-        expected_circ = QuantumCircuit(qr, cr)
-        expected_circ.append(U3Gate(0, 0, 0), [qr[0]])
-        expected = expected_circ.to_instruction()
-
-        result = Measure().power(0)
-
-        self.assertEqual(result.name, 'measure^0')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Instruction)
-        self.assertNotIsInstance(result, Gate)
-
-    def test_measure_minus_one(self):
-        """Test Measure.power(-1) method. Raises, since no Measure.inverse()
-        """
-        with self.assertRaises(QiskitError) as context:
-            _ = Measure().power(-1)
-        self.assertIn('inverse', str(context.exception))
-
-
-class TestPowerUnroller(QiskitTestCase):
-    """Test unrolling Gate.power"""
-
-    def test_unroller_two(self):
-        """Test unrolling gate.power(2).
-        """
-        qr = QuantumRegister(1, 'qr')
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(2), [qr[0]])
-        result = PassManager(Unroller('u3')).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
-
-    def test_unroller_one(self):
-        """Test unrolling gate.power(1).
-        """
-        qr = QuantumRegister(1, 'qr')
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(1), [qr[0]])
-        result = PassManager(Unroller('u3')).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
-
-    def test_unroller_zero(self):
-        """Test unrolling gate.power(0).
-        """
-        qr = QuantumRegister(1, 'qr')
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(0), [qr[0]])
-        result = PassManager(Unroller('u3')).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, 0), [qr[0]])
-
-        self.assertEqual(result, expected)
-
-    def test_unroller_minus_one(self):
-        """Test unrolling gate.power(-1).
-        """
-        qr = QuantumRegister(1, 'qr')
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(-1), [qr[0]])
-        result = PassManager(Unroller('u3')).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, -pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
-
-    def test_unroller_minus_two(self):
-        """Test unrolling gate.power(-2).
-        """
-        qr = QuantumRegister(1, 'qr')
-
-        circuit = QuantumCircuit(qr)
-        circuit.append(SGate().power(-2), [qr[0]])
-        result = PassManager(Unroller('u3')).run(circuit)
-
-        expected = QuantumCircuit(qr)
-        expected.append(U3Gate(0, 0, -pi / 2), [qr[0]])
-        expected.append(U3Gate(0, 0, -pi / 2), [qr[0]])
-
-        self.assertEqual(result, expected)
 
 
 class TestGateSqrt(QiskitTestCase):
@@ -330,7 +195,7 @@ class TestGateSqrt(QiskitTestCase):
 
         result = UnitaryGate([[0, 1j], [-1j, 0]]).power(1 / 2)
 
-        self.assertEqual(result.name, 'unitary^0.5')
+        self.assertEqual(result.label, 'unitary^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         assert_allclose(result.definition[0][0].to_matrix(), expected)
@@ -343,7 +208,7 @@ class TestGateSqrt(QiskitTestCase):
 
         result = SGate().power(1 / 2)
 
-        self.assertEqual(result.name, 's^0.5')
+        self.assertEqual(result.label, 's^0.5')
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         assert_allclose(result.definition[0][0].to_matrix(), expected)
@@ -358,7 +223,7 @@ class TestGateFloat(QiskitTestCase):
         """Test nth root"""
         result = SGate().power(1 / degree)
 
-        self.assertEqual(result.name, 's^' + str(1 / degree))
+        self.assertEqual(result.label, 's^' + str(1 / degree))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         assert_allclose(matrix_power(result.definition[0][0].to_matrix(), degree),
@@ -369,7 +234,7 @@ class TestGateFloat(QiskitTestCase):
         """Test greater-than-one exponents """
         result = SGate().power(exponent)
 
-        self.assertEqual(result.name, 's^' + str(exponent))
+        self.assertEqual(result.label, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         # SGate().to_matrix() is diagonal so `**` is equivalent.
@@ -379,7 +244,7 @@ class TestGateFloat(QiskitTestCase):
         """Test Sgate^(0.2)"""
         result = SGate().power(exponent)
 
-        self.assertEqual(result.name, 's^' + str(exponent))
+        self.assertEqual(result.label, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         assert_allclose(array([[1. + 0.j, 0. + 0.j],
@@ -390,7 +255,7 @@ class TestGateFloat(QiskitTestCase):
         """Test Sgate^(-0.2)"""
         result = SGate().power(exponent)
 
-        self.assertEqual(result.name, 's^' + str(exponent))
+        self.assertEqual(result.label, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
         assert_allclose(array([[1. + 0.j, 0. + 0.j],

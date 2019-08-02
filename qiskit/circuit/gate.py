@@ -46,18 +46,13 @@ class Gate(Instruction):
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
     def power(self, exponent):
-        """Creates an instruction with `gate^exponent`. If `exponent` is an
-        integer `self` is repeated `exponent` amount of times. If float the
-        instruction contains a UnitaryGate with `gate^exponent`.
-        Negative integer exponent creates an instruction with
-        Instruction.inverse().
-        Zero exponent creates an instruction with u3(0,0,0).
+        """Creates a unitary gate as `gate^exponent`.
 
         Args:
             exponent (float): Gate^exponent
 
         Returns:
-            UnitaryGate: Containing the definition.
+            UnitaryGate: To which `to_matrix` is self.to_matrix^exponent.
         """
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         # Should be diagonalized because it's a unitary.
@@ -68,7 +63,7 @@ class Gate(Instruction):
             decomposition_power.append(pow(element, exponent))
         # Then reconstruct the resulting gate.
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-        return UnitaryGate(unitary_power)
+        return UnitaryGate(unitary_power, label='%s^%s' % (self.name, exponent))
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
