@@ -25,9 +25,8 @@ from qiskit.transpiler import PassManager
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.test import QiskitTestCase
 from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate, CnotGate
-from qiskit.circuit import Instruction, Measure, Gate
+from qiskit.circuit import Gate
 from qiskit.transpiler.passes import Unroller, Optimize1qGates
-from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 
 
