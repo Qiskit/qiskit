@@ -17,14 +17,13 @@ Controlled unitary gate.
 """
 
 from qiskit.exceptions import QiskitError
-from .instruction import Instruction
-import qiskit.circuit.gate as gate
+from .gate import Gate
 
 
-class ControlledGate(gate.Gate):
+class ControlledGate(Gate):
     """Controlled unitary gate."""
 
-    def __init__(self,  name, num_qubits, params, label=None, num_ctrl_qubits=1,
+    def __init__(self, name, num_qubits, params, label=None, num_ctrl_qubits=1,
                  definition=None):
         """Create a new gate.
 
@@ -45,7 +44,6 @@ class ControlledGate(gate.Gate):
             raise QiskitError('number of control qubits must be less than the number of qubits')
         if definition:
             self.definition = definition
-
 
     def __eq__(self, other):
         if not isinstance(other, ControlledGate):

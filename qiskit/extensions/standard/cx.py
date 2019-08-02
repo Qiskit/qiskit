@@ -17,15 +17,10 @@
 """
 controlled-NOT gate.
 """
-
 import numpy
 
-from qiskit.circuit import QuantumRegister
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
-from qiskit.exceptions import QiskitError
-import qiskit.extensions.standard.ccx as ccx
-import qiskit.extensions.standard.x as x
 
 
 class CnotGate(ControlledGate):
@@ -46,24 +41,6 @@ class CnotGate(ControlledGate):
                             [0, 0, 1, 0],
                             [0, 1, 0, 0]], dtype=complex)
 
-    def q_if(self, num_ctrl_qubits=1, label=None):
-        """return controlled CNOT"""
-        if num_ctrl_qubits == 1:
-            return ccx.ToffoliGate()
-        elif isinstance(num_ctrl_qubits, int) and num_ctrl_qubits>=1:
-            c_ops = []
-            q = QuantumRegister(self.num_qubits + num_ctrl_qubits, "q")
-            rule = [
-                (self, q, [])
-            ]
-            for inst in rule:
-                c_ops.append(inst)
-            return ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits+1, 'x'),
-                                  num_ctrl_qubits+self.num_qubits, self.params,
-                                  num_ctrl_qubits=num_ctrl_qubits+1, label=label)
-        else:
-            raise QiskitError('Number of control qubits must be >=1')
-            
 
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""

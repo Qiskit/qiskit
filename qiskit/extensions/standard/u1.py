@@ -21,9 +21,7 @@ import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-import qiskit.extensions.standard.u3 as u3
-import qiskit.extensions.standard.cu1 as cu1
-from qiskit.exceptions import QiskitError
+from qiskit.extensions.standard.u3 import U3Gate
 
 
 class U1Gate(Gate):
@@ -37,7 +35,7 @@ class U1Gate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (u3.U3Gate(0, 0, self.params[0]), [q[0]], [])
+            (U3Gate(0, 0, self.params[0]), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -53,22 +51,7 @@ class U1Gate(Gate):
         lam = float(lam)
         return numpy.array([[1, 0], [0, numpy.exp(1j * lam)]], dtype=complex)
 
-    def q_if(self, num_ctrl_qubits=1, label=None):
-        """Return controlled version of gate.
 
-        Args:
-            num_ctrl_qubits (int): number of control qubits to add. Default 1.
-            label (str): optional label for returned gate.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        if num_ctrl_qubits == 1:
-            return cu1.Cu1Gate(*self.params)
-        else:
-            return super().q_if(num_ctrl_qubits=num_ctrl_qubits, label=label)
-
-            
 def u1(self, theta, q):
     """Apply u1 with angle theta to q."""
     return self.append(U1Gate(theta), [q], [])

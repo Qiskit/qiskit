@@ -20,10 +20,9 @@ controlled-Y gate.
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.circuit import ControlledGate
-import qiskit.extensions.standard.s as s
-import qiskit.extensions.standard.cx as cx
-import qiskit.extensions.standard.y as y
+from qiskit.extensions.standard.s import SGate
+from qiskit.extensions.standard.s import SdgGate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class CyGate(ControlledGate):
@@ -40,9 +39,9 @@ class CyGate(ControlledGate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (s.SdgGate(), [q[1]], []),
-            (cx.CnotGate(), [q[0], q[1]], []),
-            (s.SGate(), [q[1]], [])
+            (SdgGate(), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (SGate(), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

@@ -72,7 +72,7 @@ disable=no-self-use,        # disabled as it is too verbose
     too-many-public-methods, too-few-public-methods, too-many-ancestors,
     unnecessary-pass,   # allow for methods with just "pass", for clarity
     no-else-return,     # relax "elif" after a clause with a return
-    docstring-first-line-empty # relax docstring style
+    docstring-first-line-empty, # relax docstring style
 
 
 

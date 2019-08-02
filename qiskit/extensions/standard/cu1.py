@@ -18,8 +18,8 @@ controlled-u1 gate.
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-import qiskit.extensions.standard.u1 as u1
-import qiskit.extensions.standard.cx as cx
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class Cu1Gate(ControlledGate):
@@ -40,11 +40,11 @@ class Cu1Gate(ControlledGate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (u1.U1Gate(self.params[0] / 2), [q[0]], []),
-            (cx.CnotGate(), [q[0], q[1]], []),
-            (u1.U1Gate(-self.params[0] / 2), [q[1]], []),
-            (cx.CnotGate(), [q[0], q[1]], []),
-            (u1.U1Gate(self.params[0] / 2), [q[1]], [])
+            (U1Gate(self.params[0] / 2), [q[0]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U1Gate(-self.params[0] / 2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U1Gate(self.params[0] / 2), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

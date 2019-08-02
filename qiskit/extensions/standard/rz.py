@@ -20,8 +20,7 @@ Rotation around the z-axis.
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-import qiskit.extensions.standard.u1 as u1
-import qiskit.extensions.standard.crz as crz
+from qiskit.extensions.standard.u1 import U1Gate
 
 
 class RZGate(Gate):
@@ -38,7 +37,7 @@ class RZGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (u1.U1Gate(self.params[0]), [q[0]], [])
+            (U1Gate(self.params[0]), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -50,21 +49,6 @@ class RZGate(Gate):
         rz(phi)^dagger = rz(-phi)
         """
         return RZGate(-self.params[0])
-
-    def q_if(self, num_ctrl_qubits=1, label=None):
-        """Return controlled version of gate.
-
-        Args:
-            num_ctrl_qubits (int): number of control qubits to add. Default 1.
-            label (str): optional label for returned gate.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        if num_ctrl_qubits == 1:
-            return crz.CrzGate(*self.params)
-        else:
-            return super().q_if(num_ctrl_qubits=num_ctrl_qubits, label=label)    
 
 
 def rz(self, phi, q):

@@ -22,9 +22,8 @@ import numpy
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-import qiskit.extensions.standard.h as h
-import qiskit.extensions.standard.cx as cx
-import qiskit.extensions.standard.z as z
+from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class CzGate(ControlledGate):
@@ -41,9 +40,9 @@ class CzGate(ControlledGate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (h.HGate(), [q[1]], []),
-            (cx.CnotGate(), [q[0], q[1]], []),
-            (h.HGate(), [q[1]], [])
+            (HGate(), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (HGate(), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

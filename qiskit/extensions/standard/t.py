@@ -22,7 +22,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.qasm import pi
-import qiskit.extensions.standard.u1 as u1
+from . import u1
 
 
 class TGate(Gate):

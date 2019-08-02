@@ -42,29 +42,6 @@ class IdGate(Gate):
         return numpy.array([[1, 0],
                             [0, 1]], dtype=complex)
 
-    def q_if(self, num_ctrl_qubits=1, label=None):
-        """Return controlled version of gate.
-
-        Args:
-            num_ctrl_qubits (int): number of control qubits to add. Default 1.
-            label (str): optional label for returned gate.
-
-        Raise:
-            QiskitError: unallowed num_ctrl_qubits specified.
-        """
-        width = num_ctrl_qubits + 1
-        definition = []
-        q = QuantumRegister(width, "q")
-        rule = [
-            (IdGate(label=label), [q[i]], []) for i in range(width)
-        ]
-        for inst in rule:
-            definition.append(inst)
-        return controlledgate.ControlledGate('c{0:d}{1}'.format(num_ctrl_qubits, self.name),
-                                             num_ctrl_qubits+1, self.params,
-                                             num_ctrl_qubits=num_ctrl_qubits, label=label,
-                                             definition=definition)
-        
 
 def iden(self, q):
     """Apply Identity to q.

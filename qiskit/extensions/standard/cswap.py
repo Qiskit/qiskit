@@ -18,9 +18,8 @@ Fredkin gate. Controlled-SWAP.
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-import qiskit.extensions.standard.cx as cx
-import qiskit.extensions.standard.ccx as ccx
-import qiskit.extensions.standard.swap as swap
+from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.ccx import ToffoliGate
 
 
 class FredkinGate(ControlledGate):
@@ -41,9 +40,9 @@ class FredkinGate(ControlledGate):
         definition = []
         q = QuantumRegister(3, "q")
         rule = [
-            (cx.CnotGate(), [q[2], q[1]], []),
-            (ccx.ToffoliGate(), [q[0], q[1], q[2]], []),
-            (cx.CnotGate(), [q[2], q[1]], [])
+            (CnotGate(), [q[2], q[1]], []),
+            (ToffoliGate(), [q[0], q[1], q[2]], []),
+            (CnotGate(), [q[2], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

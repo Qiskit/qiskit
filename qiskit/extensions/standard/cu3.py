@@ -18,9 +18,9 @@ controlled-u3 gate.
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-import qiskit.extensions.standard.u1 as u1
-import qiskit.extensions.standard.u3 as u3
-import qiskit.extensions.standard.cx as cx
+from qiskit.extensions.standard.u1 import U1Gate
+from qiskit.extensions.standard.u3 import U3Gate
+from qiskit.extensions.standard.cx import CnotGate
 
 
 class Cu3Gate(ControlledGate):
@@ -41,12 +41,12 @@ class Cu3Gate(ControlledGate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
-            (u1.U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
-            (u1.U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
-            (cx.CnotGate(), [q[0], q[1]], []),
-            (u3.U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
-            (cx.CnotGate(), [q[0], q[1]], []),
-            (u3.U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
+            (U1Gate((self.params[2] + self.params[1]) / 2), [q[0]], []),
+            (U1Gate((self.params[2] - self.params[1]) / 2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(-self.params[0] / 2, 0, -(self.params[1] + self.params[2]) / 2), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (U3Gate(self.params[0] / 2, self.params[1], 0), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)

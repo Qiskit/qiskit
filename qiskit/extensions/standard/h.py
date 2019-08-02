@@ -20,13 +20,10 @@ Hadamard gate.
 import numpy
 
 from qiskit.circuit import Gate
-from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-from qiskit.exceptions import QiskitError
 from qiskit.qasm import pi
-import qiskit.extensions.standard.u2 as u2
-import qiskit.extensions.standard.ch as ch
+from qiskit.extensions.standard.u2 import U2Gate
 
 
 class HGate(Gate):
@@ -43,7 +40,7 @@ class HGate(Gate):
         definition = []
         q = QuantumRegister(1, "q")
         rule = [
-            (u2.U2Gate(0, pi), [q[0]], [])
+            (U2Gate(0, pi), [q[0]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -57,21 +54,6 @@ class HGate(Gate):
         """Return a Numpy.array for the H gate."""
         return numpy.array([[1, 1],
                             [1, -1]], dtype=complex) / numpy.sqrt(2)
-
-    def q_if(self, num_ctrl_qubits=1, label=None):
-        """Return controlled version of gate.
-
-        Args:
-            num_ctrl_qubits (int): number of control qubits to add. Default 1.
-            label (str): optional label for returned gate.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        if num_ctrl_qubits == 1:
-            return ch.CHGate()
-        else:
-            return super().q_if(num_ctrl_qubits=num_ctrl_qubits, label=label)
 
 
 def h(self, q):

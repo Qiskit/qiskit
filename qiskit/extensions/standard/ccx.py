@@ -21,9 +21,10 @@ import numpy
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
-import qiskit.extensions.standard.h as h
-import qiskit.extensions.standard.cx as cx
-import qiskit.extensions.standard.t as t
+from qiskit.extensions.standard.h import HGate
+from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.t import TGate
+from qiskit.extensions.standard.t import TdgGate
 
 
 class ToffoliGate(ControlledGate):
@@ -45,21 +46,21 @@ class ToffoliGate(ControlledGate):
         definition = []
         q = QuantumRegister(3, "q")
         rule = [
-            (h.HGate(), [q[2]], []),
-            (cx.CnotGate(), [q[1], q[2]], []),
-            (t.TdgGate(), [q[2]], []),
-            (cx.CnotGate(), [q[0], q[2]], []),
-            (t.TGate(), [q[2]], []),
-            (cx.CnotGate(), [q[1], q[2]], []),
-            (t.TdgGate(), [q[2]], []),
-            (cx.CnotGate(), [q[0], q[2]], []),
-            (t.TGate(), [q[1]], []),
-            (t.TGate(), [q[2]], []),
-            (h.HGate(), [q[2]], []),
-            (cx.CnotGate(), [q[0], q[1]], []),
-            (t.TGate(), [q[0]], []),
-            (t.TdgGate(), [q[1]], []),
-            (cx.CnotGate(), [q[0], q[1]], [])
+            (HGate(), [q[2]], []),
+            (CnotGate(), [q[1], q[2]], []),
+            (TdgGate(), [q[2]], []),
+            (CnotGate(), [q[0], q[2]], []),
+            (TGate(), [q[2]], []),
+            (CnotGate(), [q[1], q[2]], []),
+            (TdgGate(), [q[2]], []),
+            (CnotGate(), [q[0], q[2]], []),
+            (TGate(), [q[1]], []),
+            (TGate(), [q[2]], []),
+            (HGate(), [q[2]], []),
+            (CnotGate(), [q[0], q[1]], []),
+            (TGate(), [q[0]], []),
+            (TdgGate(), [q[1]], []),
+            (CnotGate(), [q[0], q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
