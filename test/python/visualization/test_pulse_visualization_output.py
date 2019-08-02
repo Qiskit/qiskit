@@ -107,6 +107,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         schedule = self.sample_schedule()
         pulse_drawer(schedule, filename=filename)
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
+        os.remove(filename)
 
 
 class TestPulseVisualizationImplementationWithDeviceSpecification(QiskitVisualizationTestCase):

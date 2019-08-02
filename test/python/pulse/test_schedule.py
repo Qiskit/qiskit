@@ -386,10 +386,14 @@ class TestDelay(BaseTestSchedule):
         # should pass as is an append
         sched = self.delay(drive_ch) + pulse(drive_ch)
         self.assertIsInstance(sched, Schedule)
+        pulse_instr = sched.instructions[-1]
+        # assert last instruction is pulse
+        self.assertIsInstance(pulse_instr[1], PulseInstruction)
+        # assert pulse is scheduled at time 10
+        self.assertEqual(pulse_instr[0], 10)
         # should fail due to overlap
         with self.assertRaises(PulseError):
             sched = self.delay(drive_ch) | pulse(drive_ch)
-            self.assertIsInstance(sched, Schedule)
 
     def test_delay_measure_channel(self):
         """Test Delay on MeasureChannel"""
@@ -402,7 +406,6 @@ class TestDelay(BaseTestSchedule):
         # should fail due to overlap
         with self.assertRaises(PulseError):
             sched = self.delay(measure_ch) | pulse(measure_ch)
-            self.assertIsInstance(sched, Schedule)
 
     def test_delay_control_channel(self):
         """Test Delay on ControlChannel"""

@@ -30,16 +30,16 @@ class Delay(Command):
     def __init__(self, duration: int, name: Optional[str] = None):
         """Create a new delay command.
 
-        No other may be scheduled within a delay command.
+        No other command may be scheduled within a delay command.
 
         Delays that exist as the last instruction on a channel will be removed.
 
-        Note: Delay's are not explicitly sent to backends with the current Qobj
+        Note: Delays are not explicitly sent to backends with the current Qobj
         transport layer. They are only used to enforce the correct offset in time
         for instructions that will be submitted directly to the backend.
 
         Args:
-            duration: int
+            duration: Length of time of the delay in terms of dt.
             name: Name of delay command for display purposes.
         """
         super().__init__(duration=duration)
