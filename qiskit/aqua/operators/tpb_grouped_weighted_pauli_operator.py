@@ -133,6 +133,25 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         return cls(new_paulis, basis, weighted_pauli_operator.z2_symmetries, weighted_pauli_operator.atol,
                    weighted_pauli_operator.name, cls.unsorted_grouping)
 
+    def __eq__(self, other):
+        """Overload == operation"""
+        if not super().__eq__(other):
+            return False
+        # check basis
+        if len(self._basis) != len(other.basis):
+            return False
+        for basis, indices in self._basis:
+            found_basis = False
+            found_indices = []
+            for other_basis, other_indices in other.basis:
+                if basis == other_basis:
+                    found_basis = True
+                    found_indices = other_indices
+                    break
+            if not found_basis or len(indices) != len(found_indices):
+                return False
+        return True
+
     def __str__(self):
         """Overload str()."""
         curr_repr = 'tpb grouped paulis'

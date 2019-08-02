@@ -16,17 +16,25 @@
 import itertools
 import warnings
 import logging
+import sys
 
 import numpy as np
 from qiskit.quantum_info import Pauli
+from qiskit.tools.parallel import parallel_map
+from qiskit.tools.events import TextProgressBar
 
-from qiskit.aqua import AquaError
-from qiskit.aqua import Operator
+from qiskit.aqua import AquaError, Operator, aqua_globals
 from .weighted_pauli_operator import WeightedPauliOperator
 from .matrix_operator import MatrixOperator
 from .tpb_grouped_weighted_pauli_operator import TPBGroupedWeightedPauliOperator
 
 logger = logging.getLogger(__name__)
+
+
+def _conversion(basis, matrix):
+    pauli = Pauli.from_label(''.join(basis))
+    trace_value = np.sum(matrix.dot(pauli.to_spmatrix()).diagonal())
+    return trace_value, pauli
 
 
 def to_weighted_pauli_operator(operator):
@@ -48,7 +56,7 @@ def to_weighted_pauli_operator(operator):
         if operator.is_empty():
             return WeightedPauliOperator(paulis=[])
         logger.warning("Convert from a MatrixOperator to a Pauli-type Operator requires exponential time. "
-                       "Please be patient.")
+                       "You can turn on DEBUG logging to check the progress.")
         num_qubits = operator.num_qubits
         coeff = 2 ** (-num_qubits)
 
@@ -56,18 +64,24 @@ def to_weighted_pauli_operator(operator):
         possible_basis = 'IXYZ'
         if operator.dia_matrix is not None:
             possible_basis = 'IZ'
-        # generate all possible paulis basis
-        for basis in itertools.product(possible_basis, repeat=num_qubits):
-            pauli = Pauli.from_label(''.join(basis))
-            trace_value = np.sum(operator._matrix.dot(pauli.to_spmatrix()).diagonal())
+
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Converting a MatrixOperator to a Pauli-type Operator:")
+            TextProgressBar(sys.stderr)
+        results = parallel_map(_conversion,
+                               [basis for basis in itertools.product(possible_basis, repeat=num_qubits)],
+                               task_kwargs={"matrix": operator._matrix},
+                               num_processes=aqua_globals)
+        for trace_value, pauli in results:
             weight = trace_value * coeff
-            if weight != 0.0:
+            if weight != 0.0 and np.abs(weight) > operator.atol:
                 paulis.append([weight, pauli])
 
         return WeightedPauliOperator(paulis, z2_symmetries=operator.z2_symmetries, name=operator.name)
     elif operator.__class__ == Operator:
         warnings.warn("The `Operator` class is deprecated. Please use `WeightedPauliOperator` or "
-                      "`TPBGroupedWeightedPauliOperator` or `MatrixOperator` instead", DeprecationWarning)
+                      "`TPBGroupedWeightedPauliOperator` or `MatrixOperator` instead",
+                      DeprecationWarning)
         return operator.to_weighted_pauli_operator()
     else:
         raise AquaError("Unsupported type to convert to WeightedPauliOperator: {}".format(operator.__class__))
@@ -97,7 +111,8 @@ def to_matrix_operator(operator):
         return operator
     elif operator.__class__ == Operator:
         warnings.warn("The `Operator` class is deprecated. Please use `WeightedPauliOperator` or "
-                      "`TPBGroupedWeightedPauliOperator` or `MatrixOperator` instead", DeprecationWarning)
+                      "`TPBGroupedWeightedPauliOperator` or `MatrixOperator` instead",
+                      DeprecationWarning)
         return operator.to_matrix_operator()
     else:
         raise AquaError("Unsupported type to convert to WeightedPauliOperator: {}".format(operator.__class__))
@@ -128,7 +143,8 @@ def to_tpb_grouped_weighted_pauli_operator(operator, grouping_func, **kwargs):
         return grouping_func(op, **kwargs)
     elif operator.__class__ == Operator:
         warnings.warn("The `Operator` class is deprecated. Please use `WeightedPauliOperator` or "
-                      "`TPBGroupedWeightedPauliOperator` or `MatrixOperator` instead", DeprecationWarning)
+                      "`TPBGroupedWeightedPauliOperator` or `MatrixOperator` instead",
+                      DeprecationWarning)
         return operator.to_tpb_grouped_weighted_pauli_operator()
     else:
         raise AquaError("Unsupported type to convert to WeightedPauliOperator: {}".format(operator.__class__))

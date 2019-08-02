@@ -344,6 +344,22 @@ class WeightedPauliOperator(BaseOperator):
         op.chop(0.0)
         return op
 
+    def rounding(self, decimals, copy=False):
+        """Rounding the weight.
+
+        Args:
+            decimals (int): rounding the weight to the decimals.
+            copy (bool): chop on a copy or self
+
+        Returns:
+            WeightedPauliOperator
+        """
+        op = self.copy() if copy else self
+
+        op._paulis = [[np.around(weight, decimals=decimals), pauli] for weight, pauli in op.paulis]
+
+        return op
+
     def chop(self, threshold=None, copy=False):
         """
         Eliminate the real and imagine part of weight in each pauli by `threshold`.
