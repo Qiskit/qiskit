@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Changed
+
+- Assignments and modifications to `QuantumCircuit.data` will now be broadcast
+  and validated following the same rules used throughout the
+  QuantumCircuit` API. (\#2826)
+
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated

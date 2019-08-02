@@ -31,47 +31,7 @@ from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
-
-from collections import UserList
-
-class CircuitData(UserList):
-    def __init__(self, circuit_data, *circuit):
-        self.data = circuit_data
-        self._circuit = circuit
-    def __setitem__(self, key, value):
-        instruction, qargs, cargs = value
-
-        if not isinstance(instruction, Instruction) and hasattr(instruction, 'to_instruction'):
-            instruction = instruction.to_instruction()
-
-        expanded_qargs = [self._circuit.qbit_argument_conversion(qarg)
-                          for qarg in qargs or []]
-        expanded_cargs = [self._circuit.cbit_argument_conversion(carg)
-                          for carg in cargs or []]
-
-        instructions = InstructionSet()
-        for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
-            #instructions.add(self._append(instruction, qarg, carg), qarg, carg)
-            self._circuit._check_dups(qargs)
-            self._circuit._check_qargs(qargs)
-            self._circuit._check_cargs(cargs)
-
-            # add the instruction onto the given wires
-            instruction_context = instruction, qargs, cargs
-            self.data.__setitem(key, instruction_context)
-
-            # track variable parameters in instruction
-            for param_index, param in enumerate(instruction.params):
-                if isinstance(param, Parameter):
-                    current_symbols = self.circuit.parameters
-
-                    if param in current_symbols:
-                        self._circuit._parameter_table[param].append((instruction, param_index))
-                    else:
-                        if param.name in {p.name for p in current_symbols}:
-                            raise QiskitError(
-                                'Name conflict on adding parameter: {}'.format(param.name))
-                        self._circuit._parameter_table[param] = [(instruction, param_index)]
+from .quantumcircuitdata import QuantumCircuitData
 
 
 def _is_bit(obj):
@@ -147,20 +107,17 @@ class QuantumCircuit:
         """Return the circuit data (instructions and context)
 
         Returns:
-            List: a list of the tuples for the circuit's data. Each tuple is
-               in the format (instruction, qargs, cargs). Where instruction
-               is an Instruction (or subclass) object, qargs is a list of
-               Qubit objects, and cargs is a list of Clbit objects.
+            QuantumCircuitData: a list-like object containing the tuples for the
+               circuit's data. Each tuple is in the format (instruction, qargs,
+               cargs). Where instruction is an Instruction (or subclass) object,
+               qargs is a list of Qubit objects, and cargs is a list of Clbit
+               objects.
         """
-        return CircuitData(self._data)
+        return QuantumCircuitData(self)
 
     @data.setter
     def data(self, data_input):
-        """Deprecated method to set circuit data list
-
-        Setting the circuit data directly is deprecated and will be removed in
-        the future. Instead you should use the circuit.append() method and
-        other circuit API methods.
+        """Sets the circuit data from a list of instructions and context.
 
         Args:
             data_input (list): A list of instructions with context
@@ -168,9 +125,14 @@ class QuantumCircuit:
                 is an Instruction (or subclass) object, qargs is a list of
                 Qubit objects, and cargs is a list of Clbit objects.
         """
-        warn('Setting the circuit data directly is deprecated, use '
-             'circuit.append() instead', DeprecationWarning)
-        self._data = data_input
+
+        # If data_input is QuantumCircuitData(self), clearing self._data
+        # below will also empty data_input, so make a shallow copy first.
+        data_input = data_input.copy()
+        self._data = []
+
+        for inst, qargs, cargs in data_input:
+            self.append(inst, qargs, cargs)
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -474,7 +436,11 @@ class QuantumCircuit:
         instruction_context = instruction, qargs, cargs
         self._data.append(instruction_context)
 
-        # track variable parameters in instruction
+        self._update_parameter_table(instruction)
+
+        return instruction
+
+    def _update_parameter_table(self, instruction):
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
                 current_parameters = self.parameters
@@ -487,8 +453,6 @@ class QuantumCircuit:
                             raise QiskitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
                         self._parameter_table[parameter] = [(instruction, param_index)]
-
-        return instruction
 
     def add_register(self, *regs):
         """Add registers."""
