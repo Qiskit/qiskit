@@ -40,7 +40,6 @@ import numpy
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameter import Parameter
 from qiskit.qobj.models.qasm import QasmQobjInstruction
 
@@ -105,7 +104,8 @@ class Instruction:
 
             try:
                 if numpy.shape(self_param) == numpy.shape(other_param) \
-                        and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+                   and numpy.allclose(self_param, other_param,
+                                      atol=_CUTOFF_PRECISION):
                     continue
             except TypeError:
                 pass
@@ -307,50 +307,7 @@ class Instruction:
             raise QiskitError(
                 'The amount of qubit arguments does not match the instruction expectation.')
 
-        if len(cargs) != self.num_clbits:
-            raise QiskitError(
-                'The amount of clbit arguments does not match the instruction expectation.')
-
         #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
         flat_cargs = [carg for sublist in cargs for carg in sublist]
         yield flat_qargs, flat_cargs
-
-    def _return_power(self, exponent):
-        return Instruction(name="%s^%s" % (self.name, exponent), num_qubits=self.num_qubits,
-                           num_clbits=self.num_clbits, params=self.params)
-
-    def power(self, exponent):
-        """
-        Creates an instruction with the gate repeated `exponent` amount of times.
-        Negative exponent creates an instruction with Instruction.inverse().
-        Zero exponent creates an instruction with u3(0,0,0).
-
-        Args:
-            exponent (int): Instruction^exponent
-
-        Returns:
-            Instruction: Containing the definition.
-
-        Raises:
-            QiskitError: If called by a non-integer exponent.
-        """
-        if int(exponent) != exponent:
-            raise QiskitError("Instruction only supports integer exponentiation.")
-        exponent = int(exponent)
-
-        instruction = self._return_power(exponent)
-        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
-        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
-
-        if exponent > 0:
-            sub_instruction = (self, qargs[:], cargs[:])
-        elif exponent < 0:
-            sub_instruction = (self.inverse(), qargs[:], [])
-        else:
-            from qiskit.extensions.standard.u3 import U3Gate  # pylint: disable=cyclic-import
-            instruction.definition = [(U3Gate(0, 0, 0), [q], []) for q in qargs]
-            return instruction
-
-        instruction.definition = [sub_instruction] * abs(exponent)
-        return instruction

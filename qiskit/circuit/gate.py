@@ -47,10 +47,6 @@ class Gate(Instruction):
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
 
-    def _return_power(self, exponent):
-        return Gate(name="%s^%s" % (self.name, exponent), num_qubits=self.num_qubits,
-                    params=self.params)
-
     def power(self, exponent):
         """Creates an instruction with `gate^exponent`. If `exponent` is an
         integer `self` is repeated `exponent` amount of times. If float the
@@ -63,11 +59,8 @@ class Gate(Instruction):
             exponent (float): Gate^exponent
 
         Returns:
-            Instruction: Containing the definition.
+            UnitaryGate: Containing the definition.
         """
-        if int(exponent) == exponent:
-            return super().power(exponent)
-
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
         # Should be diagonalized because it's a unitary.
         decomposition, unitary = schur(self.to_matrix(), output='complex')
@@ -77,14 +70,7 @@ class Gate(Instruction):
             decomposition_power.append(pow(element, exponent))
         # Then reconstruct the resulting gate.
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
-        sub_instruction = UnitaryGate(unitary_power)
-
-        instruction = Gate(name="%s^%s" % (self.name, exponent), num_qubits=self.num_qubits,
-                           params=self.params)
-        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
-        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
-        instruction.definition = [(sub_instruction, qargs[:], cargs[:])]
-        return instruction
+        return UnitaryGate(unitary_power)
 
     def assemble(self):
         """Assemble a QasmQobjInstruction"""
