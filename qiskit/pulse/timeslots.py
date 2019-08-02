@@ -72,9 +72,7 @@ class Interval:
         Returns:
             bool: True if self has overlap with `interval` otherwise False
         """
-        if self.start < interval.stop and interval.start < self.stop:
-            return True
-        return False
+        return self.start < interval.stop and interval.start < self.stop
 
     def shift(self, time: int) -> 'Interval':
         """Return a new interval shifted by `time` from self
@@ -96,9 +94,7 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self.start == other.start and self.stop == other.stop:
-            return True
-        return False
+        return self.start == other.start and self.stop == other.stop
 
     def stops_before(self, other):
         """Whether intervals stops at value less than or equal to the
@@ -110,9 +106,7 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self.stop <= other.start:
-            return True
-        return False
+        return self.stop <= other.start
 
     def starts_after(self, other):
         """Whether intervals starts at value greater than or equal to the
@@ -124,9 +118,7 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self.start >= other.stop:
-            return True
-        return False
+        return self.start >= other.stop
 
     def __lt__(self, other):
         """If interval stops before other interval.
@@ -205,9 +197,7 @@ class Timeslot:
         Returns:
             bool: True if intervals overlap and are on the same channel
         """
-        if self.interval.has_overlap(other) and self.channel == other.channel:
-            return True
-        return False
+        return self.interval.has_overlap(other) and self.channel == other.channel
 
     def __eq__(self, other) -> bool:
         """Two time-slots are the same if they have the same interval and channel.
@@ -215,9 +205,7 @@ class Timeslot:
         Args:
             other (Timeslot): other Timeslot
         """
-        if self.interval == other.interval and self.channel == other.channel:
-            return True
-        return False
+        return self.interval == other.interval and self.channel == other.channel
 
     def __repr__(self):
         """Return a readable representation of Timeslot Object"""
