@@ -71,7 +71,7 @@ def to_weighted_pauli_operator(operator):
         results = parallel_map(_conversion,
                                [basis for basis in itertools.product(possible_basis, repeat=num_qubits)],
                                task_kwargs={"matrix": operator._matrix},
-                               num_processes=aqua_globals)
+                               num_processes=aqua_globals.num_processes)
         for trace_value, pauli in results:
             weight = trace_value * coeff
             if weight != 0.0 and np.abs(weight) > operator.atol:
