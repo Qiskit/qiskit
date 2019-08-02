@@ -308,9 +308,9 @@ class TimeslotCollection:
 
         insert_idx = len(ch_timeslots)
 
-        # bubble sort for insertion location.
+        # merge timeslots by insertion sort.
         # Worst case O(n_channels), O(1) for append
-        # could be improved by implementing interval tree
+        # could be improved by implementing an interval tree
         for ch_timeslot in reversed(ch_timeslots):
             ch_interval = ch_timeslot.interval
 
@@ -333,7 +333,7 @@ class TimeslotCollection:
 
         return tuple()
 
-    def ch_start_time(self, *channels: Channel) -> int:
+    def ch_start_time(self, *channels: Channel) -> Union[int, None]:
         """Return earliest start time in this collection.
 
         Args:
@@ -344,9 +344,9 @@ class TimeslotCollection:
         if timeslots:
             return min(timeslot.start for timeslot in timeslots)
 
-        return 0
+        return None
 
-    def ch_stop_time(self, *channels: Channel) -> int:
+    def ch_stop_time(self, *channels: Channel) -> Union[int, None]:
         """Return maximum time of timeslots over all channels.
 
         Args:
@@ -357,7 +357,7 @@ class TimeslotCollection:
         if timeslots:
             return max(timeslot.stop for timeslot in timeslots)
 
-        return 0
+        return None
 
     def ch_duration(self, *channels: Channel) -> int:
         """Return maximum duration of timeslots over all channels.
@@ -423,7 +423,7 @@ class TimeslotCollection:
         Args:
             other (TimeslotCollection): other TimeslotCollection
         """
-        if set(self.channels) == set(other.channels):
+        if set(self.channels) != set(other.channels):
             return False
         for channel in self.channels:
             if self.ch_timeslots(channel) != self.ch_timeslots(channel):
