@@ -17,93 +17,76 @@
 
 import unittest
 from ddt import ddt, data
-from numpy import pi, array, eye
+from numpy import array, eye
 from numpy.testing import assert_allclose, assert_array_almost_equal
 from numpy.linalg import matrix_power
 
 from qiskit.transpiler import PassManager
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.extensions import SGate, SdgGate, U3Gate, UnitaryGate, CnotGate
+from qiskit.extensions import SGate, UnitaryGate, CnotGate
 from qiskit.circuit import Gate
 from qiskit.transpiler.passes import Unroller, Optimize1qGates
 from qiskit.quantum_info.operators import Operator
 
 
-class TestPowerInt1Q(QiskitTestCase):
-    """Test gate_q1.power() with integer"""
+@ddt
+class TestPowerSgate(QiskitTestCase):
+    """Test Sgate.power() with integer"""
 
-    def test_standard_1Q_two(self):
-        """Test standard gate.power(2) method.
+    @data(2, 1, 0, -1, -2)
+    def test_sgate_int(self, n):
+        """Test Sgate.power(n) method with n as integer.
         """
-        qr = QuantumRegister(1, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SGate(), [qr[0]])
-        expected_circ.append(SGate(), [qr[0]])
-        expected = expected_circ.to_instruction()
+        result = SGate().power(n)
 
-        result = SGate().power(2)
+        self.assertEqual(result.label, 's^%s' % n)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), matrix_power(SGate().to_matrix(), n))
 
-        self.assertEqual(result.label, 's^2')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
-
-    def test_standard_1Q_one(self):
-        """Test standard gate.power(1) method.
+    def test_sgate_float_1_5(self, n=1.5):
+        """Test Sgate.power(1.5) method.
         """
-        qr = QuantumRegister(1, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SGate(), [qr[0]])
-        expected = expected_circ.to_instruction()
+        result = SGate().power(n)
 
-        result = SGate().power(1)
+        expected = array([[1, 0],
+                          [0, -0.70710678 + 0.70710678j]], dtype=complex)
+        self.assertEqual(result.label, 's^%s' % n)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), expected)
 
-        self.assertEqual(result.label, 's^1')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
-
-    def test_standard_1Q_zero(self):
-        """Test standard gate.power(0) method.
+    def test_sgate_float_0_1(self, n=0.1):
+        """Test Sgate.power(0.1) method.
         """
-        qr = QuantumRegister(1, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(U3Gate(0, 0, 0), [qr[0]])
-        expected = expected_circ.to_instruction()
+        result = SGate().power(n)
 
-        result = SGate().power(0)
+        expected = array([[1, 0],
+                          [0, 0.98768834 + 0.15643447j]], dtype=complex)
+        self.assertEqual(result.label, 's^%s' % n)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), expected)
 
-        self.assertEqual(result.label, 's^0')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
-
-    def test_standard_1Q_minus_one(self):
-        """Test standard gate.power(-1) method.
+    def test_sgate_float_minus_1_5(self, n=-1.5):
+        """Test Sgate.power(-1.5) method.
         """
-        qr = QuantumRegister(1, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SdgGate(), [qr[0]])
-        expected = expected_circ.to_instruction()
+        result = SGate().power(n)
 
-        result = SGate().power(-1)
+        expected = array([[1, 0],
+                          [0, -0.70710678 - 0.70710678j]], dtype=complex)
+        self.assertEqual(result.label, 's^%s' % n)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), expected)
 
-        self.assertEqual(result.label, 's^-1')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
-
-    def test_standard_1Q_minus_two(self):
-        """Test standard gate.power(-2) method.
+    def test_sgate_float_minus_0_1(self, n=-0.1):
+        """Test Sgate.power(-0.1) method.
         """
-        qr = QuantumRegister(1, 'qr')
-        expected_circ = QuantumCircuit(qr)
-        expected_circ.append(SdgGate(), [qr[0]])
-        expected_circ.append(SdgGate(), [qr[0]])
-        expected = expected_circ.to_instruction()
+        result = SGate().power(n)
 
-        result = SGate().power(-2)
-
-        self.assertEqual(result.label, 's^-2')
-        self.assertEqual(result.definition, expected.definition)
-        self.assertIsInstance(result, Gate)
+        expected = array([[1, 0],
+                          [0, 0.98768834 - 0.15643447j]], dtype=complex)
+        self.assertEqual(result.label, 's^%s' % n)
+        self.assertIsInstance(result, UnitaryGate)
+        assert_array_almost_equal(result.to_matrix(), expected)
 
 
 class TestPowerIntCX(QiskitTestCase):
@@ -115,7 +98,7 @@ class TestPowerIntCX(QiskitTestCase):
                                [0, 0, 1, 0],
                                [0, 0, 0, 1]], dtype=complex)
 
-    def test_standard_2Q_two(self):
+    def test_cx_two(self):
         """Test CX.power(2) method.
         """
         result = CnotGate().power(2)
@@ -124,7 +107,7 @@ class TestPowerIntCX(QiskitTestCase):
         self.assertIsInstance(result, UnitaryGate)
         assert_array_almost_equal(result.to_matrix(), self.identity)
 
-    def test_standard_2Q_one(self):
+    def test_cx_one(self):
         """Test CX.power(1) method.
         """
         result = CnotGate().power(1)
@@ -133,7 +116,7 @@ class TestPowerIntCX(QiskitTestCase):
         self.assertIsInstance(result, UnitaryGate)
         assert_array_almost_equal(result.to_matrix(), CnotGate().to_matrix())
 
-    def test_standard_2Q_zero(self):
+    def test_cx_zero(self):
         """Test CX.power(0) method.
         """
         result = CnotGate().power(0)
@@ -142,7 +125,7 @@ class TestPowerIntCX(QiskitTestCase):
         self.assertIsInstance(result, UnitaryGate)
         assert_array_almost_equal(result.to_matrix(), self.identity)
 
-    def test_standard_2Q_minus_one(self):
+    def test_cx_minus_one(self):
         """Test CX.power(-1) method.
         """
         result = CnotGate().power(-1)
@@ -151,7 +134,7 @@ class TestPowerIntCX(QiskitTestCase):
         self.assertIsInstance(result, UnitaryGate)
         assert_array_almost_equal(result.to_matrix(), CnotGate().to_matrix())
 
-    def test_standard_2Q_minus_two(self):
+    def test_cx_minus_two(self):
         """Test CX.power(-2) method.
         """
         result = CnotGate().power(-2)
@@ -267,7 +250,7 @@ class TestPowerInvariant(QiskitTestCase):
         expected = Operator(eye(2))
 
         self.assertEqual(len(result.data), len(expected.data))
-        assert_array_equal(result.data, expected.data)
+        assert_array_almost_equal(result.data, expected.data)
 
 
 if __name__ == '__main__':
