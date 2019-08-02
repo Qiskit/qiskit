@@ -284,7 +284,7 @@ class TimeslotCollection:
 
         return tuple()
 
-    def ch_start_time(self, *channels: Channel) -> Union[int, None]:
+    def ch_start_time(self, *channels: Channel) -> int:
         """Return earliest start time in this collection.
 
         Args:
@@ -295,9 +295,9 @@ class TimeslotCollection:
         if timeslots:
             return min(timeslot.start for timeslot in timeslots)
 
-        return None
+        return 0
 
-    def ch_stop_time(self, *channels: Channel) -> Union[int, None]:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Return maximum time of timeslots over all channels.
 
         Args:
@@ -308,7 +308,7 @@ class TimeslotCollection:
         if timeslots:
             return max(timeslot.stop for timeslot in timeslots)
 
-        return None
+        return 0
 
     def ch_duration(self, *channels: Channel) -> int:
         """Return maximum duration of timeslots over all channels.
