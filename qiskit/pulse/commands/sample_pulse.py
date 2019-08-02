@@ -40,7 +40,7 @@ class SamplePulse(Command):
             name: Unique name to identify the pulse
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
-                it will be clipped by scaling its norm by 1-epsilon. If the sample
+                it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised
         """
         super().__init__(duration=len(samples))
@@ -64,7 +64,7 @@ class SamplePulse(Command):
             samples: Complex array of pulse envelope
             epsilon: Pulse sample norm tolerance for clipping.
                 If any sample's norm exceeds unity by less than or equal to epsilon
-                it will be clipped by scaling its norm by 1-epsilon. If the sample
+                it will be clipped to unit norm. If the sample
                 norm is greater than 1+epsilon an error will be raised
 
         Returns:
@@ -77,7 +77,7 @@ class SamplePulse(Command):
 
         if np.any(to_clip):
             clip_where = np.argwhere(to_clip)
-            clipped_samples = samples[clip_where]*(1-epsilon)
+            clipped_samples = np.exp(1j*np.angle(samples[clip_where]), dtype=np.complex_)
             samples[clip_where] = clipped_samples
             samples_norm[clip_where] = np.abs(clipped_samples)
 
