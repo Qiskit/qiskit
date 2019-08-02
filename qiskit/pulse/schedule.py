@@ -42,28 +42,29 @@ class Schedule(ScheduleComponent):
             PulseError: If timeslots intercept.
         """
         self._name = name
+
+        timeslots = []
+        _children = []
+        for sched_pair in schedules:
+            # recreate as sequence starting at 0.
+            if not isinstance(sched_pair, (list, tuple)):
+                sched_pair = (0, sched_pair)
+            # convert to tuple
+            sched_pair = tuple(sched_pair)
+            insert_time, sched = sched_pair
+            sched_timeslots = sched.timeslots
+            if insert_time:
+                sched_timeslots = sched_timeslots.shift(insert_time)
+            timeslots.append(sched_timeslots)
+            _children.append(sched_pair)
+
         try:
-            timeslots = []
-            _children = []
-            for sched_pair in schedules:
-                # recreate as sequence starting at 0.
-                if not isinstance(sched_pair, (list, tuple)):
-                    sched_pair = (0, sched_pair)
-                # convert to tuple
-                sched_pair = tuple(sched_pair)
-                insert_time, sched = sched_pair
-                sched_timeslots = sched.timeslots
-                if insert_time:
-                    sched_timeslots = sched_timeslots.shift(insert_time)
-                timeslots.append(sched_timeslots)
-                _children.append(sched_pair)
-
             self._timeslots = TimeslotCollection(*timeslots)
-            self.__children = tuple(_children)
-            self._buffer = max([child.buffer for _, child in _children]) if _children else 0
-
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+
+        self.__children = tuple(_children)
+        self._buffer = max([child.buffer for _, child in _children]) if _children else 0
 
     @property
     def name(self) -> str:
