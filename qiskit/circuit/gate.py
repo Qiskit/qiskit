@@ -18,8 +18,6 @@ import numpy as np
 from scipy.linalg import schur
 
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.quantumregister import QuantumRegister
 from .instruction import Instruction
 
 
