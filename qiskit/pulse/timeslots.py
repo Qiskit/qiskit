@@ -424,11 +424,11 @@ class TimeslotCollection:
             other (TimeslotCollection): other TimeslotCollection
         """
         if set(self.channels) == set(other.channels):
-            for channel in self.channels:
-                if self.ch_timeslots(channel) != self.ch_timeslots(channel):
-                    return False
-            return True
-        return False
+            return False
+        for channel in self.channels:
+            if self.ch_timeslots(channel) != self.ch_timeslots(channel):
+                return False
+        return True
 
     def __repr__(self):
         """Return a readable representation of TimeslotCollection Object"""
