@@ -30,7 +30,8 @@ jobs:
         versionSpec: '$(python.version)'
       displayName: 'Use Python $(python.version)'
 
-    - script: |
+    - bash: |
+        set -e
         python -m pip install --upgrade pip
         pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
         pip install -e .
@@ -44,7 +45,8 @@ jobs:
     #     pylint -rn qiskit test
     #   displayName: 'Style and lint'
 
-    - script: |
+    - bash: |
+        set -e
         stestr run
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
@@ -94,7 +96,8 @@ jobs:
         versionSpec: '$(python.version)'
       displayName: 'Use Python $(python.version)'
 
-    - script: |
+    - bash: |
+        set -e
         python -m pip install --upgrade pip
         pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
         pip install -e .
@@ -102,19 +105,21 @@ jobs:
         python setup.py build_ext --inplace
       displayName: 'Install dependencies'
 
-    - script: |
+    - bash: |
+        set -e
         pycodestyle --max-line-length=100 qiskit test
         pylint -rn qiskit test
       displayName: 'Style and lint'
       condition: eq(variables['python.version'], '3.5')
 
-    - script: |
+    - bash: |
+        set -e
         stestr run
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
 
 - job: 'MacOS_Mojave_Tests'
-  pool: {vmImage: 'macOS-10.14'}
+  pool: {vmImage: 'macOS-10.13'}
   condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
   variables:
     MPLBACKEND: ps
@@ -133,21 +138,25 @@ jobs:
         versionSpec: '$(python.version)'
       displayName: 'Use Python $(python.version)'
 
-    - script: |
+    - bash: |
+        set -e
         python -m pip install --upgrade pip
         pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
         pip install -e .
         pip install "qiskit-ibmq-provider" -c constraints.txt
         python setup.py build_ext --inplace
+        pip install git+https://github.com/mtreinish/stestr
       displayName: 'Install dependencies'
 
-    - script: |
+    - bash: |
+        set -e
         pycodestyle --max-line-length=100 qiskit test
         pylint -rn qiskit test
       displayName: 'Style and lint'
       condition: eq(variables['python.version'], '3.5')
 
-    - script: |
-        stestr run
+    - bash: |
+        set -e
+        stestr run --concurrency 2
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
