@@ -165,4 +165,6 @@ jobs:
     - bash: |
         set -e
         sudo dmesg
+        sudo cat /var/log/system.log
+        sudo log show --debug
       displayName: 'Debug info'
