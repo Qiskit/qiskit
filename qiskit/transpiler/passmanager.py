@@ -249,7 +249,7 @@ class PassManager():
     def _log_pass(self, start_time, end_time, name):
         log_msg = "Pass: %s - %.5f (ms)" % (
             name, (end_time - start_time) * 1000)
-        LOG.debug(log_msg)
+        LOG.info(log_msg)
 
     def _update_valid_passes(self, pass_):
         self.valid_passes.add(pass_)
