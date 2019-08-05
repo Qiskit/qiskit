@@ -15,7 +15,7 @@
 """
 Traverse the DAG and find blocks of gates that act consecutively on
 pairs of qubits. Write the blocks to propert_set as a dictionary
-of the form:
+of the form::
 
     {(q0, q1): [[g0, g1, g2], [g5]],
      (q0, q2): [[g3, g4]]
