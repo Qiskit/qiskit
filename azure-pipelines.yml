@@ -157,6 +157,6 @@ jobs:
 
     - bash: |
         set -e
-        stestr run --concurrency 2
+        stestr run
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
