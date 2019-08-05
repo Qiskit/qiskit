@@ -62,6 +62,8 @@ class Register:
         self.name = name
         self.size = size
 
+        self._bits = [self.bit_type(self, idx) for idx in range(size)]
+
     def __repr__(self):
         """Return the official string representing the register."""
         return "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
@@ -87,14 +89,14 @@ class Register:
         if not isinstance(key, (int, slice, list)):
             raise QiskitError("expected integer or slice index into register")
         if isinstance(key, slice):
-            return [self.bit_type(self, ind) for ind in range(*key.indices(len(self)))]
+            return self._bits[key]
         elif isinstance(key, list):  # list of qubit indices
             if max(key) < len(self):
-                return [self.bit_type(self, ind) for ind in key]
+                return [self._bits[idx] for idx in key]
             else:
                 raise QiskitError('register index out of range')
         else:
-            return self.bit_type(self, key)
+            return self._bits[key]
 
     def __iter__(self):
         for bit in range(self.size):
