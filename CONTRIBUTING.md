@@ -122,7 +122,7 @@ Issue #190: Short summary of the issue
 Installing Qiskit Terra from source
 -----------------------------------
 
-Clone the Qiskit Aer repo via *git*.
+Clone the Qiskit Terra repo via *git*.
 
     $ git clone https://github.com/Qiskit/qiskit-terra
 
