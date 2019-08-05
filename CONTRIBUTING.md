@@ -121,30 +121,8 @@ Issue #190: Short summary of the issue
 
 Installing Qiskit Terra from source
 -----------------------------------
-
-Clone the Qiskit Terra repo via *git*.
-
-    $ git clone https://github.com/Qiskit/qiskit-terra
-
-#### Setup an Environment using Anaconda
-
-```
-$ conda create -y -n QiskitDevenv python=3
-$ source activate QiskitDevenv
-```
-Navigate to the cloned repository
-```
-$ cd qiskit-terra
-```
-Install the required libraries
-```
-$ pip install -r requirements.txt
-$ pip install -r requirements-dev.txt
-```
-Now to install qiskit on your system
-```
-$ python setup.py install
-```
+Please see the [Installing Qiskit Terra from
+Source](https://qiskit.org/documentation/contributing_to_qiskit.html#installing-terra-from-source) section of the Qiskit documentation.
 
 ### Test
 
