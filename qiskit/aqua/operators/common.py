@@ -391,7 +391,7 @@ def commutator(op_a, op_b, op_c=None, threshold=None):
         tmp = 0.5 * tmp
         res = op_abc + op_cba - tmp
 
-    if threshold is not None:
-        res.chop(1e-12)
+    threshold = 1e-12 if threshold is None else threshold
+    res.chop(threshold)
     res.simplify()
     return res
