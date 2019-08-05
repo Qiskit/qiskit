@@ -47,6 +47,7 @@ class SchedulerTestCase(QiskitTestCase):
             passmanager (PassManager): pass manager instance for the transpilation process
             expected (list): List of things the passes are logging
         """
+        logger = 'LocalLogger'
         with self.assertLogs(logger, level='INFO') as cm:
             out = transpile(circuit, pass_manager=passmanager)
         self.assertIsInstance(out, QuantumCircuit)
@@ -63,6 +64,7 @@ class SchedulerTestCase(QiskitTestCase):
             expected (list): List of things the passes are logging
             exception_type (Exception): Exception that is expected to be raised.
         """
+        logger = 'LocalLogger'
         with self.assertLogs(logger, level='INFO') as cm:
             self.assertRaises(exception_type, transpile, circuit, pass_manager=passmanager)
         self.assertEqual([record.message for record in cm.records], expected)
