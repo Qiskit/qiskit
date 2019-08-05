@@ -526,5 +526,6 @@ class TestOperator(OperatorTestCase):
         self.assertTrue(op.equiv(Operator(phase * mat)))
         self.assertFalse(op.equiv(2 * mat))
 
+
 if __name__ == '__main__':
     unittest.main()

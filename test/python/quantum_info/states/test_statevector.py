@@ -354,5 +354,6 @@ class TestStatevector(QiskitTestCase):
         self.assertTrue(statevec.equiv(Statevector(phase * vec)))
         self.assertFalse(statevec.equiv(2 * vec))
 
+
 if __name__ == '__main__':
     unittest.main()
