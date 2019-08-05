@@ -119,7 +119,7 @@ jobs:
       displayName: 'Run tests'
 
 - job: 'MacOS_Mojave_Tests'
-  pool: {vmImage: 'macOS-10.14'}
+  pool: {vmImage: 'macOS-10.13'}
   condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
   variables:
     MPLBACKEND: ps
@@ -157,14 +157,6 @@ jobs:
 
     - bash: |
         set -e
-        stestr run
+        stestr run --concurrency 2
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
-      continueOnError: true
-
-    - bash: |
-        set -e
-        sudo dmesg
-        sudo cat /var/log/system.log
-        sudo log show --debug
-      displayName: 'Debug info'
