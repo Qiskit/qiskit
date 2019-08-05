@@ -59,7 +59,7 @@ class FlexlayerHeuristics:
                  dependency_graph: DependencyGraph,
                  coupling: CouplingMap,
                  initial_layout: Layout,
-                 lookahead_depth: int = 5,
+                 lookahead_depth: int = 10,
                  decay_rate: float = 0.5):
         """
         Initialize a FlexlayerHeuristics instance.
@@ -118,9 +118,8 @@ class FlexlayerHeuristics:
             logger.debug("#blocking_gates = %s", pprint.pformat(blocking_gates))
             logger.debug("#done_gates = %d", len(dones))
 
-            if dones:
-                for gidx in dones:
-                    new_dag.apply_operation_back(*self._dg.gate(gidx, layout, qreg))
+            for gidx in dones:
+                new_dag.apply_operation_back(*self._dg.gate(gidx, layout, qreg))
 
             if not blocking_gates:
                 break
