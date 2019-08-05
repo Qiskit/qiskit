@@ -160,6 +160,7 @@ jobs:
         stestr run
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
+      continueOnError: true
 
     - bash: |
         set -e
