@@ -157,7 +157,6 @@ jobs:
 
     - bash: |
         set -e
-        stestr run --no-subunit-trace
-        stestr failing --list
+        stestr run --concurrency 2
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
