@@ -160,3 +160,8 @@ jobs:
         stestr run
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
+
+    - bash: |
+        set -e
+        dmesg
+      displayName: 'Debug info'
