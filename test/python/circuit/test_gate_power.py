@@ -150,8 +150,8 @@ class TestGateSqrt(QiskitTestCase):
     def test_unitary_sqrt(self):
         """Test UnitaryGate.power(1/2) method.
         """
-        expected = array([[0.5 + 0.5j, 0.5 + 0.5j],
-                          [-0.5 - 0.5j, 0.5 + 0.5j]])
+        expected = array([[0.70710678118, 0.70710678118],
+                          [-0.70710678118, 0.70710678118]], dtype=complex)
 
         result = UnitaryGate([[0, 1j], [-1j, 0]]).power(1 / 2)
 
@@ -163,8 +163,8 @@ class TestGateSqrt(QiskitTestCase):
     def test_starndard_sqrt(self):
         """Test standard Gate.power(1/2) method.
         """
-        expected = array([[1 + 0.j, 0 + 0.j],
-                          [0 + 0.j, 0.70710678 + 0.70710678j]])
+        expected = array([[1, 0],
+                          [0, 0.70710678118 + 0.70710678118j]], dtype=complex)
 
         result = SGate().power(1 / 2)
 
@@ -207,8 +207,8 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(result.label, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        assert_allclose(array([[1. + 0.j, 0. + 0.j],
-                               [0. + 0.j, 0.95105652 + 0.30901699j]], dtype=complex),
+        assert_allclose(array([[1, 0],
+                               [0, 0.95105652 + 0.30901699j]], dtype=complex),
                         result.definition[0][0].to_matrix())
 
     def test_minus_zero_two(self, exponent=-0.2):
@@ -218,8 +218,8 @@ class TestGateFloat(QiskitTestCase):
         self.assertEqual(result.label, 's^' + str(exponent))
         self.assertEqual(len(result.definition), 1)
         self.assertIsInstance(result, Gate)
-        assert_allclose(array([[1. + 0.j, 0. + 0.j],
-                               [0. + 0.j, 0.95105652 - 0.30901699j]], dtype=complex),
+        assert_allclose(array([[1, 0],
+                               [0, 0.95105652 - 0.30901699j]], dtype=complex),
                         result.definition[0][0].to_matrix())
 
 
