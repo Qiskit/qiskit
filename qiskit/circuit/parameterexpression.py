@@ -234,3 +234,9 @@ class ParameterExpression():
                               'cannot be cast to a float.'.format(self.parameters))
 
         return float(self._symbol_expr)
+
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo=None):
+        return self
