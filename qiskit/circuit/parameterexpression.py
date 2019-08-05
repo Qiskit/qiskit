@@ -36,7 +36,7 @@ class ParameterExpression():
         Args:
             symbol_map (dict): Mapping of Parameter instances to the sympy.Symbol
                                serving as their placeholder in expr.
-            expr (sympy.Expression): Expression of sympy.Symbols.
+            expr (sympy.Expr): Expression of sympy.Symbols.
         """
         self._parameter_symbols = symbol_map
         self._symbol_expr = expr
@@ -61,14 +61,12 @@ class ParameterExpression():
                 - If binding the provided values requires division by zero.
 
         Returns:
-            float or ParameterExpression: If all Parameters in self are mapped
-                in parameter_values, the numeric value of the bound expression.
-                Else, a new expession parameterized by any parameters in self
-                not bound by parameter_values.
+            ParameterExpression: a new expession parameterized by any parameters
+                which were not bound by parameter_values.
         """
 
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
-        self._raise_if_passed_non_numeric_value(parameter_values)
+        self._raise_if_passed_non_real_value(parameter_values)
 
         symbol_values = {self._parameter_symbols[parameter]: value
                          for parameter, value in parameter_values.items()}
@@ -78,29 +76,25 @@ class ParameterExpression():
         # sympy will in some cases reduce the expression and remove even
         # unbound symbols.
         # e.g. (sympy.Symbol('s') * 0).free_symbols == set()
+
         free_parameters = self.parameters - parameter_values.keys()
+        free_parameter_symbols = {p: s for p, s in self._parameter_symbols.items()
+                                  if p in free_parameters}
 
-        if free_parameters:
-            # If partially bound, return a new Expression
-            free_parameter_symbols = {p: s for p, s in self._parameter_symbols.items()
-                                      if p in free_parameters}
+        if bound_symbol_expr.is_infinite:
+            raise ZeroDivisionError('Binding provided for expression '
+                                    'results in division by zero '
+                                    '(Expression: {}, Bindings: {}).'.format(
+                                        self, parameter_values))
 
-            return type(self)(free_parameter_symbols, bound_symbol_expr)
-        else:
-            if bound_symbol_expr.is_finite:
-                return float(bound_symbol_expr)
-            else:
-                raise ZeroDivisionError('Binding provided for expression '
-                                        'results in division by zero '
-                                        '(Expression: {}, Bindings: {}).'.format(
-                                            self, parameter_values))
+        return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
     def subs(self, parameter_map):
         """Returns a new Expression with replacement Parameters.
 
         Args:
             parameter_map (dict): Mapping from Parameters in self to the
-                                  Parameter instances by which they should be
+                                  Parameter instances with which they should be
                                   replaced.
 
         Raises:
@@ -132,7 +126,32 @@ class ParameterExpression():
 
         substituted_symbol_expr = self._symbol_expr.subs(symbol_map)
 
-        return type(self)(new_parameter_symbols, substituted_symbol_expr)
+        return ParameterExpression(new_parameter_symbols, substituted_symbol_expr)
+
+    def _raise_if_passed_unknown_parameters(self, parameters):
+        unknown_parameters = parameters - self.parameters
+        if unknown_parameters:
+            raise QiskitError('Cannot bind Parameters ({}) not present in '
+                              'expression.'.format(
+                                  [str(p) for p in unknown_parameters]))
+
+    def _raise_if_passed_non_real_value(self, parameter_values):
+        nonreal_parameter_values = {p: v for p, v in parameter_values.items()
+                                    if not isinstance(v, numbers.Real)}
+        if nonreal_parameter_values:
+            raise QiskitError('Expression cannot bind non-real or non-numeric '
+                              'values ({}).'.format(nonreal_parameter_values))
+
+    def _raise_if_parameter_names_conflict(self, other_parameters):
+        self_names = {p.name: p for p in self.parameters}
+        other_names = {p.name: p for p in other_parameters}
+
+        shared_names = self_names.keys() & other_names.keys()
+        conflicting_names = {name for name in shared_names
+                             if self_names[name] != other_names[name]}
+        if conflicting_names:
+            raise QiskitError('Name conflict applying operation for parameters: '
+                              '{}'.format(conflicting_names))
 
     def _apply_operation(self, operation, other, reflected=False):
         """Base method implementing math operations between Parameters and
@@ -153,8 +172,8 @@ class ParameterExpression():
                   a name conflict in the generated expression.
 
         Returns:
-            ParameterExpression: a new expession with the specified parameters
-                                 replaced.
+            ParameterExpression: a new expression describing the result of the
+                operation.
         """
 
         self_expr = self._symbol_expr
@@ -203,32 +222,15 @@ class ParameterExpression():
     def __rtruediv__(self, other):
         return self._apply_operation(operator.truediv, other, reflected=True)
 
-    def _raise_if_passed_unknown_parameters(self, parameters):
-        if not parameters <= self._parameter_symbols.keys():
-            raise QiskitError('Cannot bind Parameters ({}) not present in expression.'.format(
-                [str(p) for p in parameters - self._parameter_symbols.keys()]))
-
-    def _raise_if_passed_non_numeric_value(self, parameter_values):
-        if not all(isinstance(value, numbers.Real)
-                   for value in parameter_values.values()):
-            raise QiskitError('Expresison cannot bind non-real values '
-                              '({}).'.format({p: v for p, v in parameter_values.items()
-                                              if not isinstance(v, numbers.Real)}))
-
-    def _raise_if_parameter_names_conflict(self, other_parameters):
-        """True if exprs conflict and cannot be safely merged."""
-        shared_names = {p.name for p in self._parameter_symbols} \
-            & {p.name for p in other_parameters}
-        if not shared_names:
-            return None
-        for name in shared_names:
-            if next(p for p in self._parameter_symbols if p.name == name) \
-               != next(p for p in other_parameters if p.name == name):
-                raise QiskitError('Name conflict applying operation for parameter {}'.format(name))
-        return None
-
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, str(self))
 
     def __str__(self):
         return str(self._symbol_expr)
+
+    def __float__(self):
+        if self.parameters:
+            raise QiskitError('ParameterExpression with unbound parameters ({}) '
+                              'cannot be cast to a float.'.format(self.parameters))
+
+        return float(self._symbol_expr)

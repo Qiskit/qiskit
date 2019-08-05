@@ -26,7 +26,7 @@ class Parameter(ParameterExpression):
         self._name = name
 
         symbol = sympy.Symbol(name)
-        super().__init__({self: symbol}, symbol)
+        super().__init__(symbol_map={self: symbol}, expr=symbol)
 
     def subs(self, parameter_map):
         """Substitute self with the corresponding parameter in parameter_map."""
