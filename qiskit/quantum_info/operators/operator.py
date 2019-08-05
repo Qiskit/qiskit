@@ -292,15 +292,14 @@ class Operator(BaseOperator):
 
         Returns:
             bool: True if operators are equivalent up to global phase.
-
-        Raises:
-            QiskitError: if other is not an operator, or has incompatible
-            dimensions.
         """
         if not isinstance(other, Operator):
-            other = Operator(other)
+            try:
+                other = Operator(other)
+            except QiskitError:
+                return False
         if self.dim != other.dim:
-            raise QiskitError("other operator has different dimensions.")
+            return False
         if atol is None:
             atol = self._atol
         if rtol is None:
