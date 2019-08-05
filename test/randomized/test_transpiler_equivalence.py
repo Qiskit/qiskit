@@ -25,7 +25,7 @@ import hypothesis.strategies as st
 
 from qiskit import execute, transpile, Aer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Measure, Reset
+from qiskit.circuit import Measure, Reset, Gate
 from qiskit.test.mock import \
     FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo, FakePoughkeepsie
 from qiskit.test.base import dicts_almost_equal
