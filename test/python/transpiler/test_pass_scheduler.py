@@ -33,8 +33,6 @@ from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn,
                             PassK_check_fixed_point_property, PassM_AP_NR_NP)
 
-logger = "LocalLogger"
-
 
 class SchedulerTestCase(QiskitTestCase):
     """Asserts for the scheduler."""
