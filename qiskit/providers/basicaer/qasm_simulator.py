@@ -183,10 +183,13 @@ class QasmSimulatorPy(BaseBackend):
         Returns:
             list: A list of memory values in hex format.
         """
-        # Get unique qubits that are actually measured
-        measured_qubits = list({qubit for qubit, cmembit in measure_params})
+        # Get unique qubits that are actually measured and sort in
+        # ascending order
+        measured_qubits = sorted(list({qubit for qubit, cmembit in measure_params}))
         num_measured = len(measured_qubits)
-        # Axis for numpy.sum to compute probabilities
+        # We use the axis kwarg for numpy.sum to compute probabilities
+        # this sums over all non-measured qubits to return a vector
+        # of measure probabilities for the measured qubits
         axis = list(range(self._number_of_qubits))
         for qubit in reversed(measured_qubits):
             # Remove from largest qubit to smallest so list position is correct
@@ -195,15 +198,18 @@ class QasmSimulatorPy(BaseBackend):
         probabilities = np.reshape(np.sum(np.abs(self._statevector) ** 2,
                                           axis=tuple(axis)),
                                    2 ** num_measured)
-        # Generate samples on measured qubits
+        # Generate samples on measured qubits as ints with qubit
+        # position in the bit-string for each int given by the qubit
+        # position in the sorted measured_qubits list
         samples = self._local_random.choice(range(2 ** num_measured),
                                             num_samples, p=probabilities)
-        # Convert to bit-strings
+        # Convert the ints to bitstrings
         memory = []
         for sample in samples:
             classical_memory = self._classical_memory
             for qubit, cmembit in measure_params:
-                qubit_outcome = int((sample & (1 << qubit)) >> qubit)
+                pos = measured_qubits.index(qubit)
+                qubit_outcome = int((sample & (1 << pos)) >> pos)
                 membit = 1 << cmembit
                 classical_memory = (classical_memory & (~membit)) | (qubit_outcome << cmembit)
             value = bin(classical_memory)[2:]

@@ -72,7 +72,7 @@ def _get_validator(name, schema=None, check_schema=True,
         validator_class (jsonschema.IValidator): jsonschema IValidator instance.
             Default behavior is to determine this from the schema `$schema`
             field.
-        **validator_kwargs (dict): Additional keyword arguments for validator.
+        **validator_kwargs: Additional keyword arguments for validator.
 
     Return:
         jsonschema.IValidator: Validator for JSON schema.
