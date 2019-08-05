@@ -230,8 +230,8 @@ class ParameterExpression():
 
     def __float__(self):
         if self.parameters:
-            raise QiskitError('ParameterExpression with unbound parameters ({}) '
-                              'cannot be cast to a float.'.format(self.parameters))
+            raise TypeError('ParameterExpression with unbound parameters ({}) '
+                            'cannot be cast to a float.'.format(self.parameters))
 
         return float(self._symbol_expr)
 
