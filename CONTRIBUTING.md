@@ -128,7 +128,7 @@ Clone the Qiskit Aer repo via *git*.
 
 #### Setup an Environment using Anaconda
 
-```python
+```
 $ conda create -y -n QiskitDevenv python=3
 $ source activate QiskitDevenv
 ```
@@ -137,12 +137,12 @@ Navigate to the cloned repository
 $ cd qiskit-terra
 ```
 Install the required libraries
-```python
+```
 $ pip install -r requirements.txt
 $ pip install -r requirements-dev.txt
 ```
 Now to install qiskit on your system
-```python
+```
 $ python setup.py install
 ```
 
