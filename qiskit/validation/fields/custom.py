@@ -21,6 +21,7 @@ from marshmallow.utils import is_collection
 from marshmallow.exceptions import ValidationError
 from marshmallow.compat import Mapping
 
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.validation import ModelTypeValidator
 
 
@@ -69,8 +70,8 @@ class InstructionParameter(ModelTypeValidator):
     type (for example, numpy.float and regular float). If possible, it is
     recommended that more specific and defined fields are used instead.
     """
-
     valid_types = (complex, int, float, str,
+                   ParameterExpression,
                    numpy.integer, numpy.float, sympy.Basic, sympy.Symbol,
                    list, numpy.ndarray)
 
@@ -92,6 +93,11 @@ class InstructionParameter(ModelTypeValidator):
             return float(value)
         if isinstance(value, (float, int, str)):
             return value
+        if isinstance(value, ParameterExpression):
+            if value.parameters:
+                self.fail('invalid', input=value)
+            else:
+                return float(value)
         if isinstance(value, sympy.Symbol):
             return str(value)
         if isinstance(value, sympy.Basic):

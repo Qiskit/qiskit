@@ -40,8 +40,8 @@ import numpy
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.parameter import ParameterExpression
 from qiskit.qobj.models.qasm import QasmQobjInstruction
+from qiskit.circuit.parameter import ParameterExpression
 
 _CUTOFF_PRECISION = 1E-10
 
