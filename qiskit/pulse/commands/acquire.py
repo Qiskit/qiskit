@@ -86,11 +86,9 @@ class Acquire(Command):
         Returns:
             bool: are self and other equal.
         """
-        if (super().__eq__(other) and
+        return (super().__eq__(other) and
                 self.kernel == other.kernel and
-                self.discriminator == other.discriminator):
-            return True
-        return False
+                self.discriminator == other.discriminator)
 
     def __repr__(self):
         return '%s(%s, duration=%d, kernel=%s, discriminator=%s)' % \

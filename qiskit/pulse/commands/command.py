@@ -111,9 +111,7 @@ class Command(metaclass=MetaCount):
         Returns:
             bool: are self and other equal
         """
-        if (type(self) is type(other)) and (self.duration == other.duration):
-            return True
-        return False
+        return (type(self) is type(other)) and (self.duration == other.duration)
 
     def __hash__(self):
         return hash((type(self), self._duration, self._name))

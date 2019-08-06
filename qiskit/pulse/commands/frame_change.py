@@ -52,9 +52,7 @@ class FrameChange(Command):
         Returns:
             bool: are self and other equal
         """
-        if super().__eq__(other) and (self.phase == other.phase):
-            return True
-        return False
+        return super().__eq__(other) and (self.phase == other.phase)
 
     def __repr__(self):
         return '%s(%s, phase=%.3f)' % (self.__class__.__name__, self.name, self.phase)

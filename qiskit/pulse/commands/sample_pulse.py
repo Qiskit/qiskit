@@ -88,9 +88,7 @@ class SamplePulse(Command):
         Returns:
             bool: are self and other equal
         """
-        if super().__eq__(other) and (self.samples == other.samples).all():
-            return True
-        return False
+        return super().__eq__(other) and (self.samples == other.samples).all()
 
     def __hash__(self):
         return hash((super().__hash__(), self.samples.tostring()))
