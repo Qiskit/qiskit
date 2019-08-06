@@ -1486,7 +1486,7 @@ class TestTextWithLayout(QiskitTestCase):
         qr = QuantumRegister(2, 'v')
         ancilla = QuantumRegister(2, 'ancilla')
         circuit = QuantumCircuit(qr, ancilla)
-        circuit.layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 3, qr[1]: 4})
+        circuit._layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 3, qr[1]: 4})
         circuit.h(qr)
         circuit.h(ancilla)
         self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
@@ -1515,7 +1515,7 @@ class TestTextWithLayout(QiskitTestCase):
         qr2 = QuantumRegister(2, 'qs')
         cr2 = ClassicalRegister(2, 'c2')
         circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
-        circuit.layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 3, qr2[1]: 4})
+        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 3, qr2[1]: 4})
         circuit.measure(qr2, cr2)
         self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
 
