@@ -16,6 +16,7 @@
 
 from qiskit.exceptions import QiskitError
 from .matplotlib import HAS_MATPLOTLIB
+from .exceptions import VisualizationError
 if HAS_MATPLOTLIB:
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
@@ -64,6 +65,7 @@ def plot_gate_map(backend, figsize=None,
                   line_width=4,
                   font_size=12,
                   qubit_color=None,
+                  qubit_labels=None,
                   line_color=None,
                   font_color='w'):
     """Plots the gate map of a device.
@@ -77,6 +79,7 @@ def plot_gate_map(backend, figsize=None,
         line_width (float): Width of lines.
         font_size (int): Font size of qubit labels.
         qubit_color (list): A list of colors for the qubits
+        qubit_labels (list): A list of qubit labels
         line_color (list): A list of colors for each line from coupling_map.
         font_color (str): The font color for the qubit labels.
 
@@ -113,6 +116,14 @@ def plot_gate_map(backend, figsize=None,
     config = backend.configuration()
     n_qubits = config.n_qubits
     cmap = config.coupling_map
+
+    if qubit_labels is None:
+        qubit_labels = list(range(n_qubits))
+    else:
+        if len(qubit_labels) != n_qubits:
+            raise QiskitError('Length of qubit labels '
+                              'does not equal number '
+                              'of qubits.')
 
     if n_qubits in mpl_data.keys():
         grid_data = mpl_data[n_qubits]
@@ -198,11 +209,72 @@ def plot_gate_map(backend, figsize=None,
         ax.add_artist(mpatches.Ellipse(
             _idx, width, height, color=qubit_color[var], zorder=1))
         if label_qubits:
-            ax.text(*_idx, s=str(var),
+            ax.text(*_idx, s=qubit_labels[var],
                     horizontalalignment='center',
                     verticalalignment='center',
                     color=font_color, size=font_size, weight='bold')
     ax.set_xlim([-1, x_max+1])
     ax.set_ylim([-(y_max+1), 1])
     plt.close(fig)
+    return fig
+
+
+def plot_circuit_layout(circuit, backend, view='virtual'):
+    """Plot the layout of a circuit transpiled for a given
+    target backend.
+
+    Args:
+        circuit (QuantumCircuit): Input quantum circuit.
+        backend (BaseBackend): Target backend.
+        view (str): Layout view: either 'virtual' or 'physical'.
+
+    Returns:
+        Figure: A matplotlib figure showing layout.
+
+    Raises:
+        QiskitError: Invalid view type given.
+        VisualizationError: Circuit has no layout attribute.
+    """
+    if circuit.layout is None:
+        raise QiskitError('Circuit has no layout. '
+                          'Perhaps it has not been transpiled.')
+
+    n_qubits = backend.configuration().n_qubits
+
+    qubits = []
+    qubit_labels = [None]*n_qubits
+
+    if view == 'virtual':
+        idx = 0
+        for key, val in circuit.layout.get_virtual_bits().items():
+            if key.register.name != 'ancilla':
+                qubits.append(val)
+                qubit_labels[val] = idx
+            idx += 1
+
+    elif view == 'physical':
+        for key, val in circuit.layout.get_physical_bits().items():
+            if val.register.name != 'ancilla':
+                qubits.append(key)
+                qubit_labels[key] = key
+
+    else:
+        raise VisualizationError("Layout view must be 'virtual' or 'physical'.")
+
+    qcolors = ['#648fff']*n_qubits
+    for k in qubits:
+        qcolors[k] = 'k'
+
+    cmap = backend.configuration().coupling_map
+
+    lcolors = ['#648fff']*len(cmap)
+
+    for idx, edge in enumerate(cmap):
+        if edge[0] in qubits and edge[1] in qubits:
+            lcolors[idx] = 'k'
+
+    fig = plot_gate_map(backend,
+                        qubit_color=qcolors,
+                        qubit_labels=qubit_labels,
+                        line_color=lcolors)
     return fig

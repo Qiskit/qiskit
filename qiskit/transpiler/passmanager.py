@@ -15,6 +15,7 @@
 
 from functools import partial
 from collections import OrderedDict
+import logging
 from time import time
 
 from qiskit.dagcircuit import DAGCircuit
@@ -24,6 +25,8 @@ from .propertyset import PropertySet
 from .basepasses import BasePass
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
+
+LOG = logging.getLogger(__name__)
 
 
 class PassManager():
@@ -85,9 +88,6 @@ class PassManager():
 
         # pass manager's overriding options for the passes it runs (for debugging)
         self.passmanager_options = {'max_iteration': max_iteration}
-
-        # The property log_passes allows to log and time the passes as they run in the pass manager
-        self.log_passes = False
 
         self.count = 0
 
@@ -210,22 +210,18 @@ class PassManager():
         if pass_.is_transformation_pass:
             pass_.property_set = self.fenced_property_set
             # Measure time if we have a callback or logging set
-            if self.log_passes or self.callback:
-                start_time = time()
+            start_time = time()
             new_dag = pass_.run(dag)
-            if self.log_passes or self.callback:
-                end_time = time()
-                run_time = end_time - start_time
-                # Execute the callback function if one is set
-                if self.callback:
-                    self.callback(pass_=pass_, dag=new_dag,
-                                  time=run_time,
-                                  property_set=self.property_set,
-                                  count=self.count)
-                    self.count += 1
-                # Log the pass if set
-                if self.log_passes:
-                    self._log_pass(start_time, end_time, pass_.name())
+            end_time = time()
+            run_time = end_time - start_time
+            # Execute the callback function if one is set
+            if self.callback:
+                self.callback(pass_=pass_, dag=new_dag,
+                              time=run_time,
+                              property_set=self.property_set,
+                              count=self.count)
+                self.count += 1
+            self._log_pass(start_time, end_time, pass_.name())
             if not isinstance(new_dag, DAGCircuit):
                 raise TranspilerError("Transformation passes should return a transformed dag."
                                       "The pass %s is returning a %s" % (type(pass_).__name__,
@@ -234,41 +230,26 @@ class PassManager():
         elif pass_.is_analysis_pass:
             pass_.property_set = self.property_set
             # Measure time if we have a callback or logging set
-            if self.log_passes or self.callback:
-                start_time = time()
+            start_time = time()
             pass_.run(FencedDAGCircuit(dag))
-            if self.log_passes or self.callback:
-                end_time = time()
-                run_time = end_time - start_time
-                # Execute the callback function if one is set
-                if self.callback:
-                    self.callback(pass_=pass_, dag=dag,
-                                  time=run_time,
-                                  property_set=self.property_set,
-                                  count=self.count)
-                    self.count += 1
-                # Log the pass if set
-                if self.log_passes:
-                    self._log_pass(start_time, end_time, pass_.name())
+            end_time = time()
+            run_time = end_time - start_time
+            # Execute the callback function if one is set
+            if self.callback:
+                self.callback(pass_=pass_, dag=dag,
+                              time=run_time,
+                              property_set=self.property_set,
+                              count=self.count)
+                self.count += 1
+            self._log_pass(start_time, end_time, pass_.name())
         else:
             raise TranspilerError("I dont know how to handle this type of pass")
         return dag
 
     def _log_pass(self, start_time, end_time, name):
-        raw_log_dict = {
-            'name': name,
-            'start_time': start_time,
-            'end_time': end_time,
-            'running_time': end_time - start_time
-        }
-        log_dict = "%s: %.5f (ms)" % (name,
-                                      (end_time - start_time) * 1000)
-        if self.property_set['pass_raw_log'] is None:
-            self.property_set['pass_raw_log'] = []
-        if self.property_set['pass_log'] is None:
-            self.property_set['pass_log'] = []
-        self.property_set['pass_raw_log'].append(raw_log_dict)
-        self.property_set['pass_log'].append(log_dict)
+        log_msg = "Pass: %s - %.5f (ms)" % (
+            name, (end_time - start_time) * 1000)
+        LOG.info(log_msg)
 
     def _update_valid_passes(self, pass_):
         self.valid_passes.add(pass_)
