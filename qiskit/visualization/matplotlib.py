@@ -46,7 +46,8 @@ WID = 0.65
 HIG = 0.65
 DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
-PORDER_LINE = 2
+PORDER_LINE = 3
+PORDER_REGLINE = 2
 PORDER_GRAY = 3
 PORDER_TEXT = 6
 PORDER_SUBP = 4
@@ -295,7 +296,7 @@ class MatplotlibDrawer:
                      clip_on=True,
                      zorder=PORDER_TEXT)
 
-    def _line(self, xy0, xy1, lc=None, ls=None):
+    def _line(self, xy0, xy1, lc=None, ls=None, zorder=PORDER_LINE):
         x0, y0 = xy0
         x1, y1 = xy1
         if lc is None:
@@ -315,18 +316,18 @@ class MatplotlibDrawer:
                          color=linecolor,
                          linewidth=2,
                          linestyle='solid',
-                         zorder=PORDER_LINE)
+                         zorder=zorder)
             self.ax.plot([x0 - dx, x1 - dx], [y0 - dy, y1 - dy],
                          color=linecolor,
                          linewidth=2,
                          linestyle='solid',
-                         zorder=PORDER_LINE)
+                         zorder=zorder)
         else:
             self.ax.plot([x0, x1], [y0, y1],
                          color=linecolor,
                          linewidth=2,
                          linestyle=linestyle,
-                         zorder=PORDER_LINE)
+                         zorder=zorder)
 
     def _measure(self, qxy, cxy, cid):
         qx, qy = qxy
@@ -549,7 +550,8 @@ class MatplotlibDrawer:
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y])
+            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y],
+                       zorder=PORDER_REGLINE)
         # classical register
         this_creg_dict = {}
         for creg in self._creg_dict.values():
@@ -580,7 +582,7 @@ class MatplotlibDrawer:
                          clip_on=True,
                          zorder=PORDER_TEXT)
             self._line([0, y], [self._cond['xmax'], y], lc=self._style.cc,
-                       ls=self._style.cline)
+                       ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
         if feedline_r:
@@ -821,7 +823,7 @@ class MatplotlibDrawer:
                             self._line(qreg_b, qreg_t,
                                        lc=self._style.dispcol['multi'])
                         else:
-                            self._line(qreg_b, qreg_t)
+                            self._line(qreg_b, qreg_t, zorder=PORDER_LINE+1)
                     # control gate
                     elif op.name in ['cy', 'ch', 'cu3', 'cu1', 'crz']:
                         disp = op.name.replace('c', '')
