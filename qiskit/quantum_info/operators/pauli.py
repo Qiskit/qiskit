@@ -299,7 +299,7 @@ class Pauli:
         
         rows = np.arange(n, dtype = np.uint)
         columns = rows^xs
-        global_factor = (-1j)**np.dot(np.array(_x, dtype=np.uint), _z)
+        global_factor = (-1j)**np.dot(np.array(self._x, dtype=np.uint), self._z)
         data = (global_factor*(-1)**_count_bits(zs&rows))
         
         return sparse.csr_matrix((data, ((rows), (columns))))
