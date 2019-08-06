@@ -177,9 +177,9 @@ class WeightedPauliOperator(BaseOperator):
             if idx is not None:
                 ret_op._paulis[idx][0] = operation(ret_op._paulis[idx][0], pauli[0])
             else:
-                ret_op._paulis_table[pauli_label] = len(ret_op._paulis)
-                ret_op._basis.append((pauli[1], [len(ret_op._paulis)]))
                 new_pauli = deepcopy(pauli)
+                ret_op._paulis_table[pauli_label] = len(ret_op._paulis)
+                ret_op._basis.append((new_pauli[1], [len(ret_op._paulis)]))
                 new_pauli[0] = operation(0.0, pauli[0])
                 ret_op._paulis.append(new_pauli)
         return ret_op
@@ -339,9 +339,15 @@ class WeightedPauliOperator(BaseOperator):
                 new_paulis_table[pauli_label] = len(new_paulis)
                 new_paulis.append([curr_weight, curr_pauli])
 
-        op._paulis = new_paulis
-        op._paulis_table = {weighted_pauli[1].to_label(): i for i, weighted_pauli in enumerate(new_paulis)}
-        op.chop(0.0)
+        new_paulis_2 = []
+        for weight, pauli in new_paulis:
+            if weight == 0.0:
+                continue
+            new_paulis_2.append([weight, pauli])
+
+        op._paulis = new_paulis_2
+        op._paulis_table = {weighted_pauli[1].to_label(): i for i, weighted_pauli in enumerate(op._paulis)}
+        op._basis = [(pauli[1], [i]) for i, pauli in enumerate(op._paulis)]
         return op
 
     def rounding(self, decimals, copy=False):
