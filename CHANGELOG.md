@@ -105,7 +105,7 @@ The format is based on [Keep a Changelog].
 -   The logging tools in `qiskit.tools.logging` are removed. (\#2387)
 -   The `qiskit.qiskiterror` module has been removed. Please use
     `qiskit.exceptions` instead. (\#2399)
--   Removed previously deprecated DAGCircuit methods (\#2542)
+-   Removed previously deprecated `DAGCircuit` methods (\#2542)
 -   Removed `CompositeGate` class, in favor of adding Instruction
     objects directly (\#2543)
 -   Removed `ignore_requires` and `ignore_preserves` options from
@@ -113,9 +113,9 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
--   Fixes a bug where the CmdDef was getting built without buffers on channels.
+-   Fixes a bug where the `CmdDef` was getting built without buffers on channels.
 -   Fixed bug in `Pulse` for multiple parameters being added (\#2742)
--   Fixed bug in `Pulse` for CmdDef arguments (\#2741)
+-   Fixed bug in `Pulse` for `CmdDef` arguments (\#2741)
 -   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
     containing gates without an explicit matrix definition (\#2723)
 -   Possible to decompose SU(4) gate into non-CNOT basis with
