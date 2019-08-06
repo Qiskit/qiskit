@@ -61,7 +61,7 @@ def assemble(experiments,
             copied to the corresponding Result header. Headers do not affect the run.
 
         shots (int):
-            Number of repetitions of each circuit, for sampling. Default: 2014
+            Number of repetitions of each circuit, for sampling. Default: 1024
 
         memory (bool):
             If True, per-shot measurement bitstrings are returned as well
@@ -86,7 +86,7 @@ def assemble(experiments,
         meas_lo_range (list):
             List of meas lo ranges
 
-        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or
+        schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
             Experiment LO configurations
 
@@ -96,8 +96,8 @@ def assemble(experiments,
         meas_return (str):
             Level of measurement data for the backend to return
             For `meas_level` 0 and 1:
-                "single" returns information from every shot.
-                "avg" returns average measurement output (averaged over number of shots).
+                * "single" returns information from every shot.
+                * "avg" returns average measurement output (averaged over number of shots).
 
         meas_map (list):
             List of lists, containing qubits that must be measured together.

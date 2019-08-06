@@ -26,6 +26,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
 class Statevector(QuantumState):
@@ -227,6 +228,31 @@ class Statevector(QuantumState):
         # Replace evolved dimensions
         return Statevector(np.reshape(tensor, np.product(new_dims)), dims=new_dims)
 
+    def equiv(self, other, rtol=None, atol=None):
+        """Return True if statevectors are equivalent up to global phase.
+
+        Args:
+            other (Statevector): a statevector object.
+            rtol (float): relative tolerance value for comparison.
+            atol (float): absolute tolerance value for comparison.
+
+        Returns:
+            bool: True if statevectors are equivalent up to global phase.
+        """
+        if not isinstance(other, Statevector):
+            try:
+                other = Statevector(other)
+            except QiskitError:
+                return False
+        if self.dim != other.dim:
+            return False
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
+        return matrix_equal(self.data, other.data, ignore_phase=True,
+                            rtol=rtol, atol=atol)
+
     @classmethod
     def from_label(cls, label):
         """Return a tensor product of Pauli X,Y,Z eigenstates.
@@ -337,7 +363,10 @@ class Statevector(QuantumState):
                         'Cannot apply instruction with classical registers: {}'.format(
                             instr.name))
                 # Get the integer position of the flat register
-                new_qargs = [tup.index for tup in qregs]
+                if qargs is None:
+                    new_qargs = [tup.index for tup in qregs]
+                else:
+                    new_qargs = [qargs[tup.index] for tup in qregs]
                 self._append_instruction(instr, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):
