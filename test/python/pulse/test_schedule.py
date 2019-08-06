@@ -509,7 +509,7 @@ class TestScheduleEquality(QiskitTestCase):
         self.assertEqual(Schedule((0, FrameChange(0)(DriveChannel(1)))),
                          Schedule((0, FrameChange(0)(DriveChannel(1)))))
 
-    def test_differnet_time_not_equal(self):
+    def test_different_time_not_equal(self):
         """Test that not equal if instruction at different time."""
         self.assertNotEqual(Schedule((0, FrameChange(0)(DriveChannel(1)))),
                             Schedule((1, FrameChange(0)(DriveChannel(1)))))
