@@ -52,6 +52,10 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 -   Added a ``random_circuit`` function under ``qiskit.circuit.random``
     (\#2553)
+-   Added `equiv` method to `Operator` and `Statevector` classes for
+    testing if two objects are equivalent up to global phase (\#2910)
+-   Added ``output_name`` as a transpiler parameter to set the name of
+    output circuits (\#2745)
 
 ### Changed
 
@@ -120,7 +124,7 @@ The format is based on [Keep a Changelog].
     like a `wait` command and will never be removed (\#2663)
 -   Fixed bug in `CommutationAnalysis` pass affecting conditional gates (\#2669)
 -   Fixed bug in measure sampling for `BasicAer` Qasm simulator if a qubit
-    was measured into more than one memory cbit (\#2735)
+    was measured into more than one classical bit (\#2735)
 -   Correctly serialize complex numbers with a nonzero real part
 -   Fixed bug in measure sampling for `BasicAer` Qasm simulator if only a
     subset of qubits are measured (\#2790)

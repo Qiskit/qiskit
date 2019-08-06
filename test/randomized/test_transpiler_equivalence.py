@@ -25,7 +25,7 @@ import hypothesis.strategies as st
 
 from qiskit import execute, transpile, Aer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.circuit import Measure, Reset
+from qiskit.circuit import Measure, Reset, Gate
 from qiskit.test.mock import \
     FakeTenerife, FakeMelbourne, FakeRueschlikon, FakeTokyo, FakePoughkeepsie
 from qiskit.test.base import dicts_almost_equal
@@ -186,8 +186,8 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         last_gate = self.qc.data[-1]
 
-        # Work around for https://github.com/Qiskit/qiskit-terra/issues/2567
-        assume(not isinstance(last_gate[0], Measure) or creg != last_gate[2][0].register)
+        # Conditional instructions are not supported
+        assume(isinstance(last_gate[0], Gate))
 
         last_gate[0].c_if(creg, val)
 
