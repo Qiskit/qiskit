@@ -118,6 +118,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
     @unittest.skip('This does not work on OSX')
+    @unittest.skipIf(os.name == 'nt', 'Rendered image differs on windows')
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
