@@ -401,29 +401,22 @@ class TestPulseAssembler(QiskitTestCase):
 
     def test_assemble_memory_slots(self):
         """Test assembling a schedule and inferring number of memoryslots."""
-        acquire_channels = [pulse.AcquireChannel(idx) for idx in range(10)]
-        mem_slots = [pulse.MemorySlot(idx) for idx in range(10)]
-
         acquire = pulse.Acquire(5)
+        n_memoryslots = 10
 
-        schedule = pulse.Schedule(name='all_acquire')
-        schedule = schedule.insert(0, acquire(acquire_channels, mem_slots))
+        # single acquisition
+        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
 
-        qobj = assemble(schedule)
-        test_dict = qobj.to_dict()
+        qobj = assemble(schedule, meas_map=[[0], [1]])
+        self.assertEqual(qobj.config.memory_slots, n_memoryslots)
 
-        self.assertEqual(test_dict['config']['memory_slots'], 10)
+        # multiple acquisition
+        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
+        schedule = schedule.insert(10, acquire(self.device.acquires[0],
+                                               mem_slots=pulse.MemorySlot(n_memoryslots-1)))
 
-        schedule = pulse.Schedule(name='partial_acquire')
-        schedule = schedule.insert(0, acquire([acquire_channels[3], acquire_channels[5]],
-                                              [mem_slots[3], mem_slots[5]]))
-        schedule = schedule.insert(0, acquire([acquire_channels[7]],
-                                              [mem_slots[7]]))
-
-        qobj = assemble(schedule)
-        test_dict = qobj.to_dict()
-
-        self.assertEqual(test_dict['config']['memory_slots'], 8)
+        qobj = assemble(schedule, meas_map=[[0], [1]])
+        self.assertEqual(qobj.config.memory_slots, n_memoryslots)
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""
@@ -585,32 +578,6 @@ class TestPulseAssemblerWithDeviceSpecification(QiskitTestCase):
 
         with self.assertRaises(QiskitError):
             assemble(schedule, meas_map=[[0, 1, 2]])
-
-    def test_assemble_memory_slots(self):
-        """Test assembling a schedule and inferring number of memoryslots."""
-        acquire_channels = [pulse.AcquireChannel(idx) for idx in range(10)]
-        mem_slots = [pulse.MemorySlot(idx) for idx in range(10)]
-
-        acquire = pulse.Acquire(5)
-
-        schedule = pulse.Schedule(name='all_acquire')
-        schedule = schedule.insert(0, acquire(acquire_channels, mem_slots))
-
-        qobj = assemble(schedule)
-        test_dict = qobj.to_dict()
-
-        self.assertEqual(test_dict['config']['memory_slots'], 10)
-
-        schedule = pulse.Schedule(name='partial_acquire')
-        schedule = schedule.insert(0, acquire([acquire_channels[3], acquire_channels[5]],
-                                              [mem_slots[3], mem_slots[5]]))
-        schedule = schedule.insert(0, acquire([acquire_channels[7]],
-                                              [mem_slots[7]]))
-
-        qobj = assemble(schedule)
-        test_dict = qobj.to_dict()
-
-        self.assertEqual(test_dict['config']['memory_slots'], 8)
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""
