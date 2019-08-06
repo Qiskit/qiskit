@@ -19,7 +19,7 @@ import itertools
 import sys
 import multiprocessing as mp
 from warnings import warn
-
+from collections import OrderedDict
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
@@ -680,6 +680,9 @@ class QuantumCircuit:
                 count_ops[instr.name] += 1
             else:
                 count_ops[instr.name] = 1
+        count_ops = OrderedDict(sorted(count_ops.items(),
+                                       key=lambda kv: kv[1],
+                                       reverse=True))
         return count_ops
 
     def num_connected_components(self, unitary_only=False):
