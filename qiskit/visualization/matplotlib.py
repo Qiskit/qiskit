@@ -809,15 +809,17 @@ class MatplotlibDrawer:
                     elif op.name == 'cz':
                         disp = op.name.replace('c', '')
                         if self._style.name != 'bw':
+                            color = self._style.dispcol['multi']
                             self._ctrl_qubit(q_xy[0],
-                                             fc=self._style.dispcol['z'],
-                                             ec=self._style.dispcol['z'])
+                                             fc=color,
+                                             ec=color)
                         else:
                             self._ctrl_qubit(q_xy[0])
-                        self._gate(q_xy[1], wide=_iswide, text=disp)
+                        self._gate(q_xy[1], wide=_iswide, text=disp, fc=color)
                         # add qubit-qubit wiring
                         if self._style.name != 'bw':
-                            self._line(qreg_b, qreg_t, lc=self._style.dispcol['z'])
+                            self._line(qreg_b, qreg_t,
+                                       lc=self._style.dispcol['multi'])
                         else:
                             self._line(qreg_b, qreg_t)
                     # control gate
@@ -826,21 +828,13 @@ class MatplotlibDrawer:
 
                         color = None
                         if self._style.name != 'bw':
-                            if op.name == 'cy':
-                                color = self._style.dispcol['y']
-                            elif op.name == 'ch':
-                                color = self._style.dispcol['h']
-                            elif op.name == 'cu3':
-                                color = self._style.dispcol['u3']
-                            elif op.name == 'cu1':
-                                color = self._style.dispcol['u3']
-                            # crz
-                            else:
-                                color = self._style.dispcol['rz']
+                            color = self._style.dispcol['multi']
 
                         self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         if param:
-                            self._gate(q_xy[1], wide=_iswide, text=disp,
+                            self._gate(q_xy[1], wide=_iswide,
+                                       text=disp,
+                                       fc=color,
                                        subtext='{}'.format(param))
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp)
