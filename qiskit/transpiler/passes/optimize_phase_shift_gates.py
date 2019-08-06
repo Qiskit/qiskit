@@ -74,7 +74,7 @@ class OptimizePhaseShiftGates(TransformationPass):
                     state_tracker[node.qargs[0][1]] = np.zeros(dag.size())
                     state_tracker[node.qargs[0][1]][k] = 1
                     k += 1
-        circuit_length_min = len(dag._multi_graph.nodes) + 1
+        circuit_length_min = dag.node_counter+1
         circuit_depth_min = dag.depth() + 1
         cx_cancel_pass = CXCancellation()
         for key in t_counter:
