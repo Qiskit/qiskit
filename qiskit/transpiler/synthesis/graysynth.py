@@ -25,8 +25,7 @@ from qiskit.exceptions import QiskitError
 
 
 def graysynth(cnots, angles, section_size=2):
-    """
-    This function is an implementation of the GraySynth algorithm.
+    """This function is an implementation of the GraySynth algorithm.
 
     GraySynth is a heuristic algorithm for synthesizing small parity networks.
     It is inspired by Gray codes. Given a set of binary strings S
@@ -52,12 +51,15 @@ def graysynth(cnots, angles, section_size=2):
 
     Args:
         cnots (list[list]): a matrix whose columns are the parities to be synthesized
-            e.g.
+            e.g.::
+
                 [[0, 1, 1, 1, 1, 1],
                  [1, 0, 0, 1, 1, 1],
                  [1, 0, 0, 1, 0, 0],
                  [0, 0, 1, 0, 1, 0]]
-            corresponds to:
+
+            corresponds to::
+
                  x1^x2 + x0 + x0^x3 + x0^x1^x2 + x0^x1^x3 + x0^x1
 
         angles (list): a list containing all the phase-shift gates which are

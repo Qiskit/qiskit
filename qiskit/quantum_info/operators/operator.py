@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
@@ -281,6 +281,31 @@ class Operator(BaseOperator):
             raise QiskitError("other is not a number")
         return Operator(other * self.data, self.input_dims(),
                         self.output_dims())
+
+    def equiv(self, other, rtol=None, atol=None):
+        """Return True if operators are equivalent up to global phase.
+
+        Args:
+            other (Operator): an operator object.
+            rtol (float): relative tolerance value for comparison.
+            atol (float): absolute tolerance value for comparison.
+
+        Returns:
+            bool: True if operators are equivalent up to global phase.
+        """
+        if not isinstance(other, Operator):
+            try:
+                other = Operator(other)
+            except QiskitError:
+                return False
+        if self.dim != other.dim:
+            return False
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
+        return matrix_equal(self.data, other.data, ignore_phase=True,
+                            rtol=rtol, atol=atol)
 
     @property
     def _shape(self):
