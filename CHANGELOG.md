@@ -54,6 +54,8 @@ The format is based on [Keep a Changelog].
     (#2553)
 -   Added `equiv` method to `Operator` and `Statevector` classes for
     testing if two objects are equivalent up to global phase (\#2910)
+-   Added ``output_name`` as a transpiler parameter to set the name of
+    output circuits (\#2745)
 
 ### Changed
 
