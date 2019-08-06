@@ -80,7 +80,7 @@ class OptimizePhaseShiftGates(TransformationPass):
         for key in t_counter:
             if t_counter[key] % 8 == 0:
                 for i in t_position_counter[key]:
-                    dag.remove_op_node(dag._id_to_node[i._node_id]) # Remove all the nodes that cancelled out
+                    dag.remove_op_node(dag._id_to_node[i._node_id])  # Remove cancelled nodes
             else:
                 for final_gate_position in range(len(t_position_counter[key])):
                     dag_copy = copy.deepcopy(dag)
