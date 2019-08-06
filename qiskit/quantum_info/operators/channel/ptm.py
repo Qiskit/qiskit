@@ -95,7 +95,7 @@ class PTM(QuantumChannel):
             if isinstance(data, (QuantumCircuit, Instruction)):
                 # If the input is a Terra QuantumCircuit or Instruction we
                 # convert it to a SuperOp
-                data = SuperOp._instruction_to_superop(data)
+                data = SuperOp._init_instruction(data)
             else:
                 # We use the QuantumChannel init transform to initialize
                 # other objects into a QuantumChannel or Operator object.
@@ -206,7 +206,12 @@ class PTM(QuantumChannel):
         Raises:
             QiskitError: if other cannot be converted to a channel.
         """
-        return self._tensor_product(other, reverse=False)
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        input_dims = other.input_dims() + self.input_dims()
+        output_dims = other.output_dims() + self.output_dims()
+        data = np.kron(self._data, other.data)
+        return PTM(data, input_dims, output_dims)
 
     def expand(self, other):
         """Return the tensor product channel other ⊗ self.
@@ -220,7 +225,12 @@ class PTM(QuantumChannel):
         Raises:
             QiskitError: if other cannot be converted to a channel.
         """
-        return self._tensor_product(other, reverse=True)
+        if not isinstance(other, PTM):
+            other = PTM(other)
+        input_dims = self.input_dims() + other.input_dims()
+        output_dims = self.output_dims() + other.output_dims()
+        data = np.kron(other.data, self._data)
+        return PTM(data, input_dims, output_dims)
 
     def add(self, other):
         """Return the QuantumChannel self + other.
@@ -279,39 +289,18 @@ class PTM(QuantumChannel):
         return PTM(other * self._data, self._input_dims, self._output_dims)
 
     def _evolve(self, state, qargs=None):
-        """Evolve a quantum state by the QuantumChannel.
+        """Evolve a quantum state by the quantum channel.
 
         Args:
-            state (QuantumState): The input statevector or density matrix.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
+            state (DensityMatrix or Statevector): The input state.
+            qargs (list): a list of quantum state subsystem positions to apply
+                           the quantum channel on.
 
         Returns:
             DensityMatrix: the output quantum state as a density matrix.
-        """
-        return SuperOp(self)._evolve(state, qargs)
-
-    def _tensor_product(self, other, reverse=False):
-        """Return the tensor product channel.
-
-        Args:
-            other (QuantumChannel): a quantum channel.
-            reverse (bool): If False return self ⊗ other, if True return
-                            if True return (other ⊗ self) [Default: False
-        Returns:
-            PTM: the tensor product channel as a PTM object.
 
         Raises:
-            QiskitError: if other cannot be converted to a channel.
+            QiskitError: if the quantum channel dimension does not match the
+            specified quantum state subsystem dimensions.
         """
-        if not isinstance(other, PTM):
-            other = PTM(other)
-        if reverse:
-            input_dims = self.input_dims() + other.input_dims()
-            output_dims = self.output_dims() + other.output_dims()
-            data = np.kron(other.data, self._data)
-        else:
-            input_dims = other.input_dims() + self.input_dims()
-            output_dims = other.output_dims() + self.output_dims()
-            data = np.kron(self._data, other.data)
-        return PTM(data, input_dims, output_dims)
+        return SuperOp(self)._evolve(state, qargs)
