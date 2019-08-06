@@ -121,10 +121,8 @@ Issue #190: Short summary of the issue
 
 Installing Qiskit Terra from source
 -----------------------------------
-
 Please see the [Installing Qiskit Terra from
-Source](https://qiskit.org/documentation/install/terra.html) section of
-the Qiskit documentation.
+Source](https://qiskit.org/documentation/contributing_to_qiskit.html#installing-terra-from-source) section of the Qiskit documentation.
 
 ### Test
 
