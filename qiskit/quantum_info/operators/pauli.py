@@ -292,10 +292,10 @@ class Pauli:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
             represents the pauli.
         """
-        n = 2**len(_x)
-        twos_array = 1 << np.arange(len(_x))[::-1] 
-        xs = np.array(_x)[::-1].dot(twos_array)
-        zs = np.array(_z)[::-1].dot(twos_array)
+        n = 2**len(self._x)
+        twos_array = 1 << np.arange(len(self._x))[::-1] 
+        xs = np.array(self._x)[::-1].dot(twos_array)
+        zs = np.array(self._z)[::-1].dot(twos_array)
         
         rows = np.arange(n, dtype = np.uint)
         columns = rows^xs
