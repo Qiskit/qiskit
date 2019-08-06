@@ -32,6 +32,15 @@ def _make_np_bool(arr):
     arr = np.asarray(arr).astype(np.bool)
     return arr
 
+def _count_bits(n):
+    n = (n & 0x5555555555555555) + ((n & 0xAAAAAAAAAAAAAAAA) >> 1)
+    n = (n & 0x3333333333333333) + ((n & 0xCCCCCCCCCCCCCCCC) >> 2)
+    n = (n & 0x0F0F0F0F0F0F0F0F) + ((n & 0xF0F0F0F0F0F0F0F0) >> 4)
+    n = (n & 0x00FF00FF00FF00FF) + ((n & 0xFF00FF00FF00FF00) >> 8)
+    n = (n & 0x0000FFFF0000FFFF) + ((n & 0xFFFF0000FFFF0000) >> 16)
+    n = (n & 0x00000000FFFFFFFF) + ((n & 0xFFFFFFFF00000000) >> 32) # This last & isn't strictly necessary.
+    return n    
+
 
 class Pauli:
     """A simple class representing Pauli Operators.
@@ -283,19 +292,17 @@ class Pauli:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
             represents the pauli.
         """
-        mat = sparse.coo_matrix(1)
-        for z, x in zip(self._z, self._x):
-            if not z and not x:  # I
-                mat = sparse.bmat([[mat, None], [None, mat]], format='coo')
-            elif z and not x:  # Z
-                mat = sparse.bmat([[mat, None], [None, -mat]], format='coo')
-            elif not z and x:  # X
-                mat = sparse.bmat([[None, mat], [mat, None]], format='coo')
-            else:  # Y
-                mat = mat * 1j
-                mat = sparse.bmat([[None, -mat], [mat, None]], format='coo')
-
-        return mat.tocsr()
+        n = 2**len(_x)
+        twos_array = 1 << np.arange(len(_x))[::-1] 
+        xs = np.array(_x)[::-1].dot(twos_array)
+        zs = np.array(_z)[::-1].dot(twos_array)
+        
+        rows = np.arange(n, dtype = np.uint)
+        columns = rows^xs
+        global_factor = (-1j)**np.dot(np.array(_x, dtype=np.uint), _z)
+        data = (global_factor*(-1)**_count_bits(zs&rows))
+        
+        return sparse.csr_matrix((data, ((rows), (columns))))
 
     def to_operator(self):
         """Convert to Operator object."""
