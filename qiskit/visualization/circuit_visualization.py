@@ -371,7 +371,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
                                                         justify=justify,
                                                         idle_wires=idle_wires)
     if with_layout:
-        layout = circuit._layout
+        layout = circuit.layout
     else:
         layout = None
     text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout)
