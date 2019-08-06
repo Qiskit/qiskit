@@ -159,7 +159,7 @@ def assemble(experiments,
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
-def _parse_common_args(backend, qobj_id, qobj_header, shots, 
+def _parse_common_args(backend, qobj_id, qobj_header, shots,
                        memory, max_credits, seed_simulator,
                        **run_config):
     """Resolve the various types of args allowed to the assemble() function through
