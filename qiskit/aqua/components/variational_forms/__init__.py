@@ -16,12 +16,8 @@ from .variational_form import VariationalForm
 from .ry import RY
 from .ryrz import RYRZ
 from .swaprz import SwapRZ
-from .gaussian import Gaussian
-from .spin_boson import SpinBoson
 
 __all__ = ['VariationalForm',
            'RY',
            'RYRZ',
            'SwapRZ']
-           #'Gaussian',
-           #'SpinBoson']
