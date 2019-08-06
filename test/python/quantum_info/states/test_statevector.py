@@ -345,6 +345,15 @@ class TestStatevector(QiskitTestCase):
             state = Statevector(vec)
             self.assertEqual(-state, Statevector(-1 * vec))
 
+    def test_equiv(self):
+        """Test negate method"""
+        vec = np.array([1, 0, 0, -1j]) / np.sqrt(2)
+        phase = np.exp(-1j * np.pi / 4)
+        statevec = Statevector(vec)
+        self.assertTrue(statevec.equiv(phase * vec))
+        self.assertTrue(statevec.equiv(Statevector(phase * vec)))
+        self.assertFalse(statevec.equiv(2 * vec))
+
 
 if __name__ == '__main__':
     unittest.main()
