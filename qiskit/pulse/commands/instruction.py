@@ -248,6 +248,9 @@ class Instruction(ScheduleComponent):
         """
         return (self.command == other.command) and (set(self.channels) == set(other.channels))
 
+    def __hash__(self):
+        return hash((self.command.__hash__(), self.channels.__hash__()))
+
     def __add__(self, other: ScheduleComponent) -> 'Schedule':
         """Return a new schedule with `other` inserted within `self` at `start_time`."""
         return self.append(other)

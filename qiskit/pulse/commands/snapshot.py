@@ -74,6 +74,9 @@ class Snapshot(Command, Instruction):
                 self.label == other.label and
                 self.type == other.type)
 
+    def __hash__(self):
+        return hash((super().__hash__(), self.label, self.type))
+
     # pylint: disable=arguments-differ
     def to_instruction(self):
         return self

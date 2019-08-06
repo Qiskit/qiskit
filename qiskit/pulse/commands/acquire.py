@@ -90,6 +90,9 @@ class Acquire(Command):
                 self.kernel == other.kernel and
                 self.discriminator == other.discriminator)
 
+    def __hash__(self):
+        return hash((super().__hash__(), self.kernel, self.discriminator))
+
     def __repr__(self):
         return '%s(%s, duration=%d, kernel=%s, discriminator=%s)' % \
                (self.__class__.__name__, self.name, self.duration,

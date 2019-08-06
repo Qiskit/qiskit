@@ -63,6 +63,9 @@ class PersistentValue(Command):
         """
         return super().__eq__(other) and self.value == other.value
 
+    def __hash__(self):
+        return hash((super().__hash__(), self.value))
+
     def __repr__(self):
         return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)
 

@@ -114,8 +114,8 @@ class Command(metaclass=MetaCount):
         return (type(self) is type(other)) and (self.duration == other.duration)
 
     def __hash__(self):
-        return hash((type(self), self._duration, self._name))
+        return hash((type(self), self.duration, self.name))
 
     def __repr__(self):
         return '%s(name=%s, duration=%d)' % (self.__class__.__name__,
-                                             self._name, self._duration)
+                                             self.name, self.duration)
