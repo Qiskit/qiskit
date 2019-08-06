@@ -346,17 +346,26 @@ class WeightedPauliOperator(BaseOperator):
 
         op._paulis = new_paulis
         op._paulis_table = new_paulis_table
-        # update the grouping info, since this method only remove pauli, we can handle it here for both
+
+        # update the grouping info, since this method only reduce the number of paulis, we can handle it here for both
         # pauli and tpb grouped pauli
+        # should have a better way to rebuild the basis here.
         new_basis = []
         for basis, indices in op.basis:
             new_indices = []
+            found = False
+            if len(new_basis) > 0:
+                for b, ind in new_basis:
+                    if b == basis:
+                        new_indices = ind
+                        found = True
+                        break
             for idx in indices:
                 new_idx = old_to_new_indices[idx]
                 if new_idx is not None:
                     new_indices.append(new_idx)
             new_indices = list(set(new_indices))
-            if len(new_indices) > 0:
+            if len(new_indices) > 0 and not found:
                 new_basis.append((basis, new_indices))
         op._basis = new_basis
         op.chop(0.0)
