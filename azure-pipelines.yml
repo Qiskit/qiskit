@@ -145,7 +145,6 @@ jobs:
         pip install -e .
         pip install "qiskit-ibmq-provider" -c constraints.txt
         python setup.py build_ext --inplace
-        pip install git+https://github.com/mtreinish/stestr
       displayName: 'Install dependencies'
 
     - bash: |
