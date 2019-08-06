@@ -390,6 +390,30 @@ class TestPulseAssembler(QiskitTestCase):
                      schedule_los=[self.user_lo_config, self.user_lo_config],
                      **self.config)
 
+    def test_assemble_acq_command(self):
+        """Test extracting correct number of memory slot."""
+        acquire_channels = [pulse.AcquireChannel(idx) for idx in range(10)]
+        mem_slots = [pulse.MemorySlot(idx) for idx in range(10)]
+
+        acquire = pulse.Acquire(5)
+
+        schedule = pulse.Schedule(name='all_acquire')
+        schedule = schedule.insert(0, acquire(acquire_channels, mem_slots))
+
+        qobj = assemble(schedule)
+        test_dict = qobj.to_dict()
+
+        self.assertEqual(test_dict['config']['memory_slots'], 10)
+
+        schedule = pulse.Schedule(name='partial_acquire')
+        schedule = schedule.insert(0, acquire([acquire_channels[3], acquire_channels[5]],
+                                              [mem_slots[3], mem_slots[5]]))
+
+        qobj = assemble(schedule)
+        test_dict = qobj.to_dict()
+
+        self.assertEqual(test_dict['config']['memory_slots'], 6)
+
     def test_assemble_meas_map(self):
         """Test assembling a single schedule, no lo config."""
         acquire = pulse.Acquire(5)
@@ -559,6 +583,30 @@ class TestPulseAssemblerWithDeviceSpecification(QiskitTestCase):
                      meas_lo_freq=self.default_meas_lo_freq,
                      schedule_los=[self.user_lo_config, self.user_lo_config],
                      **self.config)
+
+    def test_assemble_acq_command(self):
+        """Test extracting correct number of memory slot."""
+        acquire_channels = [pulse.AcquireChannel(idx) for idx in range(10)]
+        mem_slots = [pulse.MemorySlot(idx) for idx in range(10)]
+
+        acquire = pulse.Acquire(5)
+
+        schedule = pulse.Schedule(name='all_acquire')
+        schedule = schedule.insert(0, acquire(acquire_channels, mem_slots))
+
+        qobj = assemble(schedule)
+        test_dict = qobj.to_dict()
+
+        self.assertEqual(test_dict['config']['memory_slots'], 10)
+
+        schedule = pulse.Schedule(name='partial_acquire')
+        schedule = schedule.insert(0, acquire([acquire_channels[3], acquire_channels[5]],
+                                              [mem_slots[3], mem_slots[5]]))
+
+        qobj = assemble(schedule)
+        test_dict = qobj.to_dict()
+
+        self.assertEqual(test_dict['config']['memory_slots'], 6)
 
     def test_assemble_meas_map(self):
         """Test assembling a single schedule, no lo config."""
