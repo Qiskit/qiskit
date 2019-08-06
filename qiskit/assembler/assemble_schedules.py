@@ -71,7 +71,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 user_pulselib[name] = instruction.command
             if isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
-                                      *[slot.index for slot in instruction.mem_slots])
+                                      *[slot.index + 1 for slot in instruction.mem_slots])
                 if meas_map:
                     # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
