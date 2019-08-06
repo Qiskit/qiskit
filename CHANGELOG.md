@@ -52,6 +52,8 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 -   Added a ``random_circuit`` function under ``qiskit.circuit.random``
     (#2553)
+-   Added ``output_name`` as a transpiler parameter to set the name of
+    output circuits (\#2745)
 
 ### Changed
 
