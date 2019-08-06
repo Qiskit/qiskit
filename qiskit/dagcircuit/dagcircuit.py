@@ -941,22 +941,19 @@ class DAGCircuit:
         return nx.dag_longest_path(self._multi_graph)
 
     def successors(self, node):
-        """Returns list of the successors of a node as DAGNodes."""
+        """Returns iterator of the successors of a node as DAGNodes."""
         return self._multi_graph.successors(node)
 
     def predecessors(self, node):
-        """Returns list of the predecessors of a node as DAGNodes."""
+        """Returns iterator of the predecessors of a node as DAGNodes."""
         return self._multi_graph.predecessors(node)
 
     def quantum_predecessors(self, node):
-        """Returns list of the predecessors of a node that are
+        """Returns iterator of the predecessors of a node that are
         connected by a quantum edge as DAGNodes."""
-
-        predecessors = []
         for predecessor in self.predecessors(node):
             if isinstance(self._multi_graph.get_edge_data(predecessor, node, key=0)['wire'], Qubit):
-                predecessors.append(predecessor)
-        return predecessors
+                yield predecessor
 
     def ancestors(self, node):
         """Returns set of the ancestors of a node as DAGNodes."""
@@ -974,14 +971,12 @@ class DAGCircuit:
         return nx.bfs_successors(self._multi_graph, node)
 
     def quantum_successors(self, node):
-        """Returns list of the successors of a node that are
+        """Returns iterator of the successors of a node that are
         connected by a quantum edge as DAGNodes."""
-        successors = []
         for successor in self.successors(node):
             if isinstance(self._multi_graph.get_edge_data(
                     node, successor, key=0)['wire'], Qubit):
-                successors.append(successor)
-        return successors
+                yield successor
 
     def remove_op_node(self, node):
         """Remove an operation node n.
