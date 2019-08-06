@@ -52,6 +52,10 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 -   Added a ``random_circuit`` function under ``qiskit.circuit.random``
     (#2553)
+-   Added `equiv` method to `Operator` and `Statevector` classes for
+    testing if two objects are equivalent up to global phase (\#2910)
+-   Added ``output_name`` as a transpiler parameter to set the name of
+    output circuits (\#2745)
 
 ### Changed
 
@@ -78,6 +82,9 @@ The format is based on [Keep a Changelog].
 -   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
 -   Change Snapshot signature to match simulator.snapshot (\#2592)
+-   `DAGCircuit.width()` formerly returned number of qubits, now returns total number of qubits + classical bits (\#2564)
+-   Functions assuming the former semantics of `DAGCircuit.width()` now call `DAGCircuit.num_qubits()` (\#2564)
+-   `DAGCircuit.num_cbits()` renamed to `DAGCircuit.num_clbits()` (\#2564)
 -   Changed definition of `Cu3Gate` to to equivalent to the canonical
     definition of a controlled `U3Gate` (\#2755)
 -   coupling_map now required to validate a backend.configuration() (\#2836)
