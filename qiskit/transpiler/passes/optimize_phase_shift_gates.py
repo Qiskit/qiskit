@@ -105,7 +105,7 @@ class OptimizePhaseShiftGates(TransformationPass):
                             dag_copy.substitute_node_with_dag(dag_copy._id_to_node[i._node_id],
                                                               dag_repl)
                         else:
-                            dag_copy.remove_op_node(i._node_id)
+                            dag_copy.remove_op_node(dag_copy._id_to_node[i])
                         k += 1
                     circuit_length = len(dag_copy._multi_graph.nodes)
                     circuit_depth = dag_copy.depth()
