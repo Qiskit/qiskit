@@ -97,7 +97,7 @@ class TestInitialLayouts(QiskitTestCase):
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
         qobj = assemble(qc_b)
 
-        self.assertEqual(qc_b.layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout._p2v, final_layout)
 
         compiled_ops = qobj.experiments[0].instructions
         for operation in compiled_ops:
@@ -127,7 +127,7 @@ class TestInitialLayouts(QiskitTestCase):
 
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-        self.assertEqual(qc_b.layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout._p2v, final_layout)
 
         for gate, qubits, _ in qc_b:
             if gate.name == 'cx':
@@ -163,7 +163,7 @@ class TestInitialLayouts(QiskitTestCase):
 
         qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-        self.assertEqual(qc_b.layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout._p2v, final_layout)
 
         gate_0, qubits_0, _ = qc_b[0]
         gate_1, qubits_1, _ = qc_b[1]
