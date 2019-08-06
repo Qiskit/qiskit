@@ -41,7 +41,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         """
 
         trans_cirkie = transpile(self.circuit0, basis_gates=self.basis_gates,
-                                 output_names='transpiled-cirkie')
+                                 output_name='transpiled-cirkie')
         self.assertEqual(trans_cirkie.name, 'transpiled-cirkie')
 
     def test_single_circuit_name_list(self):
@@ -53,7 +53,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         Transpile function raises an error.
         """
         trans_cirkie = transpile(self.circuit0, basis_gates=self.basis_gates,
-                                 output_names=['transpiled-cirkie'])
+                                 output_name=['transpiled-cirkie'])
         self.assertEqual(trans_cirkie.name, 'transpiled-cirkie')
 
     def test_single_circuit_and_multiple_name_list(self):
@@ -62,7 +62,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         # If List has multiple elements, transpile function must raise error
         with self.assertRaises(TranspilerError):
             transpile(self.circuit0, basis_gates=self.basis_gates,
-                      output_names=["cool-cirkie", "new-cirkie", "dope-cirkie", "awesome-cirkie"])
+                      output_name=["cool-cirkie", "new-cirkie", "dope-cirkie", "awesome-cirkie"])
 
     def test_multiple_circuits_name_singleton(self):
         """Test output_name raise error if a single name is provided to a list of circuits
@@ -71,7 +71,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         """
         # Raise Error if single name given to multiple circuits
         with self.assertRaises(TranspilerError):
-            transpile([self.circuit1, self.circuit2], self.backend, output_names='circ')
+            transpile([self.circuit1, self.circuit2], self.backend, output_name='circ')
 
     def test_multiple_circuits_name_list(self):
         """Test output_name with a list of circuits
@@ -85,7 +85,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         circuits = [self.circuit1, self.circuit2, self.circuit3]
         # equal lengths
         names = ['awesome-circ1', 'awesome-circ2', 'awesome-circ3']
-        trans_circuits = transpile(circuits, self.backend, output_names=names)
+        trans_circuits = transpile(circuits, self.backend, output_name=names)
         self.assertEqual(trans_circuits[0].name, 'awesome-circ1')
         self.assertEqual(trans_circuits[1].name, 'awesome-circ2')
         self.assertEqual(trans_circuits[2].name, 'awesome-circ3')
@@ -98,7 +98,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         # names list greater than circuits list
         names = ['awesome-circ1', 'awesome-circ2', 'awesome-circ3', 'awesome-circ4']
         with self.assertRaises(TranspilerError):
-            transpile(circuits, self.backend, output_names=names)
+            transpile(circuits, self.backend, output_name=names)
 
     def test_smaller_circuits_name_list(self):
         """ Test output_names list smaller than circuits list
@@ -108,7 +108,7 @@ class TestNamingTranspiledCircuits(QiskitTestCase):
         # names list smaller than circuits list
         names = ['awesome-circ1', 'awesome-circ2']
         with self.assertRaises(TranspilerError):
-            transpile(circuits, self.backend, output_names=names)
+            transpile(circuits, self.backend, output_name=names)
 
 
 if __name__ == '__main__':
