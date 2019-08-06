@@ -330,24 +330,36 @@ class WeightedPauliOperator(BaseOperator):
 
         new_paulis = []
         new_paulis_table = {}
+        old_to_new_indices = {}
+        curr_idx = 0
         for curr_weight, curr_pauli in op.paulis:
             pauli_label = curr_pauli.to_label()
             new_idx = new_paulis_table.get(pauli_label, None)
             if new_idx is not None:
                 new_paulis[new_idx][0] += curr_weight
+                old_to_new_indices[curr_idx] = new_idx
             else:
                 new_paulis_table[pauli_label] = len(new_paulis)
+                old_to_new_indices[curr_idx] = len(new_paulis)
                 new_paulis.append([curr_weight, curr_pauli])
+            curr_idx += 1
 
-        new_paulis_2 = []
-        for weight, pauli in new_paulis:
-            if weight == 0.0:
-                continue
-            new_paulis_2.append([weight, pauli])
-
-        op._paulis = new_paulis_2
-        op._paulis_table = {weighted_pauli[1].to_label(): i for i, weighted_pauli in enumerate(op._paulis)}
-        op._basis = [(pauli[1], [i]) for i, pauli in enumerate(op._paulis)]
+        op._paulis = new_paulis
+        op._paulis_table = new_paulis_table
+        # update the grouping info, since this method only remove pauli, we can handle it here for both
+        # pauli and tpb grouped pauli
+        new_basis = []
+        for basis, indices in op.basis:
+            new_indices = []
+            for idx in indices:
+                new_idx = old_to_new_indices[idx]
+                if new_idx is not None:
+                    new_indices.append(new_idx)
+            new_indices = list(set(new_indices))
+            if len(new_indices) > 0:
+                new_basis.append((basis, new_indices))
+        op._basis = new_basis
+        op.chop(0.0)
         return op
 
     def rounding(self, decimals, copy=False):
