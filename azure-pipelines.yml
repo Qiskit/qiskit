@@ -57,7 +57,7 @@ stages:
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
-
+    
         - bash: |
             set -e
             python -m pip install --upgrade pip
@@ -251,7 +251,3 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
-        - task: PublishTestResults@2
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: temp.png
