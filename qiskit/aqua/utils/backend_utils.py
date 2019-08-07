@@ -15,8 +15,6 @@
 from collections import OrderedDict
 import importlib
 import logging
-from qiskit.providers import BaseBackend
-from qiskit.providers.basicaer import BasicAerProvider
 from qiskit.aqua import Preferences
 
 logger = logging.getLogger(__name__)
@@ -70,6 +68,8 @@ def is_basicaer_provider(backend):
     Returns:
         bool: True is BasicAer
     """
+    from qiskit.providers.basicaer import BasicAerProvider
+
     return isinstance(backend.provider(), BasicAerProvider)
 
 
@@ -271,6 +271,8 @@ def get_provider_from_backend(backend):
     Raises:
         ImportError: Failed to find provider
     """
+    from qiskit.providers import BaseBackend
+
     known_providers = {
                        'BasicAerProvider': 'qiskit.BasicAer',
                        'AerProvider': 'qiskit.Aer',
