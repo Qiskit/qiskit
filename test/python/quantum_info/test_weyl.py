@@ -43,7 +43,7 @@ class TestWeyl(QiskitTestCase):
                       [0, 0, 1, 0],
                       [0, 1, 0, 0]], dtype=complex)
         weyl = weyl_coordinates(U)
-        assert_allclose(weyl, [np.pi / 4, 0, 0])
+        assert_allclose(weyl, [np.pi / 4, 0, 0], atol=1e-07)
 
         # SWAP [pi/4, pi/4 ,pi/4]
         U = np.array([[1, 0, 0, 0],
