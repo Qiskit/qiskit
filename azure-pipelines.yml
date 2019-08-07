@@ -251,7 +251,7 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
-        - task: PublishBuildArtifacts@1
+        - task: PublishTestResults@2
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: temp.png
