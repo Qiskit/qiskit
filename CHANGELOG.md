@@ -91,7 +91,7 @@ The format is based on [Keep a Changelog].
 -   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
 
 ### Removed
-
+-   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
 -   The previously deprecated functions
     `qiksit.visualization.plot_state` and
     `qiskit.visualization.iplot_state` have been removed. Instead use
