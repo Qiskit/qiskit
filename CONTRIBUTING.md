@@ -10,9 +10,9 @@ the [issue tracker](https://github.com/Qiskit/qiskit-terra/issues).
 ### Improvement proposal
 
 If you have an idea for a new feature please open an **Enhancement** issue in
-the [issue tracker](https://github.com/Qiskit/qiskit-terra/issues). This will
-enable discus the new feature, whether it's a good fit for the project, how we
-can implement it, etc.
+the [issue tracker](https://github.com/Qiskit/qiskit-terra/issues). Opening an
+issue starts a discussion with the team about your idea, how it fits in with
+the project, how it can be implemented, etc.
 
 ### Code Review
 
@@ -39,26 +39,32 @@ intimate familiarity with qiskit-terra to develop a fix for the issue.
 If you make a change, make sure you update the associated
 *docstrings* and parts of the
 [documentation](https://github.com/Qiskit/qiskit/tree/master/docs/terra)
-that corresponds to it.
+that corresponds to it. You can also make a [documentation issue](
+https://github.com/Qiskit/qiskit/issues/new/choose) if you see doc bugs, have a
+new feature that needs to be documented, or think that material could be added
+to the existing docs.
 
 ### Pull requests
 
 We use [GitHub pull requests](
 https://help.github.com/articles/about-pull-requests) to accept contributions.
 
-While not required, it is often good practice to open a new issue about
-the bug you're fixing or the feature you're implementing prior to creating
-a pull request. This will enable a discussion about what is being implemented
-and how best we can work together to implement it in the code.
+While not required, opening a new issue about the bug you're fixing or the
+feature you're working on before you open a pull request is an important step
+in starting a discussion with the community about your work. The issue gives us
+a place to talk about the idea and how we can work together to implement it in
+the code. It also lets the community know what you're working on and if you
+need help, you can use the issue to go through it with other community and team
+members.
 
 If you've written some code but need help finishing it, want to get initial
-feedback on it priort to finishing it, or want to share it and discuss prior
+feedback on it prior to finishing it, or want to share it and discuss prior
 to finishing the implementation you can open a *Work in Progress* pull request.
 When you create the pull request prefix the title with the **\[WIP\]** tag (for
-**W**ork **I**n **P**rogress). This will indicate to reviewers that the code in the PR
-isn't in it's final state and will change. It also means that we will not merge
-the commit until it is finished. You or a reviewer can remove the [WIP] tag when
-the code is ready to be fully reviewed for merging.
+**W**ork **I**n **P**rogress). This will indicate to reviewers that the code in
+the PR isn't in it's final state and will change. It also means that we will
+not merge the commit until it is finished. You or a reviewer can remove the
+[WIP] tag when the code is ready to be fully reviewed for merging.
 
 ### Contributor License Agreement
 
@@ -136,10 +142,9 @@ and rebase the change to split it up into separate pull requests.
 
 When Github sends out email alerts for new pull request submissions, there is
 minimal information included, usually just the commit message and the list of
-files changes. Given the high volume of patches, it is not reasonable to expect
-all reviewers to examine all patches in detail. The commit message must thus
-contain sufficient information to alert the potential reviewers to the fact
-that this is a patch they need to look at.
+files changes. Because of the high volume of patches, commit message must
+contain sufficient information for potential reviewers to find the patch that
+they need to look at.
 
 * The first commit line is the most important.
 
@@ -169,7 +174,6 @@ The main rule to follow is:
 
 The commit message must contain all the information required to fully
 understand & review the patch for correctness. Less is not more.
-
 
 ## Installing Qiskit Terra from source
 Please see the [Installing Qiskit Terra from
@@ -419,7 +423,3 @@ The PR against the stable branch should include `[Stable]`
 in the title, as a sign that setting the target branch as stable was not
 a mistake. Also, reference to the PR number in master that you are
 porting.
-
-
-[individual CLA]: https://qiskit.org/license/qiskit-cla.pdf
-[corporate CLA]: https://qiskit.org/license/qiskit-corporate-cla.pdf
