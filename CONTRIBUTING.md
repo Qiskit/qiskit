@@ -177,8 +177,10 @@ section of the Qiskit documentation.
 
 ### Test
 
-New features often imply changes in the existent tests or new ones are
-needed. Once they\'re updated/added run this be sure they keep passing.
+Once you've made a code change it is important to verify that your change
+does not break any exisiting tests or that any new tests that you've added
+also run successfully. Before you open a new pull request for your change
+you'll want to run the test suite locally.
 
 The easiest way to run the test suite is to use tox. You can install tox
 with pip: `pip install -U tox`. Tox provides several advantages, but the
@@ -319,16 +321,14 @@ for docstrings. A good example of the style can also be found with
 [sphinx\'s napolean converter
 documentation](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
 
-### Development cycle
+### Development Cycle
 
-Our development cycle is straightforward, use the project boards in
-Github for project management and use milestones for releases. The
-features that we want to include in these releases will be tagged and
-discussed in the project boards. Whenever a new release is close to be
-launched, we\'ll announce it and detail what has changed since the
-latest version in our Release Notes and Changelog. The channels we\'ll
-use to announce new releases are still being discussed, but for now, you
-can [follow us](https://twitter.com/qiskit) on Twitter!
+The development cycle for qiskit-terra is all handled in the open using
+using the project boards in Github for project management and use milestones
+in Github to track work for specific releases. The features or other changes
+that we want to include in a release will be tagged and discussed in Github.
+As we're preparing a new release we'll document what has changed since the
+previous version in the release notes and Changelog.
 
 ### Branches
 
@@ -355,9 +355,8 @@ When it is time to release a new minor version of qiskit-terra we will:
     branch.
 3.  Change the `master` version to the next release version.
 
-The `stable` branch should only receive changes in the form of bug
-fixes, so the third version number (the maintenance number:
-\[major\].\[minor\].\[maintenance\]) will increase on every new change.
+The `stable/*` branches should only receive changes in the form of bug
+fixes.
 
 ## Stable Branch Policy
 
@@ -415,7 +414,7 @@ which apply to the stable release too and may be suitable for
 backporting once a fix lands in master. Once the backport has been
 proposed, the tag should be removed.
 
-The PR against the stable branch should include `[stable]`
+The PR against the stable branch should include `[Stable]`
 in the title, as a sign that setting the target branch as stable was not
 a mistake. Also, reference to the PR number in master that you are
 porting.
