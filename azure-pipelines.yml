@@ -159,3 +159,7 @@ jobs:
         stestr run --concurrency 2
         stestr last --subunit > test_results.subunit
       displayName: 'Run tests'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        artifactName: temp.png
