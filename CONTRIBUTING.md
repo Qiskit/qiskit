@@ -71,7 +71,7 @@ contributing it under the terms of the Apache-2.0 license.
 When you contribute to the Qiskit Terra project with a new pull request,
 a bot will evaluate whether you have signed the CLA. If required, the
 bot will comment on the pull request, including a link to accept the
-agreement. The [individual CLA] document is available for review as a PDF.
+agreement. The [individual CLA](https://qiskit.org/license/qiskit-cla.pdf) document is available for review as a PDF.
 
 **Note**:
 > If your contribution is part of your employment or your contribution
