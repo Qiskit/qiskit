@@ -70,6 +70,7 @@ stages:
             set -e
             pycodestyle --max-line-length=100 qiskit test
             pylint -rn qiskit test
+            reno lint
           displayName: 'Style and lint'
         - bash: |
             set -e
@@ -113,6 +114,7 @@ stages:
             set -e
             pycodestyle --max-line-length=100 qiskit test
             pylint -rn qiskit test
+            reno lint
           displayName: 'Style and lint'
         - bash: |
             set -e
