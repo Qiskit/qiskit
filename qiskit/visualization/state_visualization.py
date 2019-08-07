@@ -726,9 +726,8 @@ def _shade_colors(color, normals, lightsource=None):
         # chosen for backwards-compatibility
         lightsource = LightSource(azdeg=225, altdeg=19.4712)
 
-    shade = np.array([np.dot(n / proj3d.mod(n), lightsource.direction)
-                      if proj3d.mod(n) else np.nan
-                      for n in normals])
+    shade = np.array([np.dot(n / np.linalg.norm(n), lightsource.direction)
+                      if np.linalg.norm(n) else np.nan for n in normals])
     mask = ~np.isnan(shade)
 
     if mask.any():
