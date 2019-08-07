@@ -64,7 +64,7 @@ class TestQuaternions(QiskitTestCase):
 
     def test_orthogonality(self):
         """Quaternion rotation matrix orthogonality"""
-        assert_allclose(self.mat2.dot(self.mat2.T), np.identity(3, dtype=float), atol = 1e-8)
+        assert_allclose(self.mat2.dot(self.mat2.T), np.identity(3, dtype=float), atol=1e-8)
 
     def test_det(self):
         """Quaternion det = 1"""
