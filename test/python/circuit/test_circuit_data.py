@@ -15,12 +15,10 @@
 """Test operations on circuit.data."""
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.extensions.standard import *
+from qiskit.extensions.standard import HGate, XGate, CnotGate
 
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
-
-import unittest
 
 
 class TestQuantumCircuitInstructionData(QiskitTestCase):
@@ -154,6 +152,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
 
+        # pylint: disable=invalid-name
         g1 = qc.h(0)
         g2 = qc.cx(0, 1)
         g3 = qc.h(1)
@@ -170,6 +169,7 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
 
+        # pylint: disable=invalid-name
         g1 = qc.h(0)
         g2 = qc.cx(0, 1)
         g3 = qc.h(1)
