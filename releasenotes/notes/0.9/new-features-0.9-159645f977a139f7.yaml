@@ -1,0 +1,105 @@
+---
+prelude: >
+    The 0.9 release includes many new features and many bug fixes. The biggest
+    changes for this release are
+features:
+  - |
+    A new analysis pass ``CountOpsLongest`` was added to retrieve the number
+    of operations on the longest path of the DAGCircuit. When used it will
+    add a ``count_ops_longest_path`` key to the property set dictionary.
+    You can add it to your a passmanager with something like::
+
+        from qiskit.transpiler.passes import CountOpsLongestPath
+        from qiskit.transpiler.passes import CxCancellation
+        from qiskit.transpiler import PassManager
+
+        pm = PassManager()
+        pm.append(CountOpsLongestPath)
+
+    and then access the longest path via the property set value with something
+    like::
+
+        pm.append(
+            CxCancellation,
+            condition=lambda property_set: property_set[
+                'count_ops_longest_path'] < 5)
+
+    which will set a condition on that pass based on the longest path.
+  - |
+    Two new functions, ``sech()`` and ``sech_deriv()`` were added to the pulse
+    library module ``qiskit.pulse.pulse_lib`` for creating an unnormalized
+    hyperbolic secant ``SamplePulse`` object and an unnormalized hyperbolic
+    secant derviative ``SamplePulse`` object resepctively.
+  - |
+    A new kwarg option ``vertical_compression`` was added to the
+    ``QuantumCircuit.draw()`` method and the
+    ``qiskit.visualization.circuit_drawer()`` function. This option only works
+    with the ``text`` backend. This option can be set to either ``high``,
+    ``medium`` (the default), or ``low`` to adjust how much vertical space is
+    used by the output visualization.
+  - |
+    A new kwarg boolean option ``idle_wires`` was added to the
+    ``QuantumCircuit.draw()`` method and the
+    ``qiskit.visualization.circuit_drawer()`` function. It works for all drawer
+    backends. When ``idle_wires`` is set False in a drawer call the drawer will
+    not draw any bits that do not have any circuit elements in the output
+    quantum circuit visualization.
+  - |
+    A new PassManager visualizer function
+    ``qiskit.visualization.pass_mamanger_drawer()`` was added. This function
+    takes in a PassManager object and will generate a flow control diagram
+    of all the passes run in the PassManager.
+  - |
+    When creating a PassManager you can now specify a callback function that
+    if specified will be run after each pass is executed. This function gets
+    passed a set of kwargs on each call with the state of the pass maanger after
+    each pass execution. Currently these kwargs are:
+
+     * pass_ (Pass): the pass being run
+     * dag (DAGCircuit): the dag output of the pass
+     * time (float): the time to execute the pass
+     * property_set (PropertySet): the property set
+     * count (int): the index for the pass execution
+
+    However, it's worth noting that while these arguments are set for the 0.9
+    release they expose the internals of the pass manager and are subject to
+    change in future release.
+
+    For example you can use this to create a callback function that will
+    visualize the circuit output after each pass is executed::
+
+        from qiskit.transpiler import PassManager
+
+        def my_callback(**kwargs):
+            print(kwargs['dag'])
+
+        pm = PassManager(callback=my_callback)
+
+    Additionally you can specify the callback function when using
+    ``qiskit.compiler.transpile()``::
+
+        from qiskit.compiler import transpile
+
+        def my_callback(**kwargs):
+            print(kwargs['pass'])
+
+        transpile(circ, callback=my_callback)
+
+  - |
+    A new kwarg ``log_level`` was added to ``qiskit.compiler.transpile()``.
+    This can be used to change the default logging level for the Pass Manager
+    used to perform the transpile. For example::
+
+        import logging
+        from qiskit.compiler import transpile
+
+        transpile(circ, log_level=logging.DEBUG)
+
+    will set the log level for the pass manager to DEBUG when transpiling the
+    circuit circ.
+
+other:
+  - |
+    Calls to ``PassManager.run()`` now will emit python logging messages at the
+    INFO level for each pass execution. These messages will include the Pass
+    name and the total execution time of the pass.
