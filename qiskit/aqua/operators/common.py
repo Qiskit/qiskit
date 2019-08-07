@@ -242,10 +242,12 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
 
     state_registers = QuantumRegister(pauli_list[0][1].numberofqubits)
     if controlled:
+        inst_name = 'Controlled-Evolution^{}'.format(power)
         ancillary_registers = QuantumRegister(1)
-        qc_slice = QuantumCircuit(state_registers, ancillary_registers, name='Controlled-Evolution^{}'.format(power))
+        qc_slice = QuantumCircuit(state_registers, ancillary_registers, name=inst_name)
     else:
-        qc_slice = QuantumCircuit(state_registers, name='Evolution^{}'.format(power))
+        inst_name = 'Evolution^{}'.format(power)
+        qc_slice = QuantumCircuit(state_registers, name=inst_name)
 
     # for each pauli [IXYZ]+, record the list of qubit pairs needing CX's
     cnot_qubit_pairs = [None] * len(pauli_list)
@@ -343,14 +345,14 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
         qc_slice.data *= (num_time_slices * power)
         qc = qc_slice
     else:
-        qc = QuantumCircuit()
+        qc = QuantumCircuit(name=inst_name)
         for _ in range(num_time_slices * power):
             qc += qc_slice
             qc.barrier(state_registers)
     return qc.to_instruction()
 
 
-def commutator(op_a, op_b, op_c=None, threshold=None):
+def commutator(op_a, op_b, op_c=None, threshold=1e-12):
     """
     Compute commutator of op_a and op_b or the symmetric double commutator of op_a, op_b and op_c.
 
@@ -391,7 +393,6 @@ def commutator(op_a, op_b, op_c=None, threshold=None):
         tmp = 0.5 * tmp
         res = op_abc + op_cba - tmp
 
-    if threshold is not None:
-        res.chop(1e-12)
     res.simplify()
+    res.chop(threshold)
     return res

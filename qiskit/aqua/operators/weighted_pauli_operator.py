@@ -176,9 +176,9 @@ class WeightedPauliOperator(BaseOperator):
             if idx is not None:
                 ret_op._paulis[idx][0] = operation(ret_op._paulis[idx][0], pauli[0])
             else:
-                ret_op._paulis_table[pauli_label] = len(ret_op._paulis)
-                ret_op._basis.append((pauli[1], [len(ret_op._paulis)]))
                 new_pauli = deepcopy(pauli)
+                ret_op._paulis_table[pauli_label] = len(ret_op._paulis)
+                ret_op._basis.append((new_pauli[1], [len(ret_op._paulis)]))
                 new_pauli[0] = operation(0.0, pauli[0])
                 ret_op._paulis.append(new_pauli)
         return ret_op
@@ -329,17 +329,44 @@ class WeightedPauliOperator(BaseOperator):
 
         new_paulis = []
         new_paulis_table = {}
+        old_to_new_indices = {}
+        curr_idx = 0
         for curr_weight, curr_pauli in op.paulis:
             pauli_label = curr_pauli.to_label()
             new_idx = new_paulis_table.get(pauli_label, None)
             if new_idx is not None:
                 new_paulis[new_idx][0] += curr_weight
+                old_to_new_indices[curr_idx] = new_idx
             else:
                 new_paulis_table[pauli_label] = len(new_paulis)
+                old_to_new_indices[curr_idx] = len(new_paulis)
                 new_paulis.append([curr_weight, curr_pauli])
+            curr_idx += 1
 
         op._paulis = new_paulis
-        op._paulis_table = {weighted_pauli[1].to_label(): i for i, weighted_pauli in enumerate(new_paulis)}
+        op._paulis_table = new_paulis_table
+
+        # update the grouping info, since this method only reduce the number of paulis, we can handle it here for both
+        # pauli and tpb grouped pauli
+        # should have a better way to rebuild the basis here.
+        new_basis = []
+        for basis, indices in op.basis:
+            new_indices = []
+            found = False
+            if len(new_basis) > 0:
+                for b, ind in new_basis:
+                    if b == basis:
+                        new_indices = ind
+                        found = True
+                        break
+            for idx in indices:
+                new_idx = old_to_new_indices[idx]
+                if new_idx is not None:
+                    new_indices.append(new_idx)
+            new_indices = list(set(new_indices))
+            if len(new_indices) > 0 and not found:
+                new_basis.append((basis, new_indices))
+        op._basis = new_basis
         op.chop(0.0)
         return op
 
