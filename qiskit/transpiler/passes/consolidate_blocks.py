@@ -61,7 +61,16 @@ class ConsolidateBlocks(TransformationPass):
             if not isinstance(wire, Qubit):
                 continue
             global_qregs = list(dag.qregs.values())
-            global_index_map[wire] = global_qregs.index(wire.register) + wire.index
+
+            reg_index = 0
+            for g_qreg in global_qregs:
+                # if this is the register we want, stop
+                if g_qreg == wire.register:
+                    break
+                # index needs to increase by the size of the register
+                reg_index += g_qreg.size
+
+            global_index_map[wire] = reg_index + wire.index
 
         blocks = self.property_set['block_list']
         nodes_seen = set()

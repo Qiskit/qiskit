@@ -126,13 +126,15 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_block_spanning_two_regs(self):
-        """blocks spanning wires on different quantum registers work."""
+        """blocks spanning wires on different quantum registers work.
+        This was raised as an issue in #2806
+        """
         qr0 = QuantumRegister(1, "qr0")
-        qr1 = QuantumRegister(1, "qr1")
+        qr1 = QuantumRegister(2, "qr1")
         qc = QuantumCircuit(qr0, qr1)
         qc.u1(0.5, qr0[0])
         qc.u2(0.2, 0.6, qr1[0])
-        qc.cx(qr0[0], qr1[0])
+        qc.cx(qr0[0], qr1[1])
         dag = circuit_to_dag(qc)
 
         pass_ = ConsolidateBlocks(force_consolidate=True)
