@@ -7,155 +7,247 @@ trigger:
   branches:
     include:
       - master
-      - stable
+      - stable/*
   tags:
     include:
       - '*'
-jobs:
-- job: 'Windows_Tests'
-  pool: {vmImage: 'vs2017-win2016'}
-  condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
-  strategy:
-    matrix:
-      Python35:
-        python.version: '3.5'
-      Python36:
-        python.version: '3.6'
-      Python37:
-        python.version: '3.7'
 
-  steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(python.version)'
-      displayName: 'Use Python $(python.version)'
-
-    - bash: |
-        set -e
-        python -m pip install --upgrade pip
-        pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-        pip install -e .
-        pip install "qiskit-ibmq-provider" -c constraints.txt
-        python setup.py build_ext --inplace
-      displayName: 'Install dependencies'
-
-    # Our pylintheader rules fail every file on windows
-    # - script: |
-    #     pycodestyle --max-line-length=100 qiskit test
-    #     pylint -rn qiskit test
-    #   displayName: 'Style and lint'
-
-    - bash: |
-        set -e
-        stestr run
-        stestr last --subunit > test_results.subunit
-      displayName: 'Run tests'
-
-- job: 'Windows_Wheel_Builds'
-  pool: {vmImage: 'vs2017-win2016'}
-  condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-  variables:
-    CIBW_BEFORE_BUILD: pip install -U Cython
-    CIBW_SKIP: cp27-* cp34-*
-    TWINE_USERNAME: qiskit
-    CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
-  steps:
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
-    - script: choco install vcpython27 -f -y
-      displayName: Install Visual C++ for Python 2.7
-    - bash: |
-        python -m pip install --upgrade pip
-        pip install cibuildwheel==0.11.1
-        pip install -U twine
-        cibuildwheel --output-dir wheelhouse
-    - task: PublishBuildArtifacts@1
-      inputs: {pathtoPublish: 'wheelhouse'}
-    - bash: |
-        twine upload wheelhouse\*
-
-- job: 'Linux_Tests'
-  pool: {vmImage: 'ubuntu-16.04'}
-  condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
-  strategy:
-    matrix:
-      Python35:
-        python.version: '3.5'
-      Python36:
-        python.version: '3.6'
-      Python37:
-        python.version: '3.7'
-
-  steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(python.version)'
-      displayName: 'Use Python $(python.version)'
-
-    - bash: |
-        set -e
-        python -m pip install --upgrade pip
-        pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-        pip install -e .
-        pip install "qiskit-ibmq-provider" -c constraints.txt
-        python setup.py build_ext --inplace
-      displayName: 'Install dependencies'
-
-    - bash: |
-        set -e
-        pycodestyle --max-line-length=100 qiskit test
-        pylint -rn qiskit test
-      displayName: 'Style and lint'
-      condition: eq(variables['python.version'], '3.5')
-
-    - bash: |
-        set -e
-        stestr run
-        stestr last --subunit > test_results.subunit
-      displayName: 'Run tests'
-
-- job: 'MacOS_Mojave_Tests'
-  pool: {vmImage: 'macOS-10.13'}
-  condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
-  variables:
-    MPLBACKEND: ps
-  strategy:
-    matrix:
-      Python35:
-        python.version: '3.5'
-      Python36:
-        python.version: '3.6'
-      Python37:
-        python.version: '3.7'
-
-  steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(python.version)'
-      displayName: 'Use Python $(python.version)'
-
-    - bash: |
-        set -e
-        python -m pip install --upgrade pip
-        pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-        pip install -e .
-        pip install "qiskit-ibmq-provider" -c constraints.txt
-        python setup.py build_ext --inplace
-      displayName: 'Install dependencies'
-
-    - bash: |
-        set -e
-        pycodestyle --max-line-length=100 qiskit test
-        pylint -rn qiskit test
-      displayName: 'Style and lint'
-      condition: eq(variables['python.version'], '3.5')
-
-    - bash: |
-        set -e
-        stestr run --concurrency 2
-        stestr last --subunit > test_results.subunit
-      displayName: 'Run tests'
+stages:
+  - stage: 'Wheel_Builds'
+    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+    jobs:
+    - job: 'Windows_Wheel_Builds'
+      pool: {vmImage: 'vs2017-win2016'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        CIBW_BEFORE_BUILD: pip install -U Cython
+        CIBW_SKIP: cp27-* cp34-*
+        TWINE_USERNAME: qiskit
+        CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
+      steps:
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
+        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+        - script: choco install vcpython27 -f -y
+          displayName: Install Visual C++ for Python 2.7
+        - bash: |
+            python -m pip install --upgrade pip
+            pip install cibuildwheel==0.11.1
+            pip install -U twine
+            cibuildwheel --output-dir wheelhouse
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'wheelhouse'}
+        - bash: |
+            twine upload wheelhouse\*
+  - stage: 'Lint_and_Tests'
+    condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    jobs:
+    - job: 'Linux_Tests_and_Lint'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python35:
+            python.version: '3.5'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+    
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            pycodestyle --max-line-length=100 qiskit test
+            pylint -rn qiskit test
+          displayName: 'Style and lint'
+        - bash: |
+            set -e
+            stestr run
+          displayName: 'Run tests'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for Linux Python $(python.version)'
+    - job: 'MacOS_HighSierra_Tests'
+      pool: {vmImage: 'macOS-10.13'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
+      strategy:
+        matrix:
+          Python35:
+            python.version: '3.5'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            pycodestyle --max-line-length=100 qiskit test
+            pylint -rn qiskit test
+          displayName: 'Style and lint'
+        - bash: |
+            set -e
+            stestr run --concurrency 2
+          displayName: 'Run tests'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for macOS Python $(python.version)'
+  - stage: 'Python_Tests'
+    condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
+    jobs:
+    - job: 'Windows_Tests'
+      pool: {vmImage: 'vs2017-win2016'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python35:
+            python.version: '3.5'
+          Python36:
+            python.version: '3.6'
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            stestr run
+          displayName: 'Run tests'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for Windows Python $(python.version)'
+    - job: 'Linux_Tests'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python36:
+            python.version: '3.6'
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            stestr run
+          displayName: 'Run tests'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for Linux Python $(python.version)'
+    - job: 'MacOS_HighSierra_Tests'
+      pool: {vmImage: 'macOS-10.13'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
+      strategy:
+        matrix:
+          Python36:
+            python.version: '3.6'
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            stestr run --concurrency 2
+          displayName: 'Run tests'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Test results for macOS Python $(python.version)'
