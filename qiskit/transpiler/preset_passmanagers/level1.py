@@ -37,6 +37,7 @@ from qiskit.transpiler.passes import Depth
 from qiskit.transpiler.passes import RemoveResetInZeroState
 from qiskit.transpiler.passes import Optimize1qGates
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes import CheckCXDirection
 
 
 def level_1_pass_manager(transpile_config):
@@ -93,9 +94,11 @@ def level_1_pass_manager(transpile_config):
              Decompose(SwapGate)]
 
     # 6. Fix any bad CX directions
-    # _direction_check = CheckCXDirection(coupling_map)  # TODO
+    _direction_check = [CheckCXDirection(coupling_map)]
+
     def _direction_condition(property_set):
-        return not coupling_map.is_symmetric and not property_set['is_direction_mapped']
+        return not property_set['is_direction_mapped']
+
     _direction = [CXDirection(coupling_map)]
 
     # 7. Remove zero-state reset
@@ -119,8 +122,9 @@ def level_1_pass_manager(transpile_config):
     if coupling_map:
         pm1.append(_swap_check)
         pm1.append(_swap, condition=_swap_condition)
-        # pm1.append(_direction_check)  # TODO
-        pm1.append(_direction, condition=_direction_condition)
+        if not coupling_map.is_symmetric:
+            pm1.append(_direction_check)
+            pm1.append(_direction, condition=_direction_condition)
     pm1.append(_reset)
     pm1.append(_depth_check + _opt, do_while=_opt_control)
 

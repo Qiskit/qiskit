@@ -19,11 +19,13 @@ from IPython import get_ipython          # pylint: disable=import-error
 from qiskit.tools.visualization import HAS_MATPLOTLIB
 from .jupyter_magics import (ProgressBarMagic, StatusMagic)
 from .progressbar import HTMLProgressBar
-from .job_watcher import JobWatcher
+from .version_table import VersionTable
+from .copyright import Copyright
+from .job_watcher import JobWatcher, JobWatcherMagic
 
 if HAS_MATPLOTLIB:
     from .backend_overview import BackendOverview
-    from .backend_monitor import BackendMonitor, _backend_monitor
+    from .backend_monitor import _backend_monitor
 
 try:
     from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
@@ -35,25 +37,12 @@ except ImportError:
 _IP = get_ipython()
 if _IP is not None:
     _IP.register_magics(ProgressBarMagic)
+    _IP.register_magics(VersionTable)
+    _IP.register_magics(Copyright)
+    _IP.register_magics(JobWatcherMagic)
     if HAS_MATPLOTLIB:
         _IP.register_magics(BackendOverview)
-        _IP.register_magics(BackendMonitor)
         if HAS_IBMQ:
             HTML_FORMATTER = _IP.display_formatter.formatters['text/html']
             # Make _backend_monitor the html repr for IBM Q backends
             HTML_FORMATTER.for_type(IBMQBackend, _backend_monitor)
-
-# The Jupyter job watcher instance
-_JOB_WATCHER = JobWatcher()
-
-
-def disable_job_watcher():
-    """Disables the job watcher.
-    """
-    _JOB_WATCHER.stop_viewer()
-
-
-def enable_job_watcher():
-    """Enables the job watcher.
-    """
-    _JOB_WATCHER.start_viewer()

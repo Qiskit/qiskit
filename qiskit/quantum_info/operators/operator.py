@@ -23,7 +23,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.predicates import is_unitary_matrix
+from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
@@ -66,7 +66,7 @@ class Operator(BaseOperator):
             # 'to_matrix' method defined. Any other instructions such as
             # conditional gates, measure, or reset will cause an
             # exception to be raised.
-            mat = self._instruction_to_operator(data).data
+            mat = self._init_instruction(data).data
         elif hasattr(data, 'to_operator'):
             # If the data object has a 'to_operator' attribute this is given
             # higher preference than the 'to_matrix' method for initializing
@@ -199,7 +199,12 @@ class Operator(BaseOperator):
         Raises:
             QiskitError: if other cannot be converted to an operator.
         """
-        return self._tensor_product(other, reverse=False)
+        if not isinstance(other, Operator):
+            other = Operator(other)
+        input_dims = other.input_dims() + self.input_dims()
+        output_dims = other.output_dims() + self.output_dims()
+        data = np.kron(self._data, other._data)
+        return Operator(data, input_dims, output_dims)
 
     def expand(self, other):
         """Return the tensor product operator other ⊗ self.
@@ -213,7 +218,12 @@ class Operator(BaseOperator):
         Raises:
             QiskitError: if other cannot be converted to an operator.
         """
-        return self._tensor_product(other, reverse=True)
+        if not isinstance(other, Operator):
+            other = Operator(other)
+        input_dims = self.input_dims() + other.input_dims()
+        output_dims = self.output_dims() + other.output_dims()
+        data = np.kron(other._data, self._data)
+        return Operator(data, input_dims, output_dims)
 
     def add(self, other):
         """Return the operator self + other.
@@ -272,67 +282,36 @@ class Operator(BaseOperator):
         return Operator(other * self.data, self.input_dims(),
                         self.output_dims())
 
+    def equiv(self, other, rtol=None, atol=None):
+        """Return True if operators are equivalent up to global phase.
+
+        Args:
+            other (Operator): an operator object.
+            rtol (float): relative tolerance value for comparison.
+            atol (float): absolute tolerance value for comparison.
+
+        Returns:
+            bool: True if operators are equivalent up to global phase.
+        """
+        if not isinstance(other, Operator):
+            try:
+                other = Operator(other)
+            except QiskitError:
+                return False
+        if self.dim != other.dim:
+            return False
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
+        return matrix_equal(self.data, other.data, ignore_phase=True,
+                            rtol=rtol, atol=atol)
+
     @property
     def _shape(self):
         """Return the tensor shape of the matrix operator"""
         return tuple(reversed(self.output_dims())) + tuple(
             reversed(self.input_dims()))
-
-    def _evolve(self, state, qargs=None):
-        """Evolve a quantum state by the operator.
-
-        Args:
-            state (QuantumState): The input statevector or density matrix.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
-
-        Returns:
-            QuantumState: the output quantum state.
-
-        Raises:
-            QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
-        """
-        state = self._format_state(state)
-        if qargs is None:
-            if state.shape[0] != self._input_dim:
-                raise QiskitError(
-                    "Operator input dimension is not equal to state dimension."
-                )
-            if state.ndim == 1:
-                # Return evolved statevector
-                return np.dot(self.data, state)
-            # Return evolved density matrix
-            return np.dot(
-                np.dot(self.data, state), np.transpose(np.conj(self.data)))
-        # Subsystem evolution
-        return self._evolve_subsystem(state, qargs)
-
-    def _tensor_product(self, other, reverse=False):
-        """Return the tensor product operator.
-
-        Args:
-            other (Operator): another operator.
-            reverse (bool): If False return self ⊗ other, if True return
-                            if True return (other ⊗ self) [Default: False
-        Returns:
-            Operator: the tensor product operator.
-
-        Raises:
-            QiskitError: if other cannot be converted into an Operator.
-        """
-        # Convert other to Operator
-        if not isinstance(other, Operator):
-            other = Operator(other)
-        if reverse:
-            input_dims = self.input_dims() + other.input_dims()
-            output_dims = self.output_dims() + other.output_dims()
-            data = np.kron(other._data, self._data)
-        else:
-            input_dims = other.input_dims() + self.input_dims()
-            output_dims = other.output_dims() + self.output_dims()
-            data = np.kron(self._data, other._data)
-        return Operator(data, input_dims, output_dims)
 
     def _compose_subsystem(self, other, qargs, front=False):
         """Return the composition channel."""
@@ -364,67 +343,8 @@ class Operator(BaseOperator):
             final_shape)
         return Operator(data, input_dims, output_dims)
 
-    def _evolve_subsystem(self, state, qargs):
-        """Evolve a quantum state by the operator.
-
-        Args:
-            state (QuantumState): The input statevector or density matrix.
-            qargs (list): a list of QuantumState subsystem positions to apply
-                           the operator on.
-
-        Returns:
-            QuantumState: the output quantum state.
-
-        Raises:
-            QiskitError: if the operator dimension does not match the
-            specified QuantumState subsystem dimensions.
-        """
-        mat = np.reshape(self.data, self._shape)
-        # Hack to assume state is a N-qubit state until a proper class for states
-        # is in place
-        state_size = len(state)
-        state_dims = self._automatic_dims(None, state_size)
-        if self.input_dims() != len(qargs) * (2,):
-            raise QiskitError(
-                "Operator input dimensions are not compatible with state subsystem dimensions."
-            )
-        if state.ndim == 1:
-            # Return evolved statevector
-            tensor = np.reshape(state, state_dims)
-            indices = [len(state_dims) - 1 - qubit for qubit in qargs]
-            tensor = self._einsum_matmul(tensor, mat, indices)
-            return np.reshape(tensor, state_size)
-        # Return evolved density matrix
-        tensor = np.reshape(state, 2 * state_dims)
-        indices = [len(state_dims) - 1 - qubit for qubit in qargs]
-        right_shift = len(state_dims)
-        # Left multiply by operator
-        tensor = self._einsum_matmul(tensor, mat, indices)
-        # Right multiply by adjoint operator
-        # We implement the transpose by doing left multiplication instead of right
-        # in the _einsum_matmul function
-        tensor = self._einsum_matmul(
-            tensor, np.conj(mat), indices, shift=right_shift)
-        return np.reshape(tensor, [state_size, state_size])
-
-    def _format_state(self, state):
-        """Format input state so it is statevector or density matrix"""
-        state = np.array(state)
-        shape = state.shape
-        ndim = state.ndim
-        if ndim > 2:
-            raise QiskitError('Input state is not a vector or matrix.')
-        # Flatten column-vector to vector
-        if ndim == 2:
-            if shape[1] != 1 and shape[1] != shape[0]:
-                raise QiskitError('Input state is not a vector or matrix.')
-            if shape[1] == 1:
-                # flatten column-vector to vector
-                state = np.reshape(state, shape[0])
-        return state
-
     @classmethod
-    def _instruction_to_operator(cls, instruction):
+    def _init_instruction(cls, instruction):
         """Convert a QuantumCircuit or Instruction to an Operator."""
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
@@ -434,38 +354,43 @@ class Operator(BaseOperator):
         op._append_instruction(instruction)
         return op
 
+    @classmethod
+    def _instruction_to_matrix(cls, obj):
+        """Return Operator for instruction if defined or None otherwise."""
+        if not isinstance(obj, Instruction):
+            raise QiskitError('Input is not an instruction.')
+        mat = None
+        if hasattr(obj, 'to_matrix'):
+            # If instruction is a gate first we see if it has a
+            # `to_matrix` definition and if so use that.
+            try:
+                mat = obj.to_matrix()
+            except QiskitError:
+                pass
+        return mat
+
     def _append_instruction(self, obj, qargs=None):
         """Update the current Operator by apply an instruction."""
-        if isinstance(obj, Instruction):
-            mat = None
-            if hasattr(obj, 'to_matrix'):
-                # If instruction is a gate first we see if it has a
-                # `to_matrix` definition and if so use that.
-                try:
-                    mat = obj.to_matrix()
-                except QiskitError:
-                    pass
-            if mat is not None:
-                # Perform the composition and inplace update the current state
-                # of the operator
-                op = self.compose(mat, qargs=qargs)
-                self._data = op.data
-            else:
-                # If the instruction doesn't have a matrix defined we use its
-                # circuit decomposition definition if it exists, otherwise we
-                # cannot compose this gate and raise an error.
-                if obj.definition is None:
-                    raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
-                for instr, qregs, cregs in obj.definition:
-                    if cregs:
-                        raise QiskitError(
-                            'Cannot apply instruction with classical registers: {}'.format(
-                                instr.name))
-                    # Get the integer position of the flat register
-                    if qargs is None:
-                        new_qargs = [tup.index for tup in qregs]
-                    else:
-                        new_qargs = [qargs[tup.index] for tup in qregs]
-                    self._append_instruction(instr, qargs=new_qargs)
+        mat = self._instruction_to_matrix(obj)
+        if mat is not None:
+            # Perform the composition and inplace update the current state
+            # of the operator
+            op = self.compose(mat, qargs=qargs)
+            self._data = op.data
         else:
-            raise QiskitError('Input is not an instruction.')
+            # If the instruction doesn't have a matrix defined we use its
+            # circuit decomposition definition if it exists, otherwise we
+            # cannot compose this gate and raise an error.
+            if obj.definition is None:
+                raise QiskitError('Cannot apply Instruction: {}'.format(obj.name))
+            for instr, qregs, cregs in obj.definition:
+                if cregs:
+                    raise QiskitError(
+                        'Cannot apply instruction with classical registers: {}'.format(
+                            instr.name))
+                # Get the integer position of the flat register
+                if qargs is None:
+                    new_qargs = [tup.index for tup in qregs]
+                else:
+                    new_qargs = [qargs[tup.index] for tup in qregs]
+                self._append_instruction(instr, qargs=new_qargs)
