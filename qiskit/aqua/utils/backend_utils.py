@@ -26,12 +26,13 @@ CHECKED_AER = False
 
 _UNSUPPORTED_BACKENDS = ['unitary_simulator', 'clifford_simulator']
 
+# pylint: disable=no-name-in-module, import-error, unused-import
+
 
 def has_ibmq():
     global CHECKED_IBMQ, HAS_IBMQ
     if not CHECKED_IBMQ:
         try:
-            # pylint: disable=no-name-in-module, import-error, unused-import
             from qiskit.providers.ibmq import IBMQFactory
             from qiskit.providers.ibmq.accountprovider import AccountProvider
             HAS_IBMQ = True
@@ -48,7 +49,7 @@ def has_aer():
     global CHECKED_AER, HAS_AER
     if not CHECKED_AER:
         try:
-            from qiskit.providers.aer import AerProvider  # pylint: disable=unused-import
+            from qiskit.providers.aer import AerProvider
             HAS_AER = True
         except Exception as ex:
             HAS_AER = False
