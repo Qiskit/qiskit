@@ -19,7 +19,7 @@ import itertools
 import sys
 import multiprocessing as mp
 from warnings import warn
-
+from collections import OrderedDict
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
@@ -668,11 +668,21 @@ class QuantumCircuit:
         """
         return sum(reg.size for reg in self.qregs + self.cregs)
 
+    @property
+    def n_qubits(self):
+        """
+        Return number of qubits.
+        """
+        qubits = 0
+        for reg in self.qregs:
+            qubits += reg.size
+        return qubits
+
     def count_ops(self):
         """Count each operation kind in the circuit.
 
         Returns:
-            dict: a breakdown of how many operations of each kind.
+            OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops = {}
         for instr, _, _ in self.data:
@@ -680,7 +690,7 @@ class QuantumCircuit:
                 count_ops[instr.name] += 1
             else:
                 count_ops[instr.name] = 1
-        return count_ops
+        return OrderedDict(sorted(count_ops.items(), key=lambda kv: kv[1], reverse=True))
 
     def num_connected_components(self, unitary_only=False):
         """How many non-entangled subcircuits can the circuit be factored to.
