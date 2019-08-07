@@ -25,11 +25,11 @@ to review any open pull requests and provide feedback on it.
 
 ### Good first contributions
 
-If you would like to contribute to the qiskit-terra but aren't sure of where
+If you would like to contribute to the qiskit-terra project, but aren't sure of where
 to get started, the
 [`good first issue`](
 https://github.com/Qiskit/qiskit-terra/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-label in the issues is a good place to start. These are all issues that have
+label highlights items for people new to the project to work on. These are all issues that have
 been reviewed by contributors and tagged as something a new contributor
 should be able to develop a fix for. In other words it shouldn't require
 intimate familiarity with qiskit-terra to develop a fix for the issue.
@@ -44,7 +44,7 @@ that corresponds to it.
 ### Pull requests
 
 We use [GitHub pull requests](
-https://help.github.com/articles/about-pull-requests) to accept the contributions.
+https://help.github.com/articles/about-pull-requests) to accept contributions.
 
 While not required, it is often good practice to open a new issue about
 the bug you're fixing or the feature you're implementing prior to creating
@@ -55,7 +55,7 @@ If you've written some code but need help finishing it, want to get initial
 feedback on it priort to finishing it, or want to share it and discuss prior
 to finishing the implementation you can open a *Work in Progress* pull request.
 When you create the pull request prefix the title with the **\[WIP\]** tag (for
-work in progress). This will indicate to reviewers that the code in the PR
+**W**ork **I**n **P**rogress). This will indicate to reviewers that the code in the PR
 isn't in it's final state and will change. It also means that we will not merge
 the commit until it is finished. You or a reviewer can remove the [WIP] tag when
 the code is ready to be fully reviewed for merging.
@@ -76,7 +76,7 @@ agreement. The [individual CLA] document is available for review as a PDF.
 **Note**:
 > If your contribution is part of your employment or your contribution
 > is the property of your employer, then you will likely need to sign a
-> [corporate CLA] too and email it to us at <qiskit@us.ibm.com>.
+> [corporate CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) too and email it to us at <qiskit@us.ibm.com>.
 
 #### Pull request checklist
 
@@ -109,7 +109,8 @@ When reading an issue, after a number of back & forth comments, it is often
 clear what the root cause problem is. The commit message should have a clear
 statement as to what the original problem is. The bug is merely interesting
 historical background on *how* the problem was identified. It should be
-possible to review a proposed patch for correctness without needing to read the
+possible to review a proposed patch for correctness from the commit message,
+ without needing to read the bug ticket.
 bug ticket.
 
 * Do not assume the code is self-evident/self-documenting.
@@ -133,8 +134,8 @@ and rebase the change to split it up into separate pull requests.
 
 * Ensure sufficient information to decide whether to review.
 
-When Github sends out email alerts for new pull request submissions there is
-minimal information included, principally the commit message and the list of
+When Github sends out email alerts for new pull request submissions, there is
+minimal information included, usually just the commit message and the list of
 files changes. Given the high volume of patches, it is not reasonable to expect
 all reviewers to examine all patches in detail. The commit message must thus
 contain sufficient information to alert the potential reviewers to the fact
@@ -142,16 +143,16 @@ that this is a patch they need to look at.
 
 * The first commit line is the most important.
 
-In Git commits the first line of the commit message has special significance.
+In Git commits, the first line of the commit message has special significance.
 It is used as the default pull request title, email notification subject line,
-git annotate messages, gitk viewer annotations, merge commit messages and many
+git annotate messages, gitk viewer annotations, merge commit messages, and many
 more places where space is at a premium. As well as summarizing the change
 itself, it should take care to detail what part of the code is affected.
 
 * Describe any limitations of the current code.
 
 If the code being changed still has future scope for improvements, or any known
-limitations then mention these in the commit message. This demonstrates to the
+limitations, then mention these in the commit message. This demonstrates to the
 reviewer that the broader picture has been considered and what tradeoffs have
 been done in terms of short term goals vs. long term wishes.
 
@@ -177,12 +178,12 @@ section of the Qiskit documentation.
 
 ### Test
 
-Once you've made a code change it is important to verify that your change
-does not break any exisiting tests or that any new tests that you've added
-also run successfully. Before you open a new pull request for your change
+Once you've made a code change, it is important to verify that your change
+does not break any existing tests and that any new tests that you've added
+also run successfully. Before you open a new pull request for your change,
 you'll want to run the test suite locally.
 
-The easiest way to run the test suite is to use tox. You can install tox
+The easiest way to run the test suite is to use [**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox
 with pip: `pip install -U tox`. Tox provides several advantages, but the
 biggest one is that it builds an isolated virtualenv for running tests. This
 means it does not pollute your system python when running. Additionally, the
@@ -324,7 +325,7 @@ documentation](http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_go
 ### Development Cycle
 
 The development cycle for qiskit-terra is all handled in the open using
-using the project boards in Github for project management and use milestones
+the project boards in Github for project management. We use milestones
 in Github to track work for specific releases. The features or other changes
 that we want to include in a release will be tagged and discussed in Github.
 As we're preparing a new release we'll document what has changed since the
