@@ -205,7 +205,7 @@ the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
 
-If you want to run a single test module, test class, or individual test module
+If you want to run a single test module, test class, or individual test method
 you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
