@@ -69,6 +69,71 @@ class TestTranspileLevels(QiskitTestCase):
 
 
 @ddt
+class TestPassesInspection(QiskitTestCase):
+    """Test run passes under different conditions"""
+
+    def setUp(self):
+        """Sets self.callback to set self.passes with the passes that have been executed"""
+        self.passes = []
+
+        def callback(**kwargs):
+            self.passes.append(kwargs['pass_'].__class__.__name__)
+
+        self.callback = callback
+
+    @data(0, 1, 2, 3)
+    def test_no_coupling_map(self, level):
+        """Without coupling map, no layout selection nor swapper"""
+        qr = QuantumRegister(3, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[2], qr[1])
+        qc.cx(qr[2], qr[0])
+
+        _ = transpile(qc, optimization_level=level, callback=self.callback)
+
+        self.assertNotIn('SetLayout', self.passes)
+        self.assertNotIn('TrivialLayout', self.passes)
+        self.assertNotIn('ApplyLayout', self.passes)
+        self.assertNotIn('StochasticSwap', self.passes)
+        self.assertNotIn('CheckCXDirection', self.passes)
+
+    @data(0, 1, 2, 3)
+    def test_backend(self, level):
+        """With backend a layout and a swapper is run
+        """
+        qr = QuantumRegister(5, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[2], qr[4])
+        backend = FakeMelbourne()
+
+        _ = transpile(qc, backend, optimization_level=level, callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertIn('CheckCXDirection', self.passes)
+
+    @data(0, 1, 2, 3)
+    def test_symmetric_coupling_map(self, level):
+        """Symmetric coupling map does not run CheckCXDirection
+        """
+        qr = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+
+        coupling_map = [[0, 1], [1, 0]]
+
+        _ = transpile(qc,
+                      coupling_map=coupling_map,
+                      initial_layout=[0, 1],
+                      optimization_level=level,
+                      callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertNotIn('CheckCXDirection', self.passes)
+
+
+@ddt
 class TestInitialLayouts(QiskitTestCase):
     """Test transpiing with different layouts"""
 
