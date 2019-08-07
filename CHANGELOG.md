@@ -52,6 +52,10 @@ The format is based on [Keep a Changelog].
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 -   Added a ``random_circuit`` function under ``qiskit.circuit.random``
     (#2553)
+-   Added `equiv` method to `Operator` and `Statevector` classes for
+    testing if two objects are equivalent up to global phase (\#2910)
+-   Added ``output_name`` as a transpiler parameter to set the name of
+    output circuits (\#2745)
 
 ### Changed
 
@@ -84,9 +88,10 @@ The format is based on [Keep a Changelog].
 -   Changed definition of `Cu3Gate` to to equivalent to the canonical
     definition of a controlled `U3Gate` (\#2755)
 -   coupling_map now required to validate a backend.configuration() (\#2836)
+-   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
 
 ### Removed
-
+-   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
 -   The previously deprecated functions
     `qiksit.visualization.plot_state` and
     `qiskit.visualization.iplot_state` have been removed. Instead use
