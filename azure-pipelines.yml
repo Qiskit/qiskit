@@ -140,10 +140,6 @@ stages:
         matrix:
           Python35:
             python.version: '3.5'
-          Python36:
-            python.version: '3.6'
-          Python37:
-            python.version: '3.7'
       steps:
         - task: UsePythonVersion@0
           inputs:
@@ -246,6 +242,10 @@ stages:
             stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
+        - task: PublishTestResults@2
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'temp.png'
         - task: PublishTestResults@2
           condition: succeededOrFailed()
           inputs:
