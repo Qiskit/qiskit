@@ -1,0 +1,46 @@
+---
+upgrade:
+  - |
+    The ``QuantumCircuit.count_ops()`` method now returns an ``OrderedDict``
+    object instead of a ``dict``. This should be compatible for most use cases
+    since ``OrderedDict`` is a ``dict`` subclass. However type checks and
+    other class checks might need to be updated.
+  - |
+    The ``DAGCircuit.width()`` method now returns the total number quantum bits
+    and classical bits. Before it would only return the number of quantum bits.
+    If you require just the number of quantum bits you can use
+    ``DAGCircuit.num_qubits()`` instead.
+  - |
+    The function ``DAGCircuit.num_cbits()`` has been removed. Instead you can
+    use ``DAGCircuit.num_clbits()``.
+  - |
+    Individual quantum bits and classical bits are no longer represented as
+    tuples of registers and indexes. They are now instances of `Qubit` and
+    `Clbit` classes. If you're dealing with individual bits make sure that
+    you update checks to look for these new classes instead of tuples.
+  - |
+    The default PassManager for ``qiskit.compiler.transpile()`` and
+    ``qiskit.execute()`` has been changed to optimization level 1 pass manager
+    defined at ``qiskit.transpile.preset_passmanagers.level1``. The previous
+    default passmanager class
+    ``qiskit.transpiler.preset_pass_managers.default.default_pass_manager`` has
+    been removed.
+  - |
+    The ``LegacySwap`` pass has been removed. If you were using it in a custom
+    pass manager, it's usage can be replaced by the ``StochasticSwap`` pass,
+    which is a faster more stable version. All the preset passmanagers have
+    been updated to use ``StochasticSwap`` pass instead of the ``LegacySwap``.
+fixes:
+  - |
+    The definition of the ``CU3Gate`` has been changed to be equivalent to the
+    canonical definition of a controlled ``U3Gate``.
+other:
+  - |
+    All the circuit drawer backends now willl express gate parameters in a
+    circuit as common fractions of pi in the output visualization. If the value
+    of a parameter can be expressed as a fraction of pi that will be used
+    instead of the numeric equivalent.
+  - |
+    When using ``qiskit.assembler.assemble_schedules()`` if you do not provide
+    the number of memory_slots to use the number will be infered based on the
+    number of acquisitions in the input schedules.
