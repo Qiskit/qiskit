@@ -181,16 +181,22 @@ class MatplotlibDrawer:
             wid = WID * 2.8 * boxes_length
         else:
             wid = WID
+
         if fc:
             _fc = fc
         else:
-            _fc = self._style.gc
+            if self._style.name != 'bw':
+                _fc = self._style.dispcol['multi']
+                _ec = self._style.dispcol['multi']
+            else:
+                _fc = self._style.gc
+
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
             width=wid, height=height,
-            fc=self._style.dispcol['multi'],
+            fc=_fc,
             ec=self._style.dispcol['multi'],
             linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
