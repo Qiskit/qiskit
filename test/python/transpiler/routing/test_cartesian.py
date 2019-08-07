@@ -29,22 +29,22 @@
 """Test cases for the permutation.cartesian package"""
 
 import random
-from typing import List, TypeVar, Iterator, Callable, Iterable, Mapping, Collection
+from typing import List, TypeVar, Callable, Iterable, Mapping, Collection
 
 import networkx as nx
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util, Swap, Permutation, path, fast_path, complete
-from qiskit.transpiler.routing.cartesian import permute_grid, permute_cartesian_partial
+from qiskit.transpiler.routing.cartesian import permute_grid, permute_cartesian_partial, permute_grid_partial
 from test.python.transpiler.routing.util import valid_parallel_swaps, valid_edge_swaps
 
 _V = TypeVar('_V')
 PARTIAL_ROUTER = Callable[[Mapping[int, int]], Iterable[List[Swap[int]]]]
 
 
-def square(permutation: Permutation[int]) -> Iterator[List[Swap[int]]]:
+def square(permutation: Mapping[int,int]) -> List[List[Swap[int]]]:
     """used to as input function to make a cartesian product with a 2 by 2 grid"""
-    return permute_grid(permutation, 2)
+    return permute_grid_partial(permutation, 2, 2)
 
 
 def construct_partial_complete(nodes: Collection[_V]) -> Callable[[Mapping[_V,_V]], Iterable[List[Swap[_V]]]]:
