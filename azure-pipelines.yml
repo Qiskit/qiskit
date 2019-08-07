@@ -79,7 +79,7 @@ stages:
             set -e
             pip install -U junitxml
             mkdir -p junit
-            stestr last --subunit | subunit2junitxml -o junit/test-results.xml
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -122,7 +122,7 @@ stages:
             set -e
             pip install -U junitxml
             mkdir -p junit
-            stestr last --subunit | subunit2junitxml -o junit/test-results.xml
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -160,8 +160,19 @@ stages:
         - bash: |
             set -e
             stestr run
-            stestr last --subunit > test_results.subunit
           displayName: 'Run tests'
+        - bash: |
+            set -e
+            pip install -U junitxml
+            mkdir -p junit
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+          condition: succeededOrFailed()
+          displayName: 'Generate results'
+        - task: PublishTestResults@2
+          condition: succeededOrFailed()
+          inputs:
+            testResultsFiles: '**/test-*.xml'
+            testRunTitle: 'Publish test results for Python $(python.version)'
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
@@ -192,7 +203,7 @@ stages:
             set -e
             pip install -U junitxml
             mkdir -p junit
-            stestr last --subunit | subunit2junitxml -o junit/test-results.xml
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -232,7 +243,7 @@ stages:
             set -e
             pip install -U junitxml
             mkdir -p junit
-            stestr last --subunit | subunit2junitxml -o junit/test-results.xml
+            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
