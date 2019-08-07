@@ -58,7 +58,7 @@ When you create the pull request prefix the title with the **\[WIP\]** tag (for
 work in progress). This will indicate to reviewers that the code in the PR
 isn't in it's final state and will change. It also means that we will not merge
 the commit until it is finished. You or a reviewer can remove the [WIP] tag when
-the code is ready to fully reviewed for merging.
+the code is ready to be fully reviewed for merging.
 
 ### Contributor License Agreement
 
@@ -91,6 +91,8 @@ please ensure that:
    *docstring* accordingly.
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
+4. Ensure that if your change has an end user facing impact (new feature,
+   deprecation, etc) that you have updated the CHANGELOG.md.
 
 #### Commit messages
 
