@@ -58,7 +58,8 @@ class TestGateMap(QiskitVisualizationTestCase):
             fig = plot_circuit_layout(circuit, backend)
             fig.savefig(filename, bbox_inches="tight")
             self.assertImagesAreEqual(filename, img_ref, 0.1)
-            os.remove(filename)
+            break
+            # os.remove(filename)
 
 
 class TestGraphDist(QiskitTestCase):
