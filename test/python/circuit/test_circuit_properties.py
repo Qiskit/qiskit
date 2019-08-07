@@ -16,9 +16,9 @@
 
 """Test Qiskit's inverse gate operation."""
 
+from collections import OrderedDict
 import unittest
 import numpy as np
-from collections import OrderedDict
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 # pylint: disable=unused-import
@@ -480,10 +480,9 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_unitary_factors2(self):
         """Test unitary factors multi qregs
         """
-        size = 4
-        q1 = QuantumRegister(size//2, 'q1')
-        q2 = QuantumRegister(size//2, 'q2')
-        c = ClassicalRegister(size, 'c')
+        q1 = QuantumRegister(2, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        c = ClassicalRegister(4, 'c')
         qc = QuantumCircuit(q1, q2, c)
         self.assertEqual(qc.num_unitary_factors(), 4)
 
