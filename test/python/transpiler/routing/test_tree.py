@@ -28,18 +28,18 @@
 
 """Test cases for permutation.tree package"""
 
-from unittest import TestCase
 from typing import TypeVar, Dict
 
 import networkx as nx
 from numpy import random
 
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import tree, util, Permutation
 
 _V = TypeVar('_V')
 
 
-class TestPermutationTree(TestCase):
+class TestPermutationTree(QiskitTestCase):
     """The test cases"""
 
     def test_permute_tree_tiny(self) -> None:

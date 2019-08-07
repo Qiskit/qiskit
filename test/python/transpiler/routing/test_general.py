@@ -29,16 +29,16 @@
 """Test cases for the permutation.complete package"""
 
 import itertools
-from unittest import TestCase
 
 import networkx as nx
 from numpy import random
 
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util
 from qiskit.transpiler.routing.general import ApproximateTokenSwapper
 
 
-class TestGeneral(TestCase):
+class TestGeneral(QiskitTestCase):
     """The test cases"""
     def setUp(self) -> None:
         """Set up test cases."""

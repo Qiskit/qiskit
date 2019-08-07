@@ -29,23 +29,23 @@
 """Test cases for the permutation.complete package"""
 
 from typing import List
-from unittest import TestCase
 
 from numpy import random
 
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util, Swap
 from qiskit.transpiler.routing.complete import permute, partial_permute
-from test.python.transpiler.routing.test_util import TestUtil  # pylint: disable=wrong-import-order
+from test.python.transpiler.routing.util import valid_parallel_swaps
 
 
-class TestComplete(TestCase):
+class TestComplete(QiskitTestCase):
     """The test cases"""
 
     def test_permute_empty(self) -> None:
         """Test if an empty permutation is not permuted."""
         out: List[List[Swap]] = list(permute({}))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertListEqual([], out)
 
     def test_permute_complete_4(self) -> None:
@@ -56,7 +56,7 @@ class TestComplete(TestCase):
         permutation = {0: 0, 1: 3, 2: 1, 3: 2}
 
         out = list(permute(permutation))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertCountEqual([[(1, 3)], [(2, 1)]], out)
 
     def test_permute_complete_5(self) -> None:
@@ -67,7 +67,7 @@ class TestComplete(TestCase):
         permutation = {0: 0, 1: 4, 2: 2, 3: 1, 4: 3}
 
         out = list(permute(permutation))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertEqual([[(1, 4)], [(3, 1)]], out)
 
     def test_permute_complete_5_2(self) -> None:
@@ -78,7 +78,7 @@ class TestComplete(TestCase):
         permutation = {0: 2, 1: 1, 2: 0, 3: 3, 4: 4}
 
         out = list(permute(permutation))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertEqual([[(0, 2)]], out)
 
     def test_permute_complete_4_2(self) -> None:
@@ -89,7 +89,7 @@ class TestComplete(TestCase):
         permutation = {3: 9, 9: 6, 6: 0, 0: 3}
 
         out = list(permute(permutation))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertEqual([[(6, 0), (9, 3)], [(6, 3)]], out)
 
     def test_permute_complete_indexing(self) -> None:
@@ -97,7 +97,7 @@ class TestComplete(TestCase):
         permutation = {2: 4, 4: 6, 6: 2}
         out = list(permute(permutation))
         self.assertEqual(len(out), 2)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         util.swap_permutation(out, permutation)
         identity_dict = {k: k for k in permutation}
         self.assertEqual(identity_dict, permutation)
@@ -109,7 +109,7 @@ class TestComplete(TestCase):
         permutation = {i: rand_permutation[i] for i in items}
 
         out = list(permute(permutation))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         util.swap_permutation(out, permutation)
         identity_dict = {i: i for i in items}
         self.assertEqual(identity_dict, permutation)
@@ -123,6 +123,6 @@ class TestComplete(TestCase):
         mapping = {k: v for k, v in pairs[0:items // 4]}
 
         out = list(partial_permute(mapping, list(range(items))))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)

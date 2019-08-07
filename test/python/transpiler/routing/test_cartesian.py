@@ -30,13 +30,13 @@
 
 import random
 from typing import List, TypeVar, Iterator, Callable, Iterable, Mapping, Collection
-from unittest import TestCase
 
 import networkx as nx
 
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util, Swap, Permutation, path, fast_path, complete
 from qiskit.transpiler.routing.cartesian import permute_grid, permute_cartesian_partial
-from test.python.transpiler.routing.test_util import TestUtil
+from test.python.transpiler.routing.util import valid_parallel_swaps, valid_edge_swaps
 
 _V = TypeVar('_V')
 PARTIAL_ROUTER = Callable[[Mapping[int, int]], Iterable[List[Swap[int]]]]
@@ -52,7 +52,7 @@ def construct_partial_complete(nodes: Collection[_V]) -> Callable[[Mapping[_V,_V
     return lambda p: complete.partial_permute(p, nodes)
 
 
-class TestCartesian(TestCase):
+class TestCartesian(QiskitTestCase):
     """The test cases"""
 
     def cartesian_generic_test(self, g: nx.Graph, permutation: Permutation, height: int,
@@ -66,8 +66,8 @@ class TestCartesian(TestCase):
         out = list(permute_cartesian_partial(permutation, width, height, permute_x, permute_y))
 
         self.assertEqual(len(out) <= height + height + width, True)
-        TestUtil.valid_parallel_swaps(self, out)
-        TestUtil.valid_edge_swaps(self, out, g)
+        valid_parallel_swaps(self, out)
+        valid_edge_swaps(self, out, g)
 
         util.swap_permutation(out, permutation)
         identity_dict = {i: i for i in range(size)}
@@ -90,14 +90,14 @@ class TestCartesian(TestCase):
         """Test if an empty permutation is not permuted."""
         out = list(permute_grid({}, 0))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertListEqual([], out)
 
     def test_grid_small1(self) -> None:
         """Test a permutation o a small grid"""
         out = list(permute_grid({0: 2, 1: 1, 2: 3, 3: 0}, 2))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertListEqual([[(2, 3)], [(0, 2)]], out)
 
     def test_grid_arbitrary(self) -> None:
@@ -117,7 +117,7 @@ class TestCartesian(TestCase):
         """Test if an empty permutation is not permuted."""
         out = list(permute_cartesian_partial({}, 0, 0, path.permute_path_partial, path.permute_path_partial))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertListEqual([], out)
 
     def test_cartesian_path_path(self) -> None:
@@ -219,7 +219,7 @@ class TestCartesian(TestCase):
         out = list(permute_cartesian_partial(mapping, 2, 2, path_permuter, path_permuter))
 
         self.assertEqual(2, len(out))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         identity_dict = {i: i for i in mapping}
         self.assertEqual(identity_dict, mapping)
@@ -231,7 +231,7 @@ class TestCartesian(TestCase):
         permute_y = lambda m: path.permute_path_partial(m, length=3)
         out = list(permute_cartesian_partial(mapping, 2, 3, permute_x, permute_y))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertListEqual([[(3, 2)]], out)
 
     def test_grid_small3_partial(self) -> None:
@@ -240,7 +240,7 @@ class TestCartesian(TestCase):
         permute_y = lambda m: path.permute_path_partial(m, length=2)
         out = list(permute_cartesian_partial(mapping, 3, 2, permute_x, permute_y))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
 
     def test_grid_perfect_matching(self) -> None:
         """Test a case where perfect matching was not found."""
@@ -248,7 +248,7 @@ class TestCartesian(TestCase):
         path_permuter = lambda m: path.permute_path_partial(m, length=4)
         out = list(permute_cartesian_partial(mapping, 2, 4, path_permuter, path_permuter))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         identity_dict = {i: i for i in mapping}
         self.assertEqual(identity_dict, mapping)
@@ -267,7 +267,7 @@ class TestCartesian(TestCase):
         permute_y = lambda m: fast_path.permute_path_partial(m, length=height)
 
         out = list(permute_cartesian_partial(partial_mapping, width, height, permute_x, permute_y))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         util.swap_permutation(out, partial_mapping, allow_missing_keys=True)
         identity_dict = {i: i for i in partial_mapping}
         self.assertEqual(identity_dict, partial_mapping)

@@ -30,14 +30,14 @@
 
 import unittest
 from typing import List
-from unittest import TestCase
 
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import Swap, util
 from qiskit.transpiler.routing.modular import permute, _distinct_permutation, _in_module
-from test.python.transpiler.routing.test_util import TestUtil  # pylint: disable=wrong-import-order
+from test.python.transpiler.routing.util import valid_parallel_swaps
 
 
-class TestPermuteModular(TestCase):
+class TestPermuteModular(QiskitTestCase):
     """The test cases"""
 
     def test_modular_small(self) -> None:
@@ -46,7 +46,7 @@ class TestPermuteModular(TestCase):
         permutation = {0: 2, 1: 1, 2: 3, 3: 0}
 
         out = permute(permutation, modulesize=2, modules=2)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         util.swap_permutation(out, permutation)
         self.assertEqual({i:i for i in permutation}, permutation)
 
@@ -59,7 +59,7 @@ class TestPermuteModular(TestCase):
         permutation = {2: 6, 4: 2, 6: 8, 8: 2}
 
         out = permute(permutation, modulesize=2, modules=2)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertCountEqual([[(2, 3)], [(0, 2)]], out)
 
     def test_modular_small_intraswaps(self) -> None:
@@ -68,7 +68,7 @@ class TestPermuteModular(TestCase):
         permutation = {0: 0, 1: 3, 2: 2, 3: 1}
 
         out = permute(permutation, modulesize=2, modules=2)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertEqual([[(1, 0), (3, 2)], [(0, 2)], [(0, 1), (2, 3)]], out)
 
     def test_modular_medium(self) -> None:
@@ -76,7 +76,7 @@ class TestPermuteModular(TestCase):
         mapping = {0: 11, 1: 14, 2: 2, 3: 4, 4: 6, 5: 3, 6: 5, 7: 12, 8: 13,
                    9: 9, 10: 8, 11: 10, 12: 1, 13: 7, 14: 0}
         out = permute(mapping, modulesize=3, modules=5)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -89,7 +89,7 @@ class TestPermuteModular(TestCase):
                                                       nr_elements=modules*modulesize)
 
         out = permute(permutation, modulesize=modulesize, modules=modules)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=modulesize)
         util.swap_permutation(out, permutation)
 
@@ -99,7 +99,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {0: 8, 7: 3}
         out = permute(mapping, modulesize=3, modules=3)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -108,7 +108,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {0: 3, 1: 8, 2: 0}
         out = permute(mapping, modulesize=3, modules=3)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -117,7 +117,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {3: 2, 0: 6, 8: 3, 6: 0, 7: 4, 5: 1, 4: 8}
         out = permute(mapping, modulesize=3, modules=3)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -126,7 +126,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {0: 6, 1: 8}
         out = permute(mapping, modulesize=3, modules=3)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -135,7 +135,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {1: 6, 0: 3, 4: 2, 2: 0, 3: 7, 6: 5}
         out = permute(mapping, modulesize=3, modules=3)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -144,7 +144,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {0: 6, 2: 3, 11: 2, 1: 7, 9: 8, 10: 4}
         out = permute(mapping, modulesize=3, modules=4)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -153,7 +153,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {0: 3, 1:4, 2: 6, 6:0, 7:5, 8:8}
         out = permute(mapping, modulesize=3, modules=3)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -162,7 +162,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {3: 9, 6: 7, 5: 6, 8: 8, 9: 4, 0: 5}
         out = permute(mapping, modulesize=3, modules=4)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -171,7 +171,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {5: 5, 10: 11, 3: 4, 4: 6, 9: 9, 11: 8, 8: 10}
         out = permute(mapping, modulesize=3, modules=5)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -180,7 +180,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {0:0, 1:2, 4:4, 5:3}
         out = permute(mapping, modulesize=2, modules=3)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=2)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -189,7 +189,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {1: 1, 2: 0}
         out = permute(mapping, modulesize=2, modules=2)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=2)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -198,7 +198,7 @@ class TestPermuteModular(TestCase):
         """For a specific partial mapping test the modular permuter"""
         mapping = {5: 3, 0: 0, 1: 4, 4: 5}
         out = permute(mapping, modulesize=3, modules=2)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         self.assertEqual({i: i for i in mapping}, mapping)
@@ -211,7 +211,7 @@ class TestPermuteModular(TestCase):
         partial_perm = util.random_partial_permutation(list(range(modules * modulesize)))
 
         out = permute(partial_perm, modulesize=modulesize, modules=modules)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=modulesize)
         util.swap_permutation(out, partial_perm, allow_missing_keys=True)
         self.assertEqual({i: i for i in partial_perm}, partial_perm)
@@ -223,7 +223,7 @@ class TestPermuteModular(TestCase):
         partial_perm = util.random_partial_permutation(list(range(modules * modulesize)))
 
         out = permute(partial_perm, modulesize=modulesize, modules=modules)
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=modulesize)
         util.swap_permutation(out, partial_perm, allow_missing_keys=True)
         self.assertEqual({i: i for i in partial_perm}, partial_perm)

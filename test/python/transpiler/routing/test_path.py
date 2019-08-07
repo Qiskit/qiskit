@@ -29,57 +29,59 @@
 
 """Test cases for the permutation.path package"""
 
-from unittest import TestCase
 import random
-from test.python.transpiler.routing.test_util import TestUtil
+
 import networkx as nx
 import numpy as np
+
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util
 from qiskit.transpiler.routing.path import permute_path, permute_path_partial
+from test.python.transpiler.routing.util import valid_parallel_swaps, valid_edge_swaps
 
 
-class TestPath(TestCase):
+class TestPath(QiskitTestCase):
     """The test cases"""
 
     def test_path_empty(self) -> None:
         """Test if an empty permutation is not permuted."""
         out = list(permute_path({}))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertListEqual([], out)
 
     def test_path_one_single(self) -> None:
         """Test a permutation of 1 element"""
         out = list(permute_path({0: 1, 1: 0}))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertListEqual([[(1, 0)]], out)
 
     def test_path_two_single(self) -> None:
         """Test a permutation of 2 elements sequentially"""
         out = list(permute_path({0: 1, 1: 0, 2: 3, 3: 2}))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         valid_graph = nx.Graph()
         valid_graph.add_edges_from([(1, 0), (3, 2), (2, 1)])
-        TestUtil.valid_edge_swaps(self, out, valid_graph)
+        valid_edge_swaps(self, out, valid_graph)
         self.assertListEqual([[(1, 0), (3, 2)]], out)
 
     def test_path_two_parallel(self) -> None:
         """Test a permutation of 2 elements parallel"""
         out = list(permute_path({0: 3, 1: 2, 2: 1, 3: 0}))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         valid_graph = nx.Graph()
         valid_graph.add_edges_from([(1, 0), (3, 2), (2, 1)])
-        TestUtil.valid_edge_swaps(self, out, valid_graph)
+        valid_edge_swaps(self, out, valid_graph)
         self.assertListEqual([[(2, 1)], [(1, 0), (3, 2)], [(2, 1)], [(1, 0), (3, 2)]], out)
 
     def test_path_arbitrary(self) -> None:
         """Test a permutation of arbitrary permutation"""
         out = list(permute_path({0: 3, 1: 0, 2: 4, 3: 2, 4: 1}))
 
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
         self.assertListEqual([[(4, 3)], [(1, 0), (3, 2)], [(2, 1), (4, 3)], [(3, 2)]], out)
 
     def test_path_random(self) -> None:
@@ -90,7 +92,7 @@ class TestPath(TestCase):
 
         out = list(permute_path(permutation))
         self.assertGreaterEqual(size, len(out))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
 
         util.swap_permutation(out, permutation)
         identity_dict = {i: i for i in range(size)}
@@ -102,7 +104,7 @@ class TestPath(TestCase):
 
         out = list(permute_path_partial(mapping))
         self.assertEqual(12, len(out))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
 
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         identity_dict = {i: i for i in mapping}
@@ -114,7 +116,7 @@ class TestPath(TestCase):
 
         out = list(permute_path_partial(mapping))
         self.assertGreater(4, len(out))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
 
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         identity_dict = {i: i for i in mapping}
@@ -126,7 +128,7 @@ class TestPath(TestCase):
 
         out = list(permute_path_partial(mapping))
         self.assertGreaterEqual(5, len(out))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
 
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         identity_dict = {i: i for i in mapping}
@@ -138,7 +140,7 @@ class TestPath(TestCase):
 
         out = list(permute_path_partial(mapping))
         # self.assertGreaterEqual(7, len(out))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
 
         util.swap_permutation(out, mapping, allow_missing_keys=True)
         identity_dict = {i: i for i in mapping}
@@ -153,7 +155,7 @@ class TestPath(TestCase):
 
         out = list(permute_path_partial(partial_permutation, length))
         self.assertGreaterEqual(length, len(out))
-        TestUtil.valid_parallel_swaps(self, out)
+        valid_parallel_swaps(self, out)
 
         util.swap_permutation(out, partial_permutation, allow_missing_keys=True)
         identity_dict = {i: i for i in partial_permutation}

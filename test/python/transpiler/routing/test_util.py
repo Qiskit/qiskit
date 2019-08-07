@@ -28,20 +28,14 @@
 
 """Test cases for the permutation.util package"""
 
-from typing import List, Set, TypeVar
-from unittest import TestCase
-
-import networkx as nx
 from numpy import random
-from qiskit.extensions import SwapGate
 
-from qiskit.transpiler.routing import Swap
+from qiskit.extensions import SwapGate
+from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing.util import cycles, flatten_swaps, circuit
 
-_V = TypeVar('_V')
 
-
-class TestUtil(TestCase):
+class TestUtil(QiskitTestCase):
     """The test cases"""
 
     def test_cycles_simple(self) -> None:
@@ -89,15 +83,6 @@ class TestUtil(TestCase):
         flattened = list(flatten_swaps(swaps))
         self.assertListEqual([[(0, 1), (5, 6)], [(1, 2)]], flattened)
 
-    @staticmethod
-    def valid_parallel_swaps(tester: TestCase, swaps: List[List[Swap[_V]]]) -> None:
-        """
-        Tests if the given sequence of swaps does not perform multiple swaps
-        on the same node at the same time.
-        """
-        for step in swaps:
-            used = {sw1 for sw1, _ in step} | {sw2 for _, sw2 in step}
-            tester.assertEqual(len(used), 2*len(step))
 
     def test_circuit_simple(self) -> None:
         """Check the circuit function for a simple circuit."""
@@ -118,11 +103,3 @@ class TestUtil(TestCase):
         flattened_swaps = {swap for swap_step in swaps for swap in swap_step}
         self.assertEqual(flattened_swaps, qargs)
 
-    @staticmethod
-    def valid_edge_swaps(tester: TestCase, swaps: List[List[Swap[_V]]],
-                         valid_graph: nx.Graph) -> None:
-        """Check if the swap is in the edge list."""
-
-        for i in swaps:
-            for j in i:
-                tester.assertTrue(valid_graph.has_edge(*j), 'edge ' + str(j) +' is not valid')
