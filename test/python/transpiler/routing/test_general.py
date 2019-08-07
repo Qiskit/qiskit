@@ -48,7 +48,7 @@ class TestGeneral(QiskitTestCase):
         """Test a simple permutation on a path graph of size 4."""
         graph = nx.path_graph(4)
         permutation = {0: 0, 1: 3, 3: 1, 2: 2}
-        swapper: ApproximateTokenSwapper[int] = ApproximateTokenSwapper(graph)
+        swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
         out = list(swapper.map(permutation))
         self.assertEqual(3, len(out))
@@ -59,7 +59,7 @@ class TestGeneral(QiskitTestCase):
         """Test an inverting permutation on a small path graph of size 8"""
         graph = nx.path_graph(8)
         permutation = {i: 7 - i for i in range(8)}
-        swapper : ApproximateTokenSwapper[int]= ApproximateTokenSwapper(graph)
+        swapper = ApproximateTokenSwapper(graph) # type: ApproximateTokenSwapper[int]
 
         out = list(swapper.map(permutation))
         util.swap_permutation([out], permutation)
@@ -71,7 +71,7 @@ class TestGeneral(QiskitTestCase):
         graph.add_edges_from([(0, 1), (0, 2), (0, 3), (0, 4),
                               (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3, 6)])
         permutation = {0: 4, 1: 0, 2: 3, 3: 6, 4: 2, 6: 1}
-        swapper: ApproximateTokenSwapper[int] = ApproximateTokenSwapper(graph)
+        swapper = ApproximateTokenSwapper(graph) # type: ApproximateTokenSwapper[int]
 
         out = list(swapper.map(permutation))
         util.swap_permutation([out], permutation)
@@ -81,7 +81,7 @@ class TestGeneral(QiskitTestCase):
         """Test a partial mapping on a small graph."""
         graph = nx.path_graph(4)
         mapping = {0: 3}
-        swapper : ApproximateTokenSwapper[int]= ApproximateTokenSwapper(graph)
+        swapper = ApproximateTokenSwapper(graph) # type: ApproximateTokenSwapper[int]
         out = list(swapper.map(mapping))
         self.assertEqual(3, len(out))
         util.swap_permutation([out], mapping, allow_missing_keys=True)
@@ -91,7 +91,7 @@ class TestGeneral(QiskitTestCase):
         """Test an partial inverting permutation on a small path graph of size 5"""
         graph = nx.path_graph(4)
         permutation = {i: 3 - i for i in range(2)}
-        swapper: ApproximateTokenSwapper[int] = ApproximateTokenSwapper(graph)
+        swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
         out = list(swapper.map(permutation))
         self.assertEqual(5, len(out))
@@ -107,7 +107,7 @@ class TestGeneral(QiskitTestCase):
         # Make sure the graph is connected by adding C_n
         nodes = list(graph.nodes)
         graph.add_edges_from((node, nodes[(i + 1) % len(nodes)]) for i, node in enumerate(nodes))
-        swapper: ApproximateTokenSwapper[int] = ApproximateTokenSwapper(graph)
+        swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
         # Generate a randomized permutation.
         rand_perm = random.permutation(graph.nodes())

@@ -47,7 +47,7 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
     :return:
     """
     mapping = dict(mapping)
-    already_mapped: Dict[int, int] = {}
+    already_mapped = {}  # type: Dict[int, int]
 
     in_module = lambda i: _in_module(i, modulesize)
 
@@ -73,8 +73,8 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
         """Checks if a given permutation operates only within a module."""
         return all(in_module(k) == in_module(mp[k]) for k in mp)
 
-    all_swaps: List[List[Swap[int]]] = []
-    iterations: int = 0
+    all_swaps = []  # type: List[List[Swap[int]]]
+    iterations = 0
     while (not is_local_permutation(mapping)) and iterations < max_degree:
         inter_module_nodes = _distinct_permutation(mapping, set(already_mapped.keys()),
                                                    modulesize, modules)
@@ -132,7 +132,7 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
         for i in range(modules)
         ]
     # And perform a local complete graph permutations.
-    all_intra_swaps: List[List[List[Swap[int]]]] = []
+    all_intra_swaps = []  # type: List[List[List[Swap[int]]]]
     for module, intra_module_permutation in enumerate(intra_module_permutations):
         all_intra_swaps.append(list(
             complete.partial_permute(intra_module_permutation,

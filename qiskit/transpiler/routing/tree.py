@@ -51,8 +51,8 @@ class Pebble(Generic[_V]):
 
     def __init__(self, destination: _V) -> None:
         self.destination = destination
-        self._cached_tree: Optional['Tree'] = None
-        self._cached_purity: bool = False
+        self._cached_tree = None  # type: Optional['Tree']
+        self._cached_purity = False
 
     def is_proper(self, current_tree: 'Tree') -> bool:
         """Decide if the node's destination is inside the tree.
@@ -103,9 +103,9 @@ class Tree(Generic[_V]):
         :param root: The root node of this tree.
         :param graph: A directed graph representing parent-to-children relations.
         :param pebbles: The pebbles located on this tree."""
-        self.root: _V = root
-        self.graph: nx.DiGraph = graph
-        self.pebbles: Dict[_V, Pebble[_V]] = pebbles
+        self.root = root
+        self.graph = graph
+        self.pebbles = pebbles
         self._has_changed = True
 
     def is_pure(self) -> bool:
@@ -148,8 +148,8 @@ class Tree(Generic[_V]):
         :param root: The root of the complete graph. Note: Not necessarily the root of tree!"""
 
         # Make sets containing even and odd nodes
-        even_nodes: Set[_V] = {self.root}
-        odd_nodes: Set[_V] = set()
+        even_nodes = {self.root}  # type: Set[_V]
+        odd_nodes = set()  # type: Set[_V]
         for current, successors in nx.bfs_successors(self.graph, self.root):
             if current in odd_nodes:
                 # All the following nodes to an odd node are even.
@@ -211,7 +211,7 @@ def permute(graph: nx.Graph,
 
     SEE: Algorithm by Louxin Zhang: https://doi.org/10.1137/S0895480197323159
     """
-    root: _V = centroid(graph)
+    root = centroid(graph)  # type: _V
     tree_graph = nx.dfs_tree(graph, root)
     return permute_tree(Tree(root, tree_graph, {}), perm)
 
@@ -242,7 +242,7 @@ def permute_tree(tree: Tree, perm: Permutation[_V]) -> Iterator[List[Swap[_V]]]:
     # Phase 1: Move improper pebbles up to the subtree roots
     ###
     tree_movers = {t: t.move_improper() for t in partitioning}
-    all_swaps: List[List[Swap[_V]]] = []
+    all_swaps = []  # type: List[List[Swap[_V]]]
     phase1_length = max(sum(1 for pebble in i.pebbles.values() if pebble.is_proper(i))
                         for i in partitioning)
     for i in range(phase1_length):
@@ -264,7 +264,7 @@ def permute_tree(tree: Tree, perm: Permutation[_V]) -> Iterator[List[Swap[_V]]]:
     # But continue moving improper pebbles up the tree in parallel.
     ###
     while any(not tree.is_pure() for tree in partitioning):
-        target_tree: Optional[Tree]
+        target_tree = None  # type: Optional[Tree]
         root_pebble = root_tree.pebbles[root_tree.root]
         if isinstance(root_pebble, RootPebble) or root_pebble.is_proper(root_tree):
             # The root node must be proper for the root tree to be pure and it is cheaper to check.
@@ -300,8 +300,8 @@ def permute_tree(tree: Tree, perm: Permutation[_V]) -> Iterator[List[Swap[_V]]]:
         # Note this will be exactly one time step.
         move_up_swaps = [(subtree, next(mover))
                          for subtree, mover in tree_movers.items()]
-        time_step: List[Tuple[Tree, List[Swap[_V]]]]
-        root_swap: Optional[Swap[_V]]
+        time_step = []  # type: List[Tuple[Tree, List[Swap[_V]]]]
+        root_swap = None  # type: Optional[Swap[_V]]
         if target_tree is not None:
             # Remove any swaps interfering with the root swap because it is occupied
             time_step = [(subtree, [swap for swap in swaps
@@ -345,7 +345,7 @@ def partition(tree: Tree,
     :param root: An optional root node to use as a centroid for the partitioning.
     :return: A tuple containing the first s trees and the special s+1'th tree,
     which contains the centroid node of the input graph."""
-    subtrees: List[Tree] = []
+    subtrees = [] # type: List[Tree]
     for adj_root in tree.graph.adj[tree.root]:
         # Create a subgraph consisting of the nodes reachable from adj_root.
         subtree = tree.graph.subgraph(nx.dfs_preorder_nodes(tree.graph, adj_root))
@@ -367,19 +367,18 @@ def partition(tree: Tree,
                               for node in subtree.graph.nodes}
     tr_tree = tree.graph.subgraph(tr_nodes)
     # We now have partitioning = {T_1, T_2, ... , T_s, T_r} where |T_i| ≤ |T_{i+1}| for 1≤i≤s-1.
-    root_tree: Tree = Tree(root=tree.root, graph=tr_tree,
+    root_tree = Tree(root=tree.root, graph=tr_tree,
                            pebbles={i: p for i, p in pebbles.items() if i in tr_nodes})
     return subtrees[0:root_subtrees + 1], root_tree
 
 
 def centroid(tree: nx.Graph) -> _V:
     """Find the centroid of a tree graph."""
-    subtree_sizes: Dict[_V, int] = dict()
+    subtree_sizes = dict()  # type: Dict[_V, int]
     current_centroid, *_ = tree.nodes
 
     # Compute sizes of subtrees.
-    visited: Set[_V] = {current_centroid}
-
+    visited = {current_centroid}  # type: Set[_V]
     def compute_subtree_size(root: _V) -> int:
         """Recursively add size of subtree rooted at root to subtree_sizes and return its size."""
         visited.add(root)

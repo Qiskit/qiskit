@@ -43,7 +43,7 @@ class TestComplete(QiskitTestCase):
 
     def test_permute_empty(self) -> None:
         """Test if an empty permutation is not permuted."""
-        out: List[List[Swap]] = list(permute({}))
+        out = list(permute({}))  # type: List[List[Swap]]
 
         valid_parallel_swaps(self, out)
         self.assertListEqual([], out)

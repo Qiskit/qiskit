@@ -28,18 +28,19 @@
 
 """Implementations for permuting on a complete graph."""
 
-from typing import List, TypeVar, Mapping, Iterable, Collection
+from typing import List, TypeVar, Mapping, Iterable
 
 from qiskit.transpiler.routing import Permutation, Swap, util
 
 _V = TypeVar('_V')
 
 
-def partial_permute(mapping: Mapping[_V, _V], nodes: Collection[_V]) -> Iterable[List[Swap[_V]]]:
+def partial_permute(mapping: Mapping[_V, _V], nodes: List[_V]) -> Iterable[List[Swap[_V]]]:
     """List swaps that implement a partial permutation on a complete graph.
 
     :param mapping: A list of destination nodes
-    :param nodes: A list of all nodes. We need this so we can complete the mapping.
+    :param nodes: A collection of all nodes. We need this so we can complete the mapping.
+        The right type here is Collection[_V] but that was introduced only in python 3.6.
     :return: A list describing which matchings to swap at each step.
     """
     if not mapping:
@@ -77,7 +78,7 @@ def permute(permutation: Permutation[_V]) -> Iterable[List[Swap[_V]]]:
     """
     cyclic_perms = util.cycles(permutation)
 
-    swaps: List[List[List[Swap[_V]]]] = []
+    swaps = []  # type: List[List[List[Swap[_V]]]]
     for cycle in cyclic_perms:
         if len(cycle) <= 1:
             continue

@@ -29,7 +29,7 @@
 """Test cases for the permutation.cartesian package"""
 
 import random
-from typing import List, TypeVar, Callable, Iterable, Mapping, Collection
+from typing import List, TypeVar, Callable, Iterable, Mapping
 
 import networkx as nx
 
@@ -47,7 +47,7 @@ def square(permutation: Mapping[int,int]) -> List[List[Swap[int]]]:
     return permute_grid_partial(permutation, 2, 2)
 
 
-def construct_partial_complete(nodes: Collection[_V]) -> Callable[[Mapping[_V,_V]], Iterable[List[Swap[_V]]]]:
+def construct_partial_complete(nodes: List[_V]) -> Callable[[Mapping[_V,_V]], Iterable[List[Swap[_V]]]]:
     """Set up a partial permuter on the complete graph."""
     return lambda p: complete.partial_permute(p, nodes)
 

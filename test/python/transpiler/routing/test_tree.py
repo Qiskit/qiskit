@@ -207,7 +207,7 @@ class TestPermutationTree(QiskitTestCase):
             (3, 6)
             ])
 
-        centroid: int = tree.centroid(graph)
+        centroid = tree.centroid(graph)  # type: int
         self.assertEqual(3, centroid)
 
     def test_medium_regular_tree(self) -> None:
@@ -218,7 +218,7 @@ class TestPermutationTree(QiskitTestCase):
         relabeling = {i: randomised[i] for i in graph.nodes}
         randomised_graph = nx.relabel_nodes(graph, relabeling)
 
-        centroid: int = tree.centroid(randomised_graph)
+        centroid = tree.centroid(randomised_graph)  # type: int
         self.assertEqual(relabeling[0], centroid)
 
     def test_large_regular_tree(self) -> None:
@@ -229,7 +229,7 @@ class TestPermutationTree(QiskitTestCase):
         relabeling = {i: randomised[i] for i in graph.nodes}
         randomised_graph = nx.relabel_nodes(graph, relabeling)
 
-        centroid: int = tree.centroid(randomised_graph)
+        centroid = tree.centroid(randomised_graph)  # type: int
         self.assertEqual(relabeling[0], centroid)
 
     @staticmethod

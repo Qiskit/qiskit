@@ -32,7 +32,6 @@ import itertools
 from collections import defaultdict
 from typing import List, Tuple, Dict, TypeVar, Iterable, Iterator, NamedTuple, Any, Callable, \
     Mapping, MutableMapping, Optional, Generic
-from dataclasses import dataclass
 
 import numpy as np
 from qiskit import QuantumRegister
@@ -56,7 +55,7 @@ def cycles(permutation: rt.Permutation[_V]) -> List[rt.Permutation[_V]]:
 
     # Keep track of which items we haven't entered into a cycle yet, in order.
     todo = permutation.copy()
-    found_cycles: List[rt.Permutation[_V]] = []
+    found_cycles = []  # type: List[rt.Permutation[_V]]
     while todo:
         # Take the first of the next cycle and follow permutations until the cycle has completed.
         first, mapped_to = todo.popitem()
@@ -107,8 +106,8 @@ def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]], mapping: MutableMap
     for swap_step in swaps:
         for sw1, sw2 in swap_step:
             # Take into account non-existent keys.
-            val1: Optional[_V]
-            val2: Optional[_V]
+            val1 = None  # type: Optional[_V]
+            val2 = None  # type: Optional[_V]
             if allow_missing_keys:
                 val1 = mapping.pop(sw1, None)
                 val2 = mapping.pop(sw2, None)
@@ -122,15 +121,14 @@ def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]], mapping: MutableMap
                 mapping[sw1] = val2
 
 
-@dataclass(frozen=True)
-class PermutationCircuit(Generic[_V]):
-    """Represents a circuit for permuting to a mapping with the associated cost."""
-    circuit: DAGCircuit
-    inputmap: Dict[_V, Reg]  # A mapping from architecture nodes to circuit registers.
+# Represents a circuit for permuting to a mapping with the associated cost.
+PermutationCircuit = NamedTuple('PermutationCircuit',
+                                [('circuit', DAGCircuit),
+                                 ('inputmap', Dict[Any, Reg])  # A mapping from architecture nodes to circuit registers.
+                                 ])
 
 
-def circuit(swaps: Iterable[List[rt.Swap[_V]]]) \
-        -> PermutationCircuit[_V]:
+def circuit(swaps: Iterable[List[rt.Swap[_V]]]) -> PermutationCircuit:
     """Produce a circuit description of a list of swaps.
 
         With a given permutation and permuter you can compute the swaps using the permuter function
@@ -179,7 +177,7 @@ def sequential_permuter(permuter: Callable[[Mapping[_V, _V]], Iterable[List[rt.S
 
 def longest_path(swaps: Iterable[List[rt.Swap[_V]]]) -> int:
     """Compute the longest path in the DAG defined by the sequence of swaps."""
-    length: Dict[_V, int] = defaultdict(lambda: 0)
+    length = defaultdict(lambda: 0)  # type: Dict[_V, int]
     for time_step in swaps:
         for sw0, sw1 in time_step:
             length[sw0] = length[sw1] = max(length[sw0], length[sw1]) + 1

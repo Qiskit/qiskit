@@ -181,8 +181,8 @@ class ApproximateTokenSwapper(Generic[_V]):
         assert self.graph.has_edge(node1,
                                    node2), "The swap is being performed on a non-existent edge."
         # Swap the tokens on the nodes, taking into account no-token nodes.
-        token1: Optional[_V] = tokens.pop(node1, None)
-        token2: Optional[_V] = tokens.pop(node2, None)
+        token1 = tokens.pop(node1, None)  # type: Optional[_V]
+        token2 = tokens.pop(node2, None)  # type: Optional[_V]
         if token2 is not None:
             tokens[node1] = token2
         if token1 is not None:

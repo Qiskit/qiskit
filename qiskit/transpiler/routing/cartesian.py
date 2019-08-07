@@ -45,10 +45,16 @@ PARTIAL_PERMUTER = Callable[[Mapping[int, int]], Iterable[List[Swap[int]]]]
 LOGGER = logging.getLogger(__name__)
 
 
-class Point(NamedTuple):
-    """A node in the cartesian product of graphs."""
-    x: int
-    y: int
+class Point:
+    """A node in the cartesian product of graphs.
+
+        Was originally implemented as subclass of NamedTuple (python 3.6+ only).
+    """
+
+    def __init__(self, x, y):
+        """Construct a Point object."""
+        self.x = x
+        self.y = y
 
     @staticmethod
     def from_int(identifier: int, width: int) -> 'Point':
@@ -96,7 +102,7 @@ def permute_cartesian_partial(mapping: Mapping[int, int],
         if mapping:
             # Mapping not empty
             raise ValueError("The mapping is not empty, but the graph has a zero-length axis:"
-                             f"width={width}, height={height}")
+                             "width=" + str(width) +", height=" + str(height) )
         else:
             return []
 
@@ -133,7 +139,7 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
 
     epsilon = 1 / (height ** 2)
     # Each row has a mapping from y coordinates to y coordinates.
-    current_mappings: List[Mapping[int, int]] = [dict() for x in range(width)]
+    current_mappings = [dict() for x in range(width)]  # type: List[Mapping[int, int]]
 
     def cost(point: Point,
              destination: Point,
@@ -249,7 +255,7 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
     swaps1 = list(util.flatten_swaps(swaps1_parallel))
     util.swap_permutation(swaps1, dest, allow_missing_keys=True)
     # Construct, for each row, a partial mapping to the destination columns
-    row_mappings: List[Dict[int, int]] = [dict() for y in range(height)]
+    row_mappings = [dict() for y in range(height)]  # type: List[Dict[int, int]]
     for origin, destination in dest.items():
         row_mappings[origin.y][origin.x] = destination.x
     swaps2_paralllel = [
@@ -263,7 +269,7 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
     swaps2 = list(util.flatten_swaps(swaps2_paralllel))
     util.swap_permutation(swaps2, dest, allow_missing_keys=True)
     # Construct, for each column, a partial mapping to the destination rows
-    column_mappings: List[Dict[int, int]] = [dict() for x in range(width)]
+    column_mappings = [dict() for x in range(width)]  # type: List[Dict[int, int]]
     for origin, destination in dest.items():
         column_mappings[origin.x][origin.y] = destination.y
     swaps3_parallel = [
