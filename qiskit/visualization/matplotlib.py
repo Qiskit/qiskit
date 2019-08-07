@@ -189,7 +189,9 @@ class MatplotlibDrawer:
         height = HIG + (qubit_span - 1)
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
-            width=wid, height=height, fc=_fc, ec=self._style.lc,
+            width=wid, height=height,
+            fc=self._style.dispcol['multi'],
+            ec=self._style.dispcol['multi'],
             linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
         # Annotate inputs
