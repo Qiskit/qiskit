@@ -57,21 +57,7 @@ class ConsolidateBlocks(TransformationPass):
             new_dag.add_creg(creg)
 
         # compute ordered indices for the global circuit wires
-        global_index_map = {}
-        for wire in dag.wires:
-            if not isinstance(wire, Qubit):
-                continue
-            global_qregs = list(dag.qregs.values())
-
-            reg_index = 0
-            for g_qreg in global_qregs:
-                # if this is the register we want, stop
-                if g_qreg == wire.register:
-                    break
-                # index needs to increase by the size of the register
-                reg_index += g_qreg.size
-
-            global_index_map[wire] = reg_index + wire.index
+        global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits())}
 
         blocks = self.property_set['block_list']
         # just to make checking if a node is in any block easier
