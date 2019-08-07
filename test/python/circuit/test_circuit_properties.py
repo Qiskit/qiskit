@@ -16,6 +16,7 @@
 
 """Test Qiskit's inverse gate operation."""
 
+from collections import OrderedDict
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -370,39 +371,18 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_count_ops(self):
         """Tet circuit count ops
         """
-        size = 6
-        q = QuantumRegister(size, 'q')
+        q = QuantumRegister(6, 'q')
         qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.x(q[1])
+        qc.y(q[2:4])
+        qc.z(q[3:])
+        result = qc.count_ops()
 
-        ans = {}
-        num_gates = np.random.randint(50)
-        # h = 0, x = 1, y = 2, z = 3, cx = 4, ccx = 5
-        lookup = {0: 'h', 1: 'x', 2: 'y', 3: 'z', 4: 'cx', 5: 'ccx'}
+        expected = OrderedDict([('h', 6), ('z', 3), ('y', 2), ('x', 1)])
 
-        for _ in range(num_gates):
-            item = np.random.randint(6)
-            if item in [0, 1, 2, 3]:
-                idx = np.random.randint(size)
-                if item == 0:
-                    qc.h(q[idx])
-                elif item == 1:
-                    qc.x(q[idx])
-                elif item == 2:
-                    qc.y(q[idx])
-                elif item == 3:
-                    qc.z(q[idx])
-            else:
-                idx = np.random.permutation(size)
-                if item == 4:
-                    qc.cx(q[int(idx[0])], q[int(idx[1])])
-                elif item == 5:
-                    qc.ccx(q[int(idx[0])], q[int(idx[1])], q[int(idx[2])])
-            if lookup[item] not in ans.keys():
-                ans[lookup[item]] = 1
-            else:
-                ans[lookup[item]] += 1
-
-            self.assertEqual(ans, qc.count_ops())
+        self.assertIsInstance(result, OrderedDict)
+        self.assertEqual(expected, result)
 
     def test_circuit_connected_components_empty(self):
         """Verify num_connected_components is width for empty
@@ -500,10 +480,9 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_unitary_factors2(self):
         """Test unitary factors multi qregs
         """
-        size = 4
-        q1 = QuantumRegister(size//2, 'q1')
-        q2 = QuantumRegister(size//2, 'q2')
-        c = ClassicalRegister(size, 'c')
+        q1 = QuantumRegister(2, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        c = ClassicalRegister(4, 'c')
         qc = QuantumCircuit(q1, q2, c)
         self.assertEqual(qc.num_unitary_factors(), 4)
 

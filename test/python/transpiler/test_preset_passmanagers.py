@@ -12,11 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests preset pass manager functionalities"""
-
+"""Tests preset pass manager API"""
+from test import combine
 from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase, combine
+from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile, assemble
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.extensions.standard import U2Gate, U3Gate
@@ -29,7 +29,7 @@ def emptycircuit():
     return QuantumCircuit()
 
 
-def is_swap_mapped():
+def circuit_2532():
     """See https://github.com/Qiskit/qiskit-terra/issues/2532"""
     circuit = QuantumCircuit(5)
     circuit.cx(2, 4)
@@ -56,7 +56,7 @@ class TestPresetPassManager(QiskitTestCase):
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
 
-    @combine(circuit=[emptycircuit, is_swap_mapped],
+    @combine(circuit=[emptycircuit, circuit_2532],
              level=[0, 1, 2, 3],
              backend=[FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(),
                       FakePoughkeepsie(), None],

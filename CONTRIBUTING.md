@@ -121,10 +121,8 @@ Issue #190: Short summary of the issue
 
 Installing Qiskit Terra from source
 -----------------------------------
-
 Please see the [Installing Qiskit Terra from
-Source](https://qiskit.org/documentation/install/terra.html) section of
-the Qiskit documentation.
+Source](https://qiskit.org/documentation/contributing_to_qiskit.html#installing-terra-from-source) section of the Qiskit documentation.
 
 ### Test
 
@@ -317,7 +315,9 @@ When backporting a patch from master to stable we want to keep a
 reference to the change on master. When you create the branch for the
 stable PR you can use:
 
-[\$ git cherry-pick -x \$master\_commit\_id]{.title-ref}
+```
+$ git cherry-pick -x $master_commit_id
+```
 
 However, this only works for small self contained patches from master.
 If you need to backport a subset of a larger commit (from a squashed PR
@@ -337,12 +337,12 @@ stable patch.
 Backport Tags
 -------------
 
-Bugs or PRs tagged with [stable backport potential]{.title-ref} are bugs
+Bugs or PRs tagged with `stable backport potential` are bugs
 which apply to the stable release too and may be suitable for
 backporting once a fix lands in master. Once the backport has been
 proposed, the tag should be removed.
 
-The PR against the stable branch should include [\[stable\]]{.title-ref}
+The PR against the stable branch should include `[stable]`
 in the title, as a sign that setting the target branch as stable was not
 a mistake. Also, reference to the PR number in master that you are
 porting.
