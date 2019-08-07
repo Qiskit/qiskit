@@ -304,7 +304,7 @@ class Pauli:
         rows = np.arange(n+1, dtype = np.uint)
         columns = rows^xs
         global_factor = (-1j)**np.dot(np.array(_x, dtype=np.uint), _z)
-        data = global_factor* (-1)**np.mod(CountBits(zs&rows), 2)
+        data = global_factor* (-1)**np.mod(_count_set_bits(zs&rows), 2)
         return sparse.csr_matrix((data, columns, rows), shape = (n,n))
 
     def to_operator(self):
