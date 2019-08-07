@@ -403,7 +403,17 @@ class TestPulseAssembler(QiskitTestCase):
         """Test assembling a schedule and inferring number of memoryslots."""
         acquire = pulse.Acquire(5)
         n_memoryslots = 10
-        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots))
+
+        # single acquisition
+        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
+
+        qobj = assemble(schedule, meas_map=[[0], [1]])
+        self.assertEqual(qobj.config.memory_slots, n_memoryslots)
+
+        # multiple acquisition
+        schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
+        schedule = schedule.insert(10, acquire(self.device.acquires[0],
+                                               mem_slots=pulse.MemorySlot(n_memoryslots-1)))
 
         qobj = assemble(schedule, meas_map=[[0], [1]])
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
