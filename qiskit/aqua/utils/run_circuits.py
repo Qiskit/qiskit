@@ -21,11 +21,10 @@ import uuid
 
 import numpy as np
 from qiskit import compiler
-from qiskit.assembler import assemble_circuits
 from qiskit.providers import BaseBackend, JobStatus, JobError
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.providers.basicaer import BasicAerJob
-from qiskit.qobj import QobjHeader, QasmQobj
+from qiskit.qobj import QasmQobj
 from qiskit.aqua.aqua_error import AquaError
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
@@ -120,9 +119,7 @@ def _compile_wrapper(circuits, backend, backend_config, compile_config, run_conf
     transpiled_circuits = compiler.transpile(circuits, backend, **backend_config, **compile_config)
     if not isinstance(transpiled_circuits, list):
         transpiled_circuits = [transpiled_circuits]
-
-    qobj = assemble_circuits(transpiled_circuits, qobj_id=str(uuid.uuid4()), qobj_header=QobjHeader(),
-                             run_config=run_config)
+    qobj = compiler.assemble(transpiled_circuits, **run_config.to_dict())
     return qobj, transpiled_circuits
 
 
