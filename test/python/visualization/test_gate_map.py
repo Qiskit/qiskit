@@ -43,7 +43,7 @@ class TestGateMap(QiskitVisualizationTestCase):
             filename = "temp.png"
             fig = plot_gate_map(backend)
             fig.savefig(filename, bbox_inches="tight")
-            self.assertImagesAreEqual(filename, img_ref, 0.1)
+            self.assertImagesAreEqual(filename, img_ref, 0.2)
             os.remove(filename)
 
     def test_plot_circuit_layout(self):
