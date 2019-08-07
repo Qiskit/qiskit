@@ -248,7 +248,7 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         self.assertEqual(qc, qc1)
 
-    def test_classical_condtions_maintained(self):
+    def test_classical_conditions_maintained(self):
         """Test that consolidate blocks doesn't drop the classical conditions
         This issue was raised in #2752
         """
