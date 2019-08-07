@@ -668,6 +668,7 @@ class QuantumCircuit:
         """
         return sum(reg.size for reg in self.qregs + self.cregs)
 
+    @property
     def n_qubits(self):
         """
         Return number of qubits.

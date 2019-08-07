@@ -550,9 +550,8 @@ class TestCircuitProperties(QiskitTestCase):
     def test_n_qubits_qubitless_circuit(self):
         """Check output in absence of qubits
         """
-        q_reg = QuantumRegister(0)
         c_reg = ClassicalRegister(3)
-        circ = QuantumCircuit(q_reg, c_reg)
+        circ = QuantumCircuit(c_reg)
         self.assertEqual(circ.n_qubits, 0)
 
     def test_n_qubits_qubitfull_circuit(self):
