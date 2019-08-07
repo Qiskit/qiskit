@@ -141,7 +141,8 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
                                                                     TPBGroupedWeightedPauliOperator.sorted_grouping)
         gop_2 = op_converter.to_tpb_grouped_weighted_pauli_operator(self.qubit_op,
                                                                     TPBGroupedWeightedPauliOperator.unsorted_grouping)
-        self.assertNotEqual(gop_1, gop_2)
+
+        self.assertEqual(gop_1, gop_2)
 
 
 if __name__ == '__main__':
