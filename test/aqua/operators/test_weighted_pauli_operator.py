@@ -271,6 +271,19 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
             op1.simplify()
             self.assertEqual(len(paulis) - (i + 1), len(op1.paulis))
 
+    def test_simplify_same_paulis(self):
+        pauli_a = 'IXYZ'
+        pauli_b = 'IXYZ'
+        coeff_a = 0.5
+        coeff_b = 0.5
+        pauli_term_a = [coeff_a, Pauli.from_label(pauli_a)]
+        pauli_term_b = [coeff_b, Pauli.from_label(pauli_b)]
+        op_a = WeightedPauliOperator(paulis=[pauli_term_a, pauli_term_b])
+
+        self.assertEqual(1, len(op_a.paulis), "{}".format(op_a.print_details()))
+        self.assertEqual(1, len(op_a.basis))
+        self.assertEqual(0, op_a.basis[0][1][0])
+
     def test_chop_real(self):
 
         paulis = [Pauli.from_label(x) for x in ['IXYZ', 'XXZY', 'IIZZ', 'XXYY', 'ZZXX', 'YYYY']]
