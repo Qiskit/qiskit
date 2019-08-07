@@ -51,7 +51,7 @@ The format is based on [Keep a Changelog].
     CNOT-Phase and CNOT-only (linear) circuits (\#2457)
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 -   Added a ``random_circuit`` function under ``qiskit.circuit.random``
-    (#2553)
+    (\#2553)
 -   Added `equiv` method to `Operator` and `Statevector` classes for
     testing if two objects are equivalent up to global phase (\#2910)
 -   Added ``output_name`` as a transpiler parameter to set the name of
@@ -76,18 +76,18 @@ The format is based on [Keep a Changelog].
     but as instances of `Qubit` and `Clbit` respectively.
 -   The ApplyLayout pass is incorporated in all preset pass managers to
     delineate a virtual circuit from a physical circuit (\#2672)
--   Mapping passes (CXDirection, Swap passes, CheckMap, CheckCnotDirection)
+-   Mapping passes (`CXDirection`, Swap passes, `CheckMap`, `CheckCnotDirection`)
     now operate on a register-less circuit corresponding to
     an already embedded physical circuit. (\#2672)
--   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
+-   Replaces `LegacySwap` by faster, more stable `StochasticSwap` pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
--   Change Snapshot signature to match simulator.snapshot (\#2592)
+-   Change `Snapshot` signature to match `simulator.snapshot` (\#2592)
 -   `DAGCircuit.width()` formerly returned number of qubits, now returns total number of qubits + classical bits (\#2564)
 -   Functions assuming the former semantics of `DAGCircuit.width()` now call `DAGCircuit.num_qubits()` (\#2564)
 -   `DAGCircuit.num_cbits()` renamed to `DAGCircuit.num_clbits()` (\#2564)
 -   Changed definition of `Cu3Gate` to to equivalent to the canonical
     definition of a controlled `U3Gate` (\#2755)
--   coupling_map now required to validate a backend.configuration() (\#2836)
+-   `coupling_map` now required to validate a `backend.configuration()` (\#2836)
 -   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
 
 ### Removed
@@ -97,16 +97,16 @@ The format is based on [Keep a Changelog].
     `qiskit.visualization.iplot_state` have been removed. Instead use
     the specific functions for each plot type (\#2325).
 -   International documentation of outdated readme etc (\#2302)
--   Removed deprecated options in execute, transpile, and assemble.
-    Removed deprecated compiler.
--   Removed deprecated qcvv in tools. Removed deprecated converters
-    qobj\_to\_circuits and circuits\_to\_qobj (\#2301)
+-   Removed deprecated options in `execute`, `transpile`, and `assemble`.
+    Removed deprecated `compiler`.
+-   Removed deprecated `qcvv `in tools. Removed deprecated converters
+    `qobj_to_circuits` and `circuits_to_qobj` (\#2301)
 -   The previously deprecated `qiskit._util` module has been removed.
     Use `qiskit.util` instead. (\#2329)
 -   The logging tools in `qiskit.tools.logging` are removed. (\#2387)
 -   The `qiskit.qiskiterror` module has been removed. Please use
     `qiskit.exceptions` instead. (\#2399)
--   Removed previously deprecated DAGCircuit methods (\#2542)
+-   Removed previously deprecated `DAGCircuit` methods (\#2542)
 -   Removed `CompositeGate` class, in favor of adding Instruction
     objects directly (\#2543)
 -   Removed `ignore_requires` and `ignore_preserves` options from
@@ -114,20 +114,20 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
--   Fixes a bug where the CmdDef was getting built without buffers on channels.
+-   Fixes a bug where the `CmdDef` was getting built without buffers on channels.
 -   Fixed bug in `Pulse` for multiple parameters being added (\#2742)
--   Fixed bug in `Pulse` for CmdDef arguments (\#2741)
+-   Fixed bug in `Pulse` for `CmdDef` arguments (\#2741)
 -   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
     containing gates without an explicit matrix definition (\#2723)
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 -   Fixes a bug that removed `id` gates from circuit. id gates are
     like a `wait` command and will never be removed (\#2663)
--   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
--   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
-    was measured into more than one memory cbit (\#2735)
+-   Fixed bug in `CommutationAnalysis` pass affecting conditional gates (\#2669)
+-   Fixed bug in measure sampling for `BasicAer` Qasm simulator if a qubit
+    was measured into more than one classical bit (\#2735)
 -   Correctly serialize complex numbers with a nonzero real part
--   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
+-   Fixed bug in measure sampling for `BasicAer` Qasm simulator if only a
     subset of qubits are measured (\#2790)
 
 
