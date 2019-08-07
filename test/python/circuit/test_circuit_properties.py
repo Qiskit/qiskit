@@ -526,6 +526,36 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[3], c[0])
         self.assertEqual(qc.num_unitary_factors(), 5)
 
+    def test_n_qubits_qubitless_circuit(self):
+        """Check output in absence of qubits
+        """
+        c_reg = ClassicalRegister(3)
+        circ = QuantumCircuit(c_reg)
+        self.assertEqual(circ.n_qubits, 0)
+
+    def test_n_qubits_qubitfull_circuit(self):
+        """Check output in presence of qubits
+        """
+        q_reg = QuantumRegister(4)
+        c_reg = ClassicalRegister(3)
+        circ = QuantumCircuit(q_reg, c_reg)
+        self.assertEqual(circ.n_qubits, 4)
+
+    def test_n_qubits_registerless_circuit(self):
+        """Check output for circuits with direct argument for qubits
+        """
+        circ = QuantumCircuit(5)
+        self.assertEqual(circ.n_qubits, 5)
+
+    def test_n_qubits_multiple_register_circuit(self):
+        """Check output for circuits with multiple quantum registers
+        """
+        q_reg1 = QuantumRegister(5)
+        q_reg2 = QuantumRegister(6)
+        q_reg3 = QuantumRegister(7)
+        circ = QuantumCircuit(q_reg1, q_reg2, q_reg3)
+        self.assertEqual(circ.n_qubits, 18)
+
 
 if __name__ == '__main__':
     unittest.main()
