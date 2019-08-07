@@ -126,14 +126,33 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
     def test_block_spanning_two_regs(self):
-        """blocks spanning wires on different quantum registers work.
-        This was raised as an issue in #2806
-        """
+        """blocks spanning wires on different quantum registers work."""
         qr0 = QuantumRegister(1, "qr0")
-        qr1 = QuantumRegister(2, "qr1")
+        qr1 = QuantumRegister(1, "qr1")
         qc = QuantumCircuit(qr0, qr1)
         qc.u1(0.5, qr0[0])
         qc.u2(0.2, 0.6, qr1[0])
+        qc.cx(qr0[0], qr1[0])
+        dag = circuit_to_dag(qc)
+
+        pass_ = ConsolidateBlocks(force_consolidate=True)
+        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
+        new_dag = pass_.run(dag)
+
+        sim = UnitarySimulatorPy()
+        result = execute(qc, sim).result()
+        unitary = UnitaryGate(result.get_unitary())
+        self.assertEqual(len(new_dag.op_nodes()), 1)
+        fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
+        self.assertAlmostEqual(fidelity, 1.0, places=7)
+
+    def test_block_spanning_two_regs_different_index(self):
+        """blocks spanning wires on different quantum registers work when the wires
+        could have conflicting indices. This was raised in #2806 when a CX was applied
+        across multiple registers and their indices collided, raising an error."""
+        qr0 = QuantumRegister(1, "qr0")
+        qr1 = QuantumRegister(2, "qr1")
+        qc = QuantumCircuit(qr0, qr1)
         qc.cx(qr0[0], qr1[1])
         dag = circuit_to_dag(qc)
 
