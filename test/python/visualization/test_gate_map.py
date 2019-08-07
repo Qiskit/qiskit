@@ -51,15 +51,14 @@ class TestGateMap(QiskitVisualizationTestCase):
         qr = QuantumRegister(3, 'qr')
         circuit = QuantumCircuit(qr)
         circuit._layout = Layout({qr[0]: 4, qr[1]: 0, qr[2]: 2})
-        for backend in self.backends[1:]:
+        for backend in self.backends:
             n = backend.configuration().n_qubits
             img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
             filename = "temp.png"
             fig = plot_circuit_layout(circuit, backend)
             fig.savefig(filename, bbox_inches="tight")
             self.assertImagesAreEqual(filename, img_ref, 0.1)
-            break
-            # os.remove(filename)
+            os.remove(filename)
 
 
 class TestGraphDist(QiskitTestCase):
