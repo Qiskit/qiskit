@@ -161,11 +161,14 @@ class TestConsolidateBlocks(QiskitTestCase):
         new_dag = pass_.run(dag)
 
         sim = UnitarySimulatorPy()
-        result = execute(qc, sim).result()
-        unitary = UnitaryGate(result.get_unitary())
-        self.assertEqual(len(new_dag.op_nodes()), 1)
-        fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
-        self.assertAlmostEqual(fidelity, 1.0, places=7)
+        original_result = execute(qc, sim).result()
+        original_unitary = UnitaryGate(original_result.get_unitary())
+
+        from qiskit.converters import dag_to_circuit
+        new_result = execute(dag_to_circuit(new_dag), sim).result()
+        new_unitary = UnitaryGate(new_result.get_unitary())
+
+        self.assertEqual(original_unitary, new_unitary)
 
 
 if __name__ == '__main__':
