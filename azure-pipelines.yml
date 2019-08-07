@@ -131,7 +131,7 @@ stages:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Publish test results for Python $(python.version)'
   - stage: 'Python_Tests'
-    condition: and(succeeded(), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
+    condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
     - job: 'Windows_Tests'
       pool: {vmImage: 'vs2017-win2016'}
