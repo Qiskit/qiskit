@@ -78,7 +78,8 @@ stages:
         - bash: |
             set -e
             pip install -U junitxml
-            stestr last --subunit | subunit2junitxml > junit/test-results.xml
+            mkdir -p junit
+            stestr last --subunit | subunit2junitxml -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -120,7 +121,8 @@ stages:
         - bash: |
             set -e
             pip install -U junitxml
-            stestr last --subunit | subunit2junitxml > junit/test-results.xml
+            mkdir -p junit
+            stestr last --subunit | subunit2junitxml -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -189,7 +191,8 @@ stages:
         - bash: |
             set -e
             pip install -U junitxml
-            stestr last --subunit | subunit2junitxml > junit/test-results.xml
+            mkdir -p junit
+            stestr last --subunit | subunit2junitxml -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
@@ -228,7 +231,8 @@ stages:
         - bash: |
             set -e
             pip install -U junitxml
-            stestr last --subunit | subunit2junitxml > junit/test-results.xml
+            mkdir -p junit
+            stestr last --subunit | subunit2junitxml -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: PublishTestResults@2
