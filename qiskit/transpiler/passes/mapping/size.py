@@ -72,7 +72,7 @@ class SizeMapper(Mapper[Reg, ArchNode]):
         """
         super().__init__(arch_graph.to_undirected(as_view=True))
         self.arch_permuter = arch_permuter
-        self.placement_costs: Dict[Placement[Reg, ArchNode], int] = {}
+        self.placement_costs = {}  # type: Dict[Placement[Reg, ArchNode], int]
         self.max_placement_size = max_placement_size
 
     def placement_cost(self, placement: Placement) -> int:
@@ -104,7 +104,7 @@ class SizeMapper(Mapper[Reg, ArchNode]):
         at the location that maximize the score.
 
         Does not modify arguments."""
-        max_max_placement: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]] = None
+        max_max_placement = None  # type: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]]
         # Find the highest-scoring binop to perform and maximize the score.
         for binop in binops:
             binop_map = {
@@ -112,11 +112,11 @@ class SizeMapper(Mapper[Reg, ArchNode]):
                 for qarg in binop.qargs
                 }
             # Try all edges and find the minimum cost placement.
-            placements: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]] = \
-                ((Placement(binop_map, dict(zip(binop.qargs, edge))), binop)
-                 for edge_ab in remaining_arch.edges()
-                 # Also check the reversed ordering.
-                 for edge in [edge_ab, tuple(reversed(edge_ab))])
+            placements = ((Placement(binop_map, dict(zip(binop.qargs, edge))), binop)
+                          for edge_ab in remaining_arch.edges()
+                          # Also check the reversed ordering.
+                          for edge in [edge_ab, tuple(reversed(edge_ab))]
+                          )  # type: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]]
             max_placement = max(placements, key=place_score)
 
             # Maximize over all maximum scoring placements.
@@ -204,8 +204,8 @@ class SizeMapper(Mapper[Reg, ArchNode]):
 
         # If any binop can be mapped in place, return the trivial mapping
         for binop in binops:
-            binop_map: Mapping[Reg, ArchNode] = {qarg: current_mapping[qarg]
-                                                 for qarg in binop.qargs}
+            binop_map = {qarg: current_mapping[qarg]
+                         for qarg in binop.qargs}  # type: Mapping[Reg, ArchNode]
             if tuple(binop_map.values()) in self.arch_graph.to_undirected(as_view=True).edges:
                 # Make sure that the qargs are mapped to their current location.
                 return binop_map

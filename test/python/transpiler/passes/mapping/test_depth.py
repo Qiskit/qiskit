@@ -65,9 +65,9 @@ class TestDepthMapper(TestCase):
         q = QuantumRegister(2)
         self.circuit.add_qreg(q)
         self.arch_graph.add_edge(0, 1)
-        mapper: SimpleDepthMapper[Reg, int] = SimpleDepthMapper(self.arch_graph, dummy_permuter)
+        mapper = SimpleDepthMapper(self.arch_graph, dummy_permuter)
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit)
+        out = mapper.map(self.circuit)
         self.assertEqual({}, out)
 
     def test_map_simple_small(self) -> None:
@@ -76,9 +76,9 @@ class TestDepthMapper(TestCase):
         self.circuit.add_qreg(q)
         self.circuit.apply_operation_back(CnotGate(), [q[0], q[1]])
         self.arch_graph.add_edge(0, 1, weight=2)
-        mapper: SimpleDepthMapper[Reg, int] = SimpleDepthMapper(self.arch_graph, dummy_permuter)
+        mapper = SimpleDepthMapper(self.arch_graph, dummy_permuter)
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit)
+        out = mapper.map(self.circuit)
         self.assertEqual({q[0]: 0, q[1]: 1}, out)
 
     def test_map_simple_small_2(self) -> None:
@@ -90,9 +90,9 @@ class TestDepthMapper(TestCase):
         # G: 0, 1<->2
         self.arch_graph.add_node(0)
         self.arch_graph.add_edge(1, 2, weight=2)
-        mapper: SimpleDepthMapper[Reg, int] = SimpleDepthMapper(self.arch_graph, dummy_permuter)
+        mapper = SimpleDepthMapper(self.arch_graph, dummy_permuter)
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit)
+        out = mapper.map(self.circuit)
         # q0 -> 1, q1 -> 2, q2 -> 0
         self.assertEqual({q[0]: 1, q[1]: 2}, out)
 
@@ -103,9 +103,9 @@ class TestDepthMapper(TestCase):
         self.circuit.apply_operation_back(CnotGate(), [q[0], q[1]])
         self.circuit.apply_operation_back(CnotGate(), [q[1], q[2]])
         self.arch_graph.add_edge(1, 2)
-        mapper: SimpleDepthMapper[Reg, int] = SimpleDepthMapper(self.arch_graph, dummy_permuter)
+        mapper = SimpleDepthMapper(self.arch_graph, dummy_permuter)
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit)
+        out = mapper.map(self.circuit)
         # must be mapped to qubits 1 and 2
         self.assertEqual({1,2}, set(out.values()))
 
@@ -114,10 +114,10 @@ class TestDepthMapper(TestCase):
         q = QuantumRegister(2)
         self.circuit.add_qreg(q)
         self.arch_graph.add_edge(0, 1)
-        current_mapping: Dict[Tuple[str, int], int] = {q[i]: 1 - i for i in [0, 1]}
+        current_mapping = {q[i]: 1 - i for i in [0, 1]}
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = IncrementalDepthMapper(self.arch_graph, permuter)
+        mapper = IncrementalDepthMapper(self.arch_graph, permuter)
 
         out = mapper(self.circuit, current_mapping)
         self.assertEqual({}, out)
@@ -132,7 +132,7 @@ class TestDepthMapper(TestCase):
         current_mapping1 = {q[i]: 1 - i for i in [0, 1]}
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = IncrementalDepthMapper(self.arch_graph, permuter)
+        mapper = IncrementalDepthMapper(self.arch_graph, permuter)
 
         # Qubits should not be moved needlessly.
         out0 = mapper.map(self.circuit, current_mapping0)
@@ -152,7 +152,7 @@ class TestDepthMapper(TestCase):
         self.arch_graph.add_edge(2, 3)
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = IncrementalDepthMapper(self.arch_graph, permuter)
+        mapper = IncrementalDepthMapper(self.arch_graph, permuter)
 
         current_mapping = {q[0]: 1, q[1]: 2, q[2]: 3}
 
@@ -173,7 +173,7 @@ class TestDepthMapper(TestCase):
         current_mapping = {q[0]: 2, q[1]: 5,
                            q[2]: 0, q[3]: 7}
 
-        mapper: StandardMapper = IncrementalDepthMapper(self.arch_graph, permuter)
+        mapper = IncrementalDepthMapper(self.arch_graph, permuter)
         out = mapper.map(self.circuit, current_mapping)
         # The mapper should have moved q0 and q1 adjacent, and q2 and q3 both one step closer.
         self.assertEqual({q[0]: 3, q[1]: 4,
@@ -191,7 +191,7 @@ class TestDepthMapper(TestCase):
         current_mapping = {q[0]: 1, q[1]: 4,
                            q[2]: 0, q[3]: 5}
 
-        mapper: StandardMapper = IncrementalDepthMapper(self.arch_graph, permuter)
+        mapper = IncrementalDepthMapper(self.arch_graph, permuter)
         out = mapper.map(self.circuit, current_mapping)
         # The mapper should have moved q0 and q1 adjacent, and q2 and q3 both one step closer.
         self.assertEqual({q[0]: 2, q[1]: 3,
@@ -207,7 +207,7 @@ class TestDepthMapper(TestCase):
         current_mapping1 = {q[i]: 1 - i for i in [0, 1]}
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = BoundedDepthMapper(self.arch_graph, permuter)
+        mapper = BoundedDepthMapper(self.arch_graph, permuter)
 
         # Qubits should not be moved needlessly.
         out0 = mapper.map(self.circuit, current_mapping0)
@@ -228,7 +228,7 @@ class TestDepthMapper(TestCase):
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
 
-        mapper: StandardMapper = BoundedDepthMapper(self.arch_graph, permuter)
+        mapper = BoundedDepthMapper(self.arch_graph, permuter)
 
         current_mapping = {q[0]: 1, q[1]: 2, q[2]: 3}
 
@@ -242,10 +242,10 @@ class TestDepthMapper(TestCase):
         q = QuantumRegister(2)
         self.circuit.add_qreg(q)
         self.arch_graph.add_edge(0, 1)
-        current_mapping: Dict[Tuple[str, int], int] = {q[i]: 1 - i for i in [0, 1]}
+        current_mapping = {q[i]: 1 - i for i in [0, 1]}
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = GreedyDepthMapper(self.arch_graph, permuter)
+        mapper = GreedyDepthMapper(self.arch_graph, permuter)
 
         out = mapper.map(self.circuit, current_mapping)
         self.assertEqual({}, out)
@@ -260,7 +260,7 @@ class TestDepthMapper(TestCase):
         current_mapping1 = {q[i]: 1 - i for i in [0, 1]}
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = GreedyDepthMapper(self.arch_graph, permuter)
+        mapper = GreedyDepthMapper(self.arch_graph, permuter)
 
         # Qubits should not be moved needlessly.
         identity_map = {i: i for i in [0, 1]}
@@ -285,7 +285,7 @@ class TestDepthMapper(TestCase):
         # Make sure that the matching does not contain the edge 1<->2
         matching_mock = mock.create_autospec(nx.max_weight_matching, return_value={(0, 1)})
         with mock.patch('networkx.max_weight_matching', matching_mock):
-            mapper: StandardMapper = GreedyDepthMapper(self.arch_graph, permuter)
+            mapper = GreedyDepthMapper(self.arch_graph, permuter)
             out = mapper.map(self.circuit, current_mapping)
         expected = current_mapping.copy()
         del expected[q[2]]
@@ -303,7 +303,7 @@ class TestDepthMapper(TestCase):
         self.arch_graph.add_edge(2, 3)
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = GreedyDepthMapper(self.arch_graph, permuter)
+        mapper = GreedyDepthMapper(self.arch_graph, permuter)
 
         current_mapping = {q[0]: 1, q[1]: 0, q[2]: 2}
 
@@ -323,7 +323,7 @@ class TestDepthMapper(TestCase):
         self.arch_graph.add_edge(2, 3)
 
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = GreedyDepthMapper(self.arch_graph, permuter)
+        mapper = GreedyDepthMapper(self.arch_graph, permuter)
 
         current_mapping = {q[0]: 1, q[1]: 2, q[2]: 3}
 
@@ -343,7 +343,7 @@ class TestDepthMapper(TestCase):
 
         current_mapping = {q[0]: 0, q[1]: 1, q[2]: 2}
         permuter = lambda p: rt.modular.permute(p, 2, 2)
-        mapper: StandardMapper = GreedyDepthMapper(self.arch_graph, permuter)
+        mapper = GreedyDepthMapper(self.arch_graph, permuter)
 
         out = mapper.map(self.circuit, current_mapping)
         expected = current_mapping.copy()

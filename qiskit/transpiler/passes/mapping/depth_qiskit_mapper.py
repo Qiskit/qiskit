@@ -43,12 +43,13 @@ class QiskitDepthMapper(DepthMapper[Reg, ArchNode]):
                  arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
                                          Iterable[List[Swap[ArchNode]]]]) -> None:
         super().__init__(arch_graph, arch_permuter)
-        self.qiskit_size_mapper: QiskitSizeMapper[Reg, ArchNode] = \
+        self.qiskit_size_mapper = \
             QiskitSizeMapper(arch_graph.to_directed(as_view=True),
                              # Convert depth permuter to size permuter
                              # This is only used for SimpleSizeMapper,
                              # so it's fine.
-                             util.sequential_permuter(arch_permuter))
+                             util.sequential_permuter(arch_permuter)
+                             ) # type: QiskitSizeMapper[Reg, ArchNode]
 
     def map(self,
             circuit: DAGCircuit,

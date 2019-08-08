@@ -52,7 +52,7 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
         # Peel off the first layer of operations for the circuit
         # so that we can assign operations to the architecture.
         remaining_arch = self.arch_graph.copy()
-        current_placement: Optional[Placement] = None
+        current_placement = None  # type: Optional[Placement]
 
         def placement_score(place: Tuple[Placement[Reg, ArchNode], DAGNode]) -> int:
             """Returns a score for this placement, the higher the better."""
@@ -72,9 +72,8 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
                 remaining_arch.subgraph(node for node in remaining_arch.nodes()
                                         if node not in placement.mapped_to.values())
             if remaining_binops and len(new_remaining_arch.edges()) > 0:
-                cur_place: Placement[Reg, ArchNode]
                 if current_placement is None:
-                    cur_place = Placement({}, {})
+                    cur_place = Placement({}, {}) # type: Placement[Reg, ArchNode]
                 else:
                     cur_place = current_placement
 
@@ -106,12 +105,12 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
         placed_gates = 0
         total_gates = len(binops)
         while binops and remaining_arch.edges():
-            max_max_placement: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]] = None
+            max_max_placement = None  # type: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]]
             for binop in binops:
-                binop_map: Mapping[Reg, ArchNode] = {
+                binop_map = {
                     qarg: current_mapping[qarg]
                     for qarg in binop.qargs
-                    }
+                    }  # type: Mapping[Reg, ArchNode]
 
                 # Try all edges and find the minimum cost placement.
                 all_edges = {e for directed_edge in remaining_arch.edges()
@@ -142,7 +141,7 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
                     # There are no advantageous gates to place left.
                     break
                 if score > 0:
-                    logger.debug(f"Saved cost! Placement score: {score}")
+                    logger.debug("Saved cost! Placement score: {}", score)
                 current_placement += max_max_placement[0]
 
             # Remove the placed binop from datastructure.
@@ -151,7 +150,7 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
             remaining_arch.remove_nodes_from(max_max_placement[0].mapped_to.values())
             placed_gates += 1
 
-        logger.debug(f"Number of gates placed: {placed_gates}/{total_gates}")
+        logger.debug("Number of gates placed: {}/{}", placed_gates, total_gates)
         if current_placement is None:
             raise RuntimeError("The current_placement is None. Somehow it did not get set.")
         return current_placement.mapped_to

@@ -66,8 +66,8 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
         # for use in two-qubit ("binary") operations.
         # Note: maximum matching assumes undirected graph.
         remaining_arch = self.arch_graph.copy()
-        matching: Set[FrozenSet[ArchNode]] = Mapper.construct_matching(remaining_arch)
-        current_placement: Placement[Reg, ArchNode] = Placement({}, {})
+        matching = Mapper.construct_matching(remaining_arch)  # type: Set[FrozenSet[ArchNode]]
+        current_placement = Placement({}, {})  # type: Placement[Reg, ArchNode]
 
         placed_gates = 0
         total_gates = len(binops)
@@ -80,15 +80,15 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
         minimal_cost = sys.maxsize
         while binops and matching:
             # Find the cheapest binop to perform and minimize its cost.
-            min_min_placement: Optional[Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]] = None
+            min_min_placement = None  # type: Optional[Tuple[Placement[Reg, ArchNode], Tuple[Reg, Reg]]]
             for binop in binops:
                 binop_map = {qarg: current_mapping[qarg] for qarg in binop.qargs}
                 # Try all matchings and find the minimum cost placement.
-                placements: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]] = (
+                placements = (
                     (Placement(binop_map, dict(zip(binop.qargs, node_ordering))), binop)
                     for node0, node1 in matching
                     for node_ordering in ((node0, node1), (node1, node0))
-                    )
+                    )  # type: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]]
 
                 min_placement = min(placements, key=placement_cost)
 
@@ -102,8 +102,8 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
 
             min_place_cost = placement_cost(min_min_placement)[0]
             minimal_cost = min(minimal_cost, min_place_cost)  # Should only be set once.
-            logger.debug(f"Cost changing from {self.placement_cost(current_placement)} "
-                         f"→ {min_place_cost} / {2*minimal_cost}")
+            logger.debug("Cost changing from {} → {} / {}",
+                         self.placement_cost(current_placement), min_place_cost, 2*minimal_cost)
 
             # If the placement cost of this placement exceeds the threshold,
             # stop and go to next iteration.
@@ -121,7 +121,7 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
             # Both directions of the matching are now used.
             matching.remove(frozenset(min_min_placement[0].mapped_to.values()))
 
-        logger.debug(f"Number of gates placed before: {placed_gates}/{total_gates}")
+        logger.debug("Number of gates placed before: {}/{}", placed_gates, total_gates)
 
         ###
         # We now try to place the remaining gates on nodes
@@ -131,7 +131,7 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
         ordered_binops = list(binops)
         random.shuffle(ordered_binops)  # Ensure random ordering
         for binop in ordered_binops:
-            logger.debug(f"Placing {binop}")
+            logger.debug("Placing {}", binop)
             # Enumerate all nodes that do not exceed the cost threshold for both qargs
             eligible_nodes = [[
                 node for node in remaining_arch.nodes
@@ -153,10 +153,12 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
                 # Find the pair of eligible nodes that minimizes the distance between the two.
                 closest_nodes = min(node_pairs, key=lambda nodes: self.distance[nodes[0]][nodes[1]])
                 # Then place the qargs at those nodes
-                logger.debug(
-                    f"Placed { {qarg: current_mapping[qarg] for qarg in binop.qargs} } at {closest_nodes}, "
-                    f"old dist: {self.distance[current_mapping[binop.qargs[0]]][current_mapping[binop.qargs[1]]]}, "
-                    f"new: {self.distance[closest_nodes[0]][closest_nodes[1]]}.")
+                logger.debug("Placed {} at {}, old dist: {}, new: {}.",
+                             {qarg: current_mapping[qarg] for qarg in binop.qargs},
+                             closest_nodes,
+                             self.distance[current_mapping[binop.qargs[0]]
+                             ][current_mapping[binop.qargs[1]]],
+                             self.distance[closest_nodes[0]][closest_nodes[1]])
                 current_placement += Placement({qarg: current_mapping[qarg]
                                                 for qarg in binop.qargs},
                                                dict(zip(binop.qargs, closest_nodes)))
@@ -166,8 +168,8 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
                 logger.debug("No eligible node pairs")
 
         after_cost = self.placement_cost(current_placement)[0]
-        logger.debug(f"Number of gates placed: {placed_gates}/{total_gates} "
-                     f"for a final cost of {after_cost}.")
+        logger.debug("Number of gates placed: {}/{} for a final cost of {}.",
+                     placed_gates, total_gates, after_cost)
         if after_cost > 2 * minimal_cost:
             logger.debug("New cost exceeded the threshold.")
 

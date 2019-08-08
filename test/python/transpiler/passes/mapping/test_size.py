@@ -75,7 +75,7 @@ class TestSizeMapper(TestCase):
         q = QuantumRegister(2)
         self.circuit.add_qreg(q)
         self.arch_graph.add_edge(0, 1)
-        current_mapping: Dict[Tuple[str, int], int] = {q[i]: 1 - i for i in [0, 1]}
+        current_mapping = {q[i]: 1 - i for i in [0, 1]}
         permuter = sequential_permuter(lambda m: complete.partial_permute(m, [0, 1]))
         out = mapper(self.arch_graph, permuter).map(self.circuit, current_mapping)
         self.assertEqual({}, out)
@@ -105,9 +105,9 @@ class TestSizeMapper(TestCase):
         current_mapping = {q[i]: i for i in range(2)}
 
         seq_path_permuter = sequential_permuter(path.permute_path_partial)
-        mapper: StandardMapper = SimpleSizeMapper(self.arch_graph, seq_path_permuter)
+        mapper = SimpleSizeMapper(self.arch_graph, seq_path_permuter)
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit, current_mapping)
+        out = mapper.map(self.circuit, current_mapping)
         self.assertEqual({q[0]: 0, q[1]: 1}, out)
 
     def test_map_simple_small_2(self) -> None:
@@ -120,7 +120,7 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_node(0)
         self.arch_graph.add_edge(1, 2, weight=2)
         current_mapping = {q[i]: i for i in range(3)}
-        mapper: StandardMapper = SimpleSizeMapper(self.arch_graph, dummy_permuter)
+        mapper = SimpleSizeMapper(self.arch_graph, dummy_permuter)
 
         out = mapper.map(self.circuit, current_mapping)
         # The output is empty because there is a 1-qubit gate.
@@ -135,10 +135,10 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(0, 1)
         self.arch_graph.add_edge(1, 2)
         current_mapping = {q[i]: i for i in range(3)}
-        mapper: StandardMapper = SimpleSizeMapper(self.arch_graph,
+        mapper = SimpleSizeMapper(self.arch_graph,
                                                   sequential_permuter(path.permute_path_partial))
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit, current_mapping)
+        out = mapper.map(self.circuit, current_mapping)
         self.assertEqual({q[0]: 0, q[1]: 1}, out)
 
     def test_map_simple_choice(self) -> None:
@@ -149,8 +149,7 @@ class TestSizeMapper(TestCase):
         self.circuit.apply_operation_back(CnotGate(), [q[2], q[3]])
         self.arch_graph = nx.path_graph(8)
         current_mapping = {q[0]: 1, q[1]: 6, q[2]: 0, q[3]: 7}
-        mapper: StandardMapper = SimpleSizeMapper(self.arch_graph,
-                                                  sequential_permuter(path.permute_path_partial))
+        mapper = SimpleSizeMapper(self.arch_graph, sequential_permuter(path.permute_path_partial))
 
         out = mapper.map(self.circuit, current_mapping)
         # Only q0 and q1 should be mapped since they are closer.
@@ -164,8 +163,7 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(0, 1, weight=2)
         current_mapping0 = {q[i]: i for i in [0, 1]}
         current_mapping1 = {q[i]: 1 - i for i in [0, 1]}
-        mapper: StandardMapper = \
-            GreedySizeMapper(self.arch_graph,
+        mapper = GreedySizeMapper(self.arch_graph,
                              sequential_permuter(lambda m: complete.partial_permute(m, [0, 1])))
 
         # Qubits should not be moved needlessly.
@@ -184,7 +182,7 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_node(0)
         self.arch_graph.add_edge(1, 2, weight=2)
         current_mapping = {q[i]: i for i in range(3)}
-        mapper: StandardMapper = GreedySizeMapper(self.arch_graph, dummy_permuter)
+        mapper = GreedySizeMapper(self.arch_graph, dummy_permuter)
 
         out = mapper.map(self.circuit, current_mapping)
         # The mapper does nothing, because there is a single-qubit gate that can be performed.
@@ -203,8 +201,7 @@ class TestSizeMapper(TestCase):
 
         modular_permuter = lambda p: modular.permute(p, 2, 2)
         current_mapping = {q[0]: 1, q[1]: 0, q[2]: 2}
-        mapper: StandardMapper = GreedySizeMapper(self.arch_graph,
-                                                  sequential_permuter(modular_permuter))
+        mapper = GreedySizeMapper(self.arch_graph, sequential_permuter(modular_permuter))
 
         out = mapper.map(self.circuit, current_mapping)
         # The qubits for the first gate should not be moved.
@@ -221,12 +218,11 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(0, 1)
         self.arch_graph.add_edge(0, 2)
         self.arch_graph.add_edge(2, 3)
-        swapper: general.ApproximateTokenSwapper[int] = \
-            ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
+        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
 
         apx_permuter = lambda p: swapper.map(p)
         current_mapping = {q[0]: 1, q[1]: 2, q[2]: 3}
-        mapper: StandardMapper = GreedySizeMapper(self.arch_graph, apx_permuter)
+        mapper = GreedySizeMapper(self.arch_graph, apx_permuter)
 
         out = mapper.map(self.circuit, current_mapping)
         # Because of matching limitations q1 should be moved to 0.
@@ -242,9 +238,9 @@ class TestSizeMapper(TestCase):
         current_mapping = {q[i]: i for i in range(2)}
 
         par_path_permuter = sequential_permuter(path.permute_path_partial)
-        mapper: StandardMapper = ExtensionSizeMapper(self.arch_graph, par_path_permuter)
+        mapper = ExtensionSizeMapper(self.arch_graph, par_path_permuter)
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit, current_mapping)
+        out = mapper.map(self.circuit, current_mapping)
         self.assertEqual(current_mapping, out)
 
     def test_map_extend_small_2(self) -> None:
@@ -257,14 +253,11 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_node(0)
         self.arch_graph.add_edge(1, 2, weight=2)
         current_mapping = {q[i]: i for i in range(3)}
-        mapper: StandardMapper = ExtensionSizeMapper(self.arch_graph, dummy_permuter)
+        mapper = ExtensionSizeMapper(self.arch_graph, dummy_permuter)
 
         out = mapper.map(self.circuit, current_mapping)
         # The output is empty because there is a 1-qubit gate.
         self.assertEqual({}, out)
-        # The cnots must be reshuffled to qubits 1 and 2, but we dont care which order.
-        # self.assertEqual({q[0], q[1]}, set(out.keys()))
-        # self.assertEqual({1, 2}, set(out.values()))
 
     def test_map_extend_two_layers(self) -> None:
         """Test mapping two sequential CNOTs"""
@@ -275,11 +268,11 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(0, 1)
         self.arch_graph.add_edge(1, 2)
         current_mapping = {q[i]: i for i in range(3)}
-        mapper: SizeMapper[Reg[str], int] = ExtensionSizeMapper(self.arch_graph,
+        mapper = ExtensionSizeMapper(self.arch_graph,
                                                                 sequential_permuter(
                                                                     path.permute_path_partial))
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit, current_mapping)
+        out = mapper.map(self.circuit, current_mapping)
         del current_mapping[q[2]]
         self.assertEqual(current_mapping, out)
 
@@ -291,9 +284,8 @@ class TestSizeMapper(TestCase):
         self.circuit.apply_operation_back(CnotGate(), [q[2], q[3]])
         self.arch_graph = nx.path_graph(8).to_directed()
         current_mapping = {q[0]: 1, q[1]: 6, q[2]: 0, q[3]: 7}
-        swapper: ApproximateTokenSwapper[int] = \
-            ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
-        mapper: StandardMapper = ExtensionSizeMapper(self.arch_graph, swapper.map)
+        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
+        mapper = ExtensionSizeMapper(self.arch_graph, swapper.map)
 
         out = mapper.map(self.circuit, current_mapping)
         # All qubits are mapped, since it takes 10 SWAPs to map both at once
@@ -314,41 +306,12 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(3, 4)
         self.arch_graph.add_edge(3, 5)
         current_mapping = {q[0]: 1, q[2]: 2, q[1]: 4, q[3]: 5}
-        swapper: ApproximateTokenSwapper[int] = \
-            ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
-        mapper: ExtensionSizeMapper[Tuple[str, int], int] = \
-            ExtensionSizeMapper(self.arch_graph, swapper.map, lookahead=True)
+        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
+        mapper = ExtensionSizeMapper(self.arch_graph, swapper.map, lookahead=True)
 
         out = mapper.map(self.circuit, current_mapping)
         # The mapper takes advantage of a "free" SWAP along 0-3 and maps all qubits in one step
         self.assertEqual(set(current_mapping.keys()), set(out.keys()))
-
-    @unittest.skip('Unpredictable behavior.')
-    def test_map_extend_lookahead(self) -> None:
-        """Test that larger subsets of gates can be mapped simultaneously."""
-        q = QuantumRegister(6)
-        self.circuit.add_qreg(q)
-        for i in range(0, 6, 2):
-            self.circuit.apply_operation_back(CnotGate(), [q[i], q[i+1]])
-        self.arch_graph.add_edge(0, 1)
-        self.arch_graph.add_edge(0, 2)
-        self.arch_graph.add_edge(2, 6)
-        self.arch_graph.add_edge(0, 3)
-        self.arch_graph.add_edge(3, 4)
-        self.arch_graph.add_edge(3, 5)
-        self.arch_graph.add_edge(5, 7)
-        current_mapping = {q[0]: 1, q[1]: 4,
-                           q[2]: 2, q[3]: 5,
-                           q[4]: 6, q[5]: 7}
-        swapper: ApproximateTokenSwapper[int] = \
-            ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
-        mapper: ExtensionSizeMapper[Tuple[str, int], int] = \
-            ExtensionSizeMapper(self.arch_graph, swapper.map, lookahead=True)
-
-        out = mapper.map(self.circuit, current_mapping)
-        self.assertEqual(6, len(out))
-        swaps = list(swapper.map({current_mapping[k]: v for k, v in out.items()}))
-        self.assertEqual(7, len(swaps))
 
     def test_qiskit_map_small(self) -> None:
         """Test the mapping of a single CNOT onto a 2-qubit path"""
@@ -359,9 +322,9 @@ class TestSizeMapper(TestCase):
         current_mapping = {q[i]: i for i in range(2)}
 
         par_path_permuter = sequential_permuter(path.permute_path_partial)
-        mapper: StandardMapper = QiskitSizeMapper(self.arch_graph, par_path_permuter)
+        mapper = QiskitSizeMapper(self.arch_graph, par_path_permuter)
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit, current_mapping)
+        out = mapper.map(self.circuit, current_mapping)
         self.assertEqual(current_mapping, out)
 
     def test_qiskit_map_small_2(self) -> None:
@@ -374,14 +337,11 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_node(0)
         self.arch_graph.add_edge(1, 2, weight=2)
         current_mapping = {q[i]: i for i in range(3)}
-        mapper: StandardMapper = QiskitSizeMapper(self.arch_graph, dummy_permuter)
+        mapper = QiskitSizeMapper(self.arch_graph, dummy_permuter)
 
         out = mapper.map(self.circuit, current_mapping)
         # The output is empty because there is a 1-qubit gate.
         self.assertEqual({}, out)
-        # The cnots must be reshuffled to qubits 1 and 2, but we dont care which order.
-        # self.assertEqual({q[0], q[1]}, set(out.keys()))
-        # self.assertEqual({1, 2}, set(out.values()))
 
     def test_qiskit_map_two_layers(self) -> None:
         """Test mapping two sequential CNOTs"""
@@ -392,10 +352,10 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(0, 1)
         self.arch_graph.add_edge(1, 2)
         current_mapping = {q[i]: i for i in range(3)}
-        mapper: StandardMapper = QiskitSizeMapper(self.arch_graph,
+        mapper = QiskitSizeMapper(self.arch_graph,
                                                   sequential_permuter(path.permute_path_partial))
 
-        out: Mapping[Tuple[str, int], int] = mapper.map(self.circuit, current_mapping)
+        out = mapper.map(self.circuit, current_mapping)
         del current_mapping[q[2]]
         self.assertEqual(current_mapping, out)
 
@@ -407,10 +367,8 @@ class TestSizeMapper(TestCase):
         self.circuit.apply_operation_back(CnotGate(), [q[2], q[3]])
         self.arch_graph = nx.path_graph(8).to_directed(as_view=True)
         current_mapping = {q[0]: 1, q[1]: 6, q[2]: 0, q[3]: 7}
-        swapper: ApproximateTokenSwapper[int] = \
-            ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
-        mapper: QiskitSizeMapper[Tuple[str, int], int] = QiskitSizeMapper(self.arch_graph,
-                                                                          swapper.map, seed=0)
+        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
+        mapper = QiskitSizeMapper(self.arch_graph, swapper.map, seed=0)
 
         out = mapper.map(self.circuit, current_mapping)
         # All qubits are mapped, since it takes 10 SWAPs to map both at once
@@ -428,9 +386,8 @@ class TestSizeMapper(TestCase):
         self.circuit.apply_operation_back(HGate(), [q[4]])  # Hadamard
         self.arch_graph = nx.path_graph(8).to_directed(as_view=True)
         partial_mapping = {q[0]: 1, q[1]: 6, q[2]: 0, q[3]: 7}
-        swapper: ApproximateTokenSwapper[int] = \
-            ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
-        mapper: QiskitSizeMapper[Reg, int] = QiskitSizeMapper(self.arch_graph, swapper.map)
+        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
+        mapper = QiskitSizeMapper(self.arch_graph, swapper.map)
 
         layer = Mapper.first_layer(self.circuit)
         if layer is None:
@@ -457,9 +414,8 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(3, 4)
         self.arch_graph.add_edge(3, 5)
         current_mapping = {q[0]: 1, q[2]: 2, q[1]: 4, q[3]: 5}
-        swapper: ApproximateTokenSwapper[int] = \
-            ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
-        mapper: StandardMapper = QiskitSizeMapper(self.arch_graph, swapper.map)
+        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
+        mapper = QiskitSizeMapper(self.arch_graph, swapper.map)
 
         out = mapper.map(self.circuit, current_mapping)
         # The mapper takes advantage of a "free" SWAP along 0-3 and maps all qubits in one step
@@ -481,9 +437,8 @@ class TestSizeMapper(TestCase):
         current_mapping = {q[0]: 1, q[1]: 4,
                            q[2]: 2, q[3]: 5,
                            q[4]: 6, q[5]: 7}
-        swapper: ApproximateTokenSwapper[int] = \
-            ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
-        mapper: StandardMapper = QiskitSizeMapper(self.arch_graph, swapper.map)
+        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))
+        mapper = QiskitSizeMapper(self.arch_graph, swapper.map)
 
         out = mapper.map(self.circuit, current_mapping)
         swaps = list(swapper.map({current_mapping[k]: v for k, v in out.items()}))

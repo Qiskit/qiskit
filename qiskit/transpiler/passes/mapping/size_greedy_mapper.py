@@ -65,8 +65,8 @@ class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
         # for use in two-qubit ("binary") operations.
         # Note: maximum matching assumes undirected graph.
         remaining_arch = self.arch_graph.copy()
-        matching: Set[FrozenSet[ArchNode]] = Mapper.construct_matching(remaining_arch)
-        current_placement: Placement[Reg, ArchNode] = Placement({}, {})
+        matching = Mapper.construct_matching(remaining_arch)  # type: Set[FrozenSet[ArchNode]]
+        current_placement = Placement({}, {})  # type: Placement[Reg, ArchNode]
 
         current_placement_cost = lambda place: self.placement_cost(current_placement + place[0])
 
@@ -76,18 +76,18 @@ class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
         while binops and matching:
             # Find the most expensive or cheapest binop to perform (depending on max_first)
             # and minimize its cost.
-            extremal_min_placement: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]] = None
+            extremal_min_placement = None  # type: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]]
             for binop in binops:
                 binop_map = {
                     qarg: current_mapping[qarg]
                     for qarg in binop.qargs
                     }
                 # Try all matchings and find the minimum cost placement.
-                placements: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]] = (
+                placements = (
                     (Placement(binop_map, dict(zip(binop.qargs, node_ordering))), binop)
                     for node0, node1 in matching
                     for node_ordering in ((node0, node1), (node1, node0))
-                    )
+                    )  # type: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]]
 
                 min_placement = min(placements, key=current_placement_cost)
 

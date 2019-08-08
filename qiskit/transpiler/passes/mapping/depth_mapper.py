@@ -65,7 +65,7 @@ class DepthMapper(Mapper[Reg, ArchNode]):
         """
         super().__init__(arch_graph)
         self.arch_permuter = arch_permuter
-        self.placement_costs: Dict[Placement[Reg, ArchNode], Tuple[int, int]] = {}
+        self.placement_costs = {}  # type: Dict[Placement[Reg, ArchNode], Tuple[int, int]]
         self.max_placement_size = max_placement_size
 
     def placement_cost(self, placement: Placement[Reg, ArchNode]) -> Tuple[int, int]:

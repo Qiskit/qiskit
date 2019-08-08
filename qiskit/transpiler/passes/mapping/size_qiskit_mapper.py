@@ -46,7 +46,8 @@ class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
                  trials: int = 40,
                  seed: Optional[int] = None) -> None:
         super().__init__(arch_graph, arch_permuter)
-        self.simple_mapper: SimpleSizeMapper[Reg, ArchNode] = SimpleSizeMapper(arch_graph, arch_permuter)
+        self.simple_mapper = SimpleSizeMapper(arch_graph,
+                                              arch_permuter) # type: SimpleSizeMapper[Reg, ArchNode]
         self.trials = trials
         self.seed = seed
 
@@ -85,11 +86,11 @@ class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
 
         Tries to swap edges that reduce the cost function up to a maximimum size."""
         trial_layout = copy.copy(initial_layout)
-        inv_trial_layout: Mapping[ArchNode, Reg] = {v: k for k, v in trial_layout.items()}
+        inv_trial_layout = {v: k for k, v in trial_layout.items()} # type: Mapping[ArchNode, Reg]
 
         # Compute Sergey's randomized distance.
         # IDEA: Rewrite to numpy matrix
-        xi: Dict[ArchNode, Dict[ArchNode, float]] = {}
+        xi = {} # type: Dict[ArchNode, Dict[ArchNode, float]]
         for i in self.arch_graph.nodes:
             xi[i] = {}
         for i in self.arch_graph.nodes:
@@ -108,8 +109,8 @@ class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
 
             Supports partial mappings."""
             inv_new_layout = dict(inv_trial_layout)
-            qarg0: Optional[Reg] = inv_new_layout.pop(node0, None)
-            qarg1: Optional[Reg] = inv_new_layout.pop(node1, None)
+            qarg0 = inv_new_layout.pop(node0, None) # type: Optional[Reg]
+            qarg1 = inv_new_layout.pop(node1, None) # type: Optional[Reg]
             if qarg1 is not None:
                 inv_new_layout[node0] = qarg1
             if qarg0 is not None:
