@@ -47,9 +47,9 @@ class SimpleDepthMapper(DepthMapper[Reg, ArchNode]):
         :return:
         """
         binops = Mapper._binops_circuit(circuit)
-        matching: Set[FrozenSet[ArchNode]] = Mapper.construct_matching(self.arch_graph)
+        matching = Mapper.construct_matching(self.arch_graph) # type: Set[FrozenSet[ArchNode]]
         # First assign the two-qubit gates, because they are restricted by the architecture
-        mapping: Dict[Reg, ArchNode] = {}
+        mapping = {} # type: Dict[Reg, ArchNode]
         for binop in binops:
             if matching:
                 # pick an available matching and map this operation to that matching

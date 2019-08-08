@@ -63,8 +63,8 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
         # for use in two-qubit ("binary") operations.
         # Note: maximum matching assumes undirected graph.
         remaining_arch = self.arch_graph.copy()
-        matching: Set[FrozenSet[ArchNode]] = Mapper.construct_matching(remaining_arch)
-        current_placement: Placement[Reg, ArchNode] = Placement({}, {})
+        matching = Mapper.construct_matching(remaining_arch)  # type: Set[FrozenSet[ArchNode]]
+        current_placement = Placement({}, {})  # type: Placement[Reg, ArchNode]
 
         def placement_cost(place: Tuple[Placement[Reg, ArchNode], DAGNode]) -> Tuple[
             int, int]:
@@ -77,18 +77,18 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
         total_gates = len(binops)
         while binops and matching:
             # Find the most expensive binop to perform and minimize its cost.
-            max_min_placement: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]] = None
+            max_min_placement = None  # type: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]]
             for binop in binops:
                 binop_map = {
                     qarg: current_mapping[qarg]
                     for qarg in binop.qargs
                     }
                 # Try all matchings and find the minimum cost placement.
-                placements: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]] = (
+                placements = (
                     (Placement(binop_map, dict(zip(binop.qargs, node_ordering))), binop)
                     for node0, node1 in matching
                     for node_ordering in ((node0, node1), (node1, node0))
-                    )
+                    )  # type: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]]
 
                 min_placement = min(placements, key=placement_cost)
 
@@ -118,8 +118,9 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
 
             if max_min_placement is None:
                 raise RuntimeError("The max_min_placement was not set.")
-            logger.debug(f"The current cost is: {self.placement_cost(current_placement)}\n"
-                         f"New cost is: {placement_cost(max_min_placement)}.")
+            logger.debug("The current cost is: {}\nNew cost is: {}.",
+                         self.placement_cost(current_placement),
+                         placement_cost(max_min_placement))
 
             # Place the most expensive binop
             current_placement += max_min_placement[0]
@@ -136,6 +137,6 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
                 # Otherwise both directions of the matching are now used.
                 matching.remove(frozenset(max_min_placement[0].mapped_to.values()))
 
-        logger.debug(f"Number of gates placed: {placed_gates}/{total_gates}")
+        logger.debug("Number of gates placed: {}/{}", placed_gates, total_gates)
 
         return current_placement.mapped_to

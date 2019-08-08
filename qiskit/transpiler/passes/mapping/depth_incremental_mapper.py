@@ -50,25 +50,25 @@ class IncrementalDepthMapper(DepthMapper[Reg, ArchNode]):
         if not binops:
             return {}
         remaining_arch = self.arch_graph.copy()
-        current_placement: Placement[Reg, ArchNode] = Placement({}, {})
+        current_placement = Placement({}, {})  # type: Placement[Reg, ArchNode]
 
         # First find the minimal cost binop to place
         def minimal_placement(binop_qargs: Tuple[Reg, Reg]) -> Placement[Reg, ArchNode]:
             """Find the placement that has minimal placement cost for the binop."""
             binop_map = {qarg: current_mapping[qarg] for qarg in binop_qargs}
-            placements: Iterable[Placement[Reg, ArchNode]] = (
+            placements = (
                 Placement(binop_map, dict(zip(binop_qargs, nodes)))
                 for edge in self.arch_graph.edges
                 # Also try the reverse of the edge.
                 for nodes in (edge, reversed(edge))
-                )
+                )  # type: Iterable[Placement[Reg, ArchNode]]
 
             return min(placements, key=self.placement_cost)
 
         min_placement = min(((minimal_placement(binop.qargs), binop)
                              for binop in binops),
                             key=lambda p: self.placement_cost(p[0]))
-        logger.debug(f"Minimal placement is: {min_placement[0]}.")
+        logger.debug("Minimal placement is: {}.", min_placement[0])
         current_placement += min_placement[0]
         remaining_arch.remove_nodes_from(min_placement[0].mapped_to.values())
         binops.remove(min_placement[1])
@@ -109,20 +109,21 @@ class IncrementalDepthMapper(DepthMapper[Reg, ArchNode]):
                     if self.distance[node0][node1] == minimal_distance]
                 min_closest_placement = min(closest_placements, key=placement_cost)
                 # Then place the qargs at those nodes
-                logger.debug(f"Placed {min_closest_placement}, "
-                             f"old dist: {self.distance[current_mapping[binop.qargs[0]]][current_mapping[binop.qargs[1]]]}, "
-                             f"new: {minimal_distance}.")
+                logger.debug("Placed {}, old dist: {}, new: {}.",
+                             min_closest_placement,
+                             self.distance[current_mapping[binop.qargs[0]]][current_mapping[binop.qargs[1]]],
+                             minimal_distance)
                 current_placement += min_closest_placement
                 remaining_arch.remove_nodes_from(min_closest_placement.mapped_to.values())
                 # Update minimal cost, because the cost function is not stable.
                 # Otherwise future nodes may not be able to be placed anywhere
                 # (since it will always exceed the cost.)
                 new_minimal_cost = self.placement_cost(current_placement)[0]
-                logger.debug(f"Old minimal_cost: {minimal_cost}, new: {new_minimal_cost}")
+                logger.debug("Old minimal_cost: {}, new: {}", minimal_cost, new_minimal_cost)
                 minimal_cost = max(new_minimal_cost, 1)
             except ValueError:
-                logger.debug(f"No eligible node pairs for {binop_map}.")
+                logger.debug("No eligible node pairs for {}.", binop_map)
 
-        logger.debug(f"Initial minimal cost set at: {initial_minimal_cost}. "
-                     f"Has finally become: {minimal_cost}.")
+        logger.debug("Initial minimal cost set at: {}. Has finally become: {}.",
+                     initial_minimal_cost, minimal_cost)
         return current_placement.mapped_to

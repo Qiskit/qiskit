@@ -135,8 +135,8 @@ class Placement(Generic[Reg, ArchNode]):
         return mapping_circuit
 
     def __str__(self) -> str:
-        return f"Placement(permutation:{self.arch_mapping}, " \
-               f"mapped_to:{self.mapped_to}, current_mapping:{self.current_mapping})"
+        return "Placement(permutation:{}, mapped_to:{}, current_mapping:{})".format(
+            self.arch_mapping, self.mapped_to, self.current_mapping)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Placement):
