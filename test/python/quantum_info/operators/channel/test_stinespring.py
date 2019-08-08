@@ -16,6 +16,7 @@
 
 import unittest
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
@@ -30,23 +31,23 @@ class TestStinespring(ChannelTestCase):
         """Test initialization"""
         # Initialize from unitary
         chan = Stinespring(self.UI)
-        self.assertAllClose(chan.data, self.UI)
+        assert_allclose(chan.data, self.UI)
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize from Stinespring
         chan = Stinespring(self.depol_stine(0.5))
-        self.assertAllClose(chan.data, self.depol_stine(0.5))
+        assert_allclose(chan.data, self.depol_stine(0.5))
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize from Non-CPTP
         stine_l, stine_r = self.rand_matrix(4, 2), self.rand_matrix(4, 2)
         chan = Stinespring((stine_l, stine_r))
-        self.assertAllClose(chan.data, (stine_l, stine_r))
+        assert_allclose(chan.data, (stine_l, stine_r))
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize with redundant second op
         chan = Stinespring((stine_l, stine_l))
-        self.assertAllClose(chan.data, stine_l)
+        assert_allclose(chan.data, stine_l)
         self.assertEqual(chan.dim, (2, 2))
 
         # Wrong input or output dims should raise exception
