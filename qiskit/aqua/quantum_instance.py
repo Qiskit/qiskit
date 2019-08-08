@@ -18,7 +18,6 @@ import time
 import os
 
 from qiskit.assembler.run_config import RunConfig
-from qiskit.transpiler import CouplingMap
 
 from .aqua_error import AquaError
 from .utils import CircuitCache
@@ -123,8 +122,6 @@ class QuantumInstance:
         # setup backend config
         basis_gates = basis_gates or backend.configuration().basis_gates
         coupling_map = coupling_map or getattr(backend.configuration(), 'coupling_map', None)
-        if coupling_map is not None and not isinstance(coupling_map, CouplingMap):
-            coupling_map = CouplingMap(coupling_map)
         self._backend_config = {
             'basis_gates': basis_gates,
             'coupling_map': coupling_map
