@@ -116,7 +116,7 @@ stages:
           displayName: 'Style and lint'
         - bash: |
             set -e
-            python -m unittest -v test.python.visualization.test_gate_map
+            python -m unittest -v test.python.visualization.test_gate_map.TestGateMap.test_plot_circuit_layout
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: always()
