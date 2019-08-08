@@ -95,7 +95,7 @@ class DependencyGraph:
     def _create_xz_graph(self):
         z_gates = ["u1", "rz", "s", "t", "z", "sdg", "tdg"]
         x_gates = ["rx", "x"]
-        b_gates = ["u3", "h", "u2", "ry", "barrier", "measure", "swap", "y"]
+        b_gates = ["u3", "h", "u2", "ry", "swap", "y", "barrier", "measure", "reset"]
         # construct commutation-rules-aware dependency graph
         for n in self._graph.nodes():
             if self._gates[n].name in x_gates:
