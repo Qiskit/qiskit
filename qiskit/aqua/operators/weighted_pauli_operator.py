@@ -1106,7 +1106,7 @@ class Z2Symmetries:
 
         if operator.is_empty():
             logger.info("Operator is empty.")
-            return cls([], [], [], None)
+            return [], [], [], None
 
         for pauli in operator.paulis:
             stacked_paulis.append(np.concatenate((pauli[1].x, pauli[1].z), axis=0).astype(np.int))
@@ -1116,7 +1116,7 @@ class Z2Symmetries:
 
         if len(symmetries) == 0:
             logger.info("No symmetry is found.")
-            return cls([], [], [], None)
+            return [], [], [], None
 
         stacked_symmetries = np.stack(symmetries)
         symm_shape = stacked_symmetries.shape
