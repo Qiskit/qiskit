@@ -86,7 +86,7 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = 20
+        self.fold = 25
         self.bundle = False
         self.barrier = True
         self.index = False
@@ -182,7 +182,7 @@ class BWStyle:
             'multi': '#000000'
         }
         self.latexmode = False
-        self.fold = 20
+        self.fold = 25
         self.bundle = False
         self.barrier = True
         self.index = False
