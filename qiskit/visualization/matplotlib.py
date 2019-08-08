@@ -847,7 +847,8 @@ class MatplotlibDrawer:
                                        fc=color,
                                        subtext='{}'.format(param))
                         else:
-                            self._gate(q_xy[1], wide=_iswide, text=disp)
+                            self._gate(q_xy[1], wide=_iswide, text=disp,
+                                       fc=color)
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=color)
 
