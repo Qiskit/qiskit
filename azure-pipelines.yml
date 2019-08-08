@@ -153,6 +153,8 @@ stages:
     - job: 'Windows_Tests'
       pool: {vmImage: 'vs2017-win2016'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
       strategy:
         matrix:
           Python35:
