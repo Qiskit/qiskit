@@ -16,6 +16,7 @@
 import unittest
 import os
 import matplotlib.pyplot as plt
+from ddt import ddt, data
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.gate_map import _GraphDist, plot_gate_map, plot_circuit_layout
@@ -24,14 +25,10 @@ from qiskit.transpiler import Layout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
 
+@ddt
 class TestGateMap(QiskitVisualizationTestCase):
     """ visual tests for plot_gate_map """
-    backends = []
-
-    def setUp(self):
-        """ setup for backend """
-        self.backends = list(filter(lambda x:
-                                    not (x.configuration().simulator
+    backends = list(filter(lambda x: not (x.configuration().simulator
                                          or x.configuration().n_qubits == 2),
                                     FakeProvider().backends()))
 
@@ -46,21 +43,20 @@ class TestGateMap(QiskitVisualizationTestCase):
             self.assertImagesAreEqual(filename, img_ref, 0.2)
             os.remove(filename)
 
-    def test_plot_circuit_layout(self):
+    @data(*backends)
+    def test_plot_circuit_layout(self, backend):
         """ tests plot_circuit_layout for each device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
-        for backend in [self.backends[3]]:
-            layout_length = int(backend._configuration.n_qubits / 2)
-            qr = QuantumRegister(layout_length, 'qr')
-            circuit = QuantumCircuit(qr)
-            circuit._layout = Layout({qr[i]: i*2 for i in range(layout_length)})
-            print(circuit._layout)
-            n = backend.configuration().n_qubits
-            img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
-            filename = "temp.png"
-            fig = plot_circuit_layout(circuit, backend)
-            fig.savefig(filename, bbox_inches="tight")
-            self.assertImagesAreEqual(filename, img_ref, 0.1)
-            # os.remove(filename)
+        layout_length = int(backend._configuration.n_qubits / 2)
+        qr = QuantumRegister(layout_length, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit._layout = Layout({qr[i]: i*2 for i in range(layout_length)})
+        n = backend.configuration().n_qubits
+        img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
+        filename = str(n) + "_plot_circuit_layout_result.png"
+        fig = plot_circuit_layout(circuit, backend)
+        fig.savefig(filename, bbox_inches="tight")
+        self.assertImagesAreEqual(filename, img_ref, 0.1)
+        os.remove(filename)
 
 
 class TestGraphDist(QiskitTestCase):
