@@ -119,12 +119,12 @@ stages:
             stestr run --concurrency 2
           displayName: 'Run tests'
         - task: CopyFiles@2
+          condition: always()
           inputs:
-            condition: always()
             contents: '*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
+          condition: always()
           inputs:
-            condition: always()
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop'
