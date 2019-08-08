@@ -118,13 +118,15 @@ class Result(BaseModel):
             List[str] or np.ndarray: Either the list of each outcome, formatted according to
                 registers in circuit or a complex numpy np.darray with shape:
 
-                | `meas_level` | `meas_return` | shape                                             |
-                |--------------|---------------|---------------------------------------------------|
-                | 0            | `single`      | np.ndarray[shots, memory_slots, memory_slot_size] |
-                | 0            | `avg`         | np.ndarray[memory_slots, memory_slot_size]        |
-                | 1            | `single`      | np.ndarray[shots, memory_slots]                   |
-                | 1            | `avg`         | np.ndarray[memory_slots]                          |
-                | 2            | `memory=True` | list                                              |
+                ============  =============  =====
+                `meas_level`  `meas_return`  shape
+                ============  =============  =====
+                0             `single`       np.ndarray[shots, memory_slots, memory_slot_size]
+                0             `avg`          np.ndarray[memory_slots, memory_slot_size]
+                1             `single`       np.ndarray[shots, memory_slots]
+                1             `avg`          np.ndarray[memory_slots]
+                2             `memory=True`  list
+                ============  =============  =====
 
         Raises:
             QiskitError: if there is no memory data for the circuit.
