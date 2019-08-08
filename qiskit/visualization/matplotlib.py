@@ -178,7 +178,7 @@ class MatplotlibDrawer:
                 boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
             else:
                 boxes_length = round(len(text) / 8) or 1
-            wid = WID * 2.8 * boxes_length
+            wid = WID * 2.2 * boxes_length
         else:
             wid = WID
 
@@ -231,10 +231,10 @@ class MatplotlibDrawer:
 
         if wide:
             if subtext:
-                wid = WID * 2.8
+                wid = WID * 2.2
             else:
                 boxes_wide = round(len(text) / 10) or 1
-                wid = WID * 2.8 * boxes_wide
+                wid = WID * 2.2 * boxes_wide
         else:
             wid = WID
         if fc:
