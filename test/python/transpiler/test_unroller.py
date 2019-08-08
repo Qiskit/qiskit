@@ -239,7 +239,7 @@ class TestUnroller(QiskitTestCase):
         ref_dag = circuit_to_dag(ref_circuit)
         self.assertEqual(unrolled_dag, ref_dag)
 
-    def test_unroll_parameterized_without_expressions(self):
+    def test_simple_unroll_parameterized_without_expressions(self):
         """Verify unrolling parameterized gates without expressions."""
         qr = QuantumRegister(1)
         qc = QuantumCircuit(qr)
@@ -256,14 +256,49 @@ class TestUnroller(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), unrolled_dag)
 
-    def test_unroll_parameterized_with_expressions(self):
-        """Verify that unrolling parameterized gates with expressions raises."""
+    def test_simple_unroll_parameterized_with_expressions(self):
+        """Verify unrolling parameterized gates with expressions."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+        sum_ = theta + phi
+
+        qc.rz(sum_, qr[0])
+        dag = circuit_to_dag(qc)
+
+        unrolled_dag = Unroller(['u1', 'cx']).run(dag)
+
+        expected = QuantumCircuit(qr)
+        expected.u1(sum_, qr[0])
+
+        self.assertEqual(circuit_to_dag(expected), unrolled_dag)
+
+    def test_definition_unroll_parameterized(self):
+        """Verify that unrolling complex gates with parameters raises."""
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
 
         theta = Parameter('theta')
 
         qc.cu1(theta, qr[0], qr[1])
+        dag = circuit_to_dag(qc)
+
+        with self.assertRaisesRegex(QiskitError, 'unsupported'):
+            Unroller(['u1', 'cx']).run(dag)
+            raise QiskitError('unsupported')
+
+    def test_definition_unroll_parameterized_with_expressions(self):
+        """Verify that unrolling complex gates with parameter expressions raises."""
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+        sum_ = theta + phi
+
+        qc.cu1(sum_, qr[0], qr[1])
         dag = circuit_to_dag(qc)
 
         with self.assertRaisesRegex(QiskitError, 'unsupported'):
