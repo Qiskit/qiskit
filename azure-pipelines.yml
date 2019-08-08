@@ -116,12 +116,12 @@ stages:
           displayName: 'Style and lint'
         - bash: |
             set -e
-            stestr run --concurrency 2
+            python -m unittest -v test.python.visualization.test_gate_map
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: always()
           inputs:
-            contents: '*.png'
+            contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: always()
