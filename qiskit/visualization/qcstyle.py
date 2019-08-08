@@ -20,12 +20,12 @@ class DefaultStyle:
     """
     def __init__(self):
         # Set colors
-        basis_color = '#E7AB3B'
-        clifford_color = '#70B7EB'
+        basis_color = '#FA74A6'
+        clifford_color = '#6FA4FF'
         non_gate_color = '#000000'
-        other_color = '#D188B4'
-        pauli_color = '#58C698'
-        iden_color = '#F0E442'
+        other_color = '#BB8BFF'
+        pauli_color = '#05BAB6'
+        iden_color = '#05BAB6'
 
         self.name = 'iqx'
         self.tc = '#000000'
