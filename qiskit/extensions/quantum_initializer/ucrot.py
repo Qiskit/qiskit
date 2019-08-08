@@ -63,7 +63,6 @@ class UCRot(Gate):
                     "An angle cannot be converted to type float (real angles are expected).")
         num_contr = math.log2(len(angle_list))
         if num_contr < 0 or not num_contr.is_integer():
-            import ipdb;ipdb.set_trace()
             raise QiskitError(
                 "The number of controlled rotation gates is not a non-negative power of 2.")
         if rot_axis not in ("X", "Y", "Z"):

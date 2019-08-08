@@ -34,16 +34,20 @@ def instruction_to_gate(instruction):
         QiskitError: Conversion fails if element of definition can't be converted.
     """
     gate_spec_list = []
-    for instr_spec in instruction.definition:
-        instr = instr_spec[0]
-        if isinstance(instr, Gate):
-            thisgate = instr
-        elif isinstance(instr, Instruction):
-            thisgate = instruction_to_gate(instr)
-        else:
-            raise QiskitError('One or more instructions in this instruction '
-                              'cannot be converted to a gate')
-        gate_spec_list.append((thisgate, instr_spec[1], instr_spec[2]))
+    if instruction.definition is not None:
+        for instr_spec in instruction.definition:
+            instr = instr_spec[0]
+            if isinstance(instr, Gate):
+                thisgate = instr
+            elif isinstance(instr, Instruction):
+                thisgate = instruction_to_gate(instr)
+            else:
+                raise QiskitError('One or more instructions in this instruction '
+                                  'cannot be converted to a gate')
+            gate_spec_list.append((thisgate, instr_spec[1], instr_spec[2]))
+    else:
+        raise QiskitError('This instruction ({}) cannot be converted to a gate'.format(
+            instruction.name))
     gate = Gate(instruction.name, instruction.num_qubits, instruction.params)
     gate.definition = gate_spec_list
     return gate

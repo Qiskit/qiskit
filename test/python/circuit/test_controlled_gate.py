@@ -86,7 +86,36 @@ class TestControlledGate(QiskitTestCase):
 
     def test_multi_controlled_composite_gate(self):
         """Test multi controlled composite gate"""
-        num_ctrl = 2
+        num_ctrl = 3
+        ctrl_dim = 2**num_ctrl
+        # create composite gate
+        sub_q = QuantumRegister(2)
+        cgate = QuantumCircuit(sub_q, name='cgate')
+        cgate.h(sub_q[0])
+        cgate.crz(np.pi/2, sub_q[0], sub_q[1])
+        cgate.swap(sub_q[0], sub_q[1])
+        cgate.u3(0.1, 0.2, 0.3, sub_q[1])
+        cgate.t(sub_q[0])
+        num_target = cgate.width()
+        gate = instruction_to_gate(cgate.to_instruction())
+        cont_gate = gate.q_if(num_ctrl_qubits=num_ctrl)
+        control = QuantumRegister(num_ctrl)
+        target = QuantumRegister(num_target)
+        qc = QuantumCircuit(control, target)
+        qc.append(cont_gate, control[:]+target[:])
+        simulator = BasicAer.get_backend('unitary_simulator')
+        op_mat = execute(cgate, simulator).result().get_unitary(0)
+        ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
+        cop_mat = np.kron(op_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
+        for i in range(ctrl_dim-1):
+            cop_mat += np.kron(np.eye(2**num_target), np.diag(np.roll(ctrl_grnd, i)))
+        ref_mat = execute(qc, simulator).result().get_unitary(0)
+        self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
+
+    def test_single_controlled_composite_gate(self):
+        """Test singly controlled composite gate"""
+        num_ctrl = 1
+        ctrl_dim = 2**num_ctrl
         # create composite gate
         sub_q = QuantumRegister(2)
         cgate = QuantumCircuit(sub_q, name='cgate')
@@ -95,93 +124,27 @@ class TestControlledGate(QiskitTestCase):
         num_target = cgate.width()
         gate = instruction_to_gate(cgate.to_instruction())
         cont_gate = gate.q_if(num_ctrl_qubits=num_ctrl)
-        for state in range(1 << num_ctrl):
-            # setup starting state
-            state_str = '{:0>{width}b}'.format(state, width=num_ctrl)
-            with self.subTest(i=state_str):
-                qr1 = QuantumRegister(num_ctrl)
-                qr3 = QuantumRegister(num_target)
-                cr1 = ClassicalRegister(num_ctrl)
-                cr3 = ClassicalRegister(num_target)
-                qc = QuantumCircuit(qr1, qr3, cr1, cr3)
-                for i, bit in enumerate(state_str[::-1]):
-                    if bit == '1':
-                        qc.x(qr1[i])
-                qc.append(cont_gate, qr1[:]+qr3[:])
-                qc.measure(qr1, cr1)
-                qc.measure(qr3, cr3)
-                simulator = BasicAer.get_backend('qasm_simulator')
-                result = execute(qc, simulator).result()
-                counts = result.get_counts()
-                counts_strip = {''.join(key.split()): value for key, value in counts.items()}
-                if state == 2**num_ctrl - 1:
-                    target = {'{:0>{width}b}'.format(2**num_target-1, width=num_target)
-                              + state_str: 512,
-                              '{:0>{width}b}'.format(0, width=num_target)
-                              + state_str: 512}
-                else:
-                    target = {'{:0>{width}b}'.format(0, width=num_target)
-                              + state_str: 1024}
-                self.assertDictAlmostEqual(counts_strip, target, 40)
-
-    def test_single_controlled_composite_gate(self):
-        """Test singly controlled composite gate"""
-        num_ctrl = 1
-        num_ancil = 0
-        # create composite gate
-        sub_q = QuantumRegister(2)
-        cgate = QuantumCircuit(sub_q, name='cgate')
-        cgate.h(sub_q[0])
-        cgate.cx(sub_q[0], sub_q[1])
-        num_target = cgate.width()
-        width = num_ctrl + num_target
-        gate = instruction_to_gate(cgate.to_instruction())
-        for state in range(1 << num_ctrl):
-            # setup starting state
-            state_str = '{:0>{width}b}'.format(state, width=num_ctrl)
-            with self.subTest(i=state_str):
-                qr1 = QuantumRegister(num_ctrl)
-                if num_ancil:
-                    qr2 = QuantumRegister(num_ancil)
-                qr3 = QuantumRegister(num_target)
-                cr = ClassicalRegister(width)
-                if num_ancil:
-                    qc = QuantumCircuit(qr1, qr2, qr3, cr)
-                else:
-                    qc = QuantumCircuit(qr1, qr3, cr)
-                for i, bit in enumerate(state_str[::-1]):
-                    if bit == '1':
-                        qc.x(qr1[i])
-                cgate = gate.q_if(num_ctrl_qubits=num_ctrl)
-                if num_ancil:
-                    qc.append(cgate, qr1[:]+qr2[:]+qr3[:])
-                else:
-                    qc.append(cgate, qr1[:]+qr3[:])
-                qc.measure(qr1, cr[:num_ctrl])
-                qc.measure(qr3, cr[num_ctrl:])
-                simulator = BasicAer.get_backend('qasm_simulator')
-                result = execute(qc, simulator).result()
-                counts = result.get_counts()
-                if state == 2**num_ctrl - 1:
-                    target = {'{:0>{width}b}'.format(2**num_target-1, width=num_target)
-                              + state_str: 512,
-                              '{:0>{width}b}'.format(0, width=num_target)
-                              + state_str: 512}
-                else:
-                    target = {'{:0>{width}b}'.format(0, width=num_target)
-                              + state_str: 1024}
-                self.assertDictAlmostEqual(counts, target, 50)
+        control = QuantumRegister(num_ctrl)
+        target = QuantumRegister(num_target)
+        qc = QuantumCircuit(control, target)
+        qc.append(cont_gate, control[:]+target[:])
+        simulator = BasicAer.get_backend('unitary_simulator')
+        op_mat = execute(cgate, simulator).result().get_unitary(0)
+        ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
+        cop_mat = np.kron(op_mat, np.diag(np.roll(ctrl_grnd, ctrl_dim-1)))
+        for i in range(ctrl_dim-1):
+            cop_mat += np.kron(np.eye(2**num_target), np.diag(np.roll(ctrl_grnd, i)))
+        ref_mat = execute(qc, simulator).result().get_unitary(0)
+        self.assertTrue(matrix_equal(cop_mat, ref_mat, ignore_phase=True))
 
     def test_multi_control_u3(self):
         """test multi controlled u3 gate"""
         import qiskit.extensions.standard.u3 as u3
         import qiskit.extensions.standard.cu3 as cu3
-        from qiskit.tools.qi.qi import partial_trace
         np.set_printoptions(linewidth=250, precision=2)
 
         num_ctrl = 3
         ctrl_dim = 2**num_ctrl
-        num_ancillae = 0
         # U3 gate params
         from math import pi
         alpha, beta, gamma = 0.2, 0.3, 0.4
@@ -207,7 +170,7 @@ class TestControlledGate(QiskitTestCase):
         qr = QuantumRegister(width)
         qc_cu3 = QuantumCircuit(qr)
         cu3gate = cu3.Cu3Gate(alpha, beta, gamma)
-        #import ipdb;ipdb.set_trace()
+
         c_cu3 = cu3gate.q_if(1)
         qc_cu3.append(c_cu3, qr, [])
 
@@ -216,7 +179,7 @@ class TestControlledGate(QiskitTestCase):
         result = job.result()
 
         # Circuit unitaries
-        mat_cnu3 = result.get_unitary(0)        
+        mat_cnu3 = result.get_unitary(0)
 
         mat_u3 = result.get_unitary(1)
         mat_cu3 = result.get_unitary(2)
@@ -240,9 +203,6 @@ class TestControlledGate(QiskitTestCase):
             info, target, decomp = itest[0], itest[1], itest[2]
             with self.subTest(i=info):
                 self.log.info(info)
-                print(info)
-                print(target); print()
-                print(decomp); print()
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
 
     def test_multi_control_u1(self):
