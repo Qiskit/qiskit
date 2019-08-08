@@ -109,8 +109,10 @@ fixes:
     canonical definition of a controlled ``U3Gate``.
   - |
     The handling of layout in the pass manager has been standardized. This
-    fixes several reported issues with handling of initial layout when
-    transpiling circuits.
+    fixes several reported issues with handling layout. The ``initial_layout``
+    kwarg parameter on ``qiskit.compiler.transpile()`` and
+    ``qiskit.execute()`` will now lay out your qubits from the circuit onto
+    the desired qubits on the device when transpiling circuits.
 other:
   - |
     The default PassManager for ``qiskit.compiler.transpile()`` and

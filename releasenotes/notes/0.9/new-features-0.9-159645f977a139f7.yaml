@@ -1,7 +1,16 @@
 ---
 prelude: >
     The 0.9 release includes many new features and many bug fixes. The biggest
-    changes for this release are
+    changes for this release are new debugging capabilities for PassManagers.
+    This includes a function to visualize a PassManager, the ability to add
+    a callback function to a PassManager, and logging of passes run in the
+    PassManager. Additionally, this release standardizes the way that
+    you can set an initial layout for your circuit. So now you can leverage
+    ``initial_layout`` the kwarg parameter on ``qiskit.compiler.transpile()``
+    and ``qiskit.execute()`` and the qubits in the circuit will get laid
+    out on the desire qubits on the device. Visualization of circuits will
+    now also show this clearly when visualizing a circuit that has been
+    transpiled with a layout.
 features:
   - |
     A new analysis pass ``CountOpsLongest`` was added to retrieve the number
@@ -150,7 +159,10 @@ features:
     +--------------------------------+---------------------------------------+
   - |
     Addition of Gray-Synth and Patel–Markov–Hayes algorithms for
-    synthesis of CNOT-Phase and CNOT-only linear circuits.
+    synthesis of CNOT-Phase and CNOT-only linear circuits. These functions
+    allow the synthesis of circuits that consist of only CNOT gates given
+    a linear function or a circuit that consists of only CNOT and phase gates
+    given a matrix description.
   - |
     A new function ``random_circuit`` was added to the
     ``qiskit.circuit.random`` module. This function will generate a random
