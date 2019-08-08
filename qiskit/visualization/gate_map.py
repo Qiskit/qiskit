@@ -212,7 +212,7 @@ def plot_gate_map(backend, figsize=None,
             ax.text(*_idx, s=qubit_labels[var],
                     horizontalalignment='center',
                     verticalalignment='center',
-                    color=font_color, size=font_size, weight='bold')
+                    color=font_color, size=font_size, weight='bold', family='monospace')
     ax.set_xlim([-1, x_max+1])
     ax.set_ylim([-(y_max+1), 1])
     plt.close(fig)
