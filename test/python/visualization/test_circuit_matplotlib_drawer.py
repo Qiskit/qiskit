@@ -65,6 +65,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
+    @unittest.skip('Test is unreliable on some platforms')
     def test_plot_barriers(self):
         """Test to see that plotting barriers works.
         If it is set to False, no blank columns are introduced"""
@@ -116,6 +117,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
+    @unittest.skip('Test is unreliable on some platforms')
     @unittest.skipIf(os.name == 'nt', 'Rendered image differs on windows')
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -123,7 +125,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         """
 
         # add a register with a very long name
-        qr = QuantumRegister(4, 'veryLongQuantumRegisterName012345679')
+        qr = QuantumRegister(4, 'veryLongQuantumRegisterName')
         # add another to make sure adjustments are made based on longest
         qrr = QuantumRegister(1, 'q0')
         circuit = QuantumCircuit(qr, qrr)

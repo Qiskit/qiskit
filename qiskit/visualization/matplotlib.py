@@ -46,7 +46,8 @@ WID = 0.65
 HIG = 0.65
 DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
-PORDER_LINE = 2
+PORDER_LINE = 3
+PORDER_REGLINE = 2
 PORDER_GRAY = 3
 PORDER_TEXT = 6
 PORDER_SUBP = 4
@@ -124,7 +125,7 @@ class MatplotlibDrawer:
             'ymax': 0,
         }
         config = user_config.get_config()
-        if config:
+        if config and (style is None):
             config_style = config.get('circuit_mpl_style', 'default')
             if config_style == 'default':
                 self._style = DefaultStyle()
@@ -180,15 +181,23 @@ class MatplotlibDrawer:
             wid = WID * 2.8 * boxes_length
         else:
             wid = WID
+
         if fc:
             _fc = fc
         else:
-            _fc = self._style.gc
+            if self._style.name != 'bw':
+                _fc = self._style.dispcol['multi']
+                _ec = self._style.dispcol['multi']
+            else:
+                _fc = self._style.gc
+
         qubit_span = abs(ypos) - abs(ypos_max) + 1
         height = HIG + (qubit_span - 1)
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - .5 * HIG),
-            width=wid, height=height, fc=_fc, ec=self._style.lc,
+            width=wid, height=height,
+            fc=_fc,
+            ec=self._style.dispcol['multi'],
             linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
         # Annotate inputs
@@ -237,27 +246,40 @@ class MatplotlibDrawer:
 
         box = patches.Rectangle(
             xy=(xpos - 0.5 * wid, ypos - 0.5 * HIG), width=wid, height=HIG,
-            fc=_fc, ec=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
+            fc=_fc, ec=self._style.edge_color, linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
         if text:
+            font_size = self._style.fs
+            sub_font_size = self._style.sfs
+            # check if gate is not unitary
+            if text in ['reset']:
+                disp_color = self._style.not_gate_lc
+                sub_color = self._style.not_gate_lc
+                font_size = self._style.math_fs
+
+            else:
+                disp_color = self._style.gt
+                sub_color = self._style.sc
+
             if text in self._style.dispcol:
                 disp_text = "${}$".format(self._style.disptex[text])
             else:
                 disp_text = text
+
             if subtext:
                 self.ax.text(xpos, ypos + 0.15 * HIG, disp_text, ha='center',
-                             va='center', fontsize=self._style.fs,
-                             color=self._style.gt, clip_on=True,
+                             va='center', fontsize=font_size,
+                             color=disp_color, clip_on=True,
                              zorder=PORDER_TEXT)
                 self.ax.text(xpos, ypos - 0.3 * HIG, subtext, ha='center',
-                             va='center', fontsize=self._style.sfs,
-                             color=self._style.sc, clip_on=True,
+                             va='center', fontsize=sub_font_size,
+                             color=sub_color, clip_on=True,
                              zorder=PORDER_TEXT)
             else:
                 self.ax.text(xpos, ypos, disp_text, ha='center', va='center',
-                             fontsize=self._style.fs,
-                             color=self._style.gt,
+                             fontsize=font_size,
+                             color=disp_color,
                              clip_on=True,
                              zorder=PORDER_TEXT)
 
@@ -282,7 +304,7 @@ class MatplotlibDrawer:
                      clip_on=True,
                      zorder=PORDER_TEXT)
 
-    def _line(self, xy0, xy1, lc=None, ls=None):
+    def _line(self, xy0, xy1, lc=None, ls=None, zorder=PORDER_LINE):
         x0, y0 = xy0
         x1, y1 = xy1
         if lc is None:
@@ -293,41 +315,43 @@ class MatplotlibDrawer:
             linestyle = 'solid'
         else:
             linestyle = ls
+
         if linestyle == 'doublet':
             theta = np.arctan2(np.abs(x1 - x0), np.abs(y1 - y0))
             dx = 0.05 * WID * np.cos(theta)
             dy = 0.05 * WID * np.sin(theta)
             self.ax.plot([x0 + dx, x1 + dx], [y0 + dy, y1 + dy],
                          color=linecolor,
-                         linewidth=1.0,
+                         linewidth=2,
                          linestyle='solid',
-                         zorder=PORDER_LINE)
+                         zorder=zorder)
             self.ax.plot([x0 - dx, x1 - dx], [y0 - dy, y1 - dy],
                          color=linecolor,
-                         linewidth=1.0,
+                         linewidth=2,
                          linestyle='solid',
-                         zorder=PORDER_LINE)
+                         zorder=zorder)
         else:
             self.ax.plot([x0, x1], [y0, y1],
                          color=linecolor,
-                         linewidth=1.0,
+                         linewidth=2,
                          linestyle=linestyle,
-                         zorder=PORDER_LINE)
+                         zorder=zorder)
 
     def _measure(self, qxy, cxy, cid):
         qx, qy = qxy
         cx, cy = cxy
 
         self._gate(qxy, fc=self._style.dispcol['meas'])
+
         # add measure symbol
         arc = patches.Arc(xy=(qx, qy - 0.15 * HIG), width=WID * 0.7,
                           height=HIG * 0.7, theta1=0, theta2=180, fill=False,
-                          ec=self._style.lc, linewidth=1.5,
+                          ec=self._style.not_gate_lc, linewidth=2,
                           zorder=PORDER_GATE)
         self.ax.add_patch(arc)
         self.ax.plot([qx, qx + 0.35 * WID],
                      [qy - 0.15 * HIG, qy + 0.20 * HIG],
-                     color=self._style.lc, linewidth=1.5, zorder=PORDER_GATE)
+                     color=self._style.not_gate_lc, linewidth=2, zorder=PORDER_GATE)
         # arrow
         self._line(qxy, [cx, cy + 0.35 * WID], lc=self._style.cc,
                    ls=self._style.cline)
@@ -358,37 +382,57 @@ class MatplotlibDrawer:
                              linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _ctrl_qubit(self, xy):
+    def _ctrl_qubit(self, xy, fc=None, ec=None):
+        if fc is None:
+            fc = self._style.lc
+        if ec is None:
+            ec = self._style.lc
         xpos, ypos = xy
-
         box = patches.Circle(xy=(xpos, ypos), radius=WID * 0.15,
-                             fc=self._style.lc, ec=self._style.lc,
+                             fc=fc, ec=ec,
                              linewidth=1.5, zorder=PORDER_GATE)
         self.ax.add_patch(box)
 
-    def _tgt_qubit(self, xy):
+    def _tgt_qubit(self, xy, fc=None, ec=None, ac=None,
+                   add_width=None):
+        if fc is None:
+            fc = self._style.dispcol['target']
+        if ec is None:
+            ec = self._style.lc
+        if ac is None:
+            ac = self._style.lc
+        if add_width is None:
+            add_width = 0.35
+
+        linewidth = 2
+
+        if self._style.dispcol['target'] == '#ffffff':
+            add_width = self._style.colored_add_width
+
         xpos, ypos = xy
 
         box = patches.Circle(xy=(xpos, ypos), radius=HIG * 0.35,
-                             fc=self._style.dispcol['target'],
-                             ec=self._style.lc, linewidth=1.5,
+                             fc=fc, ec=ec, linewidth=linewidth,
                              zorder=PORDER_GATE)
         self.ax.add_patch(box)
         # add '+' symbol
-        self.ax.plot([xpos, xpos], [ypos - 0.35 * HIG, ypos + 0.35 * HIG],
-                     color=self._style.lc, linewidth=1.0, zorder=PORDER_GATE)
-        self.ax.plot([xpos - 0.35 * HIG, xpos + 0.35 * HIG], [ypos, ypos],
-                     color=self._style.lc, linewidth=1.0, zorder=PORDER_GATE)
+        self.ax.plot([xpos, xpos], [ypos - add_width * HIG,
+                                    ypos + add_width * HIG],
+                     color=ac, linewidth=linewidth, zorder=PORDER_GATE+1)
+
+        self.ax.plot([xpos - add_width * HIG, xpos + add_width * HIG],
+                     [ypos, ypos], color=ac, linewidth=linewidth,
+                     zorder=PORDER_GATE+1)
 
     def _swap(self, xy):
         xpos, ypos = xy
-
+        color = self._style.dispcol['swap']
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos - 0.20 * WID, ypos + 0.20 * WID],
-                     color=self._style.lc, linewidth=1.5, zorder=PORDER_LINE)
+                     color=color, linewidth=2, zorder=PORDER_LINE+1)
         self.ax.plot([xpos - 0.20 * WID, xpos + 0.20 * WID],
                      [ypos + 0.20 * WID, ypos - 0.20 * WID],
-                     color=self._style.lc, linewidth=1.5, zorder=PORDER_LINE)
+                     color=color, linewidth=2, zorder=PORDER_LINE+1)
 
     def _barrier(self, config, anc):
         xys = config['coord']
@@ -505,21 +549,22 @@ class MatplotlibDrawer:
         # quantum register
         for qreg in self._qreg_dict.values():
             if n_fold == 0:
-                label = qreg['label'] + ' : $\\left|0\\right\\rangle$'
+                label = qreg['label']
             else:
                 label = qreg['label']
             y = qreg['y'] - n_fold * (self._cond['n_lines'] + 1)
             self.ax.text(self.x_offset, y, label, ha='right', va='center',
-                         fontsize=self._style.fs,
+                         fontsize=1.25*self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y])
+            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y],
+                       zorder=PORDER_REGLINE)
         # classical register
         this_creg_dict = {}
         for creg in self._creg_dict.values():
             if n_fold == 0:
-                label = creg['label'] + ' :  0 '
+                label = creg['label']
             else:
                 label = creg['label']
             y = creg['y'] - n_fold * (self._cond['n_lines'] + 1)
@@ -540,12 +585,12 @@ class MatplotlibDrawer:
                              clip_on=True,
                              zorder=PORDER_TEXT)
             self.ax.text(-0.5, y, this_creg['label'], ha='right', va='center',
-                         fontsize=self._style.fs,
+                         fontsize=1.5*self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
             self._line([0, y], [self._cond['xmax'], y], lc=self._style.cc,
-                       ls=self._style.cline)
+                       ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
         if feedline_r:
@@ -619,8 +664,8 @@ class MatplotlibDrawer:
 
                 _iswide = op.name in _wide_gate
                 if op.name not in ['barrier', 'snapshot', 'load', 'save',
-                                   'noise', 'cswap', 'swap', 'measure'] and len(
-                                       op.name) >= 4:
+                                   'noise', 'cswap', 'swap', 'measure',
+                                   'reset'] and len(op.name) >= 4:
                     _iswide = True
 
                 # get qreg index
@@ -752,40 +797,60 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 2:
                     # cx
                     if op.name == 'cx':
-                        self._ctrl_qubit(q_xy[0])
-                        self._tgt_qubit(q_xy[1])
+                        if self._style.dispcol['cx'] != '#ffffff':
+                            add_width = self._style.colored_add_width
+                        else:
+                            add_width = None
+                        self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['cx'],
+                                         ec=self._style.dispcol['cx'])
+                        if self._style.name != 'bw':
+                            self._tgt_qubit(q_xy[1], fc=self._style.dispcol['cx'],
+                                            ec=self._style.dispcol['cx'],
+                                            ac=self._style.dispcol['target'],
+                                            add_width=add_width)
+                        else:
+                            self._tgt_qubit(q_xy[1], fc=self._style.dispcol['target'],
+                                            ec=self._style.dispcol['cx'],
+                                            ac=self._style.dispcol['cx'],
+                                            add_width=add_width)
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t, lc=self._style.dispcol['cx'])
                     # cz for latexmode
                     elif op.name == 'cz':
-                        if self._style.latexmode:
-                            self._ctrl_qubit(q_xy[0])
-                            self._ctrl_qubit(q_xy[1])
-                        else:
-                            disp = op.name.replace('c', '')
-                            self._ctrl_qubit(q_xy[0])
-                            self._gate(q_xy[1], wide=_iswide, text=disp)
-                        # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
-                    # control gate
-                    elif op.name in ['cy', 'ch', 'cu3', 'crz']:
                         disp = op.name.replace('c', '')
-                        self._ctrl_qubit(q_xy[0])
+                        if self._style.name != 'bw':
+                            color = self._style.dispcol['multi']
+                            self._ctrl_qubit(q_xy[0],
+                                             fc=color,
+                                             ec=color)
+                        else:
+                            self._ctrl_qubit(q_xy[0])
+                        self._gate(q_xy[1], wide=_iswide, text=disp, fc=color)
+                        # add qubit-qubit wiring
+                        if self._style.name != 'bw':
+                            self._line(qreg_b, qreg_t,
+                                       lc=self._style.dispcol['multi'])
+                        else:
+                            self._line(qreg_b, qreg_t, zorder=PORDER_LINE+1)
+                    # control gate
+                    elif op.name in ['cy', 'ch', 'cu3', 'cu1', 'crz']:
+                        disp = op.name.replace('c', '')
+
+                        color = None
+                        if self._style.name != 'bw':
+                            color = self._style.dispcol['multi']
+
+                        self._ctrl_qubit(q_xy[0], fc=color, ec=color)
                         if param:
-                            self._gate(q_xy[1], wide=_iswide, text=disp,
+                            self._gate(q_xy[1], wide=_iswide,
+                                       text=disp,
+                                       fc=color,
                                        subtext='{}'.format(param))
                         else:
                             self._gate(q_xy[1], wide=_iswide, text=disp)
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
-                    # cu1
-                    elif op.name == 'cu1':
-                        self._ctrl_qubit(q_xy[0])
-                        self._ctrl_qubit(q_xy[1])
-                        self._sidetext(qreg_b, param)
+                        self._line(qreg_b, qreg_t, lc=color)
 
-                        # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
                     # rzz gate
                     elif op.name == 'rzz':
                         self._ctrl_qubit(q_xy[0])
@@ -799,7 +864,7 @@ class MatplotlibDrawer:
                         self._swap(q_xy[0])
                         self._swap(q_xy[1])
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t, lc=self._style.dispcol['swap'])
                     # Custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, wide=_iswide,
@@ -810,18 +875,29 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 3:
                     # cswap gate
                     if op.name == 'cswap':
-                        self._ctrl_qubit(q_xy[0])
+                        self._ctrl_qubit(q_xy[0],
+                                         fc=self._style.dispcol['multi'],
+                                         ec=self._style.dispcol['multi'])
                         self._swap(q_xy[1])
                         self._swap(q_xy[2])
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # ccx gate
                     elif op.name == 'ccx':
-                        self._ctrl_qubit(q_xy[0])
-                        self._ctrl_qubit(q_xy[1])
-                        self._tgt_qubit(q_xy[2])
+                        self._ctrl_qubit(q_xy[0], fc=self._style.dispcol['multi'],
+                                         ec=self._style.dispcol['multi'])
+                        self._ctrl_qubit(q_xy[1], fc=self._style.dispcol['multi'],
+                                         ec=self._style.dispcol['multi'])
+                        if self._style.name != 'bw':
+                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['multi'],
+                                            ec=self._style.dispcol['multi'],
+                                            ac=self._style.dispcol['target'])
+                        else:
+                            self._tgt_qubit(q_xy[2], fc=self._style.dispcol['target'],
+                                            ec=self._style.dispcol['multi'],
+                                            ac=self._style.dispcol['multi'])
                         # add qubit-qubit wiring
-                        self._line(qreg_b, qreg_t)
+                        self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # custom gate
                     else:
                         self._custom_multiqubit_gate(q_xy, wide=_iswide,
