@@ -235,7 +235,7 @@ stages:
             set -e
             stestr run --concurrency 2
           displayName: 'Run tests'
-        - task: PublishTestResults@1
+        - task: PublishBuildArtifacts@1
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'temp.png'
+            artifactName: 'drop'
