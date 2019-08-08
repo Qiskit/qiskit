@@ -121,7 +121,7 @@ stages:
         - task: CopyFiles@2
           condition: always()
           inputs:
-            contents: '**/*.png'
+            contents: 'temp.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: always()
