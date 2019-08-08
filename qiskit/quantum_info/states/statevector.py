@@ -26,6 +26,7 @@ from qiskit.circuit.instruction import Instruction
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.quantum_state import QuantumState
 from qiskit.quantum_info.operators.operator import Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 
 
 class Statevector(QuantumState):
@@ -226,6 +227,31 @@ class Statevector(QuantumState):
             new_dims[qubit] = other._output_dims[i]
         # Replace evolved dimensions
         return Statevector(np.reshape(tensor, np.product(new_dims)), dims=new_dims)
+
+    def equiv(self, other, rtol=None, atol=None):
+        """Return True if statevectors are equivalent up to global phase.
+
+        Args:
+            other (Statevector): a statevector object.
+            rtol (float): relative tolerance value for comparison.
+            atol (float): absolute tolerance value for comparison.
+
+        Returns:
+            bool: True if statevectors are equivalent up to global phase.
+        """
+        if not isinstance(other, Statevector):
+            try:
+                other = Statevector(other)
+            except QiskitError:
+                return False
+        if self.dim != other.dim:
+            return False
+        if atol is None:
+            atol = self._atol
+        if rtol is None:
+            rtol = self._rtol
+        return matrix_equal(self.data, other.data, ignore_phase=True,
+                            rtol=rtol, atol=atol)
 
     @classmethod
     def from_label(cls, label):
