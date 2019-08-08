@@ -145,6 +145,9 @@ The format is based on [Keep a Changelog].
 -   Correctly serialize complex numbers with a nonzero real part
 -   Fixed bug in measure sampling for `BasicAer` Qasm simulator if only a
     subset of qubits are measured (\#2790)
+-   Parameter objects can be serialized and communicated between
+    sub-processes (\#2429)
+-   Parameterized circuits no longer need to be transpiled individually (\#2864)
 
 
 ## [0.8.2] - 2019-06-14
