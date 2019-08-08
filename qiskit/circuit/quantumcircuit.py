@@ -23,7 +23,7 @@ from collections import OrderedDict
 from qiskit.circuit.instruction import Instruction
 from qiskit.qasm.qasm import Qasm
 from qiskit.exceptions import QiskitError
-from qiskit.circuit.parameter import Parameter
+from .parameterexpression import ParameterExpression
 from .quantumregister import QuantumRegister, Qubit
 from .classicalregister import ClassicalRegister, Clbit
 from .parametertable import ParameterTable
@@ -389,16 +389,17 @@ class QuantumCircuit:
 
         # track variable parameters in instruction
         for param_index, param in enumerate(instruction.params):
-            if isinstance(param, Parameter):
-                current_symbols = self.parameters
+            if isinstance(param, ParameterExpression):
+                current_parameters = self.parameters
 
-                if param in current_symbols:
-                    self._parameter_table[param].append((instruction, param_index))
-                else:
-                    if param.name in {p.name for p in current_symbols}:
-                        raise QiskitError(
-                            'Name conflict on adding parameter: {}'.format(param.name))
-                    self._parameter_table[param] = [(instruction, param_index)]
+                for parameter in param.parameters:
+                    if parameter in current_parameters:
+                        self._parameter_table[parameter].append((instruction, param_index))
+                    else:
+                        if parameter.name in {p.name for p in current_parameters}:
+                            raise QiskitError(
+                                'Name conflict on adding parameter: {}'.format(parameter.name))
+                        self._parameter_table[parameter] = [(instruction, param_index)]
 
         return instruction
 
@@ -860,7 +861,7 @@ class QuantumCircuit:
     def _unroll_param_dict(self, value_dict):
         unrolled_value_dict = {}
         for (param, value) in value_dict.items():
-            if isinstance(param, Parameter):
+            if isinstance(param, ParameterExpression):
                 unrolled_value_dict[param] = value
             if isinstance(param, ParameterVector):
                 if not len(param) == len(value):
@@ -873,7 +874,7 @@ class QuantumCircuit:
     def _bind_parameter(self, parameter, value):
         """Assigns a parameter value to matching instructions in-place."""
         for (instr, param_index) in self._parameter_table[parameter]:
-            instr.params[param_index] = value
+            instr.params[param_index] = instr.params[param_index].bind({parameter: value})
 
     def _substitute_parameters(self, parameter_map):
         """For every {existing_parameter: replacement_parameter} pair in
@@ -881,7 +882,9 @@ class QuantumCircuit:
         circuit instructions and the parameter table.
         """
         for old_parameter, new_parameter in parameter_map.items():
-            self._bind_parameter(old_parameter, new_parameter)
+            for (instr, param_index) in self._parameter_table[old_parameter]:
+                new_param = instr.params[param_index].subs({old_parameter: new_parameter})
+                instr.params[param_index] = new_param
             self._parameter_table[new_parameter] = self._parameter_table.pop(old_parameter)
 
 
