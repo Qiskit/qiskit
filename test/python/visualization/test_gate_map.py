@@ -48,10 +48,12 @@ class TestGateMap(QiskitVisualizationTestCase):
 
     def test_plot_circuit_layout(self):
         """ tests plot_circuit_layout for each device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
-        qr = QuantumRegister(3, 'qr')
-        circuit = QuantumCircuit(qr)
-        circuit._layout = Layout({qr[0]: 4, qr[1]: 0, qr[2]: 2})
         for backend in [self.backends[3]]:
+            layout_length = int(backend._configuration.n_qubits / 2)
+            qr = QuantumRegister(layout_length, 'qr')
+            circuit = QuantumCircuit(qr)
+            circuit._layout = Layout({qr[i]: i*2 for i in range(layout_length)})
+            print(circuit._layout)
             n = backend.configuration().n_qubits
             img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
             filename = "temp.png"
