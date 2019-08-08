@@ -48,6 +48,8 @@ stages:
     - job: 'Linux_Tests_and_Lint'
       pool: {vmImage: 'ubuntu-16.04'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
       strategy:
         matrix:
           Python35:
@@ -176,6 +178,8 @@ stages:
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
       strategy:
         matrix:
           Python36:
