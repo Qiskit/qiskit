@@ -238,5 +238,8 @@ class ParameterExpression():
     def __copy__(self):
         return self
 
+    def __eq__(self, other):
+        return type(other)(self._symbol_expr) == other
+
     def __deepcopy__(self, memo=None):
         return self

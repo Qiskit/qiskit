@@ -68,11 +68,11 @@ class TestParameters(QiskitTestCase):
         qc.rx(theta, qr)
         qc.u3(0, theta, 0, qr)
         bqc = qc.bind_parameters({theta: 0.5})
-        self.assertEqual(float(bqc.data[0][0].params[0]), 0.5)
-        self.assertEqual(float(bqc.data[1][0].params[1]), 0.5)
+        self.assertEqual(bqc.data[0][0].params[0], 0.5)
+        self.assertEqual(bqc.data[1][0].params[1], 0.5)
         bqc = qc.bind_parameters({theta: 0.6})
-        self.assertEqual(float(bqc.data[0][0].params[0]), 0.6)
-        self.assertEqual(float(bqc.data[1][0].params[1]), 0.6)
+        self.assertEqual(bqc.data[0][0].params[0], 0.6)
+        self.assertEqual(bqc.data[1][0].params[1], 0.6)
 
     def test_multiple_parameters(self):
         """Test setting multiple parameters"""
@@ -97,8 +97,8 @@ class TestParameters(QiskitTestCase):
 
         self.assertEqual(pqc.parameters, {x})
 
-        self.assertEqual(float(pqc.data[0][0].params[0]), 2)
-        self.assertEqual(float(pqc.data[1][0].params[1]), 2)
+        self.assertEqual(pqc.data[0][0].params[0], 2)
+        self.assertEqual(pqc.data[1][0].params[1], 2)
 
     def test_expression_partial_binding(self):
         """Test that binding a subset of expression parameters returns a new
@@ -121,7 +121,7 @@ class TestParameters(QiskitTestCase):
 
         self.assertEqual(fbqc.parameters, set())
         self.assertTrue(isinstance(fbqc.data[0][0].params[0], ParameterExpression))
-        self.assertEqual(float(fbqc.data[0][0].params[0]), 3)
+        self.assertEqual(fbqc.data[0][0].params[0], 3)
 
     def test_expression_partial_binding_zero(self):
         """Verify that binding remains possible even if a previous partial bind
@@ -144,7 +144,7 @@ class TestParameters(QiskitTestCase):
 
         self.assertEqual(fbqc.parameters, set())
         self.assertTrue(isinstance(fbqc.data[0][0].params[0], ParameterExpression))
-        self.assertEqual(float(fbqc.data[0][0].params[0]), 0)
+        self.assertEqual(fbqc.data[0][0].params[0], 0)
 
     def test_raise_if_assigning_params_not_in_circuit(self):
         """Verify binding parameters which are not present in the circuit raises an error."""
@@ -175,8 +175,7 @@ class TestParameters(QiskitTestCase):
             circs.append(qc_aer.bind_parameters({theta: theta_i}))
         qobj = assemble(circs)
         for index, theta_i in enumerate(theta_list):
-            self.assertEqual(float(qobj.experiments[index].instructions[0].params[0]),
-                             theta_i)
+            self.assertEqual(qobj.experiments[index].instructions[0].params[0], theta_i)
 
     def test_circuit_composition(self):
         """Test preservation of parameters when combining circuits."""
@@ -244,7 +243,7 @@ class TestParameters(QiskitTestCase):
         bqc = qc.bind_parameters({theta: theta_vals})
         for gate_tuple in bqc.data:
             if hasattr(gate_tuple[0], 'params') and gate_tuple[0].params:
-                self.assertIn(float(gate_tuple[0].params[0]), theta_vals)
+                self.assertIn(gate_tuple[0].params[0], theta_vals)
 
     def test_compile_vector(self):
         """Test compiling a circuit with an unbound ParamterVector"""
@@ -314,8 +313,7 @@ class TestParameterExpressions(QiskitTestCase):
                 expr = op(const, x)
                 bound_expr = expr.bind({x: 2.3})
 
-                self.assertEqual(float(bound_expr),
-                                 op(const, 2.3))
+                self.assertEqual(bound_expr, op(const, 2.3))
 
                 # Division by zero will raise. Tested elsewhere.
                 if const == 0 and op == truediv:
@@ -325,8 +323,7 @@ class TestParameterExpressions(QiskitTestCase):
                 expr = op(x, const)
                 bound_expr = expr.bind({x: 2.3})
 
-                self.assertEqual(float(bound_expr),
-                                 op(2.3, const))
+                self.assertEqual(bound_expr, op(2.3, const))
 
     def test_operating_on_a_parameter_with_a_non_float_will_raise(self):
         """Verify operations between a Parameter and a non-float will raise."""
@@ -378,14 +375,12 @@ class TestParameterExpressions(QiskitTestCase):
             fully_bound_expr = partially_bound_expr.bind({y: -numpy.pi})
 
             self.assertEqual(fully_bound_expr.parameters, set())
-            self.assertEqual(float(fully_bound_expr),
-                             op(2.3, -numpy.pi))
+            self.assertEqual(fully_bound_expr, op(2.3, -numpy.pi))
 
             bound_expr = expr.bind({x: 2.3, y: -numpy.pi})
 
             self.assertEqual(bound_expr.parameters, set())
-            self.assertEqual(float(bound_expr),
-                             op(2.3, -numpy.pi))
+            self.assertEqual(bound_expr, op(2.3, -numpy.pi))
 
     def test_expressions_operation_order(self):
         """Verify ParameterExpressions respect order of operations."""
@@ -398,23 +393,23 @@ class TestParameterExpressions(QiskitTestCase):
         expr = (x + y) * z
         bound_expr = expr.bind({x: 1, y: 2, z: 3})
 
-        self.assertEqual(float(bound_expr), 9)
+        self.assertEqual(bound_expr, 9)
 
         expr = x * (y + z)
         bound_expr = expr.bind({x: 1, y: 2, z: 3})
 
-        self.assertEqual(float(bound_expr), 5)
+        self.assertEqual(bound_expr, 5)
 
         # Multiplication/division before addition/subtraction
         expr = x + y * z
         bound_expr = expr.bind({x: 1, y: 2, z: 3})
 
-        self.assertEqual(float(bound_expr), 7)
+        self.assertEqual(bound_expr, 7)
 
         expr = x * y + z
         bound_expr = expr.bind({x: 1, y: 2, z: 3})
 
-        self.assertEqual(float(bound_expr), 5)
+        self.assertEqual(bound_expr, 5)
 
     def test_nested_expressions(self):
         """Verify ParameterExpressions can also be the target of operations."""
@@ -427,7 +422,7 @@ class TestParameterExpressions(QiskitTestCase):
         expr2 = expr1 + z
         bound_expr2 = expr2.bind({x: 1, y: 2, z: 3})
 
-        self.assertEqual(float(bound_expr2), 5)
+        self.assertEqual(bound_expr2, 5)
 
     def test_name_collision(self):
         """Verify Expressions of distinct Parameters of shared name raises."""
@@ -472,10 +467,10 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(qc2.parameters, {delta, theta, phi})
 
         bound_qc = qc2.decompose().bind_parameters({delta: 1, theta: 2, phi: 3})
-        self.assertEqual(float(bound_qc.data[0][0].params[0]), 1)
-        self.assertEqual(float(bound_qc.data[1][0].params[0]), 2)
-        self.assertEqual(float(bound_qc.data[2][0].params[0]), numpy.pi/2)
-        self.assertEqual(float(bound_qc.data[3][0].params[0]), 2 * 3)
+        self.assertEqual(bound_qc.data[0][0].params[0], 1)
+        self.assertEqual(bound_qc.data[1][0].params[0], 2)
+        self.assertEqual(bound_qc.data[2][0].params[0], numpy.pi/2)
+        self.assertEqual(bound_qc.data[3][0].params[0], 2 * 3)
 
     def test_to_instruction_expression_parameter_map(self):
         """Test preservation of expressions via instruction parameter_map."""
@@ -503,7 +498,7 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(qc2.parameters, {delta, theta_p, phi_p})
 
         bound_qc = qc2.decompose().bind_parameters({delta: 1, theta_p: 2, phi_p: 3})
-        self.assertEqual(float(bound_qc.data[0][0].params[0]), 1)
-        self.assertEqual(float(bound_qc.data[1][0].params[0]), 2)
-        self.assertEqual(float(bound_qc.data[2][0].params[0]), numpy.pi/2)
-        self.assertEqual(float(bound_qc.data[3][0].params[0]), 2 * 3)
+        self.assertEqual(bound_qc.data[0][0].params[0], 1)
+        self.assertEqual(bound_qc.data[1][0].params[0], 2)
+        self.assertEqual(bound_qc.data[2][0].params[0], numpy.pi/2)
+        self.assertEqual(bound_qc.data[3][0].params[0], 2 * 3)
