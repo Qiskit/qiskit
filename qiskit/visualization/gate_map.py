@@ -272,7 +272,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     for idx, edge in enumerate(cmap):
         if edge[0] in qubits and edge[1] in qubits:
             lcolors[idx] = 'k'
-
+    print(qubit_labels)
     fig = plot_gate_map(backend,
                         qubit_color=qcolors,
                         qubit_labels=qubit_labels,
