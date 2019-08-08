@@ -41,7 +41,7 @@ deprecations:
   - |
     Accessing a ``qiskit.circuit.Qubit``, ``qiskit.circuit.Clbit``, or
     ``qiskit.circuit.Bit`` class by index is deprecated (for compatibility
-    with the ``(register, index)`` tuples that these classes replaced). 
+    with the ``(register, index)`` tuples that these classes replaced).
     Instead you should use the ``register`` and ``index`` attributes.
   - |
     Passing in a bit to the ``qiskit.QuantumCircuit`` method ``append`` as
