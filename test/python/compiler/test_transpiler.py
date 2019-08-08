@@ -430,6 +430,41 @@ class TestTranspile(QiskitTestCase):
 
         self.assertEqual(expected_qc, transpiled_qc)
 
+    def test_parameter_expression_circuit_for_simulator(self):
+        """Verify that a circuit including expressions of parameters can be
+        transpiled for a simulator backend."""
+        qr = QuantumRegister(2, name='qr')
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        square = theta * theta
+        qc.rz(square, qr[0])
+
+        transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
+
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.u1(square, qr[0])
+
+        self.assertEqual(expected_qc, transpiled_qc)
+
+    def test_parameter_expression_circuit_for_device(self):
+        """Verify that a circuit including epxressions of parameters can be
+        transpiled for a device backend."""
+        qr = QuantumRegister(2, name='qr')
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        square = theta * theta
+        qc.rz(square, qr[0])
+
+        transpiled_qc = transpile(qc, backend=FakeMelbourne())
+
+        qr = QuantumRegister(14, 'q')
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.u1(square, qr[0])
+
+        self.assertEqual(expected_qc, transpiled_qc)
+
     def test_final_measurement_barrier_for_devices(self):
         """Verify BarrierBeforeFinalMeasurements pass is called in default pipeline for devices."""
 
