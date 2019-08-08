@@ -989,7 +989,15 @@ class WeightedPauliOperator(BaseOperator):
 class Z2Symmetries:
 
     def __init__(self, symmetries, sq_paulis, sq_list, tapering_values=None):
+        """
+        Constructor.
 
+        Args:
+            symmetries ([Pauli]): the list of Pauli objects representing the Z_2 symmetries
+            sq_paulis ([Pauli]): the list of single - qubit Pauli objects to construct the Cliffors operators
+            sq_list ([int]): the list of support of the single-qubit Pauli objects used to build the clifford operators
+            tapering_values ([int], optional): values determines the sector.
+        """
         if len(symmetries) != len(sq_paulis):
             raise AquaError("Number of Z2 symmetries has to be the same as number of single-qubit pauli x.")
 
@@ -1015,6 +1023,11 @@ class Z2Symmetries:
 
     @property
     def cliffords(self):
+        """
+        Get clifford operators, build based on symmetries and single-qubit X.
+        Returns:
+            [WeightedPauliOperator]: a list of unitaries used to digonalize the Hamiltonian.
+        """
         cliffords = [WeightedPauliOperator(paulis=[[1 / np.sqrt(2), pauli_symm], [1 / np.sqrt(2), sq_pauli]])
                      for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)]
         return cliffords
@@ -1056,9 +1069,21 @@ class Z2Symmetries:
         return ret
 
     def copy(self):
+        """
+        Get a copy of self.
+
+        Returns:
+            Z2Symmetries
+        """
         return deepcopy(self)
 
     def is_empty(self):
+        """
+        Check the z2_symmetries is empty or not.
+
+        Returns:
+            bool:
+        """
         if self._symmetries != [] and self._sq_paulis != [] and self._sq_list != []:
             return False
         else:
@@ -1070,10 +1095,7 @@ class Z2Symmetries:
         Finds Z2 Pauli-type symmetries of an Operator.
 
         Returns:
-            [Pauli]: the list of Pauli objects representing the Z_2 symmetries
-            [Pauli]: the list of single - qubit Pauli objects to construct the Cliffors operators
-            [WeightedPauliOperator]: the list of Clifford unitaries to block diagonalize Operator
-            [int]: the list of support of the single-qubit Pauli objects used to build the clifford operators
+            Z2Symmetries: a z2_symmetries object contains symmetries, single-qubit X, single-qubit list.
         """
 
         pauli_symmetries = []
@@ -1163,7 +1185,18 @@ class Z2Symmetries:
         return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
     def taper(self, operator, tapering_values=None):
+        """
+        Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
+        The `tapering_values` will be stored into the resulted operator for a record.
 
+        Args:
+            operator (WeightedPauliOperator): the to-be-tapered operator.
+            tapering_values ([int], optional): if None, returns operators at each sector; otherwise, returns
+                                               the operator located in that sector.
+        Returns:
+            [WeightedPauliOperator] or WeightedPauliOperator:
+                - if tapering_values is None: [WeightedPauliOperator]; otherwise, WeightedPauliOperator
+        """
         if len(self._symmetries) == 0 or len(self._sq_paulis) == 0 or len(self._sq_list) == 0:
             raise AquaError("Z2 symmetries, single qubit pauli and single qubit list cannot be empty.")
 
