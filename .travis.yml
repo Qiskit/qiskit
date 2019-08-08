@@ -105,6 +105,14 @@ jobs:
         - sudo pip install -U twine
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
+    - if: tag IS present
+      env:
+        - TWINE_USERNAME=qiskit
+      python: 3.6
+      install: pip install -U twine
+      script:
+        - python3 setup.py sdist
+        - twine upload dist/qiskit-terra*tar.gz
     - os: osx
       language: generic
       if: tag IS present
@@ -214,7 +222,7 @@ jobs:
       - echo $TRAVIS_BRANCH
       - echo $TRAVIS_PULL_REQUEST_BRANCH
       - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
-      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography)\.' $TRAVIS_BRANCH HEAD
+      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $TRAVIS_BRANCH HEAD
 
 matrix:
   fast_finish: true

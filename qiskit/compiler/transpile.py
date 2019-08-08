@@ -13,6 +13,8 @@
 # that they have been altered from the originals.
 
 """Circuit transpile function"""
+
+import logging
 import warnings
 
 from qiskit.transpiler import Layout, CouplingMap
@@ -30,9 +32,9 @@ def transpile(circuits,
               basis_gates=None, coupling_map=None, backend_properties=None,
               initial_layout=None, seed_transpiler=None,
               optimization_level=None,
-              pass_manager=None):
-    """transpile one or more circuits, according to some desired
-    transpilation targets.
+              pass_manager=None, callback=None, output_name=None,
+              log_level=logging.INFO):
+    """Transpile one or more circuits, according to some desired transpilation targets.
 
     All arguments may be given as either singleton or list. In case of list,
     the length must be equal to the number of circuits being transpiled.
@@ -48,24 +50,28 @@ def transpile(circuits,
             backend.configuration() and backend.properties().
             If any other option is explicitly set (e.g. coupling_map), it
             will override the backend's.
+
             Note: the backend arg is purely for convenience. The resulting
-                circuit may be run on any backend as long as it is compatible.
+            circuit may be run on any backend as long as it is compatible.
 
         basis_gates (list[str]):
             List of basis gate names to unroll to.
-            e.g:
+            e.g::
+
                 ['u1', 'u2', 'u3', 'cx']
+
             If None, do not unroll.
 
         coupling_map (CouplingMap or list):
             Coupling map (perhaps custom) to target in mapping.
             Multiple formats are supported:
-            a. CouplingMap instance
 
-            b. list
+            1. CouplingMap instance
+            2. list
                 Must be given as an adjacency matrix, where each entry
                 specifies all two-qubit interactions supported by backend
-                e.g:
+                e.g::
+
                     [[0, 1], [0, 3], [1, 2], [1, 5], [2, 5], [4, 1], [5, 3]]
 
         backend_properties (BackendProperties):
@@ -82,24 +88,28 @@ def transpile(circuits,
             may permute qubits through swaps or other means.
 
             Multiple formats are supported:
-            a. Layout instance
 
-            b. dict
-                virtual to physical:
+            1. Layout instance
+            2. dict
+                * virtual to physical::
+
                     {qr[0]: 0,
                      qr[1]: 3,
                      qr[2]: 5}
 
-                physical to virtual:
+                * physical to virtual::
+
                     {0: qr[0],
                      3: qr[1],
                      5: qr[2]}
 
-            c. list
-                virtual to physical:
+            3. list
+                * virtual to physical::
+
                     [0, 3, 5]  # virtual qubits are ordered (in addition to named)
 
-                physical to virtual:
+                * physical to virtual::
+
                     [qr[0], None, None, qr[1], None, qr[2]]
 
         seed_transpiler (int):
@@ -109,10 +119,13 @@ def transpile(circuits,
             How much optimization to perform on the circuits.
             Higher levels generate more optimized circuits,
             at the expense of longer transpilation time.
-                0: no optimization
-                1: light optimization
-                2: heavy optimization
-                3: even heavier optimization
+
+                * 0: no optimization
+                * 1: light optimization
+                * 2: heavy optimization
+                * 3: even heavier optimization
+
+            If None, level 1 will be chosen as default.
 
         pass_manager (PassManager):
             The pass manager to use for a custom pipeline of transpiler passes.
@@ -120,6 +133,41 @@ def transpile(circuits,
             pass manager will be used directly (Qiskit will not attempt to
             auto-select a pass manager based on transpile options).
 
+        callback (func):
+            A callback function that will be called after each
+            pass execution. The function will be called with 5 keyword
+            arguments:
+                pass_ (Pass): the pass being run
+                dag (DAGCircuit): the dag output of the pass
+                time (float): the time to execute the pass
+                property_set (PropertySet): the property set
+                count (int): the index for the pass execution
+
+            The exact arguments pass expose the internals of the pass manager
+            and are subject to change as the pass manager internals change. If
+            you intend to reuse a callback function over multiple releases be
+            sure to check that the arguments being passed are the same.
+
+            To use the callback feature you define a function that will
+            take in kwargs dict and access the variables. For example::
+
+                def callback_func(**kwargs):
+                    pass_ = kwargs['pass_']
+                    dag = kwargs['dag']
+                    time = kwargs['time']
+                    property_set = kwargs['property_set']
+                    count = kwargs['count']
+                    ...
+
+                transpile(circ, callback=callback_func)
+
+        output_name (str or list[str]) :
+            A list with strings to identify the output circuits. The length of
+            `list[str]` should be exactly the length of `circuits` parameter.
+
+        log_level (int): The python logging level to use for the transpiler
+            passes. You should use the logging level attributes from the stdlib
+            module, for example something like: 'logging.DEBUG'.
 
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
@@ -127,10 +175,12 @@ def transpile(circuits,
     Raises:
         TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
+    logger = logging.getLogger(name='qiskit.transpiler.passmanager')
+    logger.setLevel(log_level)
 
     # transpiling schedules is not supported yet.
     if isinstance(circuits, Schedule) or \
-       (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
+            (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
         return circuits
 
     if optimization_level is None:
@@ -142,7 +192,7 @@ def transpile(circuits,
     transpile_configs = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
                                               backend_properties, initial_layout,
                                               seed_transpiler, optimization_level,
-                                              pass_manager)
+                                              pass_manager, callback, output_name)
     # Check circuit width against number of qubits in coupling_map(s)
     coupling_maps_list = list(config.coupling_map for config in transpile_configs)
     for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
@@ -152,7 +202,7 @@ def transpile(circuits,
             max_qubits = parsed_coupling_map.size()
             if n_qubits > max_qubits:
                 raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
-                                      'in {} '. format(circuit.name) +
+                                      'in {} '.format(circuit.name) +
                                       'is greater than maximum ({}) '.format(max_qubits) +
                                       'in the coupling_map')
     # Transpile circuits in parallel
@@ -183,7 +233,7 @@ def _transpile_circuit(circuit_config_tuple):
 def _parse_transpile_args(circuits, backend,
                           basis_gates, coupling_map, backend_properties,
                           initial_layout, seed_transpiler, optimization_level,
-                          pass_manager):
+                          pass_manager, callback, output_name):
     """Resolve the various types of args allowed to the transpile() function through
     duck typing, overriding args, etc. Refer to the transpile() docstring for details on
     what types of inputs are allowed.
@@ -214,16 +264,21 @@ def _parse_transpile_args(circuits, backend,
 
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
 
+    output_name = _parse_output_name(output_name, circuits)
+
     transpile_configs = []
-    for args in zip(basis_gates, coupling_map, backend_properties, initial_layout,
-                    seed_transpiler, optimization_level, pass_manager):
+    for args in zip(basis_gates, coupling_map, backend_properties,
+                    initial_layout, seed_transpiler, optimization_level,
+                    pass_manager, output_name):
         transpile_config = TranspileConfig(basis_gates=args[0],
                                            coupling_map=args[1],
                                            backend_properties=args[2],
                                            initial_layout=args[3],
                                            seed_transpiler=args[4],
                                            optimization_level=args[5],
-                                           pass_manager=args[6])
+                                           pass_manager=args[6],
+                                           callback=callback,
+                                           output_name=args[7])
         transpile_configs.append(transpile_config)
 
     return transpile_configs
@@ -292,9 +347,10 @@ def _parse_initial_layout(initial_layout, circuits):
         elif isinstance(initial_layout, dict):
             initial_layout = Layout(initial_layout)
         return initial_layout
+
     # multiple layouts?
     if isinstance(initial_layout, list) and \
-       any(isinstance(i, (list, dict)) for i in initial_layout):
+            any(isinstance(i, (list, dict)) for i in initial_layout):
         initial_layout = [_layout_from_raw(lo, circ) if isinstance(lo, (list, dict)) else lo
                           for lo, circ in zip(initial_layout, circuits)]
     else:
@@ -321,3 +377,32 @@ def _parse_pass_manager(pass_manager, num_circuits):
     if not isinstance(pass_manager, list):
         pass_manager = [pass_manager] * num_circuits
     return pass_manager
+
+
+def _parse_output_name(output_name, circuits):
+    # naming and returning circuits
+    # output_name could be either a string or a list
+    if output_name is not None:
+        if isinstance(output_name, str):
+            # single circuit
+            if len(circuits) == 1:
+                return [output_name]
+            # multiple circuits
+            else:
+                raise TranspilerError("Expected a list object of length equal " +
+                                      "to that of the number of circuits " +
+                                      "being transpiled")
+        elif isinstance(output_name, list):
+            if len(circuits) == len(output_name) and \
+                    all(isinstance(name, str) for name in output_name):
+                return output_name
+            else:
+                raise TranspilerError("The length of output_name list "
+                                      "must be equal to the number of "
+                                      "transpiled circuits and the output_name "
+                                      "list should be strings.")
+        else:
+            raise TranspilerError("The parameter output_name should be a string or a"
+                                  "list of strings: %s was used." % type(output_name))
+    else:
+        return [circuit.name for circuit in circuits]

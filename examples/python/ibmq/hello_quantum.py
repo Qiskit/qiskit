@@ -15,17 +15,9 @@
 """Example used in the README. In this example a Bell state is made."""
 
 # Import Qiskit
-from qiskit import QuantumCircuit, QiskitError
+from qiskit import QuantumCircuit
 from qiskit import execute, IBMQ, BasicAer
 from qiskit.providers.ibmq import least_busy
-
-# Authenticate for access to remote backends
-try:
-    IBMQ.load_accounts()
-except:
-    print("""WARNING: No valid IBMQ credentials found on disk. 
-             You must store your credentials using IBMQ.save_account(token, url). 
-             For now, there's only access to local simulator backends...""")
 
 # Create a Quantum Circuit
 qc = QuantumCircuit(2, 2)
@@ -49,13 +41,22 @@ result_sim = job_sim.result()
 # Show the results
 print(result_sim.get_counts(qc))
 
+# Authenticate for access to remote backends
+try:
+    provider = IBMQ.load_account()
+except:
+    print("""WARNING: No valid IBMQ credentials found on disk.
+             You must store your credentials using IBMQ.save_account(token, url).
+             For now, there's only access to local simulator backends...""")
+    exit(0)
+
 # see a list of available remote backends
-ibmq_backends = IBMQ.backends()
+ibmq_backends = provider.backends()
 
 print("Remote backends: ", ibmq_backends)
 # Compile and run the Quantum Program on a real device backend
 try:
-    least_busy_device = least_busy(IBMQ.backends(simulator=False))
+    least_busy_device = least_busy(provider.backends(simulator=False))
 except:
     print("All devices are currently unavailable.")
 

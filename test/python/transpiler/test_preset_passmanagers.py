@@ -12,7 +12,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests preset pass manager functionalities"""
+"""Tests preset pass manager API"""
+from test import combine
+from ddt import ddt, data
 
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile, assemble
@@ -22,48 +24,121 @@ from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
 
 
+def emptycircuit():
+    """Empty circuit"""
+    return QuantumCircuit()
+
+
+def circuit_2532():
+    """See https://github.com/Qiskit/qiskit-terra/issues/2532"""
+    circuit = QuantumCircuit(5)
+    circuit.cx(2, 4)
+    return circuit
+
+
+@ddt
 class TestPresetPassManager(QiskitTestCase):
     """Test preset passmanagers work as expected."""
 
-    def test_no_coupling_map(self):
+    @combine(level=[0, 1, 2, 3],
+             dsc='Test that coupling_map can be None (level={level})',
+             name='coupling_map_none_level{level}')
+    def test_no_coupling_map(self, level):
         """Test that coupling_map can be None"""
         q = QuantumRegister(2, name='q')
-        test = QuantumCircuit(q)
-        test.cz(q[0], q[1])
-        for level in [0, 1, 2, 3]:
-            with self.subTest(level=level):
-                test2 = transpile(test, basis_gates=['u1', 'u2', 'u3', 'cx'],
-                                  optimization_level=level)
-                self.assertIsInstance(test2, QuantumCircuit)
+        circuit = QuantumCircuit(q)
+        circuit.cz(q[0], q[1])
+        result = transpile(circuit, basis_gates=['u1', 'u2', 'u3', 'cx'], optimization_level=level)
+        self.assertIsInstance(result, QuantumCircuit)
 
 
-class TestFakeBackendTranspiling(QiskitTestCase):
-    """Test transpiling on mock backends work properly"""
+@ddt
+class TestTranspileLevels(QiskitTestCase):
+    """Test transpiler on fake backend"""
+
+    @combine(circuit=[emptycircuit, circuit_2532],
+             level=[0, 1, 2, 3],
+             backend=[FakeTenerife(), FakeMelbourne(), FakeRueschlikon(), FakeTokyo(),
+                      FakePoughkeepsie(), None],
+             dsc='Transpiler {circuit.__name__} on {backend} backend at level {level}',
+             name='{circuit.__name__}_{backend}_level{level}')
+    def test(self, circuit, level, backend):
+        """All the levels with all the backends"""
+        result = transpile(circuit(), backend=backend, optimization_level=level, seed_transpiler=42)
+        self.assertIsInstance(result, QuantumCircuit)
+
+
+@ddt
+class TestPassesInspection(QiskitTestCase):
+    """Test run passes under different conditions"""
 
     def setUp(self):
+        """Sets self.callback to set self.passes with the passes that have been executed"""
+        self.passes = []
 
-        q = QuantumRegister(2)
-        c = ClassicalRegister(2)
+        def callback(**kwargs):
+            self.passes.append(kwargs['pass_'].__class__.__name__)
 
-        self._circuit = QuantumCircuit(q, c)
-        self._circuit.h(q[0])
-        self._circuit.cx(q[0], q[1])
-        self._circuit.measure(q, c)
+        self.callback = callback
 
-    def test_optimization_level(self):
-        """Test several backends with all optimization levels"""
-        for backend in [FakeTenerife(), FakeMelbourne(), FakeRueschlikon(),
-                        FakeTokyo(), FakePoughkeepsie()]:
-            for optimization_level in range(4):
-                result = transpile(
-                    [self._circuit],
-                    backend=backend,
-                    optimization_level=optimization_level
-                )
-                self.assertIsInstance(result, QuantumCircuit)
+    @data(0, 1, 2, 3)
+    def test_no_coupling_map(self, level):
+        """Without coupling map, no layout selection nor swapper"""
+        qr = QuantumRegister(3, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[2], qr[1])
+        qc.cx(qr[2], qr[0])
 
-    # TODO: make these tests more compact with ddt
-    def test_initial_layout_1(self):
+        _ = transpile(qc, optimization_level=level, callback=self.callback)
+
+        self.assertNotIn('SetLayout', self.passes)
+        self.assertNotIn('TrivialLayout', self.passes)
+        self.assertNotIn('ApplyLayout', self.passes)
+        self.assertNotIn('StochasticSwap', self.passes)
+        self.assertNotIn('CheckCXDirection', self.passes)
+
+    @data(0, 1, 2, 3)
+    def test_backend(self, level):
+        """With backend a layout and a swapper is run
+        """
+        qr = QuantumRegister(5, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[2], qr[4])
+        backend = FakeMelbourne()
+
+        _ = transpile(qc, backend, optimization_level=level, callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertIn('CheckCXDirection', self.passes)
+
+    @data(0, 1, 2, 3)
+    def test_symmetric_coupling_map(self, level):
+        """Symmetric coupling map does not run CheckCXDirection
+        """
+        qr = QuantumRegister(2, 'q')
+        qc = QuantumCircuit(qr)
+        qc.cx(qr[0], qr[1])
+
+        coupling_map = [[0, 1], [1, 0]]
+
+        _ = transpile(qc,
+                      coupling_map=coupling_map,
+                      initial_layout=[0, 1],
+                      optimization_level=level,
+                      callback=self.callback)
+
+        self.assertIn('SetLayout', self.passes)
+        self.assertIn('ApplyLayout', self.passes)
+        self.assertNotIn('CheckCXDirection', self.passes)
+
+
+@ddt
+class TestInitialLayouts(QiskitTestCase):
+    """Test transpiing with different layouts"""
+
+    @data(0, 1, 2, 3)
+    def test_layout_1711(self, level):
         """Test that a user-given initial layout is respected,
         in the qobj.
 
@@ -84,21 +159,19 @@ class TestFakeBackendTranspiling(QiskitTestCase):
 
         backend = FakeRueschlikon()
 
-        for optimization_level in range(4):
-            qc_b = transpile(qc, backend, initial_layout=initial_layout,
-                             optimization_level=optimization_level)
-            qobj = assemble(qc_b)
+        qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
+        qobj = assemble(qc_b)
 
-            self.assertEqual(qc_b.layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout._p2v, final_layout)
 
-            compiled_ops = qobj.experiments[0].instructions
-            for operation in compiled_ops:
-                if operation.name == 'cx':
-                    self.assertIn(operation.qubits, backend.configuration().coupling_map)
-                    self.assertIn(operation.qubits, [[15, 0], [15, 2]])
+        compiled_ops = qobj.experiments[0].instructions
+        for operation in compiled_ops:
+            if operation.name == 'cx':
+                self.assertIn(operation.qubits, backend.configuration().coupling_map)
+                self.assertIn(operation.qubits, [[15, 0], [15, 2]])
 
-    # TODO: make these tests more compact with ddt
-    def test_initial_layout_2(self):
+    @data(0, 1, 2, 3)
+    def test_layout_2532(self, level):
         """Test that a user-given initial layout is respected,
         in the transpiled circuit.
 
@@ -117,19 +190,17 @@ class TestFakeBackendTranspiling(QiskitTestCase):
                         11: qr[2], 12: ancilla[7], 13: ancilla[8]}
         backend = FakeMelbourne()
 
-        for optimization_level in range(4):
-            qc_b = transpile(qc, backend, initial_layout=initial_layout,
-                             optimization_level=optimization_level)
+        qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-            self.assertEqual(qc_b.layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout._p2v, final_layout)
 
-            for gate, qubits, _ in qc_b:
-                if gate.name == 'cx':
-                    for qubit in qubits:
-                        self.assertIn(qubit.index, [11, 3])
+        for gate, qubits, _ in qc_b:
+            if gate.name == 'cx':
+                for qubit in qubits:
+                    self.assertIn(qubit.index, [11, 3])
 
-    # TODO: make these tests more compact with ddt
-    def test_initial_layout_3(self):
+    @data(0, 1, 2, 3)
+    def test_layout_2503(self, level):
         """Test that a user-given initial layout is respected,
         even if cnots are not in the coupling map.
 
@@ -155,16 +226,14 @@ class TestFakeBackendTranspiling(QiskitTestCase):
 
         backend = FakePoughkeepsie()
 
-        for optimization_level in range(4):
-            qc_b = transpile(qc, backend, initial_layout=initial_layout,
-                             optimization_level=optimization_level)
+        qc_b = transpile(qc, backend, initial_layout=initial_layout, optimization_level=level)
 
-            self.assertEqual(qc_b.layout._p2v, final_layout)
+        self.assertEqual(qc_b._layout._p2v, final_layout)
 
-            gate_0, qubits_0, _ = qc_b[0]
-            gate_1, qubits_1, _ = qc_b[1]
+        gate_0, qubits_0, _ = qc_b[0]
+        gate_1, qubits_1, _ = qc_b[1]
 
-            self.assertIsInstance(gate_0, U3Gate)
-            self.assertEqual(qubits_0[0].index, 6)
-            self.assertIsInstance(gate_1, U2Gate)
-            self.assertEqual(qubits_1[0].index, 12)
+        self.assertIsInstance(gate_0, U3Gate)
+        self.assertEqual(qubits_0[0].index, 6)
+        self.assertIsInstance(gate_1, U2Gate)
+        self.assertEqual(qubits_1[0].index, 12)

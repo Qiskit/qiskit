@@ -16,10 +16,13 @@
 
 """Test Qiskit's inverse gate operation."""
 
+from collections import OrderedDict
 import unittest
 import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
+# pylint: disable=unused-import
+from qiskit.extensions.simulator import snapshot
 
 
 class TestCircuitProperties(QiskitTestCase):
@@ -227,6 +230,93 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[3], c[0])
         self.assertEqual(qc.depth(), 5)
 
+    def test_circuit_depth_barriers1(self):
+        """Test circuit depth for barriers #1.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.barrier(q)
+        circ.h(2)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_barriers2(self):
+        """Test circuit depth for barriers #2.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.barrier(q)
+        circ.cx(0, 1)
+        circ.barrier(q)
+        circ.h(2)
+        circ.barrier(q)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_barriers3(self):
+        """Test circuit depth for barriers #3.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.barrier(q)
+        circ.cx(0, 1)
+        circ.barrier(q)
+        circ.barrier(q)
+        circ.barrier(q)
+        circ.h(2)
+        circ.barrier(q)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_snap1(self):
+        """Test circuit depth for snapshots #1.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.snapshot('snap')
+        circ.h(2)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_snap2(self):
+        """Test circuit depth for snapshots #2.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.snapshot('snap0')
+        circ.cx(0, 1)
+        circ.snapshot('snap1')
+        circ.h(2)
+        circ.snapshot('snap2')
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
+    def test_circuit_depth_snap3(self):
+        """Test circuit depth for snapshots #3.
+        """
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
+        circ = QuantumCircuit(q, c)
+        circ.h(0)
+        circ.cx(0, 1)
+        circ.snapshot('snap0')
+        circ.snapshot('snap1')
+        circ.h(2)
+        circ.cx(2, 3)
+        self.assertEqual(circ.depth(), 4)
+
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""
         size = 4
@@ -281,39 +371,18 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_count_ops(self):
         """Tet circuit count ops
         """
-        size = 6
-        q = QuantumRegister(size, 'q')
+        q = QuantumRegister(6, 'q')
         qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.x(q[1])
+        qc.y(q[2:4])
+        qc.z(q[3:])
+        result = qc.count_ops()
 
-        ans = {}
-        num_gates = np.random.randint(50)
-        # h = 0, x = 1, y = 2, z = 3, cx = 4, ccx = 5
-        lookup = {0: 'h', 1: 'x', 2: 'y', 3: 'z', 4: 'cx', 5: 'ccx'}
+        expected = OrderedDict([('h', 6), ('z', 3), ('y', 2), ('x', 1)])
 
-        for _ in range(num_gates):
-            item = np.random.randint(6)
-            if item in [0, 1, 2, 3]:
-                idx = np.random.randint(size)
-                if item == 0:
-                    qc.h(q[idx])
-                elif item == 1:
-                    qc.x(q[idx])
-                elif item == 2:
-                    qc.y(q[idx])
-                elif item == 3:
-                    qc.z(q[idx])
-            else:
-                idx = np.random.permutation(size)
-                if item == 4:
-                    qc.cx(q[int(idx[0])], q[int(idx[1])])
-                elif item == 5:
-                    qc.ccx(q[int(idx[0])], q[int(idx[1])], q[int(idx[2])])
-            if lookup[item] not in ans.keys():
-                ans[lookup[item]] = 1
-            else:
-                ans[lookup[item]] += 1
-
-            self.assertEqual(ans, qc.count_ops())
+        self.assertIsInstance(result, OrderedDict)
+        self.assertEqual(expected, result)
 
     def test_circuit_connected_components_empty(self):
         """Verify num_connected_components is width for empty
@@ -411,10 +480,9 @@ class TestCircuitProperties(QiskitTestCase):
     def test_circuit_unitary_factors2(self):
         """Test unitary factors multi qregs
         """
-        size = 4
-        q1 = QuantumRegister(size//2, 'q1')
-        q2 = QuantumRegister(size//2, 'q2')
-        c = ClassicalRegister(size, 'c')
+        q1 = QuantumRegister(2, 'q1')
+        q2 = QuantumRegister(2, 'q2')
+        c = ClassicalRegister(4, 'c')
         qc = QuantumCircuit(q1, q2, c)
         self.assertEqual(qc.num_unitary_factors(), 4)
 
@@ -457,6 +525,36 @@ class TestCircuitProperties(QiskitTestCase):
         qc.measure(q[2], c[0])
         qc.measure(q[3], c[0])
         self.assertEqual(qc.num_unitary_factors(), 5)
+
+    def test_n_qubits_qubitless_circuit(self):
+        """Check output in absence of qubits
+        """
+        c_reg = ClassicalRegister(3)
+        circ = QuantumCircuit(c_reg)
+        self.assertEqual(circ.n_qubits, 0)
+
+    def test_n_qubits_qubitfull_circuit(self):
+        """Check output in presence of qubits
+        """
+        q_reg = QuantumRegister(4)
+        c_reg = ClassicalRegister(3)
+        circ = QuantumCircuit(q_reg, c_reg)
+        self.assertEqual(circ.n_qubits, 4)
+
+    def test_n_qubits_registerless_circuit(self):
+        """Check output for circuits with direct argument for qubits
+        """
+        circ = QuantumCircuit(5)
+        self.assertEqual(circ.n_qubits, 5)
+
+    def test_n_qubits_multiple_register_circuit(self):
+        """Check output for circuits with multiple quantum registers
+        """
+        q_reg1 = QuantumRegister(5)
+        q_reg2 = QuantumRegister(6)
+        q_reg3 = QuantumRegister(7)
+        circ = QuantumCircuit(q_reg1, q_reg2, q_reg3)
+        self.assertEqual(circ.n_qubits, 18)
 
 
 if __name__ == '__main__':

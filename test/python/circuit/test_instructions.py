@@ -16,6 +16,8 @@
 
 import unittest
 
+import numpy as np
+
 from qiskit.circuit import Gate
 from qiskit.circuit import Parameter
 from qiskit.circuit import Instruction
@@ -36,18 +38,30 @@ class TestInstructions(QiskitTestCase):
         hop2 = Instruction('s', 1, 0, [])
         hop3 = Instruction('h', 1, 0, [])
 
+        self.assertFalse(hop1 == hop2)
+        self.assertTrue(hop1 == hop3)
+
         uop1 = Instruction('u', 1, 0, [0.4, 0.5, 0.5])
         uop2 = Instruction('u', 1, 0, [0.4, 0.6, 0.5])
         uop3 = Instruction('v', 1, 0, [0.4, 0.5, 0.5])
         uop4 = Instruction('u', 1, 0, [0.4, 0.5, 0.5])
-        self.assertFalse(hop1 == hop2)
-        self.assertTrue(hop1 == hop3)
+
         self.assertFalse(uop1 == uop2)
         self.assertTrue(uop1 == uop4)
         self.assertFalse(uop1 == uop3)
+
         self.assertTrue(HGate() == HGate())
         self.assertFalse(HGate() == CnotGate())
         self.assertFalse(hop1 == HGate())
+
+        eop1 = Instruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
+        eop2 = Instruction('kraus', 1, 0, [np.array([[0, 1], [1, 0]])])
+        eop3 = Instruction('kraus', 1, 0, [np.array([[1, 0], [0, 1]])])
+        eop4 = Instruction('kraus', 1, 0, [np.eye(4)])
+
+        self.assertTrue(eop1 == eop3)
+        self.assertFalse(eop1 == eop2)
+        self.assertFalse(eop1 == eop4)
 
     def test_instructions_equal_with_parameters(self):
         """Test equality of instructions for cases with Parameters."""
@@ -75,7 +89,7 @@ class TestInstructions(QiskitTestCase):
         preserves the circuit"""
         q = QuantumRegister(4)
         c = ClassicalRegister(4)
-        circ1 = QuantumCircuit(q, c, name='circ1')
+        circ1 = QuantumCircuit(q, c, name='circuit1')
         circ1.h(q[0])
         circ1.crz(0.1, q[0], q[1])
         circ1.iden(q[1])
@@ -193,7 +207,7 @@ class TestInstructions(QiskitTestCase):
         little_gate = circ0.to_instruction()
 
         qr1 = QuantumRegister(4)
-        circ1 = QuantumCircuit(qr1, name='circ1')
+        circ1 = QuantumCircuit(qr1, name='circuit1')
         circ1.cu1(-0.1, qr1[0], qr1[2])
         circ1.iden(qr1[1])
         circ1.append(little_gate, [qr1[2], qr1[3]])
@@ -234,6 +248,26 @@ class TestInstructions(QiskitTestCase):
         """test inverting opaque gate fails"""
         opaque_gate = Gate(name='crz_2', num_qubits=2, params=[0.5])
         self.assertRaises(QiskitError, opaque_gate.inverse)
+
+    def test_no_broadcast(self):
+        """See https://github.com/Qiskit/qiskit-terra/issues/2777
+        When creating custom instructions, do not broadcast parameters"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        subcircuit = QuantumCircuit(qr, cr, name='subcircuit')
+
+        subcircuit.x(qr[0])
+        subcircuit.h(qr[1])
+        subcircuit.measure(qr[0], cr[0])
+        subcircuit.measure(qr[1], cr[1])
+
+        inst = subcircuit.to_instruction()
+        circuit = QuantumCircuit(qr, cr, name='circuit')
+        circuit.append(inst, qr[:], cr[:])
+        self.assertEqual(circuit.qregs, [qr])
+        self.assertEqual(circuit.cregs, [cr])
+        self.assertEqual(circuit.qubits, [qr[0], qr[1]])
+        self.assertEqual(circuit.clbits, [cr[0], cr[1]])
 
 
 if __name__ == '__main__':
