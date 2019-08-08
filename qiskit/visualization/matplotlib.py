@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 
 Register = collections.namedtuple('Register', 'reg index')
 
-WID = 0.65
-HIG = 0.65
+WID = 0.85
+HIG = 0.85
 DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
 PORDER_LINE = 3
