@@ -222,40 +222,75 @@ class TestCircuitAssembler(QiskitTestCase):
         self.assertRaises(QiskitError, assemble,
                           full_param_circ, **inconsistent_bind_args)
 
+    def test_assemble_circuits_rases_for_bind_mismatch_over_expressions(self):
+        """Verify assemble_circuits raises for invalid binds for circuit including
+        ParameterExpressions.
+        """
+        qr = QuantumRegister(1)
+        x = Parameter('x')
+        y = Parameter('y')
+
+        expr_circ = QuantumCircuit(qr)
+
+        expr_circ.u1(x+y, qr[0])
+
+        partial_bind_args = {'parameter_binds': [{x: 1}, {x: 0}]}
+
+        # Raise when no parameters passed for parametric circuit
+        self.assertRaises(QiskitError, assemble, expr_circ)
+
+        # Raise when circuit has more parameters than run_config
+        self.assertRaises(QiskitError, assemble,
+                          expr_circ, **partial_bind_args)
+
     def test_assemble_circuits_binds_parameters(self):
         """Verify assemble_circuits applies parameter bindings and output circuits are bound."""
         qr = QuantumRegister(1)
         qc1 = QuantumCircuit(qr)
         qc2 = QuantumCircuit(qr)
+        qc3 = QuantumCircuit(qr)
 
         x = Parameter('x')
         y = Parameter('y')
+        sum_ = x + y
+        product_ = x * y
 
         qc1.u2(x, y, qr[0])
 
         qc2.rz(x, qr[0])
         qc2.rz(y, qr[0])
 
+        qc3.u2(sum_, product_, qr[0])
+
         bind_args = {'parameter_binds': [{x: 0, y: 0},
                                          {x: 1, y: 0},
                                          {x: 1, y: 1}]}
 
-        qobj = assemble([qc1, qc2], **bind_args)
+        qobj = assemble([qc1, qc2, qc3], **bind_args)
 
-        self.assertEqual(len(qobj.experiments), 6)
+        self.assertEqual(len(qobj.experiments), 9)
         self.assertEqual([len(expt.instructions) for expt in qobj.experiments],
-                         [1, 1, 1, 2, 2, 2])
+                         [1, 1, 1, 2, 2, 2, 1, 1, 1])
 
-        self.assertEqual(qobj.experiments[0].instructions[0].params, [0, 0])
-        self.assertEqual(qobj.experiments[1].instructions[0].params, [1, 0])
-        self.assertEqual(qobj.experiments[2].instructions[0].params, [1, 1])
+        def _qobj_inst_params(expt_no, inst_no):
+            expt = qobj.experiments[expt_no]
+            inst = expt.instructions[inst_no]
+            return [float(p) for p in inst.params]
 
-        self.assertEqual(qobj.experiments[3].instructions[0].params, [0])
-        self.assertEqual(qobj.experiments[3].instructions[1].params, [0])
-        self.assertEqual(qobj.experiments[4].instructions[0].params, [1])
-        self.assertEqual(qobj.experiments[4].instructions[1].params, [0])
-        self.assertEqual(qobj.experiments[5].instructions[0].params, [1])
-        self.assertEqual(qobj.experiments[5].instructions[1].params, [1])
+        self.assertEqual(_qobj_inst_params(0, 0), [0, 0])
+        self.assertEqual(_qobj_inst_params(1, 0), [1, 0])
+        self.assertEqual(_qobj_inst_params(2, 0), [1, 1])
+
+        self.assertEqual(_qobj_inst_params(3, 0), [0])
+        self.assertEqual(_qobj_inst_params(3, 1), [0])
+        self.assertEqual(_qobj_inst_params(4, 0), [1])
+        self.assertEqual(_qobj_inst_params(4, 1), [0])
+        self.assertEqual(_qobj_inst_params(5, 0), [1])
+        self.assertEqual(_qobj_inst_params(5, 1), [1])
+
+        self.assertEqual(_qobj_inst_params(6, 0), [0, 0])
+        self.assertEqual(_qobj_inst_params(7, 0), [1, 0])
+        self.assertEqual(_qobj_inst_params(8, 0), [2, 1])
 
 
 class TestPulseAssembler(QiskitTestCase):
