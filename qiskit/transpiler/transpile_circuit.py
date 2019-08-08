@@ -59,4 +59,7 @@ def transpile_circuit(circuit, transpile_config):
     if getattr(transpile_config, 'callback', None):
         pass_manager.callback = transpile_config.callback
 
-    return pass_manager.run(circuit)
+    out_circuit = pass_manager.run(circuit)
+    out_circuit.name = transpile_config.output_name
+
+    return out_circuit

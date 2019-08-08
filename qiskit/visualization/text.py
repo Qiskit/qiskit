@@ -111,7 +111,10 @@ class DrawElement():
 
 
 class BoxOnClWire(DrawElement):
-    """ Draws a box on the classical wire
+    """Draws a box on the classical wire.
+
+    ::
+
         top: ┌───┐   ┌───┐
         mid: ╡ A ╞ ══╡ A ╞══
         bot: └───┘   └───┘
@@ -130,7 +133,10 @@ class BoxOnClWire(DrawElement):
 
 
 class BoxOnQuWire(DrawElement):
-    """ Draws a box on the quantum wire
+    """Draws a box on the quantum wire.
+
+    ::
+
         top: ┌───┐   ┌───┐
         mid: ┤ A ├ ──┤ A ├──
         bot: └───┘   └───┘
@@ -150,10 +156,13 @@ class BoxOnQuWire(DrawElement):
 
 
 class MeasureTo(DrawElement):
-    """ The element on the classic wire to which the measure is performed
-    top:  ║     ║
-    mid: ═╩═ ═══╩═══
-    bot:
+    """The element on the classic wire to which the measure is performed.
+
+    ::
+
+        top:  ║     ║
+        mid: ═╩═ ═══╩═══
+        bot:
     """
 
     def __init__(self):
@@ -165,7 +174,10 @@ class MeasureTo(DrawElement):
 
 
 class MeasureFrom(BoxOnQuWire):
-    """ The element on the quantum wire in which the measure is performed
+    """The element on the quantum wire in which the measure is performed.
+
+    ::
+
         top: ┌─┐    ┌─┐
         mid: ┤M├ ───┤M├───
         bot: └╥┘    └╥┘
@@ -315,7 +327,10 @@ class DirectOnQuWire(DrawElement):
 
 
 class Barrier(DirectOnQuWire):
-    """ Draws a barrier.
+    """Draws a barrier.
+
+    ::
+
         top:  ░     ░
         mid: ─░─ ───░───
         bot:  ░     ░
@@ -330,10 +345,13 @@ class Barrier(DirectOnQuWire):
 
 
 class Ex(DirectOnQuWire):
-    """ Draws an X (usually with a connector). E.g. the top part of a swap gate
-    top:
-    mid: ─X─ ───X───
-    bot:  │     │
+    """Draws an X (usually with a connector). E.g. the top part of a swap gate.
+
+    ::
+
+        top:
+        mid: ─X─ ───X───
+        bot:  │     │
     """
 
     def __init__(self, bot_connect=" ", top_connect=" ", conditional=False):
@@ -353,9 +371,12 @@ class Reset(DirectOnQuWire):
 
 class Bullet(DirectOnQuWire):
     """ Draws a bullet (usually with a connector). E.g. the top part of a CX gate.
-    top:
-    mid: ─■─  ───■───
-    bot:  │      │
+
+    ::
+
+        top:
+        mid: ─■─  ───■───
+        bot:  │      │
     """
 
     def __init__(self, top_connect="", bot_connect="", conditional=False):
@@ -477,10 +498,10 @@ class TextDrawing():
         return clbits
 
     def single_string(self):
-        """
-        Creates a long string with the ascii art
+        """Creates a long string with the ascii art.
+
         Returns:
-            str: The lines joined by '\n'
+            str: The lines joined by a newline (``\\n``)
         """
         return "\n".join(self.lines())
 
@@ -495,8 +516,8 @@ class TextDrawing():
             text_file.write(self.single_string())
 
     def lines(self, line_length=None):
-        """
-        Generates a list with lines. These lines form the text drawing.
+        """Generates a list with lines. These lines form the text drawing.
+
         Args:
             line_length (int): Optional. Breaks the circuit drawing to this length. This
                                useful when the drawing does not fit in the console. If
@@ -560,11 +581,11 @@ class TextDrawing():
         return lines
 
     def wire_names(self, with_initial_value=True):
-        """
-        Returns a list of names for each wire.
+        """Returns a list of names for each wire.
+
         Args:
-            with_initial_value (bool): Optional (Default: True). If true, adds the initial value to
-                                       the name.
+            with_initial_value (bool): Optional (Default: True). If true, adds
+                the initial value to the name.
 
         Returns:
             List: The list of wire names.
