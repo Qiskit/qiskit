@@ -166,13 +166,16 @@ class Schedule(ScheduleComponent):
             other: Schedule with shift time to be take the union with this `Schedule`.
         """
         shift_time, sched = other
-        sched_timeslots = sched.timeslots
-        shifted_children = sched._children
-        if shift_time != 0:
-            sched_timeslots = sched_timeslots.shift(shift_time)
-            shifted_children = [(t+shift_time, child) for t, child in shifted_children]
+        if isinstance(sched, Schedule):
+            shifted_children = sched._children
+            if shift_time != 0:
+                shifted_children = tuple((t + shift_time, child) for t, child in shifted_children)
+            self.__children += shifted_children
+        else:  # isinstance(sched, Instruction)
+            self.__children += (other,)
+
+        sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
         self._timeslots = self.timeslots.merged(sched_timeslots)
-        self.__children += tuple(shifted_children if shifted_children else [other])
         self._buffer = max(self.buffer, sched.buffer)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
