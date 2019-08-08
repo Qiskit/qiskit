@@ -118,18 +118,14 @@ stages:
             set -e
             stestr run --concurrency 2
           displayName: 'Run tests'
-        - bash: |
-            set -e
-            pip install -U junitxml
-            mkdir -p junit
-            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
-          condition: succeededOrFailed()
-          displayName: 'Generate results'
-        - task: PublishTestResults@2
-          condition: succeededOrFailed()
+        - task: CopyFiles@2
           inputs:
-            testResultsFiles: '**/test-*.xml'
-            testRunTitle: 'Test results for macOS Python $(python.version)'
+            contents: '*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop'
   - stage: 'Python_Tests'
     condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
     jobs:
@@ -235,11 +231,3 @@ stages:
             set -e
             stestr run --concurrency 2
           displayName: 'Run tests'
-        - task: CopyFiles@2
-          inputs:
-            contents: '*.png'
-            targetFolder: $(Build.ArtifactStagingDirectory)
-        - task: PublishBuildArtifacts@1
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop'
