@@ -1106,7 +1106,7 @@ class Z2Symmetries:
 
         if operator.is_empty():
             logger.info("Operator is empty.")
-            return [], [], [], None
+            return [], [], [], []
 
         for pauli in operator.paulis:
             stacked_paulis.append(np.concatenate((pauli[1].x, pauli[1].z), axis=0).astype(np.int))
@@ -1116,7 +1116,7 @@ class Z2Symmetries:
 
         if len(symmetries) == 0:
             logger.info("No symmetry is found.")
-            return [], [], [], None
+            return [], [], [], []
 
         stacked_symmetries = np.stack(symmetries)
         symm_shape = stacked_symmetries.shape
@@ -1126,7 +1126,7 @@ class Z2Symmetries:
             pauli_symmetries.append(Pauli(stacked_symmetries[row, : symm_shape[1] // 2],
                                           stacked_symmetries[row, symm_shape[1] // 2:]))
 
-            stacked_symm_del = np.delete(stacked_symmetries, row, axis=0)
+            stacked_symm_del = np.delete(stacked_symmetries, (row), axis=0)
             for col in range(symm_shape[1] // 2):
                 # case symmetries other than one at (row) have Z or I on col qubit
                 Z_or_I = True
