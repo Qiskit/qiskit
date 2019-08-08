@@ -70,19 +70,21 @@ not merge the commit until it is finished. You or a reviewer can remove the
 
 Before you can submit any code we need all contributors to sign a
 contributor license agreement. By signing a contributor license
-agreement (CLA) you're basically just an attesting to the fact
+agreement (CLA) you're basically just attesting to the fact
 that you are the author of the contribution and that you're freely
 contributing it under the terms of the Apache-2.0 license.
 
 When you contribute to the Qiskit Terra project with a new pull request,
 a bot will evaluate whether you have signed the CLA. If required, the
 bot will comment on the pull request, including a link to accept the
-agreement. The [individual CLA](https://qiskit.org/license/qiskit-cla.pdf) document is available for review as a PDF.
+agreement. The [individual CLA](https://qiskit.org/license/qiskit-cla.pdf)
+document is available for review as a PDF.
 
 **Note**:
 > If your contribution is part of your employment or your contribution
 > is the property of your employer, then you will likely need to sign a
-> [corporate CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) too and email it to us at <qiskit@us.ibm.com>.
+> [corporate CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) too and
+> email it to us at <qiskit@us.ibm.com>.
 
 #### Pull request checklist
 
@@ -187,7 +189,8 @@ does not break any existing tests and that any new tests that you've added
 also run successfully. Before you open a new pull request for your change,
 you'll want to run the test suite locally.
 
-The easiest way to run the test suite is to use [**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox
+The easiest way to run the test suite is to use
+[**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox
 with pip: `pip install -U tox`. Tox provides several advantages, but the
 biggest one is that it builds an isolated virtualenv for running tests. This
 means it does not pollute your system python when running. Additionally, the
