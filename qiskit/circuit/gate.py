@@ -171,7 +171,6 @@ class Gate(Instruction):
                 arguments does not match the gate expectation.
         """
         if len(qargs) != self.num_qubits or cargs:
-            import ipdb;ipdb.set_trace()
             raise QiskitError(
                 'The amount of qubit/clbit arguments does not match the gate expectation.')
 

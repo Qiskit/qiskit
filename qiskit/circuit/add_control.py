@@ -14,7 +14,6 @@
 """
 Add control to operation if supported.
 """
-import numpy as np
 from qiskit import QiskitError
 
 
@@ -31,62 +30,65 @@ def add_control(operation, num_ctrl_qubits, label):
             uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
             num_qubits + 2*num_ctrl_qubits - 1.
     """
-    if control_definition_known(operation, num_ctrl_qubits):
-        return q_if_predefined(operation, num_ctrl_qubits)
-    mode = 'qi'
+    if _control_definition_known(operation, num_ctrl_qubits):
+        return _q_if_predefined(operation)
+    mode = 'aqua'
     if mode == 'naive':
         q_if_fn = q_if_naive
-    elif mode == 'qi':
-        q_if_fn = q_if_qi
     elif mode == 'aqua':
         q_if_fn = q_if_aqua
     return q_if_fn(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
 
 
-def control_definition_known(operation, num_ctrl_qubits):
+def _control_definition_known(operation, num_ctrl_qubits):
     if num_ctrl_qubits == 2 and operation.name == 'x':
         return True
     elif num_ctrl_qubits == 1:
         return operation.name in {'x', 'y', 'z', 'h', 'rz', 'swap', 'u1', 'u3', 'cx'}
+    else:
+        return False
 
 
-def q_if_predefined(operation, num_ctrl_qubits):
+def _q_if_predefined(operation):
     if operation.name == 'x':
         import qiskit.extensions.standard.cx
-        return qiskit.extensions.standard.cx.CnotGate()
+        cgate = qiskit.extensions.standard.cx.CnotGate()
     elif operation.name == 'y':
         import qiskit.extensions.standard.cy
-        return qiskit.extensions.standard.cy.CyGate()
+        cgate = qiskit.extensions.standard.cy.CyGate()
     elif operation.name == 'z':
         import qiskit.extensions.standard.cz
-        return qiskit.extensions.standard.cz.CzGate()
+        cgate = qiskit.extensions.standard.cz.CzGate()
     elif operation.name == 'h':
         import qiskit.extensions.standard.ch
-        return qiskit.extensions.standard.ch.CHGate()
+        cgate = qiskit.extensions.standard.ch.CHGate()
     elif operation.name == 'rz':
         import qiskit.extensions.standard.crz
-        return qiskit.extensions.standard.crz.CrzGate(*operation.params)
+        cgate = qiskit.extensions.standard.crz.CrzGate(*operation.params)
     elif operation.name == 'swap':
         import qiskit.extensions.standard.cswap
-        return qiskit.extensions.standard.cswap.FredkinGate()
+        cgate = qiskit.extensions.standard.cswap.FredkinGate()
     elif operation.name == 'u1':
         import qiskit.extensions.standard.cu1
-        return qiskit.extensions.standard.cu1.Cu1Gate(*operation.params)
+        cgate = qiskit.extensions.standard.cu1.Cu1Gate(*operation.params)
     elif operation.name == 'u3':
         import qiskit.extensions.standard.cu3
-        return qiskit.extensions.standard.cu3.Cu3Gate(*operation.params)
+        cgate = qiskit.extensions.standard.cu3.Cu3Gate(*operation.params)
     elif operation.name == 'cx':
         import qiskit.extensions.standard.ccx
-        return qiskit.extensions.standard.ccx.ToffoliGate()
+        cgate = qiskit.extensions.standard.ccx.ToffoliGate()
     else:
         raise QiskitError('No standard controlled gate for "{}"'.format(
             operation.name))
+    return cgate
 
 
 def q_if_naive(operation, num_ctrl_qubits=1, label=None):
-    """Return controlled version of gate
+    """Return controlled version of gate by recursively unrolling to {u3, cx} and
+    substituting cu3 and ccx.
 
     Args:
+        operation (Gate or Controlledgate): gate to create ControlledGate from
         num_ctrl_qubits (int): number of controls to add to gate (default=1)
         label (str): optional gate label
 
@@ -99,7 +101,7 @@ def q_if_naive(operation, num_ctrl_qubits=1, label=None):
         AttributeError: unrecognized gate from standard extensions
         QiskitError: gate definition contains non-gate
     """
-    basis_gates = {'u1', 'u3', 'id', 'cx'}
+    basis_gates = {'u3', 'cx'}
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
     from qiskit.circuit.quantumregister import QuantumRegister
@@ -149,58 +151,12 @@ def q_if_naive(operation, num_ctrl_qubits=1, label=None):
         label=label,
         num_ctrl_qubits=this_num_ctrl_qubits)
 
-def q_if_qi(operation, num_ctrl_qubits=1, label=None):
-    """Return controlled version of gate using multiplexed rotations
-
-    Args:
-        num_ctrl_qubits (int): number of controls to add to gate (default=1)
-        label (str): optional gate label
-    Returns:
-        ControlledGate: controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
-
-    Raises:
-        QiskitError: gate contains non-gate in definitionl
-    """
-    # pylint: disable=cyclic-import
-    import qiskit.circuit.controlledgate as controlledgate
-    from qiskit.circuit.quantumregister import QuantumRegister
-    from qiskit.circuit.quantumcircuit import QuantumCircuit
-    from qiskit.extensions.quantum_initializer.ucrot import UCRot
-    from math import pi
-    bgate = _unroll_gate(operation, ['u3', 'cx'])
-    # now we have a bunch of single qubit rotation gates and cx
-    q_control = QuantumRegister(num_ctrl_qubits)
-    q_target = QuantumRegister(operation.num_qubits)
-    qc = QuantumCircuit(q_control, q_target)
-    for rule in bgate.definition:
-        if rule[0].name == 'u3':
-            theta, phi, lamb = [np.repeat([[0], [angle]], [2**num_ctrl_qubits - 1, 1])
-                                    for angle in rule[0].params]
-            qc.append(UCRot(lamb.tolist(), 'Z'), qargs=q_control[:] + [q_target[rule[1][0].index]])
-            qc.append(UCRot(theta.tolist(), 'Y'), qargs=q_control[:] + [q_target[rule[1][0].index]])
-            qc.append(UCRot(phi.tolist(), 'Z'), qargs=q_control[:] + [q_target[rule[1][0].index]])
-        elif rule[0].name == 'cx':
-            theta = np.repeat([[0], [pi]], [2**(num_ctrl_qubits+1) - 1, 1])
-            qc.append(UCRot(theta.tolist(), 'X'), qargs=q_control[:] + q_target[:])
-        else:
-            raise QiskitError('gate contains non-controllable intructions')
-    instr = qc.to_instruction()
-    cgate = controlledgate.ControlledGate('c{0:d}{1}'.format(
-        num_ctrl_qubits, operation.name),
-                                          instr.num_qubits,
-                                          instr.params,
-                                          label=label,
-                                          num_ctrl_qubits=num_ctrl_qubits,
-                                          definition=instr.definition)
-    return cgate
-
 
 def q_if_aqua(operation, num_ctrl_qubits=1, label=None):
     """Return controlled version of gate using controlled rotations from aqua
 
     Args:
+        operation (Gate or Controlledgate): gate to create ControlledGate from
         num_ctrl_qubits (int): number of controls to add to gate (default=1)
         label (str): optional gate label
     Returns:
@@ -215,12 +171,11 @@ def q_if_aqua(operation, num_ctrl_qubits=1, label=None):
     import qiskit.circuit.controlledgate as controlledgate
     from qiskit.circuit.quantumregister import QuantumRegister
     from qiskit.circuit.quantumcircuit import QuantumCircuit
-    import qiskit.aqua
-    # if isinstance(operation, controlledgate.ControlledGate):
-    #     # pylint: disable=no-member
-    #     new_num_ctrl_qubits = operation.num_ctrl_qubits + num_ctrl_qubits
-    # else:
-    #     new_num_ctrl_qubits = num_ctrl_qubits
+    # pylint: disable=unused-import
+    import qiskit.extensions.standard.multi_control_rotation_gates
+    import qiskit.extensions.standard.multi_control_toffoli_gate
+    import qiskit.extensions.standard.multi_control_u1_gate
+
     bgate = _unroll_gate(operation, ['u3', 'cx'])
     # now we have a bunch of single qubit rotation gates and cx
     q_control = QuantumRegister(num_ctrl_qubits)
@@ -258,6 +213,9 @@ def _gate_to_circuit(operation):
     qc = QuantumCircuit(qr, name=operation.name)
     if hasattr(operation, 'definition') and operation.definition:
         for rule in operation.definition:
+            if rule[0].name in {'id', 'barrier', 'measure', 'snapshot'}:
+                raise QiskitError('Cannot make controlled gate with {} instruction'.format(
+                    rule[0].name))
             qc.append(rule[0], qargs=[qr[bit.index] for bit in rule[1]], cargs=[])
     else:
         qc.append(operation, qargs=qr, cargs=[])

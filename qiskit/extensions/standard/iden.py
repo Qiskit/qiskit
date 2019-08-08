@@ -18,8 +18,6 @@ Identity gate.
 import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit import QuantumRegister
-import qiskit.circuit.controlledgate as controlledgate
 
 
 class IdGate(Gate):
