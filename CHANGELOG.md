@@ -60,9 +60,6 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
--   The option `with_layout` was added to the circuit drawer
-    method. This option allows to include layout information if its available in
-    the circuit to draw (\#2739)
 
 
 ### Changed
@@ -97,6 +94,10 @@ The format is based on [Keep a Changelog].
     definition of a controlled `U3Gate` (\#2755)
 -   `coupling_map` now required to validate a `backend.configuration()` (\#2836)
 -   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
+-   If layout information is available in
+    the circuit, it will be included to the circuit drawing. This can be removed
+    using the option ``with_layout=False`` in the method
+    ``QuantumCircuit.draw``. (\#2739)
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
