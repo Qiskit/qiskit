@@ -764,9 +764,6 @@ class MatplotlibDrawer:
                         _barriers['coord'].append(q_xy[index])
                     if self.plot_barriers:
                         self._barrier(_barriers, this_anc)
-                    else:
-                        # this stop there being blank lines plotted in place of barriers
-                        this_anc -= 1
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
@@ -912,7 +909,14 @@ class MatplotlibDrawer:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
 
-            prev_anc = this_anc + layer_width - 1
+            # adjust the column if there have been barriers encountered, but not plotted
+            barrier_offset = 0
+            if not self.plot_barriers:
+                # only adjust if everything in the layer wasn't plotted
+                barrier_offset = -1 if all([op.name in
+                                            ['barrier', 'snapshot', 'load', 'save', 'noise']
+                                            for op in layer]) else 0
+            prev_anc = this_anc + layer_width + barrier_offset - 1
         #
         # adjust window size and draw horizontal lines
         #
