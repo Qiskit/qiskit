@@ -34,7 +34,6 @@ REQUIREMENTS = [
     "psutil>=5",
     "scipy>=1.0",
     "sympy>=1.3",
-    "seaborn>=0.9.0"
 ]
 
 # Add Cython extensions here
@@ -100,7 +99,8 @@ setup(
     python_requires=">=3.5",
     extras_require={
         'visualization': ['matplotlib>=2.1', 'nxpd>=0.2', 'ipywidgets>=7.3.0',
-                          'pydot', "pillow>=4.2.1", "pylatexenc>=1.4"],
+                          'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
+                          "seaborn>=0.9.0"],
         'full-featured-simulators': ['qiskit-aer>=0.1']
     },
     project_urls={
