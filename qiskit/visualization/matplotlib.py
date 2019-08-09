@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 
 Register = collections.namedtuple('Register', 'reg index')
 
-WID = 0.65
-HIG = 0.65
+WID = 0.85
+HIG = 0.85
 DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
 PORDER_LINE = 3
@@ -178,7 +178,7 @@ class MatplotlibDrawer:
                 boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
             else:
                 boxes_length = round(len(text) / 8) or 1
-            wid = WID * 2.8 * boxes_length
+            wid = WID * 2.2 * boxes_length
         else:
             wid = WID
 
@@ -231,10 +231,10 @@ class MatplotlibDrawer:
 
         if wide:
             if subtext:
-                wid = WID * 2.8
+                wid = WID * 2.2
             else:
                 boxes_wide = round(len(text) / 10) or 1
-                wid = WID * 2.8 * boxes_wide
+                wid = WID * 2.2 * boxes_wide
         else:
             wid = WID
         if fc:
@@ -847,7 +847,8 @@ class MatplotlibDrawer:
                                        fc=color,
                                        subtext='{}'.format(param))
                         else:
-                            self._gate(q_xy[1], wide=_iswide, text=disp)
+                            self._gate(q_xy[1], wide=_iswide, text=disp,
+                                       fc=color)
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=color)
 
