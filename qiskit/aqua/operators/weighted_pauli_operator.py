@@ -27,7 +27,6 @@ from qiskit.tools import parallel_map
 from qiskit.tools.events import TextProgressBar
 
 from qiskit.aqua import AquaError, aqua_globals
-from qiskit.aqua.utils import find_regs_by_name
 from qiskit.aqua.utils.backend_utils import is_statevector_backend
 from qiskit.aqua.operators.base_operator import BaseOperator
 from qiskit.aqua.operators.common import (measure_pauli_z, covariance, pauli_measurement,
@@ -610,6 +609,8 @@ class WeightedPauliOperator(BaseOperator):
             AquaError: The provided qr is not in the input_circuit
             AquaError: Neither backend nor statevector_mode is provided
         """
+        from qiskit.aqua.utils.run_circuits import find_regs_by_name
+
         # TODO: re-use the `evaluation_instruction` method after terra#2858
         if operator_mode is not None:
             warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
