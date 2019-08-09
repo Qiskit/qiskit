@@ -18,6 +18,7 @@
 
 import unittest
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
@@ -32,21 +33,21 @@ class TestChoi(ChannelTestCase):
         """Test initialization"""
         mat4 = np.eye(4) / 2.0
         chan = Choi(mat4)
-        self.assertAllClose(chan.data, mat4)
+        assert_allclose(chan.data, mat4)
         self.assertEqual(chan.dim, (2, 2))
 
         mat8 = np.eye(8) / 2.0
         chan = Choi(mat8, input_dims=4)
-        self.assertAllClose(chan.data, mat8)
+        assert_allclose(chan.data, mat8)
         self.assertEqual(chan.dim, (4, 2))
 
         chan = Choi(mat8, input_dims=2)
-        self.assertAllClose(chan.data, mat8)
+        assert_allclose(chan.data, mat8)
         self.assertEqual(chan.dim, (2, 4))
 
         mat16 = np.eye(16) / 4
         chan = Choi(mat16)
-        self.assertAllClose(chan.data, mat16)
+        assert_allclose(chan.data, mat16)
         self.assertEqual(chan.dim, (4, 4))
 
         # Wrong input or output dims should raise exception
