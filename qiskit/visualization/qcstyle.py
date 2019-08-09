@@ -87,7 +87,7 @@ class DefaultStyle:
         }
         self.latexmode = False
         self.fold = 25
-        self.bundle = False
+        self.bundle = True
         self.barrier = True
         self.index = False
         self.figwidth = -1
@@ -183,7 +183,7 @@ class BWStyle:
         }
         self.latexmode = False
         self.fold = 25
-        self.bundle = False
+        self.bundle = True
         self.barrier = True
         self.index = False
         self.figwidth = -1
