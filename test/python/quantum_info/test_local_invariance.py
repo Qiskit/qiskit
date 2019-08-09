@@ -17,7 +17,7 @@
 
 import unittest
 
-import numpy as np
+from numpy.testing import assert_allclose
 from qiskit.execute import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.test import QiskitTestCase
@@ -38,14 +38,14 @@ class TestLocalInvariance(QiskitTestCase):
         qc = QuantumCircuit(qr)
         U = execute(qc, sim).result().get_unitary()
         vec = two_qubit_local_invariants(U)
-        self.assertTrue(np.allclose(vec, [1, 0, 3]))
+        assert_allclose(vec, [1, 0, 3])
 
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
         qc.cx(qr[1], qr[0])
         U = execute(qc, sim).result().get_unitary()
         vec = two_qubit_local_invariants(U)
-        self.assertTrue(np.allclose(vec, [0, 0, 1]))
+        assert_allclose(vec, [0, 0, 1])
 
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
@@ -53,14 +53,14 @@ class TestLocalInvariance(QiskitTestCase):
         qc.cx(qr[0], qr[1])
         U = execute(qc, sim).result().get_unitary()
         vec = two_qubit_local_invariants(U)
-        self.assertTrue(np.allclose(vec, [0, 0, -1]))
+        assert_allclose(vec, [0, 0, -1])
 
         qr = QuantumRegister(2, name='q')
         qc = QuantumCircuit(qr)
         qc.swap(qr[1], qr[0])
         U = execute(qc, sim).result().get_unitary()
         vec = two_qubit_local_invariants(U)
-        self.assertTrue(np.allclose(vec, [-1, 0, -3]))
+        assert_allclose(vec, [-1, 0, -3])
 
 
 if __name__ == '__main__':

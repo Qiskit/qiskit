@@ -16,6 +16,7 @@
 
 import math
 import numpy as np
+from numpy.testing import assert_allclose
 import scipy.linalg as la
 
 from qiskit.quantum_info.operators.quaternion import \
@@ -59,15 +60,15 @@ class TestQuaternions(QiskitTestCase):
 
     def test_random_euler(self):
         """Quaternion from Euler rotations."""
-        self.assertTrue(np.allclose(self.mat1, self.mat2))
+        assert_allclose(self.mat1, self.mat2)
 
     def test_orthogonality(self):
         """Quaternion rotation matrix orthogonality"""
-        self.assertTrue(np.allclose(self.mat2.dot(self.mat2.T), np.identity(3, dtype=float)))
+        assert_allclose(self.mat2.dot(self.mat2.T), np.identity(3, dtype=float), atol=1e-8)
 
     def test_det(self):
         """Quaternion det = 1"""
-        self.assertTrue(np.allclose(la.det(self.mat2), 1))
+        assert_allclose(la.det(self.mat2), 1)
 
     def test_equiv_quaternions(self):
         """Different Euler rotations give same quaternion, up to sign."""
@@ -79,7 +80,7 @@ class TestQuaternions(QiskitTestCase):
             quat1 = quaternion_from_euler(rnd, value)
             euler = quat1.to_zyz()
             quat2 = quaternion_from_euler(euler, 'zyz')
-            self.assertTrue(np.allclose(abs(quat1.data.dot(quat2.data)), 1))
+            assert_allclose(abs(quat1.data.dot(quat2.data)), 1)
 
     def test_mul_by_quat(self):
         """Quarternions should multiply correctly."""
@@ -89,7 +90,7 @@ class TestQuaternions(QiskitTestCase):
         other_mat = other_quat.to_matrix()
         product_quat = self.quat_unnormalized * other_quat
         product_mat = (self.quat_unnormalized.to_matrix()).dot(other_mat)
-        self.assertTrue(np.allclose(product_quat.to_matrix(), product_mat))
+        assert_allclose(product_quat.to_matrix(), product_mat)
 
     def test_mul_by_array(self):
         """Quaternions cannot be multiplied with an array."""
@@ -104,14 +105,14 @@ class TestQuaternions(QiskitTestCase):
     def test_rotation(self):
         """Multiplication by -1 should give the same rotation."""
         neg_quat = Quaternion(self.quat_unnormalized.data * -1)
-        self.assertTrue(np.allclose(neg_quat.to_matrix(), self.quat_unnormalized.to_matrix()))
+        assert_allclose(neg_quat.to_matrix(), self.quat_unnormalized.to_matrix())
 
     def test_one_euler_angle(self):
         """Quaternion should return a correct sequence of zyz representation
            in the case of rotations when there is only one non-zero Euler angle."""
         rand_rot_angle = 0.123456789
         some_quat = quaternion_from_axis_rotation(rand_rot_angle, "z")
-        self.assertTrue(np.allclose(some_quat.to_zyz(), np.array([rand_rot_angle, 0, 0])))
+        assert_allclose(some_quat.to_zyz(), np.array([rand_rot_angle, 0, 0]))
 
     def test_two_euler_angle_0123456789(self):
         """Quaternion should return a correct sequence of zyz representation
@@ -120,7 +121,7 @@ class TestQuaternions(QiskitTestCase):
         rand_rot_angle = 0.123456789
         some_quat = (quaternion_from_axis_rotation(rand_rot_angle, "z")
                      * quaternion_from_axis_rotation(np.pi, "y"))
-        self.assertTrue(np.allclose(some_quat.to_zyz(), np.array([rand_rot_angle, np.pi, 0])))
+        assert_allclose(some_quat.to_zyz(), np.array([rand_rot_angle, np.pi, 0]))
 
     def test_two_euler_angle_0987654321(self):
         """Quaternion should return a correct sequence of zyz representation
@@ -129,7 +130,7 @@ class TestQuaternions(QiskitTestCase):
         rand_rot_angle = 0.987654321
         some_quat = (quaternion_from_axis_rotation(rand_rot_angle, "z")
                      * quaternion_from_axis_rotation(np.pi, "y"))
-        self.assertTrue(np.allclose(some_quat.to_zyz(), np.array([rand_rot_angle, np.pi, 0])))
+        assert_allclose(some_quat.to_zyz(), np.array([rand_rot_angle, np.pi, 0]))
 
     def test_quaternion_from_rotation_invalid_axis(self):
         """Cannot generate quaternion from rotations around invalid axis."""
