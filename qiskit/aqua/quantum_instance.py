@@ -17,13 +17,10 @@ import logging
 import time
 import os
 
-from qiskit import __version__ as terra_version
 from qiskit.assembler.run_config import RunConfig
 
 from .aqua_error import AquaError
-from .utils import (run_qobj, compile_circuits, CircuitCache,
-                    get_measured_qubits_from_qobj,
-                    build_measurement_error_mitigation_qobj)
+from .utils import CircuitCache
 from .utils.backend_utils import (is_ibmq_provider,
                                   is_statevector_backend,
                                   is_simulator_backend,
@@ -209,6 +206,8 @@ class QuantumInstance:
         Returns:
             str: the info of the object.
         """
+        from qiskit import __version__ as terra_version
+
         info = "\nQiskit Terra version: {}\n".format(terra_version)
         info += "Backend: '{} ({})', with following setting:\n{}\n{}\n{}\n{}\n{}\n{}".format(
             self.backend_name, self._backend.provider(), self._backend_config, self._compile_config,
@@ -227,6 +226,12 @@ class QuantumInstance:
         Returns:
             Result: Result object
         """
+        from .utils.run_circuits import (run_qobj,
+                                         compile_circuits)
+
+        from .utils.measurement_error_mitigation import (get_measured_qubits_from_qobj,
+                                                         build_measurement_error_mitigation_qobj)
+
         qobj = compile_circuits(circuits, self._backend, self._backend_config, self._compile_config, self._run_config,
                                 show_circuit_summary=self._circuit_summary, circuit_cache=self._circuit_cache,
                                 **kwargs)

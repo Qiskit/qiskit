@@ -12,14 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 import numpy as np
-from qiskit import compiler, BasicAer
-from qiskit.converters import circuit_to_dag
+from qiskit import compiler
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes import Unroller
 
 
 def convert_to_basis_gates(circuit):
     # unroll the circuit using the basis u1, u2, u3, cx, and id gates
+    from qiskit import BasicAer
     unroller = Unroller(basis=['u1', 'u2', 'u3', 'cx', 'id'])
     pm = PassManager(passes=[unroller])
     qc = compiler.transpile(circuit, BasicAer.get_backend('qasm_simulator'), pass_manager=pm)
