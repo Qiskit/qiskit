@@ -130,11 +130,12 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         circuit.h(qr)
         circuit.h(qr)
 
-        long_name_filename = self._get_resource_path('current_long_name_matplotlib_ref.png')
+        long_name_filename = self._get_resource_path(
+            'current_%s_long_name_matplotlib.png' % os.name)
         visualization.circuit_drawer(circuit, output='mpl', filename=long_name_filename)
         # self.addCleanup(os.remove, long_name_filename)
 
         ref_filename = self._get_resource_path(
-            'visualization/references/matplotlib_long_name_ref.png')
+            'visualization/references/%s_long_name_matplotlib.png' % os.name)
 
         self.assertImagesAreEqual(ref_filename, long_name_filename)
