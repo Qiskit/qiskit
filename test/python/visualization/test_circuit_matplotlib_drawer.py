@@ -132,7 +132,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
         long_name_filename = self._get_resource_path('current_long_name_matplotlib_ref.png')
         visualization.circuit_drawer(circuit, output='mpl', filename=long_name_filename)
-        self.addCleanup(os.remove, long_name_filename)
+        # self.addCleanup(os.remove, long_name_filename)
 
         ref_filename = self._get_resource_path(
             'visualization/references/matplotlib_long_name_ref.png')
