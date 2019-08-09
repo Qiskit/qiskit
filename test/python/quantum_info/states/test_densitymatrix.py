@@ -20,6 +20,7 @@ import unittest
 import logging
 
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
@@ -53,28 +54,13 @@ class TestDensityMatrix(QiskitTestCase):
         rho = cls.rand_vec(n, normalize=True)
         return np.outer(rho, np.conjugate(rho))
 
-    def assertAllClose(self,
-                       obj1,
-                       obj2,
-                       rtol=1e-5,
-                       atol=1e-6,
-                       equal_nan=False,
-                       msg=None):
-        """Assert two objects are equal using Numpy.allclose."""
-        comparison = np.allclose(
-            obj1, obj2, rtol=rtol, atol=atol, equal_nan=equal_nan)
-        if msg is None:
-            msg = ''
-        msg += '({} != {})'.format(obj1, obj2)
-        self.assertTrue(comparison, msg=msg)
-
     def test_init_array_qubit(self):
         """Test subsystem initialization from N-qubit array."""
         # Test automatic inference of qubit subsystems
         rho = self.rand_rho(8)
         for dims in [None, 8]:
             state = DensityMatrix(rho, dims=dims)
-            self.assertAllClose(state.data, rho)
+            assert_allclose(state.data, rho)
             self.assertEqual(state.dim, 8)
             self.assertEqual(state.dims(), (2, 2, 2))
 
@@ -82,13 +68,13 @@ class TestDensityMatrix(QiskitTestCase):
         """Test initialization from array."""
         rho = self.rand_rho(3)
         state = DensityMatrix(rho)
-        self.assertAllClose(state.data, rho)
+        assert_allclose(state.data, rho)
         self.assertEqual(state.dim, 3)
         self.assertEqual(state.dims(), (3,))
 
         rho = self.rand_rho(2 * 3 * 4)
         state = DensityMatrix(rho, dims=[2, 3, 4])
-        self.assertAllClose(state.data, rho)
+        assert_allclose(state.data, rho)
         self.assertEqual(state.dim, 2 * 3 * 4)
         self.assertEqual(state.dims(), (2, 3, 4))
 
@@ -293,7 +279,7 @@ class TestDensityMatrix(QiskitTestCase):
             state = DensityMatrix(rho0).expand(DensityMatrix(rho1))
             self.assertEqual(state.dim, 6)
             self.assertEqual(state.dims(), (2, 3))
-            self.assertAllClose(state.data, target)
+            assert_allclose(state.data, target)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -304,7 +290,7 @@ class TestDensityMatrix(QiskitTestCase):
             state = DensityMatrix(rho0).tensor(DensityMatrix(rho1))
             self.assertEqual(state.dim, 6)
             self.assertEqual(state.dims(), (3, 2))
-            self.assertAllClose(state.data, target)
+            assert_allclose(state.data, target)
 
     def test_add(self):
         """Test add method."""
