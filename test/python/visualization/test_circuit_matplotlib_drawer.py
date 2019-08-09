@@ -86,7 +86,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         # check the barriers plot properly when plot_barriers= True
         filename = self._get_resource_path('visualization/references/current_matplotlib_ref.png')
         visualization.circuit_drawer(qc, output='mpl', plot_barriers=True, filename=filename)
-        self.addCleanup(os.remove, filename)
+        # self.addCleanup(os.remove, filename)
 
         ref_filename = self._get_resource_path(
             'visualization/references/matplotlib_barriers_ref.png')

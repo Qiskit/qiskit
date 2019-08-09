@@ -75,7 +75,7 @@ stages:
         - task: CopyFiles@2
           condition: always()
           inputs:
-            contents: '**/current_long_name_matplotlib_ref.png'
+            contents: '**/current_*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: always()
@@ -148,7 +148,7 @@ stages:
         - task: CopyFiles@2
           condition: always()
           inputs:
-            contents: '**/current_long_name_matplotlib_ref.png'
+            contents: '**/current_*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: always()
