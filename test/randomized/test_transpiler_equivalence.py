@@ -15,7 +15,7 @@
 
 """Randomized tests of transpiler circuit equivalence."""
 
-import os
+from math import pi
 
 from hypothesis import assume, settings, HealthCheck
 from hypothesis.stateful import multiple, rule, precondition, invariant
@@ -119,7 +119,8 @@ class QCircuitMachine(RuleBasedStateMachine):
 
     @rule(gate=st.sampled_from(oneQ_oneP_gates),
           qarg=qubits,
-          param=st.floats(allow_nan=False, allow_infinity=False))
+          param=st.floats(allow_nan=False, allow_infinity=False,
+                          min_value=-10*pi, max_value=10*pi))
     def add_1q1p_gate(self, gate, qarg, param):
         """Append a random 1q gate with 1 random float parameter."""
         self.qc.append(gate(param), [qarg])
@@ -127,7 +128,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(gate=st.sampled_from(oneQ_twoP_gates),
           qarg=qubits,
           params=st.lists(
-              st.floats(allow_nan=False, allow_infinity=False),
+              st.floats(allow_nan=False, allow_infinity=False,
+                        min_value=-10*pi, max_value=10*pi),
               min_size=2, max_size=2))
     def add_1q2p_gate(self, gate, qarg, params):
         """Append a random 1q gate with 2 random float parameters."""
@@ -136,7 +138,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(gate=st.sampled_from(oneQ_threeP_gates),
           qarg=qubits,
           params=st.lists(
-              st.floats(allow_nan=False, allow_infinity=False),
+              st.floats(allow_nan=False, allow_infinity=False,
+                        min_value=-10*pi, max_value=10*pi),
               min_size=3, max_size=3))
     def add_1q3p_gate(self, gate, qarg, params):
         """Append a random 1q gate with 3 random float parameters."""
@@ -144,7 +147,8 @@ class QCircuitMachine(RuleBasedStateMachine):
 
     @rule(gate=st.sampled_from(twoQ_oneP_gates),
           qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
-          param=st.floats(allow_nan=False, allow_infinity=False))
+          param=st.floats(allow_nan=False, allow_infinity=False,
+                          min_value=-10*pi, max_value=10*pi))
     def add_2q1p_gate(self, gate, qargs, param):
         """Append a random 2q gate with 1 random float parameter."""
         self.qc.append(gate(param), qargs)
@@ -152,7 +156,8 @@ class QCircuitMachine(RuleBasedStateMachine):
     @rule(gate=st.sampled_from(twoQ_threeP_gates),
           qargs=st.lists(qubits, max_size=2, min_size=2, unique=True),
           params=st.lists(
-              st.floats(allow_nan=False, allow_infinity=False),
+              st.floats(allow_nan=False, allow_infinity=False,
+                        min_value=-10*pi, max_value=10*pi),
               min_size=3, max_size=3))
     def add_2q3p_gate(self, gate, qargs, params):
         """Append a random 2q gate with 3 random float parameters."""
@@ -181,8 +186,8 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         last_gate = self.qc.data[-1]
 
-        # Work around for https://github.com/Qiskit/qiskit-terra/issues/2567
-        assume(not isinstance(last_gate[0], Measure) or creg != last_gate[2][0].register)
+        # Conditional instructions are not supported
+        assume(isinstance(last_gate[0], Gate))
 
         last_gate[0].c_if(creg, val)
 
@@ -212,7 +217,6 @@ class QCircuitMachine(RuleBasedStateMachine):
 
         shots = 4096
 
-        aer_qasm_simulator = self.backend
         aer_counts = execute(self.qc, backend=self.backend,
                              shots=shots).result().get_counts()
 

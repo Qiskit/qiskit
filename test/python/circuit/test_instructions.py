@@ -84,12 +84,35 @@ class TestInstructions(QiskitTestCase):
         self.assertNotEqual(Instruction('u', 1, 0, [0.3, phi, 0.4]),
                             Instruction('u', 1, 0, [theta, phi, 0.5]))
 
+    def test_instructions_equal_with_parameter_expressions(self):
+        """Test equality of instructions for cases with ParameterExpressions."""
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+        sum_ = theta + phi
+        product_ = theta * phi
+
+        # Verify we can check params including parameters
+        self.assertEqual(Instruction('u', 1, 0, [sum_, product_, 0.4]),
+                         Instruction('u', 1, 0, [sum_, product_, 0.4]))
+
+        # Verify we can test for correct parameter order
+        self.assertNotEqual(Instruction('u', 1, 0, [product_, sum_, 0]),
+                            Instruction('u', 1, 0, [sum_, product_, 0]))
+
+        # Verify we can still find a wrong fixed param if we use parameters
+        self.assertNotEqual(Instruction('u', 1, 0, [sum_, phi, 0.4]),
+                            Instruction('u', 1, 0, [sum_, phi, 0.5]))
+
+        # Verify we can find cases when param != float
+        self.assertNotEqual(Instruction('u', 1, 0, [0.3, sum_, 0.4]),
+                            Instruction('u', 1, 0, [product_, sum_, 0.5]))
+
     def circuit_instruction_circuit_roundtrip(self):
         """test converting between circuit and instruction and back
         preserves the circuit"""
         q = QuantumRegister(4)
         c = ClassicalRegister(4)
-        circ1 = QuantumCircuit(q, c, name='circ1')
+        circ1 = QuantumCircuit(q, c, name='circuit1')
         circ1.h(q[0])
         circ1.crz(0.1, q[0], q[1])
         circ1.iden(q[1])
@@ -207,7 +230,7 @@ class TestInstructions(QiskitTestCase):
         little_gate = circ0.to_instruction()
 
         qr1 = QuantumRegister(4)
-        circ1 = QuantumCircuit(qr1, name='circ1')
+        circ1 = QuantumCircuit(qr1, name='circuit1')
         circ1.cu1(-0.1, qr1[0], qr1[2])
         circ1.iden(qr1[1])
         circ1.append(little_gate, [qr1[2], qr1[3]])
@@ -248,6 +271,26 @@ class TestInstructions(QiskitTestCase):
         """test inverting opaque gate fails"""
         opaque_gate = Gate(name='crz_2', num_qubits=2, params=[0.5])
         self.assertRaises(QiskitError, opaque_gate.inverse)
+
+    def test_no_broadcast(self):
+        """See https://github.com/Qiskit/qiskit-terra/issues/2777
+        When creating custom instructions, do not broadcast parameters"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+        subcircuit = QuantumCircuit(qr, cr, name='subcircuit')
+
+        subcircuit.x(qr[0])
+        subcircuit.h(qr[1])
+        subcircuit.measure(qr[0], cr[0])
+        subcircuit.measure(qr[1], cr[1])
+
+        inst = subcircuit.to_instruction()
+        circuit = QuantumCircuit(qr, cr, name='circuit')
+        circuit.append(inst, qr[:], cr[:])
+        self.assertEqual(circuit.qregs, [qr])
+        self.assertEqual(circuit.cregs, [cr])
+        self.assertEqual(circuit.qubits, [qr[0], qr[1]])
+        self.assertEqual(circuit.clbits, [cr[0], cr[1]])
 
 
 if __name__ == '__main__':

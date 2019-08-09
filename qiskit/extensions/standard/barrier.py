@@ -18,6 +18,7 @@ Barrier instruction.
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit import Instruction
+from qiskit.exceptions import QiskitError
 
 
 class Barrier(Instruction):
@@ -33,6 +34,9 @@ class Barrier(Instruction):
 
     def broadcast_arguments(self, qargs, cargs):
         yield [qarg for sublist in qargs for qarg in sublist], []
+
+    def c_if(self, classical, val):
+        raise QiskitError('Barriers are compiler directives and cannot be conditional.')
 
 
 def barrier(self, *qargs):

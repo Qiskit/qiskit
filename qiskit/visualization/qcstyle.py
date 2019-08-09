@@ -16,22 +16,32 @@
 
 
 class DefaultStyle:
-    """A colorblind friendly gate styling modelled
-    after:
-        B. Wang, “Points of view: Color blindness“,
-        Nat. Methods 8, 441 (2011).
+    """IBM Design Style colors
     """
     def __init__(self):
+        # Set colors
+        basis_color = '#FA74A6'
+        clifford_color = '#6FA4FF'
+        non_gate_color = '#000000'
+        other_color = '#BB8BFF'
+        pauli_color = '#05BAB6'
+        iden_color = '#05BAB6'
+
+        self.name = 'iqx'
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
+        self.not_gate_lc = '#ffffff'
         self.cc = '#778899'
         self.gc = '#ffffff'
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
+        self.edge_color = None
+        self.math_fs = 15
         self.fs = 13
         self.sfs = 8
+        self.colored_add_width = 0.2
         self.disptex = {
             'id': 'Id',
             'u0': 'U_0',
@@ -52,35 +62,37 @@ class DefaultStyle:
             'reset': '\\left|0\\right\\rangle'
         }
         self.dispcol = {
-            'id': '#F0E442',
-            'u0': '#E7AB3B',
-            'u1': '#E7AB3B',
-            'u2': '#E7AB3B',
-            'u3': '#E7AB3B',
-            'x': '#58C698',
-            'y': '#58C698',
-            'z': '#58C698',
-            'h': '#70B7EB',
-            's': '#E0722D',
-            'sdg': '#E0722D',
-            't': '#E0722D',
-            'tdg': '#E0722D',
-            'rx': '#ffffff',
-            'ry': '#ffffff',
-            'rz': '#ffffff',
-            'reset': '#D188B4',
-            'target': '#70B7EB',
-            'meas': '#D188B4'
+            'u0': basis_color,
+            'u1': basis_color,
+            'u2': basis_color,
+            'u3': basis_color,
+            'id': iden_color,
+            'x': pauli_color,
+            'y': pauli_color,
+            'z': pauli_color,
+            'h': clifford_color,
+            'cx': clifford_color,
+            's': clifford_color,
+            'sdg': clifford_color,
+            't': other_color,
+            'tdg': other_color,
+            'rx': other_color,
+            'ry': other_color,
+            'rz': other_color,
+            'reset': non_gate_color,
+            'target': '#ffffff',
+            'swap': other_color,
+            'multi': other_color,
+            'meas': non_gate_color
         }
-        self.latexmode = True
-        self.pimode = False
-        self.fold = 20
-        self.bundle = False
+        self.latexmode = False
+        self.fold = 25
+        self.bundle = True
         self.barrier = True
         self.index = False
         self.figwidth = -1
         self.dpi = 150
-        self.margin = [2.0, 0.0, 0.0, 0.3]
+        self.margin = [2.0, 0.1, 0.1, 0.3]
         self.cline = 'doublet'
 
     def set_style(self, dic):
@@ -97,7 +109,6 @@ class DefaultStyle:
         self.disptex = dic.get('displaytext', self.disptex)
         self.dispcol = dic.get('displaycolor', self.dispcol)
         self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
-        self.pimode = dic.get('usepiformat', self.pimode)
         self.fold = dic.get('fold', self.fold)
         if self.fold < 2:
             self.fold = -1
@@ -112,15 +123,20 @@ class DefaultStyle:
 
 class BWStyle:
     def __init__(self):
+        self.name = 'bw'
         self.tc = '#000000'
         self.sc = '#000000'
         self.lc = '#000000'
+        self.not_gate_lc = '#000000'
         self.cc = '#778899'
         self.gc = '#ffffff'
         self.gt = '#000000'
         self.bc = '#bdbdbd'
         self.bg = '#ffffff'
+        self.edge_color = '#000000'
         self.fs = 13
+        self.math_fs = 15
+        self.colored_add_width = 0.2
         self.sfs = 8
         self.disptex = {
             'id': 'Id',
@@ -151,6 +167,7 @@ class BWStyle:
             'y': '#ffffff',
             'z': '#ffffff',
             'h': '#ffffff',
+            'cx': '#000000',
             's': '#ffffff',
             'sdg': '#ffffff',
             't': '#ffffff',
@@ -160,12 +177,13 @@ class BWStyle:
             'rz': '#ffffff',
             'reset': '#ffffff',
             'target': '#ffffff',
-            'meas': '#ffffff'
+            'meas': '#ffffff',
+            'swap': '#000000',
+            'multi': '#000000'
         }
-        self.latexmode = True
-        self.pimode = False
-        self.fold = 20
-        self.bundle = False
+        self.latexmode = False
+        self.fold = 25
+        self.bundle = True
         self.barrier = True
         self.index = False
         self.figwidth = -1
@@ -189,7 +207,6 @@ class BWStyle:
             self.dispcol[key] = self.gc
         self.dispcol = dic.get('displaycolor', self.dispcol)
         self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
-        self.pimode = dic.get('usepiformat', self.pimode)
         self.fold = dic.get('fold', self.fold)
         if self.fold < 2:
             self.fold = -1

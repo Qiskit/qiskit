@@ -39,9 +39,10 @@ import numpy
 
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.parameter import Parameter
 from qiskit.qobj.models.qasm import QasmQobjInstruction
+from qiskit.circuit.parameter import ParameterExpression
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -135,7 +136,7 @@ class Instruction:
         self._params = []
         for single_param in parameters:
             # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (Parameter, sympy.Basic)):
+            if isinstance(single_param, (ParameterExpression, sympy.Basic)):
                 self._params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
@@ -303,12 +304,7 @@ class Instruction:
 
     def broadcast_arguments(self, qargs, cargs):
         """
-        Validation and handling of the arguments and its relationship. For example:
-        `cx([q[0],q[1]], q[2])` means `cx(q[0], q[2]); cx(q[1], q[2])`. This method
-        yields the arguments in the right grouping. In the example:
-           in: [[q[0],q[1]], q[2]],[]
-         outs: [q[0], q[2]], []
-               [q[1], q[2]], []
+        Validation of the arguments.
 
         Args:
             qargs (List): List of quantum bit arguments.
@@ -325,22 +321,35 @@ class Instruction:
             raise QiskitError(
                 'The amount of qubit arguments does not match the instruction expectation.')
 
-        if len(cargs) != self.num_clbits:
-            raise QiskitError(
-                'The amount of clbit arguments does not match the instruction expectation.')
+        #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
+        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
+        flat_cargs = [carg for sublist in cargs for carg in sublist]
+        yield flat_qargs, flat_cargs
 
-        if len(cargs) == len(qargs):
-            #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0]], [r[0]]
-            #                               -> [q[1]], [r[1]]
-            for qarg, carg in zip(qargs, cargs):
-                yield [qarg], [carg]
-        elif not cargs and len(qargs) == 1:
-            #  [[q[0], q[1]], []] -> [q[0]], []]
-            #                     -> [q[1]], []
-            for qarg in qargs[0]:
-                yield [qarg], []
-        else:
-            #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], r[0]], [q[1], r[1]]
-            flat_qargs = [qarg for sublist in qargs for qarg in sublist]
-            flat_cargs = [carg for sublist in cargs for carg in sublist]
-            yield flat_qargs, flat_cargs
+    def _return_repeat(self, exponent):
+        return Instruction(name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits,
+                           num_clbits=self.num_clbits, params=self.params)
+
+    def repeat(self, n):
+        """Creates an instruction with `gate` repeated `n` amount of times.
+
+        Args:
+            n (int): Number of times to repeat the instruction
+
+        Returns:
+            Instruction: Containing the definition.
+
+        Raises:
+            QiskitError: If n < 1.
+        """
+        if int(n) != n or n < 1:
+            raise QiskitError("Repeat can only be called with strictly positive integer.")
+
+        n = int(n)
+
+        instruction = self._return_repeat(n)
+        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
+        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
+
+        instruction.definition = [(self, qargs[:], cargs[:])] * n
+        return instruction

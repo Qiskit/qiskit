@@ -16,8 +16,10 @@
 
 import unittest
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
+from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.channel import Stinespring
 from .channel_test_case import ChannelTestCase
 
@@ -29,23 +31,23 @@ class TestStinespring(ChannelTestCase):
         """Test initialization"""
         # Initialize from unitary
         chan = Stinespring(self.UI)
-        self.assertAllClose(chan.data, self.UI)
+        assert_allclose(chan.data, self.UI)
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize from Stinespring
         chan = Stinespring(self.depol_stine(0.5))
-        self.assertAllClose(chan.data, self.depol_stine(0.5))
+        assert_allclose(chan.data, self.depol_stine(0.5))
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize from Non-CPTP
         stine_l, stine_r = self.rand_matrix(4, 2), self.rand_matrix(4, 2)
         chan = Stinespring((stine_l, stine_r))
-        self.assertAllClose(chan.data, (stine_l, stine_r))
+        assert_allclose(chan.data, (stine_l, stine_r))
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize with redundant second op
         chan = Stinespring((stine_l, stine_l))
-        self.assertAllClose(chan.data, stine_l)
+        assert_allclose(chan.data, stine_l)
         self.assertEqual(chan.dim, (2, 2))
 
         # Wrong input or output dims should raise exception
@@ -76,38 +78,6 @@ class TestStinespring(ChannelTestCase):
         cpy = orig.copy()
         cpy._data[0][0, 0] = 0.0
         self.assertFalse(cpy == orig)
-
-    def test_evolve(self):
-        """Test evolve method."""
-        input_psi = [0, 1]
-        input_rho = [[0, 0], [0, 1]]
-
-        # Identity channel
-        chan = Stinespring(self.UI)
-        target_psi = np.array([0, 1])
-        self.assertAllClose(chan._evolve(input_psi), target_psi)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_psi)
-        target_rho = np.array([[0, 0], [0, 1]])
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
-
-        # Hadamard channel
-        mat = np.array([[1, 1], [1, -1]]) / np.sqrt(2)
-        chan = Stinespring(mat)
-        target_psi = np.array([1, -1]) / np.sqrt(2)
-        self.assertAllClose(chan._evolve(input_psi), target_psi)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_psi)
-        target_rho = np.array([[1, -1], [-1, 1]]) / 2
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
-
-        # Completely depolarizing channel
-        chan = Stinespring(self.depol_stine(1))
-        target_rho = np.eye(2) / 2
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -176,126 +146,126 @@ class TestStinespring(ChannelTestCase):
     def test_compose(self):
         """Test compose method."""
         # Random input test state
-        rho = self.rand_rho(2)
+        rho_init = DensityMatrix(self.rand_rho(2))
 
         # UnitaryChannel evolution
         chan1 = Stinespring(self.UX)
         chan2 = Stinespring(self.UY)
         chan = chan1.compose(chan2)
-        targ = Stinespring(self.UZ)._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        rho_targ = rho_init @ Stinespring(self.UZ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # 50% depolarizing channel
         chan1 = Stinespring(self.depol_stine(0.5))
         chan = chan1.compose(chan1)
-        targ = Stinespring(self.depol_stine(0.75))._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        rho_targ = rho_init @ Stinespring(self.depol_stine(0.75))
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Compose different dimensions
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
-        targ = chan2._evolve(chan1._evolve(rho))
+        rho_targ = rho_init @ chan1 @ chan2
         chan = chan1.compose(chan2)
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 @ chan2
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_compose_front(self):
         """Test front compose method."""
         # Random input test state
-        rho = self.rand_rho(2)
+        rho_init = DensityMatrix(self.rand_rho(2))
 
         # UnitaryChannel evolution
         chan1 = Stinespring(self.UX)
         chan2 = Stinespring(self.UY)
         chan = chan1.compose(chan2, front=True)
-        targ = Stinespring(self.UZ)._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        rho_targ = rho_init @ Stinespring(self.UZ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # 50% depolarizing channel
         chan1 = Stinespring(self.depol_stine(0.5))
         chan = chan1.compose(chan1, front=True)
-        targ = Stinespring(self.depol_stine(0.75))._evolve(rho)
-        self.assertAllClose(chan._evolve(rho), targ)
+        rho_targ = rho_init @ Stinespring(self.depol_stine(0.75))
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Compose different dimensions
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(8, 4)
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=4, output_dims=2)
-        targ = chan2._evolve(chan1._evolve(rho))
+        rho_targ = rho_init @ chan1 @ chan2
         chan = chan2.compose(chan1, front=True)
         self.assertEqual(chan.dim, (2, 2))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_expand(self):
         """Test expand method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
+        rho_init = DensityMatrix(np.kron(rho0, rho0))
         chan1 = Stinespring(self.UI)
         chan2 = Stinespring(self.UX)
 
         # X \otimes I
         chan = chan1.expand(chan2)
-        rho_targ = np.kron(rho1, rho0)
+        rho_targ = DensityMatrix(np.kron(rho1, rho0))
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
-        rho_targ = np.kron(rho0, rho1)
+        rho_targ = DensityMatrix(np.kron(rho0, rho1))
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Completely depolarizing
         chan_dep = Stinespring(self.depol_stine(1))
         chan = chan_dep.expand(chan_dep)
-        rho_targ = np.diag([1, 1, 1, 1]) / 4
+        rho_targ = DensityMatrix(np.diag([1, 1, 1, 1]) / 4)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_tensor(self):
         """Test tensor method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
+        rho_init = DensityMatrix(np.kron(rho0, rho0))
         chan1 = Stinespring(self.UI)
         chan2 = Stinespring(self.UX)
 
         # X \otimes I
         chan = chan2.tensor(chan1)
-        rho_targ = np.kron(rho1, rho0)
+        rho_targ = DensityMatrix(np.kron(rho1, rho0))
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # I \otimes X
         chan = chan1.tensor(chan2)
-        rho_targ = np.kron(rho0, rho1)
+        rho_targ = DensityMatrix(np.kron(rho0, rho1))
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Completely depolarizing
         chan_dep = Stinespring(self.depol_stine(1))
         chan = chan_dep.tensor(chan_dep)
-        rho_targ = np.diag([1, 1, 1, 1]) / 4
+        rho_targ = DensityMatrix(np.diag([1, 1, 1, 1]) / 4)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_power(self):
         """Test power method."""
         # 10% depolarizing channel
-        rho = np.diag([1, 0])
+        rho_init = DensityMatrix(np.diag([1, 0]))
         p_id = 0.9
-        chan = Stinespring(self.depol_stine(1 - p_id))
+        chan1 = Stinespring(self.depol_stine(1 - p_id))
 
         # Compose 3 times
         p_id3 = p_id**3
-        chan3 = chan.power(3)
-        targ3a = chan._evolve(chan._evolve(chan._evolve(rho)))
-        self.assertAllClose(chan3._evolve(rho), targ3a)
-        targ3b = Stinespring(self.depol_stine(1 - p_id3))._evolve(rho)
-        self.assertAllClose(chan3._evolve(rho), targ3b)
+        chan = chan1.power(3)
+        rho_targ = rho_init @ chan1 @ chan1 @ chan1
+        self.assertEqual(rho_init @ chan, rho_targ)
+        rho_targ = rho_init @ Stinespring(self.depol_stine(1 - p_id3))
+        self.assertEqual(rho_init @ chan, rho_targ)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
@@ -306,71 +276,71 @@ class TestStinespring(ChannelTestCase):
     def test_add(self):
         """Test add method."""
         # Random input test state
-        rho = self.rand_rho(2)
+        rho_init = DensityMatrix(self.rand_rho(2))
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(16, 2)
 
         # Random Single-Stinespring maps
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
-        targ = chan1._evolve(rho) + chan2._evolve(rho)
+        rho_targ = (rho_init @ chan1) + (rho_init @ chan2)
         chan = chan1.add(chan2)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 + chan2
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
-        targ = 2 * chan._evolve(rho)
+        rho_targ = 2 * (rho_init @ chan)
         chan = chan.add(chan)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_subtract(self):
         """Test subtract method."""
         # Random input test state
-        rho = self.rand_rho(2)
+        rho_init = DensityMatrix(self.rand_rho(2))
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(16, 2)
 
         # Random Single-Stinespring maps
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
         chan2 = Stinespring(stine2, input_dims=2, output_dims=4)
-        targ = chan1._evolve(rho) - chan2._evolve(rho)
+        rho_targ = (rho_init @ chan1) - (rho_init @ chan2)
         chan = chan1.subtract(chan2)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 - chan2
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Random Single-Stinespring maps
         chan = Stinespring((stine1, stine2))
-        targ = 0 * chan._evolve(rho)
+        rho_targ = 0 * (rho_init @ chan)
         chan = chan.subtract(chan)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_multiply(self):
         """Test multiply method."""
         # Random initial state and Stinespring ops
-        rho = self.rand_rho(2)
+        rho_init = DensityMatrix(self.rand_rho(2))
         val = 0.5
         stine1, stine2 = self.rand_matrix(16, 2), self.rand_matrix(16, 2)
 
         # Single Stinespring set
         chan1 = Stinespring(stine1, input_dims=2, output_dims=4)
-        targ = val * chan1._evolve(rho)
+        rho_targ = val * (rho_init @ chan1)
         chan = chan1.multiply(val)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan1
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 * val
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Double Stinespring set
         chan2 = Stinespring((stine1, stine2), input_dims=2, output_dims=4)
-        targ = val * chan2._evolve(rho)
+        rho_targ = val * (rho_init @ chan2)
         chan = chan2.multiply(val)
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = val * chan2
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan2 * val
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
@@ -380,10 +350,10 @@ class TestStinespring(ChannelTestCase):
 
     def test_negate(self):
         """Test negate method"""
-        rho = np.diag([1, 0])
-        targ = np.diag([-0.5, -0.5])
+        rho_init = DensityMatrix(np.diag([1, 0]))
+        rho_targ = DensityMatrix(np.diag([-0.5, -0.5]))
         chan = -Stinespring(self.depol_stine(1))
-        self.assertAllClose(chan._evolve(rho), targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
 
 if __name__ == '__main__':
