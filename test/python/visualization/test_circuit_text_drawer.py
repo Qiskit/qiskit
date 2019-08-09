@@ -1470,7 +1470,7 @@ class TestTextWithLayout(QiskitTestCase):
         qr1 = QuantumRegister(3, 'q')
         circuit = QuantumCircuit(qr1)
         circuit.h(qr1[1])
-        self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_mixed_layout(self):
         """ With a mixed layout. """
@@ -1489,7 +1489,7 @@ class TestTextWithLayout(QiskitTestCase):
         circuit._layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 3, qr[1]: 4})
         circuit.h(qr)
         circuit.h(ancilla)
-        self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_with_classical_regs(self):
         """ Involving classical registers"""
@@ -1517,7 +1517,7 @@ class TestTextWithLayout(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
         circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 3, qr2[1]: 4})
         circuit.measure(qr2, cr2)
-        self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=True)), expected)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
 if __name__ == '__main__':
