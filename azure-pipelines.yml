@@ -207,6 +207,16 @@ stages:
             stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
           condition: succeededOrFailed()
           displayName: 'Generate results'
+        - task: CopyFiles@2
+          condition: always()
+          inputs:
+            contents: '**/current_*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: always()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_windows'
         - task: PublishTestResults@2
           condition: succeededOrFailed()
           inputs:
