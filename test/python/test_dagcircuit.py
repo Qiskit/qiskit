@@ -369,12 +369,12 @@ class TestDagOperations(QiskitTestCase):
 
         expected = [('qr[0]', []),
                     ('qr[1]', []),
-                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
+                    ('cx', [self.qubit0, self.qubit1]),
+                    ('h', [self.qubit0]),
                     ('qr[2]', []),
-                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
-                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 2)]),
+                    ('cx', [self.qubit2, self.qubit1]),
+                    ('cx', [self.qubit0, self.qubit2]),
+                    ('h', [self.qubit2]),
                     ('qr[0]', []),
                     ('qr[1]', []),
                     ('qr[2]', []),
@@ -394,11 +394,11 @@ class TestDagOperations(QiskitTestCase):
 
         named_nodes = self.dag.topological_op_nodes()
 
-        expected = [('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
-                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
-                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 2)])]
+        expected = [('cx', [self.qubit0, self.qubit1]),
+                    ('h', [self.qubit0]),
+                    ('cx', [self.qubit2, self.qubit1]),
+                    ('cx', [self.qubit0, self.qubit2]),
+                    ('h', [self.qubit2])]
         self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
     def test_dag_nodes_on_wire(self):
