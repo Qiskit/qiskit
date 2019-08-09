@@ -182,12 +182,14 @@ stages:
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: always()
-          contents: '**/current_long_name_matplotlib_ref.png'
-          targetFolder: $(Build.ArtifactStagingDirectory)
+          inputs:
+            contents: '**/current_long_name_matplotlib_ref.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: always()
-          pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-          artifactName: 'drop'
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop'
         - bash: |
             set -e
             pip install -U junitxml
