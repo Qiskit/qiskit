@@ -516,7 +516,7 @@ class QuantumCircuit:
     def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=False):
+             with_layout=True):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -558,7 +558,7 @@ class QuantumCircuit:
                 Default is `medium`. It is ignored if output is not `text`.
             idle_wires (bool): Include idle wires. Default is True.
             with_layout (bool): Include layout information, with labels on the physical
-                layout. Default is False.
+                layout. Default is True.
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
                 * PIL.Image: (output `latex`) an in-memory representation of the

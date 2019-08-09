@@ -56,7 +56,7 @@ def circuit_drawer(circuit,
                    justify=None,
                    vertical_compression='medium',
                    idle_wires=True,
-                   with_layout=False):
+                   with_layout=True):
     """Draw a quantum circuit to different formats (set by output parameter):
     0. text: ASCII art TextDrawing that can be printed in the console.
     1. latex: high-quality images, but heavy external software dependencies
@@ -343,7 +343,7 @@ def qx_color_scheme():
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
                          plotbarriers=True, justify=None, vertical_compression='high',
-                         idle_wires=True, with_layout=False):
+                         idle_wires=True, with_layout=True):
     """
     Draws a circuit using ascii art.
     Args:
@@ -362,7 +362,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
             lines so the drawing will take less vertical room. Default is `high`.
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
-            layout. Default: False
+            layout. Default: True
     Returns:
         TextDrawing: An instances that, when printed, draws the circuit in ascii art.
     """
@@ -397,7 +397,7 @@ def _latex_circuit_drawer(circuit,
                           reverse_bits=False,
                           justify=None,
                           idle_wires=True,
-                          with_layout=False):
+                          with_layout=True):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Requires version >=2.6.0 of the qcircuit LaTeX package.
@@ -415,7 +415,7 @@ def _latex_circuit_drawer(circuit,
                         the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
-            layout. Default: False
+            layout. Default: True
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
 
@@ -480,7 +480,7 @@ def _latex_circuit_drawer(circuit,
 def _generate_latex_source(circuit, filename=None,
                            scale=0.7, style=None, reverse_bits=False,
                            plot_barriers=True, justify=None, idle_wires=True,
-                           with_layout=False):
+                           with_layout=True):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -496,7 +496,7 @@ def _generate_latex_source(circuit, filename=None,
                         the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
-            layout. Default: False
+            layout. Default: True
     Returns:
         str: Latex string appropriate for writing to file.
     """
@@ -532,7 +532,7 @@ def _matplotlib_circuit_drawer(circuit,
                                reverse_bits=False,
                                justify=None,
                                idle_wires=True,
-                               with_layout=False):
+                               with_layout=True):
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -550,7 +550,7 @@ def _matplotlib_circuit_drawer(circuit,
             the circuit should be justified.
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
-            layout. Default: False.
+            layout. Default: True.
     Returns:
         matplotlib.figure: a matplotlib figure object for the circuit diagram
     """

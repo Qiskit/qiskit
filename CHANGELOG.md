@@ -60,7 +60,7 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
--   The option `with_layout` (default `False`) was added to the circuit drawer
+-   The option `with_layout` was added to the circuit drawer
     method. This option allows to include layout information if its available in
     the circuit to draw (\#2739)
 
