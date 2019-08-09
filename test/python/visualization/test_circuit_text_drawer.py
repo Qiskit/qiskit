@@ -1451,7 +1451,7 @@ class TestTextIdleWires(QiskitTestCase):
 
         qr = QuantumRegister(1, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.u2(pi, -5*pi/8, qr[0])
+        circuit.u2(pi, -5 * pi / 8, qr[0])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
@@ -1518,6 +1518,34 @@ class TestTextWithLayout(QiskitTestCase):
         circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 3, qr2[1]: 4})
         circuit.measure(qr2, cr2)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_with_layout_but_disable(self):
+        """ With layout, but disable by argument"""
+        expected = '\n'.join(["               ",
+                              "qr_0: |0>──────",
+                              "               ",
+                              "qr_1: |0>──────",
+                              "         ┌─┐   ",
+                              "qs_0: |0>┤M├───",
+                              "         └╥┘┌─┐",
+                              "qs_1: |0>─╫─┤M├",
+                              "          ║ └╥┘",
+                              " c1_0: 0 ═╬══╬═",
+                              "          ║  ║ ",
+                              " c1_1: 0 ═╬══╬═",
+                              "          ║  ║ ",
+                              " c2_0: 0 ═╩══╬═",
+                              "             ║ ",
+                              " c2_1: 0 ════╩═",
+                              "               "])
+        qr1 = QuantumRegister(2, 'qr')
+        cr1 = ClassicalRegister(2, 'c1')
+        qr2 = QuantumRegister(2, 'qs')
+        cr2 = ClassicalRegister(2, 'c2')
+        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
+        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 3, qr2[1]: 4})
+        circuit.measure(qr2, cr2)
+        self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=False)), expected)
 
 
 if __name__ == '__main__':
