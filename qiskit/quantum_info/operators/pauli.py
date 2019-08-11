@@ -32,7 +32,7 @@ def _make_np_bool(arr):
     arr = np.asarray(arr).astype(np.bool)
     return arr
 
-def _count_set_bits(n):
+def _count_set_bits(i):
     """
     Counts the number of set bits in a uint (or a numpy array of uints).
     """
