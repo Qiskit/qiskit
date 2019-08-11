@@ -220,8 +220,8 @@ class TestCartesian(QiskitTestCase):
 
         self.assertEqual(2, len(out))
         valid_parallel_swaps(self, out)
+        identity_dict = {i: i for i in mapping.values()}
         util.swap_permutation(out, mapping, allow_missing_keys=True)
-        identity_dict = {i: i for i in mapping}
         self.assertEqual(identity_dict, mapping)
 
     def test_grid_small2_partial(self) -> None:
@@ -245,12 +245,12 @@ class TestCartesian(QiskitTestCase):
     def test_grid_perfect_matching(self) -> None:
         """Test a case where perfect matching was not found."""
         mapping = {3: 1, 5: 5, 1: 0, 2: 3}
-        path_permuter = lambda m: path.permute_path_partial(m, length=4)
-        out = list(permute_cartesian_partial(mapping, 2, 4, path_permuter, path_permuter))
+        out = list(permute_cartesian_partial(mapping, 2, 4,
+                                             path.permute_path_partial, path.permute_path_partial))
 
         valid_parallel_swaps(self, out)
+        identity_dict = {i: i for i in mapping.values()}
         util.swap_permutation(out, mapping, allow_missing_keys=True)
-        identity_dict = {i: i for i in mapping}
         self.assertEqual(identity_dict, mapping)
 
     def test_grid_random_partial(self) -> None:
@@ -268,6 +268,6 @@ class TestCartesian(QiskitTestCase):
 
         out = list(permute_cartesian_partial(partial_mapping, width, height, permute_x, permute_y))
         valid_parallel_swaps(self, out)
+        identity_dict = {i: i for i in partial_mapping.values()}
         util.swap_permutation(out, partial_mapping, allow_missing_keys=True)
-        identity_dict = {i: i for i in partial_mapping}
         self.assertEqual(identity_dict, partial_mapping)

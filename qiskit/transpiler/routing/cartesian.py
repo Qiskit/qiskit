@@ -56,6 +56,17 @@ class Point:
         self.x = x
         self.y = y
 
+    def __repr__(self):
+        return "Point({},{})".format(self.x, self.y)
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, self.__class__):
+            return other.x == self.x and other.y == self.y
+        return False
+
+    def __hash__(self) -> int:
+        return hash((self.x, self.y))
+
     @staticmethod
     def from_int(identifier: int, width: int) -> 'Point':
         x = identifier % width
