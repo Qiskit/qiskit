@@ -82,9 +82,10 @@ class TestCartesian(QiskitTestCase):
         G = nx.path_graph(width)
         H = nx.path_graph(height)
         P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P)
+        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
 
-        self.cartesian_generic_test(P, permutation, height, path.permute_path_partial, path.permute_path_partial)
+        self.cartesian_generic_test(P, permutation, height,
+                                    path.permute_path_partial, path.permute_path_partial)
 
     def test_grid_empty(self) -> None:
         """Test if an empty permutation is not permuted."""
@@ -99,6 +100,12 @@ class TestCartesian(QiskitTestCase):
 
         valid_parallel_swaps(self, out)
         self.assertListEqual([[(2, 3)], [(0, 2)]], out)
+
+    def test_grid_small2(self) -> None:
+        """Test a permutation of arbitrary permutation"""
+        permutation = {0: 2, 1: 1, 2: 3, 3: 0}
+
+        self.grid_generic_test(permutation, 2)
 
     def test_grid_arbitrary(self) -> None:
         """Test a permutation of arbitrary permutation"""
@@ -128,7 +135,7 @@ class TestCartesian(QiskitTestCase):
         G = nx.path_graph(4)
         H = nx.path_graph(4)
         P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P)
+        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
 
         self.cartesian_generic_test(P, permutation, 4, path.permute_path_partial, path.permute_path_partial)
 
@@ -139,7 +146,7 @@ class TestCartesian(QiskitTestCase):
         G = nx.grid_2d_graph(2, 2)
         H = nx.path_graph(3)
         P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P)
+        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
 
         self.cartesian_generic_test(P, permutation, 3, square, path.permute_path_partial)
 
@@ -151,7 +158,7 @@ class TestCartesian(QiskitTestCase):
         G = nx.grid_2d_graph(2, 2)
         H = nx.grid_2d_graph(2, 2)
         P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P)
+        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
 
         self.cartesian_generic_test(P, permutation, 4, square, square)
 
@@ -163,7 +170,7 @@ class TestCartesian(QiskitTestCase):
         G = nx.grid_2d_graph(2, 2)
         H = nx.complete_graph(4)
         P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P)
+        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
 
         self.cartesian_generic_test(P, permutation, 4, square, construct_partial_complete(H.nodes))
 
@@ -190,7 +197,7 @@ class TestCartesian(QiskitTestCase):
         G = nx.complete_graph(width)
         H = nx.path_graph(height)
         P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P)
+        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
 
         self.cartesian_generic_test(P, permutation, height, construct_partial_complete(G.nodes),
                                     path.permute_path_partial)
@@ -207,7 +214,7 @@ class TestCartesian(QiskitTestCase):
         G = nx.complete_graph(width)
         H = nx.path_graph(height)
         P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P)
+        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
 
         self.cartesian_generic_test(P, permutation, height, construct_partial_complete(G.nodes),
                                     path.permute_path_partial)

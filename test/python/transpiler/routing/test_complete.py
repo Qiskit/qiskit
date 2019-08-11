@@ -57,7 +57,10 @@ class TestComplete(QiskitTestCase):
 
         out = list(permute(permutation))
         valid_parallel_swaps(self, out)
-        self.assertCountEqual([[(1, 3)], [(2, 1)]], out)
+        self.assertEqual(len(out), 2)
+        identity_dict = {i: i for i in permutation.values()}
+        util.swap_permutation(out, permutation)
+        self.assertEqual(identity_dict, permutation)
 
     def test_permute_complete_5(self) -> None:
         """Test a permutation of 5 elements
@@ -68,7 +71,10 @@ class TestComplete(QiskitTestCase):
 
         out = list(permute(permutation))
         valid_parallel_swaps(self, out)
-        self.assertEqual([[(1, 4)], [(3, 1)]], out)
+        self.assertEqual(len(out), 2)
+        identity_dict = {i: i for i in permutation.values()}
+        util.swap_permutation(out, permutation)
+        self.assertEqual(identity_dict, permutation)
 
     def test_permute_complete_5_2(self) -> None:
         """Test a permutation of one transposition in 5 elements.
@@ -79,7 +85,10 @@ class TestComplete(QiskitTestCase):
 
         out = list(permute(permutation))
         valid_parallel_swaps(self, out)
-        self.assertEqual([[(0, 2)]], out)
+        self.assertEqual(len(out), 1)
+        identity_dict = {i: i for i in permutation.values()}
+        util.swap_permutation(out, permutation)
+        self.assertEqual(identity_dict, permutation)
 
     def test_permute_complete_4_2(self) -> None:
         """Test a permutation with non-contiguous elements.
@@ -90,7 +99,10 @@ class TestComplete(QiskitTestCase):
 
         out = list(permute(permutation))
         valid_parallel_swaps(self, out)
-        self.assertEqual([[(6, 0), (9, 3)], [(6, 3)]], out)
+        self.assertEqual(len(out), 2)
+        identity_dict = {i: i for i in permutation.values()}
+        util.swap_permutation(out, permutation)
+        self.assertEqual(identity_dict, permutation)
 
     def test_permute_complete_indexing(self) -> None:
         """Test a permutation with non-contiguous indexing: (246)"""

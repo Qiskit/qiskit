@@ -183,4 +183,6 @@ class TestFastPath(QiskitTestCase):
                 complete_swaps = permute_path(completion)
 
                 self.assertLessEqual(len(list(partial_swaps))-1, len(list(complete_swaps)),
-                                     f"The completion ({completion}) was faster than the partial permutation ({partial_permutation}).")
+                                     "The completion ({}) was faster than"
+                                     "the partial permutation ({}).".format(completion,
+                                                                            partial_permutation))
