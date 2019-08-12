@@ -14,20 +14,21 @@
 
 """ `_text_circuit_drawer` "draws" a circuit in "ascii art" """
 
+import unittest
 from codecs import encode
 from math import pi
-import unittest
-import sympy
+
 import numpy
+import sympy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-from qiskit.visualization import text as elements
-from qiskit.visualization.circuit_visualization import _text_circuit_drawer
+from qiskit.circuit import Gate, Parameter
+from qiskit.quantum_info.operators import SuperOp
+from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import Layout
-from qiskit.circuit import Gate, Parameter
-from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.operators import SuperOp
+from qiskit.visualization import text as elements
+from qiskit.visualization.circuit_visualization import _text_circuit_drawer
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -1467,9 +1468,9 @@ class TestTextWithLayout(QiskitTestCase):
                               "        └───┘",
                               "q_2: |0>─────",
                               "             "])
-        qr1 = QuantumRegister(3, 'q')
-        circuit = QuantumCircuit(qr1)
-        circuit.h(qr1[1])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[1])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_mixed_layout(self):
@@ -1477,74 +1478,68 @@ class TestTextWithLayout(QiskitTestCase):
         expected = '\n'.join(["                ┌───┐",
                               "      (v0) q0|0>┤ H ├",
                               "                ├───┤",
-                              "      (v1) q4|0>┤ H ├",
-                              "                ├───┤",
-                              "(ancilla0) q3|0>┤ H ├",
-                              "                ├───┤",
                               "(ancilla1) q1|0>┤ H ├",
+                              "                ├───┤",
+                              "(ancilla0) q2|0>┤ H ├",
+                              "                ├───┤",
+                              "      (v1) q3|0>┤ H ├",
                               "                └───┘"])
+        pqr = QuantumRegister(4, 'v')
         qr = QuantumRegister(2, 'v')
         ancilla = QuantumRegister(2, 'ancilla')
-        circuit = QuantumCircuit(qr, ancilla)
-        circuit._layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 3, qr[1]: 4})
-        circuit.h(qr)
-        circuit.h(ancilla)
+        circuit = QuantumCircuit(pqr)
+        circuit._layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
+        circuit.h(pqr)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_with_classical_regs(self):
         """ Involving classical registers"""
-        expected = '\n'.join(["                 ",
-                              "(qr0) q0|0>──────",
-                              "                 ",
-                              "(qr1) q1|0>──────",
-                              "           ┌─┐   ",
-                              "(qs0) q3|0>┤M├───",
-                              "           └╥┘┌─┐",
-                              "(qs1) q4|0>─╫─┤M├",
-                              "            ║ └╥┘",
-                              "   c1_0: 0 ═╬══╬═",
-                              "            ║  ║ ",
-                              "   c1_1: 0 ═╬══╬═",
-                              "            ║  ║ ",
-                              "   c2_0: 0 ═╩══╬═",
-                              "               ║ ",
-                              "   c2_1: 0 ════╩═",
-                              "                 "])
-        qr1 = QuantumRegister(2, 'qr')
-        cr1 = ClassicalRegister(2, 'c1')
-        qr2 = QuantumRegister(2, 'qs')
-        cr2 = ClassicalRegister(2, 'c2')
-        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
-        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 3, qr2[1]: 4})
-        circuit.measure(qr2, cr2)
+        expected = '\n'.join(["                  ",
+                              "(qr10) q0|0>──────",
+                              "                  ",
+                              "(qr11) q1|0>──────",
+                              "            ┌─┐   ",
+                              "(qr20) q2|0>┤M├───",
+                              "            └╥┘┌─┐",
+                              "(qr21) q3|0>─╫─┤M├",
+                              "             ║ └╥┘",
+                              "    cr_0: 0 ═╩══╬═",
+                              "                ║ ",
+                              "    cr_1: 0 ════╩═",
+                              "                  "])
+        pqr = QuantumRegister(4, 'q')
+        qr1 = QuantumRegister(2, 'qr1')
+        cr = ClassicalRegister(2, 'cr')
+        qr2 = QuantumRegister(2, 'qr2')
+        circuit = QuantumCircuit(pqr, cr)
+        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit.measure(pqr[2], cr[0])
+        circuit.measure(pqr[3], cr[1])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_with_layout_but_disable(self):
-        """ With layout, but disable by argument"""
-        expected = '\n'.join(["               ",
-                              "qr_0: |0>──────",
-                              "               ",
-                              "qr_1: |0>──────",
-                              "         ┌─┐   ",
-                              "qs_0: |0>┤M├───",
-                              "         └╥┘┌─┐",
-                              "qs_1: |0>─╫─┤M├",
-                              "          ║ └╥┘",
-                              " c1_0: 0 ═╬══╬═",
-                              "          ║  ║ ",
-                              " c1_1: 0 ═╬══╬═",
-                              "          ║  ║ ",
-                              " c2_0: 0 ═╩══╬═",
-                              "             ║ ",
-                              " c2_1: 0 ════╩═",
-                              "               "])
-        qr1 = QuantumRegister(2, 'qr')
-        cr1 = ClassicalRegister(2, 'c1')
-        qr2 = QuantumRegister(2, 'qs')
-        cr2 = ClassicalRegister(2, 'c2')
-        circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
-        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 3, qr2[1]: 4})
-        circuit.measure(qr2, cr2)
+        """ Involving classical registers"""
+        expected = '\n'.join(["              ",
+                              "q_0: |0>──────",
+                              "              ",
+                              "q_1: |0>──────",
+                              "        ┌─┐   ",
+                              "q_2: |0>┤M├───",
+                              "        └╥┘┌─┐",
+                              "q_3: |0>─╫─┤M├",
+                              "         ║ └╥┘",
+                              "cr_0: 0 ═╩══╬═",
+                              "            ║ ",
+                              "cr_1: 0 ════╩═",
+                              "              "])
+        pqr = QuantumRegister(4, 'q')
+        qr1 = QuantumRegister(2, 'qr1')
+        cr = ClassicalRegister(2, 'cr')
+        qr2 = QuantumRegister(2, 'qr2')
+        circuit = QuantumCircuit(pqr, cr)
+        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit.measure(pqr[2], cr[0])
+        circuit.measure(pqr[3], cr[1])
         self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=False)), expected)
 
 
