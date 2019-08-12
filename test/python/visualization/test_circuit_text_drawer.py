@@ -1579,7 +1579,7 @@ class TestTextWithLayout(QiskitTestCase):
                               "                                                           "])
 
         qr = QuantumRegister(2, 'userqr')
-        cr = ClassicalRegister(2)
+        cr = ClassicalRegister(2, 'c0')
         qc = QuantumCircuit(qr, cr)
         qc.h(qr[0])
         qc.cx(qr[0], qr[1])
