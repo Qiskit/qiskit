@@ -1593,7 +1593,7 @@ class TestTextWithLayout(QiskitTestCase):
                         [13, 12]]
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                               coupling_map=coupling_map)
-        self.assertEqual(str(qc_result.draw(output='text').__str__()), expected)
+        self.assertEqual(qc_result.draw(output='text').single_string(), expected)
 
 
 if __name__ == '__main__':
