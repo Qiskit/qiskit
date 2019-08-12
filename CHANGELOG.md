@@ -94,6 +94,7 @@ The format is based on [Keep a Changelog].
     definition of a controlled `U3Gate` (\#2755)
 -   `coupling_map` now required to validate a `backend.configuration()` (\#2836)
 -   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
+-   Q-sphere visualization is enhanced and corrected (\#2932)
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
