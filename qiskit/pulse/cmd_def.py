@@ -202,4 +202,31 @@ class CmdDef:
         return []
 
     def __repr__(self):
-        return repr(self._cmd_dict)
+        types = {}
+        for cmd in self._cmd_dict:
+            for qubits in self._cmd_dict[cmd]:
+                c_type = '\'' + cmd + '\': ' + self._cmd_dict[cmd][
+                    qubits].__class__.__name__
+
+                if c_type not in types:
+                    types[c_type] = []
+
+                types[c_type].append(str(qubits))
+
+        cmd_str = []
+        for cmd_type in types:
+            cmd_str.append('[' + cmd_type + ']=[' + ', '.join(types[cmd_type]) + ']')
+
+        return '\n'.join(cmd_str)
+
+    def __str__(self):
+
+        qubits = set()
+        for cmd in self._cmd_dict:
+            for q in self._cmd_dict[cmd]:
+                qubits |= set(q)
+
+        cmd_str = 'CmdDef(commands=[' + ', '.join(['\'' + cmd + '\'' for cmd in self._cmd_dict]) + \
+                  '], qubits=[' + ', '.join([str(q) for q in qubits]) + '])'
+
+        return cmd_str
