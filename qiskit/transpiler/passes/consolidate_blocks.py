@@ -19,7 +19,7 @@ Replace each block of consecutive gates by a single Unitary node.
 The blocks are collected by a previous pass, such as Collect2qBlocks.
 """
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
@@ -57,12 +57,7 @@ class ConsolidateBlocks(TransformationPass):
             new_dag.add_creg(creg)
 
         # compute ordered indices for the global circuit wires
-        global_index_map = {}
-        for wire in dag.wires:
-            if not isinstance(wire, Qubit):
-                continue
-            global_qregs = list(dag.qregs.values())
-            global_index_map[wire] = global_qregs.index(wire.register) + wire.index
+        global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits())}
 
         blocks = self.property_set['block_list']
         # just to make checking if a node is in any block easier
