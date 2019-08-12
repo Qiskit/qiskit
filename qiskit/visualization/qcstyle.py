@@ -20,11 +20,12 @@ class DefaultStyle:
     """
     def __init__(self):
         # Set colors
-        basis_color = '#fa75a6'
-        clifford_color = '#30b0ff'
+        basis_color = '#FA74A6'
+        clifford_color = '#6FA4FF'
         non_gate_color = '#000000'
-        other_color = '#bb8eff'
-        pauli_color = '#00bab6'
+        other_color = '#BB8BFF'
+        pauli_color = '#05BAB6'
+        iden_color = '#05BAB6'
 
         self.name = 'iqx'
         self.tc = '#000000'
@@ -65,7 +66,7 @@ class DefaultStyle:
             'u1': basis_color,
             'u2': basis_color,
             'u3': basis_color,
-            'id': pauli_color,
+            'id': iden_color,
             'x': pauli_color,
             'y': pauli_color,
             'z': pauli_color,
@@ -85,8 +86,8 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = 20
-        self.bundle = False
+        self.fold = 25
+        self.bundle = True
         self.barrier = True
         self.index = False
         self.figwidth = -1
@@ -181,8 +182,8 @@ class BWStyle:
             'multi': '#000000'
         }
         self.latexmode = False
-        self.fold = 20
-        self.bundle = False
+        self.fold = 25
+        self.bundle = True
         self.barrier = True
         self.index = False
         self.figwidth = -1
