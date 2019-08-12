@@ -17,7 +17,7 @@
 """
 controlled-H gate.
 """
-import numpy
+import numpy as np
 
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
@@ -70,10 +70,10 @@ class CHGate(Gate):
 
     def to_matrix(self):
         """Return a Numpy.array for the Ch gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 1, 0, 0],
-                            [0, 0, 0.707, 0.707],
-                            [0, 0, 0.707, -0.707]], dtype=complex)
+        return np.array([[1, 0, 0, 0],
+                         [0, 1/np.sqrt(2), 0, 1/np.sqrt(2)],
+                         [0, 0, 1, 0],
+                         [0, 1/np.sqrt(2), 0, -1/np.sqrt(2)]], dtype=complex)
 
 
 def ch(self, ctl, tgt):
