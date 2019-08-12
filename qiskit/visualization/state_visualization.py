@@ -22,7 +22,6 @@ from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
-import seaborn as sns
 from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
 from .matplotlib import HAS_MATPLOTLIB
 
@@ -39,6 +38,7 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.exceptions import VisualizationError
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _validate_input_state
+
 
 if HAS_MATPLOTLIB:
     class Arrow3D(FancyArrowPatch):
@@ -478,6 +478,11 @@ def plot_state_qsphere(rho, figsize=None):
     """
     if not HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
+    try:
+        import seaborn as sns
+    except ImportError:
+        raise ImportError('Must have seaborn installed to use '
+                          'plot_state_qsphere')
     rho = _validate_input_state(rho)
     if figsize is None:
         figsize = (7, 7)
