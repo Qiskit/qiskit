@@ -1591,10 +1591,9 @@ class TestTextWithLayout(QiskitTestCase):
                         [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
                         [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
                         [13, 12]]
-        self.maxDiff = None
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
                               coupling_map=coupling_map)
-        self.assertEqual(str(qc_result.draw(output='text')), expected)
+        self.assertEqual(str(qc_result.draw(output='text').__str__()), expected)
 
 
 if __name__ == '__main__':
