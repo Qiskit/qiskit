@@ -376,7 +376,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
                            width_ratios=[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
 
     left_ax = plt.subplot(gs[2:10, :1])
-    main_ax = plt.subplot(gs[:11, 1:10])
+    main_ax = plt.subplot(gs[:11, 1:11])
     right_ax = plt.subplot(gs[2:10, 11:])
     bleft_ax = plt.subplot(gs[-1, :5])
     bright_ax = plt.subplot(gs[-1, 7:])
