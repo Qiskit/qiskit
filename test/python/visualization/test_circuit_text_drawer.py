@@ -21,7 +21,7 @@ from math import pi
 import numpy
 import sympy
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.circuit import Gate, Parameter
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
@@ -1518,7 +1518,7 @@ class TestTextWithLayout(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_with_layout_but_disable(self):
-        """ Involving classical registers"""
+        """ With parameter without_layout=False """
         expected = '\n'.join(["              ",
                               "q_0: |0>──────",
                               "              ",
@@ -1541,6 +1541,60 @@ class TestTextWithLayout(QiskitTestCase):
         circuit.measure(pqr[2], cr[0])
         circuit.measure(pqr[3], cr[1])
         self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=False)), expected)
+
+    def test_after_transpile(self):
+        """After transpile, the drawing should include the layout"""
+        expected = '\n'.join(["                              ┌───┐  ┌────────────┐  ┌─┐   ",
+                              "   (userqr0) q0|0>────────────┤ X ├──┤ U2(pi,2pi) ├──┤M├───",
+                              "                  ┌──────────┐└─┬─┘┌─┴────────────┴─┐└╥┘┌─┐",
+                              "   (userqr1) q1|0>┤ U2(0,pi) ├──■──┤ U3(pi/2,0,2pi) ├─╫─┤M├",
+                              "                  └──────────┘     └────────────────┘ ║ └╥┘",
+                              "  (ancilla0) q2|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "  (ancilla1) q3|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "  (ancilla2) q4|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "  (ancilla3) q5|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "  (ancilla4) q6|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "  (ancilla5) q7|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "  (ancilla6) q8|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "  (ancilla7) q9|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              " (ancilla8) q10|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              " (ancilla9) q11|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "(ancilla10) q12|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "(ancilla11) q13|0>────────────────────────────────────╫──╫─",
+                              "                                                      ║  ║ ",
+                              "          c0_0: 0 ════════════════════════════════════╩══╬═",
+                              "                                                         ║ ",
+                              "          c0_1: 0 ═══════════════════════════════════════╩═",
+                              "                                                           "])
+
+        qr = QuantumRegister(2, 'userqr')
+        cr = ClassicalRegister(2)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.y(qr[0])
+        qc.x(qr[1])
+        qc.measure(qr, cr)
+
+        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
+                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
+                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                        [13, 12]]
+        self.maxDiff = None
+        qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                              coupling_map=coupling_map)
+        self.assertEqual(str(qc_result.draw(output='text')), expected)
 
 
 if __name__ == '__main__':
