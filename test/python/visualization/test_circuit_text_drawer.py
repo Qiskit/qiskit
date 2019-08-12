@@ -1577,7 +1577,7 @@ class TestTextWithLayout(QiskitTestCase):
                               "                                                         ║ ",
                               "          c0_1: 0 ═══════════════════════════════════════╩═",
                               "                                                           "])
-
+        expected = ''
         qr = QuantumRegister(2, 'userqr')
         cr = ClassicalRegister(2, 'c0')
         qc = QuantumCircuit(qr, cr)
@@ -1592,7 +1592,7 @@ class TestTextWithLayout(QiskitTestCase):
                         [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
                         [13, 12]]
         qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
-                              coupling_map=coupling_map)
+                              coupling_map=coupling_map, optimization_level=0)
         self.assertEqual(qc_result.draw(output='text').single_string(), expected)
 
 
