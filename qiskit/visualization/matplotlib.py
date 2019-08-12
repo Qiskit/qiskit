@@ -496,10 +496,10 @@ class MatplotlibDrawer:
                 if self.layout is None:
                     label = '${name}_{{{index}}}$'.format(name=reg.register.name, index=reg.index)
                 else:
-                    label = '$({name}_{{{index}}})\\ q_{physical}$'.format(
-                        physical=self.layout[reg],
-                        name=reg.register.name,
-                        index=reg.index)
+                    label = '$({name}_{{{index}}})\\ q_{{{physical}}}$'.format(
+                        name=self.layout[reg.index].register.name,
+                        index=self.layout[reg.index].index,
+                        physical=reg.index)
             else:
                 label = '${name}$'.format(name=reg.register.name)
 
