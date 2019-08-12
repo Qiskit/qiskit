@@ -138,7 +138,8 @@ class TestCollect2qBlocks(QiskitTestCase):
         transpile(qc, backend, pass_manager=pass_manager)
 
         self.assertEqual([['cx', 'u1']],
-                         [[n.name for n in block] for block in pass_manager.property_set['block_list']])
+                         [[n.name for n in block]
+                          for block in pass_manager.property_set['block_list']])
 
 
 if __name__ == '__main__':
