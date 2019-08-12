@@ -15,11 +15,22 @@
 Parameter Class for variable parameters.
 """
 
+import sympy
 
-class Parameter():
+from .parameterexpression import ParameterExpression
+
+
+class Parameter(ParameterExpression):
     """Parameter Class for variable parameters"""
     def __init__(self, name):
         self._name = name
+
+        symbol = sympy.Symbol(name)
+        super().__init__(symbol_map={self: symbol}, expr=symbol)
+
+    def subs(self, parameter_map):
+        """Substitute self with the corresponding parameter in parameter_map."""
+        return parameter_map[self]
 
     @property
     def name(self):

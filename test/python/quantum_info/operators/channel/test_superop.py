@@ -16,6 +16,7 @@
 
 import unittest
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit import QiskitError, QuantumCircuit
 from qiskit.quantum_info.states import DensityMatrix
@@ -30,16 +31,16 @@ class TestSuperOp(ChannelTestCase):
     def test_init(self):
         """Test initialization"""
         chan = SuperOp(self.sopI)
-        self.assertAllClose(chan.data, self.sopI)
+        assert_allclose(chan.data, self.sopI)
         self.assertEqual(chan.dim, (2, 2))
 
         mat = np.zeros((4, 16))
         chan = SuperOp(mat)
-        self.assertAllClose(chan.data, mat)
+        assert_allclose(chan.data, mat)
         self.assertEqual(chan.dim, (4, 2))
 
         chan = SuperOp(mat.T)
-        self.assertAllClose(chan.data, mat.T)
+        assert_allclose(chan.data, mat.T)
         self.assertEqual(chan.dim, (2, 4))
 
         # Wrong input or output dims should raise exception
