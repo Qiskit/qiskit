@@ -22,7 +22,6 @@ from functools import reduce
 import colorsys
 import numpy as np
 from scipy import linalg
-import seaborn as sns
 from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
 from .matplotlib import HAS_MATPLOTLIB
 
@@ -39,6 +38,8 @@ if HAS_MATPLOTLIB:
     from qiskit.visualization.exceptions import VisualizationError
     from qiskit.visualization.bloch import Bloch
     from qiskit.visualization.utils import _validate_input_state
+    import seaborn as sns
+
 
 if HAS_MATPLOTLIB:
     class Arrow3D(FancyArrowPatch):
