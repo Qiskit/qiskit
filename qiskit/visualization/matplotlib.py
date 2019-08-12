@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 
 Register = collections.namedtuple('Register', 'reg index')
 
-WID = 0.65
-HIG = 0.65
+WID = 0.85
+HIG = 0.85
 DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
 PORDER_LINE = 3
@@ -178,7 +178,7 @@ class MatplotlibDrawer:
                 boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
             else:
                 boxes_length = round(len(text) / 8) or 1
-            wid = WID * 2.8 * boxes_length
+            wid = WID * 2.2 * boxes_length
         else:
             wid = WID
 
@@ -231,10 +231,10 @@ class MatplotlibDrawer:
 
         if wide:
             if subtext:
-                wid = WID * 2.8
+                wid = WID * 2.2
             else:
                 boxes_wide = round(len(text) / 10) or 1
-                wid = WID * 2.8 * boxes_wide
+                wid = WID * 2.2 * boxes_wide
         else:
             wid = WID
         if fc:
@@ -764,9 +764,6 @@ class MatplotlibDrawer:
                         _barriers['coord'].append(q_xy[index])
                     if self.plot_barriers:
                         self._barrier(_barriers, this_anc)
-                    else:
-                        # this stop there being blank lines plotted in place of barriers
-                        this_anc -= 1
                 elif op.name == 'initialize':
                     vec = '[%s]' % param
                     self._custom_multiqubit_gate(q_xy, wide=_iswide,
@@ -847,7 +844,8 @@ class MatplotlibDrawer:
                                        fc=color,
                                        subtext='{}'.format(param))
                         else:
-                            self._gate(q_xy[1], wide=_iswide, text=disp)
+                            self._gate(q_xy[1], wide=_iswide, text=disp,
+                                       fc=color)
                         # add qubit-qubit wiring
                         self._line(qreg_b, qreg_t, lc=color)
 
@@ -911,7 +909,14 @@ class MatplotlibDrawer:
                     logger.critical('Invalid gate %s', op)
                     raise exceptions.VisualizationError('invalid gate {}'.format(op))
 
-            prev_anc = this_anc + layer_width - 1
+            # adjust the column if there have been barriers encountered, but not plotted
+            barrier_offset = 0
+            if not self.plot_barriers:
+                # only adjust if everything in the layer wasn't plotted
+                barrier_offset = -1 if all([op.name in
+                                            ['barrier', 'snapshot', 'load', 'save', 'noise']
+                                            for op in layer]) else 0
+            prev_anc = this_anc + layer_width + barrier_offset - 1
         #
         # adjust window size and draw horizontal lines
         #
