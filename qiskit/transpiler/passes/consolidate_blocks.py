@@ -19,7 +19,7 @@ Replace each block of consecutive gates by a single Unitary node.
 The blocks are collected by a previous pass, such as Collect2qBlocks.
 """
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
@@ -57,12 +57,7 @@ class ConsolidateBlocks(TransformationPass):
             new_dag.add_creg(creg)
 
         # compute ordered indices for the global circuit wires
-        global_index_map = {}
-        for wire in dag.wires:
-            if not isinstance(wire, Qubit):
-                continue
-            global_qregs = list(dag.qregs.values())
-            global_index_map[wire] = global_qregs.index(wire.register) + wire.index
+        global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits())}
 
         blocks = self.property_set['block_list']
         # just to make checking if a node is in any block easier
@@ -99,7 +94,8 @@ class ConsolidateBlocks(TransformationPass):
 
             if len(block) == 1 and block[0].name != 'cx':
                 # an intermediate node that was added into the overall list
-                new_dag.apply_operation_back(block[0].op, block[0].qargs, block[0].cargs)
+                new_dag.apply_operation_back(block[0].op, block[0].qargs,
+                                             block[0].cargs, block[0].condition)
             else:
                 # find the qubits involved in this block
                 block_qargs = set()
@@ -124,7 +120,7 @@ class ConsolidateBlocks(TransformationPass):
                         unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
                     for nd in block:
-                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
+                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs, nd.condition)
 
         return new_dag
 

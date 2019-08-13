@@ -21,7 +21,6 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
-from qiskit.pulse.exceptions import PulseError
 
 # pylint: disable=missing-return-doc,missing-type-doc
 
@@ -30,31 +29,20 @@ class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
     def __init__(self, command, *channels: List[Channel],
-                 timeslots: Optional[TimeslotCollection] = None,
                  name: Optional[str] = None):
         """
         Args:
             command: Pulse command to schedule
             *channels: List of pulse channels to schedule with command
-            timeslots: Optional list of timeslots. If channels are supplied timeslots
-                cannot also be given
             name: Name of Instruction
-
-        Raises:
-            PulseError: If both channels and timeslots are supplied
         """
         self._command = command
         self._name = name if name else self._command.name
 
-        if timeslots and channels:
-            raise PulseError('Channels and timeslots may not both be supplied.')
+        duration = command.duration
 
-        if not timeslots:
-            duration = command.duration
-            self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
-                                                   for channel in channels))
-        else:
-            self._timeslots = timeslots
+        self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
+                                               for channel in channels))
 
         channels = self.channels
 
