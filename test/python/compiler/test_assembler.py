@@ -448,7 +448,11 @@ class TestPulseAssembler(QiskitTestCase):
         # single acquisition
         schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
 
-        qobj = assemble(schedule, meas_map=[[0], [1]])
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0], [1]])
+
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
 
         # multiple acquisition
