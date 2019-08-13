@@ -40,10 +40,8 @@ from .tools.pi_check import pi_check
 
 logger = logging.getLogger(__name__)
 
-Register = collections.namedtuple('Register', 'reg index')
-
-WID = 0.85
-HIG = 0.85
+WID = 0.65
+HIG = 0.65
 DEFAULT_SCALE = 4.3
 PORDER_GATE = 5
 PORDER_LINE = 3
@@ -104,7 +102,7 @@ class Anchor:
 class MatplotlibDrawer:
     def __init__(self, qregs, cregs, ops,
                  scale=1.0, style=None, plot_barriers=True,
-                 reverse_bits=False):
+                 reverse_bits=False, layout=None):
 
         if not HAS_MATPLOTLIB:
             raise ImportError('The class MatplotlibDrawer needs matplotlib. '
@@ -138,6 +136,7 @@ class MatplotlibDrawer:
 
         self.plot_barriers = plot_barriers
         self.reverse_bits = reverse_bits
+        self.layout = layout
         if style:
             if isinstance(style, dict):
                 self._style.set_style(style)
@@ -159,10 +158,10 @@ class MatplotlibDrawer:
     def _registers(self, creg, qreg):
         self._creg = []
         for r in creg:
-            self._creg.append(Register(reg=r.register, index=r.index))
+            self._creg.append(r)
         self._qreg = []
         for r in qreg:
-            self._qreg.append(Register(reg=r.register, index=r.index))
+            self._qreg.append(r)
 
     @property
     def ast(self):
@@ -494,9 +493,15 @@ class MatplotlibDrawer:
         # quantum register
         for ii, reg in enumerate(self._qreg):
             if len(self._qreg) > 1:
-                label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
+                if self.layout is None:
+                    label = '${name}_{{{index}}}$'.format(name=reg.register.name, index=reg.index)
+                else:
+                    label = '$({name}_{{{index}}})\\ q_{{{physical}}}$'.format(
+                        name=self.layout[reg.index].register.name,
+                        index=self.layout[reg.index].index,
+                        physical=reg.index)
             else:
-                label = '${}$'.format(reg.reg.name)
+                label = '${name}$'.format(name=reg.register.name)
 
             if len(label) > len_longest_label:
                 len_longest_label = len(label)
@@ -506,7 +511,7 @@ class MatplotlibDrawer:
                 'y': pos,
                 'label': label,
                 'index': reg.index,
-                'group': reg.reg
+                'group': reg.register
             }
             self._cond['n_lines'] += 1
         # classical register
@@ -519,22 +524,22 @@ class MatplotlibDrawer:
                     self._creg, n_creg)):
                 pos = y_off - idx
                 if self._style.bundle:
-                    label = '${}$'.format(reg.reg.name)
+                    label = '${}$'.format(reg.register.name)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
-                        'group': reg.reg
+                        'group': reg.register
                     }
-                    if not (not nreg or reg.reg != nreg.reg):
+                    if not (not nreg or reg.register != nreg.register):
                         continue
                 else:
-                    label = '${}_{{{}}}$'.format(reg.reg.name, reg.index)
+                    label = '${}_{{{}}}$'.format(reg.register.name, reg.index)
                     self._creg_dict[ii] = {
                         'y': pos,
                         'label': label,
                         'index': reg.index,
-                        'group': reg.reg
+                        'group': reg.register
                     }
                 if len(label) > len_longest_label:
                     len_longest_label = len(label)

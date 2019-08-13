@@ -463,10 +463,11 @@ class TextDrawing():
     """ The text drawing"""
 
     def __init__(self, qregs, cregs, instructions, plotbarriers=True,
-                 line_length=None, vertical_compression='high'):
+                 line_length=None, vertical_compression='high', layout=None):
         self.qregs = qregs
         self.cregs = cregs
         self.instructions = instructions
+        self.layout = layout
 
         self.plotbarriers = plotbarriers
         self.line_length = line_length
@@ -484,18 +485,6 @@ class TextDrawing():
                'line-height: 1.1;' \
                'font-family: &quot;Courier New&quot;,Courier,monospace">' \
                '%s</pre>' % self.single_string()
-
-    def _get_qubit_labels(self):
-        qubits = []
-        for qubit in self.qregs:
-            qubits.append("%s_%s" % (qubit.register.name, qubit.index))
-        return qubits
-
-    def _get_clbit_labels(self):
-        clbits = []
-        for clbit in self.cregs:
-            clbits.append("%s_%s" % (clbit.register.name, clbit.index))
-        return clbits
 
     def single_string(self):
         """Creates a long string with the ascii art.
@@ -590,16 +579,30 @@ class TextDrawing():
         Returns:
             List: The list of wire names.
         """
-        qubit_labels = self._get_qubit_labels()
-        clbit_labels = self._get_clbit_labels()
-
         if with_initial_value:
-            qubit_labels = ['%s: |0>' % qubit for qubit in qubit_labels]
-            clbit_labels = ['%s: 0 ' % clbit for clbit in clbit_labels]
+            initial_qubit_value = '|0>'
+            initial_clbit_value = '0 '
         else:
-            qubit_labels = ['%s: ' % qubit for qubit in qubit_labels]
-            clbit_labels = ['%s: ' % clbit for clbit in clbit_labels]
+            initial_qubit_value = ''
+            initial_clbit_value = ''
 
+        qubit_labels = []
+        if self.layout is None:
+            for bit in self.qregs:
+                label = '{name}_{index}: ' + initial_qubit_value
+                qubit_labels.append(label.format(name=bit.register.name,
+                                                 index=bit.index,
+                                                 physical=''))
+        else:
+            for bit in self.qregs:
+                label = '({name}{index}) q{physical}' + initial_qubit_value
+                qubit_labels.append(label.format(name=self.layout[bit.index].register.name,
+                                                 index=self.layout[bit.index].index,
+                                                 physical=bit.index))
+        clbit_labels = []
+        for bit in self.cregs:
+            label = '{name}_{index}: ' + initial_clbit_value
+            clbit_labels.append(label.format(name=bit.register.name, index=bit.index))
         return qubit_labels + clbit_labels
 
     def should_compress(self, top_line, bot_line):

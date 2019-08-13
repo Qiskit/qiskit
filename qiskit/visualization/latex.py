@@ -24,6 +24,7 @@ import re
 
 try:
     from pylatexenc.latexencode import utf8tolatex
+
     HAS_PYLATEX = True
 except ImportError:
     HAS_PYLATEX = False
@@ -44,7 +45,7 @@ class QCircuitImage:
     """
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
-                 plot_barriers=True, reverse_bits=False):
+                 plot_barriers=True, reverse_bits=False, layout=None):
         """
         Args:
             qubits (list[Qubit]): list of qubits
@@ -56,6 +57,8 @@ class QCircuitImage:
                registers for the output visualization.
             plot_barriers (bool): Enable/disable drawing barriers in the output
                circuit. Defaults to True.
+            layout (Layout or None): If present, the layout information will be
+               included.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -117,6 +120,7 @@ class QCircuitImage:
         self.has_box = False
         self.has_target = False
         self.reverse_bits = reverse_bits
+        self.layout = layout
         self.plot_barriers = plot_barriers
 
         #################################
@@ -216,10 +220,14 @@ class QCircuitImage:
                                     "_{" + str(self.ordered_regs[i].index) + "}" + \
                                     ": 0}"
             else:
-                self._latex[i][0] = "\\lstick{" + \
-                                    self.ordered_regs[i].register.name + "_{" + \
-                                    str(self.ordered_regs[i].index) + "}" + \
-                                    ": \\ket{0}}"
+                if self.layout is None:
+                    self._latex[i][0] = "\\lstick{{ {}_{} : \\ket{{0}} }}".format(
+                        self.ordered_regs[i].register.name, self.ordered_regs[i].index)
+                else:
+                    self._latex[i][0] = "\\lstick{{({}_{{{}}})~q_{{{}}} : \\ket{{0}} }}".format(
+                        self.layout[self.ordered_regs[i].index].register.name,
+                        self.layout[self.ordered_regs[i].index].index,
+                        self.ordered_regs[i].index)
 
     def _get_image_depth(self):
         """Get depth information for the circuit.
