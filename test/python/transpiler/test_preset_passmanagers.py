@@ -257,23 +257,19 @@ class TestFinalLayouts(QiskitTestCase):
         qc.cx(qr2[0], qr2[1])
 
         ancilla = QuantumRegister(15, 'ancilla')
-
+        trivial_layout = {0: qr1[0], 1: qr1[1], 2: qr1[2], 3: qr2[0], 4: qr2[1],
+                          5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
+                          9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
+                          13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
+                          17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
         # TrivialLayout
-        expected_layout_level0 = {0: qr1[0], 1: qr1[1], 2: qr1[2], 3: qr2[0], 4: qr2[1],
-                                  5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
-                                  9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
-                                  13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
-                                  17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
-        # DenseLayout
-        expected_layout_level1 = {0: qr2[1], 1: ancilla[0], 2: ancilla[1], 3: ancilla[2],
-                                  4: ancilla[3], 5: qr2[0], 6: qr1[2], 7: ancilla[4], 8: ancilla[5],
-                                  9: ancilla[6], 10: qr1[1], 11: qr1[0], 12: ancilla[7],
-                                  13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
-                                  17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+        expected_layout_level0 = trivial_layout
+        expected_layout_level1 = trivial_layout
 
         # NoiseAdaptiveLayout (in FakeTokyo, no errors. Therefore, TrivialLayout)
-        expected_layout_level2 = expected_layout_level0
-        expected_layout_level3 = expected_layout_level0
+        # TODO See https://github.com/Qiskit/qiskit-terra/issues/2970
+        expected_layout_level2 = trivial_layout
+        expected_layout_level3 = trivial_layout
         expected_layouts = [expected_layout_level0,
                             expected_layout_level1,
                             expected_layout_level2,
