@@ -157,7 +157,7 @@ class UCG(Gate):
             # Important: the diagonal gate is given in the computational basis of the qubits
             # q[k-1],...,q[0],q_target (ordered with decreasing significance),
             # where q[i] are the control qubits and t denotes the target qubit.
-            circuit.diagGate(diag.tolist(), q)
+            circuit.diag_gate(diag.tolist(), q)
         return circuit, diag
 
     def _dec_ucg_help(self):
