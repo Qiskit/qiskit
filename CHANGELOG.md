@@ -100,8 +100,7 @@ The format is based on [Keep a Changelog].
     using the option ``with_layout=False`` in the method
     ``QuantumCircuit.draw``. (\#2739)
 -   Q-sphere visualization is enhanced and corrected (\#2932)
--   The default layout selector for transpile optimization level 1 is ``DenseLayout``
-    instead of ``TrivialLayout`` (\#2845).
+
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.

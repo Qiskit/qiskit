@@ -422,11 +422,12 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter('theta')
         qc.rz(theta, qr[0])
 
-        transpiled_qc = transpile(qc, backend=FakeMelbourne())
+        transpiled_qc = transpile(qc, backend=FakeMelbourne(),
+                                  initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(theta, qr[1])
+        expected_qc.u1(theta, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
@@ -457,11 +458,12 @@ class TestTranspile(QiskitTestCase):
         square = theta * theta
         qc.rz(square, qr[0])
 
-        transpiled_qc = transpile(qc, backend=FakeMelbourne())
+        transpiled_qc = transpile(qc, backend=FakeMelbourne(),
+                                  initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
-        expected_qc.u1(square, qr[1])
+        expected_qc.u1(square, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
 
