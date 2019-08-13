@@ -459,7 +459,7 @@ class TestTranspile(QiskitTestCase):
         qc.rz(square, qr[0])
 
         transpiled_qc = transpile(qc, backend=FakeMelbourne(),
-                                  initial_layout=Layout.generate_trivial_layout(qc))
+                                  initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
