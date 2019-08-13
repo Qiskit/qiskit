@@ -190,7 +190,7 @@ class DAGCircuit:
 
         Args:
             args (list): (register,idx) tuples
-            amap (dict): a dictionary keyed on (register,idx) tuples
+            amap (dict): a dictionary keyed on bit objects
 
         Raises:
             DAGCircuitError: if a qubit is not contained in amap
@@ -199,7 +199,7 @@ class DAGCircuit:
         for wire in args:
             if wire not in amap:
                 raise DAGCircuitError("(qu)bit %s[%d] not found" %
-                                      (wire[0].name, wire[1]))
+                                      (wire.register.name, wire.index))
 
     def _bits_in_condition(self, cond):
         """Return a list of bits in the given condition.
@@ -478,11 +478,12 @@ class DAGCircuit:
                 m_wire = edge_map.get(nd.wire, nd.wire)
                 # the mapped wire should already exist
                 if m_wire not in self.output_map:
-                    raise DAGCircuitError("wire %s[%d] not in self" % (m_wire[0].name, m_wire[1]))
+                    raise DAGCircuitError("wire %s[%d] not in self" % (
+                        m_wire.register.name, m_wire.index))
 
                 if nd.wire not in input_circuit.wires:
                     raise DAGCircuitError("inconsistent wire type for %s[%d] in input_circuit"
-                                          % (nd.wire[0].name, nd.wire[1]))
+                                          % (nd.register.name, nd.wire.index))
 
             elif nd.type == "out":
                 # ignore output nodes
@@ -541,12 +542,13 @@ class DAGCircuit:
                 m_name = edge_map.get(nd.wire, nd.wire)
                 # the mapped wire should already exist
                 if m_name not in self.input_map:
-                    raise DAGCircuitError("wire %s[%d] not in self" % (m_name[0].name, m_name[1]))
+                    raise DAGCircuitError("wire %s[%d] not in self" % (
+                        m_name.register.name, m_name.index))
 
                 if nd.wire not in input_circuit.wires:
                     raise DAGCircuitError(
                         "inconsistent wire for %s[%d] in input_circuit"
-                        % (nd.wire[0].name, nd.wire[1]))
+                        % (nd.wire.register.name, nd.wire.index))
 
             elif nd.type == "in":
                 # ignore input nodes
@@ -693,7 +695,7 @@ class DAGCircuit:
                     self.output_map[w])[0]
                 if len(list(self._multi_graph.predecessors(self.output_map[w]))) != 1:
                     raise DAGCircuitError("too many predecessors for %s[%d] "
-                                          "output node" % (w[0], w[1]))
+                                          "output node" % (w.register, w.index))
 
         return full_pred_map, full_succ_map
 
