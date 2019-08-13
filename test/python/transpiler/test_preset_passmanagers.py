@@ -13,6 +13,7 @@
 # that they have been altered from the originals.
 
 """Tests preset pass manager API"""
+from test import combine
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
@@ -21,7 +22,6 @@ from qiskit.extensions.standard import U2Gate, U3Gate
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
-from test import combine
 
 
 def emptycircuit():
