@@ -16,10 +16,10 @@
 from test import combine
 from ddt import ddt, data
 
-from qiskit.test import QiskitTestCase
-from qiskit.compiler import transpile, assemble
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
+from qiskit.compiler import transpile, assemble
 from qiskit.extensions.standard import U2Gate, U3Gate
+from qiskit.test import QiskitTestCase
 from qiskit.test.mock import (FakeTenerife, FakeMelbourne,
                               FakeRueschlikon, FakeTokyo, FakePoughkeepsie)
 
@@ -237,3 +237,47 @@ class TestInitialLayouts(QiskitTestCase):
         self.assertEqual(qubits_0[0].index, 6)
         self.assertIsInstance(gate_1, U2Gate)
         self.assertEqual(qubits_1[0].index, 12)
+
+
+@ddt
+class TestFinalLayouts(QiskitTestCase):
+    """Test final layouts after preset transpilation"""
+
+    @data(0, 1, 2, 3)
+    def test_layout_tokyo_2845(self, level):
+        """Test that final layout in tokyo #2845
+        See: https://github.com/Qiskit/qiskit-terra/issues/2845
+        """
+        qr1 = QuantumRegister(3, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        qc = QuantumCircuit(qr1, qr2)
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[2], qr2[0])
+        qc.cx(qr2[0], qr2[1])
+
+        ancilla = QuantumRegister(15, 'ancilla')
+
+        # TrivialLayout
+        expected_layout_level0 = {0: qr1[0], 1: qr1[1], 2: qr1[2], 3: qr2[0], 4: qr2[1],
+                                  5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
+                                  9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
+                                  13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
+                                  17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+        # DenseLayout
+        expected_layout_level1 = {0: qr2[1], 1: ancilla[0], 2: ancilla[1], 3: ancilla[2],
+                                  4: ancilla[3], 5: qr2[0], 6: qr1[2], 7: ancilla[4], 8: ancilla[5],
+                                  9: ancilla[6], 10: qr1[1], 11: qr1[0], 12: ancilla[7],
+                                  13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
+                                  17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+
+        # NoiseAdaptiveLayout (in FakeTokyo, no errors. Therefore, TrivialLayout)
+        expected_layout_level2 = expected_layout_level0
+        expected_layout_level3 = expected_layout_level0
+        expected_layouts = [expected_layout_level0,
+                            expected_layout_level1,
+                            expected_layout_level2,
+                            expected_layout_level3]
+        backend = FakeTokyo()
+        result = transpile(qc, backend, optimization_level=level, seed_transpiler=42)
+        self.assertEqual(result._layout._p2v, expected_layouts[level])
