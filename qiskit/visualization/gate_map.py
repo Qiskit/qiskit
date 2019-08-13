@@ -235,7 +235,7 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
         QiskitError: Invalid view type given.
         VisualizationError: Circuit has no layout attribute.
     """
-    if circuit.layout is None:
+    if circuit._layout is None:
         raise QiskitError('Circuit has no layout. '
                           'Perhaps it has not been transpiled.')
 
@@ -246,14 +246,14 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
 
     if view == 'virtual':
         idx = 0
-        for key, val in circuit.layout.get_virtual_bits().items():
+        for key, val in circuit._layout.get_virtual_bits().items():
             if key.register.name != 'ancilla':
                 qubits.append(val)
                 qubit_labels[val] = idx
             idx += 1
 
     elif view == 'physical':
-        for key, val in circuit.layout.get_physical_bits().items():
+        for key, val in circuit._layout.get_physical_bits().items():
             if val.register.name != 'ancilla':
                 qubits.append(key)
                 qubit_labels[key] = key
