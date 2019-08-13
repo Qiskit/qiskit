@@ -20,7 +20,7 @@ environment:
           CIBW_SKIP: cp27-* cp34-*
           TWINE_USERNAME: qiskit
           CIBW_TEST_COMMAND: python {project}\examples\python\stochastic_swap.py
-          TAG_SCENARIO: false
+          TAG_SCENARIO: true
 
     # Set Travis CI variables for skipping the CI-unavailable tests.
     TRAVIS_PULL_REQUEST_SLUG: invalid
@@ -41,7 +41,7 @@ for:
     only:
       - TAG_SCENARIO: true
 
-#  skip_non_tags: true
+  skip_non_tags: true
 
 
 build: false
@@ -55,7 +55,7 @@ build_script:
   - if defined WHEEL (pip install cibuildwheel==0.10.1)
   - if defined WHEEL (pip install -U twine)
   - if defined WHEEL (cibuildwheel --output-dir wheelhouse)
-#  - if defined WHEEL (twine upload wheelhouse\*)
+  - if defined WHEEL (twine upload wheelhouse\*)
 artifacts:
   - path: "wheelhouse\\*.whl"
     name: Wheels
