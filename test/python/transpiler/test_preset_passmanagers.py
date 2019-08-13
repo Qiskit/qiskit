@@ -258,10 +258,10 @@ class TestFinalLayouts(QiskitTestCase):
 
         ancilla = QuantumRegister(15, 'ancilla')
         trivial_layout = {0: qr1[0], 1: qr1[1], 2: qr1[2], 3: qr2[0], 4: qr2[1],
-                                  5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
-                                  9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
-                                  13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
-                                  17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+                          5: ancilla[0], 6: ancilla[1], 7: ancilla[2], 8: ancilla[3],
+                          9: ancilla[4], 10: ancilla[5], 11: ancilla[6], 12: ancilla[7],
+                          13: ancilla[8], 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
+                          17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
         # TrivialLayout
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = trivial_layout
