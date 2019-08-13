@@ -135,7 +135,7 @@ features:
     |                                | qubits (m=n) or to prepare any state  |
     |                                | of n qubits (m=0)                     |
     +--------------------------------+---------------------------------------+
-    | ``QuantumCircuit.diagGate()``  | Add a diagonal gate to the circuit    |
+    | ``QuantumCircuit.diag_gate()`` | Add a diagonal gate to the circuit    |
     +--------------------------------+---------------------------------------+
     | ``QuantumCircuit.squ()``       | Decompose an arbitrary 2x2 unitary    |
     |                                | into three rotation gates and add to  |
