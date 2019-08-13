@@ -22,7 +22,8 @@ from typing import Optional
 
 from qiskit.pulse.commands import SamplePulse
 from qiskit.pulse.pulse_lib import continuous
-from qiskit.pulse import samplers
+
+from . import samplers
 
 
 _sampled_constant_pulse = samplers.left(continuous.constant)

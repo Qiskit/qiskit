@@ -135,8 +135,9 @@ import pydoc
 
 import numpy as np
 
-from qiskit.pulse.samplers import strategies
 import qiskit.pulse.commands as commands
+
+from . import strategies
 
 
 def _update_annotations(discretized_pulse: Callable) -> Callable:
