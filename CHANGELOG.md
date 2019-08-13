@@ -64,6 +64,8 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   More informative errors are now raised if `qubit_lo_freq` and
+    `meas_lo_freq` are not supplied to `assemble_schedules`.
 -   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`.
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
@@ -100,8 +102,7 @@ The format is based on [Keep a Changelog].
     using the option ``with_layout=False`` in the method
     ``QuantumCircuit.draw``. (\#2739)
 -   Q-sphere visualization is enhanced and corrected (\#2932)
--   The default layout selector for transpile optimization level 1 is ``DenseLayout``
-    instead of ``TrivialLayout`` (\#2845).
+
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
