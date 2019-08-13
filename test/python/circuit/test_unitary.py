@@ -16,6 +16,7 @@
 
 import json
 import numpy
+from numpy.testing import assert_allclose
 
 import qiskit
 from qiskit.extensions.unitary import UnitaryGate
@@ -95,7 +96,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
             self.assertTrue(qubit.index in [0, 1])
-        self.assertTrue(numpy.allclose(dnode.op.to_matrix(), matrix))
+        assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_2q_unitary(self):
         """test 2 qubit unitary matrix"""
@@ -123,8 +124,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
             self.assertTrue(qubit.index in [0, 1])
-        self.assertTrue(numpy.allclose(dnode.op.to_matrix(),
-                                       matrix))
+        assert_allclose(dnode.op.to_matrix(), matrix)
         qc3 = dag_to_circuit(dag)
         self.assertEqual(qc2, qc3)
 
@@ -148,8 +148,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertIsInstance(dnode.op, UnitaryGate)
         for qubit in dnode.qargs:
             self.assertTrue(qubit.index in [0, 1, 3])
-        self.assertTrue(numpy.allclose(dnode.op.to_matrix(),
-                                       matrix))
+        assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_qobj_with_unitary_matrix(self):
         """test qobj output with unitary matrix"""
@@ -165,9 +164,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         qobj = qiskit.compiler.assemble(qc)
         instr = qobj.experiments[0].instructions[1]
         self.assertEqual(instr.name, 'unitary')
-        self.assertTrue(numpy.allclose(
-            numpy.array(instr.params).astype(numpy.complex64),
-            matrix))
+        assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
         # check conversion to dict
         qobj_dict = qobj.to_dict()
         # check json serialization
