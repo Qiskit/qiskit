@@ -110,7 +110,6 @@ The components of Qiskit extend the functionality.
   Qiskit Aer <aer/index>
   Qiskit Ignis <ignis/index>
   Qiskit Aqua <aqua/index>
-  Advanced Use of IBM Q Devices <advanced_use_of_ibm_q_devices>
   Development Strategy <development_strategy>
   Release Notes <release_notes>
   API References <autodoc/qiskit>
@@ -122,4 +121,3 @@ The components of Qiskit extend the functionality.
    :ref:`genindex`
    :ref:`modindex`
    :ref:`search`
-
