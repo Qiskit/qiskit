@@ -25,7 +25,7 @@ class LoConfigConverter:
     """
 
     def __init__(self, qobj_model, qubit_lo_freq, meas_lo_freq,
-                 qubit_lo_range, meas_lo_range, **run_config):
+                 qubit_lo_range=None, meas_lo_range=None, **run_config):
         """Create new converter.
 
         Args:
@@ -43,10 +43,13 @@ class LoConfigConverter:
 
         self.default_lo_config = LoConfig()
 
-        for i, lo_range in enumerate(qubit_lo_range):
-            self.default_lo_config.add_lo_range(DriveChannel(i), lo_range)
-        for i, lo_range in enumerate(meas_lo_range):
-            self.default_lo_config.add_lo_range(MeasureChannel(i), lo_range)
+        if qubit_lo_range:
+            for i, lo_range in enumerate(qubit_lo_range):
+                self.default_lo_config.add_lo_range(DriveChannel(i), lo_range)
+
+        if meas_lo_range:
+            for i, lo_range in enumerate(meas_lo_range):
+                self.default_lo_config.add_lo_range(MeasureChannel(i), lo_range)
 
     def __call__(self, user_lo_config):
         """Return PulseQobjExperimentConfig
