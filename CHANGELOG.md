@@ -64,6 +64,8 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   More informative errors are now raised if `qubit_lo_freq` and
+    `meas_lo_freq` are not supplied to `assemble_schedules`.
 -   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`.
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
