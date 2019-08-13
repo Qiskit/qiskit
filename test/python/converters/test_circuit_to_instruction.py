@@ -52,10 +52,12 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         theta = Parameter('theta')
         phi = Parameter('phi')
+        sum_ = theta + phi
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
         qc.u2(theta, phi, qr[2])
+        qc.rz(sum_, qr[0])
 
         inst = circuit_to_instruction(qc)
 
@@ -63,6 +65,7 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[0][0].params, [theta])
         self.assertEqual(inst.definition[1][0].params, [phi])
         self.assertEqual(inst.definition[2][0].params, [theta, phi])
+        self.assertEqual(str(inst.definition[3][0].params[0]), 'phi + theta')
 
     def test_underspecified_parameter_map_raises(self):
         """Verify we raise if not all circuit parameters are present in parameter_map."""
@@ -71,12 +74,14 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         theta = Parameter('theta')
         phi = Parameter('phi')
+        sum_ = theta + phi
 
         gamma = Parameter('gamma')
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
         qc.u2(theta, phi, qr[2])
+        qc.rz(sum_, qr[0])
 
         self.assertRaises(QiskitError, circuit_to_instruction, qc, {theta: gamma})
 
@@ -92,12 +97,14 @@ class TestCircuitToInstruction(QiskitTestCase):
 
         theta = Parameter('theta')
         phi = Parameter('phi')
+        sum_ = theta + phi
 
         gamma = Parameter('gamma')
 
         qc.rz(theta, qr[0])
         qc.rz(phi, qr[1])
         qc.u2(theta, phi, qr[2])
+        qc.rz(sum_, qr[0])
 
         inst = circuit_to_instruction(qc, {theta: gamma, phi: phi})
 
@@ -105,6 +112,8 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.definition[0][0].params, [gamma])
         self.assertEqual(inst.definition[1][0].params, [phi])
         self.assertEqual(inst.definition[2][0].params, [gamma, phi])
+        self.assertEqual(
+            str(inst.definition[3][0].params[0]), 'gamma + phi')
 
 
 if __name__ == '__main__':
