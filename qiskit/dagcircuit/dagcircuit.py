@@ -287,8 +287,8 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            qargs (list[tuple]): qubits that op will be applied to
-            cargs (list[tuple]): cbits that op will be applied to
+            qargs (list[Qubit]): Qubits that op will be applied to
+            cargs (list[Clbit]): Clbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, value)
 
         Returns:
@@ -442,9 +442,10 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            edge_map (dict): map {(Register, int): (Register, int)}
-                from the output wires of input_circuit to input wires
-                of self.
+            edge_map (dict): map {Bit: Bit} from the output wires of
+                input_circuit to input wires of self. The key and value
+                can either be of type Qubit or Clbit depending on the
+                type of the node.
 
         Raises:
             DAGCircuitError: if missing, duplicate or inconsistent wire
