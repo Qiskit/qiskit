@@ -160,8 +160,8 @@ class TestTranspile(QiskitTestCase):
         qc.cx(qr[13], qr[4])
         qc.measure(qr, cr)
 
-        new_qc = transpile(qc, coupling_map=coupling_map, basis_gates=basis_gates, initial_layout=
-                           Layout.generate_trivial_layout(qr))
+        new_qc = transpile(qc, coupling_map=coupling_map, basis_gates=basis_gates,
+                           initial_layout=Layout.generate_trivial_layout(qr))
         cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
         cx_qubits_physical = [[ctrl.index, tgt.index] for [ctrl, tgt] in cx_qubits]
         self.assertEqual(sorted(cx_qubits_physical),
