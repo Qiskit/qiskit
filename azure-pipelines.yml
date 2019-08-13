@@ -133,7 +133,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
-            stestr run --concurrency 2
+            stestr run
           displayName: 'Run tests'
         - bash: |
             set -e
