@@ -27,7 +27,7 @@ from qiskit.transpiler.passes import Decompose
 from qiskit.transpiler.passes import CheckMap
 from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
-from qiskit.transpiler.passes import TrivialLayout
+from qiskit.transpiler.passes import DenseLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import StochasticSwap
 from qiskit.transpiler.passes import FullAncillaAllocation
@@ -65,13 +65,13 @@ def level_1_pass_manager(transpile_config):
     initial_layout = transpile_config.initial_layout
     seed_transpiler = transpile_config.seed_transpiler
 
-    # 1. Use trivial layout if no layout given
+    # 1. Use dense layout if no layout given
     _given_layout = SetLayout(initial_layout)
 
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
-    _choose_layout = TrivialLayout(coupling_map)
+    _choose_layout = DenseLayout(coupling_map)
 
     # 2. Use a better layout on densely connected qubits, if circuit needs swaps
     _layout_check = CheckMap(coupling_map)

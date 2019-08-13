@@ -95,6 +95,8 @@ The format is based on [Keep a Changelog].
 -   `coupling_map` now required to validate a `backend.configuration()` (\#2836)
 -   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
 -   Q-sphere visualization is enhanced and corrected (\#2932)
+-   The default layout selector for transpile optimization level 1 is ``DenseLayout``
+    instead of ``TrivialLayout`` (\#2845).
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
