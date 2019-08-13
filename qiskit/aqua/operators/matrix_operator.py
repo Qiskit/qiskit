@@ -145,7 +145,7 @@ class MatrixOperator(BaseOperator):
         Overload * operation. Only support two Operators have the same representation mode.
 
         Returns:
-            Operator: the multipled Operator.
+            MatrixOperator: the multipled Operator.
 
         Raises:
             TypeError, if two Operators do not have the same representations.
