@@ -64,6 +64,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`.
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
 -   All circuit drawers now express most commonly used fractions
@@ -94,6 +95,10 @@ The format is based on [Keep a Changelog].
     definition of a controlled `U3Gate` (\#2755)
 -   `coupling_map` now required to validate a `backend.configuration()` (\#2836)
 -   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
+-   If layout information is available in
+    the circuit, it will be included to the circuit drawing. This can be removed
+    using the option ``with_layout=False`` in the method
+    ``QuantumCircuit.draw``. (\#2739)
 -   Q-sphere visualization is enhanced and corrected (\#2932)
 
 
