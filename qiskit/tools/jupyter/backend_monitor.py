@@ -20,9 +20,6 @@ import math
 import datetime
 from IPython.display import display                     # pylint: disable=import-error
 import matplotlib.pyplot as plt                         # pylint: disable=import-error
-import matplotlib.colors                                # pylint: disable=import-error
-import matplotlib as mpl                                # pylint: disable=import-error
-from matplotlib import cm                               # pylint: disable=import-error
 from matplotlib.patches import Circle                   # pylint: disable=import-error
 import ipywidgets as widgets                            # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
