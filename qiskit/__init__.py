@@ -53,7 +53,7 @@ try:
 except ImportError:
     warnings.warn('Could not import the Aer provider from the qiskit-aer '
                   'package. Install qiskit-aer or check your installation.',
-                  ImportWarning)
+                  RuntimeWarning)
 # Try to import the IBMQ provider if installed.
 try:
     from qiskit.providers.ibmq import IBMQ
@@ -61,7 +61,7 @@ except ImportError:
     warnings.warn('Could not import the IBMQ provider from the '
                   'qiskit-ibmq-provider package. Install qiskit-ibmq-provider '
                   'or check your installation.',
-                  ImportWarning)
+                  RuntimeWarning)
 
 from .version import __version__
 from .version import __qiskit_version__
