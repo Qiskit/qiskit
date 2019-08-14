@@ -199,9 +199,9 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(0, 2)
         self.arch_graph.add_edge(2, 3)
 
-        modular_permuter = lambda p: modular.permute(p, 2, 2)
         current_mapping = {q[0]: 1, q[1]: 0, q[2]: 2}
-        mapper = GreedySizeMapper(self.arch_graph, sequential_permuter(modular_permuter))
+        mapper = GreedySizeMapper(self.arch_graph,
+                                  sequential_permuter(lambda p: modular.permute(p, 2, 2)))
 
         out = mapper.map(self.circuit, current_mapping)
         # The qubits for the first gate should not be moved.

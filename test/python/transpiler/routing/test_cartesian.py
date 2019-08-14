@@ -34,7 +34,7 @@ from typing import List, TypeVar, Callable, Iterable, Mapping
 import networkx as nx
 
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler.routing import util, Swap, Permutation, path, fast_path, complete
+from qiskit.transpiler.routing import util, Swap, Permutation, path, complete
 from qiskit.transpiler.routing.cartesian import permute_grid, permute_cartesian_partial, \
     permute_grid_partial
 from .util import valid_parallel_swaps, valid_edge_swaps
@@ -229,8 +229,9 @@ class TestCartesian(QiskitTestCase):
     def test_grid_small1_partial(self) -> None:
         """Test a permutation on a small grid"""
         mapping = {0: 2, 2: 1}
-        path_permuter = lambda m: path.permute_path_partial(m, length=2)
-        out = list(permute_cartesian_partial(mapping, 2, 2, path_permuter, path_permuter))
+        out = list(permute_cartesian_partial(mapping, 2, 2,
+                                             path.permute_path_partial,
+                                             path.permute_path_partial))
 
         self.assertEqual(2, len(out))
         valid_parallel_swaps(self, out)
@@ -241,9 +242,9 @@ class TestCartesian(QiskitTestCase):
     def test_grid_small2_partial(self) -> None:
         """Test a permutation on a small grid"""
         mapping = {2: 3, 3: 2}
-        permute_x = lambda m: path.permute_path_partial(m, length=2)
-        permute_y = lambda m: path.permute_path_partial(m, length=3)
-        out = list(permute_cartesian_partial(mapping, 2, 3, permute_x, permute_y))
+        out = list(permute_cartesian_partial(mapping, 2, 3,
+                                             path.permute_path_partial,
+                                             path.permute_path_partial))
 
         valid_parallel_swaps(self, out)
         self.assertListEqual([[(3, 2)]], out)
@@ -251,9 +252,9 @@ class TestCartesian(QiskitTestCase):
     def test_grid_small3_partial(self) -> None:
         """Test a small permutation on grid."""
         mapping = {1: 0, 4: 4, 3: 5}
-        permute_x = lambda m: path.permute_path_partial(m, length=3)
-        permute_y = lambda m: path.permute_path_partial(m, length=2)
-        out = list(permute_cartesian_partial(mapping, 3, 2, permute_x, permute_y))
+        out = list(permute_cartesian_partial(mapping, 3, 2,
+                                             path.permute_path_partial,
+                                             path.permute_path_partial))
 
         valid_parallel_swaps(self, out)
 
@@ -261,7 +262,8 @@ class TestCartesian(QiskitTestCase):
         """Test a case where perfect matching was not found."""
         mapping = {3: 1, 5: 5, 1: 0, 2: 3}
         out = list(permute_cartesian_partial(mapping, 2, 4,
-                                             path.permute_path_partial, path.permute_path_partial))
+                                             path.permute_path_partial,
+                                             path.permute_path_partial))
 
         valid_parallel_swaps(self, out)
         identity_dict = {i: i for i in mapping.values()}
@@ -278,10 +280,10 @@ class TestCartesian(QiskitTestCase):
         destinations = list(range(length))
         random.shuffle(destinations)
         partial_mapping = dict(random.sample(list(enumerate(destinations)), mapped))
-        permute_x = lambda m: fast_path.permute_path_partial(m, length=width)
-        permute_y = lambda m: fast_path.permute_path_partial(m, length=height)
 
-        out = list(permute_cartesian_partial(partial_mapping, width, height, permute_x, permute_y))
+        out = list(permute_cartesian_partial(partial_mapping, width, height,
+                                             path.permute_path_partial,
+                                             path.permute_path_partial))
         valid_parallel_swaps(self, out)
         identity_dict = {i: i for i in partial_mapping.values()}
         util.swap_permutation(out, partial_mapping, allow_missing_keys=True)

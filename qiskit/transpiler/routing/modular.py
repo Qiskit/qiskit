@@ -51,7 +51,8 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
     mapping = dict(mapping)
     already_mapped = {}  # type: Dict[int, int]
 
-    in_module = lambda i: _in_module(i, modulesize)
+    def in_module(i):
+        return _in_module(i, modulesize)
 
     # Compute upper bound on number of main loop iterations
     degrees = [0] * 2 * modules

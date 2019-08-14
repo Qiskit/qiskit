@@ -74,7 +74,8 @@ class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
         matching = Mapper.construct_matching(remaining_arch)  # type: Set[FrozenSet[ArchNode]]
         current_placement = Placement({}, {})  # type: Placement[Reg, ArchNode]
 
-        current_placement_cost = lambda place: self.placement_cost(current_placement + place[0])
+        def current_placement_cost(place):
+            return self.placement_cost(current_placement + place[0])
 
         # We wish to minimize the size of the circuit.
         # We try to find a good mapping of all binary ops to the matching,

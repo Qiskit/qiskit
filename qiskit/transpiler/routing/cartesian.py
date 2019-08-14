@@ -331,9 +331,10 @@ def permute_grid_partial(mapping: Mapping[int, int], width: int, height: int,
     :param trials: Retry doing the permutation this many times, and take the best solution.
     :return: A list describing which matchings to swap at each step.
     """
-    permute_x = lambda m: fast_path.permute_path_partial(m, length=width)
-    permute_y = lambda m: fast_path.permute_path_partial(m, length=height)
-    return permute_cartesian_partial(mapping, width, height, permute_x, permute_y, trials=trials)
+    return permute_cartesian_partial(mapping, width, height,
+                                     lambda m: fast_path.permute_path_partial(m, length=width),
+                                     lambda m: fast_path.permute_path_partial(m, length=height),
+                                     trials=trials)
 
 
 def _it_len(iterable: Iterable[Any]) -> int:
