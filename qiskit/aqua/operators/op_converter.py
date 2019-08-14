@@ -46,6 +46,11 @@ def to_weighted_pauli_operator(operator):
             one of supported operator type
     Returns:
         WeightedPauliOperator: the converted weighted pauli operator
+
+    Warnings:
+        Converting time from a MatrixOperator to a Pauli-type Operator grows exponentially.
+        If you are converting a system with large number of qubits, it will take time.
+        You can turn on DEBUG logging to check the progress.
     """
     if operator.__class__ == WeightedPauliOperator:
         return operator
@@ -55,9 +60,11 @@ def to_weighted_pauli_operator(operator):
     elif operator.__class__ == MatrixOperator:
         if operator.is_empty():
             return WeightedPauliOperator(paulis=[])
-        logger.warning("Converting time from a MatrixOperator to a Pauli-type Operator grows exponentially. "
-                       "If you are converting a system with large number of qubits, it will take time. "
-                       "You can turn on DEBUG logging to check the progress.")
+        if operator.num_qubits > 10:
+            logger.warning("Converting time from a MatrixOperator to a Pauli-type Operator grows exponentially. "
+                           "If you are converting a system with large number of qubits, it will take time. "
+                           "And now you are converting a {}-qubit Hamiltonian. "
+                           "You can turn on DEBUG logging to check the progress.".format(operator.num_qubits))
         num_qubits = operator.num_qubits
         coeff = 2 ** (-num_qubits)
 
