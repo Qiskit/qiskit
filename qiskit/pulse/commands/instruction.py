@@ -229,13 +229,23 @@ class Instruction(ScheduleComponent):
                                           interactive=interactive, table=table,
                                           label=label, framechange=framechange)
 
-    def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
-        return self.append(schedule)
+    def __eq__(self, other: 'Instruction'):
+        """Check if this Instruction is equal to the `other` instruction.
 
-    def __or__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule which is the union of `self` and `schedule`."""
-        return self.union(schedule)
+        Equality is determined by the instruction sharing the same command and channels.
+        """
+        return (self.command == other.command) and (set(self.channels) == set(other.channels))
+
+    def __hash__(self):
+        return hash((self.command.__hash__(), self.channels.__hash__()))
+
+    def __add__(self, other: ScheduleComponent) -> 'Schedule':
+        """Return a new schedule with `other` inserted within `self` at `start_time`."""
+        return self.append(other)
+
+    def __or__(self, other: ScheduleComponent) -> 'Schedule':
+        """Return a new schedule which is the union of `self` and `other`."""
+        return self.union(other)
 
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by `time`."""

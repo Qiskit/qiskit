@@ -495,6 +495,47 @@ class TestSchedule(QiskitTestCase):
         self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
 
 
+class TestScheduleEquality(QiskitTestCase):
+    """Test equality of schedules."""
+
+    def test_different_channels(self):
+        """Test equality is False if different channels."""
+        self.assertNotEqual(Schedule(FrameChange(0)(DriveChannel(0))),
+                            Schedule(FrameChange(0)(DriveChannel(1))))
+
+    def test_same_time_equal(self):
+        """Test equal if instruction at same time."""
+
+        self.assertEqual(Schedule((0, FrameChange(0)(DriveChannel(1)))),
+                         Schedule((0, FrameChange(0)(DriveChannel(1)))))
+
+    def test_different_time_not_equal(self):
+        """Test that not equal if instruction at different time."""
+        self.assertNotEqual(Schedule((0, FrameChange(0)(DriveChannel(1)))),
+                            Schedule((1, FrameChange(0)(DriveChannel(1)))))
+
+    def test_single_channel_out_of_order(self):
+        """Test that schedule with single channel equal when out of order."""
+        instructions = [(0, FrameChange(0)(DriveChannel(0))),
+                        (15, SamplePulse(np.ones(10))(DriveChannel(0))),
+                        (5, SamplePulse(np.ones(10))(DriveChannel(0)))]
+
+        self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
+
+    def test_multiple_channels_out_of_order(self):
+        """Test that schedule with multiple channels equal when out of order."""
+        instructions = [(0, FrameChange(0)(DriveChannel(1))),
+                        (1, Acquire(10)(AcquireChannel(0), MemorySlot(1)))]
+
+        self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
+
+    def test_different_name_equal(self):
+        """Test that names are ignored when checking equality."""
+
+        self.assertEqual(Schedule((0, FrameChange(0, name='fc1')(DriveChannel(1))), name='s1'),
+                         Schedule((0, FrameChange(0, name='fc2')(DriveChannel(1))), name='s2'))
+
+
 class TestScheduleWithDeviceSpecification(QiskitTestCase):
     """Schedule tests."""
     # TODO: This test will be deprecated in future update.
