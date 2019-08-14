@@ -41,7 +41,7 @@ def _job_checker(job, status, watcher):
     """
     prev_status_name = None
     prev_queue_pos = None
-    interval = 5
+    interval = 2
     exception_count = 0
 
     while status.name not in ['DONE', 'CANCELLED', 'ERROR']:
@@ -58,14 +58,14 @@ def _job_checker(job, status, watcher):
                                    queue_pos, status.value)
 
                     watcher.update_single_job(update_info)
-                    interval = max(queue_pos, 5)
+                    interval = max(queue_pos, 2)
                     prev_queue_pos = queue_pos
 
             elif status.name != prev_status_name:
                 update_info = (job.job_id(), status.name, 0, status.value)
 
                 watcher.update_single_job(update_info)
-                interval = 5
+                interval = 2
                 prev_status_name = status.name
 
         # pylint: disable=broad-except
