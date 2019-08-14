@@ -252,6 +252,23 @@ Once the compilers are installed, you are ready to install Qiskit Terra.
 
 After you've installed Terra, you can install Aer as an add-on to run additional simulators.
 
+.. note::
+
+    If you do not intend to install any other components qiskit-terra will
+    emit a ``RuntimeWarning`` warning that both qiskit-aer and
+    qiskit-ibmq-provider are not installed. This is done because the more
+    common case is to have users who intend to use the additional elements
+    but not realize their not installed, or have the installation fail. If
+    you wish to suppress these warnings this is easy to do by adding::
+
+        import warnings
+        warnings.filterwarnings('ignore', category=RuntimeWarning,
+                                module='qiskit')
+
+    before any ``qiskit`` imports in your code. That will suppress just the
+    warning about the missing qiskit-aer and qiskit-ibmq-provider, but still
+    display any other warnings from qiskit or other packages.
+
 Installing IBMQ Provider from Source
 ------------------------------------
 
