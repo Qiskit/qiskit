@@ -330,7 +330,7 @@ class QCircuitImage:
     def _get_mask(self, creg_name):
         mask = 0
         for index, cbit in enumerate(self.clbit_list):
-            if creg_name == cbit[0]:
+            if creg_name == cbit.register:
                 mask |= (1 << index)
         return mask
 
@@ -361,7 +361,7 @@ class QCircuitImage:
                 if op.condition:
                     mask = self._get_mask(op.condition[0])
                     cl_reg = self.clbit_list[self._ffs(mask)]
-                    if_reg = cl_reg[0]
+                    if_reg = cl_reg.register
                     pos_2 = self.img_regs[cl_reg]
                     if_value = format(op.condition[1],
                                       'b').zfill(self.cregs[if_reg])[::-1]
@@ -378,7 +378,7 @@ class QCircuitImage:
                         if op.condition:
                             mask = self._get_mask(op.condition[0])
                             cl_reg = self.clbit_list[self._ffs(mask)]
-                            if_reg = cl_reg[0]
+                            if_reg = cl_reg.register
                             pos_2 = self.img_regs[cl_reg]
 
                             if nm == "x":
