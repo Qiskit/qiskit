@@ -19,6 +19,7 @@
 import os
 import tempfile
 import unittest
+from math import pi
 import numpy as np
 
 from qiskit import (QuantumRegister, ClassicalRegister, QuantumCircuit, execute,
@@ -29,6 +30,10 @@ from qiskit.compiler import transpile
 from qiskit.converters.instruction_to_gate import instruction_to_gate
 from qiskit.extensions.standard import CnotGate
 from qiskit.quantum_info.operators.predicates import matrix_equal
+import qiskit.circuit.add_control as ac
+from qiskit.transpiler.passes import Unroller
+from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.converters.dag_to_circuit import dag_to_circuit
 
 
 class TestControlledGate(QiskitTestCase):
@@ -146,7 +151,6 @@ class TestControlledGate(QiskitTestCase):
         num_ctrl = 3
         ctrl_dim = 2**num_ctrl
         # U3 gate params
-        from math import pi
         alpha, beta, gamma = 0.2, 0.3, 0.4
 
         # cnu3 gate
@@ -271,3 +275,68 @@ class TestControlledGate(QiskitTestCase):
             with self.subTest(i=info):
                 self.log.info(info)
                 self.assertTrue(matrix_equal(target, decomp, ignore_phase=True))
+
+    def test_rotation_gates(self):
+        """Test controlled rotation gates"""
+        import qiskit.extensions.standard.u1 as u1
+        import qiskit.extensions.standard.rx as rx
+        import qiskit.extensions.standard.ry as ry
+        import qiskit.extensions.standard.rz as rz
+        num_ctrl = 2
+        num_target = 1
+        qreg = QuantumRegister(num_ctrl + num_target)
+        ctrl_dim = 2**num_ctrl
+
+        gu1 = u1.U1Gate(pi)
+        grx = rx.RXGate(pi)
+        gry = ry.RYGate(pi)
+        grz = rz.RZGate(pi)
+
+        ugu1 = ac._unroll_gate(gu1, ['u1', 'u3', 'cx'])
+        ugrx = ac._unroll_gate(grx, ['u1', 'u3', 'cx'])
+        ugry = ac._unroll_gate(gry, ['u1', 'u3', 'cx'])
+        ugrz = ac._unroll_gate(grz, ['u1', 'u3', 'cx'])
+
+        cgu1 = ugu1.q_if(num_ctrl)
+        cgrx = ugrx.q_if(num_ctrl)
+        cgry = ugry.q_if(num_ctrl)
+        cgrz = ugrz.q_if(num_ctrl)
+
+        simulator = BasicAer.get_backend('unitary_simulator')
+        for gate, cgate in zip([gu1, grx, gry, grz], [cgu1, cgrx, cgry, cgrz]):
+            with self.subTest(i=gate.name):
+                qc = QuantumCircuit(num_target)
+                qc.append(gate, qc.qregs[0])
+                op_mat = execute(qc, simulator).result().get_unitary(0)
+                cqc = QuantumCircuit(num_ctrl + num_target)
+                cqc.append(cgate, cqc.qregs[0])
+                ref_mat = execute(cqc, simulator).result().get_unitary(0)
+                ctrl_grnd = np.repeat([[1], [0]], [1, ctrl_dim-1])
+                cop_mat = np.kron(op_mat, np.diag(np.roll(ctrl_grnd,
+                                                          ctrl_dim-1)))
+                for i in range(ctrl_dim-1):
+                    cop_mat += np.kron(np.eye(2**num_target),
+                                       np.diag(np.roll(ctrl_grnd, i)))
+                self.assertTrue(matrix_equal(cop_mat, ref_mat,
+                                             ignore_phase=True))
+                dag = circuit_to_dag(cqc)
+                unroller = Unroller(['u3', 'cx'])
+                uqc = dag_to_circuit(unroller.run(dag))
+                self.log.info('%s gate count: %d', cgate.name, uqc.size())
+                self.log.info('\n%s', str(uqc))
+                # these limits could be changed
+                if gate.name == 'ry':
+                    self.assertTrue(uqc.size() <= 32)
+                else:
+                    self.assertTrue(uqc.size() <= 20)
+        qc = QuantumCircuit(qreg, name='composite')
+        qc.append(grx.q_if(num_ctrl), qreg)
+        qc.append(gry.q_if(num_ctrl), qreg)
+        qc.append(gry, qreg[0:gry.num_qubits])
+        qc.append(grz.q_if(num_ctrl), qreg)
+
+        dag = circuit_to_dag(qc)
+        unroller = Unroller(['u3', 'cx'])
+        uqc = dag_to_circuit(unroller.run(dag))
+        self.log.info('%s gate count: %d', uqc.name, uqc.size())
+        self.assertTrue(uqc.size() <= 73)  # this limit could be changed

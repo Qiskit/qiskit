@@ -302,14 +302,14 @@ def mct(self, q_controls, q_target, q_ancilla, mode='basic'):
         self._check_qargs(all_qubits)
         self._check_dups(all_qubits)
 
-        if mode == 'basic':
+        if mode == 'basic' and q_ancilla:
             _mct_v_chain(self, control_qubits, target_qubit, ancillary_qubits, dirty_ancilla=False)
         elif mode == 'basic-dirty-ancilla':
             _mct_v_chain(self, control_qubits, target_qubit, ancillary_qubits, dirty_ancilla=True)
-        elif mode == 'advanced':
+        elif mode == 'advanced' and q_ancilla:
             _multicx(self, [*control_qubits, target_qubit], ancillary_qubits[0]
                      if ancillary_qubits else None)
-        elif mode == 'noancilla':
+        elif mode == 'noancilla' or not q_ancilla:
             _multicx_noancilla(self, [*control_qubits, target_qubit])
         else:
             raise QiskitError('Unrecognized mode for building MCT circuit: {}.'.format(mode))
