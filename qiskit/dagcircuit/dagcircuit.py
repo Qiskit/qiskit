@@ -130,7 +130,7 @@ class DAGCircuit:
         """Add a qubit or bit to the circuit.
 
         Args:
-            wire (tuple): (Register,int) containing a register instance and index
+            wire (Bit): the wire to be added
             This adds a pair of in and out nodes connected by an edge.
 
         Raises:
@@ -189,8 +189,8 @@ class DAGCircuit:
         For each element of args, check that amap contains it.
 
         Args:
-            args (list): (register,idx) tuples
-            amap (dict): a dictionary keyed on (register,idx) tuples
+            args (list[Bit]): the elements to be checked
+            amap (dict): a dictionary keyed on Qubits/Clbits
 
         Raises:
             DAGCircuitError: if a qubit is not contained in amap
@@ -217,8 +217,8 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            qargs (list): list of quantum wires to attach to.
-            cargs (list): list of classical wires to attach to.
+            qargs (list[Qubit]): list of quantum wires to attach to.
+            cargs (list[Clbit]): list of classical wires to attach to.
             condition (tuple or None): optional condition (ClassicalRegister, int)
         """
         node_properties = {
@@ -287,8 +287,8 @@ class DAGCircuit:
 
         Args:
             op (Instruction): the operation associated with the DAG node
-            qargs (list[tuple]): qubits that op will be applied to
-            cargs (list[tuple]): cbits that op will be applied to
+            qargs (list[Qubit]): qubits that op will be applied to
+            cargs (list[Clbit]): cbits that op will be applied to
             condition (tuple or None): optional condition (ClassicalRegister, value)
 
         Returns:
@@ -329,7 +329,7 @@ class DAGCircuit:
         it appears in both self and keyregs but not in edge_map.
 
         Args:
-            edge_map (dict): map from (reg,idx) in keyregs to (reg,idx) in valregs
+            edge_map (dict): map from Bit in keyregs to Bit in valregs
             keyregs (dict): a map from register names to Register objects
             valregs (dict): a map from register names to Register objects
             valreg (bool): if False the method ignores valregs and does not
@@ -379,8 +379,7 @@ class DAGCircuit:
         those wires have consistent types.
 
         Args:
-            wire_map (dict): map from (register,idx) in keymap to
-                (register,idx) in valmap
+            wire_map (dict): map from Bit in keymap to Bit in valmap
             keymap (dict): a map whose keys are wire_map keys
             valmap (dict): a map whose keys are wire_map values
 
@@ -403,7 +402,7 @@ class DAGCircuit:
 
         Args:
             wire_map (dict): a map from wires to wires
-            condition (tuple): (ClassicalRegister,int)
+            condition (tuple or None): (ClassicalRegister,int)
         Returns:
             tuple(ClassicalRegister,int): new condition
         """
@@ -442,7 +441,7 @@ class DAGCircuit:
 
         Args:
             input_circuit (DAGCircuit): circuit to append
-            edge_map (dict): map {(Register, int): (Register, int)}
+            edge_map (dict): map {Bit : Bit}
                 from the output wires of input_circuit to input wires
                 of self.
 
@@ -621,7 +620,7 @@ class DAGCircuit:
         Raise an exception otherwise.
 
         Args:
-            wires (list[register, index]): gives an order for (qu)bits
+            wires (list[Bit]): gives an order for (qu)bits
                 in the input circuit that is replacing the node.
             node (DAGNode): a node in the dag
 
@@ -724,7 +723,7 @@ class DAGCircuit:
         Yield op nodes in topological order.
 
         Returns:
-            generator(DAGnode): op node in topological order
+            generator(DAGNode): op node in topological order
         """
         return (nd for nd in self.topological_nodes() if nd.type == 'op')
 
@@ -734,7 +733,7 @@ class DAGCircuit:
         Args:
             node (DAGNode): node to substitute
             input_dag (DAGCircuit): circuit that will substitute the node
-            wires (list[(Register, index)]): gives an order for (qu)bits
+            wires (list[Bit]): gives an order for (qu)bits
                 in the input circuit. This order gets matched to the node wires
                 by qargs first, then cargs, then conditions.
 
@@ -904,7 +903,7 @@ class DAGCircuit:
         """Get the list of gate nodes in the dag.
 
         Returns:
-            list: the list of node ids that represent gates.
+            list[DAGNode]: the list of DAGNodes that represent gates.
         """
         nodes = []
         for node in self.op_nodes():
@@ -1190,7 +1189,7 @@ class DAGCircuit:
         Iterator for nodes that affect a given wire
 
         Args:
-            wire (tuple(Register, index)): the wire to be looked at.
+            wire (Bit): the wire to be looked at.
             only_ops (bool): True if only the ops nodes are wanted
                         otherwise all nodes are returned.
         Yield:
