@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog].
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
+
 -   Ability to check for equality of pulse `Schedule` and `Instruction`.
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
@@ -65,6 +66,8 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
+    Otherwise an error is raised.
 -   `Schedule.instructions` now returns with time-ordering.
 -   More informative errors are now raised if `qubit_lo_freq` and
     `meas_lo_freq` are not supplied to `assemble_schedules`.
@@ -145,6 +148,9 @@ The format is based on [Keep a Changelog].
 -   Correctly serialize complex numbers with a nonzero real part
 -   Fixed bug in measure sampling for `BasicAer` Qasm simulator if only a
     subset of qubits are measured (\#2790)
+-   Parameter objects can be serialized and communicated between
+    sub-processes (\#2429)
+-   Parameterized circuits no longer need to be transpiled individually (\#2864)
 
 
 ## [0.8.2] - 2019-06-14
