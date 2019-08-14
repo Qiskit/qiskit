@@ -78,7 +78,7 @@ install:
     - python setup.py build_ext --inplace
 
 test_script:
-    - stestr run
+    - stestr run test_examples
     - stestr last --subunit > test_results.subunit
 
 on_failure:
