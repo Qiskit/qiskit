@@ -17,7 +17,9 @@
 """Tests for Operator matrix linear operator class."""
 
 import unittest
+import logging
 import numpy as np
+from numpy.testing import assert_allclose
 import scipy.linalg as la
 
 from qiskit import QiskitError
@@ -26,6 +28,8 @@ from qiskit.extensions.standard import HGate, CHGate, CnotGate
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.predicates import matrix_equal
+
+logger = logging.getLogger(__name__)
 
 
 class OperatorTestCase(QiskitTestCase):
@@ -41,7 +45,11 @@ class OperatorTestCase(QiskitTestCase):
     @classmethod
     def rand_rho(cls, n):
         """Return random density matrix"""
-        psi = np.random.rand(n) + 1j * np.random.rand(n)
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        logger.debug("rand_rho RandomState seeded with seed=%s", seed)
+        rng = np.random.RandomState(seed)
+
+        psi = rng.rand(n) + 1j * rng.rand(n)
         rho = np.outer(psi, psi.conj())
         rho /= np.trace(rho)
         return rho
@@ -49,11 +57,15 @@ class OperatorTestCase(QiskitTestCase):
     @classmethod
     def rand_matrix(cls, rows, cols=None, real=False):
         """Return a random matrix."""
+        seed = np.random.randint(0, np.iinfo(np.int32).max)
+        logger.debug("rand_matrix RandomState seeded with seed=%s", seed)
+        rng = np.random.RandomState(seed)
+
         if cols is None:
             cols = rows
         if real:
-            return np.random.rand(rows, cols)
-        return np.random.rand(rows, cols) + 1j * np.random.rand(rows, cols)
+            return rng.rand(rows, cols)
+        return rng.rand(rows, cols) + 1j * rng.rand(rows, cols)
 
     def simple_circuit_no_measure(self):
         """Return a unitary circuit and the corresponding unitary array."""
@@ -76,21 +88,6 @@ class OperatorTestCase(QiskitTestCase):
         circ.measure(qr, cr)
         return circ
 
-    def assertAllClose(self,
-                       obj1,
-                       obj2,
-                       rtol=1e-5,
-                       atol=1e-6,
-                       equal_nan=False,
-                       msg=None):
-        """Assert two objects are equal using Numpy.allclose."""
-        comparison = np.allclose(
-            obj1, obj2, rtol=rtol, atol=atol, equal_nan=equal_nan)
-        if msg is None:
-            msg = ''
-        msg += '({} != {})'.format(obj1, obj2)
-        self.assertTrue(comparison, msg=msg)
-
 
 class TestOperator(OperatorTestCase):
     """Tests for Operator linear operator class."""
@@ -100,13 +97,13 @@ class TestOperator(OperatorTestCase):
         # Test automatic inference of qubit subsystems
         mat = self.rand_matrix(8, 8)
         op = Operator(mat)
-        self.assertAllClose(op.data, mat)
+        assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (8, 8))
         self.assertEqual(op.input_dims(), (2, 2, 2))
         self.assertEqual(op.output_dims(), (2, 2, 2))
 
         op = Operator(mat, input_dims=8, output_dims=8)
-        self.assertAllClose(op.data, mat)
+        assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (8, 8))
         self.assertEqual(op.input_dims(), (2, 2, 2))
         self.assertEqual(op.output_dims(), (2, 2, 2))
@@ -115,14 +112,14 @@ class TestOperator(OperatorTestCase):
         """Test initialization from array."""
         mat = np.eye(3)
         op = Operator(mat)
-        self.assertAllClose(op.data, mat)
+        assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (3, 3))
         self.assertEqual(op.input_dims(), (3,))
         self.assertEqual(op.output_dims(), (3,))
 
         mat = self.rand_matrix(2 * 3 * 4, 4 * 5)
         op = Operator(mat, input_dims=[4, 5], output_dims=[2, 3, 4])
-        self.assertAllClose(op.data, mat)
+        assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (4 * 5, 2 * 3 * 4))
         self.assertEqual(op.input_dims(), (4, 5))
         self.assertEqual(op.output_dims(), (2, 3, 4))
@@ -213,7 +210,7 @@ class TestOperator(OperatorTestCase):
         """Test Operator representation string property."""
         mat = self.rand_matrix(2, 2)
         op = Operator(mat)
-        self.assertAllClose(mat, op.data)
+        assert_allclose(mat, op.data)
 
     def test_dim(self):
         """Test Operator dim property."""
@@ -279,102 +276,6 @@ class TestOperator(OperatorTestCase):
         op1 = Operator(self.rand_matrix(4, 4))
         op2 = op1.to_operator()
         self.assertEqual(op1, op2)
-
-    def test_evolve(self):
-        """Test _evolve method."""
-        # Test hadamard
-        op = Operator(np.array([[1, 1], [1, -1]]) / np.sqrt(2))
-        target_psi = np.array([1, 1]) / np.sqrt(2)
-        target_rho = np.array([[0.5, 0.5], [0.5, 0.5]])
-        # Test list vector evolve
-        self.assertAllClose(op._evolve([1, 0]), target_psi)
-        # Test np.array vector evolve
-        self.assertAllClose(op._evolve(np.array([1, 0])), target_psi)
-        # Test list density matrix evolve
-        self.assertAllClose(op._evolve([[1, 0], [0, 0]]), target_rho)
-        # Test np.array density matrix evolve
-        self.assertAllClose(
-            op._evolve(np.array([[1, 0], [0, 0]])), target_rho)
-
-    def test_evolve_subsystem(self):
-        """Test subsystem _evolve method."""
-        # Test evolving single-qubit of 3-qubit system
-        mat = self.rand_matrix(2, 2)
-        op = Operator(mat)
-        psi = self.rand_matrix(1, 8).flatten()
-        rho = self.rand_rho(8)
-
-        # Evolve on qubit 0
-        mat0 = np.kron(np.eye(4), mat)
-        psi0_targ = np.dot(mat0, psi)
-        self.assertAllClose(op._evolve(psi, qargs=[0]), psi0_targ)
-        rho0_targ = np.dot(np.dot(mat0, rho), np.conj(mat0.T))
-        self.assertAllClose(op._evolve(rho, qargs=[0]), rho0_targ)
-
-        # Evolve on qubit 1
-        mat1 = np.kron(np.kron(np.eye(2), mat), np.eye(2))
-        psi1_targ = np.dot(mat1, psi)
-        self.assertAllClose(op._evolve(psi, qargs=[1]), psi1_targ)
-        rho1_targ = np.dot(np.dot(mat1, rho), np.conj(mat1.T))
-        self.assertAllClose(op._evolve(rho, qargs=[1]), rho1_targ)
-
-        # Evolve on qubit 2
-        mat2 = np.kron(mat, np.eye(4))
-        psi2_targ = np.dot(mat2, psi)
-        self.assertAllClose(op._evolve(psi, qargs=[2]), psi2_targ)
-        rho2_targ = np.dot(np.dot(mat2, rho), np.conj(mat2.T))
-        self.assertAllClose(op._evolve(rho, qargs=[2]), rho2_targ)
-
-        # Test 2-qubit evolution
-        mat_a = self.rand_matrix(2, 2)
-        mat_b = self.rand_matrix(2, 2)
-        op = Operator(np.kron(mat_b, mat_a))
-        psi = self.rand_matrix(1, 8).flatten()
-        rho = self.rand_rho(8)
-
-        # Evolve on qubits [0, 2]
-        mat02 = np.kron(mat_b, np.kron(np.eye(2), mat_a))
-        psi02_targ = np.dot(mat02, psi)
-        self.assertAllClose(op._evolve(psi, qargs=[0, 2]), psi02_targ)
-        rho02_targ = np.dot(np.dot(mat02, rho), np.conj(mat02.T))
-        self.assertAllClose(op._evolve(rho, qargs=[0, 2]), rho02_targ)
-
-        # Evolve on qubits [2, 0]
-        mat20 = np.kron(mat_a, np.kron(np.eye(2), mat_b))
-        psi20_targ = np.dot(mat20, psi)
-        self.assertAllClose(op._evolve(psi, qargs=[2, 0]), psi20_targ)
-        rho20_targ = np.dot(np.dot(mat20, rho), np.conj(mat20.T))
-        self.assertAllClose(op._evolve(rho, qargs=[2, 0]), rho20_targ)
-
-        # Test evolve on 3-qubits
-        mat_a = self.rand_matrix(2, 2)
-        mat_b = self.rand_matrix(2, 2)
-        mat_c = self.rand_matrix(2, 2)
-        op = Operator(np.kron(mat_c, np.kron(mat_b, mat_a)))
-        psi = self.rand_matrix(1, 8).flatten()
-        rho = self.rand_rho(8)
-
-        # Evolve on qubits [0, 1, 2]
-        mat012 = np.kron(mat_c, np.kron(mat_b, mat_a))
-        psi012_targ = np.dot(mat012, psi)
-        self.assertAllClose(op._evolve(psi, qargs=[0, 1, 2]), psi012_targ)
-        rho012_targ = np.dot(np.dot(mat012, rho), np.conj(mat012.T))
-        self.assertAllClose(op._evolve(rho, qargs=[0, 1, 2]), rho012_targ)
-
-        # Evolve on qubits [2, 1, 0]
-        mat210 = np.kron(mat_a, np.kron(mat_b, mat_c))
-        psi210_targ = np.dot(mat210, psi)
-        self.assertAllClose(op._evolve(psi, qargs=[2, 1, 0]), psi210_targ)
-        rho210_targ = np.dot(np.dot(mat210, rho), np.conj(mat210.T))
-        self.assertAllClose(op._evolve(rho, qargs=[2, 1, 0]), rho210_targ)
-
-    def test_evolve_rand(self):
-        """Test evolve method on random state."""
-        mat = self.rand_matrix(4, 4)
-        rho = self.rand_rho(4)
-        target_rho = np.dot(np.dot(mat, rho), np.conj(mat.T))
-        op = Operator(mat)
-        self.assertAllClose(op._evolve(rho), target_rho)
 
     def test_conjugate(self):
         """Test conjugate method."""
@@ -524,12 +425,12 @@ class TestOperator(OperatorTestCase):
         mat21 = np.kron(mat2, mat1)
         op21 = Operator(mat1).expand(Operator(mat2))
         self.assertEqual(op21.dim, (6, 6))
-        self.assertAllClose(op21.data, Operator(mat21).data)
+        assert_allclose(op21.data, Operator(mat21).data)
 
         mat12 = np.kron(mat1, mat2)
         op12 = Operator(mat2).expand(Operator(mat1))
         self.assertEqual(op12.dim, (6, 6))
-        self.assertAllClose(op12.data, Operator(mat12).data)
+        assert_allclose(op12.data, Operator(mat12).data)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -539,12 +440,12 @@ class TestOperator(OperatorTestCase):
         mat21 = np.kron(mat2, mat1)
         op21 = Operator(mat2).tensor(Operator(mat1))
         self.assertEqual(op21.dim, (6, 6))
-        self.assertAllClose(op21.data, Operator(mat21).data)
+        assert_allclose(op21.data, Operator(mat21).data)
 
         mat12 = np.kron(mat1, mat2)
         op12 = Operator(mat1).tensor(Operator(mat2))
         self.assertEqual(op12.dim, (6, 6))
-        self.assertAllClose(op12.data, Operator(mat12).data)
+        assert_allclose(op12.data, Operator(mat12).data)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
@@ -601,6 +502,15 @@ class TestOperator(OperatorTestCase):
         mat = self.rand_matrix(4, 4)
         op = Operator(mat)
         self.assertEqual(-op, Operator(-1 * mat))
+
+    def test_equiv(self):
+        """Test negate method"""
+        mat = np.diag([1, np.exp(1j * np.pi / 2)])
+        phase = np.exp(-1j * np.pi / 4)
+        op = Operator(mat)
+        self.assertTrue(op.equiv(phase * mat))
+        self.assertTrue(op.equiv(Operator(phase * mat)))
+        self.assertFalse(op.equiv(2 * mat))
 
 
 if __name__ == '__main__':

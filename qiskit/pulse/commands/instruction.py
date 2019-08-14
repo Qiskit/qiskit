@@ -21,7 +21,6 @@ from qiskit.pulse.channels import Channel
 from qiskit.pulse.interfaces import ScheduleComponent
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
-from qiskit.pulse.exceptions import PulseError
 
 # pylint: disable=missing-return-doc,missing-type-doc
 
@@ -30,31 +29,20 @@ class Instruction(ScheduleComponent):
     """An abstract class for leaf nodes of schedule."""
 
     def __init__(self, command, *channels: List[Channel],
-                 timeslots: Optional[TimeslotCollection] = None,
                  name: Optional[str] = None):
         """
         Args:
             command: Pulse command to schedule
             *channels: List of pulse channels to schedule with command
-            timeslots: Optional list of timeslots. If channels are supplied timeslots
-                cannot also be given
             name: Name of Instruction
-
-        Raises:
-            PulseError: If both channels and timeslots are supplied
         """
         self._command = command
         self._name = name if name else self._command.name
 
-        if timeslots and channels:
-            raise PulseError('Channels and timeslots may not both be supplied.')
+        duration = command.duration
 
-        if not timeslots:
-            duration = command.duration
-            self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
-                                                   for channel in channels))
-        else:
-            self._timeslots = timeslots
+        self._timeslots = TimeslotCollection(*(Timeslot(Interval(0, duration), channel)
+                                               for channel in channels))
 
         channels = self.channels
 
@@ -241,13 +229,23 @@ class Instruction(ScheduleComponent):
                                           interactive=interactive, table=table,
                                           label=label, framechange=framechange)
 
-    def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
-        return self.append(schedule)
+    def __eq__(self, other: 'Instruction'):
+        """Check if this Instruction is equal to the `other` instruction.
 
-    def __or__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule which is the union of `self` and `schedule`."""
-        return self.union(schedule)
+        Equality is determined by the instruction sharing the same command and channels.
+        """
+        return (self.command == other.command) and (set(self.channels) == set(other.channels))
+
+    def __hash__(self):
+        return hash((self.command.__hash__(), self.channels.__hash__()))
+
+    def __add__(self, other: ScheduleComponent) -> 'Schedule':
+        """Return a new schedule with `other` inserted within `self` at `start_time`."""
+        return self.append(other)
+
+    def __or__(self, other: ScheduleComponent) -> 'Schedule':
+        """Return a new schedule which is the union of `self` and `other`."""
+        return self.union(other)
 
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by `time`."""

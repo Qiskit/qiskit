@@ -51,7 +51,7 @@ class PersistentValue(Command):
         """Persistent value amplitude."""
         return self._value
 
-    def __eq__(self, other: 'PersistentValue'):
+    def __eq__(self, other: 'PersistentValue') -> bool:
         """Two PersistentValues are the same if they are of the same type
         and have the same value.
 
@@ -61,10 +61,10 @@ class PersistentValue(Command):
         Returns:
             bool: are self and other equal
         """
-        if type(self) is type(other) and \
-                self.value == other.value:
-            return True
-        return False
+        return super().__eq__(other) and self.value == other.value
+
+    def __hash__(self):
+        return hash((super().__hash__(), self.value))
 
     def __repr__(self):
         return '%s(%s, value=%s)' % (self.__class__.__name__, self.name, self.value)

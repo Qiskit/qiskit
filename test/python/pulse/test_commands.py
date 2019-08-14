@@ -19,9 +19,76 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse import (Acquire, FrameChange, PersistentValue,
-                          Snapshot, Kernel, Discriminator, functional_pulse)
+from qiskit.pulse import (SamplePulse, Acquire, FrameChange, PersistentValue,
+                          Snapshot, Kernel, Discriminator, functional_pulse,
+                          PulseError)
 from qiskit.test import QiskitTestCase
+
+
+class TestSamplePulse(QiskitTestCase):
+    """SamplePulse tests."""
+
+    def test_sample_pulse(self):
+        """Test pulse initialization."""
+        n_samples = 100
+        samples = np.linspace(0, 1., n_samples, dtype=np.complex128)
+        name = 'test'
+        sample_pulse = SamplePulse(samples, name=name)
+
+        self.assertEqual(sample_pulse.samples.dtype, np.complex128)
+        np.testing.assert_almost_equal(sample_pulse.samples, samples)
+
+        self.assertEqual(sample_pulse.duration, n_samples)
+        self.assertEqual(sample_pulse.name, name)
+
+    def test_type_casting(self):
+        """Test casting of input samples to numpy array."""
+        n_samples = 100
+        samples_f64 = np.linspace(0, 1., n_samples, dtype=np.float64)
+
+        sample_pulse_f64 = SamplePulse(samples_f64)
+        self.assertEqual(sample_pulse_f64.samples.dtype, np.complex128)
+
+        samples_c64 = np.linspace(0, 1., n_samples, dtype=np.complex64)
+
+        sample_pulse_c64 = SamplePulse(samples_c64)
+        self.assertEqual(sample_pulse_c64.samples.dtype, np.complex128)
+
+        samples_list = np.linspace(0, 1., n_samples).tolist()
+
+        sample_pulse_list = SamplePulse(samples_list)
+        self.assertEqual(sample_pulse_list.samples.dtype, np.complex128)
+
+    def test_pulse_limits(self):
+        """Test that limits of pulse norm of one are enforced properly."""
+
+        # test norm is correct for complex128 numpy data
+        unit_pulse_c128 = np.exp(1j*2*np.pi*np.linspace(0, 1, 1000), dtype=np.complex128)
+        # test does not raise error
+        try:
+            SamplePulse(unit_pulse_c128)
+        except PulseError:
+            self.fail('SamplePulse incorrectly failed on approximately unit norm samples.')
+
+        invalid_const = 1.1
+        with self.assertRaises(PulseError):
+            SamplePulse(invalid_const*np.exp(1j*2*np.pi*np.linspace(0, 1, 1000)))
+
+        # Test case where data is converted to python types with complex as a list
+        # with form [re, im] and back to a numpy array.
+        # This is how the transport layer handles samples in the qobj so it is important
+        # to test.
+        unit_pulse_c64 = np.exp(1j*2*np.pi*np.linspace(0, 1, 1000), dtype=np.complex64)
+        sample_components = np.stack(np.transpose([np.real(unit_pulse_c64),
+                                                   np.imag(unit_pulse_c64)]))
+        pulse_list = sample_components.tolist()
+        recombined_pulse = [sample[0]+sample[1]*1j for sample in pulse_list]
+
+        # test does not raise error
+        try:
+            SamplePulse(recombined_pulse)
+        except PulseError:
+            self.fail('SamplePulse incorrectly failed to approximately unit norm samples.')
 
 
 class TestAcquire(QiskitTestCase):

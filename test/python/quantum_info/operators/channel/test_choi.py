@@ -18,8 +18,10 @@
 
 import unittest
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
+from qiskit.quantum_info.states import DensityMatrix
 from qiskit.quantum_info.operators.channel import Choi
 from .channel_test_case import ChannelTestCase
 
@@ -31,21 +33,21 @@ class TestChoi(ChannelTestCase):
         """Test initialization"""
         mat4 = np.eye(4) / 2.0
         chan = Choi(mat4)
-        self.assertAllClose(chan.data, mat4)
+        assert_allclose(chan.data, mat4)
         self.assertEqual(chan.dim, (2, 2))
 
         mat8 = np.eye(8) / 2.0
         chan = Choi(mat8, input_dims=4)
-        self.assertAllClose(chan.data, mat8)
+        assert_allclose(chan.data, mat8)
         self.assertEqual(chan.dim, (4, 2))
 
         chan = Choi(mat8, input_dims=2)
-        self.assertAllClose(chan.data, mat8)
+        assert_allclose(chan.data, mat8)
         self.assertEqual(chan.dim, (2, 4))
 
         mat16 = np.eye(16) / 4
         chan = Choi(mat16)
-        self.assertAllClose(chan.data, mat16)
+        assert_allclose(chan.data, mat16)
         self.assertEqual(chan.dim, (4, 4))
 
         # Wrong input or output dims should raise exception
@@ -76,34 +78,6 @@ class TestChoi(ChannelTestCase):
         cpy = orig.copy()
         cpy._data[0, 0] = 0.0
         self.assertFalse(cpy == orig)
-
-    def test_evolve(self):
-        """Test evolve method."""
-        input_psi = [0, 1]
-        input_rho = [[0, 0], [0, 1]]
-        # Identity channel
-        chan = Choi(self.choiI)
-        target_rho = np.array([[0, 0], [0, 1]])
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
-
-        # Hadamard channel
-        chan = Choi(self.choiH)
-        target_rho = np.array([[1, -1], [-1, 1]]) / 2
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
-
-        # Completely depolarizing channel
-        chan = Choi(self.depol_choi(1))
-        target_rho = np.eye(2) / 2
-        self.assertAllClose(chan._evolve(input_psi), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_psi)), target_rho)
-        self.assertAllClose(chan._evolve(input_rho), target_rho)
-        self.assertAllClose(chan._evolve(np.array(input_rho)), target_rho)
 
     def test_is_cptp(self):
         """Test is_cptp method."""
@@ -236,63 +210,63 @@ class TestChoi(ChannelTestCase):
     def test_expand(self):
         """Test expand method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
+        rho_init = DensityMatrix(np.kron(rho0, rho0))
         chan1 = Choi(self.choiI)
         chan2 = Choi(self.choiX)
 
         # X \otimes I
         chan = chan1.expand(chan2)
-        rho_targ = np.kron(rho1, rho0)
+        rho_targ = DensityMatrix(np.kron(rho1, rho0))
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # I \otimes X
         chan = chan2.expand(chan1)
-        rho_targ = np.kron(rho0, rho1)
+        rho_targ = DensityMatrix(np.kron(rho0, rho1))
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Completely depolarizing
         chan_dep = Choi(self.depol_choi(1))
         chan = chan_dep.expand(chan_dep)
-        rho_targ = np.diag([1, 1, 1, 1]) / 4
+        rho_targ = DensityMatrix(np.diag([1, 1, 1, 1]) / 4)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_tensor(self):
         """Test tensor method."""
         rho0, rho1 = np.diag([1, 0]), np.diag([0, 1])
-        rho_init = np.kron(rho0, rho0)
+        rho_init = DensityMatrix(np.kron(rho0, rho0))
         chan1 = Choi(self.choiI)
         chan2 = Choi(self.choiX)
 
         # X \otimes I
-        rho_targ = np.kron(rho1, rho0)
+        rho_targ = DensityMatrix(np.kron(rho1, rho0))
         chan = chan2.tensor(chan1)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan2 ^ chan1
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # I \otimes X
-        rho_targ = np.kron(rho0, rho1)
+        rho_targ = DensityMatrix(np.kron(rho0, rho1))
         chan = chan1.tensor(chan2)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan1 ^ chan2
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
         # Completely depolarizing
-        rho_targ = np.diag([1, 1, 1, 1]) / 4
+        rho_targ = DensityMatrix(np.diag([1, 1, 1, 1]) / 4)
         chan_dep = Choi(self.depol_choi(1))
         chan = chan_dep.tensor(chan_dep)
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
         chan = chan_dep ^ chan_dep
         self.assertEqual(chan.dim, (4, 4))
-        self.assertAllClose(chan._evolve(rho_init), rho_targ)
+        self.assertEqual(rho_init.evolve(chan), rho_targ)
 
     def test_power(self):
         """Test power method."""

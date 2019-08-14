@@ -14,19 +14,21 @@
 
 """ `_text_circuit_drawer` "draws" a circuit in "ascii art" """
 
+import unittest
 from codecs import encode
 from math import pi
-import unittest
-import sympy
-import numpy
 
-from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+import numpy
+import sympy
+
+from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
+from qiskit.circuit import Gate, Parameter
+from qiskit.quantum_info.operators import SuperOp
+from qiskit.quantum_info.random import random_unitary
+from qiskit.test import QiskitTestCase
+from qiskit.transpiler import Layout
 from qiskit.visualization import text as elements
 from qiskit.visualization.circuit_visualization import _text_circuit_drawer
-from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, Parameter
-from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.operators import SuperOp
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -1450,8 +1452,148 @@ class TestTextIdleWires(QiskitTestCase):
 
         qr = QuantumRegister(1, 'q')
         circuit = QuantumCircuit(qr)
-        circuit.u2(pi, -5*pi/8, qr[0])
+        circuit.u2(pi, -5 * pi / 8, qr[0])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+
+class TestTextWithLayout(QiskitTestCase):
+    """The with_layout option"""
+
+    def test_with_no_layout(self):
+        """ A circuit without layout"""
+        expected = '\n'.join(["             ",
+                              "q_0: |0>─────",
+                              "        ┌───┐",
+                              "q_1: |0>┤ H ├",
+                              "        └───┘",
+                              "q_2: |0>─────",
+                              "             "])
+        qr = QuantumRegister(3, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_mixed_layout(self):
+        """ With a mixed layout. """
+        expected = '\n'.join(["                ┌───┐",
+                              "      (v0) q0|0>┤ H ├",
+                              "                ├───┤",
+                              "(ancilla1) q1|0>┤ H ├",
+                              "                ├───┤",
+                              "(ancilla0) q2|0>┤ H ├",
+                              "                ├───┤",
+                              "      (v1) q3|0>┤ H ├",
+                              "                └───┘"])
+        pqr = QuantumRegister(4, 'v')
+        qr = QuantumRegister(2, 'v')
+        ancilla = QuantumRegister(2, 'ancilla')
+        circuit = QuantumCircuit(pqr)
+        circuit._layout = Layout({qr[0]: 0, ancilla[1]: 1, ancilla[0]: 2, qr[1]: 3})
+        circuit.h(pqr)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_with_classical_regs(self):
+        """ Involving classical registers"""
+        expected = '\n'.join(["                  ",
+                              "(qr10) q0|0>──────",
+                              "                  ",
+                              "(qr11) q1|0>──────",
+                              "            ┌─┐   ",
+                              "(qr20) q2|0>┤M├───",
+                              "            └╥┘┌─┐",
+                              "(qr21) q3|0>─╫─┤M├",
+                              "             ║ └╥┘",
+                              "    cr_0: 0 ═╩══╬═",
+                              "                ║ ",
+                              "    cr_1: 0 ════╩═",
+                              "                  "])
+        pqr = QuantumRegister(4, 'q')
+        qr1 = QuantumRegister(2, 'qr1')
+        cr = ClassicalRegister(2, 'cr')
+        qr2 = QuantumRegister(2, 'qr2')
+        circuit = QuantumCircuit(pqr, cr)
+        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit.measure(pqr[2], cr[0])
+        circuit.measure(pqr[3], cr[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_with_layout_but_disable(self):
+        """ With parameter without_layout=False """
+        expected = '\n'.join(["              ",
+                              "q_0: |0>──────",
+                              "              ",
+                              "q_1: |0>──────",
+                              "        ┌─┐   ",
+                              "q_2: |0>┤M├───",
+                              "        └╥┘┌─┐",
+                              "q_3: |0>─╫─┤M├",
+                              "         ║ └╥┘",
+                              "cr_0: 0 ═╩══╬═",
+                              "            ║ ",
+                              "cr_1: 0 ════╩═",
+                              "              "])
+        pqr = QuantumRegister(4, 'q')
+        qr1 = QuantumRegister(2, 'qr1')
+        cr = ClassicalRegister(2, 'cr')
+        qr2 = QuantumRegister(2, 'qr2')
+        circuit = QuantumCircuit(pqr, cr)
+        circuit._layout = Layout({qr1[0]: 0, qr1[1]: 1, qr2[0]: 2, qr2[1]: 3})
+        circuit.measure(pqr[2], cr[0])
+        circuit.measure(pqr[3], cr[1])
+        self.assertEqual(str(_text_circuit_drawer(circuit, with_layout=False)), expected)
+
+    def test_after_transpile(self):
+        """After transpile, the drawing should include the layout"""
+        expected = '\n'.join([
+            "                  ┌──────────┐┌──────────┐┌───┐┌──────────┐┌──────────────────┐┌─┐   ",
+            "   (userqr0) q0|0>┤ U2(0,pi) ├┤ U2(0,pi) ├┤ X ├┤ U2(0,pi) ├┤ U3(pi,pi/2,pi/2) ├┤M├───",
+            "                  ├──────────┤└──────────┘└─┬─┘├──────────┤└─┬─────────────┬──┘└╥┘┌─┐",
+            "   (userqr1) q1|0>┤ U2(0,pi) ├──────────────■──┤ U2(0,pi) ├──┤ U3(pi,0,pi) ├────╫─┤M├",
+            "                  └──────────┘                 └──────────┘  └─────────────┘    ║ └╥┘",
+            "  (ancilla0) q2|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "  (ancilla1) q3|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "  (ancilla2) q4|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "  (ancilla3) q5|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "  (ancilla4) q6|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "  (ancilla5) q7|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "  (ancilla6) q8|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "  (ancilla7) q9|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            " (ancilla8) q10|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            " (ancilla9) q11|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "(ancilla10) q12|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "(ancilla11) q13|0>──────────────────────────────────────────────────────────────╫──╫─",
+            "                                                                                ║  ║ ",
+            "          c0_0: 0 ══════════════════════════════════════════════════════════════╩══╬═",
+            "                                                                                   ║ ",
+            "          c0_1: 0 ═════════════════════════════════════════════════════════════════╩═",
+            "                                                                                     "
+        ])
+        qr = QuantumRegister(2, 'userqr')
+        cr = ClassicalRegister(2, 'c0')
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        qc.cx(qr[0], qr[1])
+        qc.y(qr[0])
+        qc.x(qr[1])
+        qc.measure(qr, cr)
+
+        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4], [5, 6], [5, 9], [6, 8],
+                        [7, 8], [9, 8], [9, 10], [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                        [13, 12]]
+        qc_result = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                              coupling_map=coupling_map, optimization_level=0)
+        self.assertEqual(qc_result.draw(output='text', line_length=200).single_string(), expected)
 
 
 if __name__ == '__main__':

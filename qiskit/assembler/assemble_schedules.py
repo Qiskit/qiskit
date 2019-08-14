@@ -39,13 +39,27 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         instruction_converter = InstructionToQobjConverter
 
     qobj_config = run_config.to_dict()
-    qubit_lo_range = qobj_config.pop('qubit_lo_range')
-    meas_lo_range = qobj_config.pop('meas_lo_range')
+
+    qubit_lo_freq = qobj_config.get('qubit_lo_freq', None)
+    if qubit_lo_freq is None:
+        raise QiskitError('qubit_lo_freq must be supplied.')
+
+    meas_lo_freq = qobj_config.get('meas_lo_freq', None)
+    if meas_lo_freq is None:
+        raise QiskitError('meas_lo_freq must be supplied.')
+
+    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
+    meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
+
+    max_memory_slot = 0
+
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
-    lo_converter = LoConfigConverter(PulseQobjExperimentConfig, qubit_lo_range=qubit_lo_range,
-                                     meas_lo_range=meas_lo_range, **qobj_config)
+    lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
+                                     qubit_lo_range=qubit_lo_range,
+                                     meas_lo_range=meas_lo_range,
+                                     **qobj_config)
 
     # Pack everything into the Qobj
     qobj_schedules = []
@@ -67,9 +81,12 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
             if isinstance(instruction, AcquireInstruction):
+                max_memory_slot = max(max_memory_slot,
+                                      *[slot.index for slot in instruction.mem_slots])
                 if meas_map:
                     # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
+
             qobj_instructions.append(instruction_converter(shift, instruction))
 
         # experiment header
@@ -81,6 +98,9 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             'header': qobj_experiment_header,
             'instructions': qobj_instructions
         })
+
+    # set number of memoryslots
+    qobj_config['memory_slots'] = max_memory_slot + 1
 
     # setup pulse_library
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)

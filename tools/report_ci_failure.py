@@ -56,6 +56,8 @@ class CIFailureReporter:
     def _key_label(self, branch_name, job_name):
         if job_name == 'Randomized tests':
             return 'randomized test'
+        elif job_name == 'Benchmarks':
+            return 'benchmarks failing'
         elif branch_name == 'master':
             return 'master failing'
         elif branch_name == 'stable':

@@ -75,7 +75,7 @@ in your program simply via:
 
 ```python
 >>> from qiskit import IBMQ
->>> IBMQ.load_accounts()
+>>> IBMQ.load_account()
 ```
 
 Those who do not want to save their credentials to disk should use instead:
