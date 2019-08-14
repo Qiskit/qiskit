@@ -29,19 +29,29 @@
 """Defines superclass for all mappers"""
 
 import sys
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Generic, TypeVar, Mapping, Set, FrozenSet, List, Optional
 
 import networkx as nx
 from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler import AnalysisPass, Layout
+from qiskit.transpiler.basepasses import MetaPass
 
 ArchNode = TypeVar('ArchNode')
 Reg = TypeVar('Reg')
 
 
-class Mapper(Generic[Reg, ArchNode], AnalysisPass):
-    """The abstract mapper class has a mapper method that maps a circuit (layer) to an architecture."""
+class GenericMetaPass(MetaPass, type(Generic)):
+    """A superclass for the Mapper class to be able to use Generic.
+
+    The metaclass of Generic was removed in 3.7 so we resolve it dynamically.
+
+    The need for this workaround was fixed in 3.7+: https://github.com/python/typing/issues/449"""
+    pass
+
+
+class Mapper(Generic[Reg, ArchNode], AnalysisPass, metaclass=GenericMetaPass):
+    """The abstract mapper class has a mapper method that maps a circuitlayer to an architecture."""
 
     def __init__(self,
                  arch_graph: nx.Graph
