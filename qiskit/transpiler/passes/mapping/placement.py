@@ -36,7 +36,7 @@ from typing import TypeVar, Generic, Mapping, Callable, Iterable, List, Union, A
 import networkx as nx
 
 import qiskit.transpiler.routing as rt
-import qiskit.transpiler.routing.util
+import qiskit.transpiler.routing.util  # pylint: disable=unused-import
 
 Reg = TypeVar("Reg")
 ArchNode = TypeVar('ArchNode')
@@ -120,14 +120,14 @@ class Placement(Generic[Reg, ArchNode]):
     def permutation_circuit(self,
                             arch_permuter: Callable[[rt.Permutation[ArchNode]],
                                                     Iterable[List[rt.Swap[ArchNode]]]],
-                            arch_graph: Union[nx.Graph, nx.DiGraph],
-                            allow_swaps: bool = False) -> 'pm.util.PermutationCircuit':
+                            arch_graph: Union[nx.Graph, nx.DiGraph]
+                            ) -> 'pm.util.PermutationCircuit':
         """Construct a circuit that implements this placement as a (complete) permutation.
 
         :param arch_permuter: The permuter of this circuit.
             Also could support partial mappings. Function arguments are contravariant.
         :param arch_graph: The architecture graph. Used to complete the mapping.
-        :param allow_swaps:"""
+        :return: A PermutationCircuit object that describes how to implement this placement."""
         arch_perm = {i: i for i in arch_graph.nodes}
         self.place(arch_perm)
         swaps = arch_permuter(arch_perm)

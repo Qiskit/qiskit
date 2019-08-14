@@ -25,6 +25,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""The depth-optimizing mapper that orders gates by their number of dependencies."""
+
 import logging
 import operator
 import sys
@@ -74,21 +77,21 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
 
         binops = Mapper._binops_circuit(circuit)
         # Reshape the nodes to their qargs.
-        binops_dependents= [(binop, node_dependencies[binop])
-                            for binop in binops] # type: List[Tuple[DAGNode, int]]
+        binops_dependents = [(binop, node_dependencies[binop])
+                             for binop in binops]  # type: List[Tuple[DAGNode, int]]
 
         if not binops_dependents:
             return {}
 
         # After sorting by nr of descendents we discard the dependents field.
         binops_dependents = list(sorted(binops_dependents,
-                                              key=operator.itemgetter(1),
-                                              reverse=True))
-        logger.debug("Max dependents: {}.", binops_dependents[0][1])
+                                        key=operator.itemgetter(1),
+                                        reverse=True))
+        logger.debug("Max dependents: %s.", binops_dependents[0][1])
         binops = [el[0] for el in binops_dependents]
 
         remaining_arch = self.arch_graph.copy()
-        current_placement = Placement({}, {}) # type: Placement[Reg, ArchNode]
+        current_placement = Placement({}, {})  # type: Placement[Reg, ArchNode]
         # The first iteration has unbounded cost for its placement.
         minimal_cost = sys.maxsize
 
@@ -106,17 +109,16 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
                 node for node in remaining_arch.nodes
                 # Rough filter of possible locations
                 if self.distance[current_mapping[qarg]][node] <= minimal_cost
-                   # Exact filter.
-                   and placement_cost(Placement(binop_map, {qarg: node}))[0] <= minimal_cost
-                ]
-                for qarg in binop.qargs]
+                # Exact filter.
+                and placement_cost(Placement(binop_map, {qarg: node}))[0] <= minimal_cost
+            ] for qarg in binop.qargs]
             # Find the pair of nodes such that the distance is minimized.
             node_pairs = [
                 (node0, node1)
                 for node0 in eligible_nodes[0]
                 for node1 in eligible_nodes[1]
                 if node0 != node1  # both qargs cannot have the same destination
-                ]
+            ]
             try:
                 # Find the pair of eligible nodes that minimizes the distance between the two.
                 minimal_distance = min(self.distance[node0][node1] for node0, node1 in node_pairs)
@@ -126,10 +128,10 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
                     if self.distance[node0][node1] == minimal_distance]
                 min_closest_placement = min(closest_placements, key=placement_cost)
                 # Then place the qargs at those nodes
-                logger.debug("Placed {}, old dist: {}, new: {}.",
+                logger.debug("Placed %s, old dist: %s, new: %s.",
                              min_closest_placement,
-                             self.distance[current_mapping[binop.qargs[0]]
-                             ][current_mapping[binop.qargs[1]]],
+                             self.distance[current_mapping[binop.qargs[0]]]\
+                                 [current_mapping[binop.qargs[1]]],
                              minimal_distance)
                 current_placement += min_closest_placement
                 remaining_arch.remove_nodes_from(min_closest_placement.mapped_to.values())
@@ -137,10 +139,10 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
                 # Otherwise future nodes may not be able to be placed anywhere
                 # (since it will always exceed the cost.)
                 new_minimal_cost = self.placement_cost(current_placement)[0]
-                logger.debug("Old minimal_cost: {}, new: {}", minimal_cost, new_minimal_cost)
+                logger.debug("Old minimal_cost: %d, new: %d", minimal_cost, new_minimal_cost)
                 minimal_cost = max(new_minimal_cost, 1)
             except ValueError:
-                logger.debug("No eligible node pairs for {}.", binop_map)
+                logger.debug("No eligible node pairs for %s.", binop_map)
 
         return current_placement.mapped_to
 
@@ -154,12 +156,14 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
         if gate_costs is None:
             gate_costs = defaultdict(lambda: 1)
 
-        max_lengths = {} # type: Dict[DAGNode, int]
+        max_lengths = {}  # type: Dict[DAGNode, int]
         reversed_layers = reversed(list(layer["graph"]
-                                        for layer in circuit.layers())) # type: Iterator[DAGCircuit]
+                                        for layer in
+                                        circuit.layers()))  # type: Iterator[DAGCircuit]
         for layer in reversed_layers:
             for node in layer.op_nodes():
                 node_cost = gate_costs[node.op]
-                max_lengths[node] = max((max_lengths[successor] for successor in circuit.successors(node)),
-                                        default=0) + node_cost
+                max_lengths[node] = max(
+                    (max_lengths[successor] for successor in circuit.successors(node)),
+                    default=0) + node_cost
         return max_lengths

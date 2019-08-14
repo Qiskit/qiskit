@@ -41,7 +41,7 @@ import networkx as nx
 from qiskit.transpiler import routing as pm
 from qiskit.transpiler.passes.mapping.mapper import Mapper
 from qiskit.transpiler.passes.mapping.placement import Placement
-from qiskit.transpiler.routing import Swap, util
+from qiskit.transpiler.routing import Swap, util  # pylint: disable=unused-import
 
 Reg = TypeVar('Reg')
 ArchNode = TypeVar('ArchNode')
@@ -89,5 +89,3 @@ class DepthMapper(Mapper[Reg, ArchNode]):
         if len(placement.arch_mapping) <= self.max_placement_size:
             self.placement_costs[placement] = (par_cost, seq_cost)
         return par_cost, seq_cost
-
-

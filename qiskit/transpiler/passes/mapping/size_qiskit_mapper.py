@@ -25,6 +25,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""The size-optimizing mapper inspired by the stochastic_swap mapper."""
+
 import copy
 from typing import Callable, Mapping, Iterable, Optional, List, Tuple, Dict
 
@@ -38,7 +41,7 @@ from qiskit.transpiler.routing import Swap
 
 
 class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
-    """A mapper that combines the Qiskit mapper and the extension size mapper."""
+    """A mapper that is inspired by the stochastic_swap mapper."""
 
     def __init__(self, arch_graph: nx.DiGraph,
                  arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
@@ -46,8 +49,8 @@ class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
                  trials: int = 40,
                  seed: Optional[int] = None) -> None:
         super().__init__(arch_graph, arch_permuter)
-        self.simple_mapper = SimpleSizeMapper(arch_graph,
-                                              arch_permuter) # type: SimpleSizeMapper[Reg, ArchNode]
+        self.simple_mapper =\
+            SimpleSizeMapper(arch_graph, arch_permuter)  # type: SimpleSizeMapper[Reg, ArchNode]
         self.trials = trials
         self.seed = seed
 
@@ -86,22 +89,22 @@ class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
 
         Tries to swap edges that reduce the cost function up to a maximimum size."""
         trial_layout = copy.copy(initial_layout)
-        inv_trial_layout = {v: k for k, v in trial_layout.items()} # type: Mapping[ArchNode, Reg]
+        inv_trial_layout = {v: k for k, v in trial_layout.items()}  # type: Mapping[ArchNode, Reg]
 
         # Compute Sergey's randomized distance.
         # IDEA: Rewrite to numpy matrix
-        xi = {} # type: Dict[ArchNode, Dict[ArchNode, float]]
+        x = {}  # type: Dict[ArchNode, Dict[ArchNode, float]]
         for i in self.arch_graph.nodes:
-            xi[i] = {}
+            x[i] = {}
         for i in self.arch_graph.nodes:
             for j in self.arch_graph.nodes:
                 scale = 1 + np.random.normal(0, 1 / self.arch_graph.number_of_nodes())
-                xi[i][j] = scale * self.distance[i][j] ** 2
-                xi[j][i] = xi[i][j]
+                x[i][j] = scale * self.distance[i][j] ** 2
+                x[j][i] = x[i][j]
 
         def cost(layout: Mapping[Reg, ArchNode]) -> float:
             """Compute the objective cost function."""
-            return sum([xi[layout[binop.qargs[0]]][layout[binop.qargs[1]]] for binop in binops])
+            return sum([x[layout[binop.qargs[0]]][layout[binop.qargs[1]]] for binop in binops])
 
         def swap(node0: ArchNode, node1: ArchNode) \
                 -> Tuple[Mapping[Reg, ArchNode], Mapping[ArchNode, Reg]]:
@@ -109,8 +112,8 @@ class QiskitSizeMapper(SizeMapper[Reg, ArchNode]):
 
             Supports partial mappings."""
             inv_new_layout = dict(inv_trial_layout)
-            qarg0 = inv_new_layout.pop(node0, None) # type: Optional[Reg]
-            qarg1 = inv_new_layout.pop(node1, None) # type: Optional[Reg]
+            qarg0 = inv_new_layout.pop(node0, None)  # type: Optional[Reg]
+            qarg1 = inv_new_layout.pop(node1, None)  # type: Optional[Reg]
             if qarg1 is not None:
                 inv_new_layout[node0] = qarg1
             if qarg0 is not None:

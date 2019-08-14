@@ -31,16 +31,14 @@
 import itertools
 import logging
 import random
-from collections import defaultdict
-from typing import List, Dict, Tuple, TypeVar, Callable, Iterator, Iterable, Mapping, NamedTuple, \
-    Union, Any
+from typing import List, Dict, TypeVar, Callable, Iterator, Iterable, Mapping, Any
+
 import networkx as nx
 
 from qiskit.transpiler.routing import util, Permutation, Swap, fast_path
 
 _V = TypeVar('_V')
-PERMUTER = Callable[[Permutation[int]], Iterable[List[Swap[int]]]]
-PARTIAL_PERMUTER = Callable[[Mapping[int, int]], Iterable[List[Swap[int]]]]
+PartialPermuter = Callable[[Mapping[int, int]], Iterable[List[Swap[int]]]]
 
 LOGGER = logging.getLogger(__name__)
 
@@ -69,11 +67,13 @@ class Point:
 
     @staticmethod
     def from_int(identifier: int, width: int) -> 'Point':
+        """Convert an id and graph width to a Point"""
         x = identifier % width
         y = identifier // width
         return Point(x=x, y=y)
 
     def to_int(self, width: int) -> int:
+        """Convert the Point back to an id"""
         return self.x + width * self.y
 
 
@@ -88,8 +88,8 @@ class UnmappedQubit:
 def permute_cartesian_partial(mapping: Mapping[int, int],
                               width: int,
                               height: int,
-                              permute_x: PARTIAL_PERMUTER,
-                              permute_y: PARTIAL_PERMUTER,
+                              permute_x: PartialPermuter,
+                              permute_y: PartialPermuter,
                               trials: int = 1) \
         -> List[List[Swap[int]]]:
     """Compute swaps that implement a mapping on a cartesian product of graphs.
@@ -108,28 +108,28 @@ def permute_cartesian_partial(mapping: Mapping[int, int],
     :param permute_y: function to permute in y direction
     :param trials: Retry doing the permutation this many times, and take the best solution.
     :return: A list describing which matchings to swap at each step.
+    :raise ValueError: If an axis in the graph has zero vertices.
     """
     if height == 0 or width == 0:
         if mapping:
             # Mapping not empty
             raise ValueError("The mapping is not empty, but the graph has a zero-length axis:"
-                             "width=" + str(width) +", height=" + str(height) )
-        else:
-            return []
+                             "width=" + str(width) + ", height=" + str(height))
+        return []
 
     trial_results = iter(list(_partial_cartesian_trial(mapping, width, height,
                                                        permute_x, permute_y))
-                     for _ in range(trials))
+                         for _ in range(trials))
 
     # Once we find a zero solution we stop.
     def take_until_zero(results: Iterable[List[_V]]) -> Iterator[List[_V]]:
         """Take results until one is emitted of length zero (and also emit that)."""
         for result in results:
-            if len(result) > 0:
-                yield result
-            else:
+            if not result:
                 yield result
                 break
+            else:
+                yield result
 
     trial_results = take_until_zero(trial_results)
     return min(trial_results, key=util.longest_path)
@@ -138,8 +138,8 @@ def permute_cartesian_partial(mapping: Mapping[int, int],
 def _partial_cartesian_trial(mapping: Mapping[int, int],
                              width: int,
                              height: int,
-                             permute_x: PARTIAL_PERMUTER,
-                             permute_y: PARTIAL_PERMUTER) -> Iterator[List[Swap[int]]]:
+                             permute_x: PartialPermuter,
+                             permute_y: PartialPermuter) -> Iterator[List[Swap[int]]]:
     # Reshape mapping to Point(x,y) mapping
     dest = {Point.from_int(orig, width): Point.from_int(dest, width)
             for orig, dest in mapping.items()}
@@ -212,40 +212,42 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
         # with the minimum weight on each edge
         simple_graph = nx.Graph()
         for graph in (destination_graph, unmapped_graph):
-            for e0, e1, data in graph.edges(data=True):
+            for edge0, edge1, data in graph.edges(data=True):
                 weight = data["weight"]
-                if not(simple_graph.has_edge(e0, e1)) or weight < simple_graph[e0][e1]["weight"]:
-                    simple_graph.add_edge(e0, e1, **data)
+                if not (simple_graph.has_edge(edge0, edge1))\
+                        or weight < simple_graph[edge0][edge1]["weight"]:
+                    simple_graph.add_edge(edge0, edge1, **data)
 
         # Convert "costs" that need to be minimized to "weights" that need to be maximized.
         # We shrink the range of weights to (-1, 1) by dividing by the absolute maximum cost size+1
         max_cost = max(abs(v[2]) for v in simple_graph.edges(data='weight'))
         if max_cost == 0:  # Avoid divide by zero
             # All costs are 0; set all weights to 1.
-            for e0, e1 in simple_graph.edges:
-                simple_graph[e0][e1]["weight"] = 1
+            for edge0, edge1 in simple_graph.edges:
+                simple_graph[edge0][edge1]["weight"] = 1
         else:
             # High cost means low weight. But it still needs to be positive or it won't be included.
             # Furthermore, we need to guarantee the maximum weighted matching is perfect.
             # Therefore, we divide by height, so that no height-1 weighted edges are larger
             # than height in weight.
-            for e0, e1 in simple_graph.edges:
-                weight = simple_graph[e0][e1]["weight"]
+            for edge0, edge1 in simple_graph.edges:
+                weight = simple_graph[edge0][edge1]["weight"]
                 # Calculate the new weight and overwrite the old weight
-                simple_graph[e0][e1]["weight"] = (-weight / (max_cost + 1) + 1) / (2 * height) + 1
+                simple_graph[edge0][edge1]["weight"] = \
+                    (-weight / (max_cost + 1) + 1) / (2 * height) + 1
 
         matching = nx.algorithms.max_weight_matching(simple_graph, maxcardinality=True)
         if len(matching) != width:
             LOGGER.warning("Routing internal error: The matching was not perfect.")
 
-        for e0, e1 in matching:
-            origin = simple_graph[e0][e1]["origin"]
+        for edge0, edge1 in matching:
+            origin = simple_graph[edge0][edge1]["origin"]
             if isinstance(origin, UnmappedQubit):
-                # Sort e0 and e1 since e0 is on the "left" side of the bipartition
+                # Sort edge0 and edge1 since edge0 is on the "left" side of the bipartition
                 # and is used for indexing unmapped_qubits.
-                e0, e1 = sorted((e0, e1))
+                edge0, edge1 = sorted((edge0, edge1))
                 # We dont map unmapped qubits, but now one less is available in the column
-                unmapped_qubits[e0] -= 1
+                unmapped_qubits[edge0] -= 1
             else:
                 current_mappings[origin.x][origin.y] = row
                 del remaining_destinations[origin]
@@ -261,7 +263,7 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
         [[(Point(x, node_0), Point(x, node_1)) for node_0, node_1 in time_step]
          for time_step in permute_y(current_mappings[x])]
         for x in range(width)
-        ]
+    ]
     # Then we merge the parallel swaps together in their respective time steps.
     swaps1 = list(util.flatten_swaps(swaps1_parallel))
     util.swap_permutation(swaps1, dest, allow_missing_keys=True)
@@ -275,7 +277,7 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
          # We make permutation dicts for each row
          for time_step in permute_x(row_mappings[y])]
         for y in range(height)
-        ]
+    ]
     # And merge them together into time steps.
     swaps2 = list(util.flatten_swaps(swaps2_paralllel))
     util.swap_permutation(swaps2, dest, allow_missing_keys=True)
@@ -289,7 +291,7 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
          # We make permutation dicts for each column
          for time_step in permute_y(column_mappings[x])]
         for x in range(width)
-        ]
+    ]
     swaps3 = util.flatten_swaps(swaps3_parallel)
     all_swaps = itertools.chain(swaps1, swaps2, swaps3)
     # Map back to integers
@@ -334,9 +336,9 @@ def permute_grid_partial(mapping: Mapping[int, int], width: int, height: int,
     return permute_cartesian_partial(mapping, width, height, permute_x, permute_y, trials=trials)
 
 
-def _it_len(it: Iterable[Any]) -> int:
+def _it_len(iterable: Iterable[Any]) -> int:
     """Iterate through the iterable and get its length.
 
     WARNING: May not halt for infinite iterables!
     """
-    return sum(1 for _ in it)
+    return sum(1 for _ in iterable)

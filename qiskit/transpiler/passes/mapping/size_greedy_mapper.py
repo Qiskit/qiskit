@@ -25,6 +25,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""The size-optimizing greedy mapper"""
+
 from typing import Callable, Mapping, Iterable, List, Set, FrozenSet, Optional, Tuple
 
 import networkx as nx
@@ -37,6 +40,8 @@ from qiskit.transpiler.routing import Swap
 
 
 class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
+    """This mapper will attempt to place as many gates as possible from most-expensive to cheapest
+    """
 
     def __init__(self, arch_graph: nx.DiGraph,
                  arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
@@ -46,19 +51,20 @@ class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
         self.max_first = max_first
 
     def size_map(self,
-                 circuit: DAGCircuit,
+                 circuit: DAGCircuit,  # pylint: disable=unused-argument
                  current_mapping: Mapping[Reg, ArchNode],
                  binops: List[DAGNode]) -> Mapping[Reg, ArchNode]:
         """
         Provides a mapping that maps possibly multiple gates of the circuit to the architecture.
 
-        If a chosen mapping has a cost increase associated to it, then we try to perform the operation
-        locally instead.
+        If a chosen mapping has a cost increase associated to it,
+        then we try to perform the operation locally instead.
 
         :param circuit: A circuit to execute
         :param current_mapping:
         :param binops: The binary operations to map
         :return: A partial mapping
+        :raise RuntimeError: If no extremal placement was found.
         """
 
         # The maximum matching gives us the maximum number of edges
@@ -76,18 +82,19 @@ class GreedySizeMapper(SizeMapper[Reg, ArchNode]):
         while binops and matching:
             # Find the most expensive or cheapest binop to perform (depending on max_first)
             # and minimize its cost.
-            extremal_min_placement = None  # type: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]]
+            extremal_min_placement = \
+                None  # type: Optional[Tuple[Placement[Reg, ArchNode], DAGNode]]
             for binop in binops:
                 binop_map = {
                     qarg: current_mapping[qarg]
                     for qarg in binop.qargs
-                    }
+                }
                 # Try all matchings and find the minimum cost placement.
                 placements = (
                     (Placement(binop_map, dict(zip(binop.qargs, node_ordering))), binop)
                     for node0, node1 in matching
                     for node_ordering in ((node0, node1), (node1, node0))
-                    )  # type: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]]
+                )  # type: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]]
 
                 min_placement = min(placements, key=current_placement_cost)
 

@@ -58,8 +58,7 @@ class Pebble(Generic[_V]):
         """Decide if the node's destination is inside the tree.
 
         :param current_tree: The tree the pebble is currently located in.
-        :param root_last: Indicates whether root destination pebble
-        should be marked improper after every other node in the tree has been moved out."""
+        :return: Whether the node is proper."""
         if self._cached_tree != current_tree:
             self._cached_tree = current_tree
             self._cached_purity = self.destination in current_tree.graph.nodes
@@ -80,7 +79,8 @@ class RootPebble(Pebble):
          since it can change depending on other pebbles in the tree.
          And because there is only one RootPebble this stays cheap.
 
-        :param current_tree: The tree the pebble is currently located in."""
+        :param current_tree: The tree the pebble is currently located in.
+        :return: Whether the node is proper."""
         if self.destination in current_tree.graph.nodes:
             return True
 
@@ -143,9 +143,7 @@ class Tree(Generic[_V]):
         Every yield, takes in the current new permutation, a new ignore_root parameter,
         and a new tr_was_pure parameter.
 
-        tr_was_pure indicates whether the tree Tr subgraph containing the root was pure.
-        :param tree: The tree to move improper pebbles on.
-        :param root: The root of the complete graph. Note: Not necessarily the root of tree!"""
+        tr_was_pure indicates whether the tree Tr subgraph containing the root was pure."""
 
         # Make sets containing even and odd nodes
         even_nodes = {self.root}  # type: Set[_V]
@@ -342,10 +340,9 @@ def partition(tree: Tree,
 
     :param tree: The input tree to partition into subtrees according to a centroid.
     :param pebbles: The pebbles to place on the nodes in the subtrees.
-    :param root: An optional root node to use as a centroid for the partitioning.
     :return: A tuple containing the first s trees and the special s+1'th tree,
     which contains the centroid node of the input graph."""
-    subtrees = [] # type: List[Tree]
+    subtrees = []  # type: List[Tree]
     for adj_root in tree.graph.adj[tree.root]:
         # Create a subgraph consisting of the nodes reachable from adj_root.
         subtree = tree.graph.subgraph(nx.dfs_preorder_nodes(tree.graph, adj_root))
@@ -368,7 +365,7 @@ def partition(tree: Tree,
     tr_tree = tree.graph.subgraph(tr_nodes)
     # We now have partitioning = {T_1, T_2, ... , T_s, T_r} where |T_i| ≤ |T_{i+1}| for 1≤i≤s-1.
     root_tree = Tree(root=tree.root, graph=tr_tree,
-                           pebbles={i: p for i, p in pebbles.items() if i in tr_nodes})
+                     pebbles={i: p for i, p in pebbles.items() if i in tr_nodes})
     return subtrees[0:root_subtrees + 1], root_tree
 
 
@@ -379,6 +376,7 @@ def centroid(tree: nx.Graph) -> _V:
 
     # Compute sizes of subtrees.
     visited = {current_centroid}  # type: Set[_V]
+
     def compute_subtree_size(root: _V) -> int:
         """Recursively add size of subtree rooted at root to subtree_sizes and return its size."""
         visited.add(root)

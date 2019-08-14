@@ -25,6 +25,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""A simple depth-optimizing mapper"""
+
 from typing import Mapping, Set, FrozenSet, Dict
 
 from qiskit.dagcircuit import DAGCircuit
@@ -33,23 +36,24 @@ from qiskit.transpiler.passes.mapping.mapper import Mapper
 
 
 class SimpleDepthMapper(DepthMapper[Reg, ArchNode]):
+    """This mapper places gates from the first layer arbitrarily on a maximum matching
+    of the architecture."""
     def map(self, circuit: DAGCircuit,
-            current_mapping: Mapping[Reg, ArchNode] = None) -> Mapping[Reg, ArchNode]:
+            current_mapping: Mapping[Reg, ArchNode] = None  # pylint: disable=unused-argument
+            ) -> Mapping[Reg, ArchNode]:
         """
         Try to map as many two-qubit gates to a maximum matching as possible.
 
         Note: Does not take into account the scoring function, nor the weights on the graph.
 
         :param circuit: A circuit to execute
-        :param arch_graph: The architecture graph,optionally with weights on edges.
-            Default weights are 1.
         :param current_mapping: The current mapping of registers to archictecture nodes.
         :return:
         """
         binops = Mapper._binops_circuit(circuit)
-        matching = Mapper.construct_matching(self.arch_graph) # type: Set[FrozenSet[ArchNode]]
+        matching = Mapper.construct_matching(self.arch_graph)  # type: Set[FrozenSet[ArchNode]]
         # First assign the two-qubit gates, because they are restricted by the architecture
-        mapping = {} # type: Dict[Reg, ArchNode]
+        mapping = {}  # type: Dict[Reg, ArchNode]
         for binop in binops:
             if matching:
                 # pick an available matching and map this operation to that matching

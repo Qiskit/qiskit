@@ -26,6 +26,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""The size-optimizing extension mapper"""
+
 from typing import Callable, Mapping, Iterable, List, Optional, Tuple
 
 import networkx as nx
@@ -37,6 +39,12 @@ from qiskit.transpiler.routing import Swap
 
 
 class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
+    """ A size-optimizing mapper that tries to "extend" a small initial placement
+
+    An extension is taking a given placement and then placing a pair of qubits involved in a
+    two-qubit gate nearer eachother such that the overall cost in this time step
+    does not increase (much).
+    """
     def __init__(self, arch_graph: nx.DiGraph,
                  arch_permuter: Callable[[Mapping[ArchNode, ArchNode]],
                                          Iterable[Swap[ArchNode]]],
@@ -45,7 +53,7 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
         self.lookahead = lookahead
 
     def size_map(self,
-                 circuit: DAGCircuit,
+                 circuit: DAGCircuit,  # pylint: disable=unused-argument
                  current_mapping: Mapping[Reg, ArchNode],
                  binops: List[DAGNode]) -> Mapping[Reg, ArchNode]:
         """Place the cheapest gate and try to extend the placement with further good placements."""
@@ -71,9 +79,9 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
             new_remaining_arch = \
                 remaining_arch.subgraph(node for node in remaining_arch.nodes()
                                         if node not in placement.mapped_to.values())
-            if remaining_binops and len(new_remaining_arch.edges()) > 0:
+            if remaining_binops and new_remaining_arch.edges():
                 if current_placement is None:
-                    cur_place = Placement({}, {}) # type: Placement[Reg, ArchNode]
+                    cur_place = Placement({}, {})  # type: Placement[Reg, ArchNode]
                 else:
                     cur_place = current_placement
 
@@ -110,7 +118,7 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
                 binop_map = {
                     qarg: current_mapping[qarg]
                     for qarg in binop.qargs
-                    }  # type: Mapping[Reg, ArchNode]
+                }  # type: Mapping[Reg, ArchNode]
 
                 # Try all edges and find the minimum cost placement.
                 all_edges = {e for directed_edge in remaining_arch.edges()
@@ -141,7 +149,7 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
                     # There are no advantageous gates to place left.
                     break
                 if score > 0:
-                    logger.debug("Saved cost! Placement score: {}", score)
+                    logger.debug("Saved cost! Placement score: %d", score)
                 current_placement += max_max_placement[0]
 
             # Remove the placed binop from datastructure.
@@ -150,7 +158,7 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
             remaining_arch.remove_nodes_from(max_max_placement[0].mapped_to.values())
             placed_gates += 1
 
-        logger.debug("Number of gates placed: {}/{}", placed_gates, total_gates)
+        logger.debug("Number of gates placed: %d/%d", placed_gates, total_gates)
         if current_placement is None:
             raise RuntimeError("The current_placement is None. Somehow it did not get set.")
         return current_placement.mapped_to

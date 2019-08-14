@@ -25,6 +25,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""The size-optimizing simple mapper"""
+
 from typing import Mapping, List, Tuple
 
 from qiskit.dagcircuit import DAGCircuit, DAGNode
@@ -33,8 +36,9 @@ from qiskit.transpiler.passes.mapping.size import SizeMapper, Reg, ArchNode
 
 
 class SimpleSizeMapper(SizeMapper[Reg, ArchNode]):
+    """This mapper will place a single gate every iteration, if necessary"""
     def size_map(self,
-                 circuit: DAGCircuit,
+                 circuit: DAGCircuit,  # pylint: disable=unused-argument
                  current_mapping: Mapping[Reg, ArchNode],
                  binops: List[DAGNode]) -> Mapping[Reg, ArchNode]:
         """Perform a simple greedy mapping of the cheapest gate to the architecture."""

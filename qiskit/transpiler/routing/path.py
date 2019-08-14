@@ -59,7 +59,7 @@ def _emit_swap_steps(current: Permutation[int]) -> Iterator[List[Swap[int]]]:
         no_swaps = True
         for remainder in range(2):
             current_swaps = [(i, i - 1) for i in range(2 - remainder, length, 2)
-                                              if current[i - 1] > current[i]]
+                             if current[i - 1] > current[i]]
             yield current_swaps
             util.swap_permutation([current_swaps], current)
             if current_swaps:

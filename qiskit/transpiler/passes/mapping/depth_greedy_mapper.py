@@ -25,6 +25,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""The depth-optimizing greedy mapper"""
+
 import logging
 from typing import Mapping, Set, FrozenSet, Tuple, Optional, Iterable
 
@@ -37,23 +40,27 @@ logger = logging.getLogger(__name__)
 
 
 class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
+    """This mapper tries to place as many gates as possible."""
+
     def map(self,
             circuit: DAGCircuit,
             current_mapping: Mapping[Reg, ArchNode]) -> Mapping[Reg, ArchNode]:
         """
         Provides a permutation that maps the circuit to the architecture.
 
-        The approach to mapping is a greedy algorithm that tries to minimize the maximum circuit depth
-        in a way that is similar to minimizing the maximum makespan. We find the 2-qubit operation
-        that is the most expensive to perform and place it as well as possible using a matching graph.
-        Then we iterate until all operations in the layer were placed or no placements are left.
+        The approach to mapping is a greedy algorithm that tries to minimize the maximum circuit
+        depth in a way that is similar to minimizing the maximum makespan. We find the 2-qubit
+        operation that is the most expensive to perform and place it as well as possible using a
+        matching graph. Then we iterate until all operations in the layer were placed or no
+        placements are left.
 
-        If a chosen mapping has a cost increase associated to it, then we try to perform the operation
-        locally instead.
+        If a chosen mapping has a cost increase associated to it, then we try to perform the
+        operation locally instead.
 
         :param circuit: A circuit to execute
         :param current_mapping:
         :return:
+        :raise RuntimeError: When no suitable placement is found.
         """
         binops = Mapper._binops_circuit(circuit)
         if not binops:
@@ -66,8 +73,8 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
         matching = Mapper.construct_matching(remaining_arch)  # type: Set[FrozenSet[ArchNode]]
         current_placement = Placement({}, {})  # type: Placement[Reg, ArchNode]
 
-        def placement_cost(place: Tuple[Placement[Reg, ArchNode], DAGNode]) -> Tuple[
-            int, int]:
+        def placement_cost(place: Tuple[Placement[Reg, ArchNode], DAGNode]
+                           ) -> Tuple[int, int]:
             """Compute the cost of placing this placement with the current placement."""
             return self.placement_cost(current_placement + place[0])
 
@@ -82,13 +89,13 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
                 binop_map = {
                     qarg: current_mapping[qarg]
                     for qarg in binop.qargs
-                    }
+                }
                 # Try all matchings and find the minimum cost placement.
                 placements = (
                     (Placement(binop_map, dict(zip(binop.qargs, node_ordering))), binop)
                     for node0, node1 in matching
                     for node_ordering in ((node0, node1), (node1, node0))
-                    )  # type: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]]
+                )  # type: Iterable[Tuple[Placement[Reg, ArchNode], DAGNode]]
 
                 min_placement = min(placements, key=placement_cost)
 
@@ -118,7 +125,7 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
 
             if max_min_placement is None:
                 raise RuntimeError("The max_min_placement was not set.")
-            logger.debug("The current cost is: {}\nNew cost is: {}.",
+            logger.debug("The current cost is: %d\nNew cost is: %d.",
                          self.placement_cost(current_placement),
                          placement_cost(max_min_placement))
 
@@ -137,6 +144,6 @@ class GreedyDepthMapper(DepthMapper[Reg, ArchNode]):
                 # Otherwise both directions of the matching are now used.
                 matching.remove(frozenset(max_min_placement[0].mapped_to.values()))
 
-        logger.debug("Number of gates placed: {}/{}", placed_gates, total_gates)
+        logger.debug("Number of gates placed: %d/%d", placed_gates, total_gates)
 
         return current_placement.mapped_to

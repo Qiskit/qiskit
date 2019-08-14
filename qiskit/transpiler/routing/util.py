@@ -31,14 +31,14 @@
 import itertools
 from collections import defaultdict
 from typing import List, Tuple, Dict, TypeVar, Iterable, Iterator, NamedTuple, Any, Callable, \
-    Mapping, MutableMapping, Optional, Generic
+    Mapping, MutableMapping, Optional
 
 import numpy as np
+
+import qiskit.transpiler.routing as rt
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions import SwapGate
-
-import qiskit.transpiler.routing as rt
 
 _K = TypeVar('_K')
 _V = TypeVar('_V')
@@ -124,7 +124,8 @@ def swap_permutation(swaps: Iterable[Iterable[rt.Swap[_K]]], mapping: MutableMap
 # Represents a circuit for permuting to a mapping with the associated cost.
 PermutationCircuit = NamedTuple('PermutationCircuit',
                                 [('circuit', DAGCircuit),
-                                 ('inputmap', Dict[Any, Reg])  # A mapping from architecture nodes to circuit registers.
+                                 ('inputmap', Dict[Any, Reg])
+                                 # A mapping from architecture nodes to circuit registers.
                                  ])
 
 
@@ -135,8 +136,6 @@ def circuit(swaps: Iterable[List[rt.Swap[_V]]]) -> PermutationCircuit:
         then feed it into this circuit function to obtain a circuit description.
 
         :param swaps: An iterable of swaps to perform.
-        :param allow_swaps: Will use "cx" in basis of circuit by default,
-            but if swaps are allowed, will use those instead.
         :return: A MappingCircuit with the circuit and a mapping of node to qubit in the circuit.
     """
     # Construct a circuit with each unique node id becoming a quantum register of size 1.
@@ -149,7 +148,7 @@ def circuit(swaps: Iterable[List[rt.Swap[_V]]]) -> PermutationCircuit:
         for swap_step in swap_list
         for swap_nodes in swap_step
         for swap_node in swap_nodes
-        }
+    }
 
     node_qargs = {node: QuantumRegister(1) for node in nodes}
     for qubit in node_qargs.values():
@@ -191,6 +190,8 @@ def random_partial_permutation(domain: List[_V],
     :param domain: All elements
     :param nr_elements: Number of mappings in the partial permutation. If None, will pick include
     a mapping of a node with probability 0.5
+    :raises ValueError: If the domain is too smal to contain the number of elements.
+    :return: A partial permutation
     """
     if nr_elements is None:
         nr_elements = np.random.binomial(len(domain), 0.5)

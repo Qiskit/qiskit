@@ -29,10 +29,11 @@
 """Implementations for permuting on a regular modular architecture."""
 
 import logging
-from typing import List, Dict, Set, Tuple, Mapping
+from typing import List, Dict, Set, Mapping
 
-from qiskit.transpiler.routing import complete, util, Permutation, Swap
 import networkx as nx
+
+from qiskit.transpiler.routing import complete, util, Swap
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,6 +46,7 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
     :param modulesize:
     :param modules:
     :return:
+    :raises RuntimeError: If too many iterations are used to implement the mapping.
     """
     mapping = dict(mapping)
     already_mapped = {}  # type: Dict[int, int]
@@ -59,19 +61,20 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
             degrees[modules + in_module(destination)] += 1
     max_degree = max(degrees)
     assert max_degree <= modulesize, "Maximum degree is too large." \
-                                    "Is the mapping a (partial) permutation?"
+                                     "Is the mapping a (partial) permutation?"
 
     # Remove at most n_2 - max_degree mappings within the same module
-    available_for_removal = [modulesize - max_degree] * modules # nr of in-module maps we can remove
+    available_for_removal = \
+        [modulesize - max_degree] * modules  # nr of in-module maps we can remove
     for origin, destination in mapping.items():
         module = in_module(origin)
         if module == in_module(destination) and available_for_removal[module] > 0:
             available_for_removal[module] -= 1
             already_mapped[origin] = 0
 
-    def is_local_permutation(mp: Mapping[int, int]) -> bool:
+    def is_local_permutation(mapping: Mapping[int, int]) -> bool:
         """Checks if a given permutation operates only within a module."""
-        return all(in_module(k) == in_module(mp[k]) for k in mp)
+        return all(in_module(k) == in_module(mapping[k]) for k in mapping)
 
     all_swaps = []  # type: List[List[Swap[int]]]
     iterations = 0
@@ -86,8 +89,9 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
         inter_module_nodes = {node for node in inter_module_nodes
                               # Do not move if destination module is same as current.
                               # or if no node has the current module as destination, for unmapped.
-                              if not(node in mapping and in_module(node) == in_module(mapping[node]))
-                                and not(node not in mapping and in_module(node) not in dest_modules)}
+                              if
+                              not (node in mapping and in_module(node) == in_module(mapping[node]))
+                              and not (node not in mapping and in_module(node) not in dest_modules)}
         prep_swaps = [(n0, n1)
                       for n0, n1 in ((n, in_module(n) * modulesize) for n in inter_module_nodes)
                       if n0 != n1]
@@ -107,12 +111,13 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
             node: in_module(mapping[node]) * modulesize
             for node in (in_module(node) * modulesize for node in inter_module_nodes)
             if node in mapping
-            }
+        }
         inter_module_swaps = list(
             complete.partial_permute(inter_module_permutation,
                                      # only use the nodes in modules that are involved,
                                      # otherwise errors may occur.
-                                     nodes=[in_module(node)*modulesize for node in inter_module_nodes]))
+                                     nodes=[in_module(node) * modulesize for node in
+                                            inter_module_nodes]))
         all_swaps.extend(inter_module_swaps)
         util.swap_permutation(inter_module_swaps, mapping, allow_missing_keys=True)
         util.swap_permutation(inter_module_swaps, already_mapped, allow_missing_keys=True)
@@ -130,7 +135,7 @@ def permute(mapping: Mapping[int, int], modulesize: int, modules: int) -> List[L
         {i * modulesize + j: mapping[i * modulesize + j] for j in range(modulesize)
          if i * modulesize + j in mapping}
         for i in range(modules)
-        ]
+    ]
     # And perform a local complete graph permutations.
     all_intra_swaps = []  # type: List[List[List[Swap[int]]]]
     for module, intra_module_permutation in enumerate(intra_module_permutations):
@@ -164,6 +169,7 @@ def _distinct_permutation(mapping: Mapping[int, int],
     Find a perfect matching in the mapping such that no destination module is repeated.
 
     :param mapping:
+    :param already_mapped: The set of nodes that have already been mapped and should be ignored
     :param modulesize: The module size
     :param modules: The number of modules
     :return: A dictionary mapping a module to a node that should be routed inter-modules.
@@ -189,20 +195,22 @@ def _distinct_permutation(mapping: Mapping[int, int],
             destination_graph.add_edge(from_module, right_node(to_module), node=from_node)
 
     # Then add unmapped nodes
-    degree = dict(destination_graph.degree) # Fix current degree map
+    degree = dict(destination_graph.degree)  # Fix current degree map
     max_degree = max(degree.values())
     unmapped_graph = nx.Graph()
     for from_module, unmapped_nodes in enumerate(module_unmapped_nodes):
         # Check if the originating module can support outgoing unmapped qubits.
-        if not(unmapped_nodes) or degree[from_module] >= max_degree:
+        if not (unmapped_nodes) or degree[from_module] >= max_degree:
             continue
 
         # Add edges to all destinations for an arbitrary unmapped node.
         unmapped_node = next(iter(unmapped_nodes))
         for to_node in (right_node(to_module) for to_module in range(modules)):
-            # Only when there is no mapped vertex that needs to be sent do we allow an unmapped vertex to move
-            # Moreover, the destination module need to have empty "slots" available from incoming unmapped vertices
-            if not(destination_graph.has_edge(from_module, to_node)) and degree[to_node] < max_degree:
+            # Only when there is no mapped vertex that needs to be sent do we allow an unmapped
+            # vertex to move. Moreover, the destination module need to have empty "slots" available
+            # from incoming unmapped vertices
+            if not (destination_graph.has_edge(from_module, to_node)) \
+                    and degree[to_node] < max_degree:
                 unmapped_graph.add_edge(from_module, to_node, node=unmapped_node)
 
     # Merge destination_graph and unmapped_graph to simple graph
@@ -210,13 +218,13 @@ def _distinct_permutation(mapping: Mapping[int, int],
     simple_graph.add_nodes_from(range(modules))
     simple_graph.add_nodes_from((right_node(i) for i in range(modules)))
     for graph in (destination_graph, unmapped_graph):
-        for e0, e1, data in graph.edges(data=True):
-            simple_graph.add_edge(e0, e1, node=data["node"])
+        for edge0, edge1, data in graph.edges(data=True):
+            simple_graph.add_edge(edge0, edge1, node=data["node"])
 
     matching = nx.algorithms.bipartite.maximum_matching(simple_graph, top_nodes=range(modules))
     # Check that the matching is perfect.
     # Edges are included in both directions so it's twice as large as the number of modules.
-    if len(matching) != 2*modules:
+    if len(matching) != 2 * modules:
         LOGGER.warning("Routing internal error: The matching is not perfect.")
 
     # Then use the full matching and the inverse edge map to find the nodes

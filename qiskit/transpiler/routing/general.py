@@ -30,8 +30,8 @@
 
 import logging
 import random
-from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableSet, List, Iterable, \
-    Optional
+from typing import TypeVar, Iterator, Mapping, Generic, MutableMapping, MutableSet, List, \
+    Iterable, Optional
 
 import networkx as nx
 
@@ -57,9 +57,9 @@ class ApproximateTokenSwapper(Generic[_V]):
         self.node_map = {node: i for i, node in enumerate(nodelist)}
         self.shortest_paths = nx.floyd_warshall_numpy(graph, nodelist=nodelist)
 
-    def distance(self, u: _V, v: _V) -> int:
+    def distance(self, vertex0: _V, vertex1: _V) -> int:
         """Compute the distance between two nodes in `graph`."""
-        return self.shortest_paths[self.node_map[u], self.node_map[v]]
+        return self.shortest_paths[self.node_map[vertex0], self.node_map[vertex1]]
 
     def map(self, mapping: Mapping[_V, _V],
             trials: int = 4) -> List[Swap[_V]]:
@@ -73,6 +73,7 @@ class ApproximateTokenSwapper(Generic[_V]):
 
         :param mapping: The partial mapping to implement in swaps.
         :param trials: The number of trials to try to perform the mapping. Minimize over the trials.
+        :return: The swaps to implement the mapping
         """
         tokens = dict(mapping)
         digraph = nx.DiGraph()
@@ -81,21 +82,21 @@ class ApproximateTokenSwapper(Generic[_V]):
         for node in self.graph.nodes:
             self._add_token_edges(node, tokens, digraph, sub_digraph)
 
-        trial_results= iter(list(self._trial_map(digraph.copy(),
-                                              sub_digraph.copy(),
-                                              todo_nodes.copy(),
-                                              tokens.copy()))
-                         for _ in range(trials))
+        trial_results = iter(list(self._trial_map(digraph.copy(),
+                                                  sub_digraph.copy(),
+                                                  todo_nodes.copy(),
+                                                  tokens.copy()))
+                             for _ in range(trials))
 
         # Once we find a zero solution we stop.
         def take_until_zero(results: Iterable[List[_T]]) -> Iterator[List[_T]]:
             """Take results until one is emitted of length zero (and also emit that)."""
             for result in results:
-                if len(result) > 0:
-                    yield result
-                else:
+                if not result:
                     yield result
                     break
+                else:
+                    yield result
 
         trial_results = take_until_zero(trial_results)
         return min(trial_results, key=len)
@@ -145,9 +146,14 @@ class ApproximateTokenSwapper(Generic[_V]):
                     assert len(cycle) == 1, "The cycle was not unhappy."
                     unhappy_node = cycle[0][0]
                     # Find a node that wants to swap with this node.
-                    predecessor = next(
-                        predecessor for predecessor in digraph.predecessors(unhappy_node)
-                        if predecessor != unhappy_node)
+                    try:
+                        predecessor = next(
+                            predecessor for predecessor in digraph.predecessors(unhappy_node)
+                            if predecessor != unhappy_node)
+                    except StopIteration:
+                        logger.error("Unexpected StopIteration raised when getting predecessors"
+                                     "in unhappy swap case.")
+                        return
                     yield unhappy_node, predecessor
                     swap(unhappy_node, predecessor)
                     steps += 1

@@ -38,10 +38,10 @@ from typing import Dict, Callable, Iterable, Mapping, TypeVar, Tuple, \
     Optional, List
 
 import networkx as nx
-from qiskit.dagcircuit import DAGCircuit, DAGNode
 
 import qiskit.transpiler.routing as pm
-import qiskit.transpiler.routing.util
+import qiskit.transpiler.routing.util  # pylint: disable=unused-import
+from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.passes.mapping.mapper import Mapper
 from qiskit.transpiler.passes.mapping.placement import Placement
 from qiskit.transpiler.routing import Swap
@@ -110,7 +110,7 @@ class SizeMapper(Mapper[Reg, ArchNode]):
             binop_map = {
                 qarg: current_mapping[qarg]
                 for qarg in binop.qargs
-                }
+            }
             # Try all edges and find the minimum cost placement.
             placements = ((Placement(binop_map, dict(zip(binop.qargs, edge))), binop)
                           for edge_ab in remaining_arch.edges()
@@ -135,11 +135,13 @@ class SizeMapper(Mapper[Reg, ArchNode]):
         """Compute the correction cost of the CNOT gates.
 
         :param placement: Asserts that mapped_to of this placement is of size 2.
-        :param binops: The CNOT nodes."""
+        :param binops: The CNOT nodes.
+        :return: The (integer) cost of correcting"""
         # Hadamards to correct the CNOT
         return sum(4 for binop in binops
                    if
-                   self.arch_graph.has_edge(placement.mapped_to[binop.qargs[0]], placement.mapped_to[binop.qargs[1]]))
+                   self.arch_graph.has_edge(placement.mapped_to[binop.qargs[0]],
+                                            placement.mapped_to[binop.qargs[1]]))
 
     def saved_gates(self, place: Tuple[Placement[Reg, ArchNode], Iterable[DAGNode]],
                     current_placement: Placement[Reg, ArchNode] = None,
@@ -166,13 +168,10 @@ class SizeMapper(Mapper[Reg, ArchNode]):
         new_mapping = {v: k for k, v in inv_new_mapping.items()}
         future_cost = 0
         for binop in binops:
-            future_placement, future_qargs = self._inner_simple([binop],
-                                                                new_mapping,
-                                                                # The whole graph is available.
-                                                                self.arch_graph,
-                                                                # The first placement score is simple.
-                                                                lambda t: self.saved_gates(
-                                                                    (t[0], [t[1]])))
+            future_placement = \
+                self._inner_simple([binop], new_mapping,  # The whole graph is available.
+                                   self.arch_graph,  # The first placement score is simple.
+                                   lambda t: self.saved_gates((t[0], [t[1]])))[0]
             future_cost += self.placement_cost(future_placement) \
                            + self.correction_cost(future_placement, [binop])
 
@@ -217,5 +216,5 @@ class SizeMapper(Mapper[Reg, ArchNode]):
                  circuit: DAGCircuit,
                  current_mapping: Mapping[Reg, ArchNode],
                  binops: List[DAGNode]) -> Mapping[Reg, ArchNode]:
-        raise NotImplemented("Abstract method")
-
+        """Implement the given mapping while optimizing for size"""
+        raise NotImplementedError("Abstract method")
