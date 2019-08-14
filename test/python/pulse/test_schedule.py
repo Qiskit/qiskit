@@ -561,8 +561,82 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(sched._filter([lambda x: False]).instructions), 0)
         self.assertEqual(len(sched._filter([lambda x: x[0] < 30]).instructions), 2)
 
+        def my_test_par_sched_one(x, y, z):
+            result = PulseInstruction(
+                SamplePulse(np.array([x, y, z]), name='sample'),
+                device.drives[0]
+            )
+            return 0, result
 
-class TestScheduleWithDeviceSpecification(BaseTestSchedule):
+        def my_test_par_sched_two(x, y, z):
+            result = PulseInstruction(
+                SamplePulse(np.array([x, y, z]), name='sample'),
+                device.drives[0]
+            )
+            return 5, result
+
+        par_sched_in_0 = ParameterizedSchedule(
+            my_test_par_sched_one, parameters={'x': 0, 'y': 1, 'z': 2}
+        )
+        par_sched_in_1 = ParameterizedSchedule(
+            my_test_par_sched_two, parameters={'x': 0, 'y': 1, 'z': 2}
+        )
+        par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
+
+        cmd_def = CmdDef()
+        cmd_def.add('test', 0, par_sched)
+
+        actual = cmd_def.get('test', 0, 0.01, 0.02, 0.03)
+        expected = par_sched_in_0.bind_parameters(0.01, 0.02, 0.03) |\
+            par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
+        self.assertEqual(actual.start_time, expected.start_time)
+        self.assertEqual(actual.stop_time, expected.stop_time)
+
+        self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
+
+
+class TestScheduleEquality(QiskitTestCase):
+    """Test equality of schedules."""
+
+    def test_different_channels(self):
+        """Test equality is False if different channels."""
+        self.assertNotEqual(Schedule(FrameChange(0)(DriveChannel(0))),
+                            Schedule(FrameChange(0)(DriveChannel(1))))
+
+    def test_same_time_equal(self):
+        """Test equal if instruction at same time."""
+
+        self.assertEqual(Schedule((0, FrameChange(0)(DriveChannel(1)))),
+                         Schedule((0, FrameChange(0)(DriveChannel(1)))))
+
+    def test_different_time_not_equal(self):
+        """Test that not equal if instruction at different time."""
+        self.assertNotEqual(Schedule((0, FrameChange(0)(DriveChannel(1)))),
+                            Schedule((1, FrameChange(0)(DriveChannel(1)))))
+
+    def test_single_channel_out_of_order(self):
+        """Test that schedule with single channel equal when out of order."""
+        instructions = [(0, FrameChange(0)(DriveChannel(0))),
+                        (15, SamplePulse(np.ones(10))(DriveChannel(0))),
+                        (5, SamplePulse(np.ones(10))(DriveChannel(0)))]
+
+        self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
+
+    def test_multiple_channels_out_of_order(self):
+        """Test that schedule with multiple channels equal when out of order."""
+        instructions = [(0, FrameChange(0)(DriveChannel(1))),
+                        (1, Acquire(10)(AcquireChannel(0), MemorySlot(1)))]
+
+        self.assertEqual(Schedule(*instructions), Schedule(*reversed(instructions)))
+
+    def test_different_name_equal(self):
+        """Test that names are ignored when checking equality."""
+
+        self.assertEqual(Schedule((0, FrameChange(0, name='fc1')(DriveChannel(1))), name='s1'),
+                         Schedule((0, FrameChange(0, name='fc2')(DriveChannel(1))), name='s2'))
+
+
+class TestScheduleWithDeviceSpecification(QiskitTestCase):
     """Schedule tests."""
     # TODO: This test will be deprecated in future update.
 

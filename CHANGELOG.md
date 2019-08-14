@@ -26,8 +26,10 @@ The format is based on [Keep a Changelog].
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
+
 -   A new pulse instruction, `Delay`. A `Delay` occupies a pulse channel for a
     duration of time, blocking other instructions from being inserted in this time.
+-   Ability to check for equality of pulse `Schedule` and `Instruction`.
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
     on the longest path of the DAGCircuit.
@@ -66,6 +68,11 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
+    Otherwise an error is raised.
+-   `Schedule.instructions` now returns with time-ordering.
+-   More informative errors are now raised if `qubit_lo_freq` and
+    `meas_lo_freq` are not supplied to `assemble_schedules`.
 -   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`.
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
@@ -102,8 +109,7 @@ The format is based on [Keep a Changelog].
     using the option ``with_layout=False`` in the method
     ``QuantumCircuit.draw``. (\#2739)
 -   Q-sphere visualization is enhanced and corrected (\#2932)
--   The default layout selector for transpile optimization level 1 is ``DenseLayout``
-    instead of ``TrivialLayout`` (\#2845).
+
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
@@ -144,6 +150,9 @@ The format is based on [Keep a Changelog].
 -   Correctly serialize complex numbers with a nonzero real part
 -   Fixed bug in measure sampling for `BasicAer` Qasm simulator if only a
     subset of qubits are measured (\#2790)
+-   Parameter objects can be serialized and communicated between
+    sub-processes (\#2429)
+-   Parameterized circuits no longer need to be transpiled individually (\#2864)
 
 
 ## [0.8.2] - 2019-06-14
