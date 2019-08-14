@@ -429,10 +429,16 @@ class TestPulseAssembler(QiskitTestCase):
         """Test assembling a single schedule, no lo config."""
         acquire = pulse.Acquire(5)
         schedule = acquire(self.device.acquires, mem_slots=self.device.memoryslots)
-        assemble(schedule, meas_map=[[0], [1]])
+        assemble(schedule,
+                 qubit_lo_freq=self.default_qubit_lo_freq,
+                 meas_lo_freq=self.default_meas_lo_freq,
+                 meas_map=[[0], [1]])
 
         with self.assertRaises(QiskitError):
-            assemble(schedule, meas_map=[[0, 1, 2]])
+            assemble(schedule,
+                     qubit_lo_freq=self.default_qubit_lo_freq,
+                     meas_lo_freq=self.default_meas_lo_freq,
+                     meas_map=[[0, 1, 2]])
 
     def test_assemble_memory_slots(self):
         """Test assembling a schedule and inferring number of memoryslots."""
@@ -442,7 +448,11 @@ class TestPulseAssembler(QiskitTestCase):
         # single acquisition
         schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
 
-        qobj = assemble(schedule, meas_map=[[0], [1]])
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0], [1]])
+
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
 
         # multiple acquisition
@@ -450,7 +460,11 @@ class TestPulseAssembler(QiskitTestCase):
         schedule = schedule.insert(10, acquire(self.device.acquires[0],
                                                mem_slots=pulse.MemorySlot(n_memoryslots-1)))
 
-        qobj = assemble(schedule, meas_map=[[0], [1]])
+        qobj = assemble(schedule,
+                        qubit_lo_freq=self.default_qubit_lo_freq,
+                        meas_lo_freq=self.default_meas_lo_freq,
+                        meas_map=[[0], [1]])
+
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
 
     def test_pulse_name_conflicts(self):
@@ -609,10 +623,16 @@ class TestPulseAssemblerWithDeviceSpecification(QiskitTestCase):
         """Test assembling a single schedule, no lo config."""
         acquire = pulse.Acquire(5)
         schedule = acquire(self.device.q, mem_slots=self.device.mem)
-        assemble(schedule, meas_map=[[0], [1]])
+        assemble(schedule,
+                 qubit_lo_freq=self.default_qubit_lo_freq,
+                 meas_lo_freq=self.default_meas_lo_freq,
+                 meas_map=[[0], [1]])
 
         with self.assertRaises(QiskitError):
-            assemble(schedule, meas_map=[[0, 1, 2]])
+            assemble(schedule,
+                     qubit_lo_freq=self.default_qubit_lo_freq,
+                     meas_lo_freq=self.default_meas_lo_freq,
+                     meas_map=[[0, 1, 2]])
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""
@@ -631,6 +651,118 @@ class TestPulseAssemblerWithDeviceSpecification(QiskitTestCase):
         self.assertNotEqual(qobj.config.pulse_library[1], 'pulse0')
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'pulse0')
         self.assertNotEqual(qobj.experiments[0].instructions[1].name, 'pulse0')
+
+
+class TestPulseAssemblerMissingKwargs(QiskitTestCase):
+    """Verify that errors are raised in case backend is not provided and kwargs are missing."""
+
+    def setUp(self):
+        self.schedule = pulse.Schedule(name='fake_experiment')
+        self.schedule += pulse.FrameChange(0.)(pulse.DriveChannel(0))
+
+        self.backend = FakeOpenPulse2Q()
+        self.config = self.backend.configuration()
+        self.defaults = self.backend.defaults()
+        self.qubit_lo_freq = self.defaults.qubit_freq_est
+        self.meas_lo_freq = self.defaults.meas_freq_est
+        self.qubit_lo_range = self.config.qubit_lo_range
+        self.meas_lo_range = self.config.meas_lo_range
+        self.schedule_los = {pulse.DriveChannel(0): self.qubit_lo_freq[0],
+                             pulse.DriveChannel(1): self.qubit_lo_freq[1],
+                             pulse.MeasureChannel(0): self.meas_lo_freq[0],
+                             pulse.MeasureChannel(1): self.meas_lo_freq[1]}
+        self.meas_map = self.config.meas_map
+        self.memory_slots = self.config.n_qubits
+        self.rep_time = self.config.rep_times[0]
+
+    def test_defaults(self):
+        """Test defaults work."""
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=self.qubit_lo_range,
+                 meas_lo_range=self.meas_lo_range,
+                 schedule_los=self.schedule_los,
+                 meas_map=self.meas_map,
+                 memory_slots=self.memory_slots,
+                 rep_time=self.rep_time)
+
+    def test_missing_qubit_lo_freq(self):
+        """Test error raised if qubit_lo_freq missing."""
+
+        with self.assertRaises(QiskitError):
+            assemble(self.schedule,
+                     qubit_lo_freq=None,
+                     meas_lo_freq=self.meas_lo_freq,
+                     qubit_lo_range=self.qubit_lo_range,
+                     meas_lo_range=self.meas_lo_range,
+                     meas_map=self.meas_map,
+                     memory_slots=self.memory_slots,
+                     rep_time=self.rep_time)
+
+    def test_missing_meas_lo_freq(self):
+        """Test error raised if meas_lo_freq missing."""
+
+        with self.assertRaises(QiskitError):
+            assemble(self.schedule,
+                     qubit_lo_freq=self.qubit_lo_freq,
+                     meas_lo_freq=None,
+                     qubit_lo_range=self.qubit_lo_range,
+                     meas_lo_range=self.meas_lo_range,
+                     meas_map=self.meas_map,
+                     memory_slots=self.memory_slots,
+                     rep_time=self.rep_time)
+
+    def test_missing_memory_slots(self):
+        """Test error is not raised if memory_slots are missing."""
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=self.qubit_lo_range,
+                 meas_lo_range=self.meas_lo_range,
+                 schedule_los=self.schedule_los,
+                 meas_map=self.meas_map,
+                 memory_slots=None,
+                 rep_time=self.rep_time)
+
+    def test_missing_rep_time(self):
+        """Test that assembly still works if rep_time is missing.
+
+        The case of no rep_time will exist for a simulator.
+        """
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=self.qubit_lo_range,
+                 meas_lo_range=self.meas_lo_range,
+                 schedule_los=self.schedule_los,
+                 meas_map=self.meas_map,
+                 memory_slots=self.memory_slots,
+                 rep_time=None)
+
+    def test_missing_meas_map(self):
+        """Test that assembly still works if meas_map is missing."""
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=self.qubit_lo_range,
+                 meas_lo_range=self.meas_lo_range,
+                 schedule_los=self.schedule_los,
+                 meas_map=None,
+                 memory_slots=self.memory_slots,
+                 rep_time=self.rep_time)
+
+    def test_missing_lo_ranges(self):
+        """Test that assembly still works if lo_ranges are missing."""
+        assemble(self.schedule,
+                 qubit_lo_freq=self.qubit_lo_freq,
+                 meas_lo_freq=self.meas_lo_freq,
+                 qubit_lo_range=None,
+                 meas_lo_range=None,
+                 schedule_los=self.schedule_los,
+                 meas_map=self.meas_map,
+                 memory_slots=self.memory_slots,
+                 rep_time=self.rep_time)
 
 
 if __name__ == '__main__':
