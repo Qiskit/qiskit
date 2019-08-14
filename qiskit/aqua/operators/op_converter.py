@@ -113,8 +113,8 @@ def to_matrix_operator(operator):
             hamiltonian += weight * pauli.to_spmatrix()
         return MatrixOperator(matrix=hamiltonian, z2_symmetries=operator.z2_symmetries, name=operator.name)
     elif operator.__class__ == TPBGroupedWeightedPauliOperator:
-        # destroy the grouping but keep z2 symmetries info
-        return WeightedPauliOperator(paulis=operator.paulis, z2_symmetries=operator.z2_symmetries, name=operator.name)
+        op = WeightedPauliOperator(paulis=operator.paulis, z2_symmetries=operator.z2_symmetries, name=operator.name)
+        return to_matrix_operator(op)
     elif operator.__class__ == MatrixOperator:
         return operator
     elif operator.__class__ == Operator:
