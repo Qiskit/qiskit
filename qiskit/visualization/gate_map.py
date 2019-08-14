@@ -234,6 +234,7 @@ def plot_gate_map(backend, figsize=None,
     if not input_axes:
         plt.close(fig)
         return fig
+    return None
 
 
 def plot_circuit_layout(circuit, backend, view='virtual'):
