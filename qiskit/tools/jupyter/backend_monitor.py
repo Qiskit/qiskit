@@ -429,11 +429,8 @@ def detailed_map(backend):
     Returns:
         GridBox: Widget holding noise map images.
     """
-
-    
-
     error_widget = widgets.Output(layout=widgets.Layout(display='flex-inline',
-                                                         align_items='center'))
+                                                        align_items='center'))
     with error_widget:
         display(plot_error_map(backend, figsize=(11, 9), show_title=False))
     return error_widget
