@@ -157,11 +157,11 @@ class BoundedDepthMapper(DepthMapper[Reg, ArchNode]):
                 # Find the pair of eligible nodes that minimizes the distance between the two.
                 closest_nodes = min(node_pairs, key=lambda nodes: self.distance[nodes[0]][nodes[1]])
                 # Then place the qargs at those nodes
-                logger.debug("Placed %s at %s, old dist: %s, new: %s.",
+                logger.debug("Placed %s at %s, old dist: %d, new: %d.",
                              {qarg: current_mapping[qarg] for qarg in binop.qargs},
                              closest_nodes,
-                             self.distance[current_mapping[binop.qargs[0]]]\
-                                 [current_mapping[binop.qargs[1]]],
+                             self.distance[current_mapping[binop.qargs[0]]][
+                                 current_mapping[binop.qargs[1]]],
                              self.distance[closest_nodes[0]][closest_nodes[1]])
                 current_placement += Placement({qarg: current_mapping[qarg]
                                                 for qarg in binop.qargs},

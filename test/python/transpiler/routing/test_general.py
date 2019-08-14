@@ -40,6 +40,7 @@ from qiskit.transpiler.routing.general import ApproximateTokenSwapper
 
 class TestGeneral(QiskitTestCase):
     """The test cases"""
+
     def setUp(self) -> None:
         """Set up test cases."""
         random.seed(0)
@@ -59,7 +60,7 @@ class TestGeneral(QiskitTestCase):
         """Test an inverting permutation on a small path graph of size 8"""
         graph = nx.path_graph(8)
         permutation = {i: 7 - i for i in range(8)}
-        swapper = ApproximateTokenSwapper(graph) # type: ApproximateTokenSwapper[int]
+        swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
         out = list(swapper.map(permutation))
         util.swap_permutation([out], permutation)
@@ -71,7 +72,7 @@ class TestGeneral(QiskitTestCase):
         graph.add_edges_from([(0, 1), (0, 2), (0, 3), (0, 4),
                               (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3, 6)])
         permutation = {0: 4, 1: 0, 2: 3, 3: 6, 4: 2, 6: 1}
-        swapper = ApproximateTokenSwapper(graph) # type: ApproximateTokenSwapper[int]
+        swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
         out = list(swapper.map(permutation))
         util.swap_permutation([out], permutation)
@@ -81,7 +82,7 @@ class TestGeneral(QiskitTestCase):
         """Test a partial mapping on a small graph."""
         graph = nx.path_graph(4)
         mapping = {0: 3}
-        swapper = ApproximateTokenSwapper(graph) # type: ApproximateTokenSwapper[int]
+        swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
         out = list(swapper.map(mapping))
         self.assertEqual(3, len(out))
         util.swap_permutation([out], mapping, allow_missing_keys=True)
@@ -96,7 +97,7 @@ class TestGeneral(QiskitTestCase):
         out = list(swapper.map(permutation))
         self.assertEqual(5, len(out))
         util.swap_permutation([out], permutation, allow_missing_keys=True)
-        self.assertEqual({i:i for i in permutation.values()}, permutation)
+        self.assertEqual({i: i for i in permutation.values()}, permutation)
 
     def test_large_partial_random(self) -> None:
         """Test a random (partial) mapping on a large randomly generated graph"""

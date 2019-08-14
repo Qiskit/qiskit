@@ -86,8 +86,8 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
                     cur_place = current_placement
 
                 # The extra cost incurred by placing 'placement'.
-                place_cost_diff = self.placement_cost(placement + cur_place) \
-                                  - self.placement_cost(cur_place)
+                place_cost_diff = self.placement_cost(placement + cur_place) - \
+                    self.placement_cost(cur_place)
 
                 def placement_diff(place: Tuple[Placement[Reg, ArchNode], DAGNode]) -> int:
                     """Approximates saved_gates but it easier to compute.
@@ -95,8 +95,8 @@ class ExtensionSizeMapper(SizeMapper[Reg, ArchNode]):
                     It computes the cost of placing a given gate plus (separately) the 'placement'
                     gate versus the cost of placing everything together.
                     This does not require a lookahead."""
-                    return self.placement_cost(place[0] + cur_place) + place_cost_diff \
-                           - self.placement_cost(place[0] + placement + cur_place)
+                    return self.placement_cost(place[0] + cur_place) + place_cost_diff - \
+                        self.placement_cost(place[0] + placement + cur_place)
 
                 next_placement = self._inner_simple(remaining_binops,
                                                     current_mapping,

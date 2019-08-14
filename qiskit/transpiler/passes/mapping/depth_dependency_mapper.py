@@ -130,8 +130,8 @@ class DepthDependencyMapper(DepthMapper[Reg, ArchNode]):
                 # Then place the qargs at those nodes
                 logger.debug("Placed %s, old dist: %s, new: %s.",
                              min_closest_placement,
-                             self.distance[current_mapping[binop.qargs[0]]]\
-                                 [current_mapping[binop.qargs[1]]],
+                             self.distance[current_mapping[binop.qargs[0]]][
+                                 current_mapping[binop.qargs[1]]],
                              minimal_distance)
                 current_placement += min_closest_placement
                 remaining_arch.remove_nodes_from(min_closest_placement.mapped_to.values())

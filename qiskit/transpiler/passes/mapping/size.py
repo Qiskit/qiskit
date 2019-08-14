@@ -172,13 +172,13 @@ class SizeMapper(Mapper[Reg, ArchNode]):
                 self._inner_simple([binop], new_mapping,  # The whole graph is available.
                                    self.arch_graph,  # The first placement score is simple.
                                    lambda t: self.saved_gates((t[0], [t[1]])))[0]
-            future_cost += self.placement_cost(future_placement) \
-                           + self.correction_cost(future_placement, [binop])
+            future_cost += self.placement_cost(future_placement) + \
+                self.correction_cost(future_placement, [binop])
 
-        return self.placement_cost(current_placement) \
-               + future_cost \
-               - self.placement_cost(current_placement + placement) \
-               - self.correction_cost(placement, binops)
+        return self.placement_cost(current_placement) + \
+            future_cost - \
+            self.placement_cost(current_placement + placement) - \
+            self.correction_cost(placement, binops)
 
     def map(self,
             circuit: DAGCircuit,

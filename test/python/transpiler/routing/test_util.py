@@ -78,11 +78,10 @@ class TestUtil(QiskitTestCase):
         swaps = [
             [[(0, 1)], [(1, 2)]],
             [[(5, 6)]]
-            ]
+        ]
 
         flattened = list(flatten_swaps(swaps))
         self.assertListEqual([[(0, 1), (5, 6)], [(1, 2)]], flattened)
-
 
     def test_circuit_simple(self) -> None:
         """Check the circuit function for a simple circuit."""

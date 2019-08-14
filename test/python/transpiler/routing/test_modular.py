@@ -48,7 +48,7 @@ class TestPermuteModular(QiskitTestCase):
         out = permute(permutation, modulesize=2, modules=2)
         valid_parallel_swaps(self, out)
         util.swap_permutation(out, permutation)
-        self.assertEqual({i:i for i in permutation}, permutation)
+        self.assertEqual({i: i for i in permutation}, permutation)
 
     # IDEA: Implement functionality to support arbitrary assignments of nodes to modules.
     # Maybe pass a function that maps a node to a module?
@@ -85,8 +85,8 @@ class TestPermuteModular(QiskitTestCase):
         """Test a randomly generated permutation on a large modular graph."""
         modulesize = 100
         modules = 95
-        permutation = util.random_partial_permutation(list(range(modules*modulesize)),
-                                                      nr_elements=modules*modulesize)
+        permutation = util.random_partial_permutation(list(range(modules * modulesize)),
+                                                      nr_elements=modules * modulesize)
 
         out = permute(permutation, modulesize=modulesize, modules=modules)
         valid_parallel_swaps(self, out)
@@ -151,7 +151,7 @@ class TestPermuteModular(QiskitTestCase):
 
     def test_partial_modular_small7(self) -> None:
         """For a specific partial mapping test the modular permuter"""
-        mapping = {0: 3, 1:4, 2: 6, 6:0, 7:5, 8:8}
+        mapping = {0: 3, 1: 4, 2: 6, 6: 0, 7: 5, 8: 8}
         out = permute(mapping, modulesize=3, modules=3)
         valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=3)
@@ -178,7 +178,7 @@ class TestPermuteModular(QiskitTestCase):
 
     def test_partial_modular_small10(self) -> None:
         """For a specific partial mapping test the modular permuter"""
-        mapping = {0:0, 1:2, 4:4, 5:3}
+        mapping = {0: 0, 1: 2, 4: 4, 5: 3}
         out = permute(mapping, modulesize=2, modules=3)
         valid_parallel_swaps(self, out)
         self.valid_module_swaps(out, modulesize=2)
@@ -239,7 +239,7 @@ class TestPermuteModular(QiskitTestCase):
     def test_distinct_permutation_unmapped(self) -> None:
         """Test the distinct permutation with unmapped nodes"""
         modules = modulesize = 2
-        permutation = {0: 3, 3:1}
+        permutation = {0: 3, 3: 1}
 
         out = _distinct_permutation(permutation, set(), modulesize, modules)
         self.assertEqual({0, 3}, out)

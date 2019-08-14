@@ -171,10 +171,10 @@ def _partial_cartesian_trial(mapping: Mapping[int, int],
             over the starting position (by the current mapping).
         """
         current_mapping = current_mappings[point.x]
-        return _it_len(permute_y({**current_mapping, **{point.y: y}})) \
-               - _it_len(permute_y(current_mapping)) \
-               + _it_len(permute_y({y: destination.y})) \
-               - _it_len(permute_y({point.y: destination.y}))
+        return _it_len(permute_y({**current_mapping, **{point.y: y}})) - \
+            _it_len(permute_y(current_mapping)) + \
+            _it_len(permute_y({y: destination.y})) - \
+            _it_len(permute_y({point.y: destination.y}))
 
     unmapped_qubit = UnmappedQubit()
     # For each column, keep track of the number of unmapped qubits.

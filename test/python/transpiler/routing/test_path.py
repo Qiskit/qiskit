@@ -112,7 +112,7 @@ class TestPath(QiskitTestCase):
 
     def test_partial_path_small(self) -> None:
         """Test the greedy path algorithm with a random partial mapping"""
-        mapping = {0: 2, 2:0}
+        mapping = {0: 2, 2: 0}
 
         out = list(permute_path_partial(mapping))
         self.assertGreater(4, len(out))
@@ -124,7 +124,7 @@ class TestPath(QiskitTestCase):
 
     def test_partial_path_small2(self) -> None:
         """Test the greedy path algorithm with a random partial mapping"""
-        mapping = {1:2, 0:4}
+        mapping = {1: 2, 0: 4}
 
         out = list(permute_path_partial(mapping))
         self.assertGreaterEqual(5, len(out))
@@ -148,7 +148,7 @@ class TestPath(QiskitTestCase):
 
     def test_partial_path_random(self) -> None:
         """Test the partial path algorithm with a random partial mapping"""
-        length = 10**3
+        length = 10 ** 3
         mapped = length // 2
         destinations = list(np.random.permutation(length))
         partial_permutation = dict(random.sample(list(enumerate(destinations)), mapped))
