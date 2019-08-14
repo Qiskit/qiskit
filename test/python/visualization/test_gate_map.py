@@ -15,6 +15,7 @@
 """A test for visualizing device coupling maps"""
 import unittest
 import os
+import matplotlib
 import matplotlib.pyplot as plt
 from ddt import ddt, data
 from qiskit.test.mock import FakeProvider
@@ -28,6 +29,11 @@ from .visualization import path_to_diagram_reference, QiskitVisualizationTestCas
 @ddt
 class TestGateMap(QiskitVisualizationTestCase):
     """ visual tests for plot_gate_map """
+
+    def setUp(self):
+        super(TestGateMap, self).setUpClass()
+        matplotlib.use('ps')
+
     backends = list(filter(lambda x:
                            not (x.configuration().simulator or x.configuration().n_qubits == 2),
                            FakeProvider().backends()))
