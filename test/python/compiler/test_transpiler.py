@@ -18,19 +18,19 @@ import math
 import unittest
 from unittest.mock import patch
 
-from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import BasicAer
-from qiskit.extensions.standard import CnotGate
-from qiskit.transpiler import PassManager
+from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Parameter
 from qiskit.compiler import transpile
 from qiskit.converters import circuit_to_dag
+from qiskit.dagcircuit.exceptions import DAGCircuitError
+from qiskit.extensions.standard import CnotGate
 from qiskit.test import QiskitTestCase, Path
 from qiskit.test.mock import FakeMelbourne, FakeRueschlikon
-from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
 from qiskit.transpiler import Layout, CouplingMap
-from qiskit.circuit import Parameter
-from qiskit.dagcircuit.exceptions import DAGCircuitError
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
 
 
 class TestTranspile(QiskitTestCase):
@@ -160,9 +160,9 @@ class TestTranspile(QiskitTestCase):
         qc.cx(qr[13], qr[4])
         qc.measure(qr, cr)
 
-        new_qc = transpile(qc, coupling_map=coupling_map, basis_gates=basis_gates)
-        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data
-                     if gate.name == "cx"]
+        new_qc = transpile(qc, coupling_map=coupling_map, basis_gates=basis_gates,
+                           initial_layout=Layout.generate_trivial_layout(qr))
+        cx_qubits = [qargs for (gate, qargs, _) in new_qc.data if gate.name == "cx"]
         cx_qubits_physical = [[ctrl.index, tgt.index] for [ctrl, tgt] in cx_qubits]
         self.assertEqual(sorted(cx_qubits_physical),
                          [[3, 4], [3, 14], [5, 4], [9, 8], [12, 11], [13, 4]])
@@ -422,11 +422,48 @@ class TestTranspile(QiskitTestCase):
         theta = Parameter('theta')
         qc.rz(theta, qr[0])
 
-        transpiled_qc = transpile(qc, backend=FakeMelbourne())
+        transpiled_qc = transpile(qc, backend=FakeMelbourne(),
+                                  initial_layout=Layout.generate_trivial_layout(qr))
 
         qr = QuantumRegister(14, 'q')
         expected_qc = QuantumCircuit(qr)
         expected_qc.u1(theta, qr[0])
+
+        self.assertEqual(expected_qc, transpiled_qc)
+
+    def test_parameter_expression_circuit_for_simulator(self):
+        """Verify that a circuit including expressions of parameters can be
+        transpiled for a simulator backend."""
+        qr = QuantumRegister(2, name='qr')
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        square = theta * theta
+        qc.rz(square, qr[0])
+
+        transpiled_qc = transpile(qc, backend=BasicAer.get_backend('qasm_simulator'))
+
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.u1(square, qr[0])
+
+        self.assertEqual(expected_qc, transpiled_qc)
+
+    def test_parameter_expression_circuit_for_device(self):
+        """Verify that a circuit including epxressions of parameters can be
+        transpiled for a device backend."""
+        qr = QuantumRegister(2, name='qr')
+        qc = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+        square = theta * theta
+        qc.rz(square, qr[0])
+
+        transpiled_qc = transpile(qc, backend=FakeMelbourne(),
+                                  initial_layout=Layout.generate_trivial_layout(qr))
+
+        qr = QuantumRegister(14, 'q')
+        expected_qc = QuantumCircuit(qr)
+        expected_qc.u1(square, qr[0])
 
         self.assertEqual(expected_qc, transpiled_qc)
 

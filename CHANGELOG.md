@@ -56,9 +56,17 @@ The format is based on [Keep a Changelog].
     testing if two objects are equivalent up to global phase (\#2910)
 -   Added ``output_name`` as a transpiler parameter to set the name of
     output circuits (\#2745)
+-   Simple expressions of Parameters can now be created via the four basic math
+    operations (+,-,*,/). (#2537)
+-   A `ParmeterVector` class has been added to ease the construction of circuits
+    requiring a large number of parameters. (#2379)
+
 
 ### Changed
 
+-   More informative errors are now raised if `qubit_lo_freq` and
+    `meas_lo_freq` are not supplied to `assemble_schedules`.
+-   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`.
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
 -   All circuit drawers now express most commonly used fractions
@@ -89,6 +97,12 @@ The format is based on [Keep a Changelog].
     definition of a controlled `U3Gate` (\#2755)
 -   `coupling_map` now required to validate a `backend.configuration()` (\#2836)
 -   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
+-   If layout information is available in
+    the circuit, it will be included to the circuit drawing. This can be removed
+    using the option ``with_layout=False`` in the method
+    ``QuantumCircuit.draw``. (\#2739)
+-   Q-sphere visualization is enhanced and corrected (\#2932)
+
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
