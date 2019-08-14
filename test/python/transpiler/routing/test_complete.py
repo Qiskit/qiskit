@@ -35,7 +35,7 @@ from numpy import random
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util, Swap
 from qiskit.transpiler.routing.complete import permute, partial_permute
-from test.python.transpiler.routing.util import valid_parallel_swaps
+from .util import valid_parallel_swaps
 
 
 class TestComplete(QiskitTestCase):

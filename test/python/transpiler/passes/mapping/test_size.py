@@ -29,30 +29,28 @@
 """Test cases for the mapping.size package"""
 
 import random
-import unittest
-from typing import Dict, Tuple, List, Any, Mapping, TypeVar, Set, Type
+from typing import Tuple, List, Any, Mapping, TypeVar, Type
 from unittest import TestCase
 
 import networkx as nx
 import numpy as np
+
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions import CnotGate, HGate
-
+from qiskit.transpiler.passes.mapping.mapper import Mapper
 from qiskit.transpiler.passes.mapping.size import SizeMapper
-from qiskit.transpiler.passes.mapping.size_simple_mapper import SimpleSizeMapper
-from qiskit.transpiler.passes.mapping.size_greedy_mapper import GreedySizeMapper
 from qiskit.transpiler.passes.mapping.size_extension_mapper import ExtensionSizeMapper
+from qiskit.transpiler.passes.mapping.size_greedy_mapper import GreedySizeMapper
 from qiskit.transpiler.passes.mapping.size_qiskit_mapper import QiskitSizeMapper
-from qiskit.transpiler.routing import complete, modular, path, general
+from qiskit.transpiler.passes.mapping.size_simple_mapper import SimpleSizeMapper
+from qiskit.transpiler.routing import complete, modular, path
 from qiskit.transpiler.routing.general import ApproximateTokenSwapper
 from qiskit.transpiler.routing.util import sequential_permuter
-from qiskit.transpiler.passes.mapping.mapper import Mapper
 
 ArchNode = TypeVar('ArchNode')
 _V = TypeVar('_V')
 Reg = Tuple[_V, int]
-StandardMapper = Mapper[Tuple[str, int], int]
 
 
 def dummy_permuter(mapping: Mapping[Any, Any]) -> List[Any]:
@@ -72,6 +70,7 @@ class TestSizeMapper(TestCase):
         self.arch_graph = nx.DiGraph()
 
     def empty_circuit_test(self, mapper: Type[SizeMapper]) -> None:
+        """Check if the empty circuit is mapped correctly"""
         q = QuantumRegister(2)
         self.circuit.add_qreg(q)
         self.arch_graph.add_edge(0, 1)
@@ -136,7 +135,7 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(1, 2)
         current_mapping = {q[i]: i for i in range(3)}
         mapper = SimpleSizeMapper(self.arch_graph,
-                                                  sequential_permuter(path.permute_path_partial))
+                                  sequential_permuter(path.permute_path_partial))
 
         out = mapper.map(self.circuit, current_mapping)
         self.assertEqual({q[0]: 0, q[1]: 1}, out)
@@ -164,7 +163,8 @@ class TestSizeMapper(TestCase):
         current_mapping0 = {q[i]: i for i in [0, 1]}
         current_mapping1 = {q[i]: 1 - i for i in [0, 1]}
         mapper = GreedySizeMapper(self.arch_graph,
-                             sequential_permuter(lambda m: complete.partial_permute(m, [0, 1])))
+                                  sequential_permuter(
+                                      lambda m: complete.partial_permute(m, [0, 1])))
 
         # Qubits should not be moved needlessly.
         out0 = mapper.map(self.circuit, current_mapping0)
@@ -218,11 +218,11 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(0, 1)
         self.arch_graph.add_edge(0, 2)
         self.arch_graph.add_edge(2, 3)
-        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
+        swapper = ApproximateTokenSwapper(
+            self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
 
-        apx_permuter = lambda p: swapper.map(p)
         current_mapping = {q[0]: 1, q[1]: 2, q[2]: 3}
-        mapper = GreedySizeMapper(self.arch_graph, apx_permuter)
+        mapper = GreedySizeMapper(self.arch_graph, swapper.map)
 
         out = mapper.map(self.circuit, current_mapping)
         # Because of matching limitations q1 should be moved to 0.
@@ -269,8 +269,8 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(1, 2)
         current_mapping = {q[i]: i for i in range(3)}
         mapper = ExtensionSizeMapper(self.arch_graph,
-                                                                sequential_permuter(
-                                                                    path.permute_path_partial))
+                                     sequential_permuter(
+                                         path.permute_path_partial))
 
         out = mapper.map(self.circuit, current_mapping)
         del current_mapping[q[2]]
@@ -284,7 +284,8 @@ class TestSizeMapper(TestCase):
         self.circuit.apply_operation_back(CnotGate(), [q[2], q[3]])
         self.arch_graph = nx.path_graph(8).to_directed()
         current_mapping = {q[0]: 1, q[1]: 6, q[2]: 0, q[3]: 7}
-        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
+        swapper = ApproximateTokenSwapper(
+            self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
         mapper = ExtensionSizeMapper(self.arch_graph, swapper.map)
 
         out = mapper.map(self.circuit, current_mapping)
@@ -306,7 +307,8 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(3, 4)
         self.arch_graph.add_edge(3, 5)
         current_mapping = {q[0]: 1, q[2]: 2, q[1]: 4, q[3]: 5}
-        swapper = ApproximateTokenSwapper(self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
+        swapper = ApproximateTokenSwapper(
+            self.arch_graph.to_undirected(as_view=True))  # type: ApproximateTokenSwapper[int]
         mapper = ExtensionSizeMapper(self.arch_graph, swapper.map, lookahead=True)
 
         out = mapper.map(self.circuit, current_mapping)
@@ -353,7 +355,7 @@ class TestSizeMapper(TestCase):
         self.arch_graph.add_edge(1, 2)
         current_mapping = {q[i]: i for i in range(3)}
         mapper = QiskitSizeMapper(self.arch_graph,
-                                                  sequential_permuter(path.permute_path_partial))
+                                  sequential_permuter(path.permute_path_partial))
 
         out = mapper.map(self.circuit, current_mapping)
         del current_mapping[q[2]]
@@ -397,7 +399,7 @@ class TestSizeMapper(TestCase):
         result = mapper._qiskit_trial(binops, partial_mapping)
         if result is None:
             self.fail("The output was None.")
-        size, out = result
+        out = result[1]
         self.assertEqual(partial_mapping.keys(), set(out.keys()))
         swaps = list(swapper.map({partial_mapping[k]: v for k, v in out.items()}))
         self.assertEqual(10, len(swaps))
@@ -426,7 +428,7 @@ class TestSizeMapper(TestCase):
         q = QuantumRegister(6)
         self.circuit.add_qreg(q)
         for i in range(0, 6, 2):
-            self.circuit.apply_operation_back(CnotGate(), [q[i], q[i+1]])
+            self.circuit.apply_operation_back(CnotGate(), [q[i], q[i + 1]])
         self.arch_graph.add_edge(0, 1)
         self.arch_graph.add_edge(0, 2)
         self.arch_graph.add_edge(2, 6)

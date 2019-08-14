@@ -35,19 +35,21 @@ import networkx as nx
 
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util, Swap, Permutation, path, fast_path, complete
-from qiskit.transpiler.routing.cartesian import permute_grid, permute_cartesian_partial, permute_grid_partial
-from test.python.transpiler.routing.util import valid_parallel_swaps, valid_edge_swaps
+from qiskit.transpiler.routing.cartesian import permute_grid, permute_cartesian_partial, \
+    permute_grid_partial
+from .util import valid_parallel_swaps, valid_edge_swaps
 
 _V = TypeVar('_V')
-PARTIAL_ROUTER = Callable[[Mapping[int, int]], Iterable[List[Swap[int]]]]
+PartialRouter = Callable[[Mapping[int, int]], Iterable[List[Swap[int]]]]
 
 
-def square(permutation: Mapping[int,int]) -> List[List[Swap[int]]]:
+def square(permutation: Mapping[int, int]) -> List[List[Swap[int]]]:
     """used to as input function to make a cartesian product with a 2 by 2 grid"""
     return permute_grid_partial(permutation, 2, 2)
 
 
-def construct_partial_complete(nodes: List[_V]) -> Callable[[Mapping[_V,_V]], Iterable[List[Swap[_V]]]]:
+def construct_partial_complete(nodes: List[_V]
+                               ) -> Callable[[Mapping[_V, _V]], Iterable[List[Swap[_V]]]]:
     """Set up a partial permuter on the complete graph."""
     return lambda p: complete.partial_permute(p, nodes)
 
@@ -55,19 +57,19 @@ def construct_partial_complete(nodes: List[_V]) -> Callable[[Mapping[_V,_V]], It
 class TestCartesian(QiskitTestCase):
     """The test cases"""
 
-    def cartesian_generic_test(self, g: nx.Graph, permutation: Permutation, height: int,
-                               permute_x: PARTIAL_ROUTER, permute_y: PARTIAL_ROUTER) -> None:
+    def cartesian_generic_test(self, graph: nx.Graph, permutation: Permutation, height: int,
+                               permute_x: PartialRouter, permute_y: PartialRouter) -> None:
         """Permutes and performs verifications for
         parallel, valid on graph, depth"""
 
-        size = nx.number_of_nodes(g)
+        size = nx.number_of_nodes(graph)
         width = size // height
 
         out = list(permute_cartesian_partial(permutation, width, height, permute_x, permute_y))
 
         self.assertEqual(len(out) <= height + height + width, True)
         valid_parallel_swaps(self, out)
-        valid_edge_swaps(self, out, g)
+        valid_edge_swaps(self, out, graph)
 
         util.swap_permutation(out, permutation)
         identity_dict = {i: i for i in range(size)}
@@ -79,12 +81,12 @@ class TestCartesian(QiskitTestCase):
 
         size = len(permutation)
         width = size // height
-        G = nx.path_graph(width)
-        H = nx.path_graph(height)
-        P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
+        graph1 = nx.path_graph(width)
+        graph2 = nx.path_graph(height)
+        product_graph = nx.cartesian_product(graph2, graph1)
+        product_graph = nx.relabel.convert_node_labels_to_integers(product_graph, ordering="sorted")
 
-        self.cartesian_generic_test(P, permutation, height,
+        self.cartesian_generic_test(product_graph, permutation, height,
                                     path.permute_path_partial, path.permute_path_partial)
 
     def test_grid_empty(self) -> None:
@@ -122,7 +124,8 @@ class TestCartesian(QiskitTestCase):
 
     def test_cartesian_empty(self) -> None:
         """Test if an empty permutation is not permuted."""
-        out = list(permute_cartesian_partial({}, 0, 0, path.permute_path_partial, path.permute_path_partial))
+        out = list(permute_cartesian_partial({}, 0, 0, path.permute_path_partial,
+                                             path.permute_path_partial))
 
         valid_parallel_swaps(self, out)
         self.assertListEqual([], out)
@@ -132,47 +135,49 @@ class TestCartesian(QiskitTestCase):
         permutation = {0: 0, 1: 3, 2: 13, 3: 11, 4: 12, 5: 1, 6: 5, 7: 9,
                        8: 4, 9: 10, 10: 7, 11: 14, 12: 6, 13: 2, 14: 15, 15: 8}
 
-        G = nx.path_graph(4)
-        H = nx.path_graph(4)
-        P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
+        graph1 = nx.path_graph(4)
+        graph2 = nx.path_graph(4)
+        product_graph = nx.cartesian_product(graph2, graph1)
+        product_graph = nx.relabel.convert_node_labels_to_integers(product_graph, ordering="sorted")
 
-        self.cartesian_generic_test(P, permutation, 4, path.permute_path_partial, path.permute_path_partial)
+        self.cartesian_generic_test(product_graph, permutation, 4, path.permute_path_partial,
+                                    path.permute_path_partial)
 
     def test_cartesian_grid_path(self) -> None:
         """Test a permutation of a grid-path cartesian product"""
         permutation = {0: 5, 1: 2, 2: 10, 3: 6, 4: 7, 5: 4, 6: 0, 7: 1, 8: 3, 9: 8, 10: 9, 11: 11}
 
-        G = nx.grid_2d_graph(2, 2)
-        H = nx.path_graph(3)
-        P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
+        graph1 = nx.grid_2d_graph(2, 2)
+        graph2 = nx.path_graph(3)
+        prod_graph = nx.cartesian_product(graph2, graph1)
+        prod_graph = nx.relabel.convert_node_labels_to_integers(prod_graph, ordering="sorted")
 
-        self.cartesian_generic_test(P, permutation, 3, square, path.permute_path_partial)
+        self.cartesian_generic_test(prod_graph, permutation, 3, square, path.permute_path_partial)
 
     def test_cartesian_grid_grid(self) -> None:
         """Test a permutation of a grid-grid cartesian product"""
         permutation = {0: 0, 1: 3, 2: 13, 3: 11, 4: 12, 5: 1, 6: 5, 7: 9,
                        8: 4, 9: 10, 10: 7, 11: 14, 12: 6, 13: 2, 14: 15, 15: 8}
 
-        G = nx.grid_2d_graph(2, 2)
-        H = nx.grid_2d_graph(2, 2)
-        P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
+        graph1 = nx.grid_2d_graph(2, 2)
+        graph2 = nx.grid_2d_graph(2, 2)
+        prod_graph = nx.cartesian_product(graph2, graph1)
+        prod_graph = nx.relabel.convert_node_labels_to_integers(prod_graph, ordering="sorted")
 
-        self.cartesian_generic_test(P, permutation, 4, square, square)
+        self.cartesian_generic_test(prod_graph, permutation, 4, square, square)
 
     def test_cartesian_grid_complete(self) -> None:
         """Test a permutation of a grid-complete cartesian product"""
         permutation = {0: 9, 1: 3, 2: 15, 3: 4, 4: 1, 5: 8, 6: 12,
                        7: 14, 8: 13, 9: 6, 10: 2, 11: 10, 12: 5, 13: 11, 14: 0, 15: 7}
 
-        G = nx.grid_2d_graph(2, 2)
-        H = nx.complete_graph(4)
-        P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
+        graph1 = nx.grid_2d_graph(2, 2)
+        graph2 = nx.complete_graph(4)
+        prod_graph = nx.cartesian_product(graph2, graph1)
+        prod_graph = nx.relabel.convert_node_labels_to_integers(prod_graph, ordering="sorted")
 
-        self.cartesian_generic_test(P, permutation, 4, square, construct_partial_complete(H.nodes))
+        self.cartesian_generic_test(prod_graph, permutation, 4, square,
+                                    construct_partial_complete(graph2.nodes))
 
     # todo professional edition, right click on test, profile
     def test_grid_random(self) -> None:
@@ -194,12 +199,13 @@ class TestCartesian(QiskitTestCase):
         random.shuffle(items)
         permutation = {i: items[i] for i in items}
 
-        G = nx.complete_graph(width)
-        H = nx.path_graph(height)
-        P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
+        graph1 = nx.complete_graph(width)
+        graph2 = nx.path_graph(height)
+        prod_graph = nx.cartesian_product(graph2, graph1)
+        prod_graph = nx.relabel.convert_node_labels_to_integers(prod_graph, ordering="sorted")
 
-        self.cartesian_generic_test(P, permutation, height, construct_partial_complete(G.nodes),
+        self.cartesian_generic_test(prod_graph, permutation, height,
+                                    construct_partial_complete(graph1.nodes),
                                     path.permute_path_partial)
 
     def test_k_n_path_5_random(self) -> None:
@@ -211,12 +217,13 @@ class TestCartesian(QiskitTestCase):
         random.shuffle(items)
         permutation = {i: items[i] for i in items}
 
-        G = nx.complete_graph(width)
-        H = nx.path_graph(height)
-        P = nx.cartesian_product(H, G)
-        P = nx.relabel.convert_node_labels_to_integers(P, ordering="sorted")
+        graph1 = nx.complete_graph(width)
+        graph2 = nx.path_graph(height)
+        prod_graph = nx.cartesian_product(graph2, graph1)
+        prod_graph = nx.relabel.convert_node_labels_to_integers(prod_graph, ordering="sorted")
 
-        self.cartesian_generic_test(P, permutation, height, construct_partial_complete(G.nodes),
+        self.cartesian_generic_test(prod_graph, permutation, height,
+                                    construct_partial_complete(graph1.nodes),
                                     path.permute_path_partial)
 
     def test_grid_small1_partial(self) -> None:
@@ -242,6 +249,7 @@ class TestCartesian(QiskitTestCase):
         self.assertListEqual([[(3, 2)]], out)
 
     def test_grid_small3_partial(self) -> None:
+        """Test a small permutation on grid."""
         mapping = {1: 0, 4: 4, 3: 5}
         permute_x = lambda m: path.permute_path_partial(m, length=3)
         permute_y = lambda m: path.permute_path_partial(m, length=2)

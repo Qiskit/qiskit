@@ -95,11 +95,10 @@ class TestUtil(QiskitTestCase):
         for op_node in op_nodes:
             self.assertIsInstance(op_node.op, SwapGate)
         qargs = {tuple(op_node.qargs) for op_node in op_nodes}
-        reversed_inputmap = {b: a for a,b in inputmap.items()}
+        reversed_inputmap = {b: a for a, b in inputmap.items()}
         qargs = {(reversed_inputmap[qarg0], reversed_inputmap[qarg1]) for qarg0, qarg1 in qargs}
 
         # We only check that the right nodes are swapped
         # Would be better if we could check that it's done in the same order.
         flattened_swaps = {swap for swap_step in swaps for swap in swap_step}
         self.assertEqual(flattened_swaps, qargs)
-

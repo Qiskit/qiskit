@@ -28,29 +28,30 @@
 
 """Test cases for the mapping.depth package"""
 
-from typing import Dict, Tuple, List, Mapping, Iterator
+from typing import Tuple, List, Mapping, Iterator
 from unittest import TestCase, mock
 
 import networkx as nx
+
 from qiskit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions import CnotGate, HGate
-
 from qiskit.transpiler import routing as rt
 from qiskit.transpiler.passes.mapping.depth_bounded_mapper import BoundedDepthMapper
 from qiskit.transpiler.passes.mapping.depth_greedy_mapper import GreedyDepthMapper
 from qiskit.transpiler.passes.mapping.depth_incremental_mapper import IncrementalDepthMapper
 from qiskit.transpiler.passes.mapping.depth_simple_mapper import SimpleDepthMapper
-from qiskit.transpiler.passes.mapping.mapper import Mapper
-from qiskit.transpiler.routing import modular, util, path
+from qiskit.transpiler.routing import modular, path  # pylint: disable=unused-import
 
 
-def dummy_permuter(perm: Mapping) -> Iterator[List]:
+def dummy_permuter(
+        perm: Mapping  # pylint: disable=unused-argument
+) -> Iterator[List]:
+    """Dummy permuter that returns trivial swaps"""
     return iter([])
 
 
 Reg = Tuple[str, int]
-StandardMapper = Mapper[Reg, int]
 
 
 class TestDepthMapper(TestCase):
@@ -107,7 +108,7 @@ class TestDepthMapper(TestCase):
 
         out = mapper.map(self.circuit)
         # must be mapped to qubits 1 and 2
-        self.assertEqual({1,2}, set(out.values()))
+        self.assertEqual({1, 2}, set(out.values()))
 
     def test_map_incremental_empty(self) -> None:
         """Test mapping an empty circuit."""
@@ -167,7 +168,6 @@ class TestDepthMapper(TestCase):
         self.circuit.apply_operation_back(CnotGate(), [q[0], q[1]])
         self.circuit.apply_operation_back(CnotGate(), [q[2], q[3]])
 
-
         self.arch_graph = nx.path_graph(8)
         permuter = lambda p: rt.path.permute_path_partial(p, length=8)
         current_mapping = {q[0]: 2, q[1]: 5,
@@ -177,7 +177,7 @@ class TestDepthMapper(TestCase):
         out = mapper.map(self.circuit, current_mapping)
         # The mapper should have moved q0 and q1 adjacent, and q2 and q3 both one step closer.
         self.assertEqual({q[0]: 3, q[1]: 4,
-                          q[2]: 1,  q[3]: 6}, out)
+                          q[2]: 1, q[3]: 6}, out)
 
     def test_incremental_partial_nomove(self) -> None:
         """Test if the incremental mapper moves outer nodes incrementally closer."""
@@ -236,7 +236,6 @@ class TestDepthMapper(TestCase):
         self.assertIn(frozenset(out.items()), {frozenset({q[0]: 1, q[1]: 0}.items()),
                                                frozenset({q[0]: 0, q[1]: 2}.items())})
 
-
     def test_map_greedy_empty(self) -> None:
         """Test mapping an empty circuit."""
         q = QuantumRegister(2)
@@ -263,7 +262,6 @@ class TestDepthMapper(TestCase):
         mapper = GreedyDepthMapper(self.arch_graph, permuter)
 
         # Qubits should not be moved needlessly.
-        identity_map = {i: i for i in [0, 1]}
         out0 = mapper.map(self.circuit, current_mapping0)
         self.assertEqual({q[0]: 0, q[1]: 1}, out0)
         out1 = mapper.map(self.circuit, current_mapping1)

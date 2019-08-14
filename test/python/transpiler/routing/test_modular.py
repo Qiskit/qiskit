@@ -34,7 +34,7 @@ from typing import List
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import Swap, util
 from qiskit.transpiler.routing.modular import permute, _distinct_permutation, _in_module
-from test.python.transpiler.routing.util import valid_parallel_swaps
+from .util import valid_parallel_swaps
 
 
 class TestPermuteModular(QiskitTestCase):

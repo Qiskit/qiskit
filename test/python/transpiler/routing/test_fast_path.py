@@ -38,7 +38,7 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util
 from qiskit.transpiler.routing.fast_path import permute_path, permute_path_partial
-from test.python.transpiler.routing.util import valid_parallel_swaps,valid_edge_swaps
+from .util import valid_parallel_swaps, valid_edge_swaps
 
 
 class TestFastPath(QiskitTestCase):
@@ -76,14 +76,14 @@ class TestFastPath(QiskitTestCase):
         valid_graph = nx.Graph()
         valid_graph.add_edges_from([(1, 0), (3, 2), (2, 1)])
         valid_edge_swaps(self, out, valid_graph)
-        self.assertListEqual([[(0,1),(2,3)],[(1,2)],[(0,1),(2,3)],[(1,2)]], out)
+        self.assertListEqual([[(0, 1), (2, 3)], [(1, 2)], [(0, 1), (2, 3)], [(1, 2)]], out)
 
     def test_path_arbitrary(self) -> None:
         """Test a permutation of arbitrary permutation"""
         out = list(permute_path({0: 3, 1: 0, 2: 4, 3: 2, 4: 1}))
 
         valid_parallel_swaps(self, out)
-        self.assertListEqual([[(0,1), (2,3)], [(1,2), (3,4)], [(2,3)], [(1,2)]], out)
+        self.assertListEqual([[(0, 1), (2, 3)], [(1, 2), (3, 4)], [(2, 3)], [(1, 2)]], out)
 
     def test_path_random(self) -> None:
         """Test a random permutation"""
@@ -166,23 +166,24 @@ class TestFastPath(QiskitTestCase):
     def test_faster_completions(self) -> None:
         """Test if the completion found by the partial permuter is (close to) the best."""
         path_length = 13
-        samples = 10**4
+        samples = 10 ** 4
 
         nodes = list(range(path_length))
-        for i in range(samples):
+        for _ in range(samples):
             partial_permutation = util.random_partial_permutation(nodes)
             print(partial_permutation)
             partial_swaps = permute_path_partial(partial_permutation, length=path_length)
             # Iterate over all possible completions
             completion_origins = list(set(nodes) - set(partial_permutation.keys()))
-            all_completion_destinations = itertools.permutations(set(nodes) - set(partial_permutation.values()))
+            all_completion_destinations = itertools.permutations(
+                set(nodes) - set(partial_permutation.values()))
             for completion_destinations in all_completion_destinations:
                 # Find the extra entries of the completion
                 completion = dict(zip(completion_origins, completion_destinations))
-                completion.update(partial_permutation) # Construct the permutation
+                completion.update(partial_permutation)  # Construct the permutation
                 complete_swaps = permute_path(completion)
 
-                self.assertLessEqual(len(list(partial_swaps))-1, len(list(complete_swaps)),
+                self.assertLessEqual(len(list(partial_swaps)) - 1, len(list(complete_swaps)),
                                      "The completion ({}) was faster than"
                                      "the partial permutation ({}).".format(completion,
                                                                             partial_permutation))

@@ -37,7 +37,7 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.routing import util
 from qiskit.transpiler.routing.path import permute_path, permute_path_partial
-from test.python.transpiler.routing.util import valid_parallel_swaps, valid_edge_swaps
+from .util import valid_parallel_swaps, valid_edge_swaps
 
 
 class TestPath(QiskitTestCase):
