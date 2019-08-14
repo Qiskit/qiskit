@@ -30,7 +30,7 @@ features:
                               coupling_map=coupling_map, optimization_level=0)
         qc.draw(output='text')
 
-	will yield a diagram like::
+    will yield a diagram like::
 
                           ┌──────────┐┌──────────┐┌───┐┌──────────┐┌──────────────────┐┌─┐
            (userqr0) q0|0>┤ U2(0,pi) ├┤ U2(0,pi) ├┤ X ├┤ U2(0,pi) ├┤ U3(pi,pi/2,pi/2) ├┤M├───
