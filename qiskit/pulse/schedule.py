@@ -100,9 +100,15 @@ class Schedule(ScheduleComponent):
         return self.__children
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
-        """Iterable for getting instructions from Schedule tree."""
-        return tuple(self._instructions())
+    def instructions(self) -> Tuple[Tuple[int, 'Instruction'], ...]:
+        """Get time-ordered instructions from Schedule tree."""
+
+        def key(time_inst_pair):
+            inst = time_inst_pair[1]
+            return (time_inst_pair[0], inst.duration,
+                    min(chan.index for chan in inst.channels))
+
+        return tuple(sorted(self._instructions(), key=key))
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return duration of schedule over supplied channels.
@@ -322,13 +328,47 @@ class Schedule(ScheduleComponent):
                                           interactive=interactive, table=table,
                                           label=label, framechange=framechange)
 
-    def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
-        return self.append(schedule)
+    def __eq__(self, other: ScheduleComponent) -> bool:
+        """Test if two ScheduleComponents are equal.
 
-    def __or__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule which is the union of `self` and `schedule`."""
-        return self.union(schedule)
+        Equality is checked by verifying there is an equal instruction at every time
+        in `other` for every instruction in this Schedule.
+
+        Warning: This does not check for logical equivalencly. Ie.,
+            ```python
+            >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
+                 Delay(20)(DriveChannel(0)))
+            False
+            ```
+        """
+        channels = set(self.channels)
+        other_channels = set(other.channels)
+
+        # first check channels are the same
+        if channels != other_channels:
+            return False
+
+        # then verify same number of instructions in each
+        instructions = self.instructions
+        other_instructions = other.instructions
+        if len(instructions) != len(other_instructions):
+            return False
+
+        # finally check each instruction in `other` is in this schedule
+        for idx, inst in enumerate(other_instructions):
+            # check assumes `Schedule.instructions` is sorted consistently
+            if instructions[idx] != inst:
+                return False
+
+        return True
+
+    def __add__(self, other: ScheduleComponent) -> 'Schedule':
+        """Return a new schedule with `other` inserted within `self` at `start_time`."""
+        return self.append(other)
+
+    def __or__(self, other: ScheduleComponent) -> 'Schedule':
+        """Return a new schedule which is the union of `self` and `other`."""
+        return self.union(other)
 
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by `time`."""
