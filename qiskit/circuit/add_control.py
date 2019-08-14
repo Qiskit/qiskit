@@ -31,13 +31,8 @@ def add_control(operation, num_ctrl_qubits, label):
             num_qubits + 2*num_ctrl_qubits - 1.
     """
     if _control_definition_known(operation, num_ctrl_qubits):
-        return _q_if_predefined(operation)
-    mode = 'aqua'
-    if mode == 'naive':
-        q_if_fn = q_if_naive
-    elif mode == 'aqua':
-        q_if_fn = q_if_aqua
-    return q_if_fn(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
+        return _q_if_predefined(operation, num_ctrl_qubits)
+    return q_if(operation, num_ctrl_qubits=num_ctrl_qubits, label=label)
 
 
 def _control_definition_known(operation, num_ctrl_qubits):
@@ -49,10 +44,16 @@ def _control_definition_known(operation, num_ctrl_qubits):
         return False
 
 
-def _q_if_predefined(operation):
-    if operation.name == 'x':
-        import qiskit.extensions.standard.cx
-        cgate = qiskit.extensions.standard.cx.CnotGate()
+def _q_if_predefined(operation, num_ctrl_qubits):
+    """Returns controlled gates with hard-coded definitions in
+    the standard extensions."""
+    if operation.name == 'x' and num_ctrl_qubits in [1, 2]:
+        if num_ctrl_qubits == 1:
+            import qiskit.extensions.standard.cx
+            cgate = qiskit.extensions.standard.cx.CnotGate()
+        else:
+            import qiskit.extensions.standard.ccx
+            cgate = qiskit.extensions.standard.ccx.ToffoliGate()
     elif operation.name == 'y':
         import qiskit.extensions.standard.cy
         cgate = qiskit.extensions.standard.cy.CyGate()
@@ -83,77 +84,8 @@ def _q_if_predefined(operation):
     return cgate
 
 
-def q_if_naive(operation, num_ctrl_qubits=1, label=None):
-    """Return controlled version of gate by recursively unrolling to {u3, cx} and
-    substituting cu3 and ccx.
-
-    Args:
-        operation (Gate or Controlledgate): gate to create ControlledGate from
-        num_ctrl_qubits (int): number of controls to add to gate (default=1)
-        label (str): optional gate label
-
-    Returns:
-        ControlledGate: controlled version of gate. This default algorithm
-            uses num_ctrl_qubits-1 ancillae qubits so returns a gate of size
-            num_qubits + 2*num_ctrl_qubits - 1.
-
-    Raises:
-        AttributeError: unrecognized gate from standard extensions
-        QiskitError: gate definition contains non-gate
-    """
-    basis_gates = {'u3', 'cx'}
-    # pylint: disable=cyclic-import
-    import qiskit.circuit.controlledgate as controlledgate
-    from qiskit.circuit.quantumregister import QuantumRegister
-    cgate = None
-    if not (hasattr(operation, 'definition') and operation.definition is not None):
-        if operation.name in ['u3', 'cx']:
-            cgate = operation.q_if()
-            return cgate.q_if(num_ctrl_qubits=num_ctrl_qubits-1)
-        else:
-            raise AttributeError('unexpected QASM base gate: {}'.format(operation.name))
-    elif hasattr(operation, 'definition') and operation.definition is not None:
-        definition = []
-        if num_ctrl_qubits > 0:
-            #  we need to add +1 control, unroll
-            bgate = _unroll_gate(operation, basis_gates)
-            qr = QuantumRegister(operation.num_qubits + 1)
-            for rule in bgate.definition:
-                if hasattr(rule[0], 'q_if'):
-                    bgate_bits = list(
-                        [qr[0]]
-                        + [qr[1 + bit.index] for bit in rule[1]])
-                    q_if_rule = (rule[0].q_if(), bgate_bits, [])
-                    definition.append(q_if_rule)
-                else:
-                    raise QiskitError('gate contains non-controllable intruction')
-            if isinstance(operation, controlledgate.ControlledGate):
-                # pylint: disable=no-member
-                this_num_ctrl_qubits = operation.num_ctrl_qubits
-            else:
-                this_num_ctrl_qubits = 1
-            cgate = controlledgate.ControlledGate(
-                'c{}'.format(operation.name),
-                operation.num_qubits+1,
-                operation.params,
-                label=label,
-                num_ctrl_qubits=this_num_ctrl_qubits,
-                definition=definition)
-            return cgate.q_if(num_ctrl_qubits=num_ctrl_qubits-1)
-        else:
-            # ok stop depth search
-            # pylint: inconsistent-return-statements
-            return operation
-    return controlledgate.ControlledGate(
-        'c{}'.format(operation.name),
-        operation.num_qubits+1,
-        operation.params,
-        label=label,
-        num_ctrl_qubits=this_num_ctrl_qubits)
-
-
-def q_if_aqua(operation, num_ctrl_qubits=1, label=None):
-    """Return controlled version of gate using controlled rotations from aqua
+def q_if(operation, num_ctrl_qubits=1, label=None):
+    """Return controlled version of gate using controlled rotations
 
     Args:
         operation (Gate or Controlledgate): gate to create ControlledGate from
@@ -167,6 +99,7 @@ def q_if_aqua(operation, num_ctrl_qubits=1, label=None):
     Raises:
         QiskitError: gate contains non-gate in definitionl
     """
+    from math import pi
     # pylint: disable=cyclic-import
     import qiskit.circuit.controlledgate as controlledgate
     from qiskit.circuit.quantumregister import QuantumRegister
@@ -176,25 +109,52 @@ def q_if_aqua(operation, num_ctrl_qubits=1, label=None):
     import qiskit.extensions.standard.multi_control_toffoli_gate
     import qiskit.extensions.standard.multi_control_u1_gate
 
-    bgate = _unroll_gate(operation, ['u3', 'cx'])
-    # now we have a bunch of single qubit rotation gates and cx
     q_control = QuantumRegister(num_ctrl_qubits)
     q_target = QuantumRegister(operation.num_qubits)
+    q_ancillae = None  # TODO: add
+
     qc = QuantumCircuit(q_control, q_target)
-    for rule in bgate.definition:
-        if rule[0].name == 'u3':
-            theta, phi, lamb = rule[0].params
-            qc.mcrz(lamb, q_control, q_target[rule[1][0].index], use_basis_gates=True)
-            qc.mcry(theta, q_control, q_target[rule[1][0].index], None, mode='noancilla',
-                    use_basis_gates=True)
-            qc.mcrz(phi, q_control, q_target[rule[1][0].index], use_basis_gates=True)
-        elif rule[0].name == 'cx':
-            qc.mct(q_control[:] + [q_target[rule[1][0].index]],
-                   q_target[rule[1][1].index],
-                   None,
-                   mode='noancilla')
-        else:
-            raise QiskitError('gate contains non-controllable intructions')
+
+    if operation.name == 'rx':
+        qc.mcrx(operation.definition[0][0].params[0], q_control, q_target[0],
+                use_basis_gates=True)
+    elif operation.name == 'ry':
+        qc.mcry(operation.definition[0][0].params[0], q_control, q_target[0],
+                q_ancillae, use_basis_gates=True)
+    elif operation.name == 'rz':
+        qc.mcrz(operation.definition[0][0].params[0], q_control, q_target[0],
+                use_basis_gates=True)
+    else:
+        bgate = _unroll_gate(operation, ['u1', 'u3', 'cx'])
+        # now we have a bunch of single qubit rotation gates and cx
+        for rule in bgate.definition:
+            if rule[0].name == 'u3':
+                theta, phi, lamb = rule[0].params
+                if phi == -pi/2 and lamb == pi/2:
+                    qc.mcrx(theta, q_control, q_target[rule[1][0].index],
+                            use_basis_gates=True)
+                elif phi == 0 and lamb == 0:
+                    qc.mcry(theta, q_control, q_target[rule[1][0].index],
+                            q_ancillae, mode='noancilla', use_basis_gates=True)
+                elif theta == 0 and phi == 0:
+                    qc.mcrz(lamb, q_control, q_target[rule[1][0].index],
+                            use_basis_gates=True)
+                else:
+                    qc.mcrz(lamb, q_control, q_target[rule[1][0].index],
+                            use_basis_gates=True)
+                    qc.mcry(theta, q_control, q_target[rule[1][0].index],
+                            q_ancillae, use_basis_gates=True)
+                    qc.mcrz(phi, q_control, q_target[rule[1][0].index],
+                            use_basis_gates=True)
+            elif rule[0].name == 'u1':
+                qc.mcu1(rule[0].params[0], q_control, q_target[rule[1][0].index])
+            elif rule[0].name == 'cx':
+                qc.mct(q_control[:] + [q_target[rule[1][0].index]],
+                       q_target[rule[1][1].index],
+                       None,
+                       mode='noancilla')
+            else:
+                raise QiskitError('gate contains non-controllable intructions')
     instr = qc.to_instruction()
     cgate = controlledgate.ControlledGate('c{0:d}{1}'.format(
         num_ctrl_qubits, operation.name),
