@@ -14,6 +14,7 @@
 
 """Test circuits with variable parameters."""
 
+import pickle
 from operator import add, sub, mul, truediv
 
 import numpy
@@ -21,9 +22,10 @@ import numpy
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Parameter, ParameterVector, ParameterExpression
-from qiskit.compiler import transpile
-from qiskit.compiler import assemble
+from qiskit.compiler import assemble, transpile
+from qiskit.execute import execute
 from qiskit.test import QiskitTestCase
+from qiskit.tools import parallel_map
 from qiskit.exceptions import QiskitError
 
 
@@ -295,6 +297,84 @@ class TestParameters(QiskitTestCase):
         for vec in paramvecs:
             for param in vec:
                 self.assertIn(param, qc_aer.parameters)
+
+    def test_parameter_equality_through_serialization(self):
+        """Verify parameters maintain their equality after serialization."""
+
+        # pylint: disable=invalid-name
+        x = Parameter('x')
+        x1 = Parameter('x')
+
+        x_p = pickle.loads(pickle.dumps(x))
+        x1_p = pickle.loads(pickle.dumps(x1))
+
+        self.assertEqual(x, x_p)
+        self.assertEqual(x1, x1_p)
+
+        self.assertNotEqual(x, x1_p)
+        self.assertNotEqual(x1, x_p)
+
+    def test_binding_parameterized_circuits_built_in_multiproc(self):
+        """Verify subcircuits built in a subprocess can still be bound."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/2429
+
+        num_processes = 4
+
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(3)
+
+        circuit = QuantumCircuit(qr, cr)
+        parameters = [Parameter('x{}'.format(i))
+                      for i in range(num_processes)]
+
+        results = parallel_map(_construct_circuit,
+                               [(param) for param in parameters],
+                               task_args=(qr,),
+                               num_processes=num_processes)
+
+        for qc in results:
+            circuit += qc
+
+        parameter_values = [{x: 1 for x in parameters}]
+
+        qobj = assemble(circuit,
+                        backend=BasicAer.get_backend('qasm_simulator'),
+                        parameter_binds=parameter_values)
+
+        self.assertEqual(len(qobj.experiments), 1)
+        self.assertEqual(len(qobj.experiments[0].instructions), 4)
+        self.assertTrue(all(len(inst.params) == 1
+                            and isinstance(inst.params[0], ParameterExpression)
+                            and float(inst.params[0]) == 1
+                            for inst in qobj.experiments[0].instructions))
+
+    def test_transpiling_multiple_parameterized_circuits(self):
+        """Verify several parameterized circuits can be transpiled at once."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/2864
+
+        qr = QuantumRegister(1)
+        qc1 = QuantumCircuit(qr)
+        qc2 = QuantumCircuit(qr)
+
+        theta = Parameter('theta')
+
+        qc1.u3(theta, 0, 0, qr[0])
+        qc2.u3(theta, 3.14, 0, qr[0])
+
+        circuits = [qc1, qc2]
+
+        job = execute(circuits,
+                      BasicAer.get_backend('unitary_simulator'),
+                      shots=512,
+                      parameter_binds=[{theta: 1}])
+
+        self.assertTrue(len(job.result().results), 2)
+
+
+def _construct_circuit(param, qr):
+    qc = QuantumCircuit(qr)
+    qc.ry(param, qr[0])
+    return qc
 
 
 class TestParameterExpressions(QiskitTestCase):
