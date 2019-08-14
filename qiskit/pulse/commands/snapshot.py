@@ -70,11 +70,12 @@ class Snapshot(Command, Instruction):
         Returns:
             bool: are self and other equal
         """
-        if (type(self) is type(other) and
+        return (super().__eq__(other) and
                 self.label == other.label and
-                self.type == other.type):
-            return True
-        return False
+                self.type == other.type)
+
+    def __hash__(self):
+        return hash((super().__hash__(), self.label, self.type))
 
     # pylint: disable=arguments-differ
     def to_instruction(self):
