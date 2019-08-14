@@ -16,6 +16,7 @@ environment:
     matrix:
         - PYTHON: C:\Python37
           TAG_SCENARIO: false
+          MPLBACKEND: ps
         - WHEEL: 1
           PYTHON: C:\Python35
           CIBW_BEFORE_BUILD: pip install -U Cython
