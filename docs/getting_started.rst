@@ -162,7 +162,7 @@ Step 4 : Visualize the Circuit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use ``QuantumCircuit.draw()`` to view the circuit that you have designed
-in the :ref:`various forms <Visualizing a Quantum Circuit>` used in many
+in the :ref:`various forms <Visualizing-a-Quantum-Circuit>` used in many
 textbooks and research articles.
 
 .. code-block:: python

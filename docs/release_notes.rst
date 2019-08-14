@@ -84,7 +84,7 @@ IBM Q Provider 0.3
 ==================
 
 The ``IBMQProvider`` has been updated in order to default to using the new
-`IBM Q Experience v2`_. Accessing the legacy IBM Q Experience v1 and QConsole
+`IBM Q Experience v2 <https://quantum-computing.ibm.com>`__. Accessing the legacy IBM Q Experience v1 and QConsole
 will still be supported during the 0.3.x line until its final deprecation one
 month from the release. It is encouraged to update to the new IBM Q
 Experience to take advantage of the new functionality and features.
@@ -106,7 +106,7 @@ are available:
 * the ``IBMQ.delete_accounts()`` can be used for resetting your configuration
   file.
 * the ``IBMQ.save_account('MY_TOKEN')`` method can be used for saving your
-  credentials, following the instructions in the `IBM Q Experience v2`_
+  credentials, following the instructions in the `IBM Q Experience v2 <https://quantum-computing.ibm.com>`__
   account page.
 
 Updating your programs
@@ -148,12 +148,8 @@ Would be equivalent to the following program in the current version::
     provider_2 = IBMQ.get_provider(hub='HUB2')
     backend_2 = provider_2.get_backend('ibmq_qasm_simulator')
 
-You can find more information and details in the `IBM Q Provider documentation`_.
+You can find more information and details in the `IBM Q Provider documentation <https://github.com/Qiskit/qiskit-ibmq-provider>`__.
 
-
-
-.. _IBM Q Experience v2: https://quantum-computing.ibm.com
-.. _IBM Q Provider documentation: https://github.com/Qiskit/qiskit-ibmq-provider
 
 ***********
 Qiskit 0.10
@@ -225,7 +221,7 @@ Highlights
 New Features
 ------------
 
-- The core ``StochasticSwap`` routine is implemented in `Cython`_.
+- The core ``StochasticSwap`` routine is implemented in `Cython <https://cython.org/>`__.
 - Added ``QuantumChannel`` classes for manipulating quantum channels and CPTP
   maps.
 - Support for parameterized circuits.
@@ -239,8 +235,6 @@ New Features
   ``NoiseAdaptiveLayout``, ``OptimizeSwapBeforeMeasure``,
   ``RemoveDiagonalGatesBeforeMeasure``, ``CommutativeCancellation``,
   ``Collect2qBlocks``, and ``ConsolidateBlocks``.
-
-.. _Cython: https://cython.org/
 
 
 Compatibility Considerations
@@ -292,7 +286,7 @@ Cython Components
 ^^^^^^^^^^^^^^^^^
 
 Starting in the 0.8 release the core stochastic swap routine is now implemented
-in `Cython`_. This was done to significantly improve the performance of the
+in `Cython <https://cython.org/>`__. This was done to significantly improve the performance of the
 swapper, however if you build Terra from source or run on a non-x86 or other
 platform without prebuilt wheels and install from source distribution you'll
 need to make sure that you have Cython installed prior to installing/building
