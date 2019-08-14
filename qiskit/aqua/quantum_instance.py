@@ -127,6 +127,14 @@ class QuantumInstance:
             'coupling_map': coupling_map
         }
 
+        if circuit_caching:
+            if optimization_level is None or optimization_level == 0:
+                optimization_level = 0
+            else:
+                circuit_caching = False
+                logger.warning('CircuitCache cannot be used with optimization_level {}. '
+                               'Caching has been disabled. To re-enable, please set '
+                               'optimization_level = 0 or None.'.format(optimization_level))
         # setup compile config
         self._compile_config = {
             'pass_manager': pass_manager,
