@@ -201,7 +201,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         qc2 = QuantumCircuit(qr)
         qc2.measure_all()
-        qc2.remove_final_measurements()
+        qc2.remove_final_measures()
 
         self.assertEqual(qc1, qc2)
 
