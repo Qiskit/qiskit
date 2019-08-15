@@ -78,7 +78,6 @@ Qiskit Elements
   API References <autodoc/qiskit>
   contributing_to_qiskit
   community
-  license
 
 .. Hiding - Indices and tables
    :ref:`genindex`
