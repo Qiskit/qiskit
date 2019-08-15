@@ -705,11 +705,11 @@ class QCircuitImage:
 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
-                        pos_array = [self.img_regs[(qarglist[0][0],
-                                                    qarglist[0][1])]]
+                        pos_array = [self.img_regs[(qarglist[0].register,
+                                                    qarglist[0].index)]]
                         for i in range(1, nbits):
-                            pos_array.append(self.img_regs[(qarglist[i][0],
-                                                            qarglist[i][1])])
+                            pos_array.append(self.img_regs[(qarglist[i].register,
+                                                            qarglist[i].index)])
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
                         delta = pos_stop - pos_start
