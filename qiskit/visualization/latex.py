@@ -367,7 +367,7 @@ class QCircuitImage:
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                    'save', 'noise']:
-                    nm = utf8tolatex(op.name).replace(" ", "\,")
+                    nm = utf8tolatex(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
