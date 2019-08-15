@@ -68,16 +68,16 @@ Qiskit Elements
 
   install
   getting_started
-  faq
   terra/index
   aer/index
   ignis/index
   aqua/index
   development_strategy
-  release_notes
-  API References <autodoc/qiskit>
   contributing_to_qiskit
   community
+  release_notes
+  faq
+  API References <autodoc/qiskit>
 
 .. Hiding - Indices and tables
    :ref:`genindex`
