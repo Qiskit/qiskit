@@ -785,7 +785,7 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        prm = '{}'.format(param)
+                        prm = str(param)
                         if len(prm) < 28:
                             self._gate(q_xy[0], wide=_iswide, text=disp,
                                        subtext=prm)
