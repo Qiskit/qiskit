@@ -812,7 +812,7 @@ class QuantumCircuit:
         a size equal to the number of non-idle qubits being measured."""
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         dag = circuit_to_dag(self)
-        qubits_to_measure = [wire for wire in dag.wires if wire not in dag.idle_wires()]
+        qubits_to_measure = [qubit for qubit in self.qubits if qubit not in dag.idle_wires()]
         new_creg = ClassicalRegister(len(qubits_to_measure), 'measure')
         self.add_register(new_creg)
         self.barrier()
@@ -831,6 +831,7 @@ class QuantumCircuit:
         """Removes final measurement gates on all qubits if they are present.
         Deletes the ClassicalRegister that was created to store the values from these measurements.
         """
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
         cregs_to_remove = set()
         for inst, _, cargs in reversed(self.data):
             if inst.name == 'measure':
@@ -842,6 +843,9 @@ class QuantumCircuit:
             else:
                 break
 
+        dag = circuit_to_dag(self)
+        cregs_to_remove = {creg.register for creg in dag.idle_wires()
+                           if creg.register in cregs_to_remove}
         for register in cregs_to_remove:
             self.cregs.remove(register)
 
