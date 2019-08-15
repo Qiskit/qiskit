@@ -779,8 +779,7 @@ class TextDrawing():
             layer.set_qubit(instruction.qargs[0], gate)
             layer.set_clbit(instruction.cargs[0], MeasureTo())
 
-        elif instruction.name in ['barrier', 'snapshot', 'save', 'load',
-                                  'noise']:
+        elif instruction.name in ['barrier', 'snapshot', 'save', 'load', 'noise']:
             # barrier
             if not self.plotbarriers:
                 return layer, current_cons, connection_label
@@ -865,7 +864,7 @@ class TextDrawing():
 
         else:
             raise VisualizationError(
-                "Text visualizer does not know how to handle this instruction", instruction)
+                "Text visualizer does not know how to handle this instruction: ", instruction.name)
 
         # sort into the order they were declared in
         # this ensures that connected boxes have lines in the right direction
