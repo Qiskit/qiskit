@@ -158,6 +158,53 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc, qc.copy())
 
+    def test_measure_active(self):
+        """Test measure_active applies measurements only to non-idle qubits. Creates a
+        ClassicalRegister of size equal to the amount of non-idle qubits to store the
+        measured values.
+        """
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(2, 'measure')
+        qc1 = QuantumCircuit(qr)
+        qc1.h(qr[0])
+        qc1.h(qr[2])
+        qc2 = qc1.copy()
+        qc1.add_register(cr)
+        qc1.barrier()
+        qc1.measure([qr[0], qr[2]], [cr[0], cr[1]])
+
+        qc2.measure_active()
+
+        self.assertEqual(qc1, qc2)
+
+    def test_measure_all(self):
+        """Test measure_all applies measurements to all qubits. Creates a ClassicalRegister
+        of size equal to the total amount of qubits to store those measured values.
+        """
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, 'measure')
+        qc1 = QuantumCircuit(qr, cr)
+        qc1.barrier()
+        qc1.measure(qr, cr)
+
+        qc2 = QuantumCircuit(qr)
+        qc2.measure_all()
+
+        self.assertEqual(qc1, qc2)
+
+    def test_remove_final_measurements(self):
+        """Test remove_final_measurement removes all measurements and deletes the ClassicalRegisters
+        the measurements would be stored in.
+        """
+        qr = QuantumRegister(2)
+        qc1 = QuantumCircuit(qr)
+
+        qc2 = QuantumCircuit(qr)
+        qc2.measure_all()
+        qc2.remove_final_measurements()
+
+        self.assertEqual(qc1, qc2)
+
 
 class TestCircuitBuilding(QiskitTestCase):
     """QuantumCircuit tests."""
