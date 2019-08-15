@@ -217,28 +217,17 @@ class TimeslotCollection:
         Args:
             other: TimeSlotCollection to merge
         """
-        for channel in other.channels:
-            ch_timeslots = self._table[channel]
-            other_ch_timeslots = other._table[channel]
-            # if channel is in self there might be an overlap
-            timeslot_idx = 0
-            if channel in self._table:
-                for other_ch_timeslot in other_ch_timeslots:
-                    insert_idx = self._merge_timeslot(other_ch_timeslot)
-
-                    timeslot_idx += 1
-                    # timeslot was inserted at end of list. Remaining timeslots can be appended.
-                    if insert_idx == len(self._table[channel]) - 1:
-                        break
-
-                ch_to_append = other_ch_timeslots[timeslot_idx:]
-
-            # otherwise directly insert
+        for channel, other_ch_timeslots in other._table.items():
+            if channel not in self._table:
+                self._table[channel] = other_ch_timeslots
             else:
-                ch_to_append = other_ch_timeslots
-
-            if ch_to_append:
-                ch_timeslots += ch_to_append
+                # if channel is in self there might be an overlap
+                for idx, other_ch_timeslot in enumerate(other_ch_timeslots):
+                    insert_idx = self._merge_timeslot(other_ch_timeslot)
+                    if insert_idx == len(self._table[channel]) - 1:
+                        # Timeslot was inserted at end of list. The rest can be appended.
+                        self._table[channel] += other_ch_timeslots[idx + 1:]
+                        break
 
     def _merge_timeslot(self, timeslot: Timeslot) -> int:
         """Mutably merge timeslots into this TimeslotCollection.
