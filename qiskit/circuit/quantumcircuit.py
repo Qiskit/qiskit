@@ -827,7 +827,7 @@ class QuantumCircuit:
         self.barrier()
         self.measure(self.qubits, new_creg)
 
-    def remove_final_measurements(self):
+    def remove_final_measures(self):
         """Removes final measurement gates on all qubits if they are present.
         Deletes the ClassicalRegister that was created to store the values from these measurements.
         """
