@@ -219,7 +219,7 @@ class TimeslotCollection:
         """
         for channel, other_ch_timeslots in other._table.items():
             if channel not in self._table:
-                self._table[channel] = other_ch_timeslots
+                self._table[channel] += other_ch_timeslots  # extend to copy items
             else:
                 # if channel is in self there might be an overlap
                 for idx, other_ch_timeslot in enumerate(other_ch_timeslots):
