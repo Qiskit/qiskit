@@ -192,7 +192,7 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc1, qc2)
 
-    def test_remove_final_measurements(self):
+    def test_remove_final_measures(self):
         """Test remove_final_measurement removes all measurements and deletes the ClassicalRegisters
         the measurements would be stored in.
         """
