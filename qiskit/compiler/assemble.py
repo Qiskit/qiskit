@@ -75,16 +75,20 @@ def assemble(experiments,
             Random seed to control sampling, for when backend is a simulator
 
         qubit_lo_freq (list):
-            List of default qubit lo frequencies
+            List of default qubit lo frequencies. Will be overridden by
+            `schedule_los` if set.
 
         meas_lo_freq (list):
-            List of default meas lo frequencies
+            List of default meas lo frequencies. Will be overridden by
+            `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive lo ranges
+            List of drive lo ranges used to validate that the supplied qubit los
+            are valid.
 
         meas_lo_range (list):
-            List of meas lo ranges
+            List of meas lo ranges used to validate that the supplied measurement los
+            are valid.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
@@ -242,11 +246,11 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
                     for lo_config in schedule_los]
 
-    qubit_lo_freq = qubit_lo_freq or getattr(backend_default, 'qubit_freq_est', [])
-    meas_lo_freq = meas_lo_freq or getattr(backend_default, 'meas_freq_est', [])
+    qubit_lo_freq = qubit_lo_freq or getattr(backend_default, 'qubit_freq_est', None)
+    meas_lo_freq = meas_lo_freq or getattr(backend_default, 'meas_freq_est', None)
 
-    qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', [])
-    meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', [])
+    qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
+    meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
 
     rep_time = rep_time or getattr(backend_config, 'rep_times', None)
     if isinstance(rep_time, list):

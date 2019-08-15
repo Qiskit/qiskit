@@ -39,16 +39,27 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         instruction_converter = InstructionToQobjConverter
 
     qobj_config = run_config.to_dict()
-    qubit_lo_range = qobj_config.pop('qubit_lo_range')
-    meas_lo_range = qobj_config.pop('meas_lo_range')
+
+    qubit_lo_freq = qobj_config.get('qubit_lo_freq', None)
+    if qubit_lo_freq is None:
+        raise QiskitError('qubit_lo_freq must be supplied.')
+
+    meas_lo_freq = qobj_config.get('meas_lo_freq', None)
+    if meas_lo_freq is None:
+        raise QiskitError('meas_lo_freq must be supplied.')
+
+    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
+    meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
 
     max_memory_slot = 0
 
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
-    lo_converter = LoConfigConverter(PulseQobjExperimentConfig, qubit_lo_range=qubit_lo_range,
-                                     meas_lo_range=meas_lo_range, **qobj_config)
+    lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
+                                     qubit_lo_range=qubit_lo_range,
+                                     meas_lo_range=meas_lo_range,
+                                     **qobj_config)
 
     # Pack everything into the Qobj
     qobj_schedules = []

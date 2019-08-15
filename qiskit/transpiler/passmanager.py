@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 # This code is part of Qiskit.
 #
 # (C) Copyright IBM 2017, 2018.
@@ -26,7 +27,7 @@ from .basepasses import BasePass
 from .fencedobjs import FencedPropertySet, FencedDAGCircuit
 from .exceptions import TranspilerError
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class PassManager():
@@ -35,8 +36,7 @@ class PassManager():
     def __init__(self, passes=None,
                  max_iteration=None,
                  callback=None):
-        """
-        Initialize an empty PassManager object (with no passes scheduled).
+        """Initialize an empty PassManager object (with no passes scheduled).
 
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule. The default is
@@ -95,10 +95,11 @@ class PassManager():
             self.append(passes)
 
     def _join_options(self, passset_options):
-        """Set the options of each passset, based on precedence rules:
-        passset options (set via ``PassManager.append()``) override
-        passmanager options (set via ``PassManager.__init__()``), which override Default.
-        .
+        """Set the options of each passset, based on precedence rules.
+
+        Precedence rules:
+            * passset options (set via ``PassManager.append()``) override
+            * passmanager options (set via ``PassManager.__init__()``), which override Default.
         """
         default = {'max_iteration': 1000}  # Maximum allowed iteration on this pass
 
@@ -107,7 +108,8 @@ class PassManager():
         return {**default, **passmanager_level, **passset_level}
 
     def append(self, passes, max_iteration=None, **flow_controller_conditions):
-        """
+        """Append a Pass to the schedule of passes.
+
         Args:
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule
             max_iteration (int): max number of iterations of passes. Default: 1000
@@ -125,7 +127,6 @@ class PassManager():
         Raises:
             TranspilerError: if a pass in passes is not a proper pass.
         """
-
         passset_options = {'max_iteration': max_iteration}
 
         options = self._join_options(passset_options)
@@ -147,7 +148,7 @@ class PassManager():
             FlowController.controller_factory(passes, options, **flow_controller_conditions))
 
     def reset(self):
-        """ "Resets the pass manager instance """
+        """Reset the pass manager instance"""
         self.valid_passes = set()
         self.property_set.clear()
 
@@ -176,7 +177,7 @@ class PassManager():
         return circuit
 
     def draw(self, filename, style=None, raw=False):
-        """ Draw the pass manager"""
+        """Draw the pass manager"""
         pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
     def _do_pass(self, pass_, dag, options):
@@ -249,7 +250,7 @@ class PassManager():
     def _log_pass(self, start_time, end_time, name):
         log_msg = "Pass: %s - %.5f (ms)" % (
             name, (end_time - start_time) * 1000)
-        LOG.info(log_msg)
+        logger.info(log_msg)
 
     def _update_valid_passes(self, pass_):
         self.valid_passes.add(pass_)
@@ -257,8 +258,7 @@ class PassManager():
             self.valid_passes.intersection_update(set(pass_.preserves))
 
     def passes(self):
-        """
-        Returns a list structure of the appended passes and its options.
+        """Return a list structure of the appended passes and its options.
 
         Returns (list): The appended passes.
         """
@@ -269,8 +269,11 @@ class PassManager():
 
 
 class FlowController():
-    """This class is a base class for multiple types of working list. When you iterate on it, it
-    returns the next pass to run. """
+    """Base class for multiple types of working list.
+
+    This class is a base class for multiple types of working list. When you iterate on it, it
+    returns the next pass to run.
+    """
 
     registered_controllers = OrderedDict()
 
@@ -284,10 +287,10 @@ class FlowController():
             yield pass_
 
     def dump_passes(self):
-        """
-        Fetches the passes added to this flow controller.
+        """Fetches the passes added to this flow controller.
 
-        Returns (dict): {'options': self.options, 'passes': [passes], 'type': type(self)}
+        Returns:
+             dict: {'options': self.options, 'passes': [passes], 'type': type(self)}
         """
         ret = {'options': self.options, 'passes': [], 'type': type(self)}
         for pass_ in self._passes:
@@ -299,8 +302,8 @@ class FlowController():
 
     @classmethod
     def add_flow_controller(cls, name, controller):
-        """
-        Adds a flow controller.
+        """Adds a flow controller.
+
         Args:
             name (string): Name of the controller to add.
             controller (type(FlowController)): The class implementing a flow controller.
@@ -309,8 +312,8 @@ class FlowController():
 
     @classmethod
     def remove_flow_controller(cls, name):
-        """
-        Removes a flow controller.
+        """Removes a flow controller.
+
         Args:
             name (string): Name of the controller to remove.
         Raises:
@@ -322,8 +325,7 @@ class FlowController():
 
     @classmethod
     def controller_factory(cls, passes, options, **partial_controller):
-        """
-        Constructs a flow controller based on the partially evaluated controller arguments.
+        """Constructs a flow controller based on the partially evaluated controller arguments.
 
         Args:
             passes (list[BasePass]): passes to add to the flow controller.

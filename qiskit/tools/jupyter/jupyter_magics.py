@@ -18,9 +18,11 @@ import time
 import threading
 from IPython.display import display                              # pylint: disable=import-error
 from IPython.core import magic_arguments                         # pylint: disable=import-error
-from IPython.core.magic import cell_magic, Magics, magics_class  # pylint: disable=import-error
+from IPython.core.magic import (cell_magic, line_magic,
+                                Magics, magics_class)            # pylint: disable=import-error
+
 try:
-    import ipywidgets as widgets           # pylint: disable=import-error
+    import ipywidgets as widgets                                 # pylint: disable=import-error
 except ImportError:
     raise ImportError('These functions  need ipywidgets. '
                       'Run "pip install ipywidgets" before.')
@@ -162,7 +164,7 @@ class StatusMagic(Magics):
 class ProgressBarMagic(Magics):
     """A class of progress bar magic functions.
     """
-    @cell_magic
+    @line_magic
     @magic_arguments.magic_arguments()
     @magic_arguments.argument(
         '-t',
@@ -171,15 +173,15 @@ class ProgressBarMagic(Magics):
         default='html',
         help="Type of progress bar, 'html' or 'text'."
     )
-    def qiskit_progress_bar(self, line='', cell=None):
+    def qiskit_progress_bar(self, line='', cell=None):  # pylint: disable=unused-argument
         """A Jupyter magic function to generate progressbar.
         """
         args = magic_arguments.parse_argstring(self.qiskit_progress_bar, line)
         if args.type == 'html':
-            HTMLProgressBar()
+            pbar = HTMLProgressBar()
         elif args.type == 'text':
-            TextProgressBar()
+            pbar = TextProgressBar()
         else:
             raise qiskit.QiskitError('Invalid progress bar type.')
 
-        self.shell.ex(cell)
+        return pbar
