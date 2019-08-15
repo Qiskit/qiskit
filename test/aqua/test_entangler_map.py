@@ -12,13 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Test Entangler Map """
+
 import unittest
 
 from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
 from test.aqua.common import QiskitAquaTestCase
 
 
-class TestEngtanlerMap(QiskitAquaTestCase):
+class TestEntanglerMap(QiskitAquaTestCase):
 
     def test_map_type_linear(self):
         ref_map = [[0, 1], [1, 2], [2, 3]]

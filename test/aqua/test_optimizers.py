@@ -12,11 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import unittest
+""" Test Optimizers """
 
+import unittest
 from scipy.optimize import rosen
 import numpy as np
-
 from test.aqua.common import QiskitAquaTestCase
 from qiskit.aqua.components.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, NELDER_MEAD,
                                                POWELL, SLSQP, SPSA, TNC)

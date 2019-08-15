@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Test Shor """
+
 import unittest
 import math
 from parameterized import parameterized
