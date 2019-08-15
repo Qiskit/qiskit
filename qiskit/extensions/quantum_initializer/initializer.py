@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,10 +24,15 @@ from qiskit.exceptions import QiskitError
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
+from qiskit.circuit.decorators import _convert_to_bits
 from qiskit.extensions.standard.cx import CnotGate
 from qiskit.extensions.standard.ry import RYGate
 from qiskit.extensions.standard.rz import RZGate
-from qiskit.circuit.reset import Reset
+# Reset not needed anymore
+# from qiskit.circuit.reset import Reset
+
+# add transpile
+from qiskit.compiler import transpile
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -59,6 +64,12 @@ class Initialize(Instruction):
         num_qubits = int(num_qubits)
 
         super().__init__("initialize", num_qubits, 0, params)
+        
+        #It was not clear in the previous version where _define() is actually
+        #called, this happened only when append() is called in the last 
+        #line of initialize
+        
+        self._define()
 
     def _define(self):
         """Calculate a subcircuit that implements this initialization
@@ -67,21 +78,43 @@ class Initialize(Instruction):
         from "Synthesis of Quantum Logic Circuits" Shende, Bullock, Markov
         https://arxiv.org/abs/quant-ph/0406176v5
 
-        Additionally implements some extra optimizations: remove zero rotations and
-        double cnots.
         """
+        
         # call to generate the circuit that takes the desired vector to zero
         disentangling_circuit = self.gates_to_uncompute()
 
         # invert the circuit to create the desired vector from zero (assuming
         # the qubits are in the zero state)
-        initialize_instr = disentangling_circuit.to_instruction().inverse()
+        
+        # In the previous version initialize_circuit was converted to an 
+        # instruction, and then a new circuit with qubits in the |0> state 
+        # was built from that instruction.
+        # Since QuantumCircuits initialize all quantum registers 
+        # by default in |0>, application of initialize to 
+        # a quantum circuit object results in |0> -- |0> --[circuit] 
+        # (i.e., repeated state |0>)
+        # Suggested solution: invert disentangling_circuit directly 
+        # and save conversion to instruction:
+        
+        initialize_circuit = disentangling_circuit.inverse()
+        
+        #q = QuantumRegister(self.num_qubits, 'q')
+        #initialize_circuit = QuantumCircuit(q, name='init_def')
+        #for qubit in q:
+        #    initialize_circuit.append(Reset(), [qubit])
+        #initialize_circuit.append(initialize_instr, q[:])
+        
+        # If one applied decompose() to the initializer circuit of the previous 
+        # version, only the top layer of the nested circuits were decomposed. 
+        # The suggested version resolves this, i.e., applying decompose() 
+        # on the initializer circuit now shows the full circuit.
+        # With "optimization_level = 2" the transpiler also automatically 
+        # removes unnecessary cnots:
+        
+        BASIS_GATES = ['cx', 'ry', 'rz']
 
-        q = QuantumRegister(self.num_qubits, 'q')
-        initialize_circuit = QuantumCircuit(q, name='init_def')
-        for qubit in q:
-            initialize_circuit.append(Reset(), [qubit])
-        initialize_circuit.append(initialize_instr, q[:])
+        initialize_circuit = transpile(initialize_circuit, basis_gates = BASIS_GATES
+                                       , optimization_level=2)
 
         self.definition = initialize_circuit.data
 
@@ -238,20 +271,14 @@ class Initialize(Instruction):
 
         return circuit
 
-    def broadcast_arguments(self, qargs, cargs):
-        flat_qargs = [qarg for sublist in qargs for qarg in sublist]
-
-        if self.num_qubits != len(flat_qargs):
-            raise QiskitError("Initialize parameter vector has %d elements, therefore expects %s "
-                              "qubits. However, %s were provided." %
-                              (2**self.num_qubits, self.num_qubits, len(flat_qargs)))
-        yield flat_qargs, []
-
 
 def initialize(self, params, qubits):
     """Apply initialize to circuit."""
-    if not isinstance(qubits, list):
-        qubits = [qubits]
+    if isinstance(qubits, QuantumRegister):
+        qubits = qubits[:]
+    else:
+        qubits = _convert_to_bits([qubits], [qbit for qreg in self.qregs for qbit in qreg])[0]
+        
     return self.append(Initialize(params), qubits)
 
 
