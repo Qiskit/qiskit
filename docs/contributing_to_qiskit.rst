@@ -18,7 +18,6 @@ where you can find the individual projects that make up Qiskit, including
 * `Qiskit Aer <https://github.com/Qiskit/qiskit-aer>`__
 * `Qiskit Ignis <https://github.com/Qiskit/qiskit-ignis>`__
 * `Qiskit Aqua <https://github.com/Qiskit/qiskit-aqua>`__
-* `Qiskit Chemistry <https://github.com/Qiskit/qiskit-chemistry>`__
 * `Qiskit IBMQ Provider <https://github.com/Qiskit/qiskit-ibmq-provider>`__
 * `Qiskit Tutorials <https://github.com/Qiskit/qiskit-tutorials>`__
 * `Qiskit Documentation <https://github.com/Qiskit/qiskit/tree/master/docs>`__
@@ -110,7 +109,7 @@ require using the ``development`` version of the rest of the items as well.
 .. note::
 
   The Terra and Aer packages both require a compiler to build from source before
-  you can install. Ignis, Aqua, Qiskit Chemistry, and the IBM Q provider backend
+  you can install. Ignis, Aqua and the IBM Q provider backend
   do not require a compiler.
 
 Installing elements from source requires the following order of installation to
@@ -123,7 +122,6 @@ pip version is behind the source versions:
 #. qiskit-aer
 #. qiskit-ignis
 #. qiskit-aqua
-#. qiskit-chemistry
 
 To work with several components and elements simultaneously, use the following
 steps for each element.
@@ -632,42 +630,6 @@ Installing Aqua from Source
       pip install -r requirements-dev.txt
 
 4. Install aqua
-
-   .. code:: sh
-
-      pip install .
-
-If you want to install it in editable mode, meaning that code changes to the
-project don't require a reinstall to be applied you can do this with:
-
-.. code:: sh
-
-    pip install -e .
-
-Install Chemistry from Source
------------------------------
-
-1. Clone the qiskit-chemistry repository.
-
-   .. code:: sh
-
-     git clone https://github.com/Qiskit/qiskit-chemistry.git
-
-2. Cloning the repository creates a local directory called ``qiskit-chemistry``.
-
-   .. code:: sh
-
-      cd qiskit-chemistry
-
-3. If you want to run tests or linting checks, install the developer requirements.
-   This is not required to install or use the qiskit-chemistry package when
-   installing from source.
-
-   .. code:: sh
-
-      pip install -r requirements-dev.txt
-
-4. Install qiskit-chemistry
 
    .. code:: sh
 
