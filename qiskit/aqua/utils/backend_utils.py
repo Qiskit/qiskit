@@ -273,8 +273,8 @@ def get_local_providers():
     for provider in ['qiskit.Aer', 'qiskit.BasicAer']:
         try:
             providers[provider] = get_backends_from_provider(provider)
-        except Exception as e:
-            logger.debug("'{}' not loaded: '{}'.".format(provider, str(e)))
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.debug("'{}' not loaded: '{}'.".format(provider, str(ex)))
 
     return providers
 
