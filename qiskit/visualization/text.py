@@ -861,7 +861,6 @@ class TextDrawing():
             if params:
                 label += "(%s)" % ','.join(params)
             layer.set_qu_multibox(instruction.qargs, label, conditional=conditional)
-
         else:
             raise VisualizationError(
                 "Text visualizer does not know how to handle this instruction: ", instruction.name)
@@ -938,9 +937,9 @@ class Layer:
         """
         self.clbit_layer[self.cregs.index(clbit)] = element
 
-    def _set_multibox(self, wire_type, bits, label, top_connect=None, conditional=False):
-        bits = list(bits)
-        if wire_type == "cl":
+    def _set_multibox(self, label, qubits=None, clbits=None, top_connect=None, conditional=False):
+        if qubits is None and not clbits is None:
+            bits = list(clbits)
             bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
             bits.sort(key=self.cregs.index)
             qargs = [''] * len(bits)
@@ -949,7 +948,8 @@ class Layer:
             BoxOnWireTop = BoxOnClWireTop
             BoxOnWireMid = BoxOnClWireMid
             BoxOnWireBot = BoxOnClWireBot
-        elif wire_type == "qu":
+        elif clbits is None and not qubits is None:
+            bits = list(qubits)
             bit_index = sorted([i for i, x in enumerate(self.qregs) if x in bits])
             qargs = [str(bits.index(qbit)) for qbit in self.qregs if qbit in bits]
             bits.sort(key=self.qregs.index)
@@ -987,7 +987,7 @@ class Layer:
             top_connect (char): The char to connect the box on the top.
         """
         clbit = [bit for bit in self.cregs if bit.register == creg]
-        self._set_multibox("cl", clbit, label, top_connect=top_connect)
+        self._set_multibox(label, clbits=clbit, top_connect=top_connect)
 
     def set_qu_multibox(self, bits, label, conditional=False):
         """
@@ -997,7 +997,7 @@ class Layer:
             label (string): The label for the multi qubit box.
             conditional (bool): If the box has a conditional
         """
-        self._set_multibox("qu", bits, label, conditional=conditional)
+        self._set_multibox(label, qubits=bits, conditional=conditional)
 
     def connect_with(self, wire_char):
         """
