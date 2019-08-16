@@ -12,15 +12,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Test Entangler Map """
+
 import unittest
-
-from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
 from test.aqua.common import QiskitAquaTestCase
+from qiskit.aqua.utils import get_entangler_map, validate_entangler_map
 
 
-class TestEngtanlerMap(QiskitAquaTestCase):
-
+class TestEntanglerMap(QiskitAquaTestCase):
+    """ Test Entangler Map """
     def test_map_type_linear(self):
+        """ ,ap type linear test """
         ref_map = [[0, 1], [1, 2], [2, 3]]
         entangler_map = get_entangler_map('linear', 4)
 
@@ -29,6 +31,7 @@ class TestEngtanlerMap(QiskitAquaTestCase):
             self.assertEqual(ref_targ, exp_targ)
 
     def test_map_type_full(self):
+        """ map type full test """
         ref_map = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]]
         entangler_map = get_entangler_map('full', 4)
 
@@ -37,6 +40,7 @@ class TestEngtanlerMap(QiskitAquaTestCase):
             self.assertEqual(ref_targ, exp_targ)
 
     def test_validate_entangler_map(self):
+        """ validate entangler map test """
         valid_map = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]]
         self.assertTrue(validate_entangler_map(valid_map, 4))
 

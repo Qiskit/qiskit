@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Test Op Converter """
+
 import unittest
 import itertools
-
+from test.aqua.common import QiskitAquaTestCase
 import numpy as np
 from qiskit.quantum_info import Pauli
-
-from test.aqua.common import QiskitAquaTestCase
 from qiskit.aqua import aqua_globals
 from qiskit.aqua.operators import op_converter, WeightedPauliOperator, MatrixOperator
 
@@ -36,11 +36,13 @@ class TestOpConverter(QiskitAquaTestCase):
         m_size = np.power(2, self.num_qubits)
         matrix = np.random.rand(m_size, m_size)
         self.mat_op = MatrixOperator(matrix=matrix)
-        paulis = [Pauli.from_label(pauli_label) for pauli_label in itertools.product('IXYZ', repeat=self.num_qubits)]
+        paulis = [Pauli.from_label(pauli_label)
+                  for pauli_label in itertools.product('IXYZ', repeat=self.num_qubits)]
         weights = np.random.random(len(paulis))
         self.pauli_op = WeightedPauliOperator.from_list(paulis, weights)
 
     def test_to_weighted_pauli_operator(self):
+        """ to weighted pauli operator """
         mat_op = op_converter.to_matrix_operator(self.pauli_op)
         pauli_op = op_converter.to_weighted_pauli_operator(mat_op)
         pauli_op.rounding(8)
@@ -48,6 +50,7 @@ class TestOpConverter(QiskitAquaTestCase):
         self.assertEqual(pauli_op, self.pauli_op)
 
     def test_to_matrix_operator(self):
+        """ to matrix operator """
         pauli_op = op_converter.to_weighted_pauli_operator(self.mat_op)
         mat_op = op_converter.to_matrix_operator(pauli_op)
         diff = float(np.sum(np.abs(self.mat_op.matrix - mat_op.matrix)))

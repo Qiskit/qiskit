@@ -12,13 +12,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Test Matrix Operators """
+
 import unittest
-
-import numpy as np
-
 from test.aqua.common import QiskitAquaTestCase
-from qiskit.aqua import aqua_globals
+import numpy as np
 from qiskit.aqua.operators import MatrixOperator
+from qiskit.aqua import aqua_globals
 
 
 class TestMatrixOperator(QiskitAquaTestCase):
@@ -36,11 +36,13 @@ class TestMatrixOperator(QiskitAquaTestCase):
         self.qubit_op = MatrixOperator(matrix=matrix)
 
     def test_num_qubits(self):
+        """ num qubits test """
         op = MatrixOperator(matrix=np.zeros((2, 2)))
         self.assertEqual(op.num_qubits, 0)
         self.assertEqual(self.qubit_op.num_qubits, self.num_qubits)
 
     def test_is_empty(self):
+        """ is empty test """
         op = MatrixOperator(matrix=np.zeros((2, 2)))
         self.assertTrue(op.is_empty())
         self.assertFalse(self.qubit_op.is_empty())
