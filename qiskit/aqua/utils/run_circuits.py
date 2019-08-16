@@ -258,12 +258,12 @@ def _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_va
         try:
             job_id = job.job_id()
             break
-        except JobError as e:
+        except JobError as ex:
             logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id."
-                           "Terra job error: {} ".format(e))
-        except Exception as e:
+                           "Terra job error: {} ".format(ex))
+        except Exception as ex:  # pylint: disable=broad-except
             logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id."
-                           "Error: {} ".format(e))
+                           "Error: {} ".format(ex))
 
     return job, job_id
 
@@ -274,15 +274,15 @@ def _safe_get_job_status(job, job_id):
         try:
             job_status = job.status()
             break
-        except JobError as e:
+        except JobError as ex:
             logger.warning("FAILURE: job id: {}, "
                            "status: 'FAIL_TO_GET_STATUS' "
-                           "Terra job error: {}".format(job_id, e))
+                           "Terra job error: {}".format(job_id, ex))
             time.sleep(5)
-        except Exception as e:
+        except Exception as ex:  # pylint: disable=broad-except
             raise AquaError("FAILURE: job id: {}, "
                             "status: 'FAIL_TO_GET_STATUS' "
-                            "Unknown error: ({})".format(job_id, e)) from e
+                            "Unknown error: ({})".format(job_id, ex)) from ex
     return job_status
 
 
