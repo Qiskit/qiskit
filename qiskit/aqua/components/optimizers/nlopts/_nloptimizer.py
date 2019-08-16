@@ -30,9 +30,9 @@ def check_pluggable_valid(name):
         spec = importlib.util.find_spec('nlopt')
         if spec is not None:
             return
-    except Exception as e:
-        logger.debug('{} {}'.format(err_msg, str(e)))
-        raise AquaError(err_msg) from e
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.debug('{} {}'.format(err_msg, str(ex)))
+        raise AquaError(err_msg) from ex
 
     raise AquaError(err_msg)
 

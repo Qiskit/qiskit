@@ -460,8 +460,8 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
     def test_evaluate_with_aer_mode(self):
         try:
             from qiskit import Aer
-        except Exception as e:
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(e)))
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
         statevector_simulator = Aer.get_backend('statevector_simulator')

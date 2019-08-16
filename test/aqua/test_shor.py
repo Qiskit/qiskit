@@ -16,11 +16,11 @@
 
 import unittest
 import math
+from test.aqua.common import QiskitAquaTestCase
 from parameterized import parameterized
 from qiskit import BasicAer
 from qiskit.aqua import run_algorithm, QuantumInstance, AquaError
 from qiskit.aqua.algorithms import Shor
-from test.aqua.common import QiskitAquaTestCase
 
 
 class TestShor(QiskitAquaTestCase):
@@ -29,14 +29,15 @@ class TestShor(QiskitAquaTestCase):
     @parameterized.expand([
         [15, 'qasm_simulator', [3, 5]],
     ])
-    def test_shor_factoring(self, N, backend, factors):
+    def test_shor_factoring(self, n_v, backend, factors):
+        """ shor factoring test """
         params = {
             'problem': {
                 'name': 'factoring',
             },
             'algorithm': {
                 'name': 'Shor',
-                'N': N,
+                'N': n_v,
             },
             'backend': {
                 'shots': 1000,
@@ -49,8 +50,9 @@ class TestShor(QiskitAquaTestCase):
         [5],
         [7],
     ])
-    def test_shor_no_factors(self, N):
-        shor = Shor(N)
+    def test_shor_no_factors(self, n_v):
+        """ shor no factors test """
+        shor = Shor(n_v)
         backend = BasicAer.get_backend('qasm_simulator')
         quantum_instance = QuantumInstance(backend, shots=1000)
         ret = shor.run(quantum_instance)
@@ -61,8 +63,9 @@ class TestShor(QiskitAquaTestCase):
         [5, 3],
     ])
     def test_shor_power(self, base, power):
-        N = int(math.pow(base, power))
-        shor = Shor(N)
+        """ shor power test """
+        n_v = int(math.pow(base, power))
+        shor = Shor(n_v)
         backend = BasicAer.get_backend('qasm_simulator')
         quantum_instance = QuantumInstance(backend, shots=1000)
         ret = shor.run(quantum_instance)
@@ -76,9 +79,10 @@ class TestShor(QiskitAquaTestCase):
         [4],
         [16],
     ])
-    def test_shor_bad_input(self, N):
+    def test_shor_bad_input(self, n_v):
+        """ shor bad input test """
         with self.assertRaises(AquaError):
-            Shor(N)
+            Shor(n_v)
 
 
 if __name__ == '__main__':

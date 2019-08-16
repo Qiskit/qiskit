@@ -16,11 +16,9 @@
 
 import unittest
 import time
-
+from test.aqua.common import QiskitAquaTestCase
 import numpy as np
 from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
-
-from test.aqua.common import QiskitAquaTestCase
 from qiskit.aqua.components.oracles import LogicalExpressionOracle
 from qiskit.aqua import QuantumInstance, aqua_globals
 from qiskit.aqua.algorithms import Grover
@@ -32,17 +30,18 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
     def setUp(self):
         super().setUp()
         try:
-            from qiskit import Aer
-        except Exception as e:
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(e)))
+            from qiskit import Aer  # pylint: disable=unused-import
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
     def test_measurement_error_mitigation(self):
+        """ measurement error mitigation test """
         try:
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except Exception as e:
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(e)))
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
         aqua_globals.random_seed = 0
@@ -56,29 +55,32 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         quantum_instance = QuantumInstance(backend=backend, seed_simulator=167, seed_transpiler=167,
                                            noise_model=noise_model)
 
-        quantum_instance_with_mitigation = QuantumInstance(backend=backend, seed_simulator=167, seed_transpiler=167,
-                                                           noise_model=noise_model,
-                                                           measurement_error_mitigation_cls=CompleteMeasFitter)
-
-        input = 'a & b & c'
-        oracle = LogicalExpressionOracle(input)
+        qi_with_mitigation = \
+            QuantumInstance(backend=backend,
+                            seed_simulator=167,
+                            seed_transpiler=167,
+                            noise_model=noise_model,
+                            measurement_error_mitigation_cls=CompleteMeasFitter)
+        oracle = LogicalExpressionOracle('a & b & c')
         grover = Grover(oracle)
 
         result_wo_mitigation = grover.run(quantum_instance)
-        prob_top_measurement_wo_mitigation = result_wo_mitigation['measurement'][
+        prob_top_meas_wo_mitigation = result_wo_mitigation['measurement'][
             result_wo_mitigation['top_measurement']]
 
-        result_w_mitigation = grover.run(quantum_instance_with_mitigation)
-        prob_top_measurement_w_mitigation = result_w_mitigation['measurement'][result_w_mitigation['top_measurement']]
+        result_w_mitigation = grover.run(qi_with_mitigation)
+        prob_top_meas_w_mitigation = \
+            result_w_mitigation['measurement'][result_w_mitigation['top_measurement']]
 
-        self.assertGreaterEqual(prob_top_measurement_w_mitigation, prob_top_measurement_wo_mitigation)
+        self.assertGreaterEqual(prob_top_meas_w_mitigation, prob_top_meas_wo_mitigation)
 
     def test_measurement_error_mitigation_auto_refresh(self):
+        """ measurement error mitigation auto refresh test """
         try:
             from qiskit import Aer
             from qiskit.providers.aer import noise
-        except Exception as e:
-            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(e)))
+        except Exception as ex:  # pylint: disable=broad-except
+            self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
         aqua_globals.random_seed = 0
@@ -89,12 +91,13 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         noise_model.add_all_qubit_readout_error(read_err)
 
         backend = Aer.get_backend('qasm_simulator')
-        quantum_instance = QuantumInstance(backend=backend, seed_simulator=1679, seed_transpiler=167,
+        quantum_instance = QuantumInstance(backend=backend,
+                                           seed_simulator=1679,
+                                           seed_transpiler=167,
                                            noise_model=noise_model,
                                            measurement_error_mitigation_cls=CompleteMeasFitter,
                                            cals_matrix_refresh_period=0)
-        input = 'a & b & c'
-        oracle = LogicalExpressionOracle(input)
+        oracle = LogicalExpressionOracle('a & b & c')
         grover = Grover(oracle)
         _ = grover.run(quantum_instance)
         cals_matrix_1, timestamp_1 = quantum_instance.cals_matrix(qubit_index=[0, 1, 2])
@@ -112,6 +115,7 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         self.assertGreater(timestamp_2, timestamp_1)
 
     def test_measurement_error_mitigation_with_dedicated_shots(self):
+        """ measurement error mitigation with dedicated shots test """
         from qiskit import Aer
         from qiskit.providers.aer import noise
 
@@ -123,12 +127,14 @@ class TestMeasurementErrorMitigation(QiskitAquaTestCase):
         noise_model.add_all_qubit_readout_error(read_err)
 
         backend = Aer.get_backend('qasm_simulator')
-        quantum_instance = QuantumInstance(backend=backend, seed_simulator=1679, seed_transpiler=167, shots=100,
+        quantum_instance = QuantumInstance(backend=backend,
+                                           seed_simulator=1679,
+                                           seed_transpiler=167,
+                                           shots=100,
                                            noise_model=noise_model,
                                            measurement_error_mitigation_cls=CompleteMeasFitter,
                                            cals_matrix_refresh_period=0)
-        input = 'a & b & c'
-        oracle = LogicalExpressionOracle(input)
+        oracle = LogicalExpressionOracle('a & b & c')
         grover = Grover(oracle)
         _ = grover.run(quantum_instance)
         cals_matrix_1, timestamp_1 = quantum_instance.cals_matrix(qubit_index=[0, 1, 2])
