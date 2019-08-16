@@ -204,6 +204,9 @@ class MultiBox(DrawElement):
             input_length (int): Rhe amount of wires affected.
             order (int): Which middle element is this one?
         """
+        if input_length == order == 0:
+            self.top_connect = self.label
+            return
         location_in_the_box = '*'.center(input_length * 2 - 1).index('*') + 1
         top_limit = order * 2 + 2
         bot_limit = top_limit + 2
