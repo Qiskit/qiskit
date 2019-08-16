@@ -16,7 +16,7 @@
 
 import unittest
 
-from qiskit.pulse.channels import AcquireChannel
+from qiskit.pulse.channels import AcquireChannel, DriveChannel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.timeslots import Interval, Timeslot, TimeslotCollection
 from qiskit.test import QiskitTestCase
@@ -29,8 +29,8 @@ class TestInterval(QiskitTestCase):
         """Test valid interval creation without error.
         """
         interval = Interval(1, 3)
-        self.assertEqual(1, interval.begin)
-        self.assertEqual(3, interval.end)
+        self.assertEqual(1, interval.start)
+        self.assertEqual(3, interval.stop)
         self.assertEqual(2, interval.duration)
 
     def test_check_overlap(self):
@@ -48,11 +48,11 @@ class TestInterval(QiskitTestCase):
         """
         interval = Interval(1, 3)
         shift = interval.shift(10)
-        self.assertEqual(11, shift.begin)
-        self.assertEqual(13, shift.end)
+        self.assertEqual(11, shift.start)
+        self.assertEqual(13, shift.stop)
         self.assertEqual(2, shift.duration)
         # keep original interval unchanged
-        self.assertEqual(1, interval.begin)
+        self.assertEqual(1, interval.start)
 
     def test_invalid_interval(self):
         """Test invalid instantiation with negative time bounds."""
@@ -87,6 +87,10 @@ class TestTimeslot(QiskitTestCase):
         self.assertEqual(Interval(1, 3), slot.interval)
         self.assertEqual(AcquireChannel(0), slot.channel)
 
+        self.assertEqual(1, slot.start)
+        self.assertEqual(3, slot.stop)
+        self.assertEqual(2, slot.duration)
+
     def test_shift(self):
         """Test shifting of Timeslot."""
         slot_1 = Timeslot(Interval(1, 3), AcquireChannel(0))
@@ -98,6 +102,31 @@ class TestTimeslot(QiskitTestCase):
         """Test representation of Timeslot object."""
         slot = Timeslot(Interval(1, 5), AcquireChannel(0))
         self.assertEqual(repr(slot), 'Timeslot(AcquireChannel(0), (1, 5))')
+
+    def test_check_overlap(self):
+        """Test valid interval creation without error.
+        """
+        dc0 = DriveChannel(0)
+        dc1 = DriveChannel(1)
+
+        self.assertEqual(True,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(2, 4), dc0)))
+
+        self.assertEqual(True,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(2, 2), dc0)))
+
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(1, 1), dc0)))
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(3, 3), dc0)))
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(0, 1), dc0)))
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(3, 4), dc0)))
+
+        # check no overlap if different channels
+        self.assertEqual(False,
+                         Timeslot(Interval(1, 3), dc0).has_overlap(Timeslot(Interval(1, 3), dc1)))
 
 
 class TestTimeslotCollection(QiskitTestCase):
@@ -120,7 +149,7 @@ class TestTimeslotCollection(QiskitTestCase):
         normal = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0)),
                                     Timeslot(Interval(3, 5), AcquireChannel(0)))
         self.assertEqual(True, empty.is_mergeable_with(normal))
-        self.assertEqual(normal, empty.merged(normal))
+        self.assertEqual(normal, empty.merge(normal))
 
     def test_can_merge_two_mergeable_collections(self):
         """Test if merge two mergeable time-slot collections.
@@ -131,7 +160,7 @@ class TestTimeslotCollection(QiskitTestCase):
         self.assertEqual(True, col1.is_mergeable_with(col2))
         expected = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0)),
                                       Timeslot(Interval(1, 3), AcquireChannel(1)))
-        self.assertEqual(expected, col1.merged(col2))
+        self.assertEqual(expected, col1.merge(col2))
 
         # same channel but different interval
         col1 = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0)))
@@ -139,7 +168,7 @@ class TestTimeslotCollection(QiskitTestCase):
         self.assertEqual(True, col1.is_mergeable_with(col2))
         expected = TimeslotCollection(Timeslot(Interval(1, 3), AcquireChannel(0)),
                                       Timeslot(Interval(3, 5), AcquireChannel(0)))
-        self.assertEqual(expected, col1.merged(col2))
+        self.assertEqual(expected, col1.merge(col2))
 
     def test_unmergeable_collections(self):
         """Test if return false for unmergeable collections.
@@ -171,6 +200,30 @@ class TestTimeslotCollection(QiskitTestCase):
         col2 = TimeslotCollection(Timeslot(Interval(1, 2), AcquireChannel(1)))
         col1.is_mergeable_with(col2)
         self.assertEqual(col1.channels, expected_channels)
+
+    def test_merged_timeslots_do_not_overlap_internally(self):
+        """Test to make sure the timeslots do not overlap internally."""
+        # same interval but different channel
+        int1 = Timeslot(Interval(1, 3), AcquireChannel(0))
+        col1 = TimeslotCollection(Timeslot(Interval(5, 7), AcquireChannel(0)))
+        col2 = TimeslotCollection(Timeslot(Interval(5, 7), AcquireChannel(1)))
+
+        merged = TimeslotCollection(int1, col1, col2)
+
+        from_interal = TimeslotCollection(*merged.timeslots)
+
+        self.assertEqual(merged, from_interal)
+
+    def test_zero_duration_timeslot(self):
+        """Test that TimeslotCollection works properly for zero duration timeslots."""
+        # test that inserting zero duration pulses at start and stop of pulse works.
+        TimeslotCollection(Timeslot(Interval(0, 10), AcquireChannel(0)),
+                           Timeslot(Interval(0, 0), AcquireChannel(0)),
+                           Timeslot(Interval(10, 10), AcquireChannel(0)))
+
+        with self.assertRaises(PulseError):
+            TimeslotCollection(Timeslot(Interval(0, 10), AcquireChannel(0)),
+                               Timeslot(Interval(5, 5), AcquireChannel(0)))
 
 
 if __name__ == '__main__':
