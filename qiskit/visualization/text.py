@@ -237,20 +237,24 @@ class BoxOnQuWireTop(MultiBox, BoxOnQuWire):
         self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
         self.top_connect = top_connect if top_connect else '─'
 
-
-class BoxOnQuWireMid(MultiBox, BoxOnQuWire):
-    """ Draws the middle part of a box that affects more than one quantum wire"""
-
+class BoxOnWireMid(MultiBox):
+    """ A generic middle box"""
     def __init__(self, label, input_length, order, wire_label=''):
-        super().__init__(label)
+        super().__init__(label, input_length, order)
         self.top_pad = self.bot_pad = self.top_connect = self.bot_connect = " "
         self.wire_label = wire_label
         self.left_fill = len(self.wire_label)
         self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
-        self.mid_format = "┤{} %s ├".format(self.wire_label)
         self.bot_format = "│{} %s │".format(self.bot_pad * self.left_fill)
         self.top_connect = self.bot_connect = self.mid_content = ''
         self.center_label(input_length, order)
+
+class BoxOnQuWireMid(BoxOnWireMid, BoxOnQuWire):
+    """ Draws the middle part of a box that affects more than one quantum wire"""
+
+    def __init__(self, label, input_length, order, wire_label=''):
+        super().__init__(label, input_length, order, wire_label=wire_label)
+        self.mid_format = "┤{} %s ├".format(self.wire_label)
 
 
 class BoxOnQuWireBot(MultiBox, BoxOnQuWire):
@@ -283,17 +287,12 @@ class BoxOnClWireTop(MultiBox, BoxOnClWire):
         self.bot_connect = self.bot_pad = " "
 
 
-class BoxOnClWireMid(MultiBox, BoxOnClWire):
+class BoxOnClWireMid(BoxOnWireMid, BoxOnClWire):
     """ Draws the middle part of a conditional box that affects more than one classical wire"""
 
     def __init__(self, label, input_length, order, wire_label=''):
-        super().__init__(label)
-        self.wire_label = wire_label
-        self.top_format = "│ %s │"
-        self.bot_format = "│ %s │"
-        self.top_pad = self.bot_pad = ' '
-        self.top_connect = self.bot_connect = self.mid_content = ''
-        self.center_label(input_length, order)
+        super().__init__(label, input_length, order, wire_label=wire_label)
+        self.mid_format = "╡{} %s ╞".format(self.wire_label)
 
 
 class BoxOnClWireBot(MultiBox, BoxOnClWire):
@@ -302,8 +301,12 @@ class BoxOnClWireBot(MultiBox, BoxOnClWire):
     def __init__(self, label, input_length, bot_connect='─', wire_label='', **_):
         super().__init__(label)
         self.wire_label = wire_label
-        self.top_format = "│ %s │"
-        self.top_pad = " "
+        self.left_fill = len(self.wire_label)
+        self.top_pad = ' '
+        self.bot_pad = '─'
+        self.top_format = "│{} %s │".format(self.top_pad * self.left_fill)
+        self.mid_format = "╡{} %s ╞".format(self.wire_label)
+        self.bot_format = "└{}%s──┘".format(self.bot_pad * self.left_fill)
         self.bot_connect = bot_connect
 
         self.mid_content = self.top_connect = ""
@@ -861,6 +864,15 @@ class TextDrawing():
             if params:
                 label += "(%s)" % ','.join(params)
             layer.set_qu_multibox(instruction.qargs, label, conditional=conditional)
+
+        elif instruction.qargs and instruction.cargs:
+            # multiple gate, involving both qargs AND cargs
+            label = instruction.name
+            params = TextDrawing.params_for_label(instruction)
+            if params:
+                label += "(%s)" % ','.join(params)
+            layer._set_multibox(label, qubits=instruction.qargs, clbits=instruction.cargs,
+                                conditional=conditional)
         else:
             raise VisualizationError(
                 "Text visualizer does not know how to handle this instruction: ", instruction.name)
@@ -958,8 +970,40 @@ class Layer:
             BoxOnWireTop = BoxOnQuWireTop
             BoxOnWireMid = BoxOnQuWireMid
             BoxOnWireBot = BoxOnQuWireBot
+        elif not qubits is None and not clbits is None:
+            qubits = list(qubits)
+            clbits = list(clbits)
+            cbit_index = sorted([i for i, x in enumerate(self.cregs) if x in clbits])
+            qbit_index = sorted([i for i, x in enumerate(self.qregs) if x in qubits])
+            qargs = [str(qubits.index(qbit)) for qbit in self.qregs if qbit in qubits]
+            cargs = [str(clbits.index(cbit)) for cbit in self.cregs if cbit in clbits]
+            # box_height = max(cbit_index) - min(qbit_index) + 1
+            box_height = 5
+            self.set_qubit(qubits.pop(0), BoxOnQuWireTop(label, wire_label=qargs.pop(0)))
+            for order, bit_i in enumerate(range(min(qbit_index) + 1, max(qbit_index) + 1)):
+                if bit_i in qbit_index:
+                    named_bit = qubits.pop(0)
+                    wire_label = qargs.pop(0)
+                else:
+                    named_bit = self.qregs[bit_i]
+                    wire_label = ' ' * len(qargs[0])
+                self.set_qubit(named_bit, BoxOnQuWireMid(label, box_height, order,
+                                                         wire_label=wire_label))
+
+            for order, bit_i in enumerate(range(min(cbit_index), max(cbit_index))):
+                if bit_i in cbit_index:
+                    named_bit = clbits.pop(0)
+                    wire_label = cargs.pop(0)
+                else:
+                    named_bit = self.cregs[bit_i]
+                    wire_label = ' ' * len(cargs[0])
+                self.set_clbit(named_bit, BoxOnClWireMid(label, box_height, order,
+                                                         wire_label=wire_label))
+            self.set_clbit(clbits.pop(0),
+                           BoxOnClWireBot(label, box_height, wire_label=cargs.pop(0)))
+            return
         else:
-            raise VisualizationError("_set_multibox only supports 'cl' and 'qu' as wire types.")
+            raise VisualizationError("_set_multibox error!.")
 
         if len(bit_index) == 1:
             set_bit(bits[0], BoxOnWire(label, top_connect=top_connect))
