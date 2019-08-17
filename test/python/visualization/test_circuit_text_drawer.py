@@ -1478,7 +1478,15 @@ class TestTextInstructionWithBothWires(QiskitTestCase):
 
     def test_text_all_2q_2c(self):
         """ Test q0-q1-c0-c1 in q0-q1-c0-c1"""
-        expected = '\n'.join([])
+        expected = '\n'.join(["         ┌───────┐",
+                              "qr_0: |0>┤0      ├",
+                              "         │       │",
+                              "qr_1: |0>┤1      ├",
+                              "         │  name │",
+                              " cr_0: 0 ╡0      ╞",
+                              "         │       │",
+                              " cr_1: 0 ╡1      ╞",
+                              "         └───────┘"])
 
         qr2 = QuantumRegister(2, 'qr')
         cr2 = ClassicalRegister(2, 'cr')

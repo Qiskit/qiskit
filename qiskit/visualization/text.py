@@ -984,14 +984,10 @@ class Layer:
             qargs = [str(qubits.index(qbit)) for qbit in self.qregs if qbit in qubits]
             cargs = [str(clbits.index(cbit)) for cbit in self.cregs if cbit in clbits]
 
-            if len(self.qregs) - min(qbit_index) <= max(cbit_index) + 1:
-                cbox_height = max(cbit_index) - min(qbit_index)
-                qbox_height = 9999  # To take it out.
-            else:
-                qbox_height = len(self.qregs) - min(qbit_index) + max(cbit_index) + 1
-                cbox_height = 9999  # To take it out.
+            box_height = len(self.qregs) - min(qbit_index) + max(cbit_index) + 1
 
             self.set_qubit(qubits.pop(0), BoxOnQuWireTop(label, wire_label=qargs.pop(0)))
+            order = 0
             for order, bit_i in enumerate(range(min(qbit_index) + 1, len(self.qregs))):
                 if bit_i in qbit_index:
                     named_bit = qubits.pop(0)
@@ -999,19 +995,19 @@ class Layer:
                 else:
                     named_bit = self.qregs[bit_i]
                     wire_label = ' ' * len(wire_label)
-                self.set_qubit(named_bit, BoxOnQuWireMid(label, qbox_height, order,
+                self.set_qubit(named_bit, BoxOnQuWireMid(label, box_height, order,
                                                          wire_label=wire_label))
-            for order, bit_i in enumerate(range(max(cbit_index))):
+            for order, bit_i in enumerate(range(max(cbit_index)), order+1):
                 if bit_i in cbit_index:
                     named_bit = clbits.pop(0)
                     wire_label = cargs.pop(0)
                 else:
                     named_bit = self.cregs[bit_i]
                     wire_label = ' ' * len(cargs[0])
-                self.set_clbit(named_bit, BoxOnClWireMid(label, cbox_height, order,
+                self.set_clbit(named_bit, BoxOnClWireMid(label, box_height, order,
                                                          wire_label=wire_label))
             self.set_clbit(clbits.pop(0),
-                           BoxOnClWireBot(label, cbox_height, wire_label=cargs.pop(0)))
+                           BoxOnClWireBot(label, box_height, wire_label=cargs.pop(0)))
             return
         else:
             raise VisualizationError("_set_multibox error!.")
