@@ -215,7 +215,7 @@ def execute(experiments, backend,
                     rep_time=rep_time,
                     parameter_binds=parameter_binds,
                     backend=backend,
-                    run_config=run_config
+                    **run_config
                     )
 
     # executing the circuits on the backend and returning the job
