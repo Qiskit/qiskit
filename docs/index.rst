@@ -19,10 +19,11 @@ quantum computers.
 
 Qiskit consists of four foundational elements:
 
-- :ref:`Qiskit Terra <Terra>`: Composing quantum programs at the level of circuits and pulses with the
-  code foundation.
+- :ref:`Qiskit Terra <Terra>`: Composing quantum programs at the level of circuits
+  and pulses with the code foundation.
 
-- :ref:`Qiskit Aer <Aer>`: Accelerating development via simulators, emulators, and debuggers
+- :ref:`Qiskit Aer <Aer>`: Accelerating development via simulators, emulators,
+  and debuggers
 
 - :ref:`Qiskit Ignis <Ignis>`: Addressing noise and errors
 
