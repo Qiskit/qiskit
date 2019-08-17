@@ -956,27 +956,7 @@ class Layer:
         self.clbit_layer[self.cregs.index(clbit)] = element
 
     def _set_multibox(self, label, qubits=None, clbits=None, top_connect=None, conditional=False):
-        if qubits is None and not clbits is None:
-            bits = list(clbits)
-            bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
-            bits.sort(key=self.cregs.index)
-            qargs = [''] * len(bits)
-            set_bit = self.set_clbit
-            BoxOnWire = BoxOnClWire
-            BoxOnWireTop = BoxOnClWireTop
-            BoxOnWireMid = BoxOnClWireMid
-            BoxOnWireBot = BoxOnClWireBot
-        elif clbits is None and not qubits is None:
-            bits = list(qubits)
-            bit_index = sorted([i for i, x in enumerate(self.qregs) if x in bits])
-            qargs = [str(bits.index(qbit)) for qbit in self.qregs if qbit in bits]
-            bits.sort(key=self.qregs.index)
-            set_bit = self.set_qubit
-            BoxOnWire = BoxOnQuWire
-            BoxOnWireTop = BoxOnQuWireTop
-            BoxOnWireMid = BoxOnQuWireMid
-            BoxOnWireBot = BoxOnQuWireBot
-        elif not qubits is None and not clbits is None:
+        if qubits is not None and clbits is not None:
             qubits = list(qubits)
             clbits = list(clbits)
             cbit_index = sorted([i for i, x in enumerate(self.cregs) if x in clbits])
@@ -997,7 +977,7 @@ class Layer:
                     wire_label = ' ' * len(wire_label)
                 self.set_qubit(named_bit, BoxOnQuWireMid(label, box_height, order,
                                                          wire_label=wire_label))
-            for order, bit_i in enumerate(range(max(cbit_index)), order+1):
+            for order, bit_i in enumerate(range(max(cbit_index)), order + 1):
                 if bit_i in cbit_index:
                     named_bit = clbits.pop(0)
                     wire_label = cargs.pop(0)
@@ -1009,15 +989,36 @@ class Layer:
             self.set_clbit(clbits.pop(0),
                            BoxOnClWireBot(label, box_height, wire_label=cargs.pop(0)))
             return
+
+        if qubits is None and clbits is not None:
+            bits = list(clbits)
+            bit_index = sorted([i for i, x in enumerate(self.cregs) if x in bits])
+            bits.sort(key=self.cregs.index)
+            qargs = [''] * len(bits)
+            set_bit = self.set_clbit
+            OnWire = BoxOnClWire
+            OnWireTop = BoxOnClWireTop
+            OnWireMid = BoxOnClWireMid
+            OnWireBot = BoxOnClWireBot
+        elif clbits is None and qubits is not None:
+            bits = list(qubits)
+            bit_index = sorted([i for i, x in enumerate(self.qregs) if x in bits])
+            qargs = [str(bits.index(qbit)) for qbit in self.qregs if qbit in bits]
+            bits.sort(key=self.qregs.index)
+            set_bit = self.set_qubit
+            OnWire = BoxOnQuWire
+            OnWireTop = BoxOnQuWireTop
+            OnWireMid = BoxOnQuWireMid
+            OnWireBot = BoxOnQuWireBot
         else:
             raise VisualizationError("_set_multibox error!.")
 
         if len(bit_index) == 1:
-            set_bit(bits[0], BoxOnWire(label, top_connect=top_connect))
+            set_bit(bits[0], OnWire(label, top_connect=top_connect))
         else:
             box_height = max(bit_index) - min(bit_index) + 1
             set_bit(bits.pop(0),
-                    BoxOnWireTop(label, top_connect=top_connect, wire_label=qargs.pop(0)))
+                    OnWireTop(label, top_connect=top_connect, wire_label=qargs.pop(0)))
             for order, bit_i in enumerate(range(min(bit_index) + 1, max(bit_index))):
                 if bit_i in bit_index:
                     named_bit = bits.pop(0)
@@ -1025,9 +1026,9 @@ class Layer:
                 else:
                     named_bit = (self.qregs + self.cregs)[bit_i]
                     wire_label = ' ' * len(qargs[0])
-                set_bit(named_bit, BoxOnWireMid(label, box_height, order, wire_label=wire_label))
-            set_bit(bits.pop(0), BoxOnWireBot(label, box_height, wire_label=qargs.pop(0),
-                                              conditional=conditional))
+                set_bit(named_bit, OnWireMid(label, box_height, order, wire_label=wire_label))
+            set_bit(bits.pop(0), OnWireBot(label, box_height, wire_label=qargs.pop(0),
+                                           conditional=conditional))
 
     def set_cl_multibox(self, creg, label, top_connect='┴'):
         """
