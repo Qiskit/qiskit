@@ -2,11 +2,6 @@
 Qiskit API documentation
 ########################
 
-.. note::
-  This is the Qiskit API documentation. For in-depth usage examples please
-  see the `Qiskit tutorials <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/1_start_here.ipynb>`_.
-  A link can also be found in the sidebar.
-
 Qiskit is an open-source framework for working with quantum computers
 at the level of circuits, pulses, and algorithms.
 
@@ -29,6 +24,10 @@ Qiskit consists of four foundational elements:
 
 - :ref:`Qiskit Aqua <Aqua>`: Building algorithms and applications
 
+.. note::
+  This is the Qiskit API documentation. For in-depth usage examples please
+  see the `Qiskit tutorials <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/1_start_here.ipynb>`_.
+  A link can also be found in the sidebar.
 
 .. toctree::
   :maxdepth: 2
