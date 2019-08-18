@@ -18,55 +18,47 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
      - qiskit-ignis
      - qiskit-ibmq-provider
      - qiskit-aqua
-     - qiskit-chemistry
    * - 0.11.1
      - 0.8.2
      - 0.2.3
      - 0.1.1
      - 0.3.1
      - 0.5.3
-     - 0.5.0
    * - 0.11.0
      - 0.8.2
      - 0.2.3
      - 0.1.1
      - 0.3.0
      - 0.5.2
-     - 0.5.0
    * - 0.10.5
      - 0.8.2
      - 0.2.1
      - 0.1.1
      - 0.2.2
      - 0.5.2
-     - 0.5.0
    * - 0.10.4
      - 0.8.2
      - 0.2.1
      - 0.1.1
      - 0.2.2
      - 0.5.1
-     - 0.5.0
    * - 0.10.3
      - 0.8.1
      - 0.2.1
      - 0.1.1
      - 0.2.2
      - 0.5.1
-     - 0.5.0
    * - 0.10.2
      - 0.8.0
      - 0.2.1
      - 0.1.1
      - 0.2.2
      - 0.5.1
-     - 0.5.0
    * - 0.10.1
      - 0.8.0
      - 0.2.0
      - 0.1.1
      - 0.2.2
-     - 0.5.0
      - 0.5.0
    * - 0.10.0
      - 0.8.0
@@ -74,19 +66,16 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
      - 0.1.1
      - 0.2.1
      - 0.5.0
-     - 0.5.0
    * - 0.9.0
      - 0.8.0
      - 0.2.0
      - 0.1.1
      - 0.1.1
      - 0.5.0
-     - 0.5.0
    * - 0.8.1
      - 0.7.2
      - 0.1.1
      - 0.1.0
-     -
      -
      -
    * - 0.8.0
@@ -95,11 +84,9 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
      - 0.1.0
      -
      -
-     -
    * - 0.7.3
      - 0.7.x
      - 0.1.x
-     -
      -
      -
      -
@@ -109,18 +96,15 @@ This table tracks the meta-package versions and the version of each Qiskit eleme
      -
      -
      -
-     -
    * - 0.7.1
      - 0.7.x
      - 0.1.x
      -
      -
      -
-     -
    * - 0.7.0
      - 0.7.x
      - 0.1.x
-     -
      -
      -
      -
