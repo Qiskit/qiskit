@@ -298,10 +298,10 @@ class Pauli:
         xs = np.array(_x).dot(twos_array)
         zs = np.array(_z).dot(twos_array)
         rows = np.arange(n+1, dtype=np.uint)
-        columns = rows^xs
+        columns = rows ^ xs
         global_factor = (-1j)**np.dot(np.array(_x, dtype=np.uint), _z)
         data = global_factor*(-1)**np.mod(_count_set_bits(zs & rows), 2)
-        return sparse.csr_matrix((data, columns, rows), shape=(n,n))
+        return sparse.csr_matrix((data, columns, rows), shape=(n, n))
 
     def to_operator(self):
         """Convert to Operator object."""
