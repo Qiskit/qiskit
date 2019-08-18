@@ -37,7 +37,6 @@ Qiskit consists of four foundational elements:
   the_elements
   development_strategy
   contributing_to_qiskit
-  community
   release_notes
   faq
   API References <autodoc/qiskit>
