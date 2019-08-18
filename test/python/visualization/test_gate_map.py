@@ -30,16 +30,16 @@ class TestGateMap(QiskitVisualizationTestCase):
                            not (x.configuration().simulator or x.configuration().n_qubits == 2),
                            FakeProvider().backends()))
 
-    def test_plot_gate_map(self):
+    @data(*backends)
+    def test_plot_gate_map(self, backend):
         """ tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
-        for backend in self.backends:
-            n = backend.configuration().n_qubits
-            img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
-            filename = "temp.png"
-            fig = plot_gate_map(backend)
-            fig.savefig(filename, bbox_inches="tight")
-            self.assertImagesAreEqual(filename, img_ref, 0.2)
-            os.remove(filename)
+        n = backend.configuration().n_qubits
+        img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
+        filename = "temp.png"
+        fig = plot_gate_map(backend)
+        fig.savefig(filename, bbox_inches="tight")
+        self.assertImagesAreEqual(filename, img_ref, 0.2)
+        os.remove(filename)
 
     @data(*backends)
     def test_plot_circuit_layout(self, backend):
