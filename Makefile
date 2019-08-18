@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 OS := $(shell uname -s)
-MPLBACKEND = ps
 
 ifeq ($(OS), Linux)
   NPROCS := $(shell grep -c ^processor /proc/cpuinfo)
