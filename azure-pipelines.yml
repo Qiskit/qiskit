@@ -57,7 +57,6 @@ stages:
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
-    
         - bash: |
             set -e
             python -m pip install --upgrade pip
@@ -70,6 +69,16 @@ stages:
             set -e
             stestr run
           displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          inputs:
+            contents: '**/current_*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
         - bash: |
             set -e
             pip install -U junitxml
@@ -131,6 +140,16 @@ stages:
             set -e
             stestr run
           displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          inputs:
+            contents: '**/current_*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
         - bash: |
             set -e
             pip install -U junitxml
@@ -174,6 +193,16 @@ stages:
             set -e
             stestr run
           displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          inputs:
+            contents: '**/current_*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
         - bash: |
             set -e
             pip install -U junitxml
@@ -212,6 +241,16 @@ stages:
             set -e
             stestr run
           displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          inputs:
+            contents: '**/current_*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
         - bash: |
             set -e
             pip install -U junitxml
@@ -250,6 +289,16 @@ stages:
             set -e
             stestr run --concurrency 2
           displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          inputs:
+            contents: '**/current_*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
         - bash: |
             set -e
             pip install -U junitxml
