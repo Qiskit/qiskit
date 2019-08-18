@@ -14,7 +14,6 @@
 
 """Schedule."""
 
-import itertools
 import abc
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 
@@ -43,28 +42,29 @@ class Schedule(ScheduleComponent):
             PulseError: If timeslots intercept.
         """
         self._name = name
+
+        timeslots = []
+        _children = []
+        for sched_pair in schedules:
+            # recreate as sequence starting at 0.
+            if not isinstance(sched_pair, (list, tuple)):
+                sched_pair = (0, sched_pair)
+            # convert to tuple
+            sched_pair = tuple(sched_pair)
+            insert_time, sched = sched_pair
+            sched_timeslots = sched.timeslots
+            if insert_time:
+                sched_timeslots = sched_timeslots.shift(insert_time)
+            timeslots.append(sched_timeslots)
+            _children.append(sched_pair)
+
         try:
-            timeslots = []
-            _children = []
-            for sched_pair in schedules:
-                # recreate as sequence starting at 0.
-                if not isinstance(sched_pair, (list, tuple)):
-                    sched_pair = (0, sched_pair)
-                # convert to tuple
-                sched_pair = tuple(sched_pair)
-                insert_time, sched = sched_pair
-                sched_timeslots = sched.timeslots
-                if insert_time:
-                    sched_timeslots = sched_timeslots.shift(insert_time)
-                timeslots.append(sched_timeslots.timeslots)
-                _children.append(sched_pair)
-
-            self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
-            self.__children = tuple(_children)
-            self._buffer = max([child.buffer for _, child in _children]) if _children else 0
-
+            self._timeslots = TimeslotCollection(*timeslots)
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+
+        self.__children = tuple(_children)
+        self._buffer = max([child.buffer for _, child in _children]) if _children else 0
 
     @property
     def name(self) -> str:
@@ -100,9 +100,15 @@ class Schedule(ScheduleComponent):
         return self.__children
 
     @property
-    def instructions(self) -> Tuple[Tuple[int, 'Instruction']]:
-        """Iterable for getting instructions from Schedule tree."""
-        return tuple(self._instructions())
+    def instructions(self) -> Tuple[Tuple[int, 'Instruction'], ...]:
+        """Get time-ordered instructions from Schedule tree."""
+
+        def key(time_inst_pair):
+            inst = time_inst_pair[1]
+            return (time_inst_pair[0], inst.duration,
+                    min(chan.index for chan in inst.channels))
+
+        return tuple(sorted(self._instructions(), key=key))
 
     def ch_duration(self, *channels: List[Channel]) -> int:
         """Return duration of schedule over supplied channels.
@@ -234,8 +240,8 @@ class Schedule(ScheduleComponent):
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 for i in ranges:
-                    if all([(i.begin <= ts.interval.shift(time_inst[0]).begin
-                             and ts.interval.shift(time_inst[0]).end <= i.end)
+                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
+                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
                             for ts in time_inst[1].timeslots.timeslots]):
                         return True
                 return False
@@ -248,7 +254,7 @@ class Schedule(ScheduleComponent):
             filter_funcs.append(only_instruction_types(instruction_types))
         if time_ranges:
             filter_funcs.append(
-                only_intervals([Interval(start, end) for start, end in time_ranges]))
+                only_intervals([Interval(start, stop) for start, stop in time_ranges]))
         if intervals:
             filter_funcs.append(only_intervals(intervals))
 
@@ -322,13 +328,47 @@ class Schedule(ScheduleComponent):
                                           interactive=interactive, table=table,
                                           label=label, framechange=framechange)
 
-    def __add__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule with `schedule` inserted within `self` at `start_time`."""
-        return self.append(schedule)
+    def __eq__(self, other: ScheduleComponent) -> bool:
+        """Test if two ScheduleComponents are equal.
 
-    def __or__(self, schedule: ScheduleComponent) -> 'Schedule':
-        """Return a new schedule which is the union of `self` and `schedule`."""
-        return self.union(schedule)
+        Equality is checked by verifying there is an equal instruction at every time
+        in `other` for every instruction in this Schedule.
+
+        Warning: This does not check for logical equivalencly. Ie.,
+            ```python
+            >>> (Delay(10)(DriveChannel(0)) + Delay(10)(DriveChannel(0)) ==
+                 Delay(20)(DriveChannel(0)))
+            False
+            ```
+        """
+        channels = set(self.channels)
+        other_channels = set(other.channels)
+
+        # first check channels are the same
+        if channels != other_channels:
+            return False
+
+        # then verify same number of instructions in each
+        instructions = self.instructions
+        other_instructions = other.instructions
+        if len(instructions) != len(other_instructions):
+            return False
+
+        # finally check each instruction in `other` is in this schedule
+        for idx, inst in enumerate(other_instructions):
+            # check assumes `Schedule.instructions` is sorted consistently
+            if instructions[idx] != inst:
+                return False
+
+        return True
+
+    def __add__(self, other: ScheduleComponent) -> 'Schedule':
+        """Return a new schedule with `other` inserted within `self` at `start_time`."""
+        return self.append(other)
+
+    def __or__(self, other: ScheduleComponent) -> 'Schedule':
+        """Return a new schedule which is the union of `self` and `other`."""
+        return self.union(other)
 
     def __lshift__(self, time: int) -> 'Schedule':
         """Return a new schedule which is shifted forward by `time`."""
