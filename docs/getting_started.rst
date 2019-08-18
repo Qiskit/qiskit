@@ -70,9 +70,9 @@ subsequent sections:
   the text backend.
   However, depending on your local environment you may want to change these defaults to something better
   suited for your use case. This is done with the user config file.  By default the user config file
-  should be located in ``~/.qiskit/settings.conf`` and is a .ini file.
+  should be located in ``~/.qiskit/settings.conf`` and is a ``.ini`` file.
 
-  For example, a settings.conf file for setting a Matplotlib drawer is:
+  For example, a ``settings.conf`` file for setting a Matplotlib drawer is:
 
   .. code-block:: text
 
