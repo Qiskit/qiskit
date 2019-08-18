@@ -78,7 +78,7 @@ stages:
           condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_linux'
+            artifactName: 'drop_1'
         - bash: |
             set -e
             pip install -U junitxml
@@ -149,7 +149,7 @@ stages:
           condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_linux'
+            artifactName: 'drop_2'
         - bash: |
             set -e
             pip install -U junitxml
@@ -202,7 +202,7 @@ stages:
           condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_linux'
+            artifactName: 'drop_3'
         - bash: |
             set -e
             pip install -U junitxml
@@ -250,7 +250,7 @@ stages:
           condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_linux'
+            artifactName: 'drop_4'
         - bash: |
             set -e
             pip install -U junitxml
@@ -298,7 +298,7 @@ stages:
           condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_linux'
+            artifactName: 'drop_5'
         - bash: |
             set -e
             pip install -U junitxml
