@@ -154,10 +154,10 @@ steps for each element.
 Set up the virtual development environment
 ------------------------------------------
 
-   .. code-block:: sh
+.. code-block:: sh
 
-      conda create -y -n QiskitDevenv python=3
-      conda activate QiskitDevenv
+   conda create -y -n QiskitDevenv python=3
+   conda activate QiskitDevenv
 
 
 Installing Terra from Source
@@ -229,16 +229,16 @@ Once the compilers are installed, you are ready to install Qiskit Terra.
 If you want to install it in editable mode, meaning that code changes to the
 project don't require a reinstall to be applied you can do this with:
 
-   .. code:: sh
+.. code:: sh
 
-      pip install -e .
+   pip install -e .
 
 You can then run the code examples working after installing terra. You can
 run the example with the following command.
 
-   .. code:: sh
+.. code:: sh
 
-      python examples/python/using_qiskit_terra_level_0.py
+   python examples/python/using_qiskit_terra_level_0.py
 
 
 .. note::
