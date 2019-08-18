@@ -48,6 +48,8 @@ stages:
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
       strategy:
         matrix:
           Python35:
@@ -57,6 +59,7 @@ stages:
           inputs:
             versionSpec: '$(python.version)'
           displayName: 'Use Python $(python.version)'
+    
         - bash: |
             set -e
             python -m pip install --upgrade pip
@@ -109,6 +112,8 @@ stages:
     - job: 'MacOS_HighSierra_Tests'
       pool: {vmImage: 'macOS-10.13'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
       strategy:
         matrix:
           Python35:
@@ -148,6 +153,8 @@ stages:
     - job: 'Windows_Tests'
       pool: {vmImage: 'vs2017-win2016'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
       strategy:
         matrix:
           Python35:
@@ -188,6 +195,8 @@ stages:
     - job: 'Linux_Tests'
       pool: {vmImage: 'ubuntu-16.04'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
       strategy:
         matrix:
           Python36:
@@ -226,6 +235,8 @@ stages:
     - job: 'MacOS_HighSierra_Tests'
       pool: {vmImage: 'macOS-10.13'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      variables:
+        MPLBACKEND: ps
       strategy:
         matrix:
           Python36:
