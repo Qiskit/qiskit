@@ -11,42 +11,6 @@ Frequently Asked Questions
 
 |
 
-**Q: Why do I receive the error message** ``AttributeError: 'str' object has no
-attribute 'configuration'`` **when I try to execute or compile a circuit on a
-backend?**
-
-**A:** The backend parameter of these two functions takes in a ``BaseBackend`` type,
-which can be returned by calling one of these methods, one for simulators and one
-for real quantum devices.
-
-* For simulators:
-
-.. code:: python
-
-  Aer.get_backend('<backend_name>')
-
-* For real devices:
-
-.. code:: python
-
-  provider.get_backend('<backend_name>')
-
-For example, if you want to run a job on the ``'ibmqx4'`` backend, the
-following code would throw the error message:
-
-.. code:: python
-
-  job = execute(circuit, backend='ibmqx4', shots=100)
-
-Instead, the code should be written as
-
-.. code:: python
-
-  my_backend = provider.get_backend('ibmqx4')
-  job = execute(circuit, backend=my_backend, shots=100)
-
-|
-
 **Q: Why do I receive the error message** ``Error: Instance of QuantumCircuit has no
 member`` **when adding gates to a circuit?**
 
