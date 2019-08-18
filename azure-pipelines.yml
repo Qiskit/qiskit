@@ -67,7 +67,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
-            stestr run
+            make test_ci
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
@@ -138,7 +138,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
-            stestr run
+            make test_ci
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
@@ -191,7 +191,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
-            stestr run
+            make test_ci
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
@@ -239,7 +239,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
-            stestr run
+            make test_ci
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
@@ -287,7 +287,7 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
-            stestr run --concurrency 2
+            make test_ci
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
