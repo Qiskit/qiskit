@@ -26,6 +26,8 @@ import math
 import numpy as np
 
 try:
+    import matplotlib
+    matplotlib.use('ps')
     from matplotlib import patches
     from matplotlib import pyplot as plt
     HAS_MATPLOTLIB = True
