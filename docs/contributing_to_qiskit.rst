@@ -66,7 +66,7 @@ Qiskit documentation is shaped by the `docs as code
 <https://www.writethedocs.org/guide/docs-as-code/>`__ philosophy.
 
 
-The `published API documentation <https://qiskit.org/documentation/index.html>`__ is
+The `Qiskit API documentation <https://qiskit.org/documentation/index.html>`__ (this document) is
 built from the master branch of `Qiskit/qiskit/docs
 <https://github.com/Qiskit/qiskit/tree/master/docs>`__ using `Sphinx
 <http://www.sphinx-doc.org/en/master/>`__.
