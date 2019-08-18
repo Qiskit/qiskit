@@ -17,6 +17,7 @@
 
 """Module for estimating randomized benchmarking."""
 
+import os
 import numpy as np
 import qiskit.ignis.verification.randomized_benchmarking as rb
 from qiskit.providers.basicaer import QasmSimulatorPy
@@ -77,11 +78,33 @@ class RandomizedBenchmarkingBenchmark:
                                          seed=self.seed)
         self.sim_backend = QasmSimulatorPy()
 
+    def teardown(self, _):
+        os.environ['QISKIT_IN_PARALLEL'] = 'FALSE'
+
     def time_simulator_transpile(self, __):
         transpile(self.circuits, self.sim_backend,
                   **{TRANSPILER_SEED_KEYWORD: self.seed})
 
+    def time_simulator_transpile_single_thread(self, __):
+        os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
+        transpile(self.circuits, self.sim_backend,
+                  **{TRANSPILER_SEED_KEYWORD: self.seed})
+
     def time_ibmq_backend_transpile(self, __):
+        # Run with ibmq_16_melbourne configuration
+        coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
+                        [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
+                        [11, 3], [11, 10], [11, 12], [12, 2], [13, 1],
+                        [13, 12]]
+
+        transpile(self.circuits,
+                  basis_gates=['u1', 'u2', 'u3', 'cx', 'id'],
+                  coupling_map=coupling_map,
+                  **{TRANSPILER_SEED_KEYWORD: self.seed})
+
+    def time_ibmq_backend_transpile_single_thread(self, __):
+        os.environ['QISKIT_IN_PARALLEL'] = 'TRUE'
+
         # Run with ibmq_16_melbourne configuration
         coupling_map = [[1, 0], [1, 2], [2, 3], [4, 3], [4, 10], [5, 4],
                         [5, 6], [5, 9], [6, 8], [7, 8], [9, 8], [9, 10],
