@@ -19,6 +19,7 @@
 import unittest
 import logging
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
@@ -48,28 +49,13 @@ class TestStatevector(QiskitTestCase):
             vec /= np.sqrt(np.dot(vec, np.conj(vec)))
         return vec
 
-    def assertAllClose(self,
-                       obj1,
-                       obj2,
-                       rtol=1e-5,
-                       atol=1e-6,
-                       equal_nan=False,
-                       msg=None):
-        """Assert two objects are equal using Numpy.allclose."""
-        comparison = np.allclose(
-            obj1, obj2, rtol=rtol, atol=atol, equal_nan=equal_nan)
-        if msg is None:
-            msg = ''
-        msg += '({} != {})'.format(obj1, obj2)
-        self.assertTrue(comparison, msg=msg)
-
     def test_init_array_qubit(self):
         """Test subsystem initialization from N-qubit array."""
         # Test automatic inference of qubit subsystems
         vec = self.rand_vec(8)
         for dims in [None, 8]:
             state = Statevector(vec, dims=dims)
-            self.assertAllClose(state.data, vec)
+            assert_allclose(state.data, vec)
             self.assertEqual(state.dim, 8)
             self.assertEqual(state.dims(), (2, 2, 2))
 
@@ -77,13 +63,13 @@ class TestStatevector(QiskitTestCase):
         """Test initialization from array."""
         vec = self.rand_vec(3)
         statevec = Statevector(vec)
-        self.assertAllClose(statevec.data, vec)
+        assert_allclose(statevec.data, vec)
         self.assertEqual(statevec.dim, 3)
         self.assertEqual(statevec.dims(), (3,))
 
         vec = self.rand_vec(2 * 3 * 4)
         state = Statevector(vec, dims=[2, 3, 4])
-        self.assertAllClose(state.data, vec)
+        assert_allclose(state.data, vec)
         self.assertEqual(state.dim, 2 * 3 * 4)
         self.assertEqual(state.dims(), (2, 3, 4))
 
@@ -284,7 +270,7 @@ class TestStatevector(QiskitTestCase):
             state = Statevector(vec0).expand(Statevector(vec1))
             self.assertEqual(state.dim, 6)
             self.assertEqual(state.dims(), (2, 3))
-            self.assertAllClose(state.data, target)
+            assert_allclose(state.data, target)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -295,7 +281,7 @@ class TestStatevector(QiskitTestCase):
             state = Statevector(vec0).tensor(Statevector(vec1))
             self.assertEqual(state.dim, 6)
             self.assertEqual(state.dims(), (3, 2))
-            self.assertAllClose(state.data, target)
+            assert_allclose(state.data, target)
 
     def test_add(self):
         """Test add method."""
@@ -344,6 +330,15 @@ class TestStatevector(QiskitTestCase):
             vec = self.rand_vec(4)
             state = Statevector(vec)
             self.assertEqual(-state, Statevector(-1 * vec))
+
+    def test_equiv(self):
+        """Test negate method"""
+        vec = np.array([1, 0, 0, -1j]) / np.sqrt(2)
+        phase = np.exp(-1j * np.pi / 4)
+        statevec = Statevector(vec)
+        self.assertTrue(statevec.equiv(phase * vec))
+        self.assertTrue(statevec.equiv(Statevector(phase * vec)))
+        self.assertFalse(statevec.equiv(2 * vec))
 
 
 if __name__ == '__main__':

@@ -228,6 +228,38 @@ class TestOptimize1qGates(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_parameterized_expressions_in_circuits(self):
+        """Expressions of Parameters should be treated as opaque gates."""
+        qr = QuantumRegister(1)
+        qc = QuantumCircuit(qr)
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+
+        sum_ = theta + phi
+        product_ = theta * phi
+        qc.u1(0.3, qr)
+        qc.u1(0.4, qr)
+        qc.u1(theta, qr)
+        qc.u1(phi, qr)
+        qc.u1(sum_, qr)
+        qc.u1(product_, qr)
+        qc.u1(0.3, qr)
+        qc.u1(0.2, qr)
+
+        dag = circuit_to_dag(qc)
+
+        expected = QuantumCircuit(qr)
+        expected.u1(0.7, qr)
+        expected.u1(theta, qr)
+        expected.u1(phi, qr)
+        expected.u1(sum_, qr)
+        expected.u1(product_, qr)
+        expected.u1(0.5, qr)
+
+        after = Optimize1qGates().run(dag)
+
+        self.assertEqual(circuit_to_dag(expected), after)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -82,9 +82,6 @@ stage_osx: &stage_osx
 ###############################################################################
 
 # Define the order of the stages.
-stages:
-  - lint and pure python test
-  - test
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
@@ -127,25 +124,8 @@ jobs:
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
 
-    # "lint and and pure python test" stage
-    ###########################################################################
-    # Linter and style check (GNU/Linux, Python 3.5)
-    - stage: lint and pure python test
-      name: Python Style and Linter
-      <<: *stage_linux
-      script: make style && make lint
-
-    # Run the tests against without compilation (GNU/Linux, Python 3.5)
-    - stage: lint and pure python test
-      name: Python 3.5 Tests Linux
-      <<: *stage_linux
-
-    # "test" stage
-    ###########################################################################
-
-    # GNU/Linux, Python 3.6
-    - stage: test
-      name: Python 3.6 Tests and Coverage Linux
+    # GNU/Linux, Python 3.6 with coverage
+    - name: Python 3.6 Tests and Coverage Linux
       <<: *stage_linux
       python: 3.6
       env:
@@ -157,45 +137,8 @@ jobs:
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
 
-    # GNU/Linux, Python 3.7
-    - stage: test
-      name: Python 3.7 Tests Linux
-      <<: *stage_linux
-      # Compiling Python 3.7 requires an Ubuntu Xenial distribution
-      # and sudo set to true
-      # Fix when this is solved:
-      # https://github.com/travis-ci/travis-ci/issues/9815
-      dist: xenial
-      python: 3.7
-      sudo: true
-
-    # OSX, Python 3.5.6 (via pyenv)
-    - stage: test
-      <<: *stage_osx
-      name: Python 3.5 Tests OSX
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.5.6
-
-    # OSX, Python 3.6.5 (via pyenv)
-    - stage: test
-      name: Python 3.6 Tests OSX
-      <<: *stage_osx
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.6.5
-
-    # OSX, Python 3.7.2 (via pyenv)
-    - stage: test
-      name: Python 3.7 Tests OSX
-      <<: *stage_osx
-      env:
-        - MPLBACKEND=ps
-        - PYTHON_VERSION=3.7.2
-
     # Randomized testing
-    - stage: test
-      name: Randomized tests
+    - name: Randomized tests
       <<: *stage_linux
       cache:
         pip: true
@@ -206,8 +149,7 @@ jobs:
       - pip install "qiskit-aer"
       - make test_randomized
 
-    - stage: test
-      name: Benchmarks
+    - name: Benchmarks
       <<: *stage_linux
       script:
       - python setup.py build_ext --inplace
@@ -222,7 +164,7 @@ jobs:
       - echo $TRAVIS_BRANCH
       - echo $TRAVIS_PULL_REQUEST_BRANCH
       - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
-      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography)\.' $TRAVIS_BRANCH HEAD
+      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
 
 matrix:
   fast_finish: true
