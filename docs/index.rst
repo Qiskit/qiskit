@@ -42,7 +42,6 @@ Qiskit consists of four foundational elements:
   release_notes
   faq
   API References <autodoc/qiskit>
-  Tutorials <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/1_start_here.ipynb>
 
 .. Hiding - Indices and tables
    :ref:`genindex`
