@@ -27,16 +27,16 @@ subsequent sections:
     simulator = Aer.get_backend('qasm_simulator')
 
     # Create a Quantum Circuit acting on the q register
-    circuit = QuantumCircuit(2,2)
+    circuit = QuantumCircuit(2, 2)
 
     # Add a H gate on qubit 0
     circuit.h(0)
 
     # Add a CX (CNOT) gate on control qubit 0 and target qubit 1
-    circuit.cx(0,1)
+    circuit.cx(0, 1)
 
     # Map the quantum measurement to the classical bits
-    circuit.measure([0,1],[0,1])
+    circuit.measure([0,1], [0,1])
 
     # Execute the circuit on the qasm simulator
     job = execute(circuit, simulator, shots=1000)
@@ -49,7 +49,7 @@ subsequent sections:
     print("\nTotal count for 00 and 11 are:",counts)
 
     # Draw the circuit
-    circuit.draw(output='mpl')
+    circuit.draw()
 
 .. code-block:: text
 
@@ -57,6 +57,23 @@ subsequent sections:
 
 .. image:: /images/figures/getting_started_1_1.png
    :alt: Quantum Circuit with an H gate and controlled nots.
+
+.. note::
+
+  The default backend for qiskit.visualization.circuit_drawer()/QuantumCircuit.draw() is the text backend.
+  However, depending on your local environment you may want to change these defaults to something better
+  suited for your use case. This is done with the user config file.  By default the user config file
+  should be located in ~/.qiskit/settings.conf and is a .ini file.
+
+  For example, a settings.conf file for setting a Matplotlib drawer is:
+
+  .. code-block:: text
+
+    [default]
+    circuit_drawer = mpl
+
+  You can use any of the valid circuit drawer backends as the value for this config, this includes
+  text, mpl, latex, and latex_source.
 
 .. code-block:: python
 
@@ -115,7 +132,7 @@ Consider the next line of code
 
 .. code-block:: python
 
-    circuit = QuantumCircuit(2,2)
+    circuit = QuantumCircuit(2, 2)
 
 Here, you are initializing with 2 qubits in the zero state; with 2
 classical bits set to zero; and ``circuit`` is the quantum circuit.
@@ -138,7 +155,7 @@ Consider the following three lines of code:
 
     circuit.h(0)
     circuit.cx(0, 1)
-    circuit.measure([0,1],[0,1])
+    circuit.measure([0,1], [0,1])
 
 The gates are added to the circuit one-by-one to form the Bell state
 
@@ -148,7 +165,7 @@ The code above applies the following gates:
 
 - ``QuantumCircuit.h(0)``: A Hadamard gate :math:`H` on qubit 0,
   which puts it into a **superposition state**.
-- ``QuantumCircuit.cx(0,1)``: A controlled-Not operation
+- ``QuantumCircuit.cx(0, 1)``: A controlled-Not operation
   (:math:`C_{X}`) on control qubit 0 and target qubit 1, putting the qubits in
   an **entangled state**.
 - ``QuantumCircuit.measure([0,1], [0,1])``: if you pass
@@ -167,7 +184,7 @@ textbooks and research articles.
 
 .. code-block:: python
 
-    circuit.draw(output='mpl')
+    circuit.draw()
 
 .. image:: images/figures/getting_started_1_1.png
    :alt: Quantum circuit to make a Bell state.
@@ -242,9 +259,9 @@ Next Steps
 
 Now that you have learnt the basics, consider these learning resources:
 
-- `Notebook tutorials <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/start_here.ipynb>`__
-- `Video tutorials <https://www.youtube.com/channel/UClBNq7mCMf5xm8baE_VMl3A/featured>`__
-- `Interactive tutorials in IBM Q Experience <https://www.research.ibm.com/ibm-q/technology/experience/>`__
-- :ref:`Frequently Asked Questions <faq>`
+- `Notebook tutorials <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/1_start_here.ipynb>`__
+- `Video tutorials <https://www.youtube.com/playlist?list=PLOFEBzvs-Vvp2xg9-POLJhQwtVktlYGbY>`__
+- :ref:`  API References <autodoc/qiskit>`
+
 
 
