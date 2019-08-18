@@ -20,7 +20,7 @@ where you can find the individual projects that make up Qiskit, including
 * `Qiskit Aqua <https://github.com/Qiskit/qiskit-aqua>`__
 * `Qiskit IBMQ Provider <https://github.com/Qiskit/qiskit-ibmq-provider>`__
 * `Qiskit Tutorials <https://github.com/Qiskit/qiskit-tutorials>`__
-* `Qiskit Documentation <https://github.com/Qiskit/qiskit/tree/master/docs>`__
+* `Qiskit API Documentation <https://github.com/Qiskit/qiskit/tree/master/docs>`__
 
 
 ****************
@@ -34,24 +34,39 @@ Learn how members of the Qiskit community
 * `Get help when we're stuck <https://quantumcomputing.stackexchange.com/questions/tagged/qiskit>`__
 * `Stay informed of news in the community <https://medium.com/qiskit>`__
 * `Keep a consistent style <https://www.python.org/dev/peps/pep-0008>`__
-* `Work together on GitHub <https://github.com/Qiskit/qiskit/blob/master/CONTRIBUTING.md>`__
 * :ref:`Build Qiskit packages from source <install_install_from_source_label>`
 
+*****************************
+Contributor License Agreement
+*****************************
 
-**********************************
-Writing and Building Documentation
-**********************************
+Before you can submit any code we need all contributors to sign a
+contributor license agreement. By signing a contributor license
+agreement (CLA) you're basically just attesting to the fact
+that you are the author of the contribution and that you're freely
+contributing it under the terms of the Apache-2.0 license.
+
+When you contribute to the Qiskit project with a new pull request,
+a bot will evaluate whether you have signed the CLA. If required, the
+bot will comment on the pull request, including a link to accept the
+agreement. The `individual CLA <https://qiskit.org/license/qiskit-cla.pdf>`__
+document is available for review as a PDF.
+
+.. note::
+   If your contribution is part of your employment or your contribution
+   is the property of your employer, then you will likely need to sign a
+   `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`__ too and
+   email it to us at <qiskit@us.ibm.com>.
+
+**************************************
+Writing and Building API Documentation
+**************************************
 
 Qiskit documentation is shaped by the `docs as code
-<https://www.writethedocs.org/guide/docs-as-code/>`__ philosophy and follows the
-`IBM style guidelines
-<https://www.ibm.com/developerworks/library/styleguidelines/>`__.
+<https://www.writethedocs.org/guide/docs-as-code/>`__ philosophy.
 
-You can find templates for writing new documentation topics, such as helping users understand a
-concept, perform a task, or find technical specifications in the
-`Docs Templates folder <https://github.com/Qiskit/qiskit/tree/master/.github/DOCS_TEMPLATES>`__.
 
-The `published documentation <https://qiskit.org/documentation/index.html>`__ is
+The `published API documentation <https://qiskit.org/documentation/index.html>`__ is
 built from the master branch of `Qiskit/qiskit/docs
 <https://github.com/Qiskit/qiskit/tree/master/docs>`__ using `Sphinx
 <http://www.sphinx-doc.org/en/master/>`__.
@@ -136,28 +151,14 @@ steps for each element.
    https://github.com/pypa/sample-namespace-packages/blob/master/table.md
    for the set of of combinations for installation methods that work together.
 
-The following steps show the installation process for Ignis.
-
-1. Clone the Qiskit element repository.
-
-   .. code-block:: sh
-
-       git clone https://github.com/Qiskit/qiskit-ignis.git
-
-2. Create a virtual development environment.
+Set up the virtual development environment
+------------------------------------------
 
    .. code-block:: sh
 
        conda create -y -n QiskitDevenv python=3
        conda activate QiskitDevenv
 
-3. Install the package in `editable mode <https://pip.pypa.io/en/stable/
-   reference/pip_install/#editable-installs>`__ from the root directory of the
-   repository. The following example shows the installation for Ignis.
-
-   .. code:: sh
-
-      pip install -e qiskit-ignis
 
 Installing Terra from Source
 ----------------------------
@@ -213,42 +214,32 @@ Once the compilers are installed, you are ready to install Qiskit Terra.
 
       pip install cython
 
-.. tabs::
+4. If you want to run tests or linting checks, install the developer requirements.
 
-   .. tab:: Run Tests
+   .. code:: sh
 
-      If you want to run tests or linting checks, install the developer requirements.
+      pip install -r requirements-dev.txt
 
-      .. code:: sh
+5. Install ``qiskit-terra``.
 
-         pip install -r requirements-dev.txt
+   .. code:: sh
 
-      4. Install ``qiskit-terra``.
+      pip install .
 
-         .. code:: sh
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied you can do this with:
 
-            pip install .
+   .. code:: sh
 
-   .. tab:: Editable Mode
+      pip install -e .
 
-      If you want to install it in editable mode, meaning that code changes to the
-      project don't require a reinstall to be applied you can do this with:
+You can then run the code examples working after installing terra. You can
+run the example with the following command.
 
-      .. code:: sh
+   .. code:: sh
 
-          pip install -e .
+      python examples/python/using_qiskit_terra_level_0.py
 
-   .. tab:: Run Examples
-
-      You can then run the code examples working after installing terra. You can
-      run the example with the following command.
-
-      .. code:: sh
-
-         python examples/python/using_qiskit_terra_level_0.py
-
-
-After you've installed Terra, you can install Aer as an add-on to run additional simulators.
 
 .. note::
 
@@ -267,41 +258,6 @@ After you've installed Terra, you can install Aer as an add-on to run additional
     warning about the missing qiskit-aer and qiskit-ibmq-provider, but still
     display any other warnings from qiskit or other packages.
 
-Installing IBMQ Provider from Source
-------------------------------------
-
-1. Clone the qiskit-ibmq-provider repository.
-
-   .. code:: sh
-
-      git clone https://github.com/Qiskit/qiskit-ibmq-provider.git
-
-2. Cloning the repository creates a local directory called ``qiskit-ibmq-provider``.
-
-   .. code:: sh
-
-      cd qiskit-ibmq-provider
-
-3. If you want to run tests or linting checks, install the developer requirements.
-   This is not required to install or use the qiskit-ibmq-provider package when
-   installing from source.
-
-   .. code:: sh
-
-      pip install -r requirements-dev.txt
-
-4. Install qiskit-ibmq-provider
-
-   .. code:: sh
-
-      pip install .
-
-If you want to install it in editable mode, meaning that code changes to the
-project don't require a reinstall to be applied you can do this with:
-
-.. code:: sh
-
-    pip install -e .
 
 Installing Aer from Source
 --------------------------
@@ -348,40 +304,6 @@ universally depending on operating system.
             sudo apt install libopenblas-dev
 
 
-      5. Build and install qiskit-aer directly
-
-         If you have pip <19.0.0 installed and your environment doesn't require a
-         custom build options you can just run:
-
-         .. code:: sh
-
-            cd qiskit-aer
-            pip install .
-
-         This will both build the binaries and install Aer.
-
-         Alternatively if you have a newer pip installed, or have some custom requirement
-         you can build a python wheel manually.
-
-         .. code:: sh
-
-            cd qiskit-aer
-            python ./setup.py bdist_wheel
-
-         If you need to set a custom option during the wheel build you can refer to
-         :ref:`aer_wheel_build_options`.
-
-         After you build the python wheel it will be stored in the ``dist/`` dir in the
-         Aer repository. The exact version will depend
-
-         .. code:: sh
-
-             cd dist
-             pip install qiskit_aer-*.whl
-
-         The exact filename of the output wheel file depends on the current version of
-         Aer under development.
-
    .. tab:: macOS
 
       3. Install dependencies.
@@ -407,39 +329,7 @@ universally depending on operating system.
 
             xcode-select --install
 
-      4. Build and install qiskit
-
-         If you have pip <19.0.0 installed and your environment doesn't require a
-         custom build options you can just run:
-
-         .. code:: sh
-
-            cd qiskit-aer
-            pip install .
-
-         This will both build the binaries and install Aer.
-
-         Alternatively if you have a newer pip installed, or need to set custom options
-         for your environment you can build a python wheel manually.
-
-         .. code:: sh
-
-            cd qiskit-aer
-            python ./setup.py bdist_wheel
-
-         If you need to set a custom option during the wheel build you can refer to
-         :ref:`aer_wheel_build_options`.
-
-         After you build the python wheel it will be stored in the ``dist/`` dir in the
-         Aer repository. The exact version will depend
-
-         .. code:: sh
-
-            cd dist
-            pip install qiskit_aer-*.whl
-
-         The exact filename of the output wheel file depends on the current version of
-         Aer under development.
+      4. Rest knowing macOS is simpler and go onto step 5
 
    .. tab:: Windows
 
@@ -459,36 +349,40 @@ universally depending on operating system.
 
             conda install --update-deps -c conda-forge -y openblas cmake
 
-      5. Install the package
 
-         If you have pip <19.0.0 installed you can just run
+5. Build and install qiskit-aer directly
 
-         .. code:: sh
+   If you have pip <19.0.0 installed and your environment doesn't require a
+   custom build options you can just run:
 
-            cd qiskit-aer
-            pip install .
+   .. code:: sh
 
-         if you're using pip >=19.0.0 then you can manually build a wheel file and install
-         that instead.
+      cd qiskit-aer
+      pip install .
 
-         .. code:: sh
+   This will both build the binaries and install Aer.
 
-             cd qiskit-aer
-             python setup.py bdist_wheel
+   Alternatively if you have a newer pip installed, or have some custom requirement
+   you can build a python wheel manually.
 
-         If you need to set a custom option during the wheel build you can refer to
-         :ref:`aer_wheel_build_options`.
+   .. code:: sh
 
-         After you build the python wheel it will be stored in the ``dist/`` dir in the
-         Aer repository. The exact version will depend
+      cd qiskit-aer
+      python ./setup.py bdist_wheel
 
-         .. code:: sh
+   If you need to set a custom option during the wheel build you can refer to
+   :ref:`aer_wheel_build_options`.
 
-             cd dist
-             pip install qiskit_aer-*.whl
+   After you build the python wheel it will be stored in the ``dist/`` dir in the
+   Aer repository. The exact version will depend
 
-         The exact filename of the output wheel file depends on the current version of
-         Aer under development.
+   .. code:: sh
+
+      cd dist
+      pip install qiskit_aer-*.whl
+
+   The exact filename of the output wheel file depends on the current version of
+   Aer under development.
 
 .. _aer_wheel_build_options:
 
@@ -630,6 +524,43 @@ Installing Aqua from Source
       pip install -r requirements-dev.txt
 
 4. Install aqua
+
+   .. code:: sh
+
+      pip install .
+
+If you want to install it in editable mode, meaning that code changes to the
+project don't require a reinstall to be applied you can do this with:
+
+.. code:: sh
+
+    pip install -e .
+
+
+Installing IBMQ Provider from Source
+------------------------------------
+
+1. Clone the qiskit-ibmq-provider repository.
+
+   .. code:: sh
+
+      git clone https://github.com/Qiskit/qiskit-ibmq-provider.git
+
+2. Cloning the repository creates a local directory called ``qiskit-ibmq-provider``.
+
+   .. code:: sh
+
+      cd qiskit-ibmq-provider
+
+3. If you want to run tests or linting checks, install the developer requirements.
+   This is not required to install or use the qiskit-ibmq-provider package when
+   installing from source.
+
+   .. code:: sh
+
+      pip install -r requirements-dev.txt
+
+4. Install qiskit-ibmq-provider
 
    .. code:: sh
 
