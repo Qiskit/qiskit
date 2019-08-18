@@ -26,6 +26,8 @@ The format is based on [Keep a Changelog].
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
+
+-   Ability to check for equality of pulse `Schedule` and `Instruction`.
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
     on the longest path of the DAGCircuit.
@@ -64,6 +66,14 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   Intervals are now defined by start and stop, rather than begin and end.
+-   TimeslotCollections now are sorted by default and have more efficient merges.
+-   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
+    Otherwise an error is raised.
+-   `Schedule.instructions` now returns with time-ordering.
+-   More informative errors are now raised if `qubit_lo_freq` and
+    `meas_lo_freq` are not supplied to `assemble_schedules`.
+-   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`.
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
 -   All circuit drawers now express most commonly used fractions
@@ -94,6 +104,12 @@ The format is based on [Keep a Changelog].
     definition of a controlled `U3Gate` (\#2755)
 -   `coupling_map` now required to validate a `backend.configuration()` (\#2836)
 -   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
+-   If layout information is available in
+    the circuit, it will be included to the circuit drawing. This can be removed
+    using the option ``with_layout=False`` in the method
+    ``QuantumCircuit.draw``. (\#2739)
+-   Q-sphere visualization is enhanced and corrected (\#2932)
+
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
@@ -134,6 +150,9 @@ The format is based on [Keep a Changelog].
 -   Correctly serialize complex numbers with a nonzero real part
 -   Fixed bug in measure sampling for `BasicAer` Qasm simulator if only a
     subset of qubits are measured (\#2790)
+-   Parameter objects can be serialized and communicated between
+    sub-processes (\#2429)
+-   Parameterized circuits no longer need to be transpiled individually (\#2864)
 
 
 ## [0.8.2] - 2019-06-14
