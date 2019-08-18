@@ -60,10 +60,17 @@ subsequent sections:
 
 .. note::
 
-  The default backend for qiskit.visualization.circuit_drawer()/QuantumCircuit.draw() is the text backend.
+  The default simulator provider is ``Aer``. However, if you have issues with installing this
+  provider there is also
+  a basic aer provider. To use this provider replace ``Aer`` with ``BasicAer`` in the above code.
+
+.. note::
+
+  The default backend for ``qiskit.visualization.circuit_drawer()`` or ``QuantumCircuit.draw()`` is
+  the text backend.
   However, depending on your local environment you may want to change these defaults to something better
   suited for your use case. This is done with the user config file.  By default the user config file
-  should be located in ~/.qiskit/settings.conf and is a .ini file.
+  should be located in ``~/.qiskit/settings.conf`` and is a .ini file.
 
   For example, a settings.conf file for setting a Matplotlib drawer is:
 
@@ -248,6 +255,7 @@ The observed probabilities :math:`Pr(00)` and :math:`Pr(11)` are computed by
 taking the respective counts and dividing by the total number of shots.
 
 .. note::
+
   Try changing the ``shots`` keyword in the ``execute`` method to see how
   the estimated probabilities change.
 
