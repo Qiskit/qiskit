@@ -74,9 +74,17 @@ built from the master branch of `Qiskit/qiskit/docs
 You can build a local copy of the documentation from your local clone of the
 `Qiskit/qiskit` repository as follows:
 
-1. Clone `Qiskit/qiskit` (or your personal fork).
+1. Clone the Qiskit repository
 
-2. `Install Sphinx <http://www.sphinx-doc.org/en/master/usage/installation.html>`__.
+   .. code:: sh
+
+      git clone https://github.com/Qiskit/qiskit.git
+
+2. Cloning the repository creates a local folder called ``qiskit``.
+
+   .. code:: sh
+
+      cd qiskit
 
 3. Install the required dependencies by running the following
    in a terminal window:
