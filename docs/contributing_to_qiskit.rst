@@ -132,11 +132,11 @@ prevent getting versions of elements that may be lower than those desired if the
 pip version is behind the source versions:
 
 #. qiskit-terra
-#. qiskit-ibmq-provider (if wanting to connect to the IBM Q devices or online
-   simulator)
 #. qiskit-aer
 #. qiskit-ignis
 #. qiskit-aqua
+#. qiskit-ibmq-provider (if wanting to connect to the IBM Q devices or online
+   simulator)
 
 To work with several components and elements simultaneously, use the following
 steps for each element.
