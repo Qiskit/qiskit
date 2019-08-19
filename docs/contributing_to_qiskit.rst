@@ -295,21 +295,21 @@ universally depending on operating system.
 
          Building Aer requires a C++ compiler and development headers
 
-         If you're using Ubuntu>=16.04 or an equivalent Debian Linux distribution
+         If you're using Fedora or an equivalent Linux distribution
          you can install this with:
 
          .. code:: sh
 
-            sudo apt install build-essential
+            dnf install @development-tools
 
       4. Install OpenBLAS development headers.
 
-         If you're using Ubuntu>=16.04 or an equivalent Debian Linux distribution,
+         If you're using Fedora or an equivalent Linux distribution,
          you can install this with:
 
          .. code:: sh
 
-            sudo apt install libopenblas-dev
+            dnf install openblas-devel
 
 
    .. tab:: macOS
