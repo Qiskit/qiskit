@@ -169,6 +169,7 @@ stages:
             # Remove post merge:
             git pull https://github.com/mtreinish/qiskit-tutorial.git fix-tests
             popd
+            sudo apt-get install -y build-essential libopenblas-dev
           displayName: 'Clone tutorials'
         - bash: |
             set -e
@@ -176,6 +177,7 @@ stages:
             pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
             pip install -e .
             python setup.py build_ext --inplace
+            pip install 'pip<19'
             pip install git+https://github.com/Qiskit/qiskit-aer.git git+https://github.com/Qiskit/qiskit-ignis.git git+https://github.com/Qiskit/qiskit-ibmq-provider.git git+https://github.com/Qiskit/qiskit-aqua.git -c constraints.txt
             pip install -U torch
           displayName: 'Install dependencies'
