@@ -200,7 +200,7 @@ workflow for writing and compiling release notes.
 
 #### Adding a new release note
 
-Making a new release not is quite straightforward. Ensure that you have reno
+Making a new release note is quite straightforward. Ensure that you have reno
 installed with::
 
     pip install -U reno
