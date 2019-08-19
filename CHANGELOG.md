@@ -62,6 +62,8 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
+-   The method ``PassManager.replace()`` was added to allow modifying an existing
+    pass manager instance (#2179)
 
 
 ### Changed
