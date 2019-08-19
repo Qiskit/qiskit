@@ -506,7 +506,7 @@ class TestScheduleFilter(BaseTestSchedule):
         intervals_a = sched.filter(time_ranges=((0, 13),))
         for time, inst in intervals_a.instructions:
             self.assertTrue(0 <= time <= 13)
-            self.assertTrue(inst.timeslots.timeslots[0].interval.end <= 13)
+            self.assertTrue(inst.timeslots.timeslots[0].interval.stop <= 13)
         self.assertEqual(len(intervals_a.instructions), 2)
 
         intervals_b = sched.filter(time_ranges=[(59, 65)])
@@ -967,7 +967,7 @@ class TestScheduleWithDeviceSpecification(BaseTestSchedule):
         intervals_a = sched.filter(time_ranges=((0, 13),))
         for time, inst in intervals_a.instructions:
             self.assertTrue(0 <= time <= 13)
-            self.assertTrue(inst.timeslots.timeslots[0].interval.end <= 13)
+            self.assertTrue(inst.timeslots.timeslots[0].interval.stop <= 13)
         self.assertEqual(len(intervals_a.instructions), 2)
 
         intervals_b = sched.filter(time_ranges=[(59, 65)])

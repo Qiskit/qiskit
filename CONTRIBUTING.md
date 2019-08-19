@@ -86,7 +86,7 @@ document is available for review as a PDF.
 > [corporate CLA](https://qiskit.org/license/qiskit-corporate-cla.pdf) too and
 > email it to us at <qiskit@us.ibm.com>.
 
-#### Pull request checklist
+### Pull request checklist
 
 When submitting a pull request and you feel it is ready for review,
 please ensure that:
@@ -100,9 +100,10 @@ please ensure that:
 3. If it makes sense for your change that you have added new tests that
    cover the changes.
 4. Ensure that if your change has an end user facing impact (new feature,
-   deprecation, etc) that you have updated the CHANGELOG.md.
+   deprecation, removal etc) that you have updated the CHANGELOG.md and
+   added a reno release note for that change.
 
-#### Commit messages
+### Commit messages
 
 As important as the content of the change, is the content of the commit message
 describing it. The commit message provides the context for not only code review
@@ -176,6 +177,119 @@ The main rule to follow is:
 
 The commit message must contain all the information required to fully
 understand & review the patch for correctness. Less is not more.
+
+### Release Notes
+
+When making any end user facing changes in a contribution we have to make sure
+we document that when we release a new version of qiskit-terra. The expectation
+is that if your code contribution has user facing changes that you will write
+the release documentation for these changes. This documentation must explain
+what was changed, why it was changed, and how users can either use or adapt
+to the change. The idea behind release documentation is that when a naive
+user with limited internal knowledege of the project is upgrading from the
+previous release to the new one, they should be able to read the release notes,
+understand if they need to update their program which uses qiskit, and how they
+would go about doing that. It ideally should explain why they need to make
+this change too, to provide the necessary context.
+
+To make sure we don't forget a release note or if the details of user facing
+changes over a release cycle we require that all user facing changes include
+documentation at the same time as the code. To accomplish this we use the
+[reno](https://docs.openstack.org/reno/latest/) tool which enables a git based
+workflow for writing and compiling release notes.
+
+#### Adding a new release note
+
+Making a new release note is quite straightforward. Ensure that you have reno
+installed with::
+
+    pip install -U reno
+
+Once you have reno installed you can make a new release note by running in
+your local repository checkout's root::
+
+    reno new short-description-string
+
+where short-description-string is a brief string (with no spaces) that describes
+what's in the release note. This will become the prefix for the release note
+file. Once that is run it will create a new yaml file in releasenotes/notes.
+Then open that yaml file in a text editor and write the release note. The basic
+structure of a release note is restructured text in yaml lists under category
+keys. You add individual items under each category and they will be grouped
+automatically by release when the release notes are compiled. A single file
+can have as many entries in it as needed, but to avoid potential conflicts
+you'll want to create a new file for each pull request that has user facing
+changes. When you open the newly created file it will be a full template of
+the different categories with a description of a category as a single entry
+in each category. You'll want to delete all the sections you aren't using and
+update the contents for those you are. For example, the end result should
+look something like::
+
+```yaml
+features:
+  - |
+    Introduced a new feature foo, that adds support for doing something to
+    ``QuantumCircuit`` objects. It can be used by using the foo function,
+    for example::
+
+      from qiskit import foo
+      from qiskit import QuantumCircuit
+      foo(QuantumCircuit())
+
+  - |
+    The ``qiskit.QuantumCircuit`` module has a new method ``foo()``. This is
+    the equivalent of calling the ``qiskit.foo()`` to do something to your
+    QuantumCircuit. This is the equivalent of running ``qiskit.foo()`` on
+    your circuit, but provides the convenience of running it natively on
+    an object. For example::
+
+      from qiskit import QuantumCircuit
+
+      circ = QuantumCircuit()
+      circ.foo()
+
+deprecations:
+  - |
+    The ``qiskit.bar`` module has been deprecated and will be removed in a
+    future release. Its sole function, ``foobar()`` has been superseded by the
+    ``qiskit.foo()`` function which provides similar functionality but with
+    more accurate results and better performance. You should update your calls
+    ``qiskit.bar.foobar()`` calls to ``qiskit.foo()``.
+```
+
+You can also look at other release notes for other examples.
+
+You can use any restructured text feature in them (code sections, tables,
+enumerated lists, bulleted list, etc) to express what is being changed as
+needed. In general you want the release notes to include as much detail as
+needed so that users will understand what has changed, why it changed, and how
+they'll have to update their code.
+
+After you've finished writing your release notes you'll want to add the note
+file to your commit with `git add` and commit them to your PR branch to make
+sure they're included with the code in your PR.
+
+#### Generating the release notes
+
+After release notes have been added if you want to see what the full output of
+the release notes. In general the output from reno that we'll get is a rst
+(ReStructuredText) file that can be compiled by
+[sphinx](https://www.sphinx-doc.org/en/master/). To generate the rst file you
+use the ``reno report`` command. If you want to generate the full terra release
+notes for all releases (since we started using reno during 0.9) you just run::
+
+    reno report
+
+but you can also use the ``--version`` argument to view a single release (after
+it has been tagged::
+
+    reno report --version 0.9.0
+
+At release time ``reno report`` is used to generate the release notes for the
+release and the output will be submitted as a pull request to the documentation
+repository's [release notes file](
+https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
+
 
 ## Installing Qiskit Terra from source
 Please see the [Installing Qiskit Terra from

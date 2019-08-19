@@ -14,7 +14,6 @@
 
 """Schedule."""
 
-import itertools
 import abc
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 
@@ -43,28 +42,29 @@ class Schedule(ScheduleComponent):
             PulseError: If timeslots intercept.
         """
         self._name = name
+
+        timeslots = []
+        _children = []
+        for sched_pair in schedules:
+            # recreate as sequence starting at 0.
+            if not isinstance(sched_pair, (list, tuple)):
+                sched_pair = (0, sched_pair)
+            # convert to tuple
+            sched_pair = tuple(sched_pair)
+            insert_time, sched = sched_pair
+            sched_timeslots = sched.timeslots
+            if insert_time:
+                sched_timeslots = sched_timeslots.shift(insert_time)
+            timeslots.append(sched_timeslots)
+            _children.append(sched_pair)
+
         try:
-            timeslots = []
-            _children = []
-            for sched_pair in schedules:
-                # recreate as sequence starting at 0.
-                if not isinstance(sched_pair, (list, tuple)):
-                    sched_pair = (0, sched_pair)
-                # convert to tuple
-                sched_pair = tuple(sched_pair)
-                insert_time, sched = sched_pair
-                sched_timeslots = sched.timeslots
-                if insert_time:
-                    sched_timeslots = sched_timeslots.shift(insert_time)
-                timeslots.append(sched_timeslots.timeslots)
-                _children.append(sched_pair)
-
-            self._timeslots = TimeslotCollection(*itertools.chain(*timeslots))
-            self.__children = tuple(_children)
-            self._buffer = max([child.buffer for _, child in _children]) if _children else 0
-
+            self._timeslots = TimeslotCollection(*timeslots)
         except PulseError as ts_err:
             raise PulseError('Child schedules {0} overlap.'.format(schedules)) from ts_err
+
+        self.__children = tuple(_children)
+        self._buffer = max([child.buffer for _, child in _children]) if _children else 0
 
     @property
     def name(self) -> str:
@@ -240,8 +240,8 @@ class Schedule(ScheduleComponent):
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 for i in ranges:
-                    if all([(i.begin <= ts.interval.shift(time_inst[0]).begin
-                             and ts.interval.shift(time_inst[0]).end <= i.end)
+                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
+                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
                             for ts in time_inst[1].timeslots.timeslots]):
                         return True
                 return False
@@ -254,7 +254,7 @@ class Schedule(ScheduleComponent):
             filter_funcs.append(only_instruction_types(instruction_types))
         if time_ranges:
             filter_funcs.append(
-                only_intervals([Interval(start, end) for start, end in time_ranges]))
+                only_intervals([Interval(start, stop) for start, stop in time_ranges]))
         if intervals:
             filter_funcs.append(only_intervals(intervals))
 
