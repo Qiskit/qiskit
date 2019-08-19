@@ -1456,6 +1456,85 @@ class TestTextIdleWires(QiskitTestCase):
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
+class TestTextInstructionWithBothWires(QiskitTestCase):
+    """Composite instructions with both kind of wires
+    See https://github.com/Qiskit/qiskit-terra/issues/2973"""
+
+    def test_text_all_1q_1c(self):
+        """ Test q0-c0 in q0-c0"""
+        expected = '\n'.join(["         ┌───────┐",
+                              "qr_0: |0>┤0      ├",
+                              "         │  name │",
+                              " cr_0: 0 ╡0      ╞",
+                              "         └───────┘"])
+
+        qr1 = QuantumRegister(1, 'qr')
+        cr1 = ClassicalRegister(1, 'cr')
+        inst = QuantumCircuit(qr1, cr1, name='name').to_instruction()
+        circuit = QuantumCircuit(qr1, cr1)
+        circuit.append(inst, qr1[:], cr1[:])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_all_2q_2c(self):
+        """ Test q0-q1-c0-c1 in q0-q1-c0-c1"""
+        expected = '\n'.join(["         ┌───────┐",
+                              "qr_0: |0>┤0      ├",
+                              "         │       │",
+                              "qr_1: |0>┤1      ├",
+                              "         │  name │",
+                              " cr_0: 0 ╡0      ╞",
+                              "         │       │",
+                              " cr_1: 0 ╡1      ╞",
+                              "         └───────┘"])
+
+        qr2 = QuantumRegister(2, 'qr')
+        cr2 = ClassicalRegister(2, 'cr')
+        inst = QuantumCircuit(qr2, cr2, name='name').to_instruction()
+        circuit = QuantumCircuit(qr2, cr2)
+        circuit.append(inst, qr2[:], cr2[:])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_4q_2c(self):
+        """ Test q1-q2-q3-q4-c1-c2 in q0-q1-q2-q3-q4-q5-c0-c1-c2-c3-c4-c5"""
+        expected = '\n'.join(["                 ",
+                              "q_0: |0>─────────",
+                              "        ┌───────┐",
+                              "q_1: |0>┤0      ├",
+                              "        │       │",
+                              "q_2: |0>┤1      ├",
+                              "        │       │",
+                              "q_3: |0>┤2      ├",
+                              "        │       │",
+                              "q_4: |0>┤3      ├",
+                              "        │  name │",
+                              "q_5: |0>┤       ├",
+                              "        │       │",
+                              " c_0: 0 ╡       ╞",
+                              "        │       │",
+                              " c_1: 0 ╡0      ╞",
+                              "        │       │",
+                              " c_2: 0 ╡1      ╞",
+                              "        └───────┘",
+                              " c_3: 0 ═════════",
+                              "                 ",
+                              " c_4: 0 ═════════",
+                              "                 ",
+                              " c_5: 0 ═════════",
+                              "                 "])
+
+        qr4 = QuantumRegister(4)
+        cr4 = ClassicalRegister(2)
+        inst = QuantumCircuit(qr4, cr4, name='name').to_instruction()
+        qr6 = QuantumRegister(6, 'q')
+        cr6 = ClassicalRegister(6, 'c')
+        circuit = QuantumCircuit(qr6, cr6)
+        circuit.append(inst, qr6[1:5], cr6[1:3])
+
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+
 class TestTextWithLayout(QiskitTestCase):
     """The with_layout option"""
 

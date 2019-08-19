@@ -121,9 +121,10 @@ def assemble(experiments,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
-        run_config (dict):
-            extra arguments used to configure the run (e.g. for Aer configurable backends)
-            Refer to the backend documentation for details on these arguments
+        **run_config (dict):
+            extra arguments used to configure the run (e.g. for Aer configurable
+            backends). Refer to the backend documentation for details on these
+            arguments.
 
     Returns:
         Qobj: a qobj which can be run on a backend. Depending on the type of input,
