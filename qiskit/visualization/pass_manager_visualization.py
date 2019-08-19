@@ -17,12 +17,13 @@ flow controller, and coloured based on the type of pass.
 """
 import inspect
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
+
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 
-
 try:
     import subprocess
+
     _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
     _PROC.communicate()
@@ -86,7 +87,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     for index, controller_group in enumerate(passes):
 
         # label is the name of the flow controller (without the word controller)
-        label = "[%s] %s" %(index, controller_group['type'].__name__.replace('Controller', ''))
+        label = "[%s] %s" % (index, controller_group['type'].__name__.replace('Controller', ''))
 
         # create the subgraph for this controller
         subgraph = pydot.Cluster(str(component_id), label=label, fontname='helvetica')
@@ -146,7 +147,6 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
 
 def _get_node_color(pss, style):
-
     # look in the user provided dict first
     for typ, color in style.items():
         if isinstance(pss, typ):
