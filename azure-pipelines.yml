@@ -288,9 +288,12 @@ stages:
           displayName: 'Use Python $(python.version)'
         - bash: |
             set -e
+            set -x
             git clone https://github.com/Qiskit/qiskit-tutorials.git
+            git checkout -b mtreinish-fix-tests master
             # Remove post merge:
             git pull https://github.com/mtreinish/qiskit-tutorial.git fix-tests
+          displayName: 'Clone tutorials'
         - bash: |
             set -e
             python -m pip install --upgrade pip
