@@ -186,8 +186,8 @@ Step 4 : Visualize the Circuit
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You can use ``QuantumCircuit.draw()`` to view the circuit that you have designed
-in the :ref:`various forms <Visualizing-a-Quantum-Circuit>` used in many
-textbooks and research articles.
+in the `various forms <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/advanced/terra/visualizing_a_quantum_circuit.ipynb>`__
+used in many textbooks and research articles.
 
 .. code-block:: python
 
@@ -207,8 +207,8 @@ Step 5 : Simulate the Experiment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Qiskit Aer is a high performance simulator framework for quantum circuits. It
-provides :ref:`several backends <executing_quantum_programs>` to achieve
-different simulation goals.
+provides `several backends <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/fundamentals/1_getting_started_with_qiskit.ipynb#Simulating-circuits-using-Qiskit-Aer->`__
+to achieve different simulation goals.
 
 To simulate this circuit, you will use the ``qasm_simulator``. Each run of this
 circuit will yield either the bit string 00 or 11.
@@ -241,8 +241,8 @@ experiment you ran.
 Step 6 : Visualize the Results
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Qiskit provides many visualizations, including
-the function ``plot_histogram``, to view your results.
+Qiskit provides `many visualizations <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/fundamentals/2_plotting_data_in_qiskit.ipynb>`__,
+including the function ``plot_histogram``, to view your results.
 
 .. code-block:: python
 
