@@ -56,8 +56,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
-    'sphinx_tabs.tabs',
-    'sphinx_automodapi.automodapi'
+    'sphinx_tabs.tabs'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -118,6 +117,7 @@ extlinks = {
     'pull_ignis': ('https://github.com/Qiskit/qiskit-ignis/pull/%s', '#'),
     'pull_ibmq-provider': ('https://github.com/Qiskit/qiskit-ibmq-provider/pull/%s', '#')
 }
+
 
 # -- Options for HTML output -------------------------------------------------
 
