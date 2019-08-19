@@ -636,7 +636,7 @@ class TestScheduleEquality(QiskitTestCase):
                          Schedule((0, FrameChange(0, name='fc2')(DriveChannel(1))), name='s2'))
 
 
-class TestScheduleWithDeviceSpecification(QiskitTestCase):
+class TestScheduleWithDeviceSpecification(BaseTestSchedule):
     """Schedule tests."""
     # TODO: This test will be deprecated in future update.
 
