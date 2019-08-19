@@ -719,6 +719,58 @@ class TestPassManagerReuse(SchedulerTestCase):
         self.assertScheduler(self.circuit, self.passmanager, expected)
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
+class TestPassManagerReplace(SchedulerTestCase):
+    """Test PassManager.replace"""
+
+    def setUp(self):
+        self.passmanager = PassManager()
+        self.circuit = QuantumCircuit(QuantumRegister(1))
+
+    def test_replace0(self):
+        """ Test passmanager.replace(0, ...)."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.replace(0, PassB_TP_RA_PA())
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassB_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_replace1(self):
+        """ Test passmanager.replace(1, ...)."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager.replace(1, PassC_TP_RA_PA())
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_setitem(self):
+        """ Test passmanager[1] = ..."""
+        self.passmanager.append(PassC_TP_RA_PA())  # Request: PassA / Preserves: PassA
+        self.passmanager.append(PassB_TP_RA_PA())  # Request: PassA / Preserves: PassA
+
+        self.passmanager[1] = PassC_TP_RA_PA()
+
+        expected = ['run transformation pass PassA_TP_NR_NP',
+                    'run transformation pass PassC_TP_RA_PA']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
+    def test_replace_with_conditional(self):
+        """ Replace a pass with a conditional pass. """
+        self.passmanager.append(PassE_AP_NR_NP(False))
+        self.passmanager.append(PassB_TP_RA_PA())
+
+        self.passmanager.replace(1, PassA_TP_NR_NP(),
+                                 condition=lambda property_set: property_set['property'])
+
+        expected = ['run analysis pass PassE_AP_NR_NP',
+                    'set property as False']
+        self.assertScheduler(self.circuit, self.passmanager, expected)
+
 
 if __name__ == '__main__':
     unittest.main()
