@@ -23,13 +23,13 @@ features:
         from qiskit.transpiler import PassManager
 
         pm = PassManager()
-        pm.append(CountOpsLongestPath)
+        pm.append(CountOpsLongestPath())
 
     and then access the longest path via the property set value with something
     like::
 
         pm.append(
-            CxCancellation,
+            CxCancellation(),
             condition=lambda property_set: property_set[
                 'count_ops_longest_path'] < 5)
 
