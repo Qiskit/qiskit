@@ -290,9 +290,11 @@ stages:
             set -e
             set -x
             git clone https://github.com/Qiskit/qiskit-tutorials.git
+            pushd qiskit-tutorials
             git checkout -b mtreinish-fix-tests master
             # Remove post merge:
             git pull https://github.com/mtreinish/qiskit-tutorial.git fix-tests
+            popd
           displayName: 'Clone tutorials'
         - bash: |
             set -e
