@@ -15,8 +15,19 @@
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
 """
+import os
 import inspect
+import tempfile
+
+try:
+    from PIL import Image
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
+from qiskit.visualization import utils
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
+
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 
@@ -137,12 +148,21 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
         graph.add_subgraph(subgraph)
 
-    if filename:
-        if not raw:
-            # linter says this isn't a method - it is
-            graph.write_png(filename)  # pylint: disable=no-member
-        else:
+    if raw and filename:
+
             graph.write(filename, format='raw')
+
+    tmpfilename = tempfile.TemporaryFile()
+
+    # linter says this isn't a method - it is
+    graph.write_png(filename)  # pylint: disable=no-member
+
+    image = Image.open(base + '.png')
+    image = utils._trim(image)
+    os.remove(base + '.png')
+    if filename:
+        image.save(filename, 'PNG')
+    return graph
 
 
 def _get_node_color(pss, style):
