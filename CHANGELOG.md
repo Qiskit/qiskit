@@ -38,9 +38,6 @@ The format is based on [Keep a Changelog].
 -   The option `idle_wires` was added to the drawers to control
     if wires without any operation should be included in the drawing.
 -   Introduced a visualization for the Pass Manager. (\#2445)
--   The attribute `PassManager.log_passes` was added to log and time the
-    passes when they are executed. The results is stored in the
-    attribute `pass_log` of the property set as a dictionary.
 -   New pulse schedule method `Schedule.filter` to filter by instruction
     channel, time, and type. (\#2597)
 -   Decomposition of arbitrary isometries (\#2600)
