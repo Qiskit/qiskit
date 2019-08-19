@@ -109,6 +109,7 @@ The format is based on [Keep a Changelog].
     using the option ``with_layout=False`` in the method
     ``QuantumCircuit.draw``. (\#2739)
 -   Q-sphere visualization is enhanced and corrected (\#2932)
+-   Now PassManager.draw() (without any argument) will return an in-memory PIL image.
 
 
 ### Removed
