@@ -273,3 +273,47 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
+
+    - job: 'Tutorial_Tests'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            git clone https://github.com/Qiskit/qiskit-tutorials.git
+            # Remove post merge:
+            git pull https://github.com/mtreinish/qiskit-tutorial.git fix-tests
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -e .
+            python setup.py build_ext --inplace
+            pip install git+https://github.com/Qiskit/qiskit-aer.git git+https://github.com/Qiskit/qiskit-ignis.git git+https://github.com/Qiskit/qiskit-qiskit-ibmq-provider.git git+https://github.com/Qiskit/qiskit-aqua.git -c constraints.txt
+            pip install -U torch
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            cd qiskit-tutorials
+            stestr run
+          displayName: 'Run tests'
+#        - bash: |
+#            set -e
+#            pip install -U junitxml
+#            mkdir -p junit
+#            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
+#          condition: succeededOrFailed()
+#          displayName: 'Generate results'
+#        - task: PublishTestResults@2
+#          condition: succeededOrFailed()
+#          inputs:
+#            testResultsFiles: '**/test-*.xml'
+#            testRunTitle: 'Test results for Linux Python $(python.version)'
