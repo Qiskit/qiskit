@@ -21,6 +21,7 @@ import tempfile
 
 try:
     from PIL import Image
+
     HAS_PIL = True
 except ImportError:
     HAS_PIL = False
@@ -31,9 +32,9 @@ from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 
-
 try:
     import subprocess
+
     _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
     _PROC.communicate()
@@ -151,7 +152,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
         graph.add_subgraph(subgraph)
 
     if raw and filename:
-            graph.write(filename, format='raw')
+        graph.write(filename, format='raw')
 
     if not HAS_PIL and filename:
         # linter says this isn't a method - it is
@@ -173,7 +174,6 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
 
 def _get_node_color(pss, style):
-
     # look in the user provided dict first
     for typ, color in style.items():
         if isinstance(pss, typ):
