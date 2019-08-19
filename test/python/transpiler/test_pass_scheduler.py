@@ -556,6 +556,7 @@ class TestDumpPasses(SchedulerTestCase):
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
+
     def handleError(self, record):
         raise sys.exc_info()
 
@@ -719,6 +720,7 @@ class TestPassManagerReuse(SchedulerTestCase):
         self.assertScheduler(self.circuit, self.passmanager, expected)
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
+
 class TestPassManagerReplace(SchedulerTestCase):
     """Test PassManager.replace"""
 
@@ -777,6 +779,7 @@ class TestPassManagerReplace(SchedulerTestCase):
 
         with self.assertRaises(TranspilerError):
             self.passmanager.replace(99, PassA_TP_NR_NP())
+
 
 if __name__ == '__main__':
     unittest.main()
