@@ -64,7 +64,9 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
             the default dict
         raw (Bool) : True if you want to save the raw Dot output not an image. The
             default is False.
-
+    Returns:
+        PIL.Image or None: an in-memory representation of the pass manager. Or None if
+                           no image was generated or PIL is not installed.
     Raises:
         ImportError: when nxpd or pydot not installed.
     """
@@ -149,20 +151,25 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
         graph.add_subgraph(subgraph)
 
     if raw and filename:
-
             graph.write(filename, format='raw')
 
-    tmpfilename = tempfile.TemporaryFile()
+    if not HAS_PIL and filename:
+        # linter says this isn't a method - it is
+        graph.write_png(filename)  # pylint: disable=no-member
+        return None
 
-    # linter says this isn't a method - it is
-    graph.write_png(filename)  # pylint: disable=no-member
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        tmppath = os.path.join(tmpdirname, 'pass_manager.png')
 
-    image = Image.open(base + '.png')
-    image = utils._trim(image)
-    os.remove(base + '.png')
-    if filename:
-        image.save(filename, 'PNG')
-    return graph
+        # linter says this isn't a method - it is
+        graph.write_png(tmppath)  # pylint: disable=no-member
+
+        image = Image.open(tmppath)
+        image = utils._trim(image)
+        os.remove(tmppath)
+        if filename:
+            image.save(filename, 'PNG')
+        return image
 
 
 def _get_node_color(pss, style):
