@@ -51,8 +51,10 @@ class Decompose(TransformationPass):
             decomposition = DAGCircuit()
             qregs = {qb.register for inst in rule for qb in inst[1]}
             cregs = {cb.register for inst in rule for cb in inst[2]}
-            for qreg in qregs: decomposition.add_qreg(qreg)
-            for creg in cregs: decomposition.add_creg(creg)
+            for qreg in qregs:
+                decomposition.add_qreg(qreg)
+            for creg in cregs:
+                decomposition.add_creg(creg)
             for inst in rule:
                 decomposition.apply_operation_back(*inst)
             dag.substitute_node_with_dag(node, decomposition)
