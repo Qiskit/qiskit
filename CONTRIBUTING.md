@@ -205,7 +205,7 @@ installed with::
 
     pip install -U reno
 
-Once you have reno installed you can make a new release note by running in the
+Once you have reno installed you can make a new release note by running in
 your local repository checkout's root::
 
     reno new short-description-string
