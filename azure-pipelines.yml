@@ -169,7 +169,7 @@ stages:
             # Remove post merge:
             git pull https://github.com/mtreinish/qiskit-tutorial.git fix-tests
             popd
-            sudo apt-get install -y build-essential libopenblas-dev
+            sudo apt-get install -y build-essential libopenblas-dev texlive-full graphviz
           displayName: 'Clone tutorials'
         - bash: |
             set -e
