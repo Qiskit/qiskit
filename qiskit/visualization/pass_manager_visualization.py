@@ -15,14 +15,26 @@
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
 """
+import os
 import inspect
+import tempfile
+
+try:
+    from PIL import Image
+
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
+from qiskit.visualization import utils
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
+
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
 
-
 try:
     import subprocess
+
     _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
     _PROC.communicate()
@@ -53,7 +65,9 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
             the default dict
         raw (Bool) : True if you want to save the raw Dot output not an image. The
             default is False.
-
+    Returns:
+        PIL.Image or None: an in-memory representation of the pass manager. Or None if
+                           no image was generated or PIL is not installed.
     Raises:
         ImportError: when nxpd or pydot not installed.
     """
@@ -137,16 +151,29 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
         graph.add_subgraph(subgraph)
 
-    if filename:
-        if not raw:
-            # linter says this isn't a method - it is
-            graph.write_png(filename)  # pylint: disable=no-member
-        else:
-            graph.write(filename, format='raw')
+    if raw and filename:
+        graph.write(filename, format='raw')
+
+    if not HAS_PIL and filename:
+        # linter says this isn't a method - it is
+        graph.write_png(filename)  # pylint: disable=no-member
+        return None
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        tmppath = os.path.join(tmpdirname, 'pass_manager.png')
+
+        # linter says this isn't a method - it is
+        graph.write_png(tmppath)  # pylint: disable=no-member
+
+        image = Image.open(tmppath)
+        image = utils._trim(image)
+        os.remove(tmppath)
+        if filename:
+            image.save(filename, 'PNG')
+        return image
 
 
 def _get_node_color(pss, style):
-
     # look in the user provided dict first
     for typ, color in style.items():
         if isinstance(pss, typ):
