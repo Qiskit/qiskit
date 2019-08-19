@@ -162,8 +162,11 @@ class PassManager():
 
         flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
 
-        self.working_list[key] = FlowController.controller_factory(passes, options,
-                                                                   **flow_controller_conditions)
+        try:
+            self.working_list[key] = FlowController.controller_factory(passes, options,
+                                                                       **flow_controller_conditions)
+        except IndexError:
+            raise TranspilerError('is not a pass instance')
 
     def __setitem__(self, key, item):
         self.replace(key, item)
