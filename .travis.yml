@@ -137,37 +137,5 @@ jobs:
         - pip install diff-cover || true
         - diff-cover --compare-branch master coverage.xml || true
 
-    # Randomized testing
-    - name: Randomized tests
-      <<: *stage_linux
-      cache:
-        pip: true
-        directories:
-        - .hypothesis
-      script:
-      - python setup.py build_ext --inplace
-      - pip install "qiskit-aer"
-      - make test_randomized
-
-    - name: Benchmarks
-      <<: *stage_linux
-      script:
-      - python setup.py build_ext --inplace
-      - pip install "qiskit-aer"
-      - pip install "asv"
-      - git clone "https://www.github.com/Qiskit/qiskit" meta-qiskit
-      - >-
-        sed -i
-        -e 's/"repo": "https:\/\/github.com\/Qiskit\/qiskit-terra.git",/"repo": "..",/'
-        meta-qiskit/asv.conf.json
-      - cat meta-qiskit/asv.conf.json
-      - echo $TRAVIS_BRANCH
-      - echo $TRAVIS_PULL_REQUEST_BRANCH
-      - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
-      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
-
 matrix:
   fast_finish: true
-  allow_failures:
-  - name: Randomized tests
-  - name: Benchmarks

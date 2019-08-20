@@ -273,3 +273,67 @@ stages:
           inputs:
             testResultsFiles: '**/test-*.xml'
             testRunTitle: 'Test results for macOS Python $(python.version)'
+  - stage: 'Extra_Testing'
+    condition: and(succeeded('Lint_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
+    jobs:
+    - job: 'Benchmarks'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      continueOnError: true
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+          displayName: 'Use Python $(python.version)'
+        - bash: |
+            set -e
+            python setup.py build_ext --inplace
+            pip install qiskit-aer asv
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            git clone "https://www.github.com/Qiskit/qiskit" meta-qiskit
+            sed -i -e 's/"repo": "https:\/\/github.com\/Qiskit\/qiskit-terra.git",/"repo": "..",/' meta-qiskit/asv.conf.json
+            cat meta-qiskit/asv.conf.json
+            echo $TRAVIS_BRANCH
+            echo $TRAVIS_PULL_REQUEST_BRANCH
+            asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
+          displayName: 'Setup Benchmarks'
+        - bash: |
+            set -e
+            if [[ -z $BUILD_SOURCEBRANCH ]] ; then
+                BRANCH=$SYSTEM_PULLREQUEST_TARGETBRANCH
+            elif [[ $BUILD_SOURCEBRANCH != master ]] ; then
+                BRANCH=$BUILD_SOURCEBRANCH
+            fi
+            asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.7 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $BRANCH HEAD
+          displayName: 'Run Benchmarks'
+    - job: 'Randomized_testing'
+      pool: {vmImage: 'ubuntu-16.04'}
+      condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+      continueOnError: true
+      strategy:
+        matrix:
+          Python37:
+            python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '$(python.version)'
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
+            pip install -e .
+            pip install "qiskit-ibmq-provider" -c constraints.txt
+            python setup.py build_ext --inplace
+            pip install qiskit-aer
+          displayName: 'Install dependencies'
+        - bash: |
+            set -e
+            python3 -m unittest discover -s test/randomized -v
+          displayName: 'Run tests'
