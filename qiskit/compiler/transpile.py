@@ -175,7 +175,7 @@ def transpile(circuits,
     Raises:
         TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
-    logger = logging.getLogger(name='qiskit.transpiler.passmanager')
+    logger = logging.getLogger(name='qiskit.transpiler')
     logger.setLevel(log_level)
 
     # transpiling schedules is not supported yet.
