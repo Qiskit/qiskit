@@ -414,6 +414,17 @@ class ConditionalController(FlowController):
                 yield pass_
 
 
+class RollbackIfController(FlowController):
+    def __init__(self, passes, options, rollback_if=None, **_):
+        self.rollback_if = rollback_if
+        super().__init__(passes, options)
+
+    def __iter__(self):
+        for pass_ in self.passes:
+            yield pass_
+
+
 # Default controllers
 FlowController.add_flow_controller('condition', ConditionalController)
 FlowController.add_flow_controller('do_while', DoWhileController)
+FlowController.add_flow_controller('rollback_if', RollbackIfController)

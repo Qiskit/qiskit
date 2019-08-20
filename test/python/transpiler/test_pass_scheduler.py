@@ -31,7 +31,8 @@ from qiskit.test import QiskitTestCase
 from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
                             PassD_TP_NR_NP, PassE_AP_NR_NP, PassF_reduce_dag_property,
                             PassH_Bad_TP, PassI_Bad_AP, PassJ_Bad_NoReturn,
-                            PassK_check_fixed_point_property, PassM_AP_NR_NP)
+                            PassK_check_fixed_point_property, PassM_AP_NR_NP,
+                            PassN_AP_save_property)
 
 
 class SchedulerTestCase(QiskitTestCase):
@@ -556,6 +557,7 @@ class TestDumpPasses(SchedulerTestCase):
 
 class StreamHandlerRaiseException(StreamHandler):
     """Handler class that will raise an exception on formatting errors."""
+
     def handleError(self, record):
         raise sys.exc_info()
 
@@ -631,6 +633,15 @@ class TestLogPasses(QiskitTestCase):
             do_while=lambda property_set: not property_set['property_fixed_point'],
             condition=lambda property_set: property_set['property_fixed_point'])
         self.assertPassLog(passmanager, ['PassE_AP_NR_NP'])
+
+    def test_rollback_if(self):
+        """ Dump passes with a rollback_if"""
+        passmanager = PassManager()
+        passmanager.append(PassE_AP_NR_NP(3))
+        passmanager.append([PassN_AP_save_property('property'), PassE_AP_NR_NP(2)],
+                           rollback_if=lambda property_set:
+                           property_set['property'] > property_set['property_previous'])
+        self.assertPassLog(passmanager, [])
 
 
 class TestPassManagerReuse(SchedulerTestCase):

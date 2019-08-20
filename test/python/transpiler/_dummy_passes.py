@@ -226,3 +226,21 @@ class PassM_AP_NR_NP(DummyAP):
         super().run(dag)
         self.argument1 *= 2
         logging.getLogger(logger).info('self.argument1 = %s', self.argument1)
+
+
+class PassN_AP_save_property(DummyAP):
+    """ An analysis pass to save the property `property` to `property_previous`
+    AP: Analysis Pass
+    NR: No Requires
+    NP: No Preserves
+    """
+
+    def __init__(self, property):
+        super().__init__()
+        self.property = property
+
+    def run(self, dag):
+        super().run(dag)
+        new_property = "%s_previous" % self.property
+        self.property_set[new_property] = self.property_set[self.property]
+        logging.getLogger(logger).info('%s copied to %s', self.property, new_property)
