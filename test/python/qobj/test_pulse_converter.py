@@ -113,7 +113,7 @@ class TestInstructionToQobjConverter(QiskitTestCase):
         self.assertEqual(converter(0, instruction), valid_qobj)
 
     def test_snapshot(self):
-        """Test converted qobj from SnapShot."""
+        """Test converted qobj from Snapshot."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
         instruction = Snapshot(label='label', snapshot_type='type')
 
