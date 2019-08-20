@@ -214,18 +214,6 @@ class TestTimeslotCollection(QiskitTestCase):
 
         self.assertEqual(merged, from_interal)
 
-=======
-    def test_zero_duration_timeslot(self):
-        """Test that TimeslotCollection works properly for zero duration timeslots."""
-        # test that inserting zero duration pulses at start and stop of pulse works.
-        TimeslotCollection(Timeslot(Interval(0, 10), AcquireChannel(0)),
-                           Timeslot(Interval(0, 0), AcquireChannel(0)),
-                           Timeslot(Interval(10, 10), AcquireChannel(0)))
-
-        with self.assertRaises(PulseError):
-            TimeslotCollection(Timeslot(Interval(0, 10), AcquireChannel(0)),
-                               Timeslot(Interval(5, 5), AcquireChannel(0)))
-
     def test_zero_duration_timeslot(self):
         """Test that TimeslotCollection works properly for zero duration timeslots."""
         # test that inserting zero duration pulses at start and stop of pulse works.

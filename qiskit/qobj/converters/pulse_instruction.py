@@ -410,14 +410,3 @@ class QobjToInstructionConverter:
         """
         t0 = instruction.t0
         return commands.Snapshot(instruction.label, instruction.type) << t0
-
-    @bind_name('delay')
-    def convert_delay(self, instruction):
-        """Return converted `Delay`.
-
-        Args:
-            instruction (PulseQobjInstruction): delay qobj
-        Returns:
-            Schedule: Converted and scheduled Delay
-        """
-        return None

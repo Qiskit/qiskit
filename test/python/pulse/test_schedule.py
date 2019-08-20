@@ -368,7 +368,7 @@ class TestScheduleBuilding(BaseTestSchedule):
         self.assertEqual(actual.stop_time, expected.stop_time)
 
         self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
-    
+
 
 class TestDelay(BaseTestSchedule):
     """Test Delay Instruction"""
@@ -448,6 +448,8 @@ class TestDelay(BaseTestSchedule):
 
 
 class TestScheduleFilter(BaseTestSchedule):
+    """Test Schedule filtering methods."""
+
     def test_filter_channels(self):
         """Test filtering over channels."""
         device = self.two_qubit_device
