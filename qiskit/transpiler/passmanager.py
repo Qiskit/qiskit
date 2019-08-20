@@ -168,8 +168,7 @@ class PassManager():
 
         self.count = 0
         for passset in self.working_list:
-            for pass_ in passset:
-                dag = self._do_pass(pass_, dag, passset.options)
+            dag = passset.do_passes(self, dag)
 
         circuit = dag_to_circuit(dag)
         circuit.name = name
@@ -306,6 +305,11 @@ class FlowController():
         for pass_ in self.passes:
             yield pass_
 
+    def do_passes(self, pass_manager, dag):
+        for pass_ in self:
+            dag = pass_manager._do_pass(pass_, dag, self.options)
+        return dag
+
     def dump_passes(self):
         """Fetches the passes added to this flow controller.
 
@@ -422,6 +426,11 @@ class RollbackIfController(FlowController):
     def __iter__(self):
         for pass_ in self.passes:
             yield pass_
+
+    def do_passes(self, pass_manager, dag):
+        for pass_ in self:
+            dag = pass_manager._do_pass(pass_, dag, self.options)
+        return dag
 
 
 # Default controllers
