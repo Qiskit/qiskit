@@ -12,17 +12,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Test TPB Grouped WeightedPauliOperator """
+
 import unittest
 import itertools
-
+from test.aqua.common import QiskitAquaTestCase
 import numpy as np
 from qiskit.quantum_info import Pauli
 from qiskit import BasicAer
-
-from test.aqua.common import QiskitAquaTestCase
 from qiskit.aqua import aqua_globals, QuantumInstance
 from qiskit.aqua.components.variational_forms import RYRZ
-from qiskit.aqua.operators import WeightedPauliOperator, TPBGroupedWeightedPauliOperator, op_converter
+from qiskit.aqua.operators import (WeightedPauliOperator,
+                                   TPBGroupedWeightedPauliOperator,
+                                   op_converter)
 
 
 class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
@@ -35,7 +37,8 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
         aqua_globals.random_seed = seed
 
         self.num_qubits = 3
-        paulis = [Pauli.from_label(pauli_label) for pauli_label in itertools.product('IXYZ', repeat=self.num_qubits)]
+        paulis = [Pauli.from_label(pauli_label)
+                  for pauli_label in itertools.product('IXYZ', repeat=self.num_qubits)]
         weights = np.random.random(len(paulis))
         self.qubit_op = WeightedPauliOperator.from_list(paulis, weights)
         self.var_form = RYRZ(self.qubit_op.num_qubits, 1)
@@ -45,51 +48,58 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
                                                      seed_simulator=seed, seed_transpiler=seed)
 
         statevector_simulator = BasicAer.get_backend('statevector_simulator')
-        self.quantum_instance_statevector = QuantumInstance(statevector_simulator, shots=1,
-                                                            seed_simulator=seed, seed_transpiler=seed)
+        self.quantum_instance_statevector = \
+            QuantumInstance(statevector_simulator, shots=1,
+                            seed_simulator=seed, seed_transpiler=seed)
 
     def test_sorted_grouping(self):
         """Test with color grouping approach."""
         num_qubits = 2
-        paulis = [Pauli.from_label(pauli_label) for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
+        paulis = [Pauli.from_label(pauli_label)
+                  for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
         weights = np.random.random(len(paulis))
         op = WeightedPauliOperator.from_list(paulis, weights)
         grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(
             op, TPBGroupedWeightedPauliOperator.sorted_grouping)
 
         # check all paulis are still existed.
-        for gp in grouped_op.paulis:
+        for g_p in grouped_op.paulis:
             passed = False
-            for p in op.paulis:
-                if p[1] == gp[1]:
-                    passed = p[0] == gp[0]
+            for pauli in op.paulis:
+                if pauli[1] == g_p[1]:
+                    passed = pauli[0] == g_p[0]
                     break
-            self.assertTrue(passed, "non-existed paulis in grouped_paulis: {}".format(gp[1].to_label()))
+            self.assertTrue(passed,
+                            "non-existed paulis in grouped_paulis: {}".format(g_p[1].to_label()))
 
-        # check the number of basis of grouped one should be less than and equal to the original one.
+        # check the number of basis of grouped
+        # one should be less than and equal to the original one.
         self.assertGreaterEqual(len(op.basis), len(grouped_op.basis))
 
     def test_unsorted_grouping(self):
         """Test with normal grouping approach."""
 
         num_qubits = 4
-        paulis = [Pauli.from_label(pauli_label) for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
+        paulis = [Pauli.from_label(pauli_label)
+                  for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
         weights = np.random.random(len(paulis))
         op = WeightedPauliOperator.from_list(paulis, weights)
         grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(
             op, TPBGroupedWeightedPauliOperator.unsorted_grouping)
 
-        for gp in grouped_op.paulis:
+        for g_p in grouped_op.paulis:
             passed = False
-            for p in op.paulis:
-                if p[1] == gp[1]:
-                    passed = p[0] == gp[0]
+            for pauli in op.paulis:
+                if pauli[1] == g_p[1]:
+                    passed = pauli[0] == g_p[0]
                     break
-            self.assertTrue(passed, "non-existed paulis in grouped_paulis: {}".format(gp[1].to_label()))
+            self.assertTrue(passed,
+                            "non-existed paulis in grouped_paulis: {}".format(g_p[1].to_label()))
 
         self.assertGreaterEqual(len(op.basis), len(grouped_op.basis))
 
     def test_chop(self):
+        """ chop test """
         paulis = [Pauli.from_label(x) for x in ['IIXX', 'ZZXX', 'ZZZZ', 'XXZZ', 'XXXX', 'IXXX']]
         coeffs = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
         op = WeightedPauliOperator.from_list(paulis, coeffs)
@@ -114,33 +124,42 @@ class TestTPBGroupedWeightedPauliOperator(QiskitAquaTestCase):
             self.assertFalse(b.to_label() == 'XXZZ')
 
     def test_evaluate_qasm_mode(self):
-        wave_function = self.var_form.construct_circuit(np.array(np.random.randn(self.var_form.num_parameters)))
-        wave_fn_statevector = self.quantum_instance_statevector.execute(wave_function).get_statevector(wave_function)
+        """ evaluate qasm mode test """
+        wave_function = self.var_form.construct_circuit(
+            np.array(np.random.randn(self.var_form.num_parameters)))
+        wave_fn_statevector = \
+            self.quantum_instance_statevector.execute(wave_function).get_statevector(wave_function)
         reference = self.qubit_op.copy().evaluate_with_statevector(wave_fn_statevector)
 
         shots = 65536 // len(self.qubit_op.paulis)
         self.quantum_instance_qasm.set_config(shots=shots)
-        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
+        circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function,
+                                                              statevector_mode=False)
         result = self.quantum_instance_qasm.execute(circuits)
         pauli_value = self.qubit_op.evaluate_with_result(result=result, statevector_mode=False)
-        grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(self.qubit_op,
-                                                                         TPBGroupedWeightedPauliOperator.sorted_grouping)
+        grouped_op = op_converter.to_tpb_grouped_weighted_pauli_operator(
+                        self.qubit_op, TPBGroupedWeightedPauliOperator.sorted_grouping)
         shots = 65536 // grouped_op.num_groups
         self.quantum_instance_qasm.set_config(shots=shots)
-        circuits = grouped_op.construct_evaluation_circuit(wave_function=wave_function, statevector_mode=False)
-        grouped_pauli_value = grouped_op.evaluate_with_result(result=self.quantum_instance_qasm.execute(circuits),
-                                                              statevector_mode=False)
+        circuits = grouped_op.construct_evaluation_circuit(wave_function=wave_function,
+                                                           statevector_mode=False)
+        grouped_pauli_value = grouped_op.evaluate_with_result(
+            result=self.quantum_instance_qasm.execute(circuits), statevector_mode=False)
 
-        self.assertGreaterEqual(reference[0].real, grouped_pauli_value[0].real - 3 * grouped_pauli_value[1].real)
-        self.assertLessEqual(reference[0].real, grouped_pauli_value[0].real + 3 * grouped_pauli_value[1].real)
-        # this check assure the std of grouped pauli is less than pauli mode under a fixed amount of total shots
+        self.assertGreaterEqual(reference[0].real,
+                                grouped_pauli_value[0].real - 3 * grouped_pauli_value[1].real)
+        self.assertLessEqual(reference[0].real,
+                             grouped_pauli_value[0].real + 3 * grouped_pauli_value[1].real)
+        # this check assure the std of grouped pauli is
+        # less than pauli mode under a fixed amount of total shots
         self.assertLessEqual(grouped_pauli_value[1].real, pauli_value[1].real)
 
     def test_equal(self):
-        gop_1 = op_converter.to_tpb_grouped_weighted_pauli_operator(self.qubit_op,
-                                                                    TPBGroupedWeightedPauliOperator.sorted_grouping)
-        gop_2 = op_converter.to_tpb_grouped_weighted_pauli_operator(self.qubit_op,
-                                                                    TPBGroupedWeightedPauliOperator.unsorted_grouping)
+        """ equal test """
+        gop_1 = op_converter.to_tpb_grouped_weighted_pauli_operator(
+            self.qubit_op, TPBGroupedWeightedPauliOperator.sorted_grouping)
+        gop_2 = op_converter.to_tpb_grouped_weighted_pauli_operator(
+            self.qubit_op, TPBGroupedWeightedPauliOperator.unsorted_grouping)
 
         self.assertEqual(gop_1, gop_2)
 
