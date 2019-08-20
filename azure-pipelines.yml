@@ -184,7 +184,7 @@ stages:
         - bash: |
             set -e
             cd qiskit-tutorials
-            stestr run --black-regex 'aqua|advanced_aer_matrix_product_state_method' --random
+            stestr run --black-regex 'aqua|matrix_product_state_method' --random
           displayName: 'Run tests'
 #        - bash: |
 #            set -e
