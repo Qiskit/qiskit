@@ -61,6 +61,8 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
+-   A new PassManager controller: ``rollback_if``. If the condition is true, the
+    passes appended in that set, will be "rolled back". (#2969)
 
 
 ### Changed
