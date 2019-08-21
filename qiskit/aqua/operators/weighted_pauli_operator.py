@@ -188,7 +188,7 @@ class WeightedPauliOperator(BaseOperator):
 
         Args:
             other (WeightedPauliOperator): to-be-combined operator
-            copy (bool): working on a copy or self, if True, the results are written back to self.
+            copy (bool): working on a copy or self, if False, the results are written back to self.
 
         Returns:
             WeightedPauliOperator
@@ -201,7 +201,7 @@ class WeightedPauliOperator(BaseOperator):
 
         Args:
             other (WeightedPauliOperator): to-be-combined operator
-            copy (bool): working on a copy or self, if True, the results are written back to self.
+            copy (bool): working on a copy or self, if False, the results are written back to self.
 
         Returns:
             WeightedPauliOperator
