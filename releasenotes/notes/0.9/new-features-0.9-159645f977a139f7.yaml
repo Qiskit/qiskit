@@ -93,19 +93,6 @@ features:
             print(kwargs['pass'])
 
         transpile(circ, callback=my_callback)
-
-  - |
-    A new kwarg ``log_level`` was added to ``qiskit.compiler.transpile()``.
-    This can be used to change the default logging level for the Pass Manager
-    used to perform the transpile. For example::
-
-        import logging
-        from qiskit.compiler import transpile
-
-        transpile(circ, log_level=logging.DEBUG)
-
-    will set the log level for the pass manager to DEBUG when transpiling the
-    circuit circ.
   - |
     A new method ``filter()`` was added to the ``qiskit.pulse.Schedule`` class.
     This enables filtering the instructions in a schedule. For example,
@@ -202,4 +189,17 @@ other:
   - |
     Calls to ``PassManager.run()`` now will emit python logging messages at the
     INFO level for each pass execution. These messages will include the Pass
-    name and the total execution time of the pass.
+    name and the total execution time of the pass. Python's standard logging
+    was used because it allows Qiskit-Terra's logging to integrate in a standard
+    way with other applications and libraries. All logging for the transpiler
+    occurs under the ``qiskit.transpiler`` namespace, as used by
+    ``logging.getLogger('qiskit.transpiler``). For example, to turn on DEBUG
+    level logging for the transpiler you can run::
+
+        import logging
+
+        logging.basicConfig()
+        logging.getLogger('qiskit.transpiler').setLevel(logging.DEBUG)
+
+    which will set the log level for the transpiler to DEBUG and configure
+    those messages to be printed to stderr.
