@@ -27,6 +27,8 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
+-   A new pulse instruction, `Delay`. A `Delay` occupies a pulse channel for a
+    duration of time, blocking other instructions from being inserted in this time.
 -   Ability to check for equality of pulse `Schedule` and `Instruction`.
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
@@ -59,6 +61,7 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
+-   dag.draw() method to visualize DAGCircuit objects (#3016)
 
 
 ### Changed
