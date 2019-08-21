@@ -71,6 +71,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
                            no image was generated or PIL is not installed.
     Raises:
         ImportError: when nxpd or pydot not installed.
+        QiskitError: If raw=True and filename=None.
     """
 
     try:
@@ -155,7 +156,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
     if raw:
         if filename:
             graph.write(filename, format='raw')
-            return
+            return None
         else:
             raise QiskitError("if format=raw, then a filename is required.")
 
