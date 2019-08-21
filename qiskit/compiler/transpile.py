@@ -14,7 +14,6 @@
 
 """Circuit transpile function"""
 
-import logging
 import warnings
 
 from qiskit.transpiler import Layout, CouplingMap
