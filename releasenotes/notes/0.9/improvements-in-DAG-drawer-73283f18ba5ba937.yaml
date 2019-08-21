@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The DAG drawer was enhance in the context of Jupyter notebooks. The parameter filename is now
+    optional and the function will show the result in the notebook.
+  - |
+    The DAG drawer can be acces through the `DAGCircuit.draw(...)` method. This is equivalent to
+    `dag_drawer(DAGCircuit, ...)`.
