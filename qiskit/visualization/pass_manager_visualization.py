@@ -153,6 +153,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
     if raw and filename:
         graph.write(filename, format='raw')
+        return
 
     if not HAS_PIL and filename:
         # linter says this isn't a method - it is
