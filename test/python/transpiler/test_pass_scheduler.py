@@ -38,6 +38,10 @@ from ._dummy_passes import (PassA_TP_NR_NP, PassB_TP_RA_PA, PassC_TP_RA_PA,
 class SchedulerTestCase(QiskitTestCase):
     """Asserts for the scheduler."""
 
+    def setUp(self):
+        self.passmanager = PassManager()
+        self.circuit = QuantumCircuit(QuantumRegister(1))
+
     def assertScheduler(self, passmanager, expected):
         """
         Run `transpile(self.circuit, passmanager)` and check
@@ -472,10 +476,6 @@ class DoXTimesController(FlowController):
 
 class TestControlFlowPlugin(SchedulerTestCase):
     """Testing the control flow plugin system."""
-
-    def setUp(self):
-        self.passmanager = PassManager()
-        self.circuit = QuantumCircuit(QuantumRegister(1))
 
     def test_control_flow_plugin(self):
         """Adds a control flow plugin with a single parameter and runs it."""
