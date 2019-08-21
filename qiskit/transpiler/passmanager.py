@@ -14,10 +14,10 @@
 
 """PassManager class for the transpiler."""
 
-from functools import partial
 from collections import OrderedDict
 import logging
 from time import time
+from copy import deepcopy
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -140,7 +140,8 @@ class PassManager():
 
         for name, param in flow_controller_conditions.items():
             if callable(param):
-                flow_controller_conditions[name] = partial(param, self.fenced_property_set)
+                flow_controller_conditions[name] = param
+                flow_controller_conditions[name].fenced_property_set = self.fenced_property_set
             else:
                 raise TranspilerError('The flow controller parameter %s is not callable' % name)
 
@@ -199,13 +200,12 @@ class PassManager():
         """
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
-    def _do_pass(self, pass_, dag, options):
+    def _do_pass(self, pass_, dag):
         """Do a pass and its "requires".
 
         Args:
             pass_ (BasePass): Pass to do.
             dag (DAGCircuit): The dag on which the pass is ran.
-            options (dict): PassManager options.
         Returns:
             DAGCircuit: The transformed dag in case of a transformation pass.
             The same input dag in case of an analysis pass.
@@ -215,7 +215,7 @@ class PassManager():
 
         # First, do the requires of pass_
         for required_pass in pass_.requires:
-            dag = self._do_pass(required_pass, dag, options)
+            dag = self._do_pass(required_pass, dag)
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
@@ -296,9 +296,9 @@ class FlowController():
 
     registered_controllers = OrderedDict()
 
-    def __init__(self, passes, options, **partial_controller):
+    def __init__(self, passes, options, **flow_controller):
         self._passes = passes
-        self.passes = FlowController.controller_factory(passes, options, **partial_controller)
+        self.passes = FlowController.controller_factory(passes, options, **flow_controller)
         self.options = options
 
     def __iter__(self):
@@ -307,7 +307,7 @@ class FlowController():
 
     def do_passes(self, pass_manager, dag):
         for pass_ in self:
-            dag = pass_manager._do_pass(pass_, dag, self.options)
+            dag = pass_manager._do_pass(pass_, dag)
         return dag
 
     def dump_passes(self):
@@ -348,30 +348,30 @@ class FlowController():
         del cls.registered_controllers[name]
 
     @classmethod
-    def controller_factory(cls, passes, options, **partial_controller):
-        """Constructs a flow controller based on the partially evaluated controller arguments.
+    def controller_factory(cls, passes, options, **flow_controller):
+        """Constructs a flow controller based on the flow controller arguments.
 
         Args:
             passes (list[BasePass]): passes to add to the flow controller.
             options (dict): PassManager options.
-            **partial_controller (dict): Partially evaluated controller arguments in the form
-                `{name:partial}`
+            **flow_controller (dict): Flow controller arguments in the form
+                `{name:controller}`
 
         Raises:
-            TranspilerError: When partial_controller is not well-formed.
+            TranspilerError: When flow_controller is not well-formed.
 
         Returns:
             FlowController: A FlowController instance.
         """
-        if None in partial_controller.values():
+        if None in flow_controller.values():
             raise TranspilerError('The controller needs a condition.')
 
-        if partial_controller:
+        if flow_controller:
             for registered_controller in cls.registered_controllers.keys():
-                if registered_controller in partial_controller:
+                if registered_controller in flow_controller:
                     return cls.registered_controllers[registered_controller](passes, options,
-                                                                             **partial_controller)
-            raise TranspilerError("The controllers for %s are not registered" % partial_controller)
+                                                                             **flow_controller)
+            raise TranspilerError("The controllers for %s are not registered" % flow_controller)
 
         return FlowControllerLinear(passes, options)
 
@@ -387,18 +387,17 @@ class FlowControllerLinear(FlowController):
 class DoWhileController(FlowController):
     """Implements a set of passes in a do-while loop."""
 
-    def __init__(self, passes, options, do_while=None,
-                 **partial_controller):
+    def __init__(self, passes, options, do_while=None, **flow_controller):
         self.do_while = do_while
         self.max_iteration = options['max_iteration']
-        super().__init__(passes, options, **partial_controller)
+        super().__init__(passes, options, **flow_controller)
 
     def __iter__(self):
         for _ in range(self.max_iteration):
             for pass_ in self.passes:
                 yield pass_
 
-            if not self.do_while():
+            if not self.do_while(self.do_while.fenced_property_set):
                 return
 
         raise TranspilerError("Maximum iteration reached. max_iteration=%i" % self.max_iteration)
@@ -407,13 +406,12 @@ class DoWhileController(FlowController):
 class ConditionalController(FlowController):
     """Implements a set of passes under a certain condition."""
 
-    def __init__(self, passes, options, condition=None,
-                 **partial_controller):
+    def __init__(self, passes, options, condition=None, **flow_controller):
         self.condition = condition
-        super().__init__(passes, options, **partial_controller)
+        super().__init__(passes, options, **flow_controller)
 
     def __iter__(self):
-        if self.condition():
+        if self.condition(self.condition.fenced_property_set):
             for pass_ in self.passes:
                 yield pass_
 
@@ -423,14 +421,15 @@ class RollbackIfController(FlowController):
         self.rollback_if = rollback_if
         super().__init__(passes, options)
 
-    def __iter__(self):
-        for pass_ in self.passes:
-            yield pass_
-
     def do_passes(self, pass_manager, dag):
+        original_property_set = deepcopy(pass_manager.property_set)
+        dag_copy = deepcopy(dag)
         for pass_ in self:
-            dag = pass_manager._do_pass(pass_, dag, self.options)
-        return dag
+            dag = pass_manager._do_pass(pass_, dag_copy)
+        if self.rollback_if(pass_manager.property_set):
+            pass_manager.property_set = original_property_set
+            return dag
+        return dag_copy
 
 
 # Default controllers

@@ -428,12 +428,12 @@ class TestUseCases(SchedulerTestCase):
                               'run analysis pass PassM_AP_NR_NP',
                               'self.argument1 = 2'])
 
-    def test_rollback_if(self):
-        """ Dump passes with a rollback_if"""
+    def test_rollback_if_true(self):
+        """ Dump passes with a rollback_if 2 < 3"""
         self.passmanager.append(PassE_AP_NR_NP(3))
         self.passmanager.append([PassN_AP_save_property('property'), PassE_AP_NR_NP(2)],
                                 rollback_if=lambda property_set:
-                                property_set['property'] > property_set['property_previous'])
+                                property_set['property'] < property_set['property_previous'])
         self.assertScheduler(self.passmanager, ['run analysis pass PassE_AP_NR_NP',
                                                 'set property as 3',
                                                 'run analysis pass PassN_AP_save_property',
@@ -442,16 +442,30 @@ class TestUseCases(SchedulerTestCase):
                                                 'set property as 2'])
         self.assertEqual(self.passmanager.property_set['property'], 3)
 
+    def test_rollback_if_false(self):
+        """ Dump passes with a rollback_if 2==3"""
+        self.passmanager.append(PassE_AP_NR_NP(3))
+        self.passmanager.append([PassN_AP_save_property('property'), PassE_AP_NR_NP(2)],
+                                rollback_if=lambda property_set:
+                                property_set['property'] == property_set['property_previous'])
+        self.assertScheduler(self.passmanager, ['run analysis pass PassE_AP_NR_NP',
+                                                'set property as 3',
+                                                'run analysis pass PassN_AP_save_property',
+                                                'property copied to property_previous',
+                                                'run analysis pass PassE_AP_NR_NP',
+                                                'set property as 2'])
+        self.assertEqual(self.passmanager.property_set['property'], 2)
+
 
 class DoXTimesController(FlowController):
     """A control-flow plugin for running a set of passes an X amount of times."""
 
     def __init__(self, passes, options, do_x_times=0, **_):
-        self.do_x_times = do_x_times()
+        self.do_x_times = do_x_times
         super().__init__(passes, options)
 
     def __iter__(self):
-        for _ in range(self.do_x_times):
+        for _ in range(self.do_x_times(self.do_x_times.fenced_property_set)):
             for pass_ in self.passes:
                 yield pass_
 
