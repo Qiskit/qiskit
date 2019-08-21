@@ -19,8 +19,8 @@ import numpy as np
 
 from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit, RegisterSlot,
                                    MemorySlot, DriveChannel, AcquireChannel, ControlChannel,
-                                   MeasureChannel)
-from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot,
+                                   MeasureChannel, SnapshotChannel)
+from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
                                    PulseInstruction, FrameChangeInstruction)
 from qiskit.pulse import pulse_lib, SamplePulse, CmdDef
@@ -30,7 +30,7 @@ from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 from qiskit.test import QiskitTestCase
 
 
-class TestSchedule(QiskitTestCase):
+class BaseTestSchedule(QiskitTestCase):
     """Schedule tests."""
 
     def setUp(self):
@@ -41,6 +41,10 @@ class TestSchedule(QiskitTestCase):
 
         self.linear = linear
         self.two_qubit_device = PulseChannelSpec(n_qubits=2, n_control=1, n_registers=2)
+
+
+class TestScheduleBuilding(BaseTestSchedule):
+    """Test construction of schedules."""
 
     def test_append_an_instruction_to_empty_schedule(self):
         """Test append instructions to an empty schedule."""
@@ -290,22 +294,161 @@ class TestSchedule(QiskitTestCase):
         sched_snapshot = snapshot | sched1
         self.assertEqual(sched_snapshot.name, 'snapshot_label')
 
-    def test_flatten(self):
-        """Test schedule flattening."""
+    def test_buffering(self):
+        """Test channel buffering."""
+        buffer_chan = DriveChannel(0, buffer=5)
+        measure_chan = MeasureChannel(0, buffer=10)
+        acquire_chan = AcquireChannel(0, buffer=10)
+        memory_slot = MemorySlot(0)
+        gp0 = pulse_lib.gaussian(duration=10, amp=0.7, sigma=3)
+        fc_pi_2 = FrameChange(phase=1.57)
 
-        device = self.two_qubit_device
-        chan = device.drives[0]
-        gp0 = pulse_lib.gaussian(duration=100, amp=0.7, sigma=3, name='pulse_name')
+        # no initial buffer
+        sched = Schedule()
+        sched += gp0(buffer_chan)
+
+        self.assertEqual(sched.duration, 10)
+
+        # this pulse should be buffered
+        sched += gp0(buffer_chan)
+
+        self.assertEqual(sched.duration, 25)
+
+        # should not be buffered as framechange
+        sched += fc_pi_2(buffer_chan)
+
+        self.assertEqual(sched.duration, 25)
+
+        # use buffer with insert
+        sched = sched.insert(sched.duration, gp0(buffer_chan), buffer=True)
+
+        self.assertEqual(sched.duration, 40)
 
         sched = Schedule()
-        for _ in range(10):
-            sched += gp0(chan)
 
-        flat_sched = sched.flatten()
+        sched = gp0(measure_chan) + Acquire(duration=10)(acquire_chan, memory_slot)
 
-        self.assertEqual(len(flat_sched._children), 10)
+        self.assertEqual(sched.duration, 10)
 
-        self.assertEqual(flat_sched.instructions, sched.instructions)
+    def test_multiple_parameters_not_returned(self):
+        """Constructing ParameterizedSchedule object from multiple ParameterizedSchedules sharing
+        arguments should not produce repeated parameters in resulting ParameterizedSchedule
+        object."""
+        device = self.two_qubit_device
+
+        def my_test_par_sched_one(x, y, z):
+            result = PulseInstruction(
+                SamplePulse(np.array([x, y, z]), name='sample'),
+                device.drives[0]
+            )
+            return 0, result
+
+        def my_test_par_sched_two(x, y, z):
+            result = PulseInstruction(
+                SamplePulse(np.array([x, y, z]), name='sample'),
+                device.drives[0]
+            )
+            return 5, result
+
+        par_sched_in_0 = ParameterizedSchedule(
+            my_test_par_sched_one, parameters={'x': 0, 'y': 1, 'z': 2}
+        )
+        par_sched_in_1 = ParameterizedSchedule(
+            my_test_par_sched_two, parameters={'x': 0, 'y': 1, 'z': 2}
+        )
+        par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
+
+        cmd_def = CmdDef()
+        cmd_def.add('test', 0, par_sched)
+
+        actual = cmd_def.get('test', 0, 0.01, 0.02, 0.03)
+        expected = par_sched_in_0.bind_parameters(0.01, 0.02, 0.03) |\
+            par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
+        self.assertEqual(actual.start_time, expected.start_time)
+        self.assertEqual(actual.stop_time, expected.stop_time)
+
+        self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
+
+
+class TestDelay(BaseTestSchedule):
+    """Test Delay Instruction"""
+
+    def setUp(self):
+        super().setUp()
+        self.delay_time = 10
+        self.delay = Delay(self.delay_time)
+
+    def test_delay_drive_channel(self):
+        """Test Delay on DriveChannel"""
+
+        drive_ch = self.two_qubit_device.qubits[0].drive
+        pulse = SamplePulse(np.full(10, 0.1))
+        # should pass as is an append
+        sched = self.delay(drive_ch) + pulse(drive_ch)
+        self.assertIsInstance(sched, Schedule)
+        pulse_instr = sched.instructions[-1]
+        # assert last instruction is pulse
+        self.assertIsInstance(pulse_instr[1], PulseInstruction)
+        # assert pulse is scheduled at time 10
+        self.assertEqual(pulse_instr[0], 10)
+        # should fail due to overlap
+        with self.assertRaises(PulseError):
+            sched = self.delay(drive_ch) | pulse(drive_ch)
+
+    def test_delay_measure_channel(self):
+        """Test Delay on MeasureChannel"""
+
+        measure_ch = self.two_qubit_device.qubits[0].measure
+        pulse = SamplePulse(np.full(10, 0.1))
+        # should pass as is an append
+        sched = self.delay(measure_ch) + pulse(measure_ch)
+        self.assertIsInstance(sched, Schedule)
+        # should fail due to overlap
+        with self.assertRaises(PulseError):
+            sched = self.delay(measure_ch) | pulse(measure_ch)
+
+    def test_delay_control_channel(self):
+        """Test Delay on ControlChannel"""
+
+        control_ch = self.two_qubit_device.controls[0]
+        pulse = SamplePulse(np.full(10, 0.1))
+        # should pass as is an append
+        sched = self.delay(control_ch) + pulse(control_ch)
+        self.assertIsInstance(sched, Schedule)
+        # should fail due to overlap
+        with self.assertRaises(PulseError):
+            sched = self.delay(control_ch) | pulse(control_ch)
+            self.assertIsInstance(sched, Schedule)
+
+    def test_delay_acquire_channel(self):
+        """Test Delay on DriveChannel"""
+
+        acquire_ch = self.two_qubit_device.qubits[0].acquire
+        acquire = Acquire(10)
+        # should pass as is an append
+        sched = self.delay(acquire_ch) + acquire(acquire_ch, MemorySlot(0))
+        self.assertIsInstance(sched, Schedule)
+        # should fail due to overlap
+        with self.assertRaises(PulseError):
+            sched = self.delay(acquire_ch) | acquire(acquire_ch)
+            self.assertIsInstance(sched, Schedule)
+
+    def test_delay_snapshot_channel(self):
+        """Test Delay on DriveChannel"""
+
+        snapshot_ch = SnapshotChannel()
+        snapshot = Snapshot(label='test')
+        # should pass as is an append
+        sched = self.delay(snapshot_ch) + snapshot
+        self.assertIsInstance(sched, Schedule)
+        # should fail due to overlap
+        with self.assertRaises(PulseError):
+            sched = self.delay(snapshot_ch) | snapshot << 5
+            self.assertIsInstance(sched, Schedule)
+
+
+class TestScheduleFilter(BaseTestSchedule):
+    """Test filtering of schedules."""
 
     def test_filter_channels(self):
         """Test filtering over channels."""
@@ -405,7 +548,7 @@ class TestSchedule(QiskitTestCase):
             self.assertIsInstance(inst, (FrameChangeInstruction, PulseInstruction))
         self.assertTrue(len(filtered_b.instructions), 4)
 
-    def test__filter(self):
+    def test_filter(self):
         """Test _filter method."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
@@ -416,50 +559,7 @@ class TestSchedule(QiskitTestCase):
         for i in sched._filter([lambda x: True]).instructions:
             self.assertTrue(i in sched.instructions)
         self.assertEqual(len(sched._filter([lambda x: False]).instructions), 0)
-        self.assertEqual(len(sched._filter([lambda x: x[0] < 30]).instructions),
-                         2)
-
-    def test_buffering(self):
-        """Test channel buffering."""
-        buffer_chan = DriveChannel(0, buffer=5)
-        measure_chan = MeasureChannel(0, buffer=10)
-        acquire_chan = AcquireChannel(0, buffer=10)
-        memory_slot = MemorySlot(0)
-        gp0 = pulse_lib.gaussian(duration=10, amp=0.7, sigma=3)
-        fc_pi_2 = FrameChange(phase=1.57)
-
-        # no initial buffer
-        sched = Schedule()
-        sched += gp0(buffer_chan)
-
-        self.assertEqual(sched.duration, 10)
-
-        # this pulse should be buffered
-        sched += gp0(buffer_chan)
-
-        self.assertEqual(sched.duration, 25)
-
-        # should not be buffered as framechange
-        sched += fc_pi_2(buffer_chan)
-
-        self.assertEqual(sched.duration, 25)
-
-        # use buffer with insert
-        sched = sched.insert(sched.duration, gp0(buffer_chan), buffer=True)
-
-        self.assertEqual(sched.duration, 40)
-
-        sched = Schedule()
-
-        sched = gp0(measure_chan) + Acquire(duration=10)(acquire_chan, memory_slot)
-
-        self.assertEqual(sched.duration, 10)
-
-    def test_multiple_parameters_not_returned(self):
-        """Constructing ParameterizedSchedule object from multiple ParameterizedSchedules sharing
-        arguments should not produce repeated parameters in resulting ParameterizedSchedule
-        object."""
-        device = self.two_qubit_device
+        self.assertEqual(len(sched._filter([lambda x: x[0] < 30]).instructions), 2)
 
         def my_test_par_sched_one(x, y, z):
             result = PulseInstruction(
@@ -536,17 +636,12 @@ class TestScheduleEquality(QiskitTestCase):
                          Schedule((0, FrameChange(0, name='fc2')(DriveChannel(1))), name='s2'))
 
 
-class TestScheduleWithDeviceSpecification(QiskitTestCase):
+class TestScheduleWithDeviceSpecification(BaseTestSchedule):
     """Schedule tests."""
     # TODO: This test will be deprecated in future update.
 
     def setUp(self):
-        @functional_pulse
-        def linear(duration, slope, intercept):
-            x = np.linspace(0, duration - 1, duration)
-            return slope * x + intercept
-
-        self.linear = linear
+        super().setUp()
 
         qubits = [Qubit(0, DriveChannel(0), AcquireChannel(0), MeasureChannel(0),
                         control_channels=[ControlChannel(0)]),
@@ -914,7 +1009,7 @@ class TestScheduleWithDeviceSpecification(QiskitTestCase):
             self.assertIsInstance(inst, (FrameChangeInstruction, PulseInstruction))
         self.assertTrue(len(filtered_b.instructions), 4)
 
-    def test__filter(self):
+    def test_filter(self):
         """Test _filter method."""
         device = self.two_qubit_device
         lp0 = self.linear(duration=3, slope=0.2, intercept=0.1)
