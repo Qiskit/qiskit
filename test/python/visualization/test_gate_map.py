@@ -39,7 +39,7 @@ class TestGateMap(QiskitVisualizationTestCase):
             img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
             filename = "temp.png"
             fig = plot_gate_map(backend)
-            fig.savefig(filename, bbox_inches="tight")
+            fig.savefig(filename)
             self.assertImagesAreEqual(filename, img_ref, 0.2)
             os.remove(filename)
 
@@ -54,7 +54,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
         filename = str(n) + "_plot_circuit_layout_result.png"
         fig = plot_circuit_layout(circuit, backend)
-        fig.savefig(filename, bbox_inches="tight")
+        fig.savefig(filename)
         self.assertImagesAreEqual(filename, img_ref, 0.1)
         os.remove(filename)
 
