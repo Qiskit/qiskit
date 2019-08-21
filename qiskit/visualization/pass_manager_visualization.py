@@ -27,8 +27,8 @@ except ImportError:
     HAS_PIL = False
 
 from qiskit.visualization import utils
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
-from qiskit.exceptions import QiskitError
 
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
@@ -71,7 +71,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
                            no image was generated or PIL is not installed.
     Raises:
         ImportError: when nxpd or pydot not installed.
-        QiskitError: If raw=True and filename=None.
+        VisualizationError: If raw=True and filename=None.
     """
 
     try:
@@ -158,7 +158,7 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
             graph.write(filename, format='raw')
             return None
         else:
-            raise QiskitError("if format=raw, then a filename is required.")
+            raise VisualizationError("if format=raw, then a filename is required.")
 
     if not HAS_PIL and filename:
         # linter says this isn't a method - it is
