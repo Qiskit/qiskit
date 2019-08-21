@@ -97,7 +97,7 @@ def to_weighted_pauli_operator(operator):
 
 def to_matrix_operator(operator):
     """
-    Converting a given operator to `WeightedPauliOperator`
+    Converting a given operator to `MatrixOperator`
 
     Args:
         operator (WeightedPauliOperator | TPBGroupedWeightedPauliOperator | MatrixOperator | Operator):
