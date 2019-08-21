@@ -61,6 +61,7 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
+-   dag.draw() method to visualize DAGCircuit objects (#3016)
 
 
 ### Changed
