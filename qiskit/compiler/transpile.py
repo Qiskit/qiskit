@@ -14,7 +14,6 @@
 
 """Circuit transpile function"""
 
-import logging
 import warnings
 
 from qiskit.transpiler import Layout, CouplingMap
@@ -32,8 +31,7 @@ def transpile(circuits,
               basis_gates=None, coupling_map=None, backend_properties=None,
               initial_layout=None, seed_transpiler=None,
               optimization_level=None,
-              pass_manager=None, callback=None, output_name=None,
-              log_level=logging.INFO):
+              pass_manager=None, callback=None, output_name=None):
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     All arguments may be given as either singleton or list. In case of list,
@@ -165,19 +163,12 @@ def transpile(circuits,
             A list with strings to identify the output circuits. The length of
             `list[str]` should be exactly the length of `circuits` parameter.
 
-        log_level (int): The python logging level to use for the transpiler
-            passes. You should use the logging level attributes from the stdlib
-            module, for example something like: 'logging.DEBUG'.
-
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
 
     Raises:
         TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
-    logger = logging.getLogger(name='qiskit.transpiler.passmanager')
-    logger.setLevel(log_level)
-
     # transpiling schedules is not supported yet.
     if isinstance(circuits, Schedule) or \
             (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
