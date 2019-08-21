@@ -25,8 +25,8 @@ Qiskit consists of four foundational elements:
 - :ref:`Qiskit Aqua <Aqua>`: Building algorithms and applications
 
 .. note::
-  This is the Qiskit API documentation. For in-depth usage examples please
-  see the `Qiskit tutorials <https://nbviewer.jupyter.org/github/Qiskit/qiskit-tutorials/blob/master/qiskit/1_start_here.ipynb>`_.
+  This is the Qiskit API documentation. For detailed workflow examples, please sign in to the
+  IBM Q Experience to `explore Qiskit tutorials <https://quantum-computing.ibm.com/jupyter/tutorial/1_start_here.ipynb>`__.
 
 .. toctree::
   :maxdepth: 2
