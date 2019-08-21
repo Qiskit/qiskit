@@ -1261,3 +1261,23 @@ class DAGCircuit:
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
         return summary
+
+    def draw(self, scale=0.7, filename=None, style='color'):
+        """
+        Draws the dag circuit.
+
+        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
+        Graphviz <https://www.graphviz.org/>` to be installed.
+
+        Args:
+            scale (float): scaling factor
+            filename (str): file path to save image to (format inferred from name)
+            style (str): 'plain': B&W graph
+                         'color' (default): color input/output/op nodes
+
+        Returns:
+            Ipython.display.Image: if in Jupyter notebook and not saving to file,
+                otherwise None.
+        """
+        from qiskit.visualization.dag_visualization import dag_drawer
+        return dag_drawer(dag=self, scale=scale, filename=filename, style=style)

@@ -942,6 +942,16 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
 
+    def test_broadcast_does_not_duplicate_instructions(self):
+        self.circuit.rz(0, range(6))
+        instructions = [inst for inst, qargs, cargs in self.circuit.data]
+        self.assertEqual(len(set(id(inst) for inst in instructions)), 6)
+
+        self.circuit.data = []
+        self.circuit.rz(0, self.qr)
+        instructions = [inst for inst, qargs, cargs in self.circuit.data]
+        self.assertEqual(len(set(id(inst) for inst in instructions)), 3)
+
 
 class TestStandard2Q(QiskitTestCase):
     """Standard Extension Test. Gates with two Qubits"""

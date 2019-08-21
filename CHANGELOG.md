@@ -63,6 +63,7 @@ The format is based on [Keep a Changelog].
     requiring a large number of parameters. (#2379)
 -   A new PassManager controller: ``rollback_if``. If the condition is true, the
     passes appended in that set, will be "rolled back". (#2969)
+-   dag.draw() method to visualize DAGCircuit objects (#3016)
 
 
 ### Changed
