@@ -306,6 +306,15 @@ class FlowController():
             yield pass_
 
     def do_passes(self, pass_manager, dag):
+        """ In the context of pass_manager, runs the pass on the dag
+
+        Args:
+            pass_manager (PassManager): A PassManager object.
+            dag (DAGCircuit): The dag on which the pass is ran.
+
+        Returns:
+            DAGCircuit: The dag after the pass.
+        """
         for pass_ in self:
             dag = pass_manager._do_pass(pass_, dag)
         return dag
@@ -417,6 +426,8 @@ class ConditionalController(FlowController):
 
 
 class RollbackIfController(FlowController):
+    """ The set of passes is rollbacked if the condition condition is true."""
+
     def __init__(self, passes, options, rollback_if=None, **_):
         self.rollback_if = rollback_if
         super().__init__(passes, options)

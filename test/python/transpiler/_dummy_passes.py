@@ -235,12 +235,12 @@ class PassN_AP_save_property(DummyAP):
     NP: No Preserves
     """
 
-    def __init__(self, property):
+    def __init__(self, property_name):
         super().__init__()
-        self.property = property
+        self.property_name = property_name
 
     def run(self, dag):
         super().run(dag)
-        new_property = "%s_previous" % self.property
-        self.property_set[new_property] = self.property_set[self.property]
-        logging.getLogger(logger).info('%s copied to %s', self.property, new_property)
+        new_property = "%s_previous" % self.property_name
+        self.property_set[new_property] = self.property_set[self.property_name]
+        logging.getLogger(logger).info('%s copied to %s', self.property_name, new_property)
