@@ -34,6 +34,8 @@ class TestGateMap(QiskitVisualizationTestCase):
 
     def test_plot_gate_map(self):
         """ tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
+        import matplotlib
+        print('A'*10, matplotlib.get_backend())
         for backend in self.backends:
             n = backend.configuration().n_qubits
             img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
@@ -46,6 +48,8 @@ class TestGateMap(QiskitVisualizationTestCase):
     @data(*backends)
     def test_plot_circuit_layout(self, backend):
         """ tests plot_circuit_layout for each device"""
+        import matplotlib
+        print('A' * 10, matplotlib.get_backend())
         layout_length = int(backend._configuration.n_qubits / 2)
         qr = QuantumRegister(layout_length, 'qr')
         circuit = QuantumCircuit(qr)
