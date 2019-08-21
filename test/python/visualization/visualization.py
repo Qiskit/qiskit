@@ -19,9 +19,11 @@ Useful for refactoring purposes."""
 
 import os
 import unittest
+import matplotlib
 
 from qiskit.test import QiskitTestCase
 
+matplotlib.use('ps')
 
 def path_to_diagram_reference(filename):
     return os.path.join(_this_directory(), 'references', filename)
