@@ -28,6 +28,7 @@ except ImportError:
 
 from qiskit.visualization import utils
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
+from qiskit.exceptions import QiskitError
 
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
@@ -151,9 +152,12 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
         graph.add_subgraph(subgraph)
 
-    if raw and filename:
-        graph.write(filename, format='raw')
-        return
+    if raw:
+        if filename:
+            graph.write(filename, format='raw')
+            return
+        else:
+            raise QiskitError("if format=raw, then a filename is required.")
 
     if not HAS_PIL and filename:
         # linter says this isn't a method - it is
