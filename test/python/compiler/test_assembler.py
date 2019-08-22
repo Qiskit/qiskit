@@ -485,6 +485,19 @@ class TestPulseAssembler(QiskitTestCase):
         self.assertEqual(qobj.experiments[0].instructions[0].name, 'pulse0')
         self.assertNotEqual(qobj.experiments[0].instructions[1].name, 'pulse0')
 
+    def test_assemble_with_delay(self):
+        """Test that delay instruction is ignored in assembly."""
+        backend = FakeOpenPulse2Q()
+
+        orig_schedule = self.schedule
+        delay_schedule = orig_schedule + pulse.Delay(10)(self.device.drives[0])
+
+        orig_qobj = assemble(orig_schedule, backend)
+        delay_qobj = assemble(delay_schedule, backend)
+
+        self.assertEqual(orig_qobj.experiments[0].to_dict(),
+                         delay_qobj.experiments[0].to_dict())
+
 
 class TestPulseAssemblerWithDeviceSpecification(QiskitTestCase):
     """Tests for assembling schedules to qobj."""

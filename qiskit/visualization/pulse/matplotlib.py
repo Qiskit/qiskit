@@ -356,6 +356,12 @@ class ScheduleDrawer:
                                 max(np.abs(np.imag(waveform))))
                     n_valid_waveform += 1
                     events.enable = True
+
+        # when input schedule is empty or comprises only frame changes,
+        # we need to overwrite maximum amplitude by a value greater than zero,
+        # otherwise auto axis scaling will fail with zero division.
+        v_max = v_max or 1
+
         if scaling:
             v_max = 0.5 * scaling
         else:
@@ -489,7 +495,13 @@ class ScheduleDrawer:
                 # plot waveform
                 waveform = events.waveform
                 time = np.arange(t0, tf + 1, dtype=float) * dt
-                time, re, im = interp_method(time, waveform, self.style.num_points)
+                if waveform.any():
+                    time, re, im = interp_method(time, waveform, self.style.num_points)
+                else:
+                    # when input schedule is empty or comprises only frame changes,
+                    # we should avoid interpolation due to lack of data points.
+                    # instead, it just returns vector of zero.
+                    re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
                 # scaling and offset
                 re = v_max * re + y0
@@ -560,7 +572,10 @@ class ScheduleDrawer:
             tf = int(np.floor(plot_range[1]/dt))
         else:
             t0 = 0
-            tf = schedule.stop_time
+            # when input schedule is empty or comprises only frame changes,
+            # we need to overwrite pulse duration by an integer greater than zero,
+            # otherwise waveform returns empty array and matplotlib will be crashed.
+            tf = schedule.stop_time or 1
         # prepare waveform channels
         (channels, output_channels,
          snapshot_channels) = self._build_channels(schedule, channels_to_plot, t0, tf)
