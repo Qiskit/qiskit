@@ -72,7 +72,7 @@ stages:
         - task: CopyFiles@2
           condition: always()
           inputs:
-            contents: '**/current_*.png'
+            contents: '**/*plot_circuit_layout.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: always()
@@ -263,7 +263,7 @@ stages:
         - task: CopyFiles@2
           condition: always()
           inputs:
-            contents: '**/current_*.png'
+            contents: '**/*plot_circuit_layout.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: always()
@@ -280,7 +280,7 @@ stages:
         - task: CopyFiles@2
           condition: always()
           inputs:
-            contents: '**/current_*.png'
+            contents: '**/*plot_circuit_layout.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: always()
