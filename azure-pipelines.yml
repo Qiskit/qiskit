@@ -108,6 +108,7 @@ stages:
             set -e
             pycodestyle --max-line-length=100 qiskit test
             pylint -rn qiskit test
+            reno lint
           displayName: 'Style and lint'
     - job: 'MacOS_HighSierra_Tests'
       pool: {vmImage: 'macOS-10.13'}

@@ -27,6 +27,8 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
+-   A new pulse instruction, `Delay`. A `Delay` occupies a pulse channel for a
+    duration of time, blocking other instructions from being inserted in this time.
 -   Ability to check for equality of pulse `Schedule` and `Instruction`.
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
@@ -38,9 +40,6 @@ The format is based on [Keep a Changelog].
 -   The option `idle_wires` was added to the drawers to control
     if wires without any operation should be included in the drawing.
 -   Introduced a visualization for the Pass Manager. (\#2445)
--   The attribute `PassManager.log_passes` was added to log and time the
-    passes when they are executed. The results is stored in the
-    attribute `pass_log` of the property set as a dictionary.
 -   New pulse schedule method `Schedule.filter` to filter by instruction
     channel, time, and type. (\#2597)
 -   Decomposition of arbitrary isometries (\#2600)
@@ -62,6 +61,7 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
+-   dag.draw() method to visualize DAGCircuit objects (#3016)
 
 
 ### Changed
@@ -109,7 +109,8 @@ The format is based on [Keep a Changelog].
     using the option ``with_layout=False`` in the method
     ``QuantumCircuit.draw``. (\#2739)
 -   Q-sphere visualization is enhanced and corrected (\#2932)
-
+-   Shorter CH gate definition involving only 1 CX (\#2837)
+-   Now PassManager.draw() (without any argument) will return an in-memory PIL image.
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
