@@ -39,9 +39,10 @@ import numpy
 
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.circuit.parameter import Parameter
 from qiskit.qobj.models.qasm import QasmQobjInstruction
+from qiskit.circuit.parameter import ParameterExpression
 
 _CUTOFF_PRECISION = 1E-10
 
@@ -135,7 +136,7 @@ class Instruction:
         self._params = []
         for single_param in parameters:
             # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (Parameter, sympy.Basic)):
+            if isinstance(single_param, (ParameterExpression, sympy.Basic)):
                 self._params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
@@ -311,3 +312,31 @@ class Instruction:
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
         flat_cargs = [carg for sublist in cargs for carg in sublist]
         yield flat_qargs, flat_cargs
+
+    def _return_repeat(self, exponent):
+        return Instruction(name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits,
+                           num_clbits=self.num_clbits, params=self.params)
+
+    def repeat(self, n):
+        """Creates an instruction with `gate` repeated `n` amount of times.
+
+        Args:
+            n (int): Number of times to repeat the instruction
+
+        Returns:
+            Instruction: Containing the definition.
+
+        Raises:
+            QiskitError: If n < 1.
+        """
+        if int(n) != n or n < 1:
+            raise QiskitError("Repeat can only be called with strictly positive integer.")
+
+        n = int(n)
+
+        instruction = self._return_repeat(n)
+        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
+        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
+
+        instruction.definition = [(self, qargs[:], cargs[:])] * n
+        return instruction

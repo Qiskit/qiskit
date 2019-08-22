@@ -101,7 +101,7 @@ def _extract_rz(phi1, phi2):
     return phase, z_angle
 
 
-def diagGate(self, diag, qubit):
+def diag_gate(self, diag, qubit):
     """
     Attach a diagonal gate to a circuit. The decomposition is based on Theorem 7 given in
     "Synthesis of Quantum Logic Circuits" by Shende et al.
@@ -141,4 +141,4 @@ def diagGate(self, diag, qubit):
     return self.append(DiagGate(diag), qubit)
 
 
-QuantumCircuit.diagGate = diagGate
+QuantumCircuit.diag_gate = diag_gate

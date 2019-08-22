@@ -19,6 +19,7 @@
 import unittest
 import logging
 import numpy as np
+from numpy.testing import assert_allclose
 import scipy.linalg as la
 
 from qiskit import QiskitError
@@ -87,21 +88,6 @@ class OperatorTestCase(QiskitTestCase):
         circ.measure(qr, cr)
         return circ
 
-    def assertAllClose(self,
-                       obj1,
-                       obj2,
-                       rtol=1e-5,
-                       atol=1e-6,
-                       equal_nan=False,
-                       msg=None):
-        """Assert two objects are equal using Numpy.allclose."""
-        comparison = np.allclose(
-            obj1, obj2, rtol=rtol, atol=atol, equal_nan=equal_nan)
-        if msg is None:
-            msg = ''
-        msg += '({} != {})'.format(obj1, obj2)
-        self.assertTrue(comparison, msg=msg)
-
 
 class TestOperator(OperatorTestCase):
     """Tests for Operator linear operator class."""
@@ -111,13 +97,13 @@ class TestOperator(OperatorTestCase):
         # Test automatic inference of qubit subsystems
         mat = self.rand_matrix(8, 8)
         op = Operator(mat)
-        self.assertAllClose(op.data, mat)
+        assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (8, 8))
         self.assertEqual(op.input_dims(), (2, 2, 2))
         self.assertEqual(op.output_dims(), (2, 2, 2))
 
         op = Operator(mat, input_dims=8, output_dims=8)
-        self.assertAllClose(op.data, mat)
+        assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (8, 8))
         self.assertEqual(op.input_dims(), (2, 2, 2))
         self.assertEqual(op.output_dims(), (2, 2, 2))
@@ -126,14 +112,14 @@ class TestOperator(OperatorTestCase):
         """Test initialization from array."""
         mat = np.eye(3)
         op = Operator(mat)
-        self.assertAllClose(op.data, mat)
+        assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (3, 3))
         self.assertEqual(op.input_dims(), (3,))
         self.assertEqual(op.output_dims(), (3,))
 
         mat = self.rand_matrix(2 * 3 * 4, 4 * 5)
         op = Operator(mat, input_dims=[4, 5], output_dims=[2, 3, 4])
-        self.assertAllClose(op.data, mat)
+        assert_allclose(op.data, mat)
         self.assertEqual(op.dim, (4 * 5, 2 * 3 * 4))
         self.assertEqual(op.input_dims(), (4, 5))
         self.assertEqual(op.output_dims(), (2, 3, 4))
@@ -224,7 +210,7 @@ class TestOperator(OperatorTestCase):
         """Test Operator representation string property."""
         mat = self.rand_matrix(2, 2)
         op = Operator(mat)
-        self.assertAllClose(mat, op.data)
+        assert_allclose(mat, op.data)
 
     def test_dim(self):
         """Test Operator dim property."""
@@ -439,12 +425,12 @@ class TestOperator(OperatorTestCase):
         mat21 = np.kron(mat2, mat1)
         op21 = Operator(mat1).expand(Operator(mat2))
         self.assertEqual(op21.dim, (6, 6))
-        self.assertAllClose(op21.data, Operator(mat21).data)
+        assert_allclose(op21.data, Operator(mat21).data)
 
         mat12 = np.kron(mat1, mat2)
         op12 = Operator(mat2).expand(Operator(mat1))
         self.assertEqual(op12.dim, (6, 6))
-        self.assertAllClose(op12.data, Operator(mat12).data)
+        assert_allclose(op12.data, Operator(mat12).data)
 
     def test_tensor(self):
         """Test tensor method."""
@@ -454,12 +440,12 @@ class TestOperator(OperatorTestCase):
         mat21 = np.kron(mat2, mat1)
         op21 = Operator(mat2).tensor(Operator(mat1))
         self.assertEqual(op21.dim, (6, 6))
-        self.assertAllClose(op21.data, Operator(mat21).data)
+        assert_allclose(op21.data, Operator(mat21).data)
 
         mat12 = np.kron(mat1, mat2)
         op12 = Operator(mat1).tensor(Operator(mat2))
         self.assertEqual(op12.dim, (6, 6))
-        self.assertAllClose(op12.data, Operator(mat12).data)
+        assert_allclose(op12.data, Operator(mat12).data)
 
     def test_power_except(self):
         """Test power method raises exceptions."""
@@ -516,6 +502,15 @@ class TestOperator(OperatorTestCase):
         mat = self.rand_matrix(4, 4)
         op = Operator(mat)
         self.assertEqual(-op, Operator(-1 * mat))
+
+    def test_equiv(self):
+        """Test negate method"""
+        mat = np.diag([1, np.exp(1j * np.pi / 2)])
+        phase = np.exp(-1j * np.pi / 4)
+        op = Operator(mat)
+        self.assertTrue(op.equiv(phase * mat))
+        self.assertTrue(op.equiv(Operator(phase * mat)))
+        self.assertFalse(op.equiv(2 * mat))
 
 
 if __name__ == '__main__':

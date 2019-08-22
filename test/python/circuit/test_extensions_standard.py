@@ -52,6 +52,11 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(QiskitError, qc.barrier, (self.qr, 'a'))
         self.assertRaises(QiskitError, qc.barrier, .0)
 
+    def test_conditional_barrier_invalid(self):
+        qc = self.circuit
+        barrier = qc.barrier(self.qr)
+        self.assertRaises(QiskitError, barrier.c_if, self.cr, 0)
+
     def test_barrier_reg(self):
         self.circuit.barrier(self.qr)
         self.assertEqual(len(self.circuit), 1)
@@ -936,6 +941,16 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set.instructions[0].name, 'z')
         self.assertEqual(instruction_set.qargs[1], [self.qr[1]])
         self.assertEqual(instruction_set.instructions[2].params, [])
+
+    def test_broadcast_does_not_duplicate_instructions(self):
+        self.circuit.rz(0, range(6))
+        instructions = [inst for inst, qargs, cargs in self.circuit.data]
+        self.assertEqual(len(set(id(inst) for inst in instructions)), 6)
+
+        self.circuit.data = []
+        self.circuit.rz(0, self.qr)
+        instructions = [inst for inst, qargs, cargs in self.circuit.data]
+        self.assertEqual(len(set(id(inst) for inst in instructions)), 3)
 
 
 class TestStandard2Q(QiskitTestCase):

@@ -19,12 +19,13 @@ Replace each block of consecutive gates by a single Unitary node.
 The blocks are collected by a previous pass, such as Collect2qBlocks.
 """
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Qubit
+from qiskit.circuit import QuantumRegister, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis import TwoQubitBasisDecomposer
 from qiskit.extensions import UnitaryGate, CnotGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.exceptions import TranspilerError
 
 
 class ConsolidateBlocks(TransformationPass):
@@ -56,25 +57,46 @@ class ConsolidateBlocks(TransformationPass):
             new_dag.add_creg(creg)
 
         # compute ordered indices for the global circuit wires
-        global_index_map = {}
-        for wire in dag.wires:
-            if not isinstance(wire, Qubit):
-                continue
-            global_qregs = list(dag.qregs.values())
-            global_index_map[wire] = global_qregs.index(wire.register) + wire.index
+        global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits())}
 
         blocks = self.property_set['block_list']
-        nodes_seen = set()
-
-        basis_gate_name = self.decomposer.gate.name
+        # just to make checking if a node is in any block easier
+        all_block_nodes = {nd for bl in blocks for nd in bl}
 
         for node in dag.topological_op_nodes():
-            # skip already-visited nodes or input/output nodes
-            if node in nodes_seen or node.type == 'in' or node.type == 'out':
-                continue
-            # check if the node belongs to the next block
-            if blocks and node in blocks[0]:
-                block = blocks[0]
+            if node not in all_block_nodes:
+                # need to add this node to find out where in the list it goes
+                preds = [nd for nd in dag.predecessors(node) if nd.type == 'op']
+
+                block_count = 0
+                while preds:
+                    if block_count < len(blocks):
+                        block = blocks[block_count]
+
+                        # if any of the predecessors are in the block, remove them
+                        preds = [p for p in preds if p not in block]
+                    else:
+                        # should never occur as this would mean not all
+                        # nodes before this one topologically had been added
+                        # so not all predecessors were removed
+                        raise TranspilerError("Not all predecessors removed due to error"
+                                              " in topological order")
+
+                    block_count += 1
+
+                # we have now seen all predecessors
+                # so update the blocks list to include this block
+                blocks = blocks[:block_count] + [[node]] + blocks[block_count:]
+
+        # create the dag from the updated list of blocks
+        basis_gate_name = self.decomposer.gate.name
+        for block in blocks:
+
+            if len(block) == 1 and block[0].name != 'cx':
+                # an intermediate node that was added into the overall list
+                new_dag.apply_operation_back(block[0].op, block[0].qargs,
+                                             block[0].cargs, block[0].condition)
+            else:
                 # find the qubits involved in this block
                 block_qargs = set()
                 for nd in block:
@@ -89,7 +111,6 @@ class ConsolidateBlocks(TransformationPass):
                 for nd in block:
                     if nd.op.name == basis_gate_name:
                         basis_count += 1
-                    nodes_seen.add(nd)
                     subcirc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(subcirc))  # simulates the circuit
                 if self.force_consolidate or unitary.num_qubits > 2 or \
@@ -99,21 +120,7 @@ class ConsolidateBlocks(TransformationPass):
                         unitary, sorted(block_qargs, key=lambda x: block_index_map[x]))
                 else:
                     for nd in block:
-                        nodes_seen.add(nd)
-                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
-
-                del blocks[0]
-            else:
-                # the node could belong to some future block, but in that case
-                # we simply skip it. It is guaranteed that we will revisit that
-                # future block, via its other nodes
-                for block in blocks[1:]:
-                    if node in block:
-                        break
-                # freestanding nodes can just be added
-                else:
-                    nodes_seen.add(node)
-                    new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
+                        new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs, nd.condition)
 
         return new_dag
 

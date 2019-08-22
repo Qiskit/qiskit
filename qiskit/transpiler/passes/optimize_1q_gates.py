@@ -30,7 +30,7 @@ from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.operators.quaternion import quaternion_from_euler
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit import QuantumRegister, Parameter
+from qiskit.circuit import QuantumRegister, ParameterExpression
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -242,7 +242,7 @@ def _split_runs_on_parameters(runs):
     """
 
     def _is_dagnode_parameterized(node):
-        return any(isinstance(param, Parameter) for param in node.op.params)
+        return any(isinstance(param, ParameterExpression) for param in node.op.params)
 
     out = []
     for run in runs:

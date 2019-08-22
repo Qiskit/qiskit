@@ -16,6 +16,7 @@
 
 import unittest
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
@@ -30,29 +31,29 @@ class TestKraus(ChannelTestCase):
         """Test initialization"""
         # Initialize from unitary
         chan = Kraus(self.UI)
-        self.assertAllClose(chan.data, [self.UI])
+        assert_allclose(chan.data, [self.UI])
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize from Kraus
         chan = Kraus(self.depol_kraus(0.5))
-        self.assertAllClose(chan.data, self.depol_kraus(0.5))
+        assert_allclose(chan.data, self.depol_kraus(0.5))
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize from Non-CPTP
         kraus_l, kraus_r = [self.UI, self.UX], [self.UY, self.UZ]
         chan = Kraus((kraus_l, kraus_r))
-        self.assertAllClose(chan.data, (kraus_l, kraus_r))
+        assert_allclose(chan.data, (kraus_l, kraus_r))
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize with redundant second op
         chan = Kraus((kraus_l, kraus_l))
-        self.assertAllClose(chan.data, kraus_l)
+        assert_allclose(chan.data, kraus_l)
         self.assertEqual(chan.dim, (2, 2))
 
         # Initialize from rectangular
         kraus = [np.zeros((4, 2))]
         chan = Kraus(kraus)
-        self.assertAllClose(chan.data, kraus)
+        assert_allclose(chan.data, kraus)
         self.assertEqual(chan.dim, (2, 4))
 
         # Wrong input or output dims should raise exception

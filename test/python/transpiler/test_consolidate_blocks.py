@@ -19,6 +19,7 @@ Tests for the ConsolidateBlocks transpiler pass.
 import unittest
 import numpy as np
 
+from qiskit import transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
@@ -27,6 +28,8 @@ from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
+from qiskit.transpiler.passes import Collect2qBlocks
 
 
 class TestConsolidateBlocks(QiskitTestCase):
@@ -145,6 +148,144 @@ class TestConsolidateBlocks(QiskitTestCase):
         self.assertEqual(len(new_dag.op_nodes()), 1)
         fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)
+
+    def test_block_spanning_two_regs_different_index(self):
+        """blocks spanning wires on different quantum registers work when the wires
+        could have conflicting indices. This was raised in #2806 when a CX was applied
+        across multiple registers and their indices collided, raising an error."""
+        qr0 = QuantumRegister(1, "qr0")
+        qr1 = QuantumRegister(2, "qr1")
+        qc = QuantumCircuit(qr0, qr1)
+        qc.cx(qr0[0], qr1[1])
+        dag = circuit_to_dag(qc)
+
+        pass_ = ConsolidateBlocks(force_consolidate=True)
+        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
+        new_dag = pass_.run(dag)
+
+        sim = UnitarySimulatorPy()
+        original_result = execute(qc, sim).result()
+        original_unitary = UnitaryGate(original_result.get_unitary())
+
+        from qiskit.converters import dag_to_circuit
+        new_result = execute(dag_to_circuit(new_dag), sim).result()
+        new_unitary = UnitaryGate(new_result.get_unitary())
+
+        self.assertEqual(original_unitary, new_unitary)
+
+    def test_node_added_before_block(self):
+        """Test that a node before a block remains before the block
+
+        This issue was raised in #2737 where the measure was moved
+        to be after the 2nd ID gate, as the block was added when the
+        first node in the block was seen.
+
+        blocks = [['id', 'cx', 'id']]
+
+                ┌────┐┌───┐
+        q_0: |0>┤ Id ├┤ X ├──────
+                └┬─┬─┘└─┬─┘┌────┐
+        q_1: |0>─┤M├────■──┤ Id ├
+                 └╥┘       └────┘
+        c_0:  0 ══╩══════════════
+        """
+        qc = QuantumCircuit(2, 1)
+        qc.iden(0)
+        qc.measure(1, 0)
+        qc.cx(1, 0)
+        qc.iden(1)
+
+        # can't just add all the nodes to one block as in other tests
+        # as we are trying to test the block gets added in the correct place
+        # so use a pass to collect the blocks instead
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        qc1 = transpile(qc, pass_manager=pass_manager)
+
+        self.assertEqual(qc, qc1)
+
+    def test_node_added_after_block(self):
+        """Test that a node after the block remains after the block
+
+        This example was raised in #2764, and checks that the final CX
+        stays after the main block, even though one of the nodes in the
+        block was declared after it. This occured when the block was
+        added when the last node in the block was seen.
+
+        blocks = [['cx', 'id', 'id']]
+
+        q_0: |0>─────────────■──
+                     ┌────┐┌─┴─┐
+        q_1: |0>──■──┤ Id ├┤ X ├
+                ┌─┴─┐├────┤└───┘
+        q_2: |0>┤ X ├┤ Id ├─────
+                └───┘└────┘
+        """
+        qc = QuantumCircuit(3)
+        qc.cx(1, 2)
+        qc.iden(1)
+        qc.cx(0, 1)
+        qc.iden(2)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        qc1 = transpile(qc, pass_manager=pass_manager)
+
+        self.assertEqual(qc, qc1)
+
+    def test_node_middle_of_blocks(self):
+        """Test that a node surrounded by blocks stays in the same place
+
+        This is a larger test to ensure multiple blocks can all be collected
+        and added back in the correct order.
+
+        blocks = [['cx', 'id'], ['cx', 'id'], ['id', 'cx'], ['id', 'cx']]
+
+        q_0: |0>──■───────────────────■──
+                ┌─┴─┐┌────┐   ┌────┐┌─┴─┐
+        q_1: |0>┤ X ├┤ Id ├─X─┤ Id ├┤ X ├
+                ├───┤├────┤ │ ├────┤├───┤
+        q_2: |0>┤ X ├┤ Id ├─X─┤ Id ├┤ X ├
+                └─┬─┘└────┘   └────┘└─┬─┘
+        q_3: |0>──■───────────────────■──
+
+        """
+        qc = QuantumCircuit(4)
+        qc.cx(0, 1)
+        qc.cx(3, 2)
+        qc.iden(1)
+        qc.iden(2)
+
+        qc.swap(1, 2)
+
+        qc.iden(1)
+        qc.iden(2)
+        qc.cx(0, 1)
+        qc.cx(3, 2)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        qc1 = transpile(qc, pass_manager=pass_manager)
+
+        self.assertEqual(qc, qc1)
+
+    def test_classical_conditions_maintained(self):
+        """Test that consolidate blocks doesn't drop the classical conditions
+        This issue was raised in #2752
+        """
+        qc = QuantumCircuit(1, 1)
+        qc.h(0).c_if(qc.cregs[0], 1)
+        qc.measure(0, 0)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        qc1 = transpile(qc, pass_manager=pass_manager)
+
+        self.assertEqual(qc, qc1)
 
 
 if __name__ == '__main__':
