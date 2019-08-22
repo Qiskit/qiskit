@@ -49,7 +49,7 @@ class TestGateMap(QiskitVisualizationTestCase):
     def test_plot_circuit_layout(self, backend):
         """ tests plot_circuit_layout for each device"""
         import matplotlib
-        print('A' * 10, matplotlib.get_backend())
+        print('B' * 10, matplotlib.get_backend())
         layout_length = int(backend._configuration.n_qubits / 2)
         qr = QuantumRegister(layout_length, 'qr')
         circuit = QuantumCircuit(qr)
