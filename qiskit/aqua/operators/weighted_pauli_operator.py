@@ -897,7 +897,7 @@ class WeightedPauliOperator(BaseOperator):
         instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
 
         qc.append(instruction, quantum_registers)
-        return qc
+        return qc.decompose()
 
     def evolve_instruction(self, evo_time=0, num_time_slices=1,
                            expansion_mode='trotter', expansion_order=1):
