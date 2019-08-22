@@ -21,10 +21,10 @@ import uuid
 
 import numpy as np
 from qiskit import compiler
-from qiskit.assembler import assemble_circuits
 from qiskit.providers import BaseBackend, JobStatus, JobError
+from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.providers.basicaer import BasicAerJob
-from qiskit.qobj import QobjHeader
+from qiskit.qobj import QasmQobj
 from qiskit.aqua.aqua_error import AquaError
 from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
@@ -119,10 +119,27 @@ def _compile_wrapper(circuits, backend, backend_config, compile_config, run_conf
     transpiled_circuits = compiler.transpile(circuits, backend, **backend_config, **compile_config)
     if not isinstance(transpiled_circuits, list):
         transpiled_circuits = [transpiled_circuits]
-
-    qobj = assemble_circuits(transpiled_circuits, qobj_id=str(uuid.uuid4()), qobj_header=QobjHeader(),
-                             run_config=run_config)
+    qobj = compiler.assemble(transpiled_circuits, **run_config.to_dict())
     return qobj, transpiled_circuits
+
+
+def _split_qobj_to_qobjs(qobj, chunk_size):
+    qobjs = []
+    num_chunks = int(np.ceil(len(qobj.experiments) / chunk_size))
+    if num_chunks == 1:
+        qobjs = [qobj]
+    else:
+        if isinstance(qobj, QasmQobj):
+            qobj_template = QasmQobj(qobj_id=qobj.qobj_id, config=qobj.config, experiments=[], header=qobj.header)
+            for i in range(num_chunks):
+                temp_qobj = copy.deepcopy(qobj_template)
+                temp_qobj.qobj_id = str(uuid.uuid4())
+                temp_qobj.experiments = qobj.experiments[i * chunk_size:(i + 1) * chunk_size]
+                qobjs.append(temp_qobj)
+        else:
+            raise AquaError("Only support QasmQobj now.")
+
+    return qobjs
 
 
 def compile_circuits(circuits, backend, backend_config=None, compile_config=None, run_config=None,
@@ -141,12 +158,15 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
         run_config (RunConfig, optional): configuration for running a circuit
         show_circuit_summary (bool, optional): showing the summary of submitted circuits.
         circuit_cache (CircuitCache, optional): A CircuitCache to use when calling compile_and_run_circuits
+        kwargs (optional): special aer instructions to evaluation the expectation of a hamiltonian
 
     Returns:
         QasmObj: compiled qobj.
 
     Raises:
-        AquaError: Any error except for JobError raised by Qiskit Terra
+        ValueError: backend type is wrong or not given
+        ValueError: no circuit in the circuits
+
     """
     backend_config = backend_config or {}
     compile_config = compile_config or {}
@@ -158,16 +178,11 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
     if not isinstance(circuits, list):
         circuits = [circuits]
 
+    if len(circuits) == 0:
+        raise ValueError("The input circuit is empty.")
+
     if is_simulator_backend(backend):
         circuits = _avoid_empty_circuits(circuits)
-
-    if MAX_CIRCUITS_PER_JOB is not None:
-        max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
-    else:
-        if is_local_backend(backend):
-            max_circuits_per_job = sys.maxsize
-        else:
-            max_circuits_per_job = backend.configuration().max_experiments
 
     if circuit_cache is not None and circuit_cache.try_reusing_qobjs:
         # Check if all circuits are the same length.
@@ -177,68 +192,62 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
         else:  # Try setting up the reusable qobj
             # Compile and cache first circuit if cache is empty. The load method will try to reuse it
             if circuit_cache.qobjs is None:
-                qobj, transpiled_circuits = _compile_wrapper([circuits[0]], backend, backend_config,
-                                                             compile_config, run_config)
+                qobj, _ = _compile_wrapper([circuits[0]], backend, backend_config, compile_config, run_config)
 
                 if is_aer_provider(backend):
                     qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, [circuits[0]], 0)
 
-    qobjs = []
-    transpiled_circuits = []
-    chunks = int(np.ceil(len(circuits) / max_circuits_per_job))
-    for i in range(chunks):
-        sub_circuits = circuits[i * max_circuits_per_job:(i + 1) * max_circuits_per_job]
-        if circuit_cache is not None and circuit_cache.misses < circuit_cache.allowed_misses:
-            try:
-                if circuit_cache.cache_transpiled_circuits:
-                    transpiled_sub_circuits = compiler.transpile(sub_circuits, backend, **backend_config,
-                                                                 **compile_config)
-                    qobj = circuit_cache.load_qobj_from_cache(transpiled_sub_circuits, i, run_config=run_config)
-                else:
-                    qobj = circuit_cache.load_qobj_from_cache(sub_circuits, i, run_config=run_config)
-                if is_aer_provider(backend):
-                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
-            # cache miss, fail gracefully
-            except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
-                circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
-                if len(circuit_cache.qobjs) > 0:
-                    logger.info('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
-                    circuit_cache.misses += 1
-                else:
-                    logger.info('Circuit cache is empty, compiling from scratch.')
-                circuit_cache.clear_cache()
-                qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, backend_config,
-                                                                 compile_config, run_config)
-                transpiled_circuits.extend(transpiled_sub_circuits)
-                if is_aer_provider(backend):
-                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
-                try:
-                    circuit_cache.cache_circuit(qobj, sub_circuits, i)
-                except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
-                    try:
-                        circuit_cache.cache_transpiled_circuits = True
-                        circuit_cache.cache_circuit(qobj, transpiled_sub_circuits, i)
-                    except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
-                        logger.info('Circuit could not be cached for reason: ' + repr(e))
-                        logger.info('Transpilation may be too aggressive. Try skipping transpiler.')
+    transpiled_circuits = None
+    if circuit_cache is not None and circuit_cache.misses < circuit_cache.allowed_misses:
+        try:
+            if circuit_cache.cache_transpiled_circuits:
+                transpiled_circuits = compiler.transpile(circuits, backend, **backend_config,
+                                                         **compile_config)
+                qobj = circuit_cache.load_qobj_from_cache(transpiled_circuits, 0, run_config=run_config)
+            else:
+                qobj = circuit_cache.load_qobj_from_cache(circuits, 0, run_config=run_config)
 
-        else:
-            qobj, transpiled_sub_circuits = _compile_wrapper(sub_circuits, backend, backend_config, compile_config,
-                                                             run_config)
-            transpiled_circuits.extend(transpiled_sub_circuits)
             if is_aer_provider(backend):
                 qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
+        # cache miss, fail gracefully
+        except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
+            circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
+            if len(circuit_cache.qobjs) > 0:
+                logger.info('Circuit cache miss, recompiling. Cache miss reason: ' + repr(e))
+                circuit_cache.misses += 1
+            else:
+                logger.info('Circuit cache is empty, compiling from scratch.')
+            circuit_cache.clear_cache()
 
-        qobjs.append(qobj)
+            qobj, transpiled_circuits = _compile_wrapper(circuits, backend, backend_config,
+                                                         compile_config, run_config)
+            if is_aer_provider(backend):
+                qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
+            try:
+                circuit_cache.cache_circuit(qobj, circuits, 0)
+            except (TypeError, IndexError, AquaError, AttributeError, KeyError):
+                try:
+                    circuit_cache.cache_transpiled_circuits = True
+                    circuit_cache.cache_circuit(qobj, transpiled_circuits, 0)
+                except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
+                    logger.info('Circuit could not be cached for reason: ' + repr(e))
+                    logger.info('Transpilation may be too aggressive. Try skipping transpiler.')
+
+    else:
+        qobj, transpiled_circuits = _compile_wrapper(circuits, backend, backend_config, compile_config,
+                                                     run_config)
+        if is_aer_provider(backend):
+            qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
 
     if logger.isEnabledFor(logging.DEBUG) and show_circuit_summary:
         logger.debug("==== Before transpiler ====")
         logger.debug(summarize_circuits(circuits))
-        logger.debug("====  After transpiler ====")
-        logger.debug(summarize_circuits(transpiled_circuits))
+        if transpiled_circuits is not None:
+            logger.debug("====  After transpiler ====")
+            logger.debug(summarize_circuits(transpiled_circuits))
 
-    return qobjs
+    return qobj
 
 
 def _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation):
@@ -249,31 +258,52 @@ def _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_va
         try:
             job_id = job.job_id()
             break
-        except JobError as e:
+        except JobError as ex:
             logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id."
-                           "Terra job error: {} ".format(e))
-        except Exception as e:
+                           "Terra job error: {} ".format(ex))
+        except Exception as ex:  # pylint: disable=broad-except
             logger.warning("FAILURE: Can not get job id, Resubmit the qobj to get job id."
-                           "Error: {} ".format(e))
+                           "Error: {} ".format(ex))
 
     return job, job_id
 
 
-def run_qobjs(qobjs, backend, qjob_config=None, backend_options=None,
-              noise_config=None, skip_qobj_validation=False):
+def _safe_get_job_status(job, job_id):
+
+    while True:
+        try:
+            job_status = job.status()
+            break
+        except JobError as ex:
+            logger.warning("FAILURE: job id: {}, "
+                           "status: 'FAIL_TO_GET_STATUS' "
+                           "Terra job error: {}".format(job_id, ex))
+            time.sleep(5)
+        except Exception as ex:  # pylint: disable=broad-except
+            raise AquaError("FAILURE: job id: {}, "
+                            "status: 'FAIL_TO_GET_STATUS' "
+                            "Unknown error: ({})".format(job_id, ex)) from ex
+    return job_status
+
+
+def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
+             noise_config=None, skip_qobj_validation=False, job_callback=None):
     """
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
 
-    The autorecovery feature is only applied for non-simulator backend.
-    This wraper will try to get the result no matter how long it costs.
+    The auto-recovery feature is only applied for non-simulator backend.
+    This wrapper will try to get the result no matter how long it takes.
 
     Args:
-        qobjs (list[QasmObj]): qobjs to execute
+        qobj (QasmQobj): qobj to execute
         backend (BaseBackend): backend instance
         qjob_config (dict, optional): configuration for quantum job object
         backend_options (dict, optional): configuration for simulator
         noise_config (dict, optional): configuration for noise model
-        skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
+        skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time,
+                                               only works for Aer and BasicAer providers
+        job_callback (Callable, optional): callback used in querying info of the submitted job, and
+                                           providing the following arguments: job_id, job_status, queue_position, job
 
     Returns:
         Result: Result object
@@ -290,6 +320,17 @@ def run_qobjs(qobjs, backend, qjob_config=None, backend_options=None,
 
     with_autorecover = False if is_simulator_backend(backend) else True
 
+    if MAX_CIRCUITS_PER_JOB is not None:
+        max_circuits_per_job = int(MAX_CIRCUITS_PER_JOB)
+    else:
+        if is_local_backend(backend):
+            max_circuits_per_job = sys.maxsize
+        else:
+            max_circuits_per_job = backend.configuration().max_experiments
+
+    # split qobj if it exceeds the payload of the backend
+
+    qobjs = _split_qobj_to_qobjs(qobj, max_circuits_per_job)
     jobs = []
     job_ids = []
     for qobj in qobjs:
@@ -308,55 +349,51 @@ def run_qobjs(qobjs, backend, qjob_config=None, backend_options=None,
             while True:
                 logger.info("Running {}-th qobj, job id: {}".format(idx, job_id))
                 # try to get result if possible
-                try:
-                    result = job.result(**qjob_config)
-                    if result.success:
-                        results.append(result)
-                        logger.info("COMPLETED the {}-th qobj, "
-                                    "job id: {}".format(idx, job_id))
-                        break
-                    else:
-                        logger.warning("FAILURE: the {}-th qobj, "
-                                       "job id: {}".format(idx, job_id))
-                except JobError as e:
-                    # if terra raise any error, which means something wrong, re-run it
-                    logger.warning("FAILURE: the {}-th qobj, job id: {} "
-                                   "Terra job error: {} ".format(idx, job_id, e))
-                except Exception as e:
-                    raise AquaError("FAILURE: the {}-th qobj, job id: {} "
-                                    "Unknown error: {} ".format(idx, job_id, e)) from e
-
-                # something wrong here if reach here, querying the status to check how to handle it.
-                # keep qeurying it until getting the status.
                 while True:
-                    try:
-                        job_status = job.status()
+                    job_status = _safe_get_job_status(job, job_id)
+                    queue_position = 0
+                    if job_status in JOB_FINAL_STATES:
+                        # do callback again after the job is in the final states
+                        if job_callback is not None:
+                            job_callback(job_id, job_status, queue_position, job)
                         break
-                    except JobError as e:
-                        logger.warning("FAILURE: job id: {}, "
-                                       "status: 'FAIL_TO_GET_STATUS' "
-                                       "Terra job error: {}".format(job_id, e))
-                        time.sleep(5)
-                    except Exception as e:
-                        raise AquaError("FAILURE: job id: {}, "
-                                        "status: 'FAIL_TO_GET_STATUS' "
-                                        "Unknown error: ({})".format(job_id, e)) from e
+                    elif job_status == JobStatus.QUEUED:
+                        queue_position = job.queue_position()
+                        logger.info("Job id: {} is queued at position {}".format(job_id, queue_position))
+                    else:
+                        logger.info("Job id: {}, status: {}".format(job_id, job_status))
+                    if job_callback is not None:
+                        job_callback(job_id, job_status, queue_position, job)
+                    time.sleep(qjob_config['wait'])
 
-                logger.info("Job status: {}".format(job_status))
-
-                # handle the failure job based on job status
+                # get result after the status is DONE
                 if job_status == JobStatus.DONE:
-                    logger.info("Job ({}) is completed anyway, retrieve result "
-                                "from backend.".format(job_id))
-                    job = backend.retrieve_job(job_id)
-                elif job_status == JobStatus.RUNNING or job_status == JobStatus.QUEUED:
-                    logger.info("Job ({}) is {}, but encounter an exception, "
-                                "recover it from backend.".format(job_id, job_status))
-                    job = backend.retrieve_job(job_id)
+                    while True:
+                        result = job.result(**qjob_config)
+                        if result.success:
+                            results.append(result)
+                            logger.info("COMPLETED the {}-th qobj, job id: {}".format(idx, job_id))
+                            break
+                        else:
+                            logger.warning("FAILURE: Job id: {}".format(job_id))
+                            logger.warning("Job ({}) is completed anyway, retrieve result "
+                                           "from backend again.".format(job_id))
+                            job = backend.retrieve_job(job_id)
+                    break
+                # for other cases, resumbit the qobj until the result is available.
+                # since if there is no result returned, there is no way algorithm can do any process
                 else:
-                    logger.info("Fail to run Job ({}), resubmit it.".format(job_id))
-                    qobj = qobjs[idx]
-                    #  assure job get its id
+                    # get back the qobj first to avoid for job is consumed
+                    qobj = job.qobj()
+                    if job_status == JobStatus.CANCELLED:
+                        logger.warning("FAILURE: Job id: {} is cancelled. Re-submit the Qobj.".format(job_id))
+                    elif job_status == JobStatus.ERROR:
+                        logger.warning("FAILURE: Job id: {} encounters the error. "
+                                       "Error is : {}. Re-submit the Qobj.".format(job_id, job.error_message()))
+                    else:
+                        logging.warning("FAILURE: Job id: {}. Unknown status: {}. "
+                                        "Re-submit the Qobj.".format(job_id, job_status))
+
                     job, job_id = _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation)
                     jobs[idx] = job
                     job_ids[idx] = job_id
@@ -402,7 +439,7 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
     """
     qobjs = compile_circuits(circuits, backend, backend_config, compile_config, run_config,
                              show_circuit_summary, circuit_cache, **kwargs)
-    result = run_qobjs(qobjs, backend, qjob_config, backend_options, noise_config, skip_qobj_validation)
+    result = run_qobj(qobjs, backend, qjob_config, backend_options, noise_config, skip_qobj_validation)
     return result
 
 
@@ -420,14 +457,8 @@ def run_on_backend(backend, qobj, backend_options=None, noise_config=None, skip_
             backend._set_options(qobj_config=qobj.config, **backend_options)
             job = BasicAerJob(backend, job_id, backend._run_job, qobj)
             job._future = job._executor.submit(job._fn, job._job_id, job._qobj)
-        elif is_ibmq_provider(backend):
-            # TODO: IBMQJob performs validation during the constructor. the following lines does not
-            # skip validation but run as is.
-            from qiskit.providers.ibmq.ibmqjob import IBMQJob
-            job = IBMQJob(backend, None, backend._api, qobj=qobj)
-            job._future = job._executor.submit(job._submit_callback)
         else:
-            logger.info("Can't skip qobj validation for the third-party provider.")
+            logger.info("Can't skip qobj validation for the {} provider.".format(backend.provider().__class__.__name__))
             job = backend.run(qobj, **backend_options, **noise_config)
         return job
     else:
