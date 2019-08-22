@@ -20,6 +20,7 @@ stages:
       pool: {vmImage: 'Ubuntu-16.04'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       variables:
+        python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
@@ -35,11 +36,29 @@ stages:
           inputs: {pathtoPublish: 'wheelhouse'}
           condition: succeededOrFailed()
         - bash: |
-            twine upload wheelhouse\*
+            twine upload wheelhouse/*
+    - job: 'sdist'
+      pool: {vmImage: 'Ubuntu-16.04'}
+      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
+      variables:
+        TWINE_USERNAME: qiskit
+        python.version: '3.7'
+      steps:
+        - task: UsePythonVersion@0
+        - bash: |
+            set -e
+            python -m pip install --upgrade pip
+            python setup.py sdist
+        - task: PublishBuildArtifacts@1
+          inputs: {pathtoPublish: 'dist'}
+          condition: succeededOrFailed()
+        - bash: |
+            twine upload dist/*
     - job: 'macos'
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
       pool: {vmImage: 'macOS-10.13'}
       variables:
+        python.version: '3.7'
         CIBW_BEFORE_BUILD: pip install -U Cython
         CIBW_SKIP: cp27-* cp34-*
         TWINE_USERNAME: qiskit
@@ -55,7 +74,7 @@ stages:
         inputs: {pathtoPublish: 'wheelhouse'}
         condition: succeededOrFailed()
       - bash: |
-          twine upload wheelhouse\*
+          twine upload wheelhouse/*
     - job: 'Windows'
       pool: {vmImage: 'vs2017-win2016'}
       condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
