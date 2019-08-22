@@ -17,7 +17,7 @@ Timeslots for channels.
 """
 from collections import defaultdict
 import itertools
-from typing import List, Tuple
+from typing import Tuple, Union
 
 from .channels import Channel
 from .exceptions import PulseError
@@ -29,39 +29,39 @@ from .exceptions import PulseError
 class Interval:
     """Time interval."""
 
-    def __init__(self, begin: int, end: int):
-        """Create an interval = (begin, end))
+    def __init__(self, start: int, stop: int):
+        """Create an interval, (start, stop).
 
         Args:
-            begin: begin time of this interval
-            end: end time of this interval
+            start: Starting value of interval
+            stop: Stopping value of interval
 
         Raises:
             PulseError: when invalid time or duration is specified
         """
-        if begin < 0:
-            raise PulseError("Cannot create Interval with negative begin time")
-        if end < 0:
-            raise PulseError("Cannot create Interval with negative end time")
-        if begin > end:
-            raise PulseError("Cannot create Interval with time beginning after end")
-        self._begin = begin
-        self._end = end
+        if start < 0:
+            raise PulseError("Cannot create Interval with negative starting value")
+        if stop < 0:
+            raise PulseError("Cannot create Interval with negative stopping value")
+        if start > stop:
+            raise PulseError("Cannot create Interval with value start after stop")
+        self._start = start
+        self._stop = stop
 
     @property
-    def begin(self):
-        """Begin time of this interval."""
-        return self._begin
+    def start(self):
+        """Start of interval."""
+        return self._start
 
     @property
-    def end(self):
-        """End time of this interval."""
-        return self._end
+    def stop(self):
+        """Stop of interval."""
+        return self._stop
 
     @property
     def duration(self):
         """Duration of this interval."""
-        return self._end - self._begin
+        return self.stop - self.start
 
     def has_overlap(self, interval: 'Interval') -> bool:
         """Check if self has overlap with `interval`.
@@ -72,9 +72,7 @@ class Interval:
         Returns:
             bool: True if self has overlap with `interval` otherwise False
         """
-        if self.begin < interval.end and interval.begin < self.end:
-            return True
-        return False
+        return self.start < interval.stop and interval.start < self.stop
 
     def shift(self, time: int) -> 'Interval':
         """Return a new interval shifted by `time` from self
@@ -85,10 +83,10 @@ class Interval:
         Returns:
             Interval: interval shifted by `time`
         """
-        return Interval(self._begin + time, self._end + time)
+        return Interval(self.start + time, self.stop + time)
 
     def __eq__(self, other):
-        """Two intervals are the same if they have the same begin and end.
+        """Two intervals are the same if they have the same starting and stopping values.
 
         Args:
             other (Interval): other Interval
@@ -96,13 +94,11 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self._begin == other._begin and self._end == other._end:
-            return True
-        return False
+        return self.start == other.start and self.stop == other.stop
 
     def __repr__(self):
         """Return a readable representation of Interval Object"""
-        return "{}({}, {})".format(self.__class__.__name__, self.begin, self.end)
+        return "{}({}, {})".format(self.__class__.__name__, self.start, self.stop)
 
 
 class Timeslot:
@@ -122,6 +118,21 @@ class Timeslot:
         """Channel of this time slot."""
         return self._channel
 
+    @property
+    def start(self):
+        """Start of timeslot."""
+        return self.interval.start
+
+    @property
+    def stop(self):
+        """Stop of timeslot."""
+        return self.interval.stop
+
+    @property
+    def duration(self):
+        """Duration of this timeslot."""
+        return self.interval.duration
+
     def shift(self, time: int) -> 'Timeslot':
         """Return a new Timeslot shifted by `time`.
 
@@ -130,27 +141,36 @@ class Timeslot:
         """
         return Timeslot(self.interval.shift(time), self.channel)
 
+    def has_overlap(self, other: 'Timeslot') -> bool:
+        """Check if self has overlap with `interval`.
+
+        Args:
+            other: Other Timeslot to check for overlap with
+
+        Returns:
+            bool: True if intervals overlap and are on the same channel
+        """
+        return self.interval.has_overlap(other) and self.channel == other.channel
+
     def __eq__(self, other) -> bool:
         """Two time-slots are the same if they have the same interval and channel.
 
         Args:
             other (Timeslot): other Timeslot
         """
-        if self.interval == other.interval and self.channel == other.channel:
-            return True
-        return False
+        return self.interval == other.interval and self.channel == other.channel
 
     def __repr__(self):
         """Return a readable representation of Timeslot Object"""
         return "{}({}, {})".format(self.__class__.__name__,
                                    self.channel,
-                                   (self.interval.begin, self.interval.end))
+                                   (self.interval.start, self.interval.stop))
 
 
 class TimeslotCollection:
     """Collection of `Timeslot`s."""
 
-    def __init__(self, *timeslots: List[Timeslot]):
+    def __init__(self, *timeslots: Union[Timeslot, 'TimeslotCollection']):
         """Create a new time-slot collection.
 
         Args:
@@ -160,23 +180,21 @@ class TimeslotCollection:
         """
         self._table = defaultdict(list)
 
-        for slot in timeslots:
-            for interval in self._table[slot.channel]:
-                if slot.interval.has_overlap(interval):
-                    raise PulseError("Cannot create TimeslotCollection from overlapped timeslots")
-            self._table[slot.channel].append(slot.interval)
-
-        self._timeslots = tuple(timeslots)
+        for timeslot in timeslots:
+            if isinstance(timeslot, TimeslotCollection):
+                self._merge_timeslot_collection(timeslot)
+            else:
+                self._merge_timeslot(timeslot)
 
     @property
     def timeslots(self) -> Tuple[Timeslot]:
-        """`Timeslot`s in collection."""
-        return self._timeslots
+        """Sorted tuple of `Timeslot`s in collection."""
+        return tuple(itertools.chain.from_iterable(self._table.values()))
 
     @property
     def channels(self) -> Tuple[Timeslot]:
         """Channels within the timeslot collection."""
-        return tuple(self._table.keys())
+        return tuple(k for k, v in self._table.items() if v)
 
     @property
     def start_time(self) -> int:
@@ -193,31 +211,95 @@ class TimeslotCollection:
         """Return maximum duration of timeslots over all channels."""
         return self.stop_time
 
-    def ch_start_time(self, *channels: List[Channel]) -> int:
+    def _merge_timeslot_collection(self, other: 'TimeslotCollection'):
+        """Mutably merge timeslot collections into this TimeslotCollection.
+
+        Args:
+            other: TimeSlotCollection to merge
+        """
+        for channel, other_ch_timeslots in other._table.items():
+            if channel not in self._table:
+                self._table[channel] += other_ch_timeslots  # extend to copy items
+            else:
+                # if channel is in self there might be an overlap
+                for idx, other_ch_timeslot in enumerate(other_ch_timeslots):
+                    insert_idx = self._merge_timeslot(other_ch_timeslot)
+                    if insert_idx == len(self._table[channel]) - 1:
+                        # Timeslot was inserted at end of list. The rest can be appended.
+                        self._table[channel] += other_ch_timeslots[idx + 1:]
+                        break
+
+    def _merge_timeslot(self, timeslot: Timeslot) -> int:
+        """Mutably merge timeslots into this TimeslotCollection.
+
+        Note timeslots are sorted internally on their respective channel
+
+        Args:
+            timeslot: Timeslot to merge
+
+        Returns:
+            int: Return the index in which timeslot was inserted
+
+        Raises:
+            PulseError: If timeslots overlap
+        """
+        interval = timeslot.interval
+        ch_timeslots = self._table[timeslot.channel]
+
+        insert_idx = len(ch_timeslots)
+
+        # merge timeslots by insertion sort.
+        # Worst case O(n_channels), O(1) for append
+        # could be improved by implementing an interval tree
+        for ch_timeslot in reversed(ch_timeslots):
+            ch_interval = ch_timeslot.interval
+
+            if interval.start >= ch_interval.stop:
+                break
+            elif interval.has_overlap(ch_interval):
+                raise PulseError("Timeslot: {0} overlaps with existing"
+                                 "Timeslot: {1}".format(timeslot, ch_timeslot))
+
+            insert_idx -= 1
+
+        ch_timeslots.insert(insert_idx, timeslot)
+
+        return insert_idx
+
+    def ch_timeslots(self, channel: Channel) -> Tuple[Timeslot]:
+        """Sorted tuple of `Timeslot`s for channel in this TimeslotCollection."""
+        if channel in self._table:
+            return tuple(self._table[channel])
+
+        return tuple()
+
+    def ch_start_time(self, *channels: Channel) -> int:
         """Return earliest start time in this collection.
 
         Args:
             *channels: Channels over which to obtain start_time.
         """
-        intervals = list(itertools.chain(*(self._table[chan] for chan in channels
+        timeslots = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
-        if intervals:
-            return min(interval.begin for interval in intervals)
+        if timeslots:
+            return min(timeslot.start for timeslot in timeslots)
+
         return 0
 
-    def ch_stop_time(self, *channels: List[Channel]) -> int:
+    def ch_stop_time(self, *channels: Channel) -> int:
         """Return maximum time of timeslots over all channels.
 
         Args:
             *channels: Channels over which to obtain stop time.
         """
-        intervals = list(itertools.chain(*(self._table[chan] for chan in channels
+        timeslots = list(itertools.chain(*(self._table[chan] for chan in channels
                                            if chan in self._table)))
-        if intervals:
-            return max(interval.end for interval in intervals)
+        if timeslots:
+            return max(timeslot.stop for timeslot in timeslots)
+
         return 0
 
-    def ch_duration(self, *channels: List[Channel]) -> int:
+    def ch_duration(self, *channels: Channel) -> int:
         """Return maximum duration of timeslots over all channels.
 
         Args:
@@ -225,28 +307,38 @@ class TimeslotCollection:
         """
         return self.ch_stop_time(*channels)
 
-    def is_mergeable_with(self, timeslots: 'TimeslotCollection') -> bool:
+    def is_mergeable_with(self, other: 'TimeslotCollection') -> bool:
         """Return if self is mergeable with `timeslots`.
 
         Args:
-            timeslots: TimeslotCollection to be checked
+            other: TimeslotCollection to be checked for mergeability
         """
-        for slot in timeslots.timeslots:
-            if slot.channel in self.channels:
-                for interval in self._table[slot.channel]:
-                    if slot.interval.has_overlap(interval):
-                        return False
+        common_channels = set(self.channels) & set(other.channels)
+
+        for channel in common_channels:
+            ch_timeslots = self.ch_timeslots(channel)
+            other_ch_timeslots = other.ch_timeslots(channel)
+            if ch_timeslots[-1].stop < other_ch_timeslots[0].start:
+                continue  # We are appending along this channel
+
+            i = 0  # iterate through this
+            j = 0  # iterate through other
+            while i < len(ch_timeslots) and j < len(other_ch_timeslots):
+                if ch_timeslots[i].interval.has_overlap(other_ch_timeslots[j].interval):
+                    return False
+                if ch_timeslots[i].stop <= other_ch_timeslots[j].start:
+                    i += 1
+                else:
+                    j += 1
         return True
 
-    def merged(self, timeslots: 'TimeslotCollection') -> 'TimeslotCollection':
-        """Return a new TimeslotCollection merged with a specified `timeslots`
+    def merge(self, timeslots: 'TimeslotCollection') -> 'TimeslotCollection':
+        """Return a new TimeslotCollection with `timeslots` merged into it.
 
         Args:
             timeslots: TimeslotCollection to be merged
         """
-        slots = [Timeslot(slot.interval, slot.channel) for slot in self.timeslots]
-        slots.extend([Timeslot(slot.interval, slot.channel) for slot in timeslots.timeslots])
-        return TimeslotCollection(*slots)
+        return TimeslotCollection(self, timeslots)
 
     def shift(self, time: int) -> 'TimeslotCollection':
         """Return a new TimeslotCollection shifted by `time`.
@@ -254,7 +346,7 @@ class TimeslotCollection:
         Args:
             time: time to be shifted by
         """
-        slots = [Timeslot(slot.interval.shift(time), slot.channel) for slot in self.timeslots]
+        slots = [slot.shift(time) for slot in self.timeslots]
         return TimeslotCollection(*slots)
 
     def __eq__(self, other) -> bool:
@@ -263,13 +355,16 @@ class TimeslotCollection:
         Args:
             other (TimeslotCollection): other TimeslotCollection
         """
-        if self.timeslots == other.timeslots:
-            return True
-        return False
+        if set(self.channels) != set(other.channels):
+            return False
+        for channel in self.channels:
+            if self.ch_timeslots(channel) != self.ch_timeslots(channel):
+                return False
+        return True
 
     def __repr__(self):
         """Return a readable representation of TimeslotCollection Object"""
         rep = dict()
         for key, val in self._table.items():
-            rep[key] = [(interval.begin, interval.end) for interval in val]
+            rep[key] = [(timeslot.start, timeslot.stop) for timeslot in val]
         return self.__class__.__name__ + str(rep)

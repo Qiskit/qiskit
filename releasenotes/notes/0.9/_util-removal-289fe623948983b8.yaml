@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The previously deprecated ``qiskit._util`` module has been removed.
+    ``qiskit.util`` should be used instead.

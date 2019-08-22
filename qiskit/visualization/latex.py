@@ -367,7 +367,7 @@ class QCircuitImage:
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                    'save', 'noise']:
-                    nm = op.name
+                    nm = utf8tolatex(op.name).replace(" ", "\\,")
                     qarglist = op.qargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
@@ -423,7 +423,7 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = "\\gate{R_z(%s)}" % (
                                     pi_check(op.op.params[0], output='latex'))
                             else:
-                                self._latex[pos_1][column] = ("\\gate{%s}" % utf8tolatex(nm))
+                                self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                             gap = pos_2 - pos_1
                             for i in range(self.cregs[if_reg]):
@@ -483,7 +483,7 @@ class QCircuitImage:
                                     "\\push{\\rule{.6em}{0em}\\ket{0}\\"
                                     "rule{.2em}{0em}} \\qw")
                             else:
-                                self._latex[pos_1][column] = ("\\gate{%s}" % utf8tolatex(nm))
+                                self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                     elif len(qarglist) == 2:
                         pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
@@ -600,15 +600,15 @@ class QCircuitImage:
                                 if stop_pos - start_pos >= 2:
                                     delta = stop_pos - start_pos
                                     self._latex[start_pos][column] = ("\\multigate{%s}{%s}"
-                                                                      % (delta, utf8tolatex(nm)))
+                                                                      % (delta, nm))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
                                         self._latex[i_pos][column] = ("\\ghost{%s}"
-                                                                      % utf8tolatex(nm))
+                                                                      % nm)
                                 else:
                                     self._latex[start_pos][column] = ("\\multigate{1}{%s}"
-                                                                      % utf8tolatex(nm))
+                                                                      % nm)
                                     self._latex[stop_pos][column] = ("\\ghost{%s}" %
-                                                                     utf8tolatex(nm))
+                                                                     nm)
 
                     elif len(qarglist) == 3:
                         pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
@@ -691,32 +691,31 @@ class QCircuitImage:
                                 if stop_pos - start_pos >= 3:
                                     delta = stop_pos - start_pos
                                     self._latex[start_pos][column] = ("\\multigate{%s}{%s}" %
-                                                                      (delta, utf8tolatex(nm)))
+                                                                      (delta, nm))
                                     for i_pos in range(start_pos + 1, stop_pos + 1):
                                         self._latex[i_pos][column] = ("\\ghost{%s}" %
-                                                                      utf8tolatex(nm))
+                                                                      nm)
                                 else:
                                     self._latex[pos_1][column] = ("\\multigate{2}{%s}" %
-                                                                  utf8tolatex(nm))
+                                                                  nm)
                                     self._latex[pos_2][column] = ("\\ghost{%s}" %
-                                                                  utf8tolatex(nm))
+                                                                  nm)
                                     self._latex[pos_3][column] = ("\\ghost{%s}" %
-                                                                  utf8tolatex(nm))
+                                                                  nm)
 
                     elif len(qarglist) > 3:
                         nbits = len(qarglist)
-                        pos_array = [self.img_regs[(qarglist[0][0],
-                                                    qarglist[0][1])]]
+                        pos_array = [self.img_regs[(qarglist[0].register,
+                                                    qarglist[0].index)]]
                         for i in range(1, nbits):
-                            pos_array.append(self.img_regs[(qarglist[i][0],
-                                                            qarglist[i][1])])
+                            pos_array.append(self.img_regs[(qarglist[i].register,
+                                                            qarglist[i].index)])
                         pos_start = min(pos_array)
                         pos_stop = max(pos_array)
-                        delta = pos_stop - pos_start
                         self._latex[pos_start][column] = ("\\multigate{%s}{%s}" %
-                                                          (nbits - 1, utf8tolatex(nm)))
+                                                          (nbits - 1, nm))
                         for pos in range(pos_start + 1, pos_stop + 1):
-                            self._latex[pos][column] = ("\\ghost{%s}" % utf8tolatex(nm))
+                            self._latex[pos][column] = ("\\ghost{%s}" % nm)
 
                 elif op.name == "measure":
                     if (len(op.cargs) != 1
