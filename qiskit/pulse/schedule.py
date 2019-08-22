@@ -143,7 +143,7 @@ class Schedule(ScheduleComponent):
 
     def union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
               name: Optional[str] = None) -> 'Schedule':
-        """Return a new schedule which is the union of children of both `self` and `schedules`.
+        """Return a new schedule which is the union of both `self` and `schedules`.
 
         Args:
             *schedules: Schedules to be take the union with this `Schedule`.
