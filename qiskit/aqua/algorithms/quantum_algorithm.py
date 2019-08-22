@@ -22,7 +22,6 @@ Doing so requires that the required algorithm interface is implemented.
 
 from abc import abstractmethod
 import logging
-from qiskit.providers import BaseBackend
 from qiskit.aqua import aqua_globals, Pluggable, QuantumInstance, AquaError
 
 logger = logging.getLogger(__name__)
@@ -54,6 +53,8 @@ class QuantumAlgorithm(Pluggable):
         Returns:
             dict: results of an algorithm.
         """
+        from qiskit.providers import BaseBackend
+
         if not self.configuration.get('classical', False):
             if quantum_instance is None:
                 AquaError("Quantum device or backend is needed since you are running quantum algorithm.")

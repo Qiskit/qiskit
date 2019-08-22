@@ -121,7 +121,58 @@ class ADAM(Optimizer):
         self._noise_factor = noise_factor
         self._eps = eps
         self._amsgrad = amsgrad
-        self._t = 0 #time steps
+        self._t = 0  # time steps
+        self._m = np.zeros(1)
+        self._v = np.zeros(1)
+        if self._amsgrad:
+            self._v_eff = np.zeros(1)
+
+        if self._snapshot_dir:
+
+            with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='w') as csv_file:
+                if self._amsgrad:
+                    fieldnames = ['v', 'v_eff', 'm', 't']
+                else:
+                    fieldnames = ['v', 'm', 't']
+                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+                writer.writeheader()
+
+    def save_params(self, snapshot_dir):
+        if self._amsgrad:
+            with open(os.path.join(snapshot_dir, 'adam_params.csv'), mode='a') as csv_file:
+                fieldnames = ['v', 'v_eff', 'm', 't']
+                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+                writer.writerow({'v': self._v, 'v_eff': self._v_eff,
+                                 'm': self._m, 't': self._t})
+        else:
+            with open(os.path.join(snapshot_dir, 'adam_params.csv'), mode='a') as csv_file:
+                fieldnames = ['v', 'm', 't']
+                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+                writer.writerow({'v': self._v, 'm': self._m, 't': self._t})
+
+    def load_params(self, load_dir):
+        with open(os.path.join(load_dir, 'adam_params.csv'), mode='r') as csv_file:
+            if self._amsgrad:
+                fieldnames = ['v', 'v_eff', 'm', 't']
+            else:
+                fieldnames = ['v', 'm', 't']
+            reader = csv.DictReader(csv_file, fieldnames=fieldnames)
+            for line in reader:
+                v = line['v']
+                if self._amsgrad:
+                    v_eff = line['v_eff']
+                m = line['m']
+                t = line['t']
+
+        v = v[1:-1]
+        self._v = np.fromstring(v, dtype=float, sep=' ')
+        if self._amsgrad:
+            v_eff = v_eff[1:-1]
+            self._v_eff = np.fromstring(v_eff, dtype=float, sep=' ')
+        m = m[1:-1]
+        self._m = np.fromstring(m, dtype=float, sep=' ')
+        t = t[1:-1]
+        self._t = np.fromstring(t, dtype=int, sep=' ')
 
     def minimize(self, objective_function, initial_point, gradient_function):
         derivative = gradient_function(initial_point)
@@ -130,17 +181,6 @@ class ADAM(Optimizer):
         if self._amsgrad:
             self._v_eff = np.zeros(np.shape(derivative))
 
-        if self._snapshot_dir:
-            if self._amsgrad:
-                with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='w') as csv_file:
-                    fieldnames = ['v', 'v_eff', 'm', 't']
-                    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-                    writer.writeheader()
-            else:
-                with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='w') as csv_file:
-                    fieldnames = ['v', 'm', 't']
-                    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-                    writer.writeheader()
         params = initial_point
         while self._t < self._maxiter:
             derivative = gradient_function(params)
@@ -155,17 +195,7 @@ class ADAM(Optimizer):
                 params_new = (params - lr_eff * self._m.flatten() / (np.sqrt(self._v_eff.flatten()) + self._noise_factor))
 
             if self._snapshot_dir:
-                if self._amsgrad:
-                    with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='a') as csv_file:
-                        fieldnames = ['v', 'v_eff', 'm', 't']
-                        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-                        writer.writerow({'v': self._v, 'v_eff': self._v_eff,
-                                         'm': self._m, 't': self._t})
-                else:
-                    with open(os.path.join(self._snapshot_dir, 'adam_params.csv'), mode='a') as csv_file:
-                        fieldnames = ['v', 'm', 't']
-                        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-                        writer.writerow({'v': self._v, 'm': self._m, 't': self._t})
+                self.save_params(self._snapshot_dir)
             if np.linalg.norm(params - params_new) < self._tol:
                 return params_new, objective_function(params_new), self._t
             else:
@@ -200,4 +230,3 @@ class ADAM(Optimizer):
 
         point, value, nfev = self.minimize(objective_function, initial_point, gradient_function)
         return point, value, nfev
-

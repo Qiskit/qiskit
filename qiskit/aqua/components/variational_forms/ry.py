@@ -37,9 +37,7 @@ class RY(VariationalForm):
                 'entanglement': {
                     'type': 'string',
                     'default': 'full',
-                    'oneOf': [
-                        {'enum': ['full', 'linear']}
-                    ]
+                    'enum': ['full', 'linear', 'sca']
                 },
                 'entangler_map': {
                     'type': ['array', 'null'],
@@ -48,11 +46,13 @@ class RY(VariationalForm):
                 'entanglement_gate': {
                     'type': 'string',
                     'default': 'cz',
-                    'oneOf': [
-                        {'enum': ['cz', 'cx']}
-                    ]
+                    'enum': ['cz', 'cx', 'crx']
                 },
                 'skip_unentangled_qubits': {
+                    'type': 'boolean',
+                    'default': False
+                },
+                'skip_final_ry': {
                     'type': 'boolean',
                     'default': False
                 }
@@ -71,7 +71,8 @@ class RY(VariationalForm):
 
     def __init__(self, num_qubits, depth=3, entangler_map=None,
                  entanglement='full', initial_state=None,
-                 entanglement_gate='cz', skip_unentangled_qubits=False):
+                 entanglement_gate='cz', skip_unentangled_qubits=False,
+                 skip_final_ry=False):
         """Constructor.
 
         Args:
@@ -81,19 +82,23 @@ class RY(VariationalForm):
                                         [source, target], or None for full entanglement.
                                         Note that the order is the list is the order of
                                         applying the two-qubit gate.
-            entanglement (str): 'full' or 'linear'
+            entanglement (str): 'full', 'linear' or 'sca'
             initial_state (InitialState): an initial state object
             entanglement_gate (str): cz or cx
             skip_unentangled_qubits (bool): skip the qubits not in the entangler_map
+            skip_final_ry (bool): skip the final layer of Y rotations
         """
         self.validate(locals())
         super().__init__()
         self._num_qubits = num_qubits
         self._depth = depth
+        self._entanglement = entanglement
+
         if entangler_map is None:
             self._entangler_map = VariationalForm.get_entangler_map(entanglement, num_qubits)
         else:
             self._entangler_map = VariationalForm.validate_entangler_map(entangler_map, num_qubits)
+
         # determine the entangled qubits
         all_qubits = []
         for src, targ in self._entangler_map:
@@ -102,12 +107,20 @@ class RY(VariationalForm):
         self._initial_state = initial_state
         self._entanglement_gate = entanglement_gate
         self._skip_unentangled_qubits = skip_unentangled_qubits
+        self._skip_final_ry = skip_final_ry
 
         # for the first layer
         self._num_parameters = len(self._entangled_qubits) if self._skip_unentangled_qubits \
             else self._num_qubits
-        # for repeated block
-        self._num_parameters += len(self._entangled_qubits) * depth
+
+        # for repeated block (minus one ry layer if we skip the last)
+        self._num_parameters += len(self._entangled_qubits) * (depth - 1) if skip_final_ry \
+            else len(self._entangled_qubits) * depth
+
+        # CRx gates have an additional parameter per entanglement
+        if entanglement_gate == 'crx':
+            self._num_parameters += len(self._entangler_map) * depth
+
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
 
     def construct_circuit(self, parameters, q=None):
@@ -142,17 +155,33 @@ class RY(VariationalForm):
 
         for block in range(self._depth):
             circuit.barrier(q)
+            if self._entanglement == 'sca':
+                self._entangler_map = VariationalForm.get_entangler_map(
+                    self._entanglement,
+                    self._num_qubits,
+                    offset=block)
+
             for src, targ in self._entangler_map:
                 if self._entanglement_gate == 'cz':
                     circuit.u2(0.0, np.pi, q[targ])  # h
                     circuit.cx(q[src], q[targ])
                     circuit.u2(0.0, np.pi, q[targ])  # h
+
+                elif self._entanglement_gate == 'crx':
+                    circuit.cu3(parameters[param_idx], -np.pi / 2, np.pi / 2,
+                                q[src], q[targ])  # crx
+                    param_idx += 1
+
                 else:
                     circuit.cx(q[src], q[targ])
-            circuit.barrier(q)
-            for qubit in self._entangled_qubits:
-                circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])  # ry
-                param_idx += 1
+
+            # Skip the final RY layer if it is specified and we reached the
+            # last block
+            if not self._skip_final_ry or block != self._depth - 1:
+                circuit.barrier(q)
+                for qubit in self._entangled_qubits:
+                    circuit.u3(parameters[param_idx], 0.0, 0.0, q[qubit])  # ry
+                    param_idx += 1
         circuit.barrier(q)
 
         return circuit
