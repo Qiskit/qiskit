@@ -181,7 +181,7 @@ class Schedule(ScheduleComponent):
             self.__children += (other,)
 
         sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
-        self._timeslots = self.timeslots.merged(sched_timeslots)
+        self._timeslots = self.timeslots.merge(sched_timeslots)
         self._buffer = max(self.buffer, sched.buffer)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
