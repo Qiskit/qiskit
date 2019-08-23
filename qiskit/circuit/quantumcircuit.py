@@ -808,8 +808,9 @@ class QuantumCircuit:
         return cpy
 
     def measure_active(self):
-        """Adds measurement gates to all non-idle qubits. Creates a new ClassicalRegister with
-        a size equal to the number of non-idle qubits being measured."""
+        """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
+        a size equal to the number of non-idle qubits being measured.
+        """
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         dag = circuit_to_dag(self)
         qubits_to_measure = [qubit for qubit in self.qubits if qubit not in dag.idle_wires()]
@@ -819,7 +820,7 @@ class QuantumCircuit:
         self.measure(qubits_to_measure, new_creg)
 
     def measure_all(self):
-        """Adds measurement gates to all qubits. Creates a new ClassicalRegister with a
+        """Adds measurement to all qubits. Creates a new ClassicalRegister with a
         size equal to the number of qubits being measured.
         """
         new_creg = ClassicalRegister(self.n_qubits, 'measure')
@@ -828,7 +829,7 @@ class QuantumCircuit:
         self.measure(self.qubits, new_creg)
 
     def remove_final_measures(self):
-        """Removes final measurement gates on all qubits if they are present.
+        """Removes final measurement on all qubits if they are present.
         Deletes the ClassicalRegister that was created to store the values from these measurements.
         """
         from qiskit.converters.circuit_to_dag import circuit_to_dag
