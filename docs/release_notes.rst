@@ -519,18 +519,19 @@ Upgrade Notes
 - The following ``qiskit.dagcircuit.DAGCircuit`` methods had deprecated
   support for accepting a ``node_id`` as a parameter. This has been removed
   and now only ``DAGNode`` objects are accepted as input:
-  * ``successors()``
-  * ``predecessors()``
-  * ``ancestors()``
-  * ``descendants()``
-  * ``bfs_successors()``
-  * ``quantum_successors()``
-  * ``remove_op_node()``
-  * ``remove_ancestors_of()``
-  * ``remove_descendants_of()``
-  * ``remove_nonancestors_of()``
-  * ``remove_nondescendants_of()``
-  * ``substitute_node_with_dag()``
+
+    * ``successors()``
+    * ``predecessors()``
+    * ``ancestors()``
+    * ``descendants()``
+    * ``bfs_successors()``
+    * ``quantum_successors()``
+    * ``remove_op_node()``
+    * ``remove_ancestors_of()``
+    * ``remove_descendants_of()``
+    * ``remove_nonancestors_of()``
+    * ``remove_nondescendants_of()``
+    * ``substitute_node_with_dag()``
 
 - The ``qiskit.dagcircuit.DAGCircuit`` method ``rename_register()`` has been
   removed. This was unused by all the qiskit code. If you were relying on it
@@ -626,16 +627,17 @@ Upgrade Notes
 
 - The deprecated ``qiskit.mapper`` module has been removed. The list of
   functions and classes with their alternatives are:
-  * ``qiskit.mapper.CouplingMap``: ``qiskit.transpiler.CouplingMap`` should
-  be used instead.
-  * ``qiskit.mapper.Layout``: ``qiskit.transpiler.Layout`` should be used
-  instead
-  * ``qiskit.mapper.compiling.euler_angles_1q()``:
-  ``qiskit.quantum_info.synthesis.euler_angles_1q()`` should be used
-  instead
-  * ``qiskit.mapper.compiling.two_qubit_kak()``:
-  ``qiskit.quantum_info.synthesis.two_qubit_cnot_decompose()`` should be
-  used instead.
+
+    * ``qiskit.mapper.CouplingMap``: ``qiskit.transpiler.CouplingMap`` should
+      be used instead.
+    * ``qiskit.mapper.Layout``: ``qiskit.transpiler.Layout`` should be used
+      instead
+    * ``qiskit.mapper.compiling.euler_angles_1q()``:
+      ``qiskit.quantum_info.synthesis.euler_angles_1q()`` should be used
+      instead
+    * ``qiskit.mapper.compiling.two_qubit_kak()``:
+      ``qiskit.quantum_info.synthesis.two_qubit_cnot_decompose()`` should be
+      used instead.
 
   The deprecated exception classes ``qiskit.mapper.exceptions.CouplingError``
   and ``qiskit.mapper.exceptions.LayoutError`` don't have an alternative
@@ -749,11 +751,13 @@ Deprecation Notes
 
 - The module ``qiskit.pulse.ops`` has been deprecated. All the functions it
   provided:
-  * ``union``
-  * ``flatten``
-  * ``shift``
-  * ``insert``
-  * ``append``
+
+    * ``union``
+    * ``flatten``
+    * ``shift``
+    * ``insert``
+    * ``append``
+
   have equivalent methods available directly on the ``qiskit.pulse.Schedule``
   and ``qiskit.pulse.Instruction`` classes. Those methods should be used
   instead.
