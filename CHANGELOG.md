@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Removed
+
+-   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
+
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
