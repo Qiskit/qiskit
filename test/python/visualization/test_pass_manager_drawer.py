@@ -66,8 +66,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_standard.dot'))
         os.remove(filename)
 
-    @unittest.skipIf(not HAS_GRAPHVIZ,
-                     'Graphviz not installed.')
+    @unittest.skipIf(not HAS_GRAPHVIZ, 'Graphviz not installed.')
     def test_pass_manager_drawer_style(self):
         """Test to see if the colours are updated when provided by the user"""
         # set colours for some passes, but leave others to take the default values
@@ -79,8 +78,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         filename = self._get_resource_path('current_style.dot')
         self.pass_manager.draw(filename=filename, style=style, raw=True)
 
-        self.assertFilesAreEqual(filename,
-                                 path_to_diagram_reference('pass_manager_style.dot'))
+        self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_style.dot'))
         os.remove(filename)
 
 

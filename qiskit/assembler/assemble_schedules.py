@@ -14,7 +14,8 @@
 
 """Assemble function for converting a list of circuits into a qobj"""
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands import PulseInstruction, AcquireInstruction, SamplePulse
+from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
+                                   DelayInstruction, SamplePulse)
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
@@ -70,7 +71,12 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
-            if isinstance(instruction, PulseInstruction):
+
+            if isinstance(instruction, DelayInstruction):
+                # delay instructions are ignored as timing is explicit within qobj
+                continue
+
+            elif isinstance(instruction, PulseInstruction):
                 name = instruction.command.name
                 if name in user_pulselib and instruction.command != user_pulselib[name]:
                     name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
@@ -80,14 +86,16 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                         channel=instruction.timeslots.channels[0])
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
-            if isinstance(instruction, AcquireInstruction):
+
+            elif isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
                 if meas_map:
                     # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
 
-            qobj_instructions.append(instruction_converter(shift, instruction))
+            converted_instruction = instruction_converter(shift, instruction)
+            qobj_instructions.append(converted_instruction)
 
         # experiment header
         qobj_experiment_header = QobjExperimentHeader(

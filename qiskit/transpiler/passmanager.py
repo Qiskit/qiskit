@@ -176,9 +176,29 @@ class PassManager():
         circuit._layout = self.property_set['layout']
         return circuit
 
-    def draw(self, filename, style=None, raw=False):
-        """Draw the pass manager"""
-        pass_manager_drawer(self, filename=filename, style=style, raw=raw)
+    def draw(self, filename=None, style=None, raw=False):
+        """
+        Draws the pass manager.
+
+        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
+        Graphviz <https://www.graphviz.org/>` to be installed.
+
+        Args:
+            filename (str or None): file path to save image to
+            style (dict or OrderedDict): keys are the pass classes and the values are
+                the colors to make them. An example can be seen in the DEFAULT_STYLE. An ordered
+                dict can be used to ensure a priority coloring when pass falls into multiple
+                categories. Any values not included in the provided dict will be filled in from
+                the default dict
+            raw (Bool) : True if you want to save the raw Dot output not an image. The
+                default is False.
+        Returns:
+            PIL.Image or None: an in-memory representation of the pass manager. Or None if
+                               no image was generated or PIL is not installed.
+        Raises:
+            ImportError: when nxpd or pydot not installed.
+        """
+        return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
     def _do_pass(self, pass_, dag, options):
         """Do a pass and its "requires".
