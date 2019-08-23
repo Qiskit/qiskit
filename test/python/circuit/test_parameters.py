@@ -587,3 +587,39 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(float(bound_qc.data[1][0].params[0]), 2)
         self.assertEqual(float(bound_qc.data[2][0].params[0]), numpy.pi/2)
         self.assertEqual(float(bound_qc.data[3][0].params[0]), 2 * 3)
+
+    def test_binding_across_broadcast_instruction(self):
+        """Bind a parameter which was included via a broadcast instruction."""
+        # ref: https://github.com/Qiskit/qiskit-terra/issues/3008
+
+        from qiskit.extensions.standard import RZGate
+        theta = Parameter('θ')
+        n = 5
+
+        qc = QuantumCircuit(n, 1)
+
+        qc.h(0)
+        for i in range(n-1):
+            qc.cx(i, i+1)
+
+        qc.barrier()
+        qc.rz(theta, range(n))
+        qc.barrier()
+
+        for i in reversed(range(n-1)):
+            qc.cx(i, i+1)
+        qc.h(0)
+        qc.measure(0, 0)
+
+        theta_range = numpy.linspace(0, 2 * numpy.pi, 128)
+        circuits = [qc.bind_parameters({theta: theta_val})
+                    for theta_val in theta_range]
+
+        self.assertEqual(len(circuits), len(theta_range))
+        for theta_val, bound_circ in zip(theta_range, circuits):
+            rz_gates = [inst for inst, qargs, cargs in bound_circ.data
+                        if isinstance(inst, RZGate)]
+
+            self.assertEqual(len(rz_gates), n)
+            self.assertTrue(all(float(gate.params[0]) == theta_val
+                                for gate in rz_gates))

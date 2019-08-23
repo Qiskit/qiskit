@@ -20,13 +20,10 @@ import math
 import datetime
 from IPython.display import display                     # pylint: disable=import-error
 import matplotlib.pyplot as plt                         # pylint: disable=import-error
-import matplotlib.colors                                # pylint: disable=import-error
-import matplotlib as mpl                                # pylint: disable=import-error
-from matplotlib import cm                               # pylint: disable=import-error
 from matplotlib.patches import Circle                   # pylint: disable=import-error
 import ipywidgets as widgets                            # pylint: disable=import-error
 from qiskit.exceptions import QiskitError
-from qiskit.visualization.gate_map import plot_gate_map
+from qiskit.visualization.gate_map import plot_gate_map, plot_error_map
 
 try:
     # pylint: disable=import-error
@@ -429,86 +426,11 @@ def detailed_map(backend):
     Returns:
         GridBox: Widget holding noise map images.
     """
-    props = backend.properties().to_dict()
-    config = backend.configuration().to_dict()
-    single_gate_errors = [q['parameters'][0]['value']
-                          for q in props['gates'][2:3*config['n_qubits']:3]]
-    single_norm = matplotlib.colors.Normalize(
-        vmin=min(single_gate_errors), vmax=max(single_gate_errors))
-    q_colors = [cm.viridis(single_norm(err)) for err in single_gate_errors]
-
-    cmap = config['coupling_map']
-
-    cx_errors = []
-    for line in cmap:
-        for item in props['gates'][3*config['n_qubits']:]:
-            if item['qubits'] == line:
-                cx_errors.append(item['parameters'][0]['value'])
-                break
-        else:
-            continue
-
-    cx_norm = matplotlib.colors.Normalize(
-        vmin=min(cx_errors), vmax=max(cx_errors))
-    line_colors = [cm.viridis(cx_norm(err)) for err in cx_errors]
-
-    single_widget = widgets.Output(layout=widgets.Layout(display='flex-inline', grid_area='left',
-                                                         align_items='center'))
-
-    cmap_widget = widgets.Output(layout=widgets.Layout(display='flex-inline', grid_area='top',
-                                                       width='auto', height='auto',
-                                                       align_items='center'))
-
-    cx_widget = widgets.Output(layout=widgets.Layout(display='flex-inline', grid_area='right',
-                                                     align_items='center'))
-
-    tick_locator = mpl.ticker.MaxNLocator(nbins=5)
-    with cmap_widget:
-        noise_map = plot_gate_map(backend, qubit_color=q_colors,
-                                  line_color=line_colors,
-                                  qubit_size=28,
-                                  plot_directed=True)
-        width, height = noise_map.get_size_inches()
-
-        noise_map.set_size_inches(1.25*width, 1.25*height)
-
-        display(noise_map)
-        plt.close(noise_map)
-
-    with single_widget:
-        cbl_fig = plt.figure(figsize=(3, 1))
-        ax1 = cbl_fig.add_axes([0.05, 0.80, 0.9, 0.15])
-        single_cb = mpl.colorbar.ColorbarBase(ax1, cmap=cm.viridis,
-                                              norm=single_norm,
-                                              orientation='horizontal')
-        single_cb.locator = tick_locator
-        single_cb.update_ticks()
-        ax1.set_title('Single-qubit U3 error rate')
-        display(cbl_fig)
-        plt.close(cbl_fig)
-
-    with cx_widget:
-        cx_fig = plt.figure(figsize=(3, 1))
-        ax2 = cx_fig.add_axes([0.05, 0.80, 0.9, 0.15])
-        cx_cb = mpl.colorbar.ColorbarBase(ax2, cmap=cm.viridis,
-                                          norm=cx_norm,
-                                          orientation='horizontal')
-        cx_cb.locator = tick_locator
-        cx_cb.update_ticks()
-        ax2.set_title('CNOT error rate')
-        display(cx_fig)
-        plt.close(cx_fig)
-
-    out_box = widgets.GridBox([single_widget, cmap_widget, cx_widget],
-                              layout=widgets.Layout(
-                                  grid_template_rows='auto auto',
-                                  grid_template_columns='33% 33% 33%',
-                                  grid_template_areas='''
-                                                "top top top"
-                                                "left . right"
-                                                ''',
-                                  grid_gap='0px 0px'))
-    return out_box
+    error_widget = widgets.Output(layout=widgets.Layout(display='flex-inline',
+                                                        align_items='center'))
+    with error_widget:
+        display(plot_error_map(backend, figsize=(11, 9), show_title=False))
+    return error_widget
 
 
 def job_history(backend):
