@@ -33,6 +33,15 @@ def _make_np_bool(arr):
     return arr
 
 
+def _count_set_bits(i):
+    """
+    Counts the number of set bits in a uint (or a numpy array of uints).
+    """
+    i = i - ((i >> 1) & 0x55555555)
+    i = (i & 0x33333333) + ((i >> 2) & 0x33333333)
+    return (((i + (i >> 4) & 0xF0F0F0F) * 0x1010101) & 0xffffffff) >> 24
+
+
 class Pauli:
     """A simple class representing Pauli Operators.
 
@@ -283,19 +292,16 @@ class Pauli:
             scipy.sparse.csr_matrix: a sparse matrix with CSR format that
             represents the pauli.
         """
-        mat = sparse.coo_matrix(1)
-        for z, x in zip(self._z, self._x):
-            if not z and not x:  # I
-                mat = sparse.bmat([[mat, None], [None, mat]], format='coo')
-            elif z and not x:  # Z
-                mat = sparse.bmat([[mat, None], [None, -mat]], format='coo')
-            elif not z and x:  # X
-                mat = sparse.bmat([[None, mat], [mat, None]], format='coo')
-            else:  # Y
-                mat = mat * 1j
-                mat = sparse.bmat([[None, -mat], [mat, None]], format='coo')
-
-        return mat.tocsr()
+        _x, _z = self._x, self._z
+        n = 2**len(_x)
+        twos_array = 1 << np.arange(len(_x))
+        xs = np.array(_x).dot(twos_array)
+        zs = np.array(_z).dot(twos_array)
+        rows = np.arange(n+1, dtype=np.uint)
+        columns = rows ^ xs
+        global_factor = (-1j)**np.dot(np.array(_x, dtype=np.uint), _z)
+        data = global_factor*(-1)**np.mod(_count_set_bits(zs & rows), 2)
+        return sparse.csr_matrix((data, columns, rows), shape=(n, n))
 
     def to_operator(self):
         """Convert to Operator object."""
