@@ -20,8 +20,7 @@ import os
 import unittest
 
 from qiskit.tools.visualization import HAS_MATPLOTLIB, pulse_drawer
-from qiskit.pulse.channels import (PulseChannelSpec, Qubit, RegisterSlot, MemorySlot)
-from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel, MeasureChannel
+from qiskit.pulse.channels import PulseChannelSpec
 from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot, Delay
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib

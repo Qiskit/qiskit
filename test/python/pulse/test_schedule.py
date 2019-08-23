@@ -17,8 +17,7 @@ import unittest
 
 import numpy as np
 
-from qiskit.pulse.channels import (PulseChannelSpec, Qubit, RegisterSlot, MemorySlot,
-                                   DriveChannel, AcquireChannel, ControlChannel,
+from qiskit.pulse.channels import (PulseChannelSpec, MemorySlot, DriveChannel, AcquireChannel,
                                    MeasureChannel, SnapshotChannel)
 from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapshot, Delay,
                                    functional_pulse, Instruction, AcquireInstruction,
