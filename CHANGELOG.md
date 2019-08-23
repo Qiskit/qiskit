@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+## [0.9.0] - 2019-08-22
+
 ### Deprecated
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
@@ -26,6 +28,10 @@ The format is based on [Keep a Changelog].
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
 
 ### Added
+
+-   A new pulse instruction, `Delay`. A `Delay` occupies a pulse channel for a
+    duration of time, blocking other instructions from being inserted in this time.
+-   Ability to check for equality of pulse `Schedule` and `Instruction`.
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
     on the longest path of the DAGCircuit.
@@ -36,9 +42,6 @@ The format is based on [Keep a Changelog].
 -   The option `idle_wires` was added to the drawers to control
     if wires without any operation should be included in the drawing.
 -   Introduced a visualization for the Pass Manager. (\#2445)
--   The attribute `PassManager.log_passes` was added to log and time the
-    passes when they are executed. The results is stored in the
-    attribute `pass_log` of the property set as a dictionary.
 -   New pulse schedule method `Schedule.filter` to filter by instruction
     channel, time, and type. (\#2597)
 -   Decomposition of arbitrary isometries (\#2600)
@@ -51,14 +54,28 @@ The format is based on [Keep a Changelog].
     CNOT-Phase and CNOT-only (linear) circuits (\#2457)
 -   Added n-qubit unitaries to BasicAer simulator basis gates (\#2342)
 -   Added a ``random_circuit`` function under ``qiskit.circuit.random``
-    (#2553)
+    (\#2553)
 -   Added `equiv` method to `Operator` and `Statevector` classes for
     testing if two objects are equivalent up to global phase (\#2910)
 -   Added ``output_name`` as a transpiler parameter to set the name of
     output circuits (\#2745)
+-   Simple expressions of Parameters can now be created via the four basic math
+    operations (+,-,*,/). (#2537)
+-   A `ParmeterVector` class has been added to ease the construction of circuits
+    requiring a large number of parameters. (#2379)
+-   dag.draw() method to visualize DAGCircuit objects (#3016)
+
 
 ### Changed
 
+-   Intervals are now defined by start and stop, rather than begin and end.
+-   TimeslotCollections now are sorted by default and have more efficient merges.
+-   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
+    Otherwise an error is raised.
+-   `Schedule.instructions` now returns with time-ordering.
+-   More informative errors are now raised if `qubit_lo_freq` and
+    `meas_lo_freq` are not supplied to `assemble_schedules`.
+-   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`.
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
 -   All circuit drawers now express most commonly used fractions
@@ -76,36 +93,46 @@ The format is based on [Keep a Changelog].
     but as instances of `Qubit` and `Clbit` respectively.
 -   The ApplyLayout pass is incorporated in all preset pass managers to
     delineate a virtual circuit from a physical circuit (\#2672)
--   Mapping passes (CXDirection, Swap passes, CheckMap, CheckCnotDirection)
+-   Mapping passes (`CXDirection`, Swap passes, `CheckMap`, `CheckCnotDirection`)
     now operate on a register-less circuit corresponding to
     an already embedded physical circuit. (\#2672)
--   Replaces LegacySwap by faster, more stable StochasticSwap pass (\#2672)
+-   Replaces `LegacySwap` by faster, more stable `StochasticSwap` pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
--   Change Snapshot signature to match simulator.snapshot (\#2592)
--   `DAGCircuit.width()` formerly returned number of qubits, now returns total number of qubits + classical bits (\#2564)
--   Functions assuming the former semantics of `DAGCircuit.width()` now call `DAGCircuit.num_qubits()` (\#2564)
+-   Change `Snapshot` signature to match `simulator.snapshot` (\#2592)
+-   `DAGCircuit.width()` formerly returned number of qubits, now returns total
+    number of qubits + classical bits (\#2564)
+-   Functions assuming the former semantics of `DAGCircuit.width()` now call
+    `DAGCircuit.num_qubits()` (\#2564)
 -   `DAGCircuit.num_cbits()` renamed to `DAGCircuit.num_clbits()` (\#2564)
 -   Changed definition of `Cu3Gate` to to equivalent to the canonical
     definition of a controlled `U3Gate` (\#2755)
--   coupling_map now required to validate a backend.configuration() (\#2836)
+-   `coupling_map` now required to validate a `backend.configuration()` (\#2836)
+-   The method `QuantumCircuit.count_ops` now returns an `OrderedDict` instead of a dict.
+-   If layout information is available in
+    the circuit, it will be included to the circuit drawing. This can be removed
+    using the option ``with_layout=False`` in the method
+    ``QuantumCircuit.draw``. (\#2739)
+-   Q-sphere visualization is enhanced and corrected (\#2932)
+-   Shorter CH gate definition involving only 1 CX (\#2837)
+-   Now PassManager.draw() (without any argument) will return an in-memory PIL image.
 
 ### Removed
-
+-   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
 -   The previously deprecated functions
     `qiksit.visualization.plot_state` and
     `qiskit.visualization.iplot_state` have been removed. Instead use
     the specific functions for each plot type (\#2325).
 -   International documentation of outdated readme etc (\#2302)
--   Removed deprecated options in execute, transpile, and assemble.
-    Removed deprecated compiler.
--   Removed deprecated qcvv in tools. Removed deprecated converters
-    qobj\_to\_circuits and circuits\_to\_qobj (\#2301)
+-   Removed deprecated options in `execute`, `transpile`, and `assemble`.
+    Removed deprecated `compiler`.
+-   Removed deprecated `qcvv `in tools. Removed deprecated converters
+    `qobj_to_circuits` and `circuits_to_qobj` (\#2301)
 -   The previously deprecated `qiskit._util` module has been removed.
     Use `qiskit.util` instead. (\#2329)
 -   The logging tools in `qiskit.tools.logging` are removed. (\#2387)
 -   The `qiskit.qiskiterror` module has been removed. Please use
     `qiskit.exceptions` instead. (\#2399)
--   Removed previously deprecated DAGCircuit methods (\#2542)
+-   Removed previously deprecated `DAGCircuit` methods (\#2542)
 -   Removed `CompositeGate` class, in favor of adding Instruction
     objects directly (\#2543)
 -   Removed `ignore_requires` and `ignore_preserves` options from
@@ -113,21 +140,24 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 
--   Fixes a bug where the CmdDef was getting built without buffers on channels.
+-   Fixes a bug where the `CmdDef` was getting built without buffers on channels.
 -   Fixed bug in `Pulse` for multiple parameters being added (\#2742)
--   Fixed bug in `Pulse` for CmdDef arguments (\#2741)
+-   Fixed bug in `Pulse` for `CmdDef` arguments (\#2741)
 -   Fixed bug in `Operator` and `SuperOp` for initializing from circuit
     containing gates without an explicit matrix definition (\#2723)
 -   Possible to decompose SU(4) gate into non-CNOT basis with
     `TwoQubitDecomposer`
 -   Fixes a bug that removed `id` gates from circuit. id gates are
     like a `wait` command and will never be removed (\#2663)
--   Fixed bug in CommutationAnalysis pass affecting conditional gates (\#2669)
--   Fixed bug in measure sampling for BasicAer Qasm simulator if a qubit
-    was measured into more than one memory cbit (\#2735)
+-   Fixed bug in `CommutationAnalysis` pass affecting conditional gates (\#2669)
+-   Fixed bug in measure sampling for `BasicAer` Qasm simulator if a qubit
+    was measured into more than one classical bit (\#2735)
 -   Correctly serialize complex numbers with a nonzero real part
--   Fixed bug in measure sampling for BasicAer Qasm simulator if only a
+-   Fixed bug in measure sampling for `BasicAer` Qasm simulator if only a
     subset of qubits are measured (\#2790)
+-   Parameter objects can be serialized and communicated between
+    sub-processes (\#2429)
+-   Parameterized circuits no longer need to be transpiled individually (\#2864)
 
 
 ## [0.8.2] - 2019-06-14
@@ -1228,7 +1258,8 @@ The format is based on [Keep a Changelog].
 -   Correct operator precedence when parsing expressions (\#190).
 -   Fix \"math domain error\" in mapping (\#111, \#151).
 
-[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...HEAD
+[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...0.9.0
 [0.8.2]: https://github.com/Qiskit/qiskit-terra/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0

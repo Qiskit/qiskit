@@ -17,6 +17,7 @@
 """Tests for quantum channel representation transformations."""
 
 import unittest
+from numpy.testing import assert_allclose
 
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.operators.operator import Operator
@@ -45,7 +46,7 @@ class TestEvolve(ChannelTestCase):
                 chan = Operator(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _other_to_operator(self, rep, qubits_test_cases, repetitions):
         """Test Other to Operator evolution."""
@@ -57,7 +58,7 @@ class TestEvolve(ChannelTestCase):
                 chan = rep(Operator(mat))
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(Operator(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _choi_to_other_cp(self, rep, qubits_test_cases, repetitions):
         """Test CP Choi to Other evolution."""
@@ -69,7 +70,7 @@ class TestEvolve(ChannelTestCase):
                 chan = Choi(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _choi_to_other_noncp(self, rep, qubits_test_cases, repetitions):
         """Test CP Choi to Other evolution."""
@@ -81,7 +82,7 @@ class TestEvolve(ChannelTestCase):
                 chan = Choi(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _superop_to_other(self, rep, qubits_test_cases, repetitions):
         """Test SuperOp to Other evolution."""
@@ -93,7 +94,7 @@ class TestEvolve(ChannelTestCase):
                 chan = SuperOp(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _kraus_to_other_single(self, rep, qubits_test_cases, repetitions):
         """Test single Kraus to Other evolution."""
@@ -105,7 +106,7 @@ class TestEvolve(ChannelTestCase):
                 chan = Kraus(kraus)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _kraus_to_other_double(self, rep, qubits_test_cases, repetitions):
         """Test double Kraus to Other evolution."""
@@ -118,7 +119,7 @@ class TestEvolve(ChannelTestCase):
                 chan = Kraus((kraus_l, kraus_r))
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _stinespring_to_other_single(self, rep, qubits_test_cases,
                                      repetitions):
@@ -131,7 +132,7 @@ class TestEvolve(ChannelTestCase):
                 chan = Stinespring(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _stinespring_to_other_double(self, rep, qubits_test_cases,
                                      repetitions):
@@ -145,7 +146,7 @@ class TestEvolve(ChannelTestCase):
                 chan = Stinespring((mat_l, mat_r))
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _chi_to_other(self, rep, qubits_test_cases, repetitions):
         """Test Chi to Other evolution."""
@@ -157,7 +158,7 @@ class TestEvolve(ChannelTestCase):
                 chan = Chi(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def _ptm_to_other(self, rep, qubits_test_cases, repetitions):
         """Test PTM to Other evolution."""
@@ -169,7 +170,7 @@ class TestEvolve(ChannelTestCase):
                 chan = PTM(mat)
                 rho1 = DensityMatrix(rho).evolve(chan).data
                 rho2 = DensityMatrix(rho).evolve(rep(chan)).data
-                self.assertAllClose(rho1, rho2)
+                assert_allclose(rho1, rho2)
 
     def test_unitary_to_choi(self):
         """Test Operator to Choi evolution."""

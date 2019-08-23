@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Introduced a new pulse command ``Delay`` which may be inserted into a pulse
+    ``Schedule``. This command accepts a ``duration`` and may be added to any
+    ``Channel``. Other commands may not be scheduled on a channel during a delay.
+
+    The delay can be added just like any other pulse command. For example::
+
+      from qiskit import pulse
+
+      drive_channel = pulse.DriveChannel(0)
+      delay = pulse.Delay(20)
+
+      sched = pulse.Schedule()
+      sched += delay(drive_channel)

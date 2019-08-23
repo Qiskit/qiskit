@@ -15,11 +15,45 @@
 Parameter Class for variable parameters.
 """
 
+from uuid import uuid4
 
-class Parameter():
+import sympy
+
+from .parameterexpression import ParameterExpression
+
+
+class Parameter(ParameterExpression):
     """Parameter Class for variable parameters"""
+
+    def __new__(cls, _, uuid=None):
+        # Parameter relies on self._uuid being set prior to other attributes
+        # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
+        # or __eq__ functions.
+
+        obj = object.__new__(cls)
+
+        if uuid is None:
+            obj._uuid = uuid4()
+        else:
+            obj._uuid = uuid
+
+        return obj
+
+    def __getnewargs__(self):
+        # Unpickling won't in general call __init__ but will always call
+        # __new__. Specify arguments to be passed to __new__ when unpickling.
+
+        return (self.name, self._uuid)
+
     def __init__(self, name):
         self._name = name
+
+        symbol = sympy.Symbol(name)
+        super().__init__(symbol_map={self: symbol}, expr=symbol)
+
+    def subs(self, parameter_map):
+        """Substitute self with the corresponding parameter in parameter_map."""
+        return parameter_map[self]
 
     @property
     def name(self):
@@ -37,3 +71,9 @@ class Parameter():
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, Parameter) and self._uuid == other._uuid
+
+    def __hash__(self):
+        return hash(self._uuid)
