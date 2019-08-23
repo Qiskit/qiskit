@@ -30,7 +30,7 @@ class TranspileConfig(BaseModel):
             optimization level. 0 means no transformation on the circuit. Higher
             levels may produce more optimized circuits, but may take longer.
     """
-    def __init__(self, optimization_level=0, **kwargs):
+    def __init__(self, optimization_level=None, **kwargs):
         self.optimization_level = optimization_level
         super().__init__(**kwargs)
 

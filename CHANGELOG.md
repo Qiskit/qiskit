@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog].
 
 ## [0.9.0] - 2019-08-22
 
+### Changed
+
+-   The `TranspileConfig` was extended to have `None` defaults for 
+
 ### Deprecated
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
