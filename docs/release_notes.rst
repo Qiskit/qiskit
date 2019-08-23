@@ -136,9 +136,6 @@ Notable Changes
 Qiskit 0.12.0
 *************
 
-We have bumped up Qiskit micro version to 0.12.0 because Aer has
-bumped its minor version as well.
-
 .. _Release Notes_0.9.0:
 
 Terra 0.9
