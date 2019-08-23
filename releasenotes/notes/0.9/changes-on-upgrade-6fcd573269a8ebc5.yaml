@@ -1,0 +1,134 @@
+---
+upgrade:
+  - |
+    The ``QuantumCircuit.count_ops()`` method now returns an ``OrderedDict``
+    object instead of a ``dict``. This should be compatible for most use cases
+    since ``OrderedDict`` is a ``dict`` subclass. However type checks and
+    other class checks might need to be updated.
+  - |
+    The ``DAGCircuit.width()`` method now returns the total number quantum bits
+    and classical bits. Before it would only return the number of quantum bits.
+    If you require just the number of quantum bits you can use
+    ``DAGCircuit.num_qubits()`` instead.
+  - |
+    The function ``DAGCircuit.num_cbits()`` has been removed. Instead you can
+    use ``DAGCircuit.num_clbits()``.
+  - |
+    Individual quantum bits and classical bits are no longer represented as
+    ``(register, index)`` tuples. They are now instances of `Qubit` and
+    `Clbit` classes. If you're dealing with individual bits make sure that
+    you update any usage or type checks to look for these new classes instead
+    of tuples.
+  - |
+    The preset passmanager classes
+    ``qiskit.transpiler.preset_passmanagers.default_pass_manager`` and
+    ``qiskit.transpiler.preset_passmanagers.default_pass_manager_simulator``
+    (which were the previous default pass managers for
+    ``qiskit.compiler.transpile()`` calls) have been removed. If you were
+    manually using this pass managers switch to the new default,
+    ``qiskit.transpile.preset_passmanagers.level1_pass_manager``.
+  - |
+    The ``LegacySwap`` pass has been removed. If you were using it in a custom
+    pass manager, it's usage can be replaced by the ``StochasticSwap`` pass,
+    which is a faster more stable version. All the preset passmanagers have
+    been updated to use ``StochasticSwap`` pass instead of the ``LegacySwap``.
+  - |
+    The following deprecated ``qiskit.dagcircuit.DAGCircuit`` methods have been
+    removed:
+     * ``DAGCircuit.get_qubits()`` - Use ``DAGCircuit.qubits()`` instead
+     * ``DAGCircuit.get_bits()`` - Use ``DAGCircuit.clbits()`` instead
+     * ``DAGCircuit.qasm()`` - Use a combination of
+       ``qiskit.converters.dag_to_circuit()`` and ``QuantumCircuit.qasm()``. For
+       example::
+
+           from qiskit.dagcircuit import DAGCircuit
+           from qiskit.converters import dag_to_circuit
+           my_dag = DAGCircuit()
+           qasm = dag_to_circuit(my_dag).qasm()
+
+     * ``DAGCircuit.get_op_nodes()`` - Use ``DAGCircuit.op_nodes()`` instead.
+       Note that the return type is a list of ``DAGNode`` objects for
+       ``op_nodes()`` instead of the list of tuples previously returned by
+       ``get_op_nodes()``.
+     * ``DAGCircuit.get_gate_nodes()`` - Use ``DAGCircuit.gate_nodes()``
+       instead. Note that the return type is a list of ``DAGNode`` objects for
+       ``gate_nodes()`` instead of the list of tuples previously returned by
+       ``get_gate_nodes()``.
+     * ``DAGCircuit.get_named_nodes()`` - Use ``DAGCircuit.named_nodes()``
+       instead. Note that the return type is a list of ``DAGNode`` objects for
+       ``named_nodes()`` instead of the list of node_ids previously returned by
+       ``get_named_nodes()``.
+     * ``DAGCircuit.get_2q_nodes()`` - Use ``DAGCircuit.twoQ_gates()``
+       instead. Note that the return type is a list of ``DAGNode`` objects for
+       ``twoQ_gates()`` instead of the list of data_dicts previously returned by
+       ``get_2q_nodes()``.
+     * ``DAGCircuit.get_3q_or_more_nodes()`` - Use
+       ``DAGCircuit.threeQ_or_more_gates()`` instead. Note that the return type
+       is a list of ``DAGNode`` objects for ``threeQ_or_more_gates()`` instead
+       of the list of tuples previously returned by ``get_3q_or_more_nodes()``.
+  - |
+    The following ``qiskit.dagcircuit.DAGCircuit`` methods had deprecated
+    support for accepting a ``node_id`` as a parameter. This has been removed
+    and now only ``DAGNode`` objects are accepted as input:
+     * ``successors()``
+     * ``predecessors()``
+     * ``ancestors()``
+     * ``descendants()``
+     * ``bfs_successors()``
+     * ``quantum_successors()``
+     * ``remove_op_node()``
+     * ``remove_ancestors_of()
+     * ``remove_descendants_of()``
+     * ``remove_nonancestors_of()``
+     * ``remove_nondescendants_of()``
+     * ``substitute_node_with_dag()``
+  - |
+    The ``qiskit.dagcircuit.DAGCircuit`` method ``rename_register()`` has been
+    removed. This was unused by all the qiskit code. If you were relying on it
+    externally you'll have to re-implement is an external function.
+  - |
+    The ``qiskit.dagcircuit.DAGCircuit`` property ``multi_graph`` has been
+    removed. Direct access to the underlying ``networkx`` ``multi_graph`` object
+    isn't supported anymore. The API provided by the ``DAGCircuit`` class should
+    be used instead.
+  - |
+    The deprecated exception class ``qiskit.qiskiterror.QiskitError`` has been
+    removed. Instead you should use ``qiskit.exceptions.QiskitError``.
+  - |
+    The boolean kwargs, ``ignore_requires`` and ``ignore_preserves`` from
+    the ``qiskit.transpiler.PassManager`` constructor have been removed. These
+    are no longer valid options.
+  - |
+    The module ``qiskit.tools.logging`` has been removed. This module was not
+    used by anything and added nothing over the interfaces that Python's
+    standard library ``logging`` module provides. If you want to set a custom
+    formatter for logging use the standard library ``logging`` module instead.
+fixes:
+  - |
+    The definition of the ``CU3Gate`` has been changed to be equivalent to the
+    canonical definition of a controlled ``U3Gate``.
+  - |
+    The handling of layout in the pass manager has been standardized. This
+    fixes several reported issues with handling layout. The ``initial_layout``
+    kwarg parameter on ``qiskit.compiler.transpile()`` and
+    ``qiskit.execute()`` will now lay out your qubits from the circuit onto
+    the desired qubits on the device when transpiling circuits.
+other:
+  - |
+    The default PassManager for ``qiskit.compiler.transpile()`` and
+    ``qiskit.execute()`` has been changed to optimization level 1 pass manager
+    defined at ``qiskit.transpile.preset_passmanagers.level1_pass_manager``.
+  - |
+    All the circuit drawer backends now willl express gate parameters in a
+    circuit as common fractions of pi in the output visualization. If the value
+    of a parameter can be expressed as a fraction of pi that will be used
+    instead of the numeric equivalent.
+  - |
+    When using ``qiskit.assembler.assemble_schedules()`` if you do not provide
+    the number of memory_slots to use the number will be infered based on the
+    number of acquisitions in the input schedules.
+  - |
+    The deprecation warning on the ``qiskit.dagcircuit.DAGCircuit`` property
+    ``node_counter`` has been removed. The behavior change being warned about
+    was put into effect when the warning was added, so warning that it had
+    changed served no purpose.

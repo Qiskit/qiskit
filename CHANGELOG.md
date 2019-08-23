@@ -15,6 +15,13 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Added
+
+-   The method ``PassManager.replace()`` was added to allow modifying an existing
+    pass manager instance (#2179)
+
+## [0.9.0] - 2019-08-22
+
 ### Deprecated
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
@@ -27,6 +34,8 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
+-   A new pulse instruction, `Delay`. A `Delay` occupies a pulse channel for a
+    duration of time, blocking other instructions from being inserted in this time.
 -   Ability to check for equality of pulse `Schedule` and `Instruction`.
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
@@ -38,9 +47,6 @@ The format is based on [Keep a Changelog].
 -   The option `idle_wires` was added to the drawers to control
     if wires without any operation should be included in the drawing.
 -   Introduced a visualization for the Pass Manager. (\#2445)
--   The attribute `PassManager.log_passes` was added to log and time the
-    passes when they are executed. The results is stored in the
-    attribute `pass_log` of the property set as a dictionary.
 -   New pulse schedule method `Schedule.filter` to filter by instruction
     channel, time, and type. (\#2597)
 -   Decomposition of arbitrary isometries (\#2600)
@@ -62,8 +68,7 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
--   The method ``PassManager.replace()`` was added to allow modifying an existing
-    pass manager instance (#2179)
+-   dag.draw() method to visualize DAGCircuit objects (#3016)
 
 
 ### Changed
@@ -99,8 +104,10 @@ The format is based on [Keep a Changelog].
 -   Replaces `LegacySwap` by faster, more stable `StochasticSwap` pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
 -   Change `Snapshot` signature to match `simulator.snapshot` (\#2592)
--   `DAGCircuit.width()` formerly returned number of qubits, now returns total number of qubits + classical bits (\#2564)
--   Functions assuming the former semantics of `DAGCircuit.width()` now call `DAGCircuit.num_qubits()` (\#2564)
+-   `DAGCircuit.width()` formerly returned number of qubits, now returns total
+    number of qubits + classical bits (\#2564)
+-   Functions assuming the former semantics of `DAGCircuit.width()` now call
+    `DAGCircuit.num_qubits()` (\#2564)
 -   `DAGCircuit.num_cbits()` renamed to `DAGCircuit.num_clbits()` (\#2564)
 -   Changed definition of `Cu3Gate` to to equivalent to the canonical
     definition of a controlled `U3Gate` (\#2755)
@@ -111,7 +118,8 @@ The format is based on [Keep a Changelog].
     using the option ``with_layout=False`` in the method
     ``QuantumCircuit.draw``. (\#2739)
 -   Q-sphere visualization is enhanced and corrected (\#2932)
-
+-   Shorter CH gate definition involving only 1 CX (\#2837)
+-   Now PassManager.draw() (without any argument) will return an in-memory PIL image.
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
@@ -1255,7 +1263,8 @@ The format is based on [Keep a Changelog].
 -   Correct operator precedence when parsing expressions (\#190).
 -   Fix \"math domain error\" in mapping (\#111, \#151).
 
-[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...HEAD
+[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...0.9.0
 [0.8.2]: https://github.com/Qiskit/qiskit-terra/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0
