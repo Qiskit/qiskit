@@ -305,11 +305,10 @@ stages:
           displayName: 'Setup Benchmarks'
         - bash: |
             set -e
-            if [[ -z $BUILD_SOURCEBRANCH ]] ; then
-                BRANCH=$SYSTEM_PULLREQUEST_TARGETBRANCH
-            elif [[ $BUILD_SOURCEBRANCH != master ]] ; then
-                BRANCH=$BUILD_SOURCEBRANCH
-            fi
+            set -x
+            # Use master (or stable/*) for PRs
+            if [[ $BUILD_REASON == "PullRequest" ]] ; then
+                BRANCH=$BUILD_SOURCEBRANCHNAME
             asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.7 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $BRANCH HEAD
           displayName: 'Run Benchmarks'
     - job: 'Randomized_testing'
