@@ -64,6 +64,7 @@ class TestGateMap(QiskitVisualizationTestCase):
         self.assertImagesAreEqual(filename, img_ref, 0.1)
         os.remove(filename)
 
+
 @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
 class TestGraphDist(QiskitTestCase):
     """ tests _GraphdDist functions """
