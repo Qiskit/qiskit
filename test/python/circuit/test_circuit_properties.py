@@ -16,7 +16,6 @@
 
 """Test Qiskit's inverse gate operation."""
 
-from collections import OrderedDict
 import unittest
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
