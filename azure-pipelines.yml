@@ -70,12 +70,12 @@ stages:
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
-          condition: always()
+          condition: failed()
           inputs:
             contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
-          condition: always()
+          condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop_linux'
@@ -261,12 +261,12 @@ stages:
             stestr run --concurrency 2
           displayName: 'Run tests'
         - task: CopyFiles@2
-          condition: always()
+          condition: failed()
           inputs:
             contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
-          condition: always()
+          condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop_macos'
@@ -278,12 +278,12 @@ stages:
           condition: succeededOrFailed()
           displayName: 'Generate results'
         - task: CopyFiles@2
-          condition: always()
+          condition: failed()
           inputs:
             contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
-          condition: always()
+          condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop_windows'
