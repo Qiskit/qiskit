@@ -43,6 +43,7 @@ from qiskit.transpiler.passes import RemoveDiagonalGatesBeforeMeasure
 from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import ApplyLayout
+from qiskit.transpiler.passes import CheckCXDirection
 
 
 def level_3_pass_manager(transpile_config):
@@ -100,6 +101,13 @@ def level_3_pass_manager(transpile_config):
              StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
              Decompose(SwapGate)]
 
+    _direction_check = [CheckCXDirection(coupling_map)]
+
+    def _direction_condition(property_set):
+        return not property_set['is_direction_mapped']
+
+    _direction = [CXDirection(coupling_map)]
+
     # 5. 1q rotation merge and commutative cancellation iteratively until no more change in depth
     _depth_check = [Depth(), FixedPoint('depth')]
 
@@ -112,7 +120,7 @@ def level_3_pass_manager(transpile_config):
             Optimize1qGates(), CommutativeCancellation(),
             OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    if coupling_map:
+    if coupling_map and not coupling_map.is_symmetric:
         _opt.append(CXDirection(coupling_map))
         # if a coupling map has been provided, match coupling
 
@@ -124,6 +132,9 @@ def level_3_pass_manager(transpile_config):
         pm3.append(_embed)
         pm3.append(_swap_check)
         pm3.append(_swap, condition=_swap_condition)
+        if not coupling_map.is_symmetric:
+            pm3.append(_direction_check)
+            pm3.append(_direction, condition=_direction_condition)
     pm3.append(_depth_check + _opt, do_while=_opt_control)
 
     return pm3

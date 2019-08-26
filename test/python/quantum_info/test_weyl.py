@@ -16,8 +16,9 @@
 """Tests for Weyl coorindate routines."""
 
 import unittest
-
 import numpy as np
+from numpy.testing import assert_allclose
+
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates
@@ -34,7 +35,7 @@ class TestWeyl(QiskitTestCase):
         # Identity [0,0,0]
         U = np.identity(4)
         weyl = weyl_coordinates(U)
-        self.assertTrue(np.allclose(weyl, [0, 0, 0]))
+        assert_allclose(weyl, [0, 0, 0])
 
         # CNOT [pi/4, 0, 0]
         U = np.array([[1, 0, 0, 0],
@@ -42,7 +43,7 @@ class TestWeyl(QiskitTestCase):
                       [0, 0, 1, 0],
                       [0, 1, 0, 0]], dtype=complex)
         weyl = weyl_coordinates(U)
-        self.assertTrue(np.allclose(weyl, [np.pi/4, 0, 0]))
+        assert_allclose(weyl, [np.pi / 4, 0, 0], atol=1e-07)
 
         # SWAP [pi/4, pi/4 ,pi/4]
         U = np.array([[1, 0, 0, 0],
@@ -51,16 +52,16 @@ class TestWeyl(QiskitTestCase):
                       [0, 0, 0, 1]], dtype=complex)
 
         weyl = weyl_coordinates(U)
-        self.assertTrue(np.allclose(weyl, [np.pi/4, np.pi/4, np.pi/4]))
+        assert_allclose(weyl, [np.pi / 4, np.pi / 4, np.pi / 4])
 
         # SQRT ISWAP [pi/8, pi/8, 0]
         U = np.array([[1, 0, 0, 0],
-                      [0, 1/np.sqrt(2), 1j/np.sqrt(2), 0],
-                      [0, 1j/np.sqrt(2), 1/np.sqrt(2), 0],
+                      [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
+                      [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
                       [0, 0, 0, 1]], dtype=complex)
 
         weyl = weyl_coordinates(U)
-        self.assertTrue(np.allclose(weyl, [np.pi/8, np.pi/8, 0]))
+        assert_allclose(weyl, [np.pi / 8, np.pi / 8, 0])
 
     def test_weyl_coordinates_random(self):
         """Randomly check Weyl coordinates with local invariants.
@@ -70,7 +71,7 @@ class TestWeyl(QiskitTestCase):
             weyl = weyl_coordinates(U)
             local_equiv = local_equivalence(weyl)
             local = two_qubit_local_invariants(U)
-            self.assertTrue(np.allclose(local, local_equiv))
+            assert_allclose(local, local_equiv)
 
 
 if __name__ == '__main__':

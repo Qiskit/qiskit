@@ -14,7 +14,8 @@
 
 """Assemble function for converting a list of circuits into a qobj"""
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.commands import PulseInstruction, AcquireInstruction, SamplePulse
+from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
+                                   DelayInstruction, SamplePulse)
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
@@ -39,16 +40,27 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         instruction_converter = InstructionToQobjConverter
 
     qobj_config = run_config.to_dict()
-    qubit_lo_range = qobj_config.pop('qubit_lo_range')
-    meas_lo_range = qobj_config.pop('meas_lo_range')
+
+    qubit_lo_freq = qobj_config.get('qubit_lo_freq', None)
+    if qubit_lo_freq is None:
+        raise QiskitError('qubit_lo_freq must be supplied.')
+
+    meas_lo_freq = qobj_config.get('meas_lo_freq', None)
+    if meas_lo_freq is None:
+        raise QiskitError('meas_lo_freq must be supplied.')
+
+    qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
+    meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
 
     max_memory_slot = 0
 
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
-    lo_converter = LoConfigConverter(PulseQobjExperimentConfig, qubit_lo_range=qubit_lo_range,
-                                     meas_lo_range=meas_lo_range, **qobj_config)
+    lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
+                                     qubit_lo_range=qubit_lo_range,
+                                     meas_lo_range=meas_lo_range,
+                                     **qobj_config)
 
     # Pack everything into the Qobj
     qobj_schedules = []
@@ -59,7 +71,12 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
-            if isinstance(instruction, PulseInstruction):
+
+            if isinstance(instruction, DelayInstruction):
+                # delay instructions are ignored as timing is explicit within qobj
+                continue
+
+            elif isinstance(instruction, PulseInstruction):
                 name = instruction.command.name
                 if name in user_pulselib and instruction.command != user_pulselib[name]:
                     name = "{0}-{1:x}".format(name, hash(instruction.command.samples.tostring()))
@@ -69,14 +86,16 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                         channel=instruction.timeslots.channels[0])
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
-            if isinstance(instruction, AcquireInstruction):
+
+            elif isinstance(instruction, AcquireInstruction):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
                 if meas_map:
                     # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
 
-            qobj_instructions.append(instruction_converter(shift, instruction))
+            converted_instruction = instruction_converter(shift, instruction)
+            qobj_instructions.append(converted_instruction)
 
         # experiment header
         qobj_experiment_header = QobjExperimentHeader(
@@ -89,7 +108,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         })
 
     # set number of memoryslots
-    qobj_config['memory_slots'] = max_memory_slot
+    qobj_config['memory_slots'] = max_memory_slot + 1
 
     # setup pulse_library
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)

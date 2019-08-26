@@ -123,7 +123,7 @@ def execute(experiments, backend,
             copied to the corresponding Result header. Headers do not affect the run.
 
         shots (int):
-            Number of repetitions of each circuit, for sampling. Default: 2014
+            Number of repetitions of each circuit, for sampling. Default: 1024
 
         memory (bool):
             If True, per-shot measurement bitstrings are returned as well
@@ -215,7 +215,7 @@ def execute(experiments, backend,
                     rep_time=rep_time,
                     parameter_binds=parameter_binds,
                     backend=backend,
-                    run_config=run_config
+                    **run_config
                     )
 
     # executing the circuits on the backend and returning the job

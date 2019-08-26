@@ -16,6 +16,7 @@
 
 import unittest
 import numpy as np
+from numpy.testing import assert_allclose
 
 from qiskit import QiskitError
 from qiskit.quantum_info.states import DensityMatrix
@@ -30,12 +31,12 @@ class TestPTM(ChannelTestCase):
         """Test initialization"""
         mat4 = np.eye(4) / 2.0
         chan = PTM(mat4)
-        self.assertAllClose(chan.data, mat4)
+        assert_allclose(chan.data, mat4)
         self.assertEqual(chan.dim, (2, 2))
 
         mat16 = np.eye(16) / 4
         chan = PTM(mat16)
-        self.assertAllClose(chan.data, mat16)
+        assert_allclose(chan.data, mat16)
         self.assertEqual(chan.dim, (4, 4))
 
         # Wrong input or output dims should raise exception
