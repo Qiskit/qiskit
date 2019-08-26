@@ -605,7 +605,6 @@ class WeightedPauliOperator(BaseOperator):
         """
         from qiskit.aqua.utils.run_circuits import find_regs_by_name
 
-        # TODO: re-use the `evaluation_instruction` method after terra#2858
         if qr is None:
             qr = find_regs_by_name(wave_function, 'q')
             if qr is None:
@@ -616,7 +615,7 @@ class WeightedPauliOperator(BaseOperator):
                 raise AquaError("The provided QuantumRegister (qr) is not in the circuit.")
 
         n_qubits = self.num_qubits
-        # instructions = self.evaluation_instruction(statevector_mode, use_simulator_operator_mode)
+        instructions = self.evaluation_instruction(statevector_mode, use_simulator_operator_mode)
         circuits = []
         if statevector_mode:
             if use_simulator_operator_mode:
@@ -624,17 +623,12 @@ class WeightedPauliOperator(BaseOperator):
             else:
                 circuits.append(wave_function.copy(name=circuit_name_prefix + 'psi'))
                 for _, pauli in self._paulis:
-                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
-                        continue
-                    circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
-                    circuit.barrier([x for x in range(self.num_qubits)])
-                    circuit.append(pauli, [x for x in range(self.num_qubits)])
-                    circuits.append(circuit)
-                    # inst = instructions.get(pauli.to_label(), None)
-                    # if inst is not None:
-                    #     circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
-                    #     circuit.append(inst, qr)
-                    #     circuits.append(circuit)
+                    inst = instructions.get(pauli.to_label(), None)
+                    if inst is not None:
+                        circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
+                        circuit.append(inst, qr)
+                        # TODO: this decompose is used because of cache
+                        circuits.append(circuit.decompose())
         else:
             base_circuit = wave_function.copy()
             if cr is not None:
@@ -648,9 +642,9 @@ class WeightedPauliOperator(BaseOperator):
 
             for basis, indices in self._basis:
                 circuit = base_circuit.copy(name=circuit_name_prefix + basis.to_label())
-                # circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
-                circuit = pauli_measurement(circuit, basis, qr, cr, barrier=True)
-                circuits.append(circuit)
+                circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
+                # TODO: this decompose is used because of cache
+                circuits.append(circuit.decompose())
 
         return circuits
 
@@ -667,22 +661,22 @@ class WeightedPauliOperator(BaseOperator):
         instructions = {}
         qr = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(qr)
-        if statevector_mode:
-            if use_simulator_operator_mode:
-                pass
-            else:
-                for _, pauli in self._paulis:
-                    tmp_qc = qc.copy(name=pauli.to_label())
-                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
-                        continue
-                    tmp_qc.barrier([x for x in range(self.num_qubits)])
-                    tmp_qc.append(pauli, [x for x in range(self.num_qubits)])
-                    instructions[pauli.to_label()] = tmp_qc.to_instruction()
+        if statevector_mode and not use_simulator_operator_mode:
+            for _, pauli in self._paulis:
+                tmp_qc = qc.copy(name="Pauli " + pauli.to_label())
+                if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
+                    continue
+                # This explicit barrier is needed for statevector simulator since Qiskit-terra
+                # will remove global phase at default compilation level but the results here
+                # rely on global phase.
+                tmp_qc.barrier([x for x in range(self.num_qubits)])
+                tmp_qc.append(pauli, [x for x in range(self.num_qubits)])
+                instructions[pauli.to_label()] = tmp_qc.to_instruction()
         else:
             cr = ClassicalRegister(self.num_qubits)
             qc.add_register(cr)
             for basis, _ in self._basis:
-                tmp_qc = qc.copy(name=basis.to_label())
+                tmp_qc = qc.copy(name="Pauli " + basis.to_label())
                 tmp_qc = pauli_measurement(tmp_qc, basis, qr, cr, barrier=True)
                 instructions[basis.to_label()] = tmp_qc.to_instruction()
         return instructions
@@ -806,12 +800,6 @@ class WeightedPauliOperator(BaseOperator):
         Returns:
             QuantumCircuit: The constructed circuit.
         """
-        # pylint: disable=no-member
-        if num_time_slices <= 0 or not isinstance(num_time_slices, int):
-            raise ValueError('Number of time slices should be a non-negative integer.')
-        if expansion_mode not in ['trotter', 'suzuki']:
-            raise NotImplementedError('Expansion mode {} not supported.'.format(expansion_mode))
-
         if state_in is not None and quantum_registers is not None:
             if not state_in.has_register(quantum_registers):
                 raise AquaError("quantum_registers must be in the provided state_in circuit.")
@@ -825,23 +813,10 @@ class WeightedPauliOperator(BaseOperator):
         else:
             qc = QuantumCircuit(quantum_registers)
 
-        pauli_list = self.reorder_paulis()
-
-        if len(pauli_list) == 1:
-            slice_pauli_list = pauli_list
-        else:
-            if expansion_mode == 'trotter':
-                slice_pauli_list = pauli_list
-            # suzuki expansion
-            else:
-                slice_pauli_list = suzuki_expansion_slice_pauli_list(
-                    pauli_list,
-                    1,
-                    expansion_order
-                )
-        instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
-
+        instruction = self.evolve_instruction(evo_time, num_time_slices,
+                                              expansion_mode, expansion_order)
         qc.append(instruction, quantum_registers)
+        # TODO: this decompose is used because of cache
         return qc.decompose()
 
     def evolve_instruction(self, evo_time=0, num_time_slices=1,
