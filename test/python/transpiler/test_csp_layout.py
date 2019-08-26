@@ -51,7 +51,7 @@ class TestCSPLayout(QiskitTestCase):
            /  |
         qr0 - qr2 - 3
               |   /
-              4
+               4
         """
         cmap5 = FakeTenerife().configuration().coupling_map
 
@@ -171,6 +171,27 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr1[2]], 7)
         self.assertEqual(layout[qr1[3]], 3)
         self.assertEqual(layout[qr1[4]], 15)
+
+    def test_5q_circuit_16q_coupling_no_solution(self):
+        """ 5 qubits in Rueschlikon, no solution
+
+          q0[1] ↖     ↗ q0[2]
+                 q0[0]
+          q0[3] ↙     ↘ q0[4]
+        """
+        cmap16 = FakeRueschlikon().configuration().coupling_map
+
+        qr = QuantumRegister(5, 'q')
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[0], qr[1])
+        circuit.cx(qr[0], qr[2])
+        circuit.cx(qr[0], qr[3])
+        circuit.cx(qr[0], qr[4])
+        dag = circuit_to_dag(circuit)
+        pass_ = CSPLayout(CouplingMap(cmap16), strict_direction=True, seed=self.seed)
+        pass_.run(dag)
+        layout = pass_.property_set['layout']
+        self.assertIsNone(layout)
 
 
 if __name__ == '__main__':
