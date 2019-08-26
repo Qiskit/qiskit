@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog].
 
 ### Removed
 
+-   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
     methods directly.
 
