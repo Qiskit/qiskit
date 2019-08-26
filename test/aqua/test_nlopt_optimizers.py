@@ -16,17 +16,19 @@
 
 import unittest
 from test.aqua.common import QiskitAquaTestCase
+
 from parameterized import parameterized
 from scipy.optimize import rosen
 import numpy as np
-from qiskit.aqua import PluggableType, get_pluggable_class
+
+from qiskit.aqua import PluggableType, get_pluggable_class, aqua_globals
 
 
 class TestNLOptOptimizers(QiskitAquaTestCase):
     """ Test NLOpt Optimizers """
     def setUp(self):
         super().setUp()
-        np.random.seed(50)
+        aqua_globals = 50
         try:
             import nlopt  # pylint: disable=unused-import
         except ImportError:
