@@ -25,7 +25,7 @@ except ImportError:
     from Cython.Build import cythonize
 
 REQUIREMENTS = [
-    "jsonschema>=2.6,<2.7",
+    "jsonschema>=2.6",
     "marshmallow>=2.17.0,<3",
     "marshmallow_polyfield>=3.2,<4",
     "networkx>=2.2",
@@ -70,7 +70,7 @@ for ext in CYTHON_EXTS:
 
 setup(
     name="qiskit-terra",
-    version="0.9.0",
+    version="0.10.0",
     description="Software for developing quantum computing programs",
     long_description="""Terra provides the foundations for Qiskit. It allows the user to write
         quantum circuits easily, and takes care of the constraints of real hardware.""",
