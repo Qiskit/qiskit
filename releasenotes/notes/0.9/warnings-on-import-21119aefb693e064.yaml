@@ -1,0 +1,26 @@
+---
+upgrade:
+  - |
+    The root of the ``qiskit`` namespace will now emit a warning on import if
+    either ``qiskit.IBMQ`` or ``qiskit.Aer`` could not be setup. This will
+    occur whenever anything in the ``qiskit`` namespace is imported. These
+    warnings were added to make it clear for users up front if they're running
+    qiskit and the qiskit-aer and qiskit-ibmq-provider packages could not be
+    found. It's not always clear if the packages are missing or python
+    packaging/pip installed an element incorrectly until you go to use them and
+    get an empty ``ImportError``. These warnings should make it clear up front
+    if there these commonly used aliases are missing.
+
+    However, for users that choose not to use either qiskit-aer or
+    qiskit-ibmq-provider this might cause additional noise. For these users
+    these warnings are easily suppressable using Python's standard library
+    ``warnings``. Users can suppress the warnings by putting thse two lines
+    before any imports from qiskit::
+
+        import warnings
+        warnings.filterwarnings('ignore', category=RuntimeWarning,
+                                module='qiskit')
+
+    This will suppress the warnings emitted by not having qiskit-aer or
+    qiskit-ibmq-provider installed, but still preserve any other warnings
+    emitted by qiskit or any other package.

@@ -23,7 +23,7 @@ from qiskit.tools.visualization import HAS_MATPLOTLIB, pulse_drawer
 from qiskit.pulse.channels import (DeviceSpecification, PulseChannelSpec, Qubit,
                                    RegisterSlot, MemorySlot)
 from qiskit.pulse.channels import DriveChannel, AcquireChannel, ControlChannel, MeasureChannel
-from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot
+from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot, Delay
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib
 
@@ -58,6 +58,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
 
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
+        delay = Delay(100)
         sched = Schedule()
         sched = sched.append(gp0(self.device.drives[0]))
         sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.device.controls[0]))
@@ -69,6 +70,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         sched = sched.insert(90, acquire(self.device.acquires[1],
                                          self.device.memoryslots[1],
                                          self.device.registers[1]))
+        sched = sched.append(delay(self.device.drives[0]))
         sched = sched + sched
         sched |= Snapshot("snapshot_1", "snap_type") << 60
         sched |= Snapshot("snapshot_2", "snap_type") << 120
@@ -146,6 +148,7 @@ class TestPulseVisualizationImplementationWithDeviceSpecification(QiskitVisualiz
 
         fc_pi_2 = FrameChange(phase=1.57)
         acquire = Acquire(10)
+        delay = Delay(100)
         sched = Schedule()
         sched = sched.append(gp0(self.device.q[0].drive))
         sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.device.q[0].controls[0]))
@@ -155,6 +158,7 @@ class TestPulseVisualizationImplementationWithDeviceSpecification(QiskitVisualiz
         sched = sched.insert(60, gs0(self.device.q[0].measure))
         sched = sched.insert(90, fc_pi_2(self.device.q[0].drive))
         sched = sched.insert(90, acquire(self.device.q[1], self.device.mem[1], self.device.c[1]))
+        sched = sched.append(delay(self.device.q[0].drive))
         sched = sched + sched
         sched |= Snapshot("snapshot_1", "snap_type") << 60
         sched |= Snapshot("snapshot_2", "snap_type") << 120

@@ -433,7 +433,6 @@ def _latex_circuit_drawer(circuit,
                                plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits, justify=justify,
                                idle_wires=idle_wires, with_layout=with_layout)
-        image = None
         try:
 
             subprocess.run(["pdflatex", "-halt-on-error",
