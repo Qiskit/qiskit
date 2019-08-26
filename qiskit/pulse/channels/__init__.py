@@ -14,7 +14,6 @@
 
 """Device-related classes for pulse."""
 
-from .device_specification import DeviceSpecification
 from .pulse_channel_spec import PulseChannelSpec
 from .system_topology import SystemTopology
 from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
