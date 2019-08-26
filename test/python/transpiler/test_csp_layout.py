@@ -72,9 +72,9 @@ class TestCSPLayout(QiskitTestCase):
 
     def test_9q_circuit_16q_coupling(self):
         """ 9 qubits in Rueschlikon, without considering the direction
-        q0[0] - q0[1] - q1[3] - q1[4] - q0[3] - q1[0] - q1[1] - q1[2]
-          |       |       |       |       |       |       |       |
-        q0[2] --- 15 ---- 14 ---- 13 ---- 12 ---- 11 ---- 10 ---- 9
+        q0[1] - q0[0] - q1[3] - q0[3] - q1[0] - q1[1] - q1[2] - 8
+          |       |       |       |       |       |       |     |
+        q0[2] - q1[4] -- 14 ---- 13 ---- 12 ---- 11 ---- 10 --- 9
         """
         cmap16 = FakeRueschlikon().configuration().coupling_map
 
@@ -90,15 +90,15 @@ class TestCSPLayout(QiskitTestCase):
         pass_.run(dag)
         layout = pass_.property_set['layout']
 
-        self.assertEqual(layout[qr0[0]], 1)
-        self.assertEqual(layout[qr0[1]], 2)
+        self.assertEqual(layout[qr0[0]], 2)
+        self.assertEqual(layout[qr0[1]], 1)
         self.assertEqual(layout[qr0[2]], 0)
-        self.assertEqual(layout[qr0[3]], 5)
-        self.assertEqual(layout[qr1[0]], 6)
-        self.assertEqual(layout[qr1[1]], 7)
-        self.assertEqual(layout[qr1[2]], 8)
+        self.assertEqual(layout[qr0[3]], 4)
+        self.assertEqual(layout[qr1[0]], 5)
+        self.assertEqual(layout[qr1[1]], 6)
+        self.assertEqual(layout[qr1[2]], 7)
         self.assertEqual(layout[qr1[3]], 3)
-        self.assertEqual(layout[qr1[4]], 4)
+        self.assertEqual(layout[qr1[4]], 15)
 
     def test_2q_circuit_2q_coupling_sd(self):
         """ A simple example, considering the direction
@@ -188,7 +188,7 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr[0], qr[3])
         circuit.cx(qr[0], qr[4])
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(CouplingMap(cmap16), strict_direction=True, seed=self.seed)
+        pass_ = CSPLayout(CouplingMap(cmap16), seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set['layout']
         self.assertIsNone(layout)

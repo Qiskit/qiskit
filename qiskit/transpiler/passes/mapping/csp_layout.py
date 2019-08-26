@@ -62,7 +62,7 @@ class CSPLayout(AnalysisPass):
                 return (control, target) in edges
         else:
             def constraint(control, target):
-                return (control, target) or (target, control) in edges
+                return (control, target) in edges or (target, control) in edges
 
         for pair in cxs:
             problem.addConstraint(constraint, [pair[0], pair[1]])
