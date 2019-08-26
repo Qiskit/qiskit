@@ -15,6 +15,11 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Added
+
+-   A new layout selector, `CSPLayout`. The pass models the problem of layout
+    selection as set of constraints and uses backtracking to solve it, if possible.
+
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
