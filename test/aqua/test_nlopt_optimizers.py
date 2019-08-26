@@ -21,14 +21,13 @@ from parameterized import parameterized
 from scipy.optimize import rosen
 import numpy as np
 
-from qiskit.aqua import PluggableType, get_pluggable_class, aqua_globals
+from qiskit.aqua import PluggableType, get_pluggable_class
 
 
 class TestNLOptOptimizers(QiskitAquaTestCase):
     """ Test NLOpt Optimizers """
     def setUp(self):
         super().setUp()
-        aqua_globals = 50
         try:
             import nlopt  # pylint: disable=unused-import
         except ImportError:
