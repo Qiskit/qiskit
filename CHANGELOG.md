@@ -21,6 +21,11 @@ The format is based on [Keep a Changelog].
   and validated following the same rules used throughout the
   QuantumCircuit` API. (\#2826)
 
+### Removed
+
+-   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
+    methods directly.
+
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
