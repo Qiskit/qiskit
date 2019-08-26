@@ -65,7 +65,7 @@ class RandomizedBenchmarkingBenchmark:
     # parameters for RB (1&2 qubits):
     params = ([[[0]], [[0, 1]], [[0, 2], [1]]],)
     param_names = ['rb_pattern']
-    version = '0.1.1'
+    version = '0.2.0'
     timeout = 600
 
     def setup(self, rb_pattern):
