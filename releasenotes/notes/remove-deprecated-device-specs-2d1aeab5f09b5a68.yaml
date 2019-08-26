@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The deprecated ``DeviceSpecification`` class has been removed. Instead you should
+    use the ``PulseChannelSpec``. For example, you can run something like::
+        device = pulse.PulseChannelSpec.from_backend(backend)
+        device.drives[0]    # for DeviceSpecification, this was device.q[0].drive
+        device.memoryslots  # this was device.mem
