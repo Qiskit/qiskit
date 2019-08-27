@@ -144,3 +144,29 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
             'visualization/references/matplotlib_long_name_ref.png')
 
         self.assertImagesAreEqual(ref_filename, long_name_filename)
+
+    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
+                     'matplotlib not available.')
+    @unittest.skip('Test is unreliable on some platforms')
+    @unittest.skipIf(os.name == 'nt', 'Rendered image differs on windows')
+    def test_conditional(self):
+        """Test that circuits with conditionals draw correctly
+        """
+        qr = QuantumRegister(2, 'q')
+        cr = ClassicalRegister(2, 'c')
+        circuit = QuantumCircuit(qr, cr)
+
+        # check gates are shifted over accordingly
+        circuit.h(qr)
+        circuit.measure(qr, cr)
+        circuit.h(qr[0]).c_if(cr, 2)
+
+        conditional_filename = self._get_resource_path('current_conditional_matplotlib_ref.png')
+        visualization.circuit_drawer(circuit, output='mpl',
+                                     filename=conditional_filename)
+        self.addCleanup(os.remove, conditional_filename)
+
+        ref_filename = self._get_resource_path(
+            'visualization/references/matplotlib_conditional_ref.png')
+
+        self.assertImagesAreEqual(ref_filename, conditional_filename)
