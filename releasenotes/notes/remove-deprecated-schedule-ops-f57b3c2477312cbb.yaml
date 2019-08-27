@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
+    methods directly. Rather than::
+        ops.union(schedule_0, schedule_1)
+        ops.union(instruction, schedule)  # etc
+
+    Please use::
+        schedule_0.union(schedule_1)
+        instruction.union(schedule)
+
+    This same pattern applies to other `ops` functions: insert, shift, append,
+    and flatten.
