@@ -20,8 +20,10 @@ Base class for dummy backends.
 import uuid
 import time
 
-from qiskit.result import Result
+from qiskit.providers.models import BackendProperties
 from qiskit.providers import BaseBackend
+from qiskit.result import Result
+from .fake_job import FakeJob
 
 
 class FakeBackend(BaseBackend):

@@ -16,10 +16,10 @@
 Fake backend supporting OpenPulse.
 """
 
-from .fake_backend import FakeBackend
 from qiskit.providers.models import (GateConfig, PulseBackendConfiguration,
                                      PulseDefaults, Command, UchannelLO)
 from qiskit.qobj import PulseLibraryItem, PulseQobjInstruction
+from .fake_backend import FakeBackend
 
 
 class FakeOpenPulse2Q(FakeBackend):
@@ -97,5 +97,5 @@ class FakeOpenPulse2Q(FakeBackend):
 
         super().__init__(configuration)
 
-    def defaults(self):
+    def defaults(self):  # pylint: disable=missing-docstring
         return self._defaults

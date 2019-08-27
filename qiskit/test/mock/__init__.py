@@ -15,7 +15,7 @@
 """
 Utilities for mocking the IBMQ provider, including job responses and backends.
 
-The module includes dummy provider, backends, and jobs. 
+The module includes dummy provider, backends, and jobs.
 The purpose of these classes is to fake backends for testing purposes:
 testing local timeouts, arbitrary responses or behavior, etc.
 
@@ -39,3 +39,5 @@ from .fake_rueschlikon import FakeRueschlikon
 from .fake_tokyo import FakeTokyo
 from .fake_poughkeepsie import FakePoughkeepsie
 from .fake_boeblingen import FakeBoeblingen
+
+from .fake_openpulse_2q import FakeOpenPulse2Q

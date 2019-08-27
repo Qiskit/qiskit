@@ -16,8 +16,8 @@
 Fake Vigo device (5 qubit).
 """
 
-from .fake_backend import FakeBackend
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+from .fake_backend import FakeBackend
 
 
 class FakeVigo(FakeBackend):
@@ -26,12 +26,12 @@ class FakeVigo(FakeBackend):
     def __init__(self):
         """
             1
-          / |
-        0 - 2 - 3
-            | /
+          / | \
+        0   2  3
+              /
             4
         """
-        cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
+        cmap = [[0, 1], [1, 0], [1, 2], [1, 3], [2, 1], [3, 1], [3, 4], [4, 3]]
 
         configuration = QasmBackendConfiguration(
             backend_name='fake_vigo',

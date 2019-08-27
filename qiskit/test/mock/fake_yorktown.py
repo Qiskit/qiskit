@@ -16,8 +16,8 @@
 Fake Yorktown device (5 qubit).
 """
 
-from .fake_backend import FakeBackend
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+from .fake_backend import FakeBackend
 
 
 class FakeYorktown(FakeBackend):
@@ -31,7 +31,7 @@ class FakeYorktown(FakeBackend):
             | /
             4
         """
-        cmap = [[1, 0], [2, 0], [2, 1], [3, 2], [3, 4], [4, 2]]
+        cmap = [[0, 1], [0, 2], [1, 2], [3, 2], [3, 4], [4, 2]]
 
         configuration = QasmBackendConfiguration(
             backend_name='fake_yorktown',

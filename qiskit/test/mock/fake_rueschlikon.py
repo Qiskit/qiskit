@@ -16,8 +16,8 @@
 Fake Reuschlikon device (16 qubit).
 """
 
-from .fake_backend import FakeBackend
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+from .fake_backend import FakeBackend
 
 
 class FakeRueschlikon(FakeBackend):

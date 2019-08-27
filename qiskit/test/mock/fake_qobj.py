@@ -16,23 +16,24 @@
 Fake Boeblingen device (20 qubit).
 """
 
-from .fake_qasm_simulator import FakeQasmSimulator
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
-                         QasmQobjExperiment, QasmQobjConfig, PulseLibraryItem,
-                         PulseQobjInstruction)
+                         QasmQobjExperiment, QasmQobjConfig)
+from .fake_qasm_simulator import FakeQasmSimulator
 
 
 class FakeQobj(QasmQobj):
     """A fake `Qobj` instance."""
     def __init__(self):
-        self.qobj_id = 'test_id'
-        self.config = QasmQobjConfig(shots=1024, memory_slots=1, max_credits=100)
-        self.header = QobjHeader(backend_name=FakeQasmSimulator().name())
-        self.experiments = [QasmQobjExperiment(
-                instructions=[
-                        QasmQobjInstruction(name='barrier', qubits=[1])
-                        ],
-                header=QobjExperimentHeader(),
-                config=QasmQobjExperimentConfig(seed=123456)
-                )]
+        qobj_id = 'test_id'
+        config = QasmQobjConfig(shots=1024, memory_slots=1, max_credits=100)
+        header = QobjHeader(backend_name=FakeQasmSimulator().name())
+        experiments = [QasmQobjExperiment(
+            instructions=[
+                QasmQobjInstruction(name='barrier', qubits=[1])
+            ],
+            header=QobjExperimentHeader(),
+            config=QasmQobjExperimentConfig(seed=123456)
+        )]
+        super().__init__(qobj_id=qobj_id, config=config,
+                         experiments=experiments, header=header)

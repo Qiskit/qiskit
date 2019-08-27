@@ -16,8 +16,8 @@
 Fake Poughkeepsie device (20 qubit).
 """
 
-from .fake_backend import FakeBackend
 from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+from .fake_backend import FakeBackend
 
 
 class FakePoughkeepsie(FakeBackend):
