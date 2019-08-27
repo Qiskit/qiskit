@@ -316,7 +316,7 @@ stages:
           condition: failed()
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_windows'
+            artifactName: 'drop_macos'
         - task: PublishTestResults@2
           condition: succeededOrFailed()
           inputs:
