@@ -149,6 +149,30 @@ class TestConsolidateBlocks(QiskitTestCase):
         fidelity = process_fidelity(new_dag.op_nodes()[0].op.to_matrix(), unitary.to_matrix())
         self.assertAlmostEqual(fidelity, 1.0, places=7)
 
+    def test_block_spanning_two_regs_different_index(self):
+        """blocks spanning wires on different quantum registers work when the wires
+        could have conflicting indices. This was raised in #2806 when a CX was applied
+        across multiple registers and their indices collided, raising an error."""
+        qr0 = QuantumRegister(1, "qr0")
+        qr1 = QuantumRegister(2, "qr1")
+        qc = QuantumCircuit(qr0, qr1)
+        qc.cx(qr0[0], qr1[1])
+        dag = circuit_to_dag(qc)
+
+        pass_ = ConsolidateBlocks(force_consolidate=True)
+        pass_.property_set['block_list'] = [list(dag.topological_op_nodes())]
+        new_dag = pass_.run(dag)
+
+        sim = UnitarySimulatorPy()
+        original_result = execute(qc, sim).result()
+        original_unitary = UnitaryGate(original_result.get_unitary())
+
+        from qiskit.converters import dag_to_circuit
+        new_result = execute(dag_to_circuit(new_dag), sim).result()
+        new_unitary = UnitaryGate(new_result.get_unitary())
+
+        self.assertEqual(original_unitary, new_unitary)
+
     def test_node_added_before_block(self):
         """Test that a node before a block remains before the block
 
@@ -240,6 +264,21 @@ class TestConsolidateBlocks(QiskitTestCase):
         qc.iden(2)
         qc.cx(0, 1)
         qc.cx(3, 2)
+
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(ConsolidateBlocks())
+        qc1 = transpile(qc, pass_manager=pass_manager)
+
+        self.assertEqual(qc, qc1)
+
+    def test_classical_conditions_maintained(self):
+        """Test that consolidate blocks doesn't drop the classical conditions
+        This issue was raised in #2752
+        """
+        qc = QuantumCircuit(1, 1)
+        qc.h(0).c_if(qc.cregs[0], 1)
+        qc.measure(0, 0)
 
         pass_manager = PassManager()
         pass_manager.append(Collect2qBlocks())

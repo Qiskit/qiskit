@@ -59,7 +59,7 @@ class Collect2qBlocks(AnalysisPass):
             if nd.name == "cx" and nd.condition is None and not nodes_seen[nd]:
                 these_qubits = set(nd.qargs)
                 # Explore predecessors of the "cx" node
-                pred = list(dag.predecessors(nd))
+                pred = list(dag.quantum_predecessors(nd))
                 explore = True
                 while explore:
                     pred_next = []
@@ -71,7 +71,7 @@ class Collect2qBlocks(AnalysisPass):
                                     pnd.name != "cx":
                                 group.append(pnd)
                                 nodes_seen[pnd] = True
-                                pred_next.extend(dag.predecessors(pnd))
+                                pred_next.extend(dag.quantum_predecessors(pnd))
                     # If there are two, then we consider cases
                     elif len(pred) == 2:
                         # First, check if there is a relationship
@@ -105,7 +105,7 @@ class Collect2qBlocks(AnalysisPass):
                                 if not nodes_seen[pnd]:
                                     group.append(pnd)
                                     nodes_seen[pnd] = True
-                                    pred_next.extend(dag.predecessors(pnd))
+                                    pred_next.extend(dag.quantum_predecessors(pnd))
                             # If cx, check qubits
                             else:
                                 pred_qubits = set(pnd.qargs)
@@ -114,7 +114,7 @@ class Collect2qBlocks(AnalysisPass):
                                     if not nodes_seen[pnd]:
                                         group.append(pnd)
                                         nodes_seen[pnd] = True
-                                        pred_next.extend(dag.predecessors(pnd))
+                                        pred_next.extend(dag.quantum_predecessors(pnd))
                                 else:
                                     # remove qubit from consideration if not
                                     these_qubits = list(set(these_qubits) -
@@ -131,7 +131,7 @@ class Collect2qBlocks(AnalysisPass):
                 # Reset these_qubits
                 these_qubits = set(nd.qargs)
                 # Explore successors of the "cx" node
-                succ = list(dag.successors(nd))
+                succ = list(dag.quantum_successors(nd))
                 explore = True
                 while explore:
                     succ_next = []
@@ -143,7 +143,7 @@ class Collect2qBlocks(AnalysisPass):
                                     snd.name != "cx":
                                 group.append(snd)
                                 nodes_seen[snd] = True
-                                succ_next.extend(dag.successors(snd))
+                                succ_next.extend(dag.quantum_successors(snd))
                     # If there are two, then we consider cases
                     elif len(succ) == 2:
                         # First, check if there is a relationship
@@ -181,7 +181,7 @@ class Collect2qBlocks(AnalysisPass):
                                 if not nodes_seen[snd]:
                                     group.append(snd)
                                     nodes_seen[snd] = True
-                                    succ_next.extend(dag.successors(snd))
+                                    succ_next.extend(dag.quantum_successors(snd))
                             else:
                                 # If cx, check qubits
                                 succ_qubits = set(snd.qargs)
@@ -190,7 +190,7 @@ class Collect2qBlocks(AnalysisPass):
                                     if not nodes_seen[snd]:
                                         group.append(snd)
                                         nodes_seen[snd] = True
-                                        succ_next.extend(dag.successors(snd))
+                                        succ_next.extend(dag.quantum_successors(snd))
                                 else:
                                     # remove qubit from consideration if not
                                     these_qubits = list(set(these_qubits) -

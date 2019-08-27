@@ -28,9 +28,9 @@ from qiskit.validation.exceptions import ModelValidationError
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
 def assemble(experiments,
              backend=None,
-             qobj_id=None, qobj_header=None,  # common run options
+             qobj_id=None, qobj_header=None,
              shots=1024, memory=False, max_credits=None, seed_simulator=None,
-             qubit_lo_freq=None, meas_lo_freq=None,  # schedule run options
+             qubit_lo_freq=None, meas_lo_freq=None,
              qubit_lo_range=None, meas_lo_range=None,
              schedule_los=None, meas_level=2, meas_return='avg', meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
@@ -75,16 +75,20 @@ def assemble(experiments,
             Random seed to control sampling, for when backend is a simulator
 
         qubit_lo_freq (list):
-            List of default qubit lo frequencies
+            List of default qubit lo frequencies. Will be overridden by
+            `schedule_los` if set.
 
         meas_lo_freq (list):
-            List of default meas lo frequencies
+            List of default meas lo frequencies. Will be overridden by
+            `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive lo ranges
+            List of drive lo ranges used to validate that the supplied qubit los
+            are valid.
 
         meas_lo_range (list):
-            List of meas lo ranges
+            List of meas lo ranges used to validate that the supplied measurement los
+            are valid.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
@@ -117,9 +121,10 @@ def assemble(experiments,
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
 
-        run_config (dict):
-            extra arguments used to configure the run (e.g. for Aer configurable backends)
-            Refer to the backend documentation for details on these arguments
+        **run_config (dict):
+            extra arguments used to configure the run (e.g. for Aer configurable
+            backends). Refer to the backend documentation for details on these
+            arguments.
 
     Returns:
         Qobj: a qobj which can be run on a backend. Depending on the type of input,
@@ -128,18 +133,15 @@ def assemble(experiments,
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
-    # Get RunConfig(s) that will be inserted in Qobj to configure the run
     experiments = experiments if isinstance(experiments, list) else [experiments]
-    qobj_id, qobj_header, run_config = _parse_run_args(backend, qobj_id, qobj_header,
-                                                       shots, memory, max_credits, seed_simulator,
-                                                       qubit_lo_freq, meas_lo_freq,
-                                                       qubit_lo_range, meas_lo_range,
-                                                       schedule_los, meas_level, meas_return,
-                                                       meas_map, memory_slot_size, rep_time,
-                                                       parameter_binds, **run_config)
+    qobj_id, qobj_header, run_config_common_dict = _parse_common_args(backend, qobj_id, qobj_header,
+                                                                      shots, memory, max_credits,
+                                                                      seed_simulator, **run_config)
 
     # assemble either circuits or schedules
     if all(isinstance(exp, QuantumCircuit) for exp in experiments):
+        run_config = _parse_circuit_args(parameter_binds, **run_config_common_dict)
+
         # If circuits are parameterized, bind parameters and remove from run_config
         bound_experiments, run_config = _expand_parameters(circuits=experiments,
                                                            run_config=run_config)
@@ -147,6 +149,12 @@ def assemble(experiments,
                                  qobj_header=qobj_header, run_config=run_config)
 
     elif all(isinstance(exp, ScheduleComponent) for exp in experiments):
+        run_config = _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq,
+                                       qubit_lo_range, meas_lo_range,
+                                       schedule_los, meas_level, meas_return,
+                                       meas_map, memory_slot_size, rep_time,
+                                       **run_config_common_dict)
+
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
                                   qobj_header=qobj_header, run_config=run_config)
 
@@ -156,13 +164,9 @@ def assemble(experiments,
 
 
 # TODO: rework to return a list of RunConfigs (one for each experiments), and a global one
-def _parse_run_args(backend, qobj_id, qobj_header,
-                    shots, memory, max_credits, seed_simulator,
-                    qubit_lo_freq, meas_lo_freq,
-                    qubit_lo_range, meas_lo_range,
-                    schedule_los, meas_level, meas_return,
-                    meas_map, memory_slot_size, rep_time,
-                    parameter_binds, **run_config):
+def _parse_common_args(backend, qobj_id, qobj_header, shots,
+                       memory, max_credits, seed_simulator,
+                       **run_config):
     """Resolve the various types of args allowed to the assemble() function through
     duck typing, overriding args, etc. Refer to the assemble() docstring for details on
     what types of inputs are allowed.
@@ -170,6 +174,47 @@ def _parse_run_args(backend, qobj_id, qobj_header,
     Here the args are resolved by converting them to standard instances, and prioritizing
     them in case a run option is passed through multiple args (explicitly setting an arg
     has more priority than the arg set by backend)
+
+    Returns:
+        RunConfig: a run config, which is a standardized object that configures the qobj
+            and determines the runtime environment.
+    """
+    # grab relevant info from backend if it exists
+    backend_config = None
+    if backend:
+        backend_config = backend.configuration()
+
+    # an identifier for the Qobj
+    qobj_id = qobj_id or str(uuid.uuid4())
+
+    # The header that goes at the top of the Qobj (and later Result)
+    # we process it as dict, then write entries that are not None to a QobjHeader object
+    qobj_header = qobj_header or {}
+    if isinstance(qobj_header, QobjHeader):
+        qobj_header = qobj_header.to_dict()
+    backend_name = getattr(backend_config, 'backend_name', None)
+    backend_version = getattr(backend_config, 'backend_version', None)
+    qobj_header = {**dict(backend_name=backend_name, backend_version=backend_version),
+                   **qobj_header}
+    qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
+
+    # create run configuration and populate
+    run_config_dict = dict(shots=shots,
+                           memory=memory,
+                           max_credits=max_credits,
+                           seed_simulator=seed_simulator,
+                           **run_config)
+
+    return qobj_id, qobj_header, run_config_dict
+
+
+def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
+                      meas_lo_range, schedule_los, meas_level,
+                      meas_return, meas_map,
+                      memory_slot_size, rep_time,
+                      **run_config):
+    """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
+    See `assemble` for more information on the required arguments.
 
     Returns:
         RunConfig: a run config, which is a standardized object that configures the qobj
@@ -194,13 +239,6 @@ def _parse_run_args(backend, qobj_id, qobj_header,
 
     meas_map = meas_map or getattr(backend_config, 'meas_map', None)
 
-    rep_time = rep_time or getattr(backend_config, 'rep_times', None)
-    if isinstance(rep_time, list):
-        rep_time = rep_time[0]
-
-    parameter_binds = parameter_binds or []
-
-    # add default empty lo config
     schedule_los = schedule_los or []
     if isinstance(schedule_los, (LoConfig, dict)):
         schedule_los = [schedule_los]
@@ -209,31 +247,18 @@ def _parse_run_args(backend, qobj_id, qobj_header,
     schedule_los = [lo_config if isinstance(lo_config, LoConfig) else LoConfig(lo_config)
                     for lo_config in schedule_los]
 
-    qubit_lo_freq = qubit_lo_freq or getattr(backend_default, 'qubit_freq_est', [])
-    meas_lo_freq = meas_lo_freq or getattr(backend_default, 'meas_freq_est', [])
+    qubit_lo_freq = qubit_lo_freq or getattr(backend_default, 'qubit_freq_est', None)
+    meas_lo_freq = meas_lo_freq or getattr(backend_default, 'meas_freq_est', None)
 
-    qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', [])
-    meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', [])
-    # an identifier for the Qobj
-    qobj_id = qobj_id or str(uuid.uuid4())
+    qubit_lo_range = qubit_lo_range or getattr(backend_config, 'qubit_lo_range', None)
+    meas_lo_range = meas_lo_range or getattr(backend_config, 'meas_lo_range', None)
 
-    # The header that goes at the top of the Qobj (and later Result)
-    # we process it as dict, then write entries that are not None to a QobjHeader object
-    qobj_header = qobj_header or {}
-    if isinstance(qobj_header, QobjHeader):
-        qobj_header = qobj_header.to_dict()
-    backend_name = getattr(backend_config, 'backend_name', None)
-    backend_version = getattr(backend_config, 'backend_version', None)
-    qobj_header = {**dict(backend_name=backend_name, backend_version=backend_version),
-                   **qobj_header}
-    qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
+    rep_time = rep_time or getattr(backend_config, 'rep_times', None)
+    if isinstance(rep_time, list):
+        rep_time = rep_time[0]
 
     # create run configuration and populate
-    run_config_dict = dict(shots=shots,
-                           memory=memory,
-                           max_credits=max_credits,
-                           seed_simulator=seed_simulator,
-                           qubit_lo_freq=qubit_lo_freq,
+    run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
                            meas_lo_freq=meas_lo_freq,
                            qubit_lo_range=qubit_lo_range,
                            meas_lo_range=meas_lo_range,
@@ -243,11 +268,27 @@ def _parse_run_args(backend, qobj_id, qobj_header,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
-                           parameter_binds=parameter_binds,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 
-    return qobj_id, qobj_header, run_config
+    return run_config
+
+
+def _parse_circuit_args(parameter_binds, **run_config):
+    """Build a circuit RunConfig replacing unset arguments with defaults derived from the `backend`.
+    See `assemble` for more information on the required arguments.
+
+    Returns:
+        RunConfig: a run config, which is a standardized object that configures the qobj
+            and determines the runtime environment.
+    """
+    parameter_binds = parameter_binds or []
+
+    # create run configuration and populate
+    run_config_dict = dict(parameter_binds=parameter_binds, **run_config)
+    run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
+
+    return run_config
 
 
 def _expand_parameters(circuits, run_config):
