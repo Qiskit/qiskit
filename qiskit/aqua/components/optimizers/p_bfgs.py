@@ -36,7 +36,7 @@ class P_BFGS(Optimizer):
         'name': 'P_BFGS',
         'description': 'Parallelized l_bfgs_b Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'p_bfgs_b_schema',
             'type': 'object',
             'properties': {

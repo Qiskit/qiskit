@@ -32,7 +32,7 @@ class NELDER_MEAD(Optimizer):
         'name': 'NELDER_MEAD',
         'description': 'NELDER_MEAD Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'nelder_mead_schema',
             'type': 'object',
             'properties': {

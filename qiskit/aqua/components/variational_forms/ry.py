@@ -25,7 +25,7 @@ class RY(VariationalForm):
         'name': 'RY',
         'description': 'RY Variational Form',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'ry_schema',
             'type': 'object',
             'properties': {

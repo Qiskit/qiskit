@@ -40,7 +40,7 @@ class ADAM(Optimizer):
         'name': 'ADAM',
         'description': 'ADAM Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'adam_schema',
             'type': 'object',
             'properties': {

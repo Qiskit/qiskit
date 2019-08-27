@@ -32,7 +32,7 @@ class TNC(Optimizer):
         'name': 'TNC',
         'description': 'TNC Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'tnc_schema',
             'type': 'object',
             'properties': {

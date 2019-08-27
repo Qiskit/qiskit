@@ -33,7 +33,7 @@ class CG(Optimizer):
         'name': 'CG',
         'description': 'CG Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'cg_schema',
             'type': 'object',
             'properties': {

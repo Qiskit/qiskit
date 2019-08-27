@@ -31,7 +31,7 @@ class SPSA(Optimizer):
         'name': 'SPSA',
         'description': 'SPSA Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'spsa_schema',
             'type': 'object',
             'properties': {

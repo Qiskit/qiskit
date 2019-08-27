@@ -32,7 +32,7 @@ class POWELL(Optimizer):
         'name': 'POWELL',
         'description': 'POWELL Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'powell_schema',
             'type': 'object',
             'properties': {

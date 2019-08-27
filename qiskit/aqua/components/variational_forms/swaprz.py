@@ -25,7 +25,7 @@ class SwapRZ(VariationalForm):
         'name': 'SWAPRZ',
         'description': 'SWAPRZ Variational Form',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'swaprz_schema',
             'type': 'object',
             'properties': {

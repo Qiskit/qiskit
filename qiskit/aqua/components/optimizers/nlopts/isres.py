@@ -35,7 +35,7 @@ class ISRES(Optimizer):
         'name': 'ISRES',
         'description': 'GN_ISRES Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'isres_schema',
             'type': 'object',
             'properties': {
