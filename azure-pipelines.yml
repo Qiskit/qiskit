@@ -141,6 +141,16 @@ stages:
             set -e
             stestr run
           displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_macos'
         - bash: |
             set -e
             pip install -U junitxml
@@ -184,6 +194,16 @@ stages:
             set -e
             stestr run
           displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_windows'
         - bash: |
             set -e
             pip install -U junitxml
@@ -222,6 +242,16 @@ stages:
             set -e
             stestr run
           displayName: 'Run tests'
+        - task: CopyFiles@2
+          condition: failed()
+          inputs:
+            contents: '**/*.png'
+            targetFolder: $(Build.ArtifactStagingDirectory)
+        - task: PublishBuildArtifacts@1
+          condition: failed()
+          inputs:
+            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
+            artifactName: 'drop_linux'
         - bash: |
             set -e
             pip install -U junitxml
