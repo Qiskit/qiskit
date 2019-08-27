@@ -71,11 +71,13 @@ stages:
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
+          displayName: 'Copy images'
           inputs:
             contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: failed()
+          displayName: 'Publish images'
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop_linux'
@@ -143,11 +145,13 @@ stages:
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
+          displayName: 'Copy images'
           inputs:
             contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: failed()
+          displayName: 'Publish images'
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop_macos'
@@ -196,11 +200,13 @@ stages:
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
+          displayName: 'Copy images'
           inputs:
             contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: failed()
+          displayName: 'Publish images'
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop_windows'
@@ -244,11 +250,13 @@ stages:
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
+          displayName: 'Copy images'
           inputs:
             contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: failed()
+          displayName: 'Publish images'
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop_linux'
@@ -292,11 +300,13 @@ stages:
           displayName: 'Run tests'
         - task: CopyFiles@2
           condition: failed()
+          displayName: 'Copy images'
           inputs:
             contents: '**/*.png'
             targetFolder: $(Build.ArtifactStagingDirectory)
         - task: PublishBuildArtifacts@1
           condition: failed()
+          displayName: 'Publish images'
           inputs:
             pathtoPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop_macos'
