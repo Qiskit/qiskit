@@ -307,10 +307,12 @@ stages:
             set -e
             set -x
             # Use master (or stable/*) for PRs
-            if [[ $BUILD_REASON == "PullRequest" ]] ; then
+            if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH]] ; then
                 BRANCH=$SYSTEM_PULLREQUEST_TARGETBRANCH
+            else
+                BRANCH=$BUILD_SOURCEBRANCHNAME
             fi
-            asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.7 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $BRANCH HEAD
+            asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.7 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $([ "$BRANCH" == "master" ] || echo "$BRANCH") HEAD
           displayName: 'Run Benchmarks'
     - job: 'Randomized_testing'
       pool: {vmImage: 'ubuntu-16.04'}
