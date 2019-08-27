@@ -263,7 +263,7 @@ stages:
           condition: succeededOrFailed()
           inputs:
             testResultsFiles: '**/test-*.xml'
-              testRunTitle: 'Test results for Linux Python $(python.version)'
+            testRunTitle: 'Test results for Linux Python $(python.version)'
     - job: 'MacOS_HighSierra_Tests'
       pool: {vmImage: 'macOS-10.13'}
       condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags'))
