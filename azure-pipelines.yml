@@ -308,7 +308,7 @@ stages:
             set -x
             # Use master (or stable/*) for PRs
             if [[ $BUILD_REASON == "PullRequest" ]] ; then
-                BRANCH=$BUILD_SOURCEBRANCHNAME
+                BRANCH=$SYSTEM_PULLREQUEST_SOURCEBRANCH
             fi
             asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.7 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $BRANCH HEAD
           displayName: 'Run Benchmarks'
