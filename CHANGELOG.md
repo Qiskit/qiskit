@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Fixed
+-   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
+
 ### Removed
 
 -   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
