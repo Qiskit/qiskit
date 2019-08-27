@@ -307,7 +307,7 @@ stages:
             set -e
             set -x
             # Use master (or stable/*) for PRs
-            if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH]] ; then
+            if [[ $SYSTEM_PULLREQUEST_TARGETBRANCH ]] ; then
                 BRANCH=$SYSTEM_PULLREQUEST_TARGETBRANCH
             else
                 BRANCH=$BUILD_SOURCEBRANCHNAME
