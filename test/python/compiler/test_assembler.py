@@ -454,6 +454,8 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_map=[[0], [1]])
 
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
+        # this should be in experimental header as well
+        self.assertEqual(qobj.experiments[0].header.memory_slots, n_memoryslots)
 
         # multiple acquisition
         schedule = acquire(self.device.acquires[0], mem_slots=pulse.MemorySlot(n_memoryslots-1))
@@ -466,6 +468,8 @@ class TestPulseAssembler(QiskitTestCase):
                         meas_map=[[0], [1]])
 
         self.assertEqual(qobj.config.memory_slots, n_memoryslots)
+        # this should be in experimental header as well
+        self.assertEqual(qobj.experiments[0].header.memory_slots, n_memoryslots)
 
     def test_pulse_name_conflicts(self):
         """Test that pulse name conflicts can be resolved."""

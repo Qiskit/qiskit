@@ -16,6 +16,7 @@
 from qiskit.exceptions import QiskitError
 from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
                                    DelayInstruction, SamplePulse)
+from qiskit.pulse import Schedule
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
                          PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
@@ -53,14 +54,29 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     meas_lo_range = qobj_config.pop('meas_lo_range', None)
     meas_map = qobj_config.pop('meas_map', None)
 
-    max_memory_slot = 0
-
     instruction_converter = instruction_converter(PulseQobjInstruction, **qobj_config)
 
     lo_converter = LoConfigConverter(PulseQobjExperimentConfig,
                                      qubit_lo_range=qubit_lo_range,
                                      meas_lo_range=meas_lo_range,
                                      **qobj_config)
+
+    # Find maximum number of memory slot and validate acquires
+    max_memory_slot = 0
+    for schedule in schedules:
+        # when command instruction is directly supplied,
+        # it should be converted into Schedule object to apply filter.
+        if not isinstance(schedule, Schedule):
+            schedule = schedule | Schedule()
+        all_acqs = schedule.filter(instruction_types=[AcquireInstruction])
+        for _, sub_acqs_inst in all_acqs.instructions:
+            max_memory_slot = max(max_memory_slot,
+                                  *[slot.index for slot in sub_acqs_inst.mem_slots])
+            # verify all acquires satisfy meas_map
+            if meas_map:
+                _validate_meas_map(sub_acqs_inst, meas_map)
+    # maximum index -> number of slot
+    max_memory_slot += 1
 
     # Pack everything into the Qobj
     qobj_schedules = []
@@ -87,18 +103,13 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
 
-            elif isinstance(instruction, AcquireInstruction):
-                max_memory_slot = max(max_memory_slot,
-                                      *[slot.index for slot in instruction.mem_slots])
-                if meas_map:
-                    # verify all acquires satisfy meas_map
-                    _validate_meas_map(instruction, meas_map)
-
             converted_instruction = instruction_converter(shift, instruction)
             qobj_instructions.append(converted_instruction)
 
         # experiment header
+        # TODO: check if these items are enough for other qiskit modules, e.g. ignis RB
         qobj_experiment_header = QobjExperimentHeader(
+            memory_slots=max_memory_slot,
             name=schedule.name or 'Experiment-%d' % idx
         )
 
@@ -108,7 +119,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         })
 
     # set number of memoryslots
-    qobj_config['memory_slots'] = max_memory_slot + 1
+    qobj_config['memory_slots'] = max_memory_slot
 
     # setup pulse_library
     qobj_config['pulse_library'] = [PulseLibraryItem(name=pulse.name, samples=pulse.samples)
