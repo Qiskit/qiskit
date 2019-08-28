@@ -394,11 +394,12 @@ def plot_state_city(rho, title="", figsize=None, color=None,
             ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
         else:
             ax2.axes.set_zlim3d(auto=True)
-        ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
-        ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
-        ax2.set_zlabel("Imag[rho]", fontsize=14)
-        for tick in ax2.zaxis.get_major_ticks():
-            tick.label.set_fontsize(14)
+            if min_dzi == 0:
+                ax2.set_zticks([0])
+                eps = 1e-9
+                ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
+            else:
+                ax2.axes.set_zlim3d(auto=True)
     fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
         if get_backend() in ['module://ipykernel.pylab.backend_inline',
