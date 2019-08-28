@@ -86,7 +86,7 @@ class TestSkipQobjValidation(QiskitAquaTestCase):
     def test_w_noise(self):
         """ with noise test """
         # build noise model
-        # Asymetric readout error on qubit-0 only
+        # Asymmetric readout error on qubit-0 only
         try:
             from qiskit.providers.aer.noise import NoiseModel
             from qiskit import Aer
