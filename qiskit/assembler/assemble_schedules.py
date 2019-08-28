@@ -97,12 +97,13 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
             qobj_instructions.append(converted_instruction)
 
         # memory slot size is memory slot index + 1 because index starts from zero
-        memory_slot_size = max(memory_slot_size, max_memory_slot + 1)
+        memory_slot_size_tmp = max_memory_slot + 1
+        memory_slot_size = max(memory_slot_size, memory_slot_size_tmp)
 
         # experiment header
         # TODO: check if these items are enough for other qiskit modules, e.g. ignis RB
         qobj_experiment_header = QobjExperimentHeader(
-            memory_slots=memory_slot_size,
+            memory_slots=memory_slot_size_tmp,
             name=schedule.name or 'Experiment-%d' % idx
         )
 
