@@ -856,7 +856,7 @@ class DAGCircuit:
 
                 self._multi_graph.remove_edge(p[0], self.output_map[w])
 
-    def substitute_node(self, node, op):
+    def substitute_node(self, node, op, inplace=False):
         """Replace a DAGNode with a single instruction. qargs, cargs and
         conditions for the new instruction will be inferred from the node to be
         replaced. The new instruction will be checked to match the shape of the
@@ -865,6 +865,9 @@ class DAGCircuit:
         Args:
             node (DAGNode): Node to be replaced
             op (Instruction): The Instruction instance to be added to the DAG
+            inplace (bool): Optional, default False. If True, existing DAG node
+                will be modified to include op. Otherwise, a new DAG node will
+                be used.
 
         Returns:
             DAGNode: the new node containing the added instruction.
@@ -886,6 +889,10 @@ class DAGCircuit:
                 'instruction of mismatched with ({} qubits, {} clbits).'.format(
                     node.op.num_qubits, node.op.num_clbits,
                     op.num_qubits, op.num_clbits))
+
+        if inplace:
+            node.data_dict['op'] = op
+            return node
 
         self._max_node_id += 1
         new_data_dict = node.data_dict.copy()
