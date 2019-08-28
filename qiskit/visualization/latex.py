@@ -372,8 +372,7 @@ class QCircuitImage:
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     if len(qarglist) == 1:
-                        pos_1 = self.img_regs[(qarglist[0].register,
-                                               qarglist[0].index)]
+                        pos_1 = self.img_regs[qarglist[0]]
 
                         if op.condition:
                             mask = self._get_mask(op.condition[0])
@@ -611,9 +610,9 @@ class QCircuitImage:
                                                                      nm)
 
                     elif len(qarglist) == 3:
-                        pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
-                        pos_2 = self.img_regs[(qarglist[1].register, qarglist[1].index)]
-                        pos_3 = self.img_regs[(qarglist[2].register, qarglist[2].index)]
+                        pos_1 = self.img_regs[qarglist[0]]
+                        pos_2 = self.img_regs[qarglist[1]]
+                        pos_3 = self.img_regs[qarglist[2]]
 
                         if op.condition:
                             pos_4 = self.img_regs[(if_reg, 0)]

@@ -368,7 +368,7 @@ class DAGCircuit:
                         size = max(map(lambda x: x.index,
                                        filter(lambda x: x.register == edge_map[k[0]].register,
                                               edge_map.values())))
-                        qreg = QuantumRegister(size + 1, edge_map[(k, 0)].register.name)
+                        qreg = QuantumRegister(size + 1, edge_map[k[0]].register.name)
                         add_regs.add(qreg)
         return add_regs
 
