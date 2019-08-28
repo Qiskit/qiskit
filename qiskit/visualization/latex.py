@@ -769,8 +769,9 @@ class QCircuitImage:
                         start = self.img_regs[start_bit]
                         span = len(op.qargs) - 1
 
-                        self._latex[start][column] = "\\qw \\barrier{" + str(
+                        self._latex[start][column - 1] += " \\barrier[0em]{" + str(
                             span) + "}"
+                        self._latex[start][column] = "\\qw"
                 else:
                     raise exceptions.VisualizationError("bad node data")
 
