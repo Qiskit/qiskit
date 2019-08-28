@@ -20,8 +20,13 @@ The format is based on [Keep a Changelog].
 -   A new layout selector, `CSPLayout`. The pass models the problem of layout
     selection as set of constraints and uses backtracking to solve it, if possible.
 
+### Fixed
+
+-   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
+
 ### Removed
 
+-   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
     methods directly.
 
