@@ -26,6 +26,7 @@ import math
 import numpy as np
 
 try:
+    from matplotlib import get_backend
     from matplotlib import patches
     from matplotlib import pyplot as plt
     HAS_MATPLOTLIB = True
@@ -484,7 +485,9 @@ class MatplotlibDrawer:
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        plt.close(self.figure)
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(self.figure)
         return self.figure
 
     def _draw_regs(self):
