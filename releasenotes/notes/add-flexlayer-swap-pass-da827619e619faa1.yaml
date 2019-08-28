@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added a `FlexlayerSwap` pass, that implements a look-ahead heuristic
+    mapping algorithm. It can be used by replacing the `StochasticSwap`,
+    for example::
+
+      # in transpile/preset_passmanagers/level1.py
+      from qiskit.transpiler.passes import FlexlayerSwap
+
+      FlexlayerSwap(coupling_map),  # instead of StochasticSwap(...),
