@@ -100,7 +100,7 @@ def _maybe_add_aer_expectation_instruction(qobj, options):
         num_qubits = options['expectation']['num_qubits']
 
         for idx in range(len(qobj.experiments)):
-            # if mulitple params are provided, we assume that each circuit is corresponding one param
+            # if multiple params are provided, we assume that each circuit is corresponding one param
             # otherwise, params are used for all circuits.
             param_idx = idx if len(params) > 1 else 0
             snapshot_pos = get_instr_pos(qobj, idx, 'snapshot')
@@ -380,7 +380,7 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
                                            "from backend again.".format(job_id))
                             job = backend.retrieve_job(job_id)
                     break
-                # for other cases, resumbit the qobj until the result is available.
+                # for other cases, resubmit the qobj until the result is available.
                 # since if there is no result returned, there is no way algorithm can do any process
                 else:
                     # get back the qobj first to avoid for job is consumed
