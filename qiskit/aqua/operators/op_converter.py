@@ -136,12 +136,12 @@ def to_tpb_grouped_weighted_pauli_operator(operator, grouping_func, **kwargs):
         kwargs: other setting for `grouping_func` function
 
     Returns:
-        TPBGroupedWeightedPauliOperator: the converted tesnor-product-basis grouped weighted pauli operator
+        TPBGroupedWeightedPauliOperator: the converted tensor-product-basis grouped weighted pauli operator
     """
     if operator.__class__ == WeightedPauliOperator:
         return grouping_func(operator, **kwargs)
     elif operator.__class__ == TPBGroupedWeightedPauliOperator:
-        # different tpb grouning approach is asked
+        # different tpb grounding approach is asked
         if grouping_func != operator.grouping_func and kwargs != operator.kwargs:
             return grouping_func(operator, **kwargs)
         else:
