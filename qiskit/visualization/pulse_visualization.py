@@ -53,6 +53,7 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         matplotlib.figure: A matplotlib figure object for the pulse envelope
     Raises:
         VisualizationError: when invalid data is given or lack of information
+        ImportError: when matplotlib is not installed
     """
     if not _matplotlib.HAS_MATPLOTLIB:
         raise ImportError('Must have Matplotlib installed.')
