@@ -1330,3 +1330,90 @@ class DAGCircuit:
         """
         from qiskit.visualization.dag_visualization import dag_drawer
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
+
+    def _raise_if_invalid(self):
+        """Validates the internal consistency of a DAGCircuit._multi_graph.
+        Intended for use in testing.
+
+        Raises:
+           DAGCircuitError: if DAGCircuit._multi_graph is inconsistent.
+        """
+
+        multi_graph = self._multi_graph
+
+        if not nx.is_directed_acyclic_graph(multi_graph):
+            raise DAGCircuitError('multi_graph is not a DAG.')
+
+        # Every node should be of type in, out, or op.
+        # All input/output nodes should be present in input_map/output_map.
+        for node in multi_graph.nodes():
+            if node.type == 'in':
+                assert node is self.input_map[node.wire]
+            elif node.type == 'out':
+                assert node is self.output_map[node.wire]
+            elif node.type == 'op':
+                continue
+            else:
+                raise DAGCircuitError('Found node of unexpected type: {}'.format(
+                    node.type))
+
+        # Shape of node.op should match shape of node.
+        for node in self.op_nodes():
+            assert len(node.qargs) == node.op.num_qubits
+            assert len(node.cargs) == node.op.num_clbits
+
+        # Every edge should be labled with a known wire.
+        edges_outside_wires = [edge_data['wire']
+                               for source, dest, edge_data
+                               in multi_graph.edges(data=True)
+                               if edge_data['wire'] not in self.wires]
+        if edges_outside_wires:
+            raise DAGCircuitError('multi_graph contains one or more edges ({}) '
+                                  'not found in DAGCircuit.wires ({}).'.format(
+                                      edges_outside_wires, self.wires))
+
+        # Every wire should have exactly one input node and one output node.
+        for wire in self.wires:
+            in_node = self.input_map[wire]
+            out_node = self.output_map[wire]
+
+            assert in_node.wire == wire
+            assert out_node.wire == wire
+            assert in_node.type == 'in'
+            assert out_node.type == 'out'
+
+        # Every wire should be propagated by exactly one edge between nodes.
+        for wire in self.wires:
+            cur_node = self.input_map[wire]
+            out_node = self.output_map[wire]
+
+            while cur_node != out_node:
+                out_edges = multi_graph.out_edges(cur_node, data=True)
+                edges_to_follow = [(src, dest, data) for (src, dest, data) in out_edges
+                                   if data['wire'] == wire]
+
+                assert len(edges_to_follow) == 1
+                cur_node = edges_to_follow[0][1]
+
+        # Wires can only terminate at input/output nodes.
+        for op_node in self.op_nodes():
+            assert multi_graph.in_degree(op_node) == multi_graph.out_degree(op_node)
+
+        # Node input/output edges should match node qarg/carg/condition.
+        for node in self.op_nodes():
+            in_edges = multi_graph.in_edges(node, data=True)
+            out_edges = multi_graph.out_edges(node, data=True)
+
+            in_wires = {data['wire'] for src, dest, data in in_edges}
+            out_wires = {data['wire'] for src, dest, data in out_edges}
+
+            node_cond_bits = set(node.condition[0][:] if node.condition is not None else [])
+            node_qubits = set(node.qargs)
+            node_clbits = set(node.cargs)
+
+            all_bits = node_qubits | node_clbits | node_cond_bits
+
+            assert in_wires == all_bits, 'In-edge wires {} != node bits {}'.format(
+                in_wires, all_bits)
+            assert out_wires == all_bits, 'Out-edge wires {} != node bits {}'.format(
+                out_wires, all_bits)

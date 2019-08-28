@@ -838,6 +838,7 @@ class TestDagSubstituteNode(QiskitTestCase):
 
         replacement_node = dag.substitute_node(node_to_be_replaced, CzGate())
 
+        dag._raise_if_invalid()
         self.assertEqual(replacement_node.name, 'test_name')
         self.assertEqual(replacement_node.qargs, [qr[1], qr[0]])
         self.assertEqual(replacement_node.cargs, [])
@@ -860,6 +861,7 @@ class TestDagSubstituteNode(QiskitTestCase):
 
         replacement_node = dag.substitute_node(node_to_be_replaced, U1Gate(0.1))
 
+        dag._raise_if_invalid()
         self.assertEqual(set(dag.predecessors(replacement_node)), predecessors)
         self.assertEqual(set(dag.successors(replacement_node)), successors)
         self.assertEqual(dag.ancestors(replacement_node), ancestors)
