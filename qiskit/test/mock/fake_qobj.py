@@ -13,7 +13,7 @@
 # that they have been altered from the originals.
 
 """
-Fake Boeblingen device (20 qubit).
+Base Fake Qobj.
 """
 
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
