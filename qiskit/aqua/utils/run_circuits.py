@@ -148,7 +148,7 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
 
     The autorecovery feature is only applied for non-simulator backend.
-    This wraper will try to get the result no matter how long it costs.
+    This wrapper will try to get the result no matter how long it costs.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
@@ -416,7 +416,7 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
     An execution wrapper with Qiskit-Terra, with job auto recover capability.
 
     The autorecovery feature is only applied for non-simulator backend.
-    This wraper will try to get the result no matter how long it costs.
+    This wrapper will try to get the result no matter how long it costs.
 
     Args:
         circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
