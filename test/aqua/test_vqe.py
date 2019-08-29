@@ -17,9 +17,11 @@
 import unittest
 import os
 from test.aqua.common import QiskitAquaTestCase
+
 import numpy as np
 from parameterized import parameterized
 from qiskit import BasicAer
+
 from qiskit.aqua import run_algorithm, QuantumInstance, aqua_globals
 from qiskit.aqua.input import EnergyInput
 from qiskit.aqua.operators import WeightedPauliOperator
@@ -33,7 +35,9 @@ class TestVQE(QiskitAquaTestCase):
     """ Test VQE """
     def setUp(self):
         super().setUp()
-        np.random.seed(50)
+        # np.random.seed(50)
+        self.seed = 50
+        aqua_globals.random_seed = self.seed
         pauli_dict = {
             'paulis': [{"coeff": {"imag": 0.0, "real": -1.052373245772859}, "label": "II"},
                        {"coeff": {"imag": 0.0, "real": 0.39793742484318045}, "label": "IZ"},
@@ -51,6 +55,7 @@ class TestVQE(QiskitAquaTestCase):
         basis_gates = ['u1', 'u2', 'u3', 'cx', 'id']
 
         params = {
+            'problem': {'random_seed': self.seed},
             'algorithm': {'name': 'VQE'},
             'backend': {'name': 'statevector_simulator',
                         'provider': 'qiskit.BasicAer',
@@ -107,7 +112,9 @@ class TestVQE(QiskitAquaTestCase):
         var_form = RY(num_qubits, 3)
         optimizer = SPSA(max_trials=300, last_avg=5)
         algo = VQE(self.algo_input.qubit_op, var_form, optimizer, max_evals_grouped=1)
-        quantum_instance = QuantumInstance(backend, shots=10000)
+        quantum_instance = QuantumInstance(backend, shots=10000,
+                                           seed_simulator=self.seed,
+                                           seed_transpiler=self.seed)
         result = algo.run(quantum_instance)
         self.assertAlmostEqual(result['energy'], -1.85727503, places=2)
 
