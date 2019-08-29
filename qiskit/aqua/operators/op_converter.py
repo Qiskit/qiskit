@@ -138,7 +138,7 @@ def to_tpb_grouped_weighted_pauli_operator(operator, grouping_func, **kwargs):
     if operator.__class__ == WeightedPauliOperator:
         return grouping_func(operator, **kwargs)
     elif operator.__class__ == TPBGroupedWeightedPauliOperator:
-        # different tpb grouning approach is asked
+        # different tpb grouping approach is asked
         if grouping_func != operator.grouping_func and kwargs != operator.kwargs:
             return grouping_func(operator, **kwargs)
         else:
