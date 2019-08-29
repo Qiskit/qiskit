@@ -37,7 +37,7 @@ class DIRECT_L_RAND(Optimizer):
         'name': 'DIRECT_L_RAND',
         'description': 'GN_DIRECT_L_RAND Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'direct_l_rand_schema',
             'type': 'object',
             'properties': {

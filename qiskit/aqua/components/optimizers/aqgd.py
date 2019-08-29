@@ -33,7 +33,7 @@ class AQGD(Optimizer):
         'name': 'AQGD',
         'description': 'Analytic Quantum Gradient Descent Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'aqgd_schema',
             'type': 'object',
             'properties': {

@@ -24,7 +24,7 @@ class RYRZ(VariationalForm):
         'name': 'RYRZ',
         'description': 'RYRZ Variational Form',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'ryrz_schema',
             'type': 'object',
             'properties': {

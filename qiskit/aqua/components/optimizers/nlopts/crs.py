@@ -36,7 +36,7 @@ class CRS(Optimizer):
         'name': 'CRS',
         'description': 'GN_CRS2_LM Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'crs_schema',
             'type': 'object',
             'properties': {

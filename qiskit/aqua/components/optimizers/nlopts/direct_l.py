@@ -37,7 +37,7 @@ class DIRECT_L(Optimizer):
         'name': 'DIRECT_L',
         'description': 'GN_DIRECT_L Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'direct_l_schema',
             'type': 'object',
             'properties': {

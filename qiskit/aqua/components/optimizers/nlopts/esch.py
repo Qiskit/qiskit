@@ -36,7 +36,7 @@ class ESCH(Optimizer):
         'name': 'ESCH',
         'description': 'GN_ESCH Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'esch_schema',
             'type': 'object',
             'properties': {

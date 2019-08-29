@@ -32,7 +32,7 @@ class L_BFGS_B(Optimizer):
         'name': 'L_BFGS_B',
         'description': 'L_BFGS_B Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'l_bfgs_b_schema',
             'type': 'object',
             'properties': {

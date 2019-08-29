@@ -48,7 +48,7 @@ class QuantumAlgorithm(Pluggable):
         """Execute the algorithm with selected backend.
 
         Args:
-            quantum_instance (QuantumInstance or BaseBackend): the experiemental setting.
+            quantum_instance (QuantumInstance or BaseBackend): the experimental setting.
 
         Returns:
             dict: results of an algorithm.

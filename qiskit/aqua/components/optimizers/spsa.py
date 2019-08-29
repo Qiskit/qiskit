@@ -31,7 +31,7 @@ class SPSA(Optimizer):
         'name': 'SPSA',
         'description': 'SPSA Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'spsa_schema',
             'type': 'object',
             'properties': {
@@ -94,10 +94,10 @@ class SPSA(Optimizer):
 
         Args:
             max_trials (int): Maximum number of iterations to perform.
-            save_steps (int): Save intermeditate info every save_steps step.
-            last_avg (int): Averged parameters over the last_avg iterations.
+            save_steps (int): Save intermediate info every save_steps step.
+            last_avg (int): Averaged parameters over the last_avg iterations.
                             If last_avg = 1, only the last iteration is considered.
-            c0 (float): The initial a. Step size to update paramters.
+            c0 (float): The initial a. Step size to update parameters.
             c1 (float): The initial c. The step size used to approximate gradient.
             c2 (float): The alpha in the paper, and it is used to adjust a (c0) at each iteration.
             c3 (float): The gamma in the paper, and it is used to adjust c (c1) at each iteration.
