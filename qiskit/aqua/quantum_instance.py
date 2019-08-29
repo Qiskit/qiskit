@@ -127,14 +127,6 @@ class QuantumInstance:
             'coupling_map': coupling_map
         }
 
-        if circuit_caching:
-            if optimization_level is None or optimization_level == 0:
-                optimization_level = 0
-            else:
-                circuit_caching = False
-                logger.warning('CircuitCache cannot be used with optimization_level {}. '
-                               'Caching has been disabled. To re-enable, please set '
-                               'optimization_level = 0 or None.'.format(optimization_level))
         # setup compile config
         self._compile_config = {
             'pass_manager': pass_manager,
@@ -188,17 +180,21 @@ class QuantumInstance:
 
         # setup others
         # TODO: allow an external way to overwrite the setting circuit cache temporally
-        if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False):
-            skip_qobj_deepcopy = True
-            self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
-                                               cache_file=cache_file)
-        else:
-            if circuit_caching:
-                self._circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
-                                                   cache_file=cache_file)
+        # when either setup cache via env variable or constructor, the optimization level will be
+        # change to 0 to assure cache works.
+        circuit_cache = None
+        if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False) or circuit_caching:
+            if optimization_level is None or optimization_level == 0:
+                self._compile_config['optimization_level'] = 0
+                skip_qobj_deepcopy = True
+                circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
+                                             cache_file=cache_file)
             else:
-                self._circuit_cache = None
+                logger.warning('CircuitCache cannot be used with optimization_level %s. '
+                               'Caching has been disabled. To re-enable, please set '
+                               'optimization_level = 0 or None.', optimization_level)
 
+        self._circuit_cache = circuit_cache
         if is_ibmq_provider(self._backend):
             if skip_qobj_validation:
                 logger.warning("The skip Qobj validation does not work for IBMQ provider. Disable it.")
