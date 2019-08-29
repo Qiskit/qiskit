@@ -124,29 +124,6 @@ class Interval:
             return True
         return False
 
-    def __lt__(self, other):
-        """If interval stops before other interval.
-
-        Args:
-            other (Interval): other Interval
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return self.stops_before(other)
-
-    def __gt__(self, other):
-        """Interval is greater than other if it starts at a time less than or equal to the
-        other interval's stopping time.
-
-        Args:
-            other (Interval): other Interval
-
-        Returns:
-            bool: are self and other equal.
-        """
-        return self.starts_after(other)
-
     def __repr__(self):
         """Return a readable representation of Interval Object"""
         return "{}({}, {})".format(self.__class__.__name__, self.start, self.stop)
