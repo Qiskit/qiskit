@@ -135,7 +135,8 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
 
 def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
         until: Optional[int] = None) -> Schedule:
-    """Pad the input Schedule with `Delay`s on all unoccupied timeslots until `schedule.duration`.
+    """Pad the input Schedule with `Delay`s on all unoccupied timeslots until `schedule.duration`
+       or `until` if not `None`.
 
     Args:
         schedule: Schedule to pad.
