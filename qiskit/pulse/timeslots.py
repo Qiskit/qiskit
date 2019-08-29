@@ -423,11 +423,14 @@ class TimeslotCollection:
         for channel in self.channels:
             for timeslot in self.ch_timeslots(channel):
                 next_time = timeslot.interval.start
-                add_empty_timeslot(curr_time, next_time, channel)
+                if next_time-curr_time > 0:
+                    timeslots.append(Timeslot(Interval(curr_time, next_time), channel))
+
                 curr_time = timeslot.interval.stop
 
-            # pad out to stop_time
-            add_empty_timeslot(curr_time, stop_time, channel)
+            # pad out channel to stop_time
+            if stop_time-curr_time > 0:
+                timeslots.append(Timeslot(Interval(curr_time, stop_time), channel))
 
         return TimeslotCollection(*timeslots)
 

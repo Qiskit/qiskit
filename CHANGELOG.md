@@ -15,6 +15,17 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Fixed
+-   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
+
+### Removed
+
+-   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
+-   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
+    methods directly.
+
+## [0.9.0] - 2019-08-22
+
 ### Deprecated
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
@@ -61,6 +72,7 @@ The format is based on [Keep a Changelog].
     operations (+,-,*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
+-   dag.draw() method to visualize DAGCircuit objects (#3016)
 
 
 ### Changed
@@ -97,8 +109,10 @@ The format is based on [Keep a Changelog].
 -   Replaces `LegacySwap` by faster, more stable `StochasticSwap` pass (\#2672)
 -   Uses level 1 by default as transpiler optimization level (\#2672)
 -   Change `Snapshot` signature to match `simulator.snapshot` (\#2592)
--   `DAGCircuit.width()` formerly returned number of qubits, now returns total number of qubits + classical bits (\#2564)
--   Functions assuming the former semantics of `DAGCircuit.width()` now call `DAGCircuit.num_qubits()` (\#2564)
+-   `DAGCircuit.width()` formerly returned number of qubits, now returns total
+    number of qubits + classical bits (\#2564)
+-   Functions assuming the former semantics of `DAGCircuit.width()` now call
+    `DAGCircuit.num_qubits()` (\#2564)
 -   `DAGCircuit.num_cbits()` renamed to `DAGCircuit.num_clbits()` (\#2564)
 -   Changed definition of `Cu3Gate` to to equivalent to the canonical
     definition of a controlled `U3Gate` (\#2755)
@@ -109,8 +123,8 @@ The format is based on [Keep a Changelog].
     using the option ``with_layout=False`` in the method
     ``QuantumCircuit.draw``. (\#2739)
 -   Q-sphere visualization is enhanced and corrected (\#2932)
+-   Shorter CH gate definition involving only 1 CX (\#2837)
 -   Now PassManager.draw() (without any argument) will return an in-memory PIL image.
-
 
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
@@ -1254,7 +1268,8 @@ The format is based on [Keep a Changelog].
 -   Correct operator precedence when parsing expressions (\#190).
 -   Fix \"math domain error\" in mapping (\#111, \#151).
 
-[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...HEAD
+[UNRELEASED]: https://github.com/Qiskit/qiskit-terra/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/Qiskit/qiskit-terra/compare/0.8.2...0.9.0
 [0.8.2]: https://github.com/Qiskit/qiskit-terra/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/Qiskit/qiskit-terra/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/Qiskit/qiskit-terra/compare/0.7.2...0.8.0

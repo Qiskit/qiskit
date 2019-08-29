@@ -23,7 +23,7 @@ import unittest
 
 from unittest.mock import patch
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import new_fake_qobj, FakeRueschlikon
+from qiskit.test.mock import FakeQobj, FakeRueschlikon
 
 
 class TestSimulatorsJob(QiskitTestCase):
@@ -41,7 +41,7 @@ class TestSimulatorsJob(QiskitTestCase):
         backend = FakeRueschlikon()
         with mocked_executor() as (SimulatorJob, executor):
             for index in range(taskcount):
-                job = SimulatorJob(backend, job_id, target_tasks[index], new_fake_qobj())
+                job = SimulatorJob(backend, job_id, target_tasks[index], FakeQobj())
                 job.submit()
 
         self.assertEqual(executor.submit.call_count, taskcount)
@@ -59,7 +59,7 @@ class TestSimulatorsJob(QiskitTestCase):
         job_id = str(uuid.uuid4())
         backend = FakeRueschlikon()
         with mocked_executor() as (BasicAerJob, executor):
-            job = BasicAerJob(backend, job_id, lambda: None, new_fake_qobj())
+            job = BasicAerJob(backend, job_id, lambda: None, FakeQobj())
             job.submit()
             job.cancel()
 

@@ -11,6 +11,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+# pylint: disable=invalid-name
+
 """
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
@@ -27,25 +30,11 @@ except ImportError:
     HAS_PIL = False
 
 from qiskit.visualization import utils
+from qiskit.visualization.exceptions import VisualizationError
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
 
 DEFAULT_STYLE = {AnalysisPass: 'red',
                  TransformationPass: 'blue'}
-
-try:
-    import subprocess
-
-    _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-    _PROC.communicate()
-    if _PROC.returncode != 0:
-        HAS_GRAPHVIZ = False
-    else:
-        HAS_GRAPHVIZ = True
-except Exception:  # pylint: disable=broad-except
-    # this is raised when the dot command cannot be found, which means GraphViz
-    # isn't installed
-    HAS_GRAPHVIZ = False
 
 
 def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
@@ -70,7 +59,23 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
                            no image was generated or PIL is not installed.
     Raises:
         ImportError: when nxpd or pydot not installed.
+        VisualizationError: If raw=True and filename=None.
     """
+
+    try:
+        import subprocess
+
+        _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        _PROC.communicate()
+        if _PROC.returncode != 0:
+            HAS_GRAPHVIZ = False
+        else:
+            HAS_GRAPHVIZ = True
+    except Exception:  # pylint: disable=broad-except
+        # this is raised when the dot command cannot be found, which means GraphViz
+        # isn't installed
+        HAS_GRAPHVIZ = False
 
     try:
         import pydot
@@ -151,8 +156,12 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
         graph.add_subgraph(subgraph)
 
-    if raw and filename:
-        graph.write(filename, format='raw')
+    if raw:
+        if filename:
+            graph.write(filename, format='raw')
+            return None
+        else:
+            raise VisualizationError("if format=raw, then a filename is required.")
 
     if not HAS_PIL and filename:
         # linter says this isn't a method - it is
