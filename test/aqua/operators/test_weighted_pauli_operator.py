@@ -34,13 +34,12 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
     def setUp(self):
         super().setUp()
         seed = 0
-        np.random.seed(seed)
         aqua_globals.random_seed = seed
 
         self.num_qubits = 3
         paulis = [Pauli.from_label(pauli_label)
                   for pauli_label in itertools.product('IXYZ', repeat=self.num_qubits)]
-        weights = np.random.random(len(paulis))
+        weights = aqua_globals.random.random_sample(len(paulis))
         self.qubit_op = WeightedPauliOperator.from_list(paulis, weights)
         self.var_form = RYRZ(self.qubit_op.num_qubits, 1)
 
@@ -465,7 +464,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
     def test_evaluate_qasm_mode(self):
         """ evaluate qasm mode test """
         wave_function = self.var_form.construct_circuit(
-            np.array(np.random.randn(self.var_form.num_parameters)))
+            np.array(aqua_globals.random.randn(self.var_form.num_parameters)))
 
         circuits = self.qubit_op.construct_evaluation_circuit(
             wave_function=wave_function, statevector_mode=True)
@@ -483,7 +482,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
     def test_evaluate_statevector_mode(self):
         """ evaluate statevector mode test """
         wave_function = self.var_form.construct_circuit(
-            np.array(np.random.randn(self.var_form.num_parameters)))
+            np.array(aqua_globals.random.randn(self.var_form.num_parameters)))
         wave_fn_statevector = \
             self.quantum_instance_statevector.execute(wave_function).get_statevector(wave_function)
         # use matrix operator as reference:
@@ -507,7 +506,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         quantum_instance_statevector = QuantumInstance(statevector_simulator, shots=1)
 
         wave_function = self.var_form.construct_circuit(
-            np.array(np.random.randn(self.var_form.num_parameters)))
+            np.array(aqua_globals.random.randn(self.var_form.num_parameters)))
 
         circuits = self.qubit_op.construct_evaluation_circuit(wave_function=wave_function,
                                                               statevector_mode=True)
@@ -537,7 +536,7 @@ class TestWeightedPauliOperator(QiskitAquaTestCase):
         num_qubits = 2
         paulis = [Pauli.from_label(pauli_label)
                   for pauli_label in itertools.product('IXYZ', repeat=num_qubits)]
-        weights = np.random.random(len(paulis))
+        weights = aqua_globals.random.random_sample(len(paulis))
         pauli_op = WeightedPauliOperator.from_list(paulis, weights)
         matrix_op = op_converter.to_matrix_operator(pauli_op)
         state_in = Custom(num_qubits, state='random')

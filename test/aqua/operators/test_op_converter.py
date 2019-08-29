@@ -17,8 +17,10 @@
 import unittest
 import itertools
 from test.aqua.common import QiskitAquaTestCase
+
 import numpy as np
 from qiskit.quantum_info import Pauli
+
 from qiskit.aqua import aqua_globals
 from qiskit.aqua.operators import op_converter, WeightedPauliOperator, MatrixOperator
 
@@ -29,16 +31,15 @@ class TestOpConverter(QiskitAquaTestCase):
     def setUp(self):
         super().setUp()
         seed = 0
-        np.random.seed(seed)
         aqua_globals.random_seed = seed
 
         self.num_qubits = 2
         m_size = np.power(2, self.num_qubits)
-        matrix = np.random.rand(m_size, m_size)
+        matrix = aqua_globals.random.rand(m_size, m_size)
         self.mat_op = MatrixOperator(matrix=matrix)
         paulis = [Pauli.from_label(pauli_label)
                   for pauli_label in itertools.product('IXYZ', repeat=self.num_qubits)]
-        weights = np.random.random(len(paulis))
+        weights = aqua_globals.random.random_sample(len(paulis))
         self.pauli_op = WeightedPauliOperator.from_list(paulis, weights)
 
     def test_to_weighted_pauli_operator(self):
