@@ -182,7 +182,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
     def _add_or_sub(self, other, operation, copy=True):
         """
         Add two operators either extend (in-place) or combine (copy) them.
-        The addition performs optimized combiniation of two operators.
+        The addition performs optimized combination of two operators.
         If `other` has identical basis, the coefficient are combined rather than
         appended.
 
