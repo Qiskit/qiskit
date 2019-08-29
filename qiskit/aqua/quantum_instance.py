@@ -180,8 +180,8 @@ class QuantumInstance:
 
         # setup others
         # TODO: allow an external way to overwrite the setting circuit cache temporally
-        # when either setup cache via env variable or constructor, the optimization level will be
-        # change to 0 to assure cache works.
+        # when either setup cache via environment variable or constructor,
+        # the optimization level will be change to 0 to assure cache works.
         circuit_cache = None
         if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False) or circuit_caching:
             if optimization_level is None or optimization_level == 0:
