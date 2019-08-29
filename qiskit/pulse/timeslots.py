@@ -106,9 +106,7 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self.stop <= other.start:
-            return True
-        return False
+        return self.stop <= other.start
 
     def starts_after(self, other):
         """Whether intervals starts at value greater than or equal to the
@@ -120,9 +118,7 @@ class Interval:
         Returns:
             bool: are self and other equal.
         """
-        if self.start >= other.stop:
-            return True
-        return False
+        return self.start >= other.stop
 
     def __repr__(self):
         """Return a readable representation of Interval Object"""
