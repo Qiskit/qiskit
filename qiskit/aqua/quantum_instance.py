@@ -186,7 +186,8 @@ class QuantumInstance:
         if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False) or circuit_caching:
             if optimization_level is None or optimization_level == 0:
                 self._compile_config['optimization_level'] = 0
-                skip_qobj_deepcopy = True
+                skip_qobj_deepcopy = True if os.environ.get('QISKIT_AQUA_CIRCUIT_CACHE', False) \
+                    else skip_qobj_deepcopy
                 circuit_cache = CircuitCache(skip_qobj_deepcopy=skip_qobj_deepcopy,
                                              cache_file=cache_file)
             else:
