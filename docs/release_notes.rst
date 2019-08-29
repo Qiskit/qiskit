@@ -293,11 +293,11 @@ New Features
   passed a set of kwargs on each call with the state of the pass maanger after
   each pass execution. Currently these kwargs are:
 
-   * ``pass_`` (``Pass``): the pass being run
-   * ``dag`` (``DAGCircuit``): the dag output of the pass
-   * ``time`` (``float``): the time to execute the pass
-   * ``property_set`` (``PropertySet``): the property set
-   * ``count`` (``int``): the index for the pass execution
+  * ``pass_`` (``Pass``): the pass being run
+  * ``dag`` (``DAGCircuit``): the dag output of the pass
+  * ``time`` (``float``): the time to execute the pass
+  * ``property_set`` (``PropertySet``): the property set
+  * ``count`` (``int``): the index for the pass execution
 
   However, it's worth noting that while these arguments are set for the 0.9
   release they expose the internals of the pass manager and are subject to
@@ -410,18 +410,19 @@ New Features
   equivalent up to global phase.
 
 - The user config file has several new options:
-   * The ``circuit_drawer`` field now accepts an `auto` value. When set as
-     the value for the ``circuit_drawer`` field the default drawer backend
-     will be `mpl` if it is available, otherwise the `text` backend will be
-     used.
-   * A new field ``circuit_mpl_style`` can be used to set the default style
-     used by the matplotlib circuit drawer. Valid values for this field are
-     ``bw`` and ``default`` to set the default to a black and white or the
-     default color style respectively.
-   * A new field ``transpile_optimization_level`` can be used to set the
-     default transpiler optimization level to use for calls to
-     ``qiskit.compiler.transpile()``. The value can be set to either 0, 1, 2,
-     or 3.
+
+  * The ``circuit_drawer`` field now accepts an `auto` value. When set as
+    the value for the ``circuit_drawer`` field the default drawer backend
+    will be `mpl` if it is available, otherwise the `text` backend will be
+    used.
+  * A new field ``circuit_mpl_style`` can be used to set the default style
+    used by the matplotlib circuit drawer. Valid values for this field are
+    ``bw`` and ``default`` to set the default to a black and white or the
+    default color style respectively.
+  * A new field ``transpile_optimization_level`` can be used to set the
+    default transpiler optimization level to use for calls to
+    ``qiskit.compiler.transpile()``. The value can be set to either 0, 1, 2,
+    or 3.
 
 - Introduced a new pulse command ``Delay`` which may be inserted into a pulse
   ``Schedule``. This command accepts a ``duration`` and may be added to any
@@ -481,54 +482,54 @@ Upgrade Notes
 - The following deprecated ``qiskit.dagcircuit.DAGCircuit`` methods have been
   removed:
 
-    * ``DAGCircuit.get_qubits()`` - Use ``DAGCircuit.qubits()`` instead
-    * ``DAGCircuit.get_bits()`` - Use ``DAGCircuit.clbits()`` instead
-    * ``DAGCircuit.qasm()`` - Use a combination of
-      ``qiskit.converters.dag_to_circuit()`` and ``QuantumCircuit.qasm()``. For
-      example::
+  * ``DAGCircuit.get_qubits()`` - Use ``DAGCircuit.qubits()`` instead
+  * ``DAGCircuit.get_bits()`` - Use ``DAGCircuit.clbits()`` instead
+  * ``DAGCircuit.qasm()`` - Use a combination of
+    ``qiskit.converters.dag_to_circuit()`` and ``QuantumCircuit.qasm()``. For
+    example::
 
-        from qiskit.dagcircuit import DAGCircuit
-        from qiskit.converters import dag_to_circuit
-        my_dag = DAGCircuit()
-        qasm = dag_to_circuit(my_dag).qasm()
+      from qiskit.dagcircuit import DAGCircuit
+      from qiskit.converters import dag_to_circuit
+      my_dag = DAGCircuit()
+      qasm = dag_to_circuit(my_dag).qasm()
 
-    * ``DAGCircuit.get_op_nodes()`` - Use ``DAGCircuit.op_nodes()`` instead.
-      Note that the return type is a list of ``DAGNode`` objects for
-      ``op_nodes()`` instead of the list of tuples previously returned by
-      ``get_op_nodes()``.
-    * ``DAGCircuit.get_gate_nodes()`` - Use ``DAGCircuit.gate_nodes()``
-      instead. Note that the return type is a list of ``DAGNode`` objects for
-      ``gate_nodes()`` instead of the list of tuples previously returned by
-      ``get_gate_nodes()``.
-    * ``DAGCircuit.get_named_nodes()`` - Use ``DAGCircuit.named_nodes()``
-      instead. Note that the return type is a list of ``DAGNode`` objects for
-      ``named_nodes()`` instead of the list of node_ids previously returned by
-      ``get_named_nodes()``.
-    * ``DAGCircuit.get_2q_nodes()`` - Use ``DAGCircuit.twoQ_gates()``
-      instead. Note that the return type is a list of ``DAGNode`` objects for
-      ``twoQ_gates()`` instead of the list of data_dicts previously returned by
-      ``get_2q_nodes()``.
-    * ``DAGCircuit.get_3q_or_more_nodes()`` - Use
-      ``DAGCircuit.threeQ_or_more_gates()`` instead. Note that the return type
-      is a list of ``DAGNode`` objects for ``threeQ_or_more_gates()`` instead
-      of the list of tuples previously returned by ``get_3q_or_more_nodes()``.
+  * ``DAGCircuit.get_op_nodes()`` - Use ``DAGCircuit.op_nodes()`` instead.
+    Note that the return type is a list of ``DAGNode`` objects for
+    ``op_nodes()`` instead of the list of tuples previously returned by
+    ``get_op_nodes()``.
+  * ``DAGCircuit.get_gate_nodes()`` - Use ``DAGCircuit.gate_nodes()``
+    instead. Note that the return type is a list of ``DAGNode`` objects for
+    ``gate_nodes()`` instead of the list of tuples previously returned by
+    ``get_gate_nodes()``.
+  * ``DAGCircuit.get_named_nodes()`` - Use ``DAGCircuit.named_nodes()``
+    instead. Note that the return type is a list of ``DAGNode`` objects for
+    ``named_nodes()`` instead of the list of node_ids previously returned by
+    ``get_named_nodes()``.
+  * ``DAGCircuit.get_2q_nodes()`` - Use ``DAGCircuit.twoQ_gates()``
+    instead. Note that the return type is a list of ``DAGNode`` objects for
+    ``twoQ_gates()`` instead of the list of data_dicts previously returned by
+    ``get_2q_nodes()``.
+  * ``DAGCircuit.get_3q_or_more_nodes()`` - Use
+    ``DAGCircuit.threeQ_or_more_gates()`` instead. Note that the return type
+    is a list of ``DAGNode`` objects for ``threeQ_or_more_gates()`` instead
+    of the list of tuples previously returned by ``get_3q_or_more_nodes()``.
 
 - The following ``qiskit.dagcircuit.DAGCircuit`` methods had deprecated
   support for accepting a ``node_id`` as a parameter. This has been removed
   and now only ``DAGNode`` objects are accepted as input:
 
-    * ``successors()``
-    * ``predecessors()``
-    * ``ancestors()``
-    * ``descendants()``
-    * ``bfs_successors()``
-    * ``quantum_successors()``
-    * ``remove_op_node()``
-    * ``remove_ancestors_of()``
-    * ``remove_descendants_of()``
-    * ``remove_nonancestors_of()``
-    * ``remove_nondescendants_of()``
-    * ``substitute_node_with_dag()``
+  * ``successors()``
+  * ``predecessors()``
+  * ``ancestors()``
+  * ``descendants()``
+  * ``bfs_successors()``
+  * ``quantum_successors()``
+  * ``remove_op_node()``
+  * ``remove_ancestors_of()``
+  * ``remove_descendants_of()``
+  * ``remove_nonancestors_of()``
+  * ``remove_nondescendants_of()``
+  * ``substitute_node_with_dag()``
 
 - The ``qiskit.dagcircuit.DAGCircuit`` method ``rename_register()`` has been
   removed. This was unused by all the qiskit code. If you were relying on it
@@ -625,16 +626,16 @@ Upgrade Notes
 - The deprecated ``qiskit.mapper`` module has been removed. The list of
   functions and classes with their alternatives are:
 
-    * ``qiskit.mapper.CouplingMap``: ``qiskit.transpiler.CouplingMap`` should
-      be used instead.
-    * ``qiskit.mapper.Layout``: ``qiskit.transpiler.Layout`` should be used
-      instead
-    * ``qiskit.mapper.compiling.euler_angles_1q()``:
-      ``qiskit.quantum_info.synthesis.euler_angles_1q()`` should be used
-      instead
-    * ``qiskit.mapper.compiling.two_qubit_kak()``:
-      ``qiskit.quantum_info.synthesis.two_qubit_cnot_decompose()`` should be
-      used instead.
+  * ``qiskit.mapper.CouplingMap``: ``qiskit.transpiler.CouplingMap`` should
+    be used instead.
+  * ``qiskit.mapper.Layout``: ``qiskit.transpiler.Layout`` should be used
+    instead
+  * ``qiskit.mapper.compiling.euler_angles_1q()``:
+    ``qiskit.quantum_info.synthesis.euler_angles_1q()`` should be used
+    instead
+  * ``qiskit.mapper.compiling.two_qubit_kak()``:
+    ``qiskit.quantum_info.synthesis.two_qubit_cnot_decompose()`` should be
+    used instead.
 
   The deprecated exception classes ``qiskit.mapper.exceptions.CouplingError``
   and ``qiskit.mapper.exceptions.LayoutError`` don't have an alternative
@@ -749,11 +750,11 @@ Deprecation Notes
 - The module ``qiskit.pulse.ops`` has been deprecated. All the functions it
   provided:
 
-    * ``union``
-    * ``flatten``
-    * ``shift``
-    * ``insert``
-    * ``append``
+  * ``union``
+  * ``flatten``
+  * ``shift``
+  * ``insert``
+  * ``append``
 
   have equivalent methods available directly on the ``qiskit.pulse.Schedule``
   and ``qiskit.pulse.Instruction`` classes. Those methods should be used
@@ -792,9 +793,9 @@ Bug Fixes
   several issues with it. Now output Q Sphere visualization will be correctly
   generated and the following aspects have been updated:
 
-   * All complementary basis states are antipodal
-   * Phase is indicated by color of line and marker on sphere's surface
-   * Probability is indicated by translucency of line and volume of marker on
+  * All complementary basis states are antipodal
+  * Phase is indicated by color of line and marker on sphere's surface
+  * Probability is indicated by translucency of line and volume of marker on
      sphere's surface
 
 
@@ -2119,21 +2120,21 @@ in how to use the simplified API.
   and :class:`~qiskit.backends.basejob.BaseJob` are no longer properties,
   but methods, and as a result they need to be invoked as functions.
 
-=====================  ========================
-Qiskit Terra 0.5       Qiskit Terra 0.6
-=====================  ========================
-backend.name           backend.name()
-backend.status         backend.status()
-backend.configuration  backend.configuration()
-backend.calibration    backend.properties()
-backend.parameters     backend.jobs()
-                       backend.retrieve_job(job_id)
-job.status             job.status()
-job.cancelled          job.queue_position()
-job.running            job.cancel()
-job.queued
-job.done
-=====================  ========================
+  =====================  ========================
+  Qiskit Terra 0.5       Qiskit Terra 0.6
+  =====================  ========================
+  backend.name           backend.name()
+  backend.status         backend.status()
+  backend.configuration  backend.configuration()
+  backend.calibration    backend.properties()
+  backend.parameters     backend.jobs()
+                         backend.retrieve_job(job_id)
+  job.status             job.status()
+  job.cancelled          job.queue_position()
+  job.running            job.cancel()
+  job.queued
+  job.done
+  =====================  ========================
 
 
 Better Jupyter tools
