@@ -67,9 +67,10 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     user_pulselib = {}
     for idx, schedule in enumerate(schedules):
         # instructions
-        qobj_instructions = []
-        # Instructions are returned as tuple of shifted time and instruction
         max_memory_slot = 0
+        qobj_instructions = []
+
+        # Instructions are returned as tuple of shifted time and instruction
         for shift, instruction in schedule.instructions:
             # TODO: support conditional gate
 
@@ -91,19 +92,20 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                 max_memory_slot = max(max_memory_slot,
                                       *[slot.index for slot in instruction.mem_slots])
                 if meas_map:
+                    # verify all acquires satisfy meas_map
                     _validate_meas_map(instruction, meas_map)
 
             converted_instruction = instruction_converter(shift, instruction)
             qobj_instructions.append(converted_instruction)
 
         # memory slot size is memory slot index + 1 because index starts from zero
-        memory_slot_size_tmp = max_memory_slot + 1
-        memory_slot_size = max(memory_slot_size, memory_slot_size_tmp)
+        exp_memory_slot_size = max_memory_slot + 1
+        memory_slot_size = max(memory_slot_size, exp_memory_slot_size)
 
         # experiment header
-        # TODO: check if these items are enough for other qiskit modules, e.g. ignis RB
+        # TODO: add other experimental header items (see circuit assembler)
         qobj_experiment_header = QobjExperimentHeader(
-            memory_slots=memory_slot_size_tmp,
+            memory_slots=exp_memory_slot_size,
             name=schedule.name or 'Experiment-%d' % idx
         )
 
