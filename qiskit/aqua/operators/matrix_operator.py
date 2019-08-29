@@ -186,7 +186,7 @@ class MatrixOperator(BaseOperator):
         return ret
 
     def construct_evaluation_circuit(self, wave_function, statevector_mode=True,
-                                     circuit_name_prefix=''):
+                                     use_simulator_operator_mode=None, circuit_name_prefix=''):
         """
         Construct the circuits for evaluation.
 
@@ -201,7 +201,7 @@ class MatrixOperator(BaseOperator):
         return [wave_function.copy(name=circuit_name_prefix + 'psi')]
 
     def evaluate_with_result(self, result, statevector_mode=True,
-                             circuit_name_prefix=''):
+                             use_simulator_operator_mode=None, circuit_name_prefix=''):
         """
         Use the executed result with operator to get the evaluated value.
 
