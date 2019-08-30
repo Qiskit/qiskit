@@ -30,8 +30,22 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
 
-from qiskit.visualization.pass_manager_visualization import HAS_GRAPHVIZ
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
+
+try:
+    import subprocess
+
+    _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    _PROC.communicate()
+    if _PROC.returncode != 0:
+        HAS_GRAPHVIZ = False
+    else:
+        HAS_GRAPHVIZ = True
+except Exception:  # pylint: disable=broad-except
+    # this is raised when the dot command cannot be found, which means GraphViz
+    # isn't installed
+    HAS_GRAPHVIZ = False
 
 
 class TestPassManagerDrawer(QiskitVisualizationTestCase):
