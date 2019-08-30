@@ -18,7 +18,6 @@ import logging
 import json
 from operator import add as op_add, sub as op_sub
 import sys
-import warnings
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
@@ -27,7 +26,6 @@ from qiskit.tools import parallel_map
 from qiskit.tools.events import TextProgressBar
 
 from qiskit.aqua import AquaError, aqua_globals
-from qiskit.aqua.utils.backend_utils import is_statevector_backend
 from qiskit.aqua.operators.base_operator import BaseOperator
 from qiskit.aqua.operators.common import (measure_pauli_z, covariance, pauli_measurement,
                                           kernel_F2, suzuki_expansion_slice_pauli_list,
@@ -477,7 +475,7 @@ class WeightedPauliOperator(BaseOperator):
             before_04 (bool): support the format before Aqua 0.4.
 
         Returns:
-            Operator class: the loaded operator.
+            WeightedPauliOperator: the loaded operator.
         """
         with open(file_name, 'r') as file:
             return cls.from_dict(json.load(file), before_04=before_04)
@@ -514,7 +512,7 @@ class WeightedPauliOperator(BaseOperator):
             before_04 (bool): support the format before Aqua 0.4.
 
         Returns:
-            Operator: the loaded operator.
+            WeightedPauliOperator: the loaded operator.
         """
         if 'paulis' not in dictionary:
             raise AquaError('Dictionary missing "paulis" key')
@@ -578,8 +576,8 @@ class WeightedPauliOperator(BaseOperator):
         avg = np.vdot(quantum_state, mat_op._matrix.dot(quantum_state))
         return avg, 0.0
 
-    def construct_evaluation_circuit(self, operator_mode=None, input_circuit=None, backend=None, qr=None, cr=None,
-                                     use_simulator_operator_mode=False, wave_function=None, statevector_mode=None,
+    def construct_evaluation_circuit(self, wave_function, statevector_mode,
+                                     qr=None, cr=None, use_simulator_operator_mode=False,
                                      circuit_name_prefix=''):
         """
         Construct the circuits for evaluation, which calculating the expectation <psi|H|psi>.
@@ -588,11 +586,8 @@ class WeightedPauliOperator(BaseOperator):
         that we construct an individual circuit <psi|, and a bundle circuit for H|psi>
 
         Args:
-            operator_mode (str): representation of operator, including paulis, grouped_paulis and matrix
-            input_circuit (QuantumCircuit): the quantum circuit.
             wave_function (QuantumCircuit): the quantum circuit.
-            backend (BaseBackend, optional): backend selection for quantum machine.
-            statevector_mode (bool, optional): indicate which type of simulator are going to use.
+            statevector_mode (bool): indicate which type of simulator are going to use.
             qr (QuantumRegister, optional): the quantum register associated with the input_circuit
             cr (ClassicalRegister, optional): the classical register associated with the input_circuit
             use_simulator_operator_mode (bool, optional): if aer_provider is used, we can do faster
@@ -606,25 +601,9 @@ class WeightedPauliOperator(BaseOperator):
         Raises:
             AquaError: Can not find quantum register with `q` as the name and do not provide
                        quantum register explicitly
-            AquaError: The provided qr is not in the input_circuit
-            AquaError: Neither backend nor statevector_mode is provided
+            AquaError: The provided qr is not in the wave_function
         """
         from qiskit.aqua.utils.run_circuits import find_regs_by_name
-
-        # TODO: re-use the `evaluation_instruction` method after terra#2858
-        if operator_mode is not None:
-            warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-
-        if input_circuit is not None:
-            warnings.warn("input_circuit option is deprecated and it will be removed after 0.6, "
-                          "Use `wave_function` instead.",
-                          DeprecationWarning)
-            wave_function = input_circuit
-        else:
-            if wave_function is None:
-                raise AquaError("wave_function must not be None.")
 
         if qr is None:
             qr = find_regs_by_name(wave_function, 'q')
@@ -635,17 +614,8 @@ class WeightedPauliOperator(BaseOperator):
             if not wave_function.has_register(qr):
                 raise AquaError("The provided QuantumRegister (qr) is not in the circuit.")
 
-        if backend is not None:
-            warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "Use `statevector_mode` instead",
-                          DeprecationWarning)
-            statevector_mode = is_statevector_backend(backend)
-        else:
-            if statevector_mode is None:
-                raise AquaError("Either backend or statevector_mode need to be provided.")
-
         n_qubits = self.num_qubits
-        # instructions = self.evaluation_instruction(statevector_mode, use_simulator_operator_mode)
+        instructions = self.evaluation_instruction(statevector_mode, use_simulator_operator_mode)
         circuits = []
         if statevector_mode:
             if use_simulator_operator_mode:
@@ -653,17 +623,12 @@ class WeightedPauliOperator(BaseOperator):
             else:
                 circuits.append(wave_function.copy(name=circuit_name_prefix + 'psi'))
                 for _, pauli in self._paulis:
-                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
-                        continue
-                    circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
-                    circuit.barrier([x for x in range(self.num_qubits)])
-                    circuit.append(pauli, [x for x in range(self.num_qubits)])
-                    circuits.append(circuit)
-                    # inst = instructions.get(pauli.to_label(), None)
-                    # if inst is not None:
-                    #     circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
-                    #     circuit.append(inst, qr)
-                    #     circuits.append(circuit)
+                    inst = instructions.get(pauli.to_label(), None)
+                    if inst is not None:
+                        circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
+                        circuit.append(inst, qr)
+                        # TODO: this decompose is used because of cache
+                        circuits.append(circuit.decompose())
         else:
             base_circuit = wave_function.copy()
             if cr is not None:
@@ -677,9 +642,9 @@ class WeightedPauliOperator(BaseOperator):
 
             for basis, indices in self._basis:
                 circuit = base_circuit.copy(name=circuit_name_prefix + basis.to_label())
-                # circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
-                circuit = pauli_measurement(circuit, basis, qr, cr, barrier=True)
-                circuits.append(circuit)
+                circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
+                # TODO: this decompose is used because of cache
+                circuits.append(circuit.decompose())
 
         return circuits
 
@@ -696,41 +661,38 @@ class WeightedPauliOperator(BaseOperator):
         instructions = {}
         qr = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(qr)
-        if statevector_mode:
-            if use_simulator_operator_mode:
-                pass
-            else:
-                for _, pauli in self._paulis:
-                    tmp_qc = qc.copy(name=pauli.to_label())
-                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
-                        continue
-                    tmp_qc.barrier([x for x in range(self.num_qubits)])
-                    tmp_qc.append(pauli, [x for x in range(self.num_qubits)])
-                    instructions[pauli.to_label()] = tmp_qc.to_instruction()
+        if statevector_mode and not use_simulator_operator_mode:
+            for _, pauli in self._paulis:
+                tmp_qc = qc.copy(name="Pauli " + pauli.to_label())
+                if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
+                    continue
+                # This explicit barrier is needed for statevector simulator since Qiskit-terra
+                # will remove global phase at default compilation level but the results here
+                # rely on global phase.
+                tmp_qc.barrier([x for x in range(self.num_qubits)])
+                tmp_qc.append(pauli, [x for x in range(self.num_qubits)])
+                instructions[pauli.to_label()] = tmp_qc.to_instruction()
         else:
             cr = ClassicalRegister(self.num_qubits)
             qc.add_register(cr)
             for basis, _ in self._basis:
-                tmp_qc = qc.copy(name=basis.to_label())
+                tmp_qc = qc.copy(name="Pauli " + basis.to_label())
                 tmp_qc = pauli_measurement(tmp_qc, basis, qr, cr, barrier=True)
                 instructions[basis.to_label()] = tmp_qc.to_instruction()
         return instructions
 
-    def evaluate_with_result(self, operator_mode=None, circuits=None, backend=None, result=None,
-                             use_simulator_operator_mode=False, statevector_mode=None,
+    def evaluate_with_result(self, result, statevector_mode, use_simulator_operator_mode=False,
                              circuit_name_prefix=''):
         """
-        This method can be only used with the circuits generated by the `construct_evaluation_circuit` method
-        with the same `circuit_name_prefix` since the circuit names are tied to some meanings.
+        This method can be only used with the circuits generated by the
+        `construct_evaluation_circuit` method with the same `circuit_name_prefix`
+        since the circuit names are tied to some meanings.
 
         Calculate the evaluated value with the measurement results.
 
         Args:
-            operator_mode (str): representation of operator, including paulis, grouped_paulis and matrix
-            circuits (list of qiskit.QuantumCircuit): the quantum circuits.
             result (qiskit.Result): the result from the backend.
-            backend (BaseBackend, optional): backend for quantum machine.
-            statevector_mode (bool, optional): indicate which type of simulator are used.
+            statevector_mode (bool): indicate which type of simulator are used.
             use_simulator_operator_mode (bool): if aer_provider is used, we can do faster
                            evaluation for pauli mode on statevector simulation
             circuit_name_prefix (str): a prefix of circuit name
@@ -739,25 +701,8 @@ class WeightedPauliOperator(BaseOperator):
             float: the mean value
             float: the standard deviation
         """
-        if operator_mode is not None:
-            warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-        if circuits is not None:
-            warnings.warn("circuits option is deprecated and it will be removed after 0.6, "
-                          "we will retrieve the circuit via its unique name directly.",
-                          DeprecationWarning)
 
         avg, std_dev, variance = 0.0, 0.0, 0.0
-        if backend is not None:
-            warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "Use `statevector_mode` instead",
-                          DeprecationWarning)
-            statevector_mode = is_statevector_backend(backend)
-        else:
-            if statevector_mode is None:
-                raise AquaError("Either backend or statevector_mode need to be provided.")
-
         if statevector_mode:
             if use_simulator_operator_mode:
                 temp = result.data(circuit_name_prefix + 'aer_mode')['snapshots']['expectation_value']['test'][0]['value']
@@ -835,7 +780,7 @@ class WeightedPauliOperator(BaseOperator):
 
         return self._paulis
 
-    def evolve(self, state_in=None, evo_time=0, evo_mode=None, num_time_slices=1, quantum_registers=None,
+    def evolve(self, state_in=None, evo_time=0, num_time_slices=1, quantum_registers=None,
                expansion_mode='trotter', expansion_order=1):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
@@ -853,20 +798,8 @@ class WeightedPauliOperator(BaseOperator):
             expansion_order (int): The order for suzuki expansion
 
         Returns:
-            The constructed QuantumCircuit.
-
+            QuantumCircuit: The constructed circuit.
         """
-        # pylint: disable=no-member
-        if evo_mode is not None:
-            warnings.warn("evo_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-
-        if num_time_slices <= 0 or not isinstance(num_time_slices, int):
-            raise ValueError('Number of time slices should be a non-negative integer.')
-        if expansion_mode not in ['trotter', 'suzuki']:
-            raise NotImplementedError('Expansion mode {} not supported.'.format(expansion_mode))
-
         if state_in is not None and quantum_registers is not None:
             if not state_in.has_register(quantum_registers):
                 raise AquaError("quantum_registers must be in the provided state_in circuit.")
@@ -880,23 +813,10 @@ class WeightedPauliOperator(BaseOperator):
         else:
             qc = QuantumCircuit(quantum_registers)
 
-        pauli_list = self.reorder_paulis()
-
-        if len(pauli_list) == 1:
-            slice_pauli_list = pauli_list
-        else:
-            if expansion_mode == 'trotter':
-                slice_pauli_list = pauli_list
-            # suzuki expansion
-            else:
-                slice_pauli_list = suzuki_expansion_slice_pauli_list(
-                    pauli_list,
-                    1,
-                    expansion_order
-                )
-        instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
-
+        instruction = self.evolve_instruction(evo_time, num_time_slices,
+                                              expansion_mode, expansion_order)
         qc.append(instruction, quantum_registers)
+        # TODO: this decompose is used because of cache
         return qc.decompose()
 
     def evolve_instruction(self, evo_time=0, num_time_slices=1,
@@ -940,51 +860,6 @@ class WeightedPauliOperator(BaseOperator):
                 )
         instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
         return instruction
-
-    @classmethod
-    def load_from_file(cls, file_name, before_04=False):
-        warnings.warn("load_from_file is deprecated and it will be removed after 0.6, "
-                      "Use `from_file` instead",
-                      DeprecationWarning)
-        return cls.from_file(file_name, before_04)
-
-    def save_to_file(self, file_name):
-        warnings.warn("save_to_file is deprecated and it will be removed after 0.6, "
-                      "Use `to_file` instead",
-                      DeprecationWarning)
-        self.to_file(file_name)
-
-    @classmethod
-    def load_from_dict(cls, dictionary, before_04=False):
-        warnings.warn("load_from_dict is deprecated and it will be removed after 0.6, "
-                      "Use `from_dict` instead",
-                      DeprecationWarning)
-        return cls.from_dict(dictionary, before_04)
-
-    def save_to_dict(self):
-        warnings.warn("save_to_dict is deprecated and it will be removed after 0.6, "
-                      "Use `to_dict` instead",
-                      DeprecationWarning)
-        return self.to_dict()
-
-    def _simplify_paulis(self):
-        warnings.warn("_simplify_paulis() is deprecated and it will be removed after 0.6, "
-                      "Use `simplify()` instead",
-                      DeprecationWarning)
-        self.simplify()
-        return self
-
-    def _eval_directly(self, quantum_state):
-        warnings.warn("_eval_directly() is deprecated and it will be removed after 0.6, "
-                      "Use `evaluate_with_statevector()` instead, and it returns tuple (mean, std) now.",
-                      DeprecationWarning)
-        return self.evaluate_with_statevector(quantum_state)
-
-    def get_flat_pauli_list(self):
-        warnings.warn("get_flat_pauli_list() is deprecated and it will be removed after 0.6. "
-                      "Use `reorder_paulis()` instead",
-                      DeprecationWarning)
-        return self.reorder_paulis()
 
 
 class Z2Symmetries:
@@ -1098,7 +973,6 @@ class Z2Symmetries:
         Returns:
             Z2Symmetries: a z2_symmetries object contains symmetries, single-qubit X, single-qubit list.
         """
-
         pauli_symmetries = []
         sq_paulis = []
         sq_list = []
@@ -1252,7 +1126,7 @@ class Z2Symmetries:
                                         and the second number if beta.
 
         Returns:
-            Operator: a new operator whose qubit number is reduced by 2.
+            WeightedPauliOperator: a new operator whose qubit number is reduced by 2.
 
         """
         if operator.is_empty():

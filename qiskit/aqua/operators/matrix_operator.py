@@ -15,7 +15,6 @@
 from copy import deepcopy
 from functools import reduce
 import logging
-import warnings
 
 import numpy as np
 from scipy import sparse as scisparse
@@ -23,7 +22,6 @@ from scipy import linalg as scila
 from qiskit import QuantumCircuit
 
 from qiskit.aqua.operators.base_operator import BaseOperator
-from qiskit.aqua import AquaError
 
 logger = logging.getLogger(__name__)
 
@@ -136,10 +134,6 @@ class MatrixOperator(BaseOperator):
         op._matrix.eliminate_zeros()
         return op
 
-    def _scaling_weight(self, scaling_factor):
-        # TODO: existed for supporting the deprecated method, will remove it.
-        self._matrix = scaling_factor * self._matrix
-
     def __mul__(self, other):
         """
         Overload * operation. Only support two Operators have the same representation mode.
@@ -191,9 +185,8 @@ class MatrixOperator(BaseOperator):
         ret = str(self._matrix)
         return ret
 
-    def construct_evaluation_circuit(self, operator_mode=None, input_circuit=None, backend=None, qr=None, cr=None,
-                                     use_simulator_operator_mode=False, wave_function=None, statevector_mode=None,
-                                     circuit_name_prefix=''):
+    def construct_evaluation_circuit(self, wave_function, statevector_mode=True,
+                                     use_simulator_operator_mode=None, circuit_name_prefix=''):
         """
         Construct the circuits for evaluation.
 
@@ -205,30 +198,10 @@ class MatrixOperator(BaseOperator):
             [QuantumCircuit]: the circuits for computing the expectation of the operator over
                               the wavefunction evaluation.
         """
-        if operator_mode is not None:
-            warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-
-        if input_circuit is not None:
-            warnings.warn("input_circuit option is deprecated and it will be removed after 0.6, "
-                          "Use `wave_function` instead.",
-                          DeprecationWarning)
-            wave_function = input_circuit
-        else:
-            if wave_function is None:
-                raise AquaError("wave_function must not be None.")
-
-        if backend is not None:
-            warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "No need for backend when using matrix operator",
-                          DeprecationWarning)
-
         return [wave_function.copy(name=circuit_name_prefix + 'psi')]
 
-    def evaluate_with_result(self, operator_mode=None, circuits=None, backend=None, result=None,
-                             use_simulator_operator_mode=False, statevector_mode=None,
-                             circuit_name_prefix=''):
+    def evaluate_with_result(self, result, statevector_mode=True,
+                             use_simulator_operator_mode=None, circuit_name_prefix=''):
         """
         Use the executed result with operator to get the evaluated value.
 
@@ -240,19 +213,6 @@ class MatrixOperator(BaseOperator):
             float: the mean value
             float: the standard deviation
         """
-        if operator_mode is not None:
-            warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-        if circuits is not None:
-            warnings.warn("circuits option is deprecated and it will be removed after 0.6, "
-                          "we will retrieve the circuit via its unique name directly.",
-                          DeprecationWarning)
-        if backend is not None:
-            warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "No need for backend when using matrix operator",
-                          DeprecationWarning)
-
         avg, std_dev = 0.0, 0.0
         quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
         avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
@@ -312,8 +272,8 @@ class MatrixOperator(BaseOperator):
             )
             return side @ middle @ side
 
-    def evolve(self, state_in, evo_time=0, evo_mode=None, num_time_slices=0, quantum_registers=None,
-               expansion_mode='trotter', expansion_order=1):
+    def evolve(self, state_in, evo_time=0, num_time_slices=0, expansion_mode='trotter',
+               expansion_order=1):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
 
@@ -331,16 +291,6 @@ class MatrixOperator(BaseOperator):
         Returns:
             Return the matrix vector multiplication result.
         """
-        if evo_mode is not None:
-            warnings.warn("evo_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-
-        if quantum_registers is not None:
-            warnings.warn("quantum_registers option is not required by `MatrixOperator` and it will be removed "
-                          "after 0.6.",
-                          DeprecationWarning)
-
         from .op_converter import to_weighted_pauli_operator
         # pylint: disable=no-member
         if num_time_slices < 0 or not isinstance(num_time_slices, int):
