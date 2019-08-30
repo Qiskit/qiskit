@@ -132,7 +132,7 @@ def to_tpb_grouped_weighted_pauli_operator(operator, grouping_func, **kwargs):
         kwargs: other setting for `grouping_func` function
 
     Returns:
-        TPBGroupedWeightedPauliOperator: the converted tesnor-product-basis grouped weighted
+        TPBGroupedWeightedPauliOperator: the converted tensor-product-basis grouped weighted
                                          pauli operator
     """
     if operator.__class__ == WeightedPauliOperator:
