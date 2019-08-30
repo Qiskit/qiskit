@@ -178,6 +178,18 @@ def _get_gate_span(qregs, instruction):
     return qregs[min_index:max_index + 1]
 
 
+def _present(node, nodes):
+    """Return True .IFF. any qreg in 'node' is present in 'nodes'
+    qiskit-terra #2802
+    """
+    present = False
+    for extant in nodes:
+        if any(i in extant.qargs for i in node.qargs):
+            present = True
+            break
+    return present
+
+
 def _any_crossover(qregs, node, nodes):
     """Return True .IFF. 'node' crosses over any in 'nodes'
     qiskit-terra #2802
@@ -196,6 +208,7 @@ class Justification(Enum):
     """
     LEFT = 1
     RIGHT = 2
+
 
 class LayerSpooler():
     """Manipulate list of layer dicts for _get_layered_instructions
@@ -242,18 +255,35 @@ class LayerSpooler():
         else:
             inserted = False
             curr_index = index
-            while curr_index < self.size():
+            last_insertable_index = None
+
+            while curr_index > -1:
                 if self.insertable(node, self.spool[curr_index]):
-                    self.spool[curr_index].append(node)
-                    inserted = True
-                    break
-                curr_index = curr_index + 1
+                    last_insertable_index = curr_index
+                else:
+                    if _present(node, self.spool[curr_index]):
+                        break
+                curr_index = curr_index - 1
+
+            if last_insertable_index:
+                self.spool[last_insertable_index].append(node)
+                inserted = True
+
+            else:
+                inserted = False
+                curr_index = index
+                while curr_index < self.size():
+                    if self.insertable(node, self.spool[curr_index]):
+                        self.spool[curr_index].append(node)
+                        inserted = True
+                        break
+                    curr_index = curr_index + 1
 
         if not inserted:
             self.append([node])
 
     def slide_from_right(self, node, index):
-        """Insert node into first layer where there is no conflict going r > l
+        """Insert node into rightmost layer as long there is no conflict
         """
         if self.size() == 0:
             self.prepend([node])
@@ -262,12 +292,28 @@ class LayerSpooler():
         else:
             inserted = False
             curr_index = index
-            while curr_index > -1:
+            last_insertable_index = None
+
+            while curr_index < self.size():
                 if self.insertable(node, self.spool[curr_index]):
-                    self.spool[curr_index].append(node)
-                    inserted = True
-                    break
-                curr_index = curr_index - 1
+                    last_insertable_index = curr_index
+                else:
+                    if _present(node, self.spool[curr_index]):
+                        break
+                curr_index = curr_index + 1
+
+            if last_insertable_index:
+                self.spool[last_insertable_index].append(node)
+                inserted = True
+
+            else:
+                curr_index = index
+                while curr_index > -1:
+                    if self.insertable(node, self.spool[curr_index]):
+                        self.spool[curr_index].append(node)
+                        inserted = True
+                        break
+                    curr_index = curr_index - 1
 
         if not inserted:
             self.prepend([node])
