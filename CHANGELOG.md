@@ -15,6 +15,11 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+
+### Added
+-   The mock backends in `qiskit.test.mock` now have a snapshot of real
+    calibration data, returned via `backend.properties()`.
+
 ### Fixed
 -   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
 
