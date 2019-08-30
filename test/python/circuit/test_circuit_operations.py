@@ -194,9 +194,9 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc1, qc2)
 
-    def test_remove_final_measures(self):
-        """Test remove_final_measures removes all measurements at end of circuit and deletes
-        the ClassicalRegisters, if unused, that the measurements would be stored in.
+    def test_remove_final_measurements(self):
+        """Test remove_final_measurements removes all measurements at end of circuit and
+        deletes the ClassicalRegisters, if unused, that the measurements would be stored in.
         """
         qr = QuantumRegister(2)
         qc1 = QuantumCircuit(qr)
@@ -207,21 +207,25 @@ class TestCircuitOperations(QiskitTestCase):
 
         self.assertEqual(qc1, qc2)
 
-    def test_remove_final_measures_multiple_measures(self):
-        """Test remove_final_measures only removes measures at the end of the circuit and not
-        in the middle of the circuit, and does not remove ClassicalRegister if it is still
-        in use.
+    def test_remove_final_measurements_multiple_measures(self):
+        """Test remove_final_measurements only removes measurements at the end of the circuit
+        and not in the beginning or middle of the circuit, and does not remove ClassicalRegister
+        if it is still in use.
         """
         qr = QuantumRegister(2)
-        cr = ClassicalRegister(2)
+        cr = ClassicalRegister(1)
         qc1 = QuantumCircuit(qr, cr)
-        qc1.measure(qr, cr)
+        qc1.measure(qr[0], cr)
+        qc1.h(0)
+        qc1.measure(qr[0], cr)
         qc1.h(0)
 
         qc2 = QuantumCircuit(qr, cr)
-        qc2.measure(qr, cr)
+        qc2.measure(qr[0], cr)
         qc2.h(0)
-        qc2.measure(qr, cr)
+        qc2.measure(qr[0], cr)
+        qc2.h(0)
+        qc2.measure(qr[0], cr)
         qc2.remove_final_measurements()
 
         self.assertEqual(qc1, qc2)
