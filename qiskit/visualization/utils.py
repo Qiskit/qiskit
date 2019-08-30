@@ -14,6 +14,7 @@
 
 """Common visualization utilities."""
 
+from enum import Enum
 import numpy as np
 from qiskit.converters import circuit_to_dag
 from qiskit.visualization.exceptions import VisualizationError
@@ -96,88 +97,34 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
             ops.append([node])
 
     if justify == 'left':
+        spooler = LayerSpooler(qregs, Justification.LEFT)
+
         for dag_layer in dag.layers():
-            layers = []
-            current_layer = []
-
-            dag_nodes = dag_layer['graph'].op_nodes()
-            dag_nodes.sort(key=lambda nd: nd._node_id)
-
+            current_index = spooler.last_index()
+            dag_nodes = _sorted_nodes(dag_layer)
             for node in dag_nodes:
-                multibit_gate = len(node.qargs) + len(node.cargs) > 1
+                spooler.add(node, current_index)
 
-                if multibit_gate:
-                    # need to see if it crosses over any other nodes
-                    gate_span = _get_gate_span(qregs, node)
-
-                    all_indices = []
-                    for check_node in dag_nodes:
-                        if check_node != node:
-                            all_indices += _get_gate_span(qregs, check_node)
-
-                    if any(i in gate_span for i in all_indices):
-                        # needs to be a new layer
-                        layers.append([node])
-                    else:
-                        # can be added
-                        current_layer.append(node)
-                else:
-                    current_layer.append(node)
-
-            if current_layer:
-                layers.append(current_layer)
-            ops += layers
+        ops = spooler.as_list()
 
     if justify == 'right':
+        spooler = LayerSpooler(qregs, Justification.RIGHT)
+
         dag_layers = []
 
         for dag_layer in dag.layers():
             dag_layers.append(dag_layer)
 
-        # Have to work from the end of the circuit
+        # going right to left!
         dag_layers.reverse()
 
-        # Dict per layer, keys are qubits and values are the gate
-        layer_dicts = [{}]
-
         for dag_layer in dag_layers:
+            current_index = 0
+            dag_nodes = _sorted_nodes(dag_layer)
+            for node in dag_nodes:
+                spooler.add(node, current_index)
 
-            dag_instructions = dag_layer['graph'].op_nodes()
-
-            # sort into the order they were input
-            dag_instructions.sort(key=lambda nd: nd._node_id)
-            for instruction_node in dag_instructions:
-
-                gate_span = _get_gate_span(qregs, instruction_node)
-
-                added = False
-                for i in range(len(layer_dicts)):
-                    # iterate from the end
-                    curr_dict = layer_dicts[-1 - i]
-
-                    if any(index in curr_dict for index in gate_span):
-                        added = True
-
-                        if i == 0:
-                            new_dict = {}
-
-                            for index in gate_span:
-                                new_dict[index] = instruction_node
-                            layer_dicts.append(new_dict)
-                        else:
-                            curr_dict = layer_dicts[-i]
-                            for index in gate_span:
-                                curr_dict[index] = instruction_node
-
-                        break
-
-                if not added:
-                    for index in gate_span:
-                        layer_dicts[0][index] = instruction_node
-
-        # need to convert from dict format to layers
-        layer_dicts.reverse()
-        ops = [list(layer.values()) for layer in layer_dicts]
+        ops = spooler.as_list()
 
     if reverse_bits:
         qregs.reverse()
@@ -193,8 +140,27 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
     return qregs, cregs, ops
 
 
+def _sorted_nodes(dag_layer):
+    """Convert DAG layer into list of nodes sorted by node_id
+    qiskit-terra #2802
+    """
+    dag_instructions = dag_layer['graph'].op_nodes()
+    # sort into the order they were input
+    dag_instructions.sort(key=lambda nd: nd._node_id)
+    return dag_instructions
+
+
+def _is_multibit_gate(node):
+    """Return True .IFF. node spans multiple qubits
+    qiskit-terra #2802
+    """
+    return len(node.qargs) + len(node.cargs) > 1
+
+
 def _get_gate_span(qregs, instruction):
-    """Get the list of qubits drawing this gate would cover"""
+    """Get the list of qubits drawing this gate would cover
+    qiskit-terra #2802
+    """
 
     min_index = len(qregs)
     max_index = 0
@@ -210,3 +176,106 @@ def _get_gate_span(qregs, instruction):
         return qregs[min_index:]
 
     return qregs[min_index:max_index + 1]
+
+
+def _any_crossover(qregs, node, nodes):
+    """Return True .IFF. 'node' crosses over any in 'nodes'
+    qiskit-terra #2802
+    """
+    gate_span = _get_gate_span(qregs, node)
+    all_indices = []
+    for check_node in nodes:
+        if check_node != node:
+            all_indices += _get_gate_span(qregs, check_node)
+    return any(i in gate_span for i in all_indices)
+
+
+class Justification(Enum):
+    """Enumerate justification types used in LayerSpooler
+    qiskit-terra #2802
+    """
+    LEFT = 1
+    RIGHT = 2
+
+class LayerSpooler():
+    """Manipulate list of layer dicts for _get_layered_instructions
+    qiskit-terra #2802
+    """
+
+    def __init__(self, qregs, justification):
+        """Create spool"""
+        self.qregs = qregs
+        self.justification = justification
+        self.spool = []
+
+    def size(self):
+        """Return number of entries in spool"""
+        return len(self.spool)
+
+    def last_index(self):
+        """Return last index in spool"""
+        return len(self.spool) - 1
+
+    def as_list(self):
+        """Get the spool as a list of layer values"""
+        return list(self.spool)
+
+    def append(self, layer):
+        """Append to spool"""
+        self.spool.append(layer)
+
+    def prepend(self, layer):
+        """Prepend layer to spool"""
+        self.spool.insert(0, layer)
+
+    def insertable(self, node, nodes):
+        """True .IFF. we can add 'node' to layer 'nodes'"""
+        return not _any_crossover(self.qregs, node, nodes)
+
+    def slide_from_left(self, node, index):
+        """Insert node into first layer where there is no conflict going l > r
+        """
+        if self.size() == 0:
+            self.append([node])
+            inserted = True
+
+        else:
+            inserted = False
+            curr_index = index
+            while curr_index < self.size():
+                if self.insertable(node, self.spool[curr_index]):
+                    self.spool[curr_index].append(node)
+                    inserted = True
+                    break
+                curr_index = curr_index + 1
+
+        if not inserted:
+            self.append([node])
+
+    def slide_from_right(self, node, index):
+        """Insert node into first layer where there is no conflict going r > l
+        """
+        if self.size() == 0:
+            self.prepend([node])
+            inserted = True
+
+        else:
+            inserted = False
+            curr_index = index
+            while curr_index > -1:
+                if self.insertable(node, self.spool[curr_index]):
+                    self.spool[curr_index].append(node)
+                    inserted = True
+                    break
+                curr_index = curr_index - 1
+
+        if not inserted:
+            self.prepend([node])
+
+    def add(self, node, index):
+        """Add 'node' where it belongs, starting the try at 'index'
+        """
+        if self.justification == Justification.LEFT:
+            self.slide_from_left(node, index)
+        else:
+            self.slide_from_right(node, index)
