@@ -830,7 +830,16 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         dag = circuit_to_dag(self)
         qubits_to_measure = [qubit for qubit in self.qubits if qubit not in dag.idle_wires()]
-        new_creg = ClassicalRegister(len(qubits_to_measure), 'measure')
+        measure_reg_name = 'measure'
+        # Check if ClassicalRegister with same name exists
+        if measure_reg_name in dag.cregs:
+            save_prefix = ClassicalRegister.prefix
+            ClassicalRegister.prefix = measure_reg_name
+            new_creg = ClassicalRegister(len(qubits_to_measure))
+            ClassicalRegister.prefix = save_prefix
+        else:
+            new_creg = ClassicalRegister(len(qubits_to_measure), measure_reg_name)
+
         self.add_register(new_creg)
         self.barrier()
         self.measure(qubits_to_measure, new_creg)
@@ -839,32 +848,50 @@ class QuantumCircuit:
         """Adds measurement to all qubits. Creates a new ClassicalRegister with a
         size equal to the number of qubits being measured.
         """
-        new_creg = ClassicalRegister(self.n_qubits, 'measure')
+        from qiskit.converters.circuit_to_dag import circuit_to_dag
+        dag = circuit_to_dag(self)
+        measure_reg_name = 'measure'
+        # Check if ClassicalRegister with same name exists
+        if measure_reg_name in dag.cregs:
+            save_prefix = ClassicalRegister.prefix
+            ClassicalRegister.prefix = measure_reg_name
+            new_creg = ClassicalRegister(len(self.qubits))
+            ClassicalRegister.prefix = save_prefix
+        else:
+            new_creg = ClassicalRegister(self.n_qubits, measure_reg_name)
+
         self.add_register(new_creg)
         self.barrier()
         self.measure(self.qubits, new_creg)
 
     def remove_final_measurements(self):
         """Removes final measurement on all qubits if they are present.
-        Deletes the ClassicalRegister that was created to store the values from these measurements.
+        Deletes the ClassicalRegister that was used to store the values from these measurements
+        if it is idle.
         """
-        from qiskit.converters.circuit_to_dag import circuit_to_dag
-        cregs_to_remove = set()
-        for inst, _, cargs in reversed(self.data):
-            if inst.name == 'measure':
-                cregs_to_remove.add(cargs[0].register)
-                self.data.pop()
-            elif inst.name == 'barrier':
-                self.data.pop()
-                break
-            else:
-                break
-
+        from qiskit.converters import circuit_to_dag
+        from qiskit.transpiler.passes import RemoveFinalMeasurements
         dag = circuit_to_dag(self)
-        cregs_to_remove = {creg.register for creg in dag.idle_wires()
-                           if creg.register in cregs_to_remove}
-        for register in cregs_to_remove:
-            self.cregs.remove(register)
+        remove_final_meas = RemoveFinalMeasurements()
+        new_dag = remove_final_meas.run(dag)
+
+        # Set self's cregs and instructions to match the new DAGCircuit's
+        self.data.clear()
+        self.cregs = list(new_dag.cregs.values())
+
+        for node in new_dag.topological_op_nodes():
+            qubits = []
+            for qubit in node.qargs:
+                qubits.append(new_dag.qregs[qubit.register.name][qubit.index])
+
+            clbits = []
+            for clbit in node.cargs:
+                clbits.append(new_dag.cregs[clbit.register.name][clbit.index])
+
+            # Get arguments for classical control (if any)
+            inst = node.op.copy()
+            inst.control = node.condition
+            self.append(inst, qubits, clbits)
 
     @staticmethod
     def from_qasm_file(path):
