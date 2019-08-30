@@ -2,9 +2,6 @@
 # modify particular files in the repo. The PR can be merged when approved by at 
 # least one codeowner. However, all Qiskit team members can (and should!) review the PRs.
 
-# Global codeowners
-*                     @ajavadia @kdk @mtreinish @jaygambetta @nonhermitian
-
 # Individual folders on root directory
 /tools/               @mtreinish @kdk
 /examples/            @jaygambetta @mtreinish @maddy-tod
