@@ -15,14 +15,18 @@
 """A test for visualizing device coupling maps"""
 import unittest
 import os
-import matplotlib.pyplot as plt
+
 from ddt import ddt, data
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
 from qiskit.visualization.gate_map import _GraphDist, plot_gate_map, plot_circuit_layout
+from qiskit.tools.visualization import HAS_MATPLOTLIB
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import Layout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+
+if HAS_MATPLOTLIB:
+    import matplotlib.pyplot as plt
 
 
 @ddt
@@ -32,18 +36,20 @@ class TestGateMap(QiskitVisualizationTestCase):
                            not (x.configuration().simulator or x.configuration().n_qubits == 2),
                            FakeProvider().backends()))
 
-    def test_plot_gate_map(self):
+    @data(*backends)
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    def test_plot_gate_map(self, backend):
         """ tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
-        for backend in self.backends:
-            n = backend.configuration().n_qubits
-            img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
-            filename = "temp.png"
-            fig = plot_gate_map(backend)
-            fig.savefig(filename, bbox_inches="tight")
-            self.assertImagesAreEqual(filename, img_ref, 0.2)
-            os.remove(filename)
+        n = backend.configuration().n_qubits
+        img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
+        filename = "temp.png"
+        fig = plot_gate_map(backend)
+        fig.savefig(filename)
+        self.assertImagesAreEqual(filename, img_ref, 0.2)
+        os.remove(filename)
 
     @data(*backends)
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
     def test_plot_circuit_layout(self, backend):
         """ tests plot_circuit_layout for each device"""
         layout_length = int(backend._configuration.n_qubits / 2)
@@ -54,11 +60,12 @@ class TestGateMap(QiskitVisualizationTestCase):
         img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
         filename = str(n) + "_plot_circuit_layout_result.png"
         fig = plot_circuit_layout(circuit, backend)
-        fig.savefig(filename, bbox_inches="tight")
+        fig.savefig(filename)
         self.assertImagesAreEqual(filename, img_ref, 0.1)
         os.remove(filename)
 
 
+@unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
 class TestGraphDist(QiskitTestCase):
     """ tests _GraphdDist functions """
 
