@@ -3,9 +3,11 @@
 Contributing to Qiskit
 ######################
 
-Qiskit is an open-source project committed to bringing quantum computing to people of all
-backgrounds. This page describes how you can join the Qiskit community in this goal.
+Qiskit is an open-source project committed to bringing quantum computing to
+people of all backgrounds. This page describes how you can join the Qiskit
+community in this goal.
 
+.. _where_things_are:
 
 ****************
 Where Things Are
@@ -58,18 +60,49 @@ document is available for review as a PDF.
    `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`__ too and
    email it to us at <qiskit@us.ibm.com>.
 
-**************************************
-Writing and Building API Documentation
-**************************************
+*****************************
+Contributing to Documentation
+*****************************
 
 Qiskit documentation is shaped by the `docs as code
-<https://www.writethedocs.org/guide/docs-as-code/>`__ philosophy.
+<https://www.writethedocs.org/guide/docs-as-code/>`__ philosophy, primarily
+drawn from Qiskit code comments in the `style of API documentation
+<https://alistapart.com/article/the-ten-essentials-for-good-api-documentation/>`__.
 
-
-The `Qiskit API documentation <https://qiskit.org/documentation/index.html>`__ (this document) is
-built from the master branch of `Qiskit/qiskit/docs
+The documentation is built from the master branch of `Qiskit/qiskit/docs
 <https://github.com/Qiskit/qiskit/tree/master/docs>`__ using `Sphinx
-<http://www.sphinx-doc.org/en/master/>`__.
+<http://www.sphinx-doc.org/en/master/>`__. The majority of documentation, under
+`API Reference <https://qiskit.org/documentation/apidoc/qiskit.html>`__, is
+drawn from code comments in the repositories listed in :ref:`where_things_are`.
+
+Translating Documentation
+=========================
+
+Qiskit documentation is translated (localized) using Crowdin, which allows our
+community of translators to amplify their impact by automatically reusing the
+work invested translating one sentence to translate other, similar sentences.
+Crowdin also makes translations resilient to many types of changes to
+the original material, such as moving sentences around, even across files.
+
+To join the Qiskit Localization team:
+
+#. Add your name (or ID) to the `LOCALIZATION_CONTRIBUTORS
+   <https://github.com/Qiskit/qiskit/blob/master/docs/
+   LOCALIZATION_CONTRIBUTORS>`__ file.
+#. Create a pull request (PR) to merge your change.
+#. You will be asked to sign the Qiskit Contributors License Agreement (CLA);
+   please do so.
+#. In the `Qiskit-Docs <https://crowdin.com/project/qiskit-docs>`__
+   Crowdin project, choose the language that you want to contribute to.
+#. Click the **Join** button.
+#. In the dialog box where you are asked why you want to join the Crowdin
+   project, paste the URL of your PR.
+
+The Qiskit Localization team leads will review your request and give you access
+to the Crowdin project as quickly as we can!
+
+Building from Source
+====================
 
 You can build a local copy of the documentation from your local clone of the
 `Qiskit/qiskit` repository as follows:
@@ -160,7 +193,7 @@ steps for each element.
    for the set of of combinations for installation methods that work together.
 
 Set up the virtual development environment
-------------------------------------------
+==========================================
 
 .. code-block:: sh
 
@@ -169,7 +202,8 @@ Set up the virtual development environment
 
 
 Installing Terra from Source
-----------------------------
+============================
+
 Installing from source requires that you have a c++ compiler on your system that supports
 c++-11.
 
@@ -268,7 +302,7 @@ run the example with the following command.
 
 
 Installing Aer from Source
---------------------------
+==========================
 
 1. Clone the Aer repository.
 
@@ -393,7 +427,7 @@ universally depending on operating system.
 .. _aer_wheel_build_options:
 
 Custom options during wheel builds
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------
 
 The Aer build system uses `scikit-build <https://scikit-build.readthedocs.io/en/latest/index.html>`__
 to run the compilation when building it with the python interface. It acts as an interface for
@@ -471,7 +505,7 @@ A list of common options depending on platform are:
 
 
 Installing Ignis from Source
-----------------------------
+============================
 
 1. Clone the ignis repository.
 
@@ -507,7 +541,7 @@ project don't require a reinstall to be applied you can do this with:
     pip install -e .
 
 Installing Aqua from Source
----------------------------
+===========================
 
 1. Clone the Aqua repository.
 
@@ -544,7 +578,7 @@ project don't require a reinstall to be applied you can do this with:
 
 
 Installing IBMQ Provider from Source
-------------------------------------
+====================================
 
 1. Clone the qiskit-ibmq-provider repository.
 
