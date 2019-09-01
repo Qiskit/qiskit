@@ -78,13 +78,15 @@ drawn from code comments in the repositories listed in :ref:`where_things_are`.
 Translating Documentation
 =========================
 
-Qiskit documentation is translated (localized) using Crowdin, which allows our
-community of translators to amplify their impact by automatically reusing the
-work invested translating one sentence to translate other, similar sentences.
-Crowdin also makes translations resilient to many types of changes to
+Qiskit documentation is translated (localized) using Crowdin, a software and web
+localization platform that allows organizations to coordinate translation
+projects and collaborate with communities to translate materials. Crowdin allows
+our community of translators to amplify their impact by automatically reusing
+the work invested translating one sentence to translate other, similar
+sentences. Crowdin also makes translations resilient to many types of changes to
 the original material, such as moving sentences around, even across files.
 
-To join the Qiskit Localization team:
+To contribute to Qiskit localization, please follow these steps:
 
 #. Add your name (or ID) to the `LOCALIZATION_CONTRIBUTORS
    <https://github.com/Qiskit/qiskit/blob/master/docs/
@@ -98,8 +100,8 @@ To join the Qiskit Localization team:
 #. In the dialog box where you are asked why you want to join the Crowdin
    project, paste the URL of your PR.
 
-The Qiskit Localization team leads will review your request and give you access
-to the Crowdin project as quickly as we can!
+The administrators of the Crowdin project will review your request and give you
+access as quickly as they can.
 
 Building from Source
 ====================
