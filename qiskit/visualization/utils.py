@@ -260,9 +260,9 @@ class LayerSpooler():
             while curr_index > -1:
                 if self.insertable(node, self.spool[curr_index]):
                     last_insertable_index = curr_index
-                else:
-                    if _present(node, self.spool[curr_index]):
-                        break
+                # else:
+                    # if _present(node, self.spool[curr_index]):
+                        # break
                 curr_index = curr_index - 1
 
             if last_insertable_index:
@@ -297,9 +297,9 @@ class LayerSpooler():
             while curr_index < self.size():
                 if self.insertable(node, self.spool[curr_index]):
                     last_insertable_index = curr_index
-                else:
-                    if _present(node, self.spool[curr_index]):
-                        break
+                # else:
+                    # if _present(node, self.spool[curr_index]):
+                        # break
                 curr_index = curr_index + 1
 
             if last_insertable_index:
