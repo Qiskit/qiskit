@@ -16,6 +16,7 @@
 
 from enum import Enum
 import numpy as np
+from qiskit.circuit import ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.visualization.exceptions import VisualizationError
 
@@ -174,20 +175,10 @@ def _get_gate_span(qregs, instruction):
 
     if instruction.cargs:
         return qregs[min_index:]
+    if instruction.condition and isinstance(instruction.condition[0], ClassicalRegister):
+        return qregs[min_index:]
 
     return qregs[min_index:max_index + 1]
-
-
-def _present(node, nodes):
-    """Return True .IFF. any qreg in 'node' is present in 'nodes'
-    qiskit-terra #2802
-    """
-    present = False
-    for extant in nodes:
-        if any(i in extant.qargs for i in node.qargs):
-            present = True
-            break
-    return present
 
 
 def _any_crossover(qregs, node, nodes):
@@ -260,9 +251,6 @@ class LayerSpooler():
             while curr_index > -1:
                 if self.insertable(node, self.spool[curr_index]):
                     last_insertable_index = curr_index
-                # else:
-                    # if _present(node, self.spool[curr_index]):
-                        # break
                 curr_index = curr_index - 1
 
             if last_insertable_index:
@@ -297,9 +285,6 @@ class LayerSpooler():
             while curr_index < self.size():
                 if self.insertable(node, self.spool[curr_index]):
                     last_insertable_index = curr_index
-                # else:
-                    # if _present(node, self.spool[curr_index]):
-                        # break
                 curr_index = curr_index + 1
 
             if last_insertable_index:
