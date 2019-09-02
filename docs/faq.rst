@@ -53,3 +53,30 @@ environment. Choose a virtual environment in the Anaconda-Navigator from the
 see all of the virtual environments within Anaconda, and you can
 select the environment where you have Qiskit installed to launch Jupyter
 Notebook.
+
+|
+
+**Q: Why am I getting a compilation error while installing ``qiskit``?**
+
+**A:** Qiskit depends on a number of other open source Python packages, which
+are automatically installed when doing ``pip install qiskit``. Depending on
+your system's platform and Python version, is it possible that a particular
+package does not provide a pre-built binary wheel for your system, and in those
+cases ``pip`` will attempt to compile the package from source, which in turn
+might require some extra dependencies that need to be installed manually.
+
+If the output of ``pip install qiskit`` contains similar lines to:
+
+.. code:: sh
+
+  Failed building wheel for SOME_PACKAGE
+  ...
+  build/temp.linux-x86_64-3.5/_openssl.c:498:30: fatal error
+  compilation terminated.
+  error: command 'x86_64-linux-gnu-gcc' failed with exit status 1
+
+please check the documentation of the package that failed to install (in the
+example code, ``SOME_PACKAGE``) for information on how to install the libraries
+needed for compiling from source. For example:
+
+* ``cryptography``: https://cryptography.io/en/latest/installation/#building-cryptography-on-linux
