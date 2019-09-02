@@ -173,7 +173,7 @@ class MatplotlibDrawer:
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
 
-        if cxy :
+        if cxy:
             ypos = min([y[1] for y in cxy])
         if wide:
             if subtext:
@@ -873,7 +873,7 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['swap'])
                     # Custom gate
                     else:
-                        self._custom_multiqubit_gate(q_xy, c_xy,wide=_iswide,
+                        self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
                                                      text=op.name)
                 #
                 # draw multi-qubit gates (n=3)
