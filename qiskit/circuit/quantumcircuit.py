@@ -869,8 +869,9 @@ class QuantumCircuit:
         Deletes the ClassicalRegister that was used to store the values from these measurements
         if it is idle.
         """
-        from qiskit.converters import circuit_to_dag
+        # pylint: disable=cyclic-import
         from qiskit.transpiler.passes import RemoveFinalMeasurements
+        from qiskit.converters import circuit_to_dag
         dag = circuit_to_dag(self)
         remove_final_meas = RemoveFinalMeasurements()
         new_dag = remove_final_meas.run(dag)
