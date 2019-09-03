@@ -12,6 +12,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" op converter """
+
+# pylint: disable=cyclic-import
+
 import itertools
 import logging
 import sys
@@ -44,6 +48,8 @@ def to_weighted_pauli_operator(operator):
             one of supported operator type
     Returns:
         WeightedPauliOperator: the converted weighted pauli operator
+    Raises:
+        AquaError: Unsupported type to convert
 
     Warnings:
         Converting time from a MatrixOperator to a Pauli-type Operator grows exponentially.
@@ -62,9 +68,9 @@ def to_weighted_pauli_operator(operator):
         if operator.num_qubits > 10:
             logger.warning("Converting time from a MatrixOperator to a Pauli-type Operator grows "
                            "exponentially. If you are converting a system with large number of "
-                           "qubits, it will take time. And now you are converting a {}-qubit "
+                           "qubits, it will take time. And now you are converting a %s-qubit "
                            "Hamiltonian. You can turn on DEBUG logging to check the progress."
-                           "".format(operator.num_qubits))
+                           "", operator.num_qubits)
         num_qubits = operator.num_qubits
         coeff = 2 ** (-num_qubits)
 
@@ -102,6 +108,8 @@ def to_matrix_operator(operator):
             one of supported operator type
     Returns:
         MatrixOperator: the converted matrix operator
+    Raises:
+        AquaError: Unsupported type to convert
     """
     if operator.__class__ == WeightedPauliOperator:
         if operator.is_empty():
@@ -122,11 +130,12 @@ def to_matrix_operator(operator):
                         "{}".format(operator.__class__))
 
 
+# pylint: disable=invalid-name
 def to_tpb_grouped_weighted_pauli_operator(operator, grouping_func, **kwargs):
     """
 
     Args:
-        operator (WeightedPauliOperator | TPBGroupedWeightedPauliOperator | MatrixOperator):
+        operator (Union(WeightedPauliOperator, TPBGroupedWeightedPauliOperator, MatrixOperator)):
             one of supported operator type
         grouping_func (Callable): a callable function that grouped the paulis in the operator.
         kwargs: other setting for `grouping_func` function
@@ -134,6 +143,8 @@ def to_tpb_grouped_weighted_pauli_operator(operator, grouping_func, **kwargs):
     Returns:
         TPBGroupedWeightedPauliOperator: the converted tensor-product-basis grouped weighted
                                          pauli operator
+    Raises:
+        AquaError: Unsupported type to convert
     """
     if operator.__class__ == WeightedPauliOperator:
         return grouping_func(operator, **kwargs)
