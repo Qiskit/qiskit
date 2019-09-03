@@ -12,9 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Measurement error mitigation """
+
 import logging
 
-from qiskit.ignis.mitigation.measurement import (complete_meas_cal, tensored_meas_cal,
+from qiskit.ignis.mitigation.measurement import (complete_meas_cal,
                                                  CompleteMeasFitter, TensoredMeasFitter)
 
 from .run_circuits import compile_circuits
@@ -31,13 +33,15 @@ def get_measured_qubits(transpiled_circuits):
         transpiled_circuits ([QuantumCircuit]): a list of transpiled circuits
 
     Returns:
-        [int]: the qubit mapping to-be-used for measure error mitigation
+        list[int]: the qubit mapping to-be-used for measure error mitigation
+    Raises:
+        AquaError: invalid qubit mapping
     """
 
     qubit_mapping = None
     for qc in transpiled_circuits:
         measured_qubits = []
-        for inst, qargs, cargs in qc.data:
+        for inst, qargs, _ in qc.data:
             if inst.name != 'measure':
                 continue
             measured_qubits.append(qargs[0][1])
@@ -58,7 +62,9 @@ def get_measured_qubits_from_qobj(qobj):
         qobj (QasmObj): qobj
 
     Returns:
-        [int]: the qubit mapping to-be-used for measure error mitigation
+        list[int]: the qubit mapping to-be-used for measure error mitigation
+     Raises:
+        AquaError: invalid qubit mapping
     """
 
     qubit_mapping = None
@@ -79,6 +85,7 @@ def get_measured_qubits_from_qobj(qobj):
     return qubit_mapping
 
 
+# pylint: disable=invalid-name
 def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
                                             backend_config=None, compile_config=None,
                                             run_config=None):
@@ -102,17 +109,19 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
 
     circlabel = 'mcal'
 
-    if len(qubit_list) == 0:
+    if not qubit_list:
         raise AquaError("The measured qubit list can not be [].")
 
     if fitter_cls == CompleteMeasFitter:
-        meas_calibs_circuits, state_labels = complete_meas_cal(qubit_list=qubit_list, circlabel=circlabel)
+        meas_calibs_circuits, state_labels = \
+            complete_meas_cal(qubit_list=qubit_list, circlabel=circlabel)
     elif fitter_cls == TensoredMeasFitter:
         # TODO support different calibration
         raise AquaError("Does not support TensoredMeasFitter yet.")
     else:
         raise AquaError("Unknown fitter {}".format(fitter_cls))
 
-    cals_qobj = compile_circuits(meas_calibs_circuits, backend, backend_config, compile_config, run_config)
+    cals_qobj = compile_circuits(meas_calibs_circuits,
+                                 backend, backend_config, compile_config, run_config)
 
     return cals_qobj, state_labels, circlabel
