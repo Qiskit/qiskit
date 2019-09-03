@@ -22,25 +22,25 @@ The format is based on [Keep a Changelog].
 
 -   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
-    methods directly.
+    methods directly. (\#3034)
 
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
-    `cx`.
+    `cx`. (\#2380)
 -   The gate `u0` is being deprecated in favor of using multiple `id` gates
     to insert delays (\#2664)
 -   The decorator `requires_qe_access` is being deprecated in favor of
     `online_test`.
--   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
+-   The `as_dict` method of Qobj is deprecated in favor of `to_dict`. (\#2556)
 
 ### Added
 
 -   A new pulse instruction, `Delay`. A `Delay` occupies a pulse channel for a
-    duration of time, blocking other instructions from being inserted in this time.
--   Ability to check for equality of pulse `Schedule` and `Instruction`.
+    duration of time, blocking other instructions from being inserted in this time. (\#2869)
+-   Ability to check for equality of pulse `Schedule` and `Instruction`. (\#2873)
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
     on the longest path of the DAGCircuit.
@@ -49,7 +49,7 @@ The format is based on [Keep a Changelog].
     to the `QuantumCircuit.draw` method. The option allows to control
     how much room the text circuit drawing takes.
 -   The option `idle_wires` was added to the drawers to control
-    if wires without any operation should be included in the drawing.
+    if wires without any operation should be included in the drawing. (\#2692)
 -   Introduced a visualization for the Pass Manager. (\#2445)
 -   New pulse schedule method `Schedule.filter` to filter by instruction
     channel, time, and type. (\#2597)
@@ -69,7 +69,7 @@ The format is based on [Keep a Changelog].
 -   Added ``output_name`` as a transpiler parameter to set the name of
     output circuits (\#2745)
 -   Simple expressions of Parameters can now be created via the four basic math
-    operations (+,-,*,/). (#2537)
+    operations (+,-,\*,/). (#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
     requiring a large number of parameters. (#2379)
 -   dag.draw() method to visualize DAGCircuit objects (#3016)
@@ -128,7 +128,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
 -   The previously deprecated functions
-    `qiksit.visualization.plot_state` and
+    `qiskit.visualization.plot_state` and
     `qiskit.visualization.iplot_state` have been removed. Instead use
     the specific functions for each plot type (\#2325).
 -   International documentation of outdated readme etc (\#2302)
