@@ -24,7 +24,6 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.cz import CzGate
 
 
 class CnotGate(Gate):
@@ -36,8 +35,10 @@ class CnotGate(Gate):
 
     def _define(self):
         """
-        gate cx a,b { h b; cx a,b; h b; }
+        gate cx a,b { h b; cz a,b; h b; }
         """
+        from qiskit.extensions.standard.cz import CzGate
+        
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
