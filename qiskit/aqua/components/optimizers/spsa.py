@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Simultaneous Perturbation Stochastic Approximation algorithm."""
+
 import logging
 
 import numpy as np
@@ -85,7 +87,9 @@ class SPSA(Optimizer):
         'optimizer': ['local', 'noise']
     }
 
-    def __init__(self, max_trials=1000, save_steps=1, last_avg=1, c0=_C0, c1=0.1, c2=0.602, c3=0.101, c4=0, skip_calibration=False):
+    # pylint: disable=unused-argument
+    def __init__(self, max_trials=1000, save_steps=1,
+                 last_avg=1, c0=_C0, c1=0.1, c2=0.602, c3=0.101, c4=0, skip_calibration=False):
         """
         Constructor.
 
@@ -113,13 +117,15 @@ class SPSA(Optimizer):
         self._parameters = np.array([c0, c1, c2, c3, c4])
         self._skip_calibration = skip_calibration
 
-    def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
+    def optimize(self, num_vars, objective_function, gradient_function=None,
+                 variable_bounds=None, initial_point=None):
+        super().optimize(num_vars, objective_function, gradient_function,
+                         variable_bounds, initial_point)
 
         if not isinstance(initial_point, np.ndarray):
             initial_point = np.asarray(initial_point)
 
-        logger.debug('Parameters: {}'.format(self._parameters))
+        logger.debug('Parameters: %s', self._parameters)
         if not self._skip_calibration:
             # at least one calibration, at most 25 calibrations
             num_steps_calibration = min(25, max(1, self._max_trials // 5))
@@ -127,8 +133,10 @@ class SPSA(Optimizer):
         else:
             logger.debug('Skipping calibration, parameters used as provided.')
 
-        opt, sol, cplus, cminus, tplus, tminus = self._optimization(objective_function, initial_point,
-                                                                    max_trials=self._max_trials, **self._options)
+        opt, sol, _, _, _, _ = self._optimization(objective_function,
+                                                  initial_point,
+                                                  max_trials=self._max_trials,
+                                                  **self._options)
         return sol, opt, None
 
     def _optimization(self, obj_fun, initial_theta, max_trials, save_steps=1, last_avg=1):
@@ -168,7 +176,8 @@ class SPSA(Optimizer):
         theta_best = np.zeros(initial_theta.shape)
         for k in range(max_trials):
             # SPSA Parameters
-            a_spsa = float(self._parameters[0]) / np.power(k + 1 + self._parameters[4], self._parameters[2])
+            a_spsa = float(self._parameters[0]) / np.power(k + 1 + self._parameters[4],
+                                                           self._parameters[2])
             c_spsa = float(self._parameters[1]) / np.power(k + 1, self._parameters[3])
             delta = 2 * aqua_globals.random.randint(2, size=np.shape(initial_theta)[0]) - 1
             # plus and minus directions
@@ -186,19 +195,18 @@ class SPSA(Optimizer):
             theta = theta - a_spsa * g_spsa
             # saving
             if k % save_steps == 0:
-                logger.debug('Objective function at theta+ for step # {}: {:.7f}'.format(k, cost_plus))
-                logger.debug('Objective function at theta- for step # {}: {:.7f}'.format(k, cost_minus))
+                logger.debug('Objective function at theta+ for step # %s: %1.7f', k, cost_plus)
+                logger.debug('Objective function at theta- for step # %s: %1.7f', k, cost_minus)
                 theta_plus_save.append(theta_plus)
                 theta_minus_save.append(theta_minus)
                 cost_plus_save.append(cost_plus)
                 cost_minus_save.append(cost_minus)
-                # logger.debug('objective function at for step # {}: {:.7f}'.format(k, obj_fun(theta)))
 
             if k >= max_trials - last_avg:
                 theta_best += theta / last_avg
         # final cost update
         cost_final = obj_fun(theta_best)
-        logger.debug('Final objective function is: %.7f' % cost_final)
+        logger.debug('Final objective function is: %.7f', cost_final)
 
         return [cost_final, theta_best, cost_plus_save, cost_minus_save,
                 theta_plus_save, theta_minus_save]
@@ -227,7 +235,7 @@ class SPSA(Optimizer):
         logger.debug("Calibration...")
         for i in range(stat):
             if i % 5 == 0:
-                logger.debug('calibration step # {} of {}'.format(str(i), str(stat)))
+                logger.debug('calibration step # %s of %s', str(i), str(stat))
             delta = 2 * aqua_globals.random.randint(2, size=np.shape(initial_theta)[0]) - 1
             theta_plus = initial_theta + initial_c * delta
             theta_minus = initial_theta - initial_c * delta
@@ -241,4 +249,4 @@ class SPSA(Optimizer):
         self._parameters[0] = target_update * 2 / delta_obj \
             * self._parameters[1] * (self._parameters[4] + 1)
 
-        logger.debug('Calibrated SPSA parameter c0 is %.7f' % self._parameters[0])
+        logger.debug('Calibrated SPSA parameter c0 is %.7f', self._parameters[0])

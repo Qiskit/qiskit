@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Constrained Optimization By Linear Approximation algorithm."""
+
 import logging
 
 from scipy.optimize import minimize
@@ -64,6 +66,7 @@ class COBYLA(Optimizer):
         'optimizer': ['local']
     }
 
+    # pylint: disable=unused-argument
     def __init__(self, maxiter=1000, disp=False, rhobeg=1.0, tol=None):
         """
         Constructor.
@@ -85,8 +88,11 @@ class COBYLA(Optimizer):
                 self._options[k] = v
         self._tol = tol
 
-    def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
+    def optimize(self, num_vars, objective_function, gradient_function=None,
+                 variable_bounds=None, initial_point=None):
+        super().optimize(num_vars, objective_function, gradient_function,
+                         variable_bounds, initial_point)
 
-        res = minimize(objective_function, initial_point, tol=self._tol, method="COBYLA", options=self._options)
+        res = minimize(objective_function, initial_point, tol=self._tol,
+                       method="COBYLA", options=self._options)
         return res.x, res.fun, res.nfev

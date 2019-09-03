@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Optimizer Packages """
+
 from .optimizer import Optimizer
 from .adam_amsgrad import ADAM
 from .cg import CG
@@ -43,7 +45,8 @@ try:
     import nlopt
     import logging
     logger = logging.getLogger(__name__)
-    logger.info('NLopt version: {}.{}.{}'.format(nlopt.version_major(), nlopt.version_minor(), nlopt.version_bugfix()))
+    logger.info('NLopt version: %s.%s.%s', nlopt.version_major(),
+                nlopt.version_minor(), nlopt.version_bugfix())
     from .nlopts.crs import CRS
     from .nlopts.direct_l import DIRECT_L
     from .nlopts.direct_l_rand import DIRECT_L_RAND

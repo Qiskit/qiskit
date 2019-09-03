@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" variational forms packages """
+
 from .variational_form import VariationalForm
 from .ry import RY
 from .ryrz import RYRZ
