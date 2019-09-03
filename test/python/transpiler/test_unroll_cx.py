@@ -29,6 +29,9 @@ class TestUnrollCX(QiskitTestCase):
 
     def test_cx_unroll(self):
         """Test decompose a CX into CZ and Hadamards.
+        q0:-----.-----      q0:---------.---------
+                |                       |
+        q1:----(+)----   =  q1:---[H]--[z]--[H]---
         """
         qr = QuantumRegister(2, 'qr')
         circuit = QuantumCircuit(qr)
