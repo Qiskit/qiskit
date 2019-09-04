@@ -355,6 +355,8 @@ class Schedule(ScheduleComponent):
             return False
 
         # finally check each instruction in `other` is in this schedule
+        print(instructions)
+        print(other_instructions)
         for idx, inst in enumerate(other_instructions):
             # check assumes `Schedule.instructions` is sorted consistently
             if instructions[idx] != inst:
