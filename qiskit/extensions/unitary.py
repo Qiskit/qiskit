@@ -129,31 +129,25 @@ class UnitaryGate(Gate):
 
         # need to work out the definition and then write it
 
-        # give this unitary a unique name
+        # give this unitary a name
         self.qasm_name = self.label if self.label else "unitary" + str(id(self))
 
         # map from gates in the definition to params in the method
         reg_to_qasm = OrderedDict()
-        current_qreg = 0
-        current_creg = 0
+        current_reg = 0
 
         gates_def = ""
         for gate in self.definition:
 
-            for qreg in gate[1]:
-                if qreg not in reg_to_qasm:
-                    reg_to_qasm[qreg] = 'q' + str(current_qreg)
-                    current_qreg += 1
-
-            for creg in gate[2]:
-                if creg not in reg_to_qasm:
-                    reg_to_qasm[creg] = 'c' + str(current_creg)
-                    current_creg += 1
+            # add regs from this gate to the overall set of params
+            for reg in gate[1] + gate[2]:
+                if reg not in reg_to_qasm:
+                    reg_to_qasm[reg] = 'p' + str(current_reg)
+                    current_reg += 1
 
             curr_gate = "\t%s %s;\n" % (gate[0].qasm(),
                                         ",".join([reg_to_qasm[j]
                                                   for j in gate[1] + gate[2]]))
-
             gates_def += curr_gate
 
         # name of gate + params + {definition}
@@ -162,8 +156,9 @@ class UnitaryGate(Gate):
                   " {\n" + gates_def + "}\n"
 
         self.qasm_def_written = True
+        self.qasm_definiton = overall
 
-        return overall + self._qasmif(self.qasm_name)
+        return self.qasm_definiton + self._qasmif(self.qasm_name)
 
 
 def unitary(self, obj, qubits, label=None):

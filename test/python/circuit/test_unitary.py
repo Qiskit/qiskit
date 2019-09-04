@@ -201,8 +201,8 @@ include "qelib1.inc";
 qreg q0[2];
 creg c0[1];
 x q0[0];
-gate custom_gate q0 {
-\tu3(0.0,0.0,0.0) q0;
+gate custom_gate p0 {
+\tu3(0.0,0.0,0.0) p0;
 }
 custom_gate q0[0];
 custom_gate q0[1];
