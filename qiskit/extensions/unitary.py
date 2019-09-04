@@ -114,6 +114,8 @@ class UnitaryGate(Gate):
         # give this unitary a unique name
         name_param = "unitary" + str(id(self))
 
+        #TODO check (somehow) if the gate def has already been made and if so don't add it
+
         # gate name(params) qargs
         # {
         # body
