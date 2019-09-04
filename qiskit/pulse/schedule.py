@@ -147,9 +147,9 @@ class Schedule(ScheduleComponent):
         for insert_time, child_sched in self._children:
             yield from child_sched._instructions(time + insert_time)
 
-    def union(self, *schedules: List[ScheduleComponent],
+    def union(self, *schedules: Union[ScheduleComponent, Tuple[int, ScheduleComponent]],
               name: Optional[str] = None) -> 'Schedule':
-        """Return a new schedule which is the union of `self` and `schedule`.
+        """Return a new schedule which is the union of both `self` and `schedules`.
 
         Args:
             *schedules: Schedules to be take the union with this `Schedule`.
@@ -157,7 +157,32 @@ class Schedule(ScheduleComponent):
         """
         if name is None:
             name = self.name
-        return Schedule(self, *schedules, name=name)
+        new_sched = Schedule(name=name)
+        new_sched._union((0, self))
+        for sched_pair in schedules:
+            if not isinstance(sched_pair, tuple):
+                sched_pair = (0, sched_pair)
+            new_sched._union(sched_pair)
+        return new_sched
+
+    def _union(self, other: Tuple[int, ScheduleComponent]) -> 'Schedule':
+        """Mutably union `self` and `other` Schedule with shift time.
+
+        Args:
+            other: Schedule with shift time to be take the union with this `Schedule`.
+        """
+        shift_time, sched = other
+        if isinstance(sched, Schedule):
+            shifted_children = sched._children
+            if shift_time != 0:
+                shifted_children = tuple((t + shift_time, child) for t, child in shifted_children)
+            self.__children += shifted_children
+        else:  # isinstance(sched, Instruction)
+            self.__children += (other,)
+
+        sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
+        self._timeslots = self.timeslots.merge(sched_timeslots)
+        self._buffer = max(self.buffer, sched.buffer)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
