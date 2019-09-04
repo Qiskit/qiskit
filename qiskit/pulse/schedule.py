@@ -388,6 +388,7 @@ class Schedule(ScheduleComponent):
                 print(instructions[idx], inst)
                 print(instructions[idx][0] == inst[0])
                 print(instructions[idx][1] == inst[1])
+                print('test')
                 return False
 
         return True
