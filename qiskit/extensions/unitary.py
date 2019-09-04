@@ -18,6 +18,7 @@ Arbitrary unitary circuit instruction.
 
 import numpy
 
+from collections import OrderedDict
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -62,6 +63,8 @@ class UnitaryGate(Gate):
         if input_dim != output_dim or 2**n_qubits != input_dim:
             raise ExtensionError(
                 "Input matrix is not an N-qubit operator.")
+
+        self.qasm_name = None
         # Store instruction params
         super().__init__('unitary', n_qubits, [data], label=label)
 
@@ -111,21 +114,17 @@ class UnitaryGate(Gate):
         This is achieved by adding a custom gate that corresponds to the defintion
         of this gate. The gate is given essentially a random name.
         """
+        # if the name exists then we have added this gate to the qasm already
+        if self.qasm_name:
+            return self._qasmif(self.qasm_name)
+
         # give this unitary a unique name
-        name_param = "unitary" + str(id(self))
-
-        #TODO check (somehow) if the gate def has already been made and if so don't add it
-
-        # gate name(params) qargs
-        # {
-        # body
-        # }
+        self.qasm_name = "unitary" + str(id(self))
 
         # map from gates in the definition to params in the method
         # q0, q1, etc
-        reg_to_qasm = {}
+        reg_to_qasm = OrderedDict()
         current_qreg = 0
-        current_creg = 0
 
         gates_def = ""
         for gate in self.definition:
@@ -133,8 +132,8 @@ class UnitaryGate(Gate):
             for qreg in gate[1] :
                 if qreg not in reg_to_qasm:
                     reg_to_qasm[qreg] = 'q' + str(current_qreg)
-                    current_qreg +=1
-            # TODO what is the 3rd thing in the tuple?
+                    current_qreg += 1
+            # TODO what is the 3rd thing in the tuple?!
 
             curr_gate = "\t%s %s;\n" % (gate[0].qasm(),
                                              ",".join(["%s" % (reg_to_qasm[j])
@@ -142,11 +141,10 @@ class UnitaryGate(Gate):
 
             gates_def += curr_gate
 
-        # TODO make this an ordered dict
-        overall = "gate " + name_param + " " + ",".join(reg_to_qasm.values()) + " {\n" \
+        overall = "gate " +  self.qasm_name + " " + ",".join(reg_to_qasm.values()) + " {\n" \
         + gates_def + "\n}\n"
 
-        return overall + self._qasmif(name_param)
+        return overall + self._qasmif( self.qasm_name)
 
 
 def unitary(self, obj, qubits, label=None):
