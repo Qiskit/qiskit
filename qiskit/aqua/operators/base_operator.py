@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Base Operator """
+
 from abc import ABC, abstractmethod
 
 
@@ -27,18 +29,22 @@ class BaseOperator(ABC):
 
     @property
     def name(self):
+        """ returns name """
         return self._name
 
     @name.setter
     def name(self, new_value):
+        """ sets name """
         self._name = new_value
 
     @property
     def basis(self):
+        """ returns basis """
         return self._basis
 
     @property
     def z2_symmetries(self):
+        """ returns z2 symmetries """
         return self._z2_symmetries
 
     @abstractmethod
@@ -104,8 +110,10 @@ class BaseOperator(ABC):
 
     @abstractmethod
     def print_details(self):
+        """ print details """
         raise NotImplementedError
 
     @abstractmethod
     def chop(self, threshold, copy=False):
+        """ chop """
         raise NotImplementedError

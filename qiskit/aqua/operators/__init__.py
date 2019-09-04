@@ -12,8 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Operator packages """
+
 from .common import (evolution_instruction, suzuki_expansion_slice_pauli_list, pauli_measurement,
-                     measure_pauli_z, covariance, row_echelon_F2, kernel_F2, commutator, check_commutativity)
+                     measure_pauli_z, covariance, row_echelon_F2,
+                     kernel_F2, commutator, check_commutativity)
 from .pauli_graph import PauliGraph
 from .base_operator import BaseOperator
 from .weighted_pauli_operator import WeightedPauliOperator, Z2Symmetries

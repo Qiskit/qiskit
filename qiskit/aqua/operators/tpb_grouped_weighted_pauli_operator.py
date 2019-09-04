@@ -12,10 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" TPB Grouped Weighted Pauli Operator """
+
 import copy
 
-from qiskit.aqua.operators.weighted_pauli_operator import WeightedPauliOperator
-from qiskit.aqua.operators.pauli_graph import PauliGraph
+from .pauli_graph import PauliGraph
+from .weighted_pauli_operator import WeightedPauliOperator
 
 
 def _post_format_conversion(grouped_paulis):
@@ -24,7 +26,7 @@ def _post_format_conversion(grouped_paulis):
     paulis = []
 
     total_idx = 0
-    for idx, tpb in enumerate(grouped_paulis):
+    for _, tpb in enumerate(grouped_paulis):
         curr_basis = tpb[0][1]
         curr_paulis = tpb[1:]
         basis.append((curr_basis, list(range(total_idx, total_idx+len(curr_paulis)))))
@@ -35,22 +37,26 @@ def _post_format_conversion(grouped_paulis):
 
 
 class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
-
-    def __init__(self, paulis, basis, z2_symmetries=None, atol=1e-12, name=None, grouping_func=None, kwargs=None):
+    """ TPB Grouped Weighted Pauli Operator """
+    def __init__(self, paulis, basis, z2_symmetries=None, atol=1e-12,
+                 name=None, grouping_func=None, kwargs=None):
         super().__init__(paulis, basis, z2_symmetries, atol, name)
         self._grouping_func = grouping_func
         self._kwargs = kwargs or {}
 
     @property
     def num_groups(self):
+        """ returns number of groups """
         return len(self._basis)
 
     @property
     def grouping_func(self):
+        """ returns grouping function """
         return self._grouping_func
 
     @property
     def kwargs(self):
+        """ returns kwargs """
         return self._kwargs
 
     @classmethod
@@ -58,17 +64,18 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         """
         Largest-Degree First Coloring for grouping paulis.
         Args:
-            weighted_pauli_operator (WeightedPauliOperator): the to-be-grouped weighted pauli operator.
+            weighted_pauli_operator (WeightedPauliOperator):
+                    the to-be-grouped weighted pauli operator.
             method (str): only `largest-degree` is available now.
-            name (str): the operator name after group.
 
         Returns:
-            TPBGroupedWeightedPauliOperator
+            TPBGroupedWeightedPauliOperator: operator
         """
-        p = PauliGraph(weighted_pauli_operator.paulis, method)
-        basis, paulis = _post_format_conversion(p.grouped_paulis)
+        p_g = PauliGraph(weighted_pauli_operator.paulis, method)
+        basis, paulis = _post_format_conversion(p_g.grouped_paulis)
         kwargs = {'method': method}
-        return cls(paulis, basis, weighted_pauli_operator.z2_symmetries, weighted_pauli_operator.atol,
+        return cls(paulis, basis, weighted_pauli_operator.z2_symmetries,
+                   weighted_pauli_operator.atol,
                    weighted_pauli_operator.name, cls.sorted_grouping, kwargs)
 
     @classmethod
@@ -76,11 +83,11 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         """
         Greedy and unsorted grouping paulis.
         Args:
-            weighted_pauli_operator (WeightedPauliOperator): the to-be-grouped weighted pauli operator.
-            name (str): the operator name after group.
+            weighted_pauli_operator (WeightedPauliOperator):
+                    the to-be-grouped weighted pauli operator.
 
         Returns:
-            TPBGroupedWeightedPauliOperator
+            TPBGroupedWeightedPauliOperator: operator
         """
         paulis = weighted_pauli_operator.paulis
         temp_paulis = copy.deepcopy(paulis)
@@ -96,7 +103,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
                     break
             return ret
 
-        for i in range(len(temp_paulis)):
+        for i, _ in enumerate(temp_paulis):
             p_1 = temp_paulis[i]
             if not check_pauli_in_list(p_1, sorted_paulis):
                 paulis_temp = []
@@ -105,23 +112,23 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
                 paulis_temp.append(p_1)
                 paulis_temp.append(copy.deepcopy(p_1))
                 paulis_temp[0][0] = 0.0  # zero coeff for HEADER
-                indices = []
+
                 for j in range(i + 1, len(temp_paulis)):
                     p_2 = temp_paulis[j]
                     if not check_pauli_in_list(p_2, sorted_paulis) and p_1[1] != p_2[1]:
                         j = 0
-                        for i in range(n):
+                        for __i in range(n):
                             # p_2 is identity, p_1 is identity, p_1 and p_2 has same basis
-                            if not ((not p_2[1].z[i] and not p_2[1].x[i]) or
-                                    (not p_1[1].z[i] and not p_1[1].x[i]) or
-                                    (p_2[1].z[i] == p_1[1].z[i] and
-                                     p_2[1].x[i] == p_1[1].x[i])):
+                            if not ((not p_2[1].z[__i] and not p_2[1].x[__i]) or
+                                    (not p_1[1].z[__i] and not p_1[1].x[__i]) or
+                                    (p_2[1].z[__i] == p_1[1].z[__i] and
+                                     p_2[1].x[__i] == p_1[1].x[__i])):
                                 break
                             else:
                                 # update master, if p_2 is not identity
-                                if p_2[1].z[i] or p_2[1].x[i]:
-                                    paulis_temp[0][1].update_z(p_2[1].z[i], i)
-                                    paulis_temp[0][1].update_x(p_2[1].x[i], i)
+                                if p_2[1].z[__i] or p_2[1].x[__i]:
+                                    paulis_temp[0][1].update_z(p_2[1].z[__i], __i)
+                                    paulis_temp[0][1].update_x(p_2[1].x[__i], __i)
                             j += 1
                         if j == n:
                             paulis_temp.append(p_2)
@@ -130,7 +137,8 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
 
         basis, new_paulis = _post_format_conversion(grouped_paulis)
 
-        return cls(new_paulis, basis, weighted_pauli_operator.z2_symmetries, weighted_pauli_operator.atol,
+        return cls(new_paulis, basis, weighted_pauli_operator.z2_symmetries,
+                   weighted_pauli_operator.atol,
                    weighted_pauli_operator.name, cls.unsorted_grouping)
 
     def __eq__(self, other):
@@ -157,8 +165,10 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         curr_repr = 'tpb grouped paulis'
         length = len(self._paulis)
         name = "" if self._name is None else "{}: ".format(self._name)
-        ret = "{}Representation: {}, qubits: {}, size: {}, group: {}".format(name, curr_repr,
-                                                                             self.num_qubits, length, len(self._basis))
+        ret = \
+            "{}Representation: {}, qubits: {}, size: {}, group: {}".format(name, curr_repr,
+                                                                           self.num_qubits,
+                                                                           length, len(self._basis))
         return ret
 
     def print_details(self):
@@ -179,6 +189,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
 
         return ret
 
+    # pylint: disable=redefined-outer-name
     def _add_or_sub(self, other, operation, copy=True):
         """
         Add two operators either extend (in-place) or combine (copy) them.
@@ -192,7 +203,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
             copy (bool): working on a copy or self
 
         Returns:
-            TPBGroupedWeightedPauliOperator
+            TPBGroupedWeightedPauliOperator: operator
         """
         # perform add or sub in paulis and then re-group it again
         ret_op = super()._add_or_sub(other, operation, copy)

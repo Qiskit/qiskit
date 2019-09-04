@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 For coloring Pauli Graph for transforming paulis into grouped Paulis
 """
@@ -20,7 +21,7 @@ import copy
 import numpy as np
 
 
-class PauliGraph(object):
+class PauliGraph:
     """Pauli Graph."""
 
     def __init__(self, paulis, mode="largest-degree"):
@@ -34,14 +35,14 @@ class PauliGraph(object):
         Check the validity of the pauli list and return immutable list as list of nodes.
 
         Args:
-            paulis: list of [weight, Pauli object]
+            paulis (list): list of [weight, Pauli object]
 
         Returns:
-            Pauli object as immutable list
+            Pauli: object as immutable list
         """
-        pauliOperators = [x[1] for x in paulis]
-        pauliWeights = [x[0] for x in paulis]
-        return tuple(pauliOperators), tuple(pauliWeights)  # fix their ordering
+        pauli_operators = [x[1] for x in paulis]
+        pauli_weights = [x[0] for x in paulis]
+        return tuple(pauli_operators), tuple(pauli_weights)  # fix their ordering
 
     def _get_nqbits(self):
         nqbits = self.nodes[0].numberofqubits
@@ -54,8 +55,10 @@ class PauliGraph(object):
         Create edges (i,j) if i and j is not commutable under Paulis.
 
         Returns:
-            dictionary of graph connectivity with node index as key and list of neighbor as values
+            dict: dictionary of graph connectivity with node index as key and
+                    list of neighbor as values
         """
+        # pylint: disable=invalid-name
         conv = {
             'I': 0,
             'X': 1,
@@ -64,11 +67,14 @@ class PauliGraph(object):
         }
         a = np.array([[conv[e] for e in reversed(n.to_label())] for n in self.nodes], dtype=np.int8)
         b = a[:, None]
-        c = (((a * b) * (a - b)) == 0).all(axis=2)  # i and j are commutable with TPB if c[i, j] is True
+        # i and j are commutable with TPB if c[i, j] is True
+        c = (((a * b) * (a - b)) == 0).all(axis=2)
+        # pylint: disable=singleton-comparison
         edges = {i: np.where(c[i] == False)[0] for i in range(len(self.nodes))}  # noqa
         return edges
 
     def _coloring(self, mode="largest-degree"):
+        # pylint: disable=invalid-name
         if mode == "largest-degree":
             nodes = sorted(self.edges.keys(), key=lambda x: len(self.edges[x]), reverse=True)
             # -1 means not colored; 0 ... len(self.nodes)-1 is valid colored
@@ -85,14 +91,14 @@ class PauliGraph(object):
             assert np.min(color[nodes]) >= 0, "Uncolored node exists!"
 
             # post-processing to grouped_paulis
-            maxColor = np.max(color[nodes])  # the color used is 0, 1, 2, ..., maxColor
+            max_color = np.max(color[nodes])  # the color used is 0, 1, 2, ..., max_color
             temp_gp = []  # list of indices of grouped paulis
-            for c in range(maxColor+1):  # maxColor is included
+            for c in range(max_color+1):  # max_color is included
                 temp_gp.append([i for i, icolor in enumerate(color) if icolor == c])
 
             # create _grouped_paulis as dictated in the operator.py
             gp = []
-            for c in range(maxColor+1):  # maxColor is included
+            for c in range(max_color+1):  # max_color is included
                 # add all paulis
                 gp.append([[self.weights[i], self.nodes[i]] for i in temp_gp[c]])
 
