@@ -26,15 +26,7 @@ building schedules include:
   - What channel should be used to drive qubit 0?
   - What are the defined native gates on this backend?
 """
-# TODO:
-#  - get_property
-#  - units for gate info
-#  - describe channel
-#  - parameterized schedule
-#  - SWITCH OP TO CMD?
-#  - Separate out CmdDef?
-#  - draw
-#  - __getattr__
+import datetime
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
@@ -44,7 +36,13 @@ from qiskit.pulse.channels import *
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 
-QubitArgument = Union[int, Iterable[int]]
+# TODO:
+#  - __getattr__
+#  - describe channel
+#  - draw
+# Questions:
+#  - SWITCH OP TO CMD?
+#  - Separate out CmdDef?
 
 
 class SystemInfo(object):
@@ -52,7 +50,7 @@ class SystemInfo(object):
 
     def __init__(self,
                  backend: 'BaseBackend',
-                 default_ops: Optional[Dict[Tuple[str, int, ...], Schedule]]):
+                 default_ops: Optional[Dict[Tuple[str, int], Schedule]] = None):
         """
         Initialize a SystemInfo instance with the data from the backend.
 
@@ -67,8 +65,9 @@ class SystemInfo(object):
         self._defaults = backend.defaults()
         self._properties = backend.properties()
         self._config = backend.configuration()
-        for key, schedule in default_ops.items():
-            self.add_op(key[0], key[1:], schedule)
+        if default_ops:
+            for key, schedule in default_ops.items():
+                self.add_op(key[0], key[1:], schedule)
 
     @property
     def name(self):
@@ -173,56 +172,6 @@ class SystemInfo(object):
             raise PulseError("Cannot get the measurement frequency for qubit {qub}, this system "
                              "only has {num} qubits.".format(qub=qubit, num=self.n_qubits))
 
-    def get_property(self, name: str, *args): #-> Tuple[datetime.time, float]:
-        """Return the collected time and value of the property, if it was given by the backend."""
-        # TODO: this kinda works but not great
-        ret = self._properties.__dict__[name]
-        for arg in args:
-            ret = ret[arg]
-        return ret
-
-    def gate_error(self, operation: str, qubits: Union[int, Iterable[int]]) -> float:
-        """
-        Return gate error estimates from backend properties.
-
-        Args:
-            operation: The operation for which to get the error.
-            qubits: The specific qubits for the operation.
-        Raises:
-            PulseError: If the gate error is not provided.
-        """
-        qubits = _to_tuple(qubits)
-        try:
-            gate_info = self._gates[operation][qubits]
-        except KeyError:
-            raise PulseError("Gate {} on qubits {} is not defined.".format(operation, qubits))
-        try:
-            return gate_info['params']['gate_error']
-        except KeyError:
-            raise PulseError("There is no error estimate provided for the {} gate on this "
-                             "system.".format(gate_info['name']))
-
-    def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]) -> float:
-        """
-        Return the duration of the gate in units of dt.
-
-        Args:
-            operation: The operation for which to get the duration.
-            qubits: The specific qubits for the operation.
-        Raises:
-            PulseError: If the gate length is not provided.
-        """
-        qubits = _to_tuple(qubits)
-        try:
-            gate_info = self._gates[operation][qubits]
-        except KeyError:
-            raise PulseError("Gate {} on qubits {} is not defined.".format(operation, qubits))
-        try:
-            return gate_info['params']['gate_error']
-        except KeyError:
-            raise PulseError("There is no information provided about the duration of the {} "
-                             "gate on this system.".format(gate_info['name']))
-
     def drives(self, qubit: int) -> DriveChannel:
         """Return the drive channel for the given qubit."""
         return DriveChannel(qubit)
@@ -242,7 +191,53 @@ class SystemInfo(object):
 
     def describe(self, channel: Channel):
         # TODO
-        pass
+        raise NotImplementedError
+
+    def get_property(self, name: str, *args) -> Union[None, Tuple[float, datetime.datetime]]:
+        """
+        Return the value and collected time of the property if it was given by the backend,
+        otherwise, return `None`.
+
+        Args:
+            name: The property to look for.
+            args: Optionally used to specify within the heirarchy which property to return.
+        """
+        props = self._format_properties()
+        ret = None
+        try:
+            ret = props[name]
+            for arg in args:
+                ret = ret[arg]
+        except (KeyError, TypeError):
+            try:
+                # This can help if one of args is an integer or list of qubits
+                if ret:
+                    ret = ret[_to_tuple(arg)]
+            except (KeyError, TypeError):
+                return None
+        return ret
+
+    def gate_error(self, operation: str, qubits: Union[int, Iterable[int]]) -> float:
+        """
+        Return gate error estimates from backend properties.
+
+        Args:
+            operation: The operation for which to get the error.
+            qubits: The specific qubits for the operation.
+        """
+        # Throw away datetime at index 1
+        return self.get_property('gates', operation, _to_tuple(qubits), 'gate_error')[0]
+
+    def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]) -> float:
+        """
+        Return the duration of the gate in units of seconds.
+
+        Args:
+            operation: The operation for which to get the duration.
+            qubits: The specific qubits for the operation.
+        """
+        # Throw away datetime at index 1
+        return self.get_property('gates', operation, _to_tuple(qubits), 'gate_length')[0]
 
     @property
     def ops(self) -> List[str]:
@@ -294,11 +289,10 @@ class SystemInfo(object):
         Raises:
             PulseError: If the operation is not defined on the qubits.
         """
-        # TODO fixme
-        sched = self._ops_definition[operation].get(_to_tuple(qubits))
-        if sched is None:
+        if not self.has(operation, qubits):
             raise PulseError("Operation {op} for qubits {qubits} is not defined for this "
                              "system.".format(op=operation, qubits=qubits))
+        sched = self._ops_definition[operation].get(_to_tuple(qubits))
         if isinstance(sched, ParameterizedSchedule):
             sched = sched.bind_parameters(*params, **kwparams)
         return sched
@@ -329,6 +323,8 @@ class SystemInfo(object):
         """
         if not qubits:
             raise PulseError("Cannot add definition {} with no target qubits.".format(operation))
+        if not isinstance(schedule, Schedule):
+            raise PulseError("Attemping to add an invalid schedule type.")
         self._ops_definition[operation][_to_tuple(qubits)] = schedule
 
     def remove_op(self, operation: str, qubits: Union[int, List[int]]):
@@ -385,22 +381,71 @@ class SystemInfo(object):
                 ParameterizedSchedule(*[converter(inst) for inst in op.sequence], name=op.name))
             self.__qubit_ops[_to_tuple(op.qubits)].append(op.name)
 
-    @property
-    def _gates(self) -> Dict[str, Dict[Tuple[int], Dict[str, Any]]]:
-        """Lazy reformatting of gate properties."""
-        try:
-            return self.__gates
-        except AttributeError:
-            self.__gates = defaultdict(dict)
-            for gate in self._properties.gates:
-                qubits = _to_tuple(qubits)
-                # TODO: units!
-                params = {param.name: param.value for param in gate.parameters}
-                self.__gates[gate.gate][qubits] = {
-                    'name': gate.name,
-                    'params': params
+    def _format_properties(self) -> Dict[str, Any]:
+        """
+        Return a reformatted version of backend properties, extracting values for gate properties
+        and qubit properties. For example:
+            {
+                'backend_name': 'ibmq_device',
+                'backend_version': '0.0.0',
+                'gates': {
+                    'id': {(0,): {
+                        'gate_error': (0.001, datetime.datetime(...)),
+                        'gate_length': (1.1e-07, datetime.datetime(...))
+                    }
+                    ...
                 }
-            return self.__gates
+                'qubits': {
+                    0: {
+                        'T1': (5.5e-05, datetime.datetime(...)),
+                        'readout_error': (0.029, datetime.datetime(...))
+                        ...
+                    }
+                    ...
+                }
+                ...
+            }
+        """
+        def apply_prefix(value, unit):
+            prefixes = {
+               'p': 1e-12, 'n': 1e-9,
+               'u': 1e-6,  'µ': 1e-6,
+               'm': 1e-3,  'k': 1e3,
+               'M': 1e6,   'G': 1e9,
+            }
+            if not unit:
+                return value
+            try:
+                return value * prefixes[unit[0]]
+            except KeyError:
+                raise PulseError("Could not understand units: {}".format(unit))
+
+        if hasattr(self, '__props'):
+            return self.__props
+
+        props = {}
+        props.update(self._properties.__dict__)
+
+        props['gates'] = defaultdict(dict)
+        for gate in self._properties.gates:
+            qubits = _to_tuple(gate.qubits)
+            gate_props = {}
+            for param in gate.parameters:
+                value = apply_prefix(param.value, param.unit)
+                gate_props[param.name] = (value, param.date)
+            gate_props['name'] = gate.name
+            props['gates'][gate.gate][qubits] = gate_props
+
+        props['qubits'] = defaultdict(dict)
+        for qubit, params in enumerate(self._properties.qubits):
+            qubit_props = {}
+            for param in params:
+                value = apply_prefix(param.value, param.unit)
+                qubit_props[param.name] = (value, param.date)
+            props['qubits'][qubit] = qubit_props
+
+        self.__props = props
+        return props
 
     def __str__(self) -> str:
         return '{}({} qubit{} {})'.format(self.name,
