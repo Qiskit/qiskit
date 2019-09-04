@@ -178,7 +178,7 @@ class TestPad(QiskitTestCase):
                      delay(pulse.DriveChannel(0)) |
                      delay(pulse.DriveChannel(0)).shift(20) |
                      double_delay(pulse.DriveChannel(1)).shift(20))
-
+        print(pad(sched), ref_sched)
         self.assertEqual(pad(sched), ref_sched)
 
     def test_padding_until_less(self):
