@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 This module contains the definition of creating and validating entangler map
 based on the number of qubits.
@@ -32,7 +33,7 @@ def get_entangler_map(map_type, num_qubits, offset=0):
                       the entangler map by the specified integer offset.
 
     Returns:
-        A map of qubit index to an array of indexes to which this should be entangled
+        list: A map of qubit index to an array of indexes to which this should be entangled
 
     Raises:
         ValueError: if map_type is not valid.
@@ -72,13 +73,14 @@ def validate_entangler_map(entangler_map, num_qubits, allow_double_entanglement=
     """Validate a user supplied entangler map and converts entries to ints.
 
     Args:
-        entangler_map (list[list]) : An entangler map, keys are source qubit index (int), value is array
-                               of target qubit index(es) (int)
+        entangler_map (list[list]) : An entangler map, keys are source qubit index (int),
+                                value is array
+                                of target qubit index(es) (int)
         num_qubits (int) : Number of qubits
-        allow_double_entanglement: If we allow in two qubits can be entangled each other
+        allow_double_entanglement (bool): If we allow in two qubits can be entangled each other
 
     Returns:
-        Validated/converted map
+        list: Validated/converted map
 
     Raises:
         TypeError: entangler map is not list type or list of list
@@ -102,9 +104,11 @@ def validate_entangler_map(entangler_map, num_qubits, allow_double_entanglement=
 
     for src, targ in ret_map:
         if src < 0 or src >= num_qubits:
-            raise ValueError('Qubit entangle source value {} invalid for {} qubits'.format(src, num_qubits))
+            raise ValueError(
+                'Qubit entangle source value {} invalid for {} qubits'.format(src, num_qubits))
         if targ < 0 or targ >= num_qubits:
-            raise ValueError('Qubit entangle target value {} invalid for {} qubits'.format(targ, num_qubits))
+            raise ValueError(
+                'Qubit entangle target value {} invalid for {} qubits'.format(targ, num_qubits))
         if not allow_double_entanglement and [targ, src] in ret_map:
             raise ValueError('Qubit {} and {} cross-entangled.'.format(src, targ))
 

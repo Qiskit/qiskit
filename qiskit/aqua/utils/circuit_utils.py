@@ -11,6 +11,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+""" Circuit utility functions """
+
 import numpy as np
 from qiskit import compiler
 from qiskit.transpiler import PassManager
@@ -18,11 +21,11 @@ from qiskit.transpiler.passes import Unroller
 
 
 def convert_to_basis_gates(circuit):
-    # unroll the circuit using the basis u1, u2, u3, cx, and id gates
+    """ unroll the circuit using the basis u1, u2, u3, cx, and id gates """
     from qiskit import BasicAer
     unroller = Unroller(basis=['u1', 'u2', 'u3', 'cx', 'id'])
-    pm = PassManager(passes=[unroller])
-    qc = compiler.transpile(circuit, BasicAer.get_backend('qasm_simulator'), pass_manager=pm)
+    p_m = PassManager(passes=[unroller])
+    qc = compiler.transpile(circuit, BasicAer.get_backend('qasm_simulator'), pass_manager=p_m)
     return qc
 
 
@@ -60,7 +63,8 @@ def summarize_circuits(circuits):
         stats[3] += depth
         ret = ''.join([
             ret,
-            "{}-th circuit: {} qubits, {} classical bits and {} operations with depth {}\nop_counts: {}\n".format(
+            "{}-th circuit: {} qubits, {} classical bits and {} "
+            "operations with depth {}\nop_counts: {}\n".format(
                 i, num_qubits, num_clbits, size, depth, op_counts
             )
         ])
@@ -68,7 +72,8 @@ def summarize_circuits(circuits):
         stats /= len(circuits)
         ret = ''.join([
             ret,
-            "Average: {:.2f} qubits, {:.2f} classical bits and {:.2f} operations with depth {:.2f}\n".format(
+            "Average: {:.2f} qubits, {:.2f} classical bits and {:.2f} "
+            "operations with depth {:.2f}\n".format(
                 stats[0], stats[1], stats[2], stats[3]
             )
         ])
