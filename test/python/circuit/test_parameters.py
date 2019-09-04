@@ -161,6 +161,17 @@ class TestParameters(QiskitTestCase):
         qc.u1(x, qr[0])
         self.assertRaises(QiskitError, qc.bind_parameters, {x: 1, y: 2})
 
+    def test_gate_multiplicity_binding(self):
+        """Test binding when circuit contains multiple references to same gate"""
+        from qiskit.extensions.standard import RZGate
+        qc = QuantumCircuit(1)
+        theta = Parameter('theta')
+        gate = RZGate(theta)
+        qc.append(gate, [0], [])
+        import ipdb;ipdb.set_trace()
+        qc.append(gate, [0], [])
+        qc.bind_parameters({theta: 1.0})
+
     def test_circuit_generation(self):
         """Test creating a series of circuits parametrically"""
         theta = Parameter('θ')
