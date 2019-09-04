@@ -19,6 +19,7 @@ import logging
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.visualization import utils
 from qiskit.visualization import circuit_drawer
@@ -207,6 +208,37 @@ class TestVisualizationUtils(QiskitTestCase):
         self.assertEqual([qr1[0], qr1[1], qr2[0], qr2[1]], qregs)
         self.assertEqual([cr1[0], cr1[1], cr2[0], cr2[1]], cregs)
         self.assertEqual(exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_get_layered_instructions_left_right_justification(self):
+        """ _get_layered_instructions illustrate left/right justification since #2802 """
+        qc = QuantumCircuit(4)
+        qc.h(1)
+        qc.h(2)
+        qc.cx(0, 3)
+
+        (_, _, layered_ops) = utils._get_layered_instructions(qc, justify='left')
+
+        l_exp = [[('h', [Qubit(QuantumRegister(4, 'q'), 1)], []),
+                  ('h', [Qubit(QuantumRegister(4, 'q'), 2)], [])],
+                 [('cx', [Qubit(QuantumRegister(4, 'q'), 0),
+                          Qubit(QuantumRegister(4, 'q'), 3)], [])
+                  ]
+                 ]
+
+        self.assertEqual(l_exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+        (_, _, layered_ops) = utils._get_layered_instructions(qc, justify='right')
+
+        r_exp = [[('cx', [Qubit(QuantumRegister(4, 'q'), 0),
+                          Qubit(QuantumRegister(4, 'q'), 3)], [])],
+                 [('h', [Qubit(QuantumRegister(4, 'q'), 1)], []),
+                  ('h', [Qubit(QuantumRegister(4, 'q'), 2)], [])
+                  ]
+                 ]
+
+        self.assertEqual(r_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
 
