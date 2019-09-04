@@ -17,12 +17,18 @@ The format is based on [Keep a Changelog].
 
 ### Fixed
 -   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
+-   Fixed incorrect justification of gates in layering for drawing (\#2802)
 
 ### Removed
 
 -   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
     methods directly.
+
+### Changed
+-   Layering instructions which underlies all types of circuit drawing has changed.
+    This sometimes results in output which is topologically equivalent to prior versions
+    but visually different. (\#2802)
 
 ## [0.9.0] - 2019-08-22
 
