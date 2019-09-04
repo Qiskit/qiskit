@@ -212,7 +212,6 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions_left_right_justification(self):
         """ _get_layered_instructions illustrate left/right justification since #2802 """
-        self.maxDiff = None
         qc = QuantumCircuit(4)
         qc.h(1)
         qc.h(2)
