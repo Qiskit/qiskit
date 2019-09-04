@@ -186,8 +186,8 @@ class TestUnitaryCircuit(QiskitTestCase):
 
     def test_qasm_unitary(self):
         """test that a custom unitary can be converted to qasm"""
-        qr = QuantumRegister(2)
-        cr = ClassicalRegister(1)
+        qr = QuantumRegister(2, 'q0')
+        cr = ClassicalRegister(1, 'c0')
         qc = QuantumCircuit(qr, cr)
         matrix = numpy.array([[1, 0], [0, 1]])
         unitary_gate = UnitaryGate(matrix, label="custom_gate")
