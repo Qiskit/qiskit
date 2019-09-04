@@ -11,37 +11,31 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Optimizer interface
-"""
 
-from qiskit.aqua import Pluggable
-from abc import abstractmethod
+"""Optimizer interface"""
+
 from enum import IntEnum
 import logging
+from abc import abstractmethod
 import numpy as np
 
+from qiskit.aqua import Pluggable
+
 logger = logging.getLogger(__name__)
+
+# pylint: disable=invalid-name
 
 
 class Optimizer(Pluggable):
     """Base class for optimization algorithm."""
 
     class SupportLevel(IntEnum):
+        """ Support Level enum """
         not_supported = 0  # Does not support the corresponding parameter in optimize()
         ignored = 1        # Feature can be passed as non None but will be ignored
         supported = 2      # Feature is supported
         required = 3       # Feature is required and must be given, None is invalid
 
-    """
-    Base class for Optimizers.
-
-        This method should initialize the module and its configuration, and
-        use an exception if a component of the module is
-        available.
-
-        Args:
-            configuration (dict): configuration dictionary
-    """
     DEFAULT_CONFIGURATION = {
         'support_level': {
             'gradient': SupportLevel.not_supported,
@@ -82,9 +76,11 @@ class Optimizer(Pluggable):
 
         Args:
             params (dict): configuration dict
+        Returns:
+            Optimizer: instance of this class
         """
         opt_params = params.get(Pluggable.SECTION_KEY_OPTIMIZER)
-        logger.debug('init_params: {}'.format(opt_params))
+        logger.debug('init_params: %s', opt_params)
         args = {k: v for k, v in opt_params.items() if k != 'name'}
         optimizer = cls(**args)
         return optimizer
@@ -103,16 +99,18 @@ class Optimizer(Pluggable):
         """
         for name, value in kwargs.items():
             self._options[name] = value
-        logger.debug('options: {}'.format(self._options))
+        logger.debug('options: %s', self._options)
 
     @staticmethod
     def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
         """
-        We compute the gradient with the numeric differentiation in the parallel way, around the point x_center.
+        We compute the gradient with the numeric differentiation in the parallel way,
+        around the point x_center.
         Args:
             x_center (ndarray): point around which we compute the gradient
             f (func): the function of which the gradient is to be computed.
             epsilon (float): the epsilon used in the numeric differentiation.
+            max_evals_grouped (int): max evals grouped
         Returns:
             grad: the gradient computed
 
@@ -131,11 +129,13 @@ class Optimizer(Pluggable):
         chunk = []
         chunks = []
         length = len(todos)
-        for i in range(length):  # split all points to chunks, where each chunk has batch_size points
+        # split all points to chunks, where each chunk has batch_size points
+        for i in range(length):
             x = todos[i]
             chunk.append(x)
             counter += 1
-            if counter == max_evals_grouped or i == length-1:  # the last one does not have to reach batch_size
+            # the last one does not have to reach batch_size
+            if counter == max_evals_grouped or i == length-1:
                 chunks.append(chunk)
                 chunk = []
                 counter = 0
@@ -158,7 +158,8 @@ class Optimizer(Pluggable):
         Args:
             function (func): the target function
             args (tuple): the args to be injected
-
+        Returns:
+            function_wrapper: wrapper
         """
         def function_wrapper(*wrapper_args):
             return function(*(wrapper_args + args))
@@ -166,6 +167,7 @@ class Optimizer(Pluggable):
 
     @property
     def setting(self):
+        """ return setting """
         ret = "Optimizer: {}\n".format(self._configuration['name'])
         params = ""
         for key, value in self.__dict__.items():
@@ -175,7 +177,8 @@ class Optimizer(Pluggable):
         return ret
 
     @abstractmethod
-    def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None, initial_point=None):
+    def optimize(self, num_vars, objective_function, gradient_function=None,
+                 variable_bounds=None, initial_point=None):
         """Perform optimization.
 
         Args:
@@ -195,6 +198,8 @@ class Optimizer(Pluggable):
                point: is a 1D numpy.ndarray[float] containing the solution
                value: is a float with the objective function value
                nfev: number of objective function calls made if available or None
+        Raises:
+            ValueError: invalid input
         """
 
         if initial_point is not None and len(initial_point) != num_vars:
@@ -215,59 +220,77 @@ class Optimizer(Pluggable):
             raise ValueError('Initial point is required but None given')
 
         if gradient_function is not None and self.is_gradient_ignored:
-            logger.debug('WARNING: {} does not support gradient function. It will be ignored.'.format(self.configuration['name']))
+            logger.debug(
+                'WARNING: %s does not support gradient function. It will be ignored.',
+                self.configuration['name'])
         if has_bounds and self.is_bounds_ignored:
-            logger.debug('WARNING: {} does not support bounds. It will be ignored.'.format(self.configuration['name']))
+            logger.debug(
+                'WARNING: %s does not support bounds. It will be ignored.',
+                self.configuration['name'])
         if initial_point is not None and self.is_initial_point_ignored:
-            logger.debug('WARNING: {} does not support initial point. It will be ignored.'.format(self.configuration['name']))
+            logger.debug(
+                'WARNING: %s does not support initial point. It will be ignored.',
+                self.configuration['name'])
         pass
 
     @property
     def gradient_support_level(self):
+        """ returns gradient support level """
         return self._gradient_support_level
 
     @property
     def is_gradient_ignored(self):
+        """ returns is gradient ignored """
         return self._gradient_support_level == self.SupportLevel.ignored
 
     @property
     def is_gradient_supported(self):
+        """ returns is gradient supported """
         return self._gradient_support_level != self.SupportLevel.not_supported
 
     @property
     def is_gradient_required(self):
+        """ returns is gradient required """
         return self._gradient_support_level == self.SupportLevel.required
 
     @property
     def bounds_support_level(self):
+        """ returns bounds support level """
         return self._bounds_support_level
 
     @property
     def is_bounds_ignored(self):
+        """ returns is bounds ignored """
         return self._bounds_support_level == self.SupportLevel.ignored
 
     @property
     def is_bounds_supported(self):
+        """ returns is bounds supported """
         return self._bounds_support_level != self.SupportLevel.not_supported
 
     @property
     def is_bounds_required(self):
+        """ returns is bounds required """
         return self._bounds_support_level == self.SupportLevel.required
 
     @property
     def initial_point_support_level(self):
+        """ returns initial point support level """
         return self._initial_point_support_level
 
     @property
     def is_initial_point_ignored(self):
+        """ return is initial point ignored """
         return self._initial_point_support_level == self.SupportLevel.ignored
 
     @property
     def is_initial_point_supported(self):
+        """ returns is initial point supported """
         return self._initial_point_support_level != self.SupportLevel.not_supported
 
     @property
     def is_initial_point_required(self):
+        """ returns is initial point required """
         return self._initial_point_support_level == self.SupportLevel.required
 
     def print_options(self):
@@ -276,4 +299,5 @@ class Optimizer(Pluggable):
             logger.debug('{:s} = {:s}'.format(name, str(self._options[name])))
 
     def set_max_evals_grouped(self, limit):
+        """ set max evals grouped """
         self._max_evals_grouped = limit

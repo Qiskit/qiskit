@@ -12,10 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" ISRES (Improved Stochastic Ranking Evolution Strategy). """
+
+import logging
 from qiskit.aqua.components.optimizers import Optimizer
 from ._nloptimizer import minimize
 from ._nloptimizer import check_pluggable_valid as check_nlopt_valid
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +57,7 @@ class ISRES(Optimizer):
         'optimizer': ['global']
     }
 
-    def __init__(self, max_evals=1000):
+    def __init__(self, max_evals=1000):  # pylint: disable=unused-argument
         """
         Constructor.
 
@@ -74,6 +76,8 @@ class ISRES(Optimizer):
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
+        super().optimize(num_vars, objective_function, gradient_function,
+                         variable_bounds, initial_point)
 
-        return minimize(nlopt.GN_ISRES, objective_function, variable_bounds, initial_point, **self._options)
+        return minimize(nlopt.GN_ISRES, objective_function,
+                        variable_bounds, initial_point, **self._options)

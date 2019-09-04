@@ -12,10 +12,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Controlled Random Search (CRS) with local mutation."""
+
+import logging
 from qiskit.aqua.components.optimizers import Optimizer
 from ._nloptimizer import minimize
 from ._nloptimizer import check_pluggable_valid as check_nlopt_valid
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,8 @@ class CRS(Optimizer):
     """Controlled Random Search (CRS) with local mutation.
 
     NLopt global optimizer, derivative-free
-    https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/#controlled-random-search-crs-with-local-mutation
+    https://nlopt.readthedocs.io/en/latest/NLopt_Algorithms/
+            #controlled-random-search-crs-with-local-mutation
     """
 
     CONFIGURATION = {
@@ -56,7 +59,7 @@ class CRS(Optimizer):
         'optimizer': ['global']
     }
 
-    def __init__(self, max_evals=1000):
+    def __init__(self, max_evals=1000):  # pylint: disable=unused-argument
         """
         Constructor.
 
@@ -75,6 +78,8 @@ class CRS(Optimizer):
 
     def optimize(self, num_vars, objective_function, gradient_function=None,
                  variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
+        super().optimize(num_vars, objective_function,
+                         gradient_function, variable_bounds, initial_point)
 
-        return minimize(nlopt.GN_CRS2_LM, objective_function, variable_bounds, initial_point, **self._options)
+        return minimize(nlopt.GN_CRS2_LM, objective_function,
+                        variable_bounds, initial_point, **self._options)
