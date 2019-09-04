@@ -138,7 +138,6 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions(self):
         """ _get_layered_instructions without reverse_bits """
-        self.maxDiff = None  # qiskit-terra 2802 to see diff better
         (qregs, cregs, layered_ops) = utils._get_layered_instructions(self.circuit)
 
         exp = [[('cx', [(QuantumRegister(2, 'qr2'), 0), (QuantumRegister(2, 'qr2'), 1)], []),
@@ -158,7 +157,6 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions_reverse_bits(self):
         """ _get_layered_instructions with reverse_bits=True """
-        self.maxDiff = None  # qiskit-terra 2802 to see diff better
         (qregs, cregs, layered_ops) = utils._get_layered_instructions(self.circuit,
                                                                       reverse_bits=True)
 
@@ -179,7 +177,6 @@ class TestVisualizationUtils(QiskitTestCase):
 
     def test_get_layered_instructions_remove_idle_wires(self):
         """ _get_layered_instructions with idle_wires=False """
-        self.maxDiff = None  # qiskit-terra 2802 to see diff better
         qr1 = QuantumRegister(3, 'qr1')
         qr2 = QuantumRegister(3, 'qr2')
         cr1 = ClassicalRegister(3, 'cr1')

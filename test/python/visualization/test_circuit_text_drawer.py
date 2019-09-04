@@ -1623,7 +1623,6 @@ class TestTextWithLayout(QiskitTestCase):
 
     def test_after_transpile(self):
         """After transpile, the drawing should include the layout"""
-        self.maxDiff = None  # qiskit-terra 2802 to see diff better
         expected = '\n'.join([
             "                  ┌──────────┐┌──────────┐┌───┐┌──────────┐┌──────────────────┐┌─┐   ",
             "   (userqr0) q0|0>┤ U2(0,pi) ├┤ U2(0,pi) ├┤ X ├┤ U2(0,pi) ├┤ U3(pi,pi/2,pi/2) ├┤M├───",
