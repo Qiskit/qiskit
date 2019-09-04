@@ -231,13 +231,13 @@ class LayerSpooler():
     def prepend(self, layer):
         """Prepend layer to spool"""
         self.spool.insert(0, layer)
-        
+
     def is_found_in(self, node, nodes):
         """ Is any qreq in node found in any of nodes?"""
         all_qargs = []
         for a_node in nodes:
-        	for qarg in a_node.qargs:
-        		all_qargs.append(qarg)       		
+            for qarg in a_node.qargs:
+                all_qargs.append(qarg)
         return any(i in node.qargs for i in all_qargs)
 
     def insertable(self, node, nodes):
