@@ -106,6 +106,46 @@ class UnitaryGate(Gate):
             raise NotImplementedError("Not able to generate a subcircuit for "
                                       "a {}-qubit unitary".format(self.num_qubits))
 
+    def qasm(self):
+        """ The qasm for a custom unitary gate
+        This is achieved by adding a custom gate that corresponds to the defintion
+        of this gate. The gate is given essentially a random name.
+        """
+        # give this unitary a unique name
+        name_param = "unitary" + str(id(self))
+
+        # gate name(params) qargs
+        # {
+        # body
+        # }
+
+        # map from gates in the definition to params in the method
+        # q0, q1, etc
+        reg_to_qasm = {}
+        current_qreg = 0
+        current_creg = 0
+
+        gates_def = ""
+        for gate in self.definition:
+
+            for qreg in gate[1] :
+                if qreg not in reg_to_qasm:
+                    reg_to_qasm[qreg] = 'q' + str(current_qreg)
+                    current_qreg +=1
+            # TODO what is the 3rd thing in the tuple?
+
+            curr_gate = "\t%s %s;\n" % (gate[0].qasm(),
+                                             ",".join(["%s" % (reg_to_qasm[j])
+                                                       for j in gate[1] + gate[2]]))
+
+            gates_def += curr_gate
+
+        # TODO make this an ordered dict
+        overall = "gate " + name_param + " " + ",".join(reg_to_qasm.values()) + " {\n" \
+        + gates_def + "\n}\n"
+
+        return overall + self._qasmif(name_param)
+
 
 def unitary(self, obj, qubits, label=None):
     """Apply u2 to q."""
