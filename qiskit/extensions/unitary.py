@@ -16,9 +16,9 @@
 Arbitrary unitary circuit instruction.
 """
 
+from collections import OrderedDict
 import numpy
 
-from collections import OrderedDict
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -111,40 +111,46 @@ class UnitaryGate(Gate):
 
     def qasm(self):
         """ The qasm for a custom unitary gate
-        This is achieved by adding a custom gate that corresponds to the defintion
-        of this gate. The gate is given essentially a random name.
+        This is achieved by adding a custom gate that corresponds to the definition
+        of this gate. It gives the gate a random name if one hasn't been given to it.
         """
         # if the name exists then we have added this gate to the qasm already
         if self.qasm_name:
             return self._qasmif(self.qasm_name)
 
         # give this unitary a unique name
-        self.qasm_name = "unitary" + str(id(self))
+        self.qasm_name = self.label if self.label else "unitary" + str(id(self))
 
         # map from gates in the definition to params in the method
-        # q0, q1, etc
         reg_to_qasm = OrderedDict()
         current_qreg = 0
+        current_creg = 0
 
         gates_def = ""
         for gate in self.definition:
 
-            for qreg in gate[1] :
+            for qreg in gate[1]:
                 if qreg not in reg_to_qasm:
                     reg_to_qasm[qreg] = 'q' + str(current_qreg)
                     current_qreg += 1
-            # TODO what is the 3rd thing in the tuple?!
+
+            for creg in gate[2]:
+                if creg not in reg_to_qasm:
+                    reg_to_qasm[creg] = 'c' + str(current_creg)
+                    current_creg += 1
 
             curr_gate = "\t%s %s;\n" % (gate[0].qasm(),
-                                             ",".join(["%s" % (reg_to_qasm[j])
-                                                       for j in gate[1] + gate[2]]))
+                                        ",".join([reg_to_qasm[j]
+                                                  for j in gate[1] + gate[2]]))
 
             gates_def += curr_gate
 
-        overall = "gate " +  self.qasm_name + " " + ",".join(reg_to_qasm.values()) + " {\n" \
-        + gates_def + "\n}\n"
+        # name of gate + params + {definition}
+        overall = "gate " + self.qasm_name + \
+                  " " + ",".join(reg_to_qasm.values()) + \
+                  " {\n" + gates_def + "}\n"
 
-        return overall + self._qasmif( self.qasm_name)
+        return overall + self._qasmif(self.qasm_name)
 
 
 def unitary(self, obj, qubits, label=None):

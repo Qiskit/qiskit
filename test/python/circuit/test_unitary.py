@@ -183,3 +183,28 @@ class TestUnitaryCircuit(QiskitTestCase):
         instr = qobj.experiments[0].instructions[0]
         self.assertEqual(instr.name, 'unitary')
         self.assertEqual(instr.label, 'xy')
+
+    def test_qasm_unitary(self):
+        """test that a custom unitary can be converted to qasm"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        qc = QuantumCircuit(qr, cr)
+        matrix = numpy.array([[1, 0], [0, 1]])
+        unitary_gate = UnitaryGate(matrix, label="custom_gate")
+
+        qc.x(qr[0])
+        qc.append(unitary_gate, [qr[0]])
+        qc.append(unitary_gate, [qr[1]])
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q0[2];
+creg c0[1];
+x q0[0];
+gate custom_gate q0 {
+\tu3(0.0,0.0,0.0) q0;
+}
+custom_gate q0[0];
+custom_gate q0[1];
+"""
+        self.assertEqual(expected_qasm, qc.qasm())
