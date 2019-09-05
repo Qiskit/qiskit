@@ -155,6 +155,8 @@ def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
     unoccupied_channels = set(channels) - set(occupied_channels)
 
     empty_timeslot_collection = schedule.timeslots.complement(until)
+    print('complement')
+    print(empty_timeslot_collection)
 
     for channel in channels:
         for timeslot in empty_timeslot_collection.ch_timeslots(channel):
