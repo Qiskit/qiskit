@@ -27,4 +27,5 @@ from .interfaces import ScheduleComponent
 # from .parser import parse_string_expr
 from .schedule import Schedule
 
+from . import pulse_lib
 from . import utils
