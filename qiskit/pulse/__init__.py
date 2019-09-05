@@ -26,3 +26,5 @@ from .exceptions import PulseError
 from .interfaces import ScheduleComponent
 # from .parser import parse_string_expr
 from .schedule import Schedule
+
+from . import utils
