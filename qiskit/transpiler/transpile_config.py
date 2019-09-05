@@ -49,6 +49,3 @@ class TranspileConfig(BaseModel):
                          callback=callback,
                          seed_transpiler=seed_transpiler,
                          pass_manager=pass_manager)
-
-    def __getattr__(self, name):
-        return None
