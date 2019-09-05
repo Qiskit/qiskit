@@ -30,9 +30,25 @@ class TranspileConfig(BaseModel):
             optimization level. 0 means no transformation on the circuit. Higher
             levels may produce more optimized circuits, but may take longer.
     """
-    def __init__(self, optimization_level=None, **kwargs):
-        self.optimization_level = optimization_level
-        super().__init__(**kwargs)
+    def __init__(self,
+                 initial_layout=None,
+                 basis_gates=None,
+                 coupling_map=None,
+                 output_name=None,
+                 backend_properties=None,
+                 optimization_level=None,
+                 callback=None,
+                 seed_transpiler=None,
+                 pass_manager=None):
+        super().__init__(initial_layout=initial_layout,
+                         basis_gates=basis_gates,
+                         coupling_map=coupling_map,
+                         output_name=output_name,
+                         backend_properties=backend_properties,
+                         optimization_level=optimization_level,
+                         callback=callback,
+                         seed_transpiler=seed_transpiler,
+                         pass_manager=pass_manager)
 
     def __getattr__(self, name):
         return None
