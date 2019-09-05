@@ -32,14 +32,14 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 
 from qiskit.qobj.converters import QobjToInstructionConverter
 
-from qiskit.pulse.channels import *
+from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel, ControlChannel,
+                                   AcquireChannel)
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 
+# pylint: disable=missing-return-doc
 # TODO:
 #  - __getattr__
-#  - describe channel
-#  - draw
 
 
 class SystemInfo(object):
@@ -60,11 +60,11 @@ class SystemInfo(object):
         # This is a helpful backwards mapping from qubits -> defined operations
         self._qubit_ops = defaultdict(list)
 
+        self._backend = backend
         if backend:
             if not backend.configuration().open_pulse:
                 raise PulseError("The backend '{}' is not enabled "
                                  "with OpenPulse.".format(backend.name()))
-            self._backend = backend
             self._backend_props = backend.properties()
             self._defaults = backend.defaults()
             self._config = backend.configuration()
@@ -99,7 +99,7 @@ class SystemInfo(object):
     def dtm(self) -> float:
         """Time delta between samples on the acquisition channels in seconds."""
         return self._config.dtm * 1e-9
-    
+
     @property
     def sample_rate(self) -> float:
         """Sample rate of the signal channels in Hz (1/dt)."""
@@ -178,47 +178,99 @@ class SystemInfo(object):
                              "only has {num} qubits.".format(qub=qubit, num=self.n_qubits))
 
     def drives(self, qubit: int) -> DriveChannel:
-        """Return the drive channel for the given qubit."""
+        """
+        Return the drive channel for the given qubit.
+
+        Raises:
+            PulseError: If the qubit is not a part of the system.
+        """
         if qubit > self.n_qubits:
             raise PulseError("This system does not have {} qubits.".format(qubit))
         return DriveChannel(qubit)
 
     def measures(self, qubit: int) -> MeasureChannel:
-        """Return the measure stimulus channel for the given qubit."""
+        """
+        Return the measure stimulus channel for the given qubit.
+
+        Raises:
+            PulseError: If the qubit is not a part of the system.
+        """
         if qubit > self.n_qubits:
             raise PulseError("This system does not have {} qubits.".format(qubit))
         return MeasureChannel(qubit)
 
     def acquires(self, qubit: int) -> AcquireChannel:
-        """Return the acquisition channel for the given qubit."""
+        """
+        Return the acquisition channel for the given qubit.
+
+        Raises:
+            PulseError: If the qubit is not a part of the system.
+        """
         if qubit > self.n_qubits:
             raise PulseError("This system does not have {} qubits.".format(qubit))
         return AcquireChannel(qubit)
 
     def controls(self, qubit: int) -> ControlChannel:
-        """Return the control channel for the given qubit."""
-        # TODO
+        """
+        Return the control channel for the given qubit.
+
+        Raises:
+            PulseError: If the qubit is not a part of the system.
+        """
+        # TODO: It's probable that controls can't map trivially to qubits.
         if qubit > self.n_qubits:
             raise PulseError("This system does not have {} qubits.".format(qubit))
         return ControlChannel(qubit)
 
-    def describe(self, channel: Channel):
-        # TODO
-        raise NotImplementedError
+    def describe(self, channel: ControlChannel) -> Dict[Channel, complex]:
+        """
+        Return a basic description of the channel dependency. Derived channels are given weights
+        which describe how their frames are linked to other frames.
 
-    def get_property(self, name: str, *args, error: bool=False) -> Union[None, Tuple[float, datetime.datetime]]:
+        For instance, the backend could be configured with this setting:
+            u_channel_lo = [
+                [UchannelLO(q=0, scale=1. + 0.j)],
+                [UchannelLO(q=0, scale=-1. + 0.j), UchannelLO(q=1, scale=1. + 0.j)]
+            ]
+        Then, given that sysinfo is SystemInfo(backend):
+            sysinfo.describe(ControlChannel(1))
+            >>> {DriveChannel(0): -1, DriveChannel(1): 1}
+
+        Args:
+            channel: The derived channel to describe.
+        Raises:
+            PulseError: If channel is not a ControlChannel.
+        """
+        if not isinstance(channel, ControlChannel):
+            raise PulseError("Can only describe ControlChannels.")
+        result = {}
+        for u_chan_lo in self._config.u_channel_lo[channel.index]:
+            result[DriveChannel(u_chan_lo.q)] = u_chan_lo.scale
+        return result
+
+    def get_property(self,
+                     name: str,
+                     *args: List[Union[int, str]],
+                     error: bool = False) -> Union[None, Tuple[Any, datetime.datetime]]:
         """
         Return the value and collected time of the property if it was given by the backend,
-        otherwise, return `None`.
+        otherwise, return `None` or raise an error.
 
         Args:
             name: The property to look for.
             args: Optionally used to specify within the heirarchy which property to return.
+            error: If True, then raise an error when the property is not found.
+        Raises:
+            PulseError: If error is True and the property is not found.
         """
+        # TODO fixme
         try:
             ret = self._props.get(name)
             for arg in args:
                 try:
+                    if isinstance(ret, str) or isinstance(ret, list):
+                        # wont fail if overspecified
+                        return ret
                     ret = ret[arg]
                 except KeyError:
                     # This can help if one of args is an integer or list of qubits
@@ -266,14 +318,15 @@ class SystemInfo(object):
         Return all operations which are defined by default. (This is essentially the basis gates
         along with measure and reset.)
         """
-        return [k for k in self._ops_definition.keys()]
+        return list(self._ops_definition.keys())
 
     def op_qubits(self, operation: str) -> List[Union[int, Tuple[int]]]:
         """
         Return a list of the qubits for which the given operation is defined. Single qubit
         operations return a flat list, and multiqubit operations return a list of tuples.
         """
-        return [qs[0] if len(qs) == 1 else qs for qs in sorted(self._ops_definition[operation].keys())]
+        return [qs[0] if len(qs) == 1 else qs
+                for qs in sorted(self._ops_definition[operation].keys())]
 
     def qubit_ops(self, qubits: Union[int, List[int]]) -> List[str]:
         """
@@ -364,17 +417,13 @@ class SystemInfo(object):
         channels which interact with them. Optionally print a listing of the supported 1Q and
         2Q gates.
         """
-        # TODO
+        # TODO: Implement the draw method.
         raise NotImplementedError
 
     def _process_defaults(self) -> None:
         """
         Reformat the command definition from the backend defaults to fill the _ops_definition
         and the backwards lookup table _qubit_ops.
-
-        Defines:
-            _ops_defintion
-            _qubit_ops
         """
         converter = QobjToInstructionConverter(self._defaults.pulse_library,
                                                buffer=self.buffer)
@@ -388,10 +437,10 @@ class SystemInfo(object):
 
     def _process_config(self) -> None:
         """
-        Reformat the backend provided coupling map.
+        Reformat the backend provided configuration.
 
-        Args:
-            config: The backend.configuration() which contains the coupling map.
+        Defines:
+            _coupling_map: An adjacency list exposed to the user through `coupling_map`.
         """
         self._coupling_map = defaultdict(set)
         for control, target in self._config.coupling_map:
@@ -399,8 +448,8 @@ class SystemInfo(object):
 
     def _process_backend_props(self) -> None:
         """
-        Return a reformatted version of backend properties, extracting values for gate properties
-        and qubit properties. For example:
+        Fill in a reformatted version of backend properties as `_props`, extracting values for
+        gate and qubit properties. For example:
             {
                 'backend_name': 'ibmq_device',
                 'backend_version': '0.0.0',
@@ -459,12 +508,29 @@ class SystemInfo(object):
         self._props = props
 
     def __str__(self) -> str:
-        return '{}({} qubit{} {})'.format(self.name,
-                                          self.n_qubits,
-                                          's' if self.n_qubits > 1 else '',
-                                          self.basis_gates)
+        if not self._backend:
+            return object.__str__(self)
+        return '{}({} qubit{} operating on {})'.format(
+            self.name,
+            self.n_qubits,
+            's' if self.n_qubits > 1 else '',
+            self.basis_gates)
 
-    # def __getattr__(self, attr: str) -> Any:
+    def __repr__(self) -> str:
+        if not self._backend:
+            return object.__repr__(self)
+        ops = {op: qubs.keys() for op, qubs in self._ops_definition.items()}
+        ham = self._config.hamiltonian.get('description') if self._config.hamiltonian else ''
+        return ("{}({} {}Q\n    Operations:\n{}\n    Properties:\n{}\n    Configuration:\n{}\n"
+                "    Hamiltonian:\n{})".format(self.__class__.__name__,
+                                               self.name,
+                                               self.n_qubits,
+                                               ops,
+                                               list(self._props.keys()),
+                                               list(self._config.__dict__.keys()),
+                                               ham))
+
+    def __getattr__(self, attr: str) -> Any:
         """
         Capture undefined attribute lookups and interpret it as an operation
         lookup.
@@ -476,10 +542,11 @@ class SystemInfo(object):
                 system.backend_name <=> system.get_property(backend_name)
                 system.t1(0) <=> system.get_property('t1', 0)
         """
-        # if attr in ['_backend', '_defaults', '_backend_props', '_config']:
-        #     raise PulseError("Please instantiate the SystemInfo with a backend to get this "
-        #                      "information.")
-        # raise AttributeError()
+        if self._backend is None:
+            raise PulseError("Please instantiate the SystemInfo with a backend to get this "
+                             "information.")
+        raise AttributeError("")
+
         # def fancy_get(qubits: Union[int, Iterable[int]] = None,
         #               *params: List[Union[int, float, complex]],
         #               **kwparams: Dict[str, Union[int, float, complex]]):
@@ -490,6 +557,7 @@ class SystemInfo(object):
         #         raise AttributeError("{} object has no attribute "
         #                              "'{}'".format(self.__class__.__name__, attr))
     #     return fancy_get
+
 
 def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int]:
     """
