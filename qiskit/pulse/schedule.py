@@ -383,12 +383,6 @@ class Schedule(ScheduleComponent):
         for idx, inst in enumerate(other_instructions):
             # check assumes `Schedule.instructions` is sorted consistently
             if instructions[idx] != inst:
-                print(instructions)
-                print(other_instructions)
-                print(instructions[idx], inst)
-                print(instructions[idx][0] == inst[0])
-                print(instructions[idx][1] == inst[1])
-                print('test')
                 return False
 
         return True
