@@ -40,16 +40,13 @@ from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 #  - __getattr__
 #  - describe channel
 #  - draw
-# Questions:
-#  - SWITCH OP TO CMD?
-#  - Separate out CmdDef?
 
 
 class SystemInfo(object):
     """A resource for getting information from a backend, tailored for Pulse users."""
 
     def __init__(self,
-                 backend: 'BaseBackend',
+                 backend: Optional['BaseBackend'] = None,
                  default_ops: Optional[Dict[Tuple[str, int], Schedule]] = None):
         """
         Initialize a SystemInfo instance with the data from the backend.
@@ -58,13 +55,22 @@ class SystemInfo(object):
             backend: A Pulse enabled backend returned by a Qiskit provider.
             default_ops: {(op_name, *qubits): `Schedule` or `ParameterizedSchedule`}
         """
-        if not backend.configuration().open_pulse:
-            raise PulseError("The backend '{}' is not enabled "
-                             "with OpenPulse.".format(backend.name()))
-        self._backend = backend
-        self._defaults = backend.defaults()
-        self._properties = backend.properties()
-        self._config = backend.configuration()
+        # This stores the circuit operation definitions
+        self._ops_definition = defaultdict(dict)
+        # This is a helpful backwards mapping from qubits -> defined operations
+        self._qubit_ops = defaultdict(list)
+
+        if backend:
+            if not backend.configuration().open_pulse:
+                raise PulseError("The backend '{}' is not enabled "
+                                 "with OpenPulse.".format(backend.name()))
+            self._backend = backend
+            self._backend_props = backend.properties()
+            self._defaults = backend.defaults()
+            self._config = backend.configuration()
+            self._process_backend_props()
+            self._process_defaults()
+            self._process_config()
         if default_ops:
             for key, schedule in default_ops.items():
                 self.add_op(key[0], key[1:], schedule)
@@ -72,7 +78,12 @@ class SystemInfo(object):
     @property
     def name(self):
         """The name given to this system."""
-        return self._properties.backend_name
+        return self._backend_props.backend_name
+
+    @property
+    def version(self):
+        """The name given to this system."""
+        return self._backend_props.backend_version
 
     @property
     def n_qubits(self) -> int:
@@ -102,13 +113,7 @@ class SystemInfo(object):
     @property
     def coupling_map(self) -> Dict[int, Set[int]]:
         """The adjacency list of available multiqubit operations."""
-        try:
-            return self._coupling_map
-        except AttributeError:
-            self._coupling_map = defaultdict(set)
-            for control, target in self._config.coupling_map:
-                self._coupling_map[control].add(target)
-            return self._coupling_map
+        return self._coupling_map
 
     @property
     def meas_map(self) -> List[List[int]]:
@@ -174,26 +179,34 @@ class SystemInfo(object):
 
     def drives(self, qubit: int) -> DriveChannel:
         """Return the drive channel for the given qubit."""
+        if qubit > self.n_qubits:
+            raise PulseError("This system does not have {} qubits.".format(qubit))
         return DriveChannel(qubit)
 
     def measures(self, qubit: int) -> MeasureChannel:
         """Return the measure stimulus channel for the given qubit."""
+        if qubit > self.n_qubits:
+            raise PulseError("This system does not have {} qubits.".format(qubit))
         return MeasureChannel(qubit)
 
     def acquires(self, qubit: int) -> AcquireChannel:
         """Return the acquisition channel for the given qubit."""
+        if qubit > self.n_qubits:
+            raise PulseError("This system does not have {} qubits.".format(qubit))
         return AcquireChannel(qubit)
 
     def controls(self, qubit: int) -> ControlChannel:
         """Return the control channel for the given qubit."""
         # TODO
+        if qubit > self.n_qubits:
+            raise PulseError("This system does not have {} qubits.".format(qubit))
         return ControlChannel(qubit)
 
     def describe(self, channel: Channel):
         # TODO
         raise NotImplementedError
 
-    def get_property(self, name: str, *args) -> Union[None, Tuple[float, datetime.datetime]]:
+    def get_property(self, name: str, *args, error: bool=False) -> Union[None, Tuple[float, datetime.datetime]]:
         """
         Return the value and collected time of the property if it was given by the backend,
         otherwise, return `None`.
@@ -202,18 +215,18 @@ class SystemInfo(object):
             name: The property to look for.
             args: Optionally used to specify within the heirarchy which property to return.
         """
-        props = self._format_properties()
-        ret = None
         try:
-            ret = props[name]
+            ret = self._props.get(name)
             for arg in args:
-                ret = ret[arg]
-        except (KeyError, TypeError):
-            try:
-                # This can help if one of args is an integer or list of qubits
-                if ret:
+                try:
+                    ret = ret[arg]
+                except KeyError:
+                    # This can help if one of args is an integer or list of qubits
                     ret = ret[_to_tuple(arg)]
-            except (KeyError, TypeError):
+        except (KeyError, TypeError):
+            if error:
+                raise PulseError("Could not find the desired property.")
+            else:
                 return None
         return ret
 
@@ -226,7 +239,11 @@ class SystemInfo(object):
             qubits: The specific qubits for the operation.
         """
         # Throw away datetime at index 1
-        return self.get_property('gates', operation, _to_tuple(qubits), 'gate_error')[0]
+        return self.get_property('gates',
+                                 operation,
+                                 _to_tuple(qubits),
+                                 'gate_error',
+                                 error=True)[0]
 
     def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]) -> float:
         """
@@ -237,7 +254,11 @@ class SystemInfo(object):
             qubits: The specific qubits for the operation.
         """
         # Throw away datetime at index 1
-        return self.get_property('gates', operation, _to_tuple(qubits), 'gate_length')[0]
+        return self.get_property('gates',
+                                 operation,
+                                 _to_tuple(qubits),
+                                 'gate_length',
+                                 error=True)[0]
 
     @property
     def ops(self) -> List[str]:
@@ -252,7 +273,7 @@ class SystemInfo(object):
         Return a list of the qubits for which the given operation is defined. Single qubit
         operations return a flat list, and multiqubit operations return a list of tuples.
         """
-        return [qs[0] if len(qs) == 1 else qs for qs in self._ops_definition[operation].keys()]
+        return [qs[0] if len(qs) == 1 else qs for qs in sorted(self._ops_definition[operation].keys())]
 
     def qubit_ops(self, qubits: Union[int, List[int]]) -> List[str]:
         """
@@ -289,10 +310,11 @@ class SystemInfo(object):
         Raises:
             PulseError: If the operation is not defined on the qubits.
         """
+        qubits = _to_tuple(qubits)
         if not self.has(operation, qubits):
             raise PulseError("Operation {op} for qubits {qubits} is not defined for this "
                              "system.".format(op=operation, qubits=qubits))
-        sched = self._ops_definition[operation].get(_to_tuple(qubits))
+        sched = self._ops_definition[operation].get(qubits)
         if isinstance(sched, ParameterizedSchedule):
             sched = sched.bind_parameters(*params, **kwparams)
         return sched
@@ -321,15 +343,20 @@ class SystemInfo(object):
         Raises:
             PulseError: If the qubits are provided as an empty iterable.
         """
-        if not qubits:
+        qubits = _to_tuple(qubits)
+        if qubits == ():
             raise PulseError("Cannot add definition {} with no target qubits.".format(operation))
-        if not isinstance(schedule, Schedule):
+        if not (isinstance(schedule, Schedule) or isinstance(schedule, ParameterizedSchedule)):
             raise PulseError("Attemping to add an invalid schedule type.")
-        self._ops_definition[operation][_to_tuple(qubits)] = schedule
+        self._ops_definition[operation][qubits] = schedule
 
     def remove_op(self, operation: str, qubits: Union[int, List[int]]):
         """Remove the given operation from the defined operations."""
-        self._ops_definition[operation].pop(_to_tuple(qubits))
+        qubits = _to_tuple(qubits)
+        if not self.has(operation, qubits):
+            raise PulseError("Operation {op} for qubits {qubits} is not defined for this "
+                             "system.".format(op=operation, qubits=qubits))
+        self._ops_definition[operation].pop(qubits)
 
     def draw(self) -> None:
         """
@@ -340,48 +367,37 @@ class SystemInfo(object):
         # TODO
         raise NotImplementedError
 
-    @property
-    def _qubit_ops(self) -> Dict[Tuple[int], List[str]]:
-        """
-        A lazily evaluated mapping from qubits to the operations defined on them:
-            {(qubits): [operations]}
-        """
-        try:
-            return self.__qubit_ops
-        except AttributeError:
-            self._process_cmd_def()
-            return self.__qubit_ops
-
-    @property
-    def _ops_definition(self) -> Dict[str, Dict[Tuple[int], Schedule]]:
-        """
-        A lazily evaluated singly nested mapping from operations, to qubits, to Schedules:
-            {operation:
-                {(qubits): Schedule}}
-        """
-        try:
-            return self.__ops_definition
-        except AttributeError:
-            self._process_cmd_def()
-            return self.__ops_definition
-
-    def _process_cmd_def(self) -> None:
+    def _process_defaults(self) -> None:
         """
         Reformat the command definition from the backend defaults to fill the _ops_definition
         and the backwards lookup table _qubit_ops.
+
+        Defines:
+            _ops_defintion
+            _qubit_ops
         """
-        self.__ops_definition = defaultdict(dict)
-        self.__qubit_ops = defaultdict(list)
         converter = QobjToInstructionConverter(self._defaults.pulse_library,
                                                buffer=self.buffer)
         for op in self._defaults.cmd_def:
+            qubits = _to_tuple(op.qubits)
             self.add_op(
                 op.name,
-                op.qubits,
+                qubits,
                 ParameterizedSchedule(*[converter(inst) for inst in op.sequence], name=op.name))
-            self.__qubit_ops[_to_tuple(op.qubits)].append(op.name)
+            self._qubit_ops[qubits].append(op.name)
 
-    def _format_properties(self) -> Dict[str, Any]:
+    def _process_config(self) -> None:
+        """
+        Reformat the backend provided coupling map.
+
+        Args:
+            config: The backend.configuration() which contains the coupling map.
+        """
+        self._coupling_map = defaultdict(set)
+        for control, target in self._config.coupling_map:
+            self._coupling_map[control].add(target)
+
+    def _process_backend_props(self) -> None:
         """
         Return a reformatted version of backend properties, extracting values for gate properties
         and qubit properties. For example:
@@ -420,14 +436,11 @@ class SystemInfo(object):
             except KeyError:
                 raise PulseError("Could not understand units: {}".format(unit))
 
-        if hasattr(self, '__props'):
-            return self.__props
-
         props = {}
-        props.update(self._properties.__dict__)
+        props.update(self._backend_props.__dict__)
 
         props['gates'] = defaultdict(dict)
-        for gate in self._properties.gates:
+        for gate in self._backend_props.gates:
             qubits = _to_tuple(gate.qubits)
             gate_props = {}
             for param in gate.parameters:
@@ -437,15 +450,13 @@ class SystemInfo(object):
             props['gates'][gate.gate][qubits] = gate_props
 
         props['qubits'] = defaultdict(dict)
-        for qubit, params in enumerate(self._properties.qubits):
+        for qubit, params in enumerate(self._backend_props.qubits):
             qubit_props = {}
             for param in params:
                 value = apply_prefix(param.value, param.unit)
                 qubit_props[param.name] = (value, param.date)
             props['qubits'][qubit] = qubit_props
-
-        self.__props = props
-        return props
+        self._props = props
 
     def __str__(self) -> str:
         return '{}({} qubit{} {})'.format(self.name,
@@ -453,29 +464,31 @@ class SystemInfo(object):
                                           's' if self.n_qubits > 1 else '',
                                           self.basis_gates)
 
-    # def __getattr__(self, attr) -> Any:
-    #     """
-    #     Capture undefined attribute lookups and interpret it as an operation
-    #     lookup. Priority goes to `get_property' as defined earlier, but
-    #     collisions are not expected.
-    #         For example:
-    #             system.x(0) <=> system.get(`x', qubit=0)
-    #     def draw(self) -> None:
-    #     Capture undefined attribute lookups and interpret them as backend
-    #     properties.
-    #         For example:
-    #             system.backend_name <=> system.get_property(backend_name)
-    #             system.t1(0) <=> system.get_property('t1', 0)
-    #     """
-    #     def fancy_get(qubits: Union[int, Iterable[int]] = None,
-    #                   *params: List[Union[int, float, complex]],
-    #                   **kwparams: Dict[str, Union[int, float, complex]]):
-    #         try:
-    #             return self.get(attr, qubits=qubits, *params, **kwparams)
-    #         except PulseError:
-    #             # return self.get_property(attr, args)
-    #             raise AttributeError("{} object has no attribute "
-    #                                  "'{}'".format(self.__class__.__name__, attr))
+    # def __getattr__(self, attr: str) -> Any:
+        """
+        Capture undefined attribute lookups and interpret it as an operation
+        lookup.
+            For example:
+                system.x(0) <=> system.get(`x', qubit=0)
+        Capture undefined attribute lookups and interpret them as backend
+        properties.
+            For example:
+                system.backend_name <=> system.get_property(backend_name)
+                system.t1(0) <=> system.get_property('t1', 0)
+        """
+        # if attr in ['_backend', '_defaults', '_backend_props', '_config']:
+        #     raise PulseError("Please instantiate the SystemInfo with a backend to get this "
+        #                      "information.")
+        # raise AttributeError()
+        # def fancy_get(qubits: Union[int, Iterable[int]] = None,
+        #               *params: List[Union[int, float, complex]],
+        #               **kwparams: Dict[str, Union[int, float, complex]]):
+        #     try:
+        #         return self.get(attr, qubits=qubits, *params, **kwparams)
+        #     except PulseError:
+        #         # return self.get_property(attr, args)
+        #         raise AttributeError("{} object has no attribute "
+        #                              "'{}'".format(self.__class__.__name__, attr))
     #     return fancy_get
 
 def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int]:
