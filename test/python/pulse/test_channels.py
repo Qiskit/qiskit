@@ -17,7 +17,7 @@
 import unittest
 
 from qiskit.pulse.channels import AcquireChannel, MemorySlot, RegisterSlot, SnapshotChannel
-from qiskit.pulse.channels import DeviceSpecification, PulseChannelSpec, Qubit
+from qiskit.pulse.channels import PulseChannelSpec, Qubit
 from qiskit.pulse.channels import DriveChannel, ControlChannel, MeasureChannel
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
@@ -148,36 +148,6 @@ class TestPulseSpecification(QiskitTestCase):
         self.assertEqual(device.acquires[0], AcquireChannel(0))
         self.assertEqual(device.registers[0], RegisterSlot(0))
         self.assertEqual(device.memoryslots[0], MemorySlot(0))
-
-
-class TestDeviceSpecification(QiskitTestCase):
-    """DeviceSpecification tests."""
-    # TODO: This test will be deprecated in future update.
-
-    def test_default(self):
-        """Test default device specification.
-        """
-        qubits = [
-            Qubit(0, DriveChannel(0), MeasureChannel(0), AcquireChannel(0)),
-            Qubit(1, DriveChannel(1), MeasureChannel(1), AcquireChannel(1))
-        ]
-        registers = [RegisterSlot(i) for i in range(2)]
-        mem_slots = [MemorySlot(i) for i in range(2)]
-        spec = DeviceSpecification(qubits, registers, mem_slots)
-
-        self.assertEqual(spec.q[0].drive, DriveChannel(0))
-        self.assertEqual(spec.q[1].acquire, AcquireChannel(1))
-        self.assertEqual(spec.mem[0], MemorySlot(0))
-        self.assertEqual(spec.c[1], RegisterSlot(1))
-
-    def test_creation_from_backend_with_zero_u_channels(self):
-        """Test creation of device specification from backend with u_channels == 0.
-        """
-        backend = FakeOpenPulse2Q()
-
-        device = DeviceSpecification.create_from(backend)
-
-        self.assertEqual(device.q[0].drive, DriveChannel(0))
 
 
 if __name__ == '__main__':

@@ -617,21 +617,9 @@ class QCircuitImage:
 
                         if op.condition:
                             pos_4 = self.img_regs[(if_reg, 0)]
-
                             temp = [pos_1, pos_2, pos_3, pos_4]
                             temp.sort(key=int)
                             bottom = temp[2]
-
-                            prev_column = [x[column - 1] for x in self._latex]
-                            for item, prev_entry in enumerate(prev_column):
-                                if 'barrier' in prev_entry:
-                                    span = re.search('barrier{(.*)}', prev_entry)
-                                    if span and any(i in temp for i in range(
-                                            item, int(span.group(1)))):
-                                        self._latex[item][column - 1] = \
-                                            prev_entry.replace(
-                                                '\\barrier{',
-                                                '\\barrier[-0.65em]{')
 
                             gap = pos_4 - bottom
                             for i in range(self.cregs[if_reg]):
@@ -658,20 +646,6 @@ class QCircuitImage:
                                 self._latex[pos_3][column] = \
                                     "\\qswap \\qwx[" + str(pos_2 - pos_3) + "]"
                         else:
-                            temp = [pos_1, pos_2, pos_3]
-                            temp.sort(key=int)
-
-                            prev_column = [x[column - 1] for x in self._latex]
-                            for item, prev_entry in enumerate(prev_column):
-                                if 'barrier' in prev_entry:
-                                    span = re.search('barrier{(.*)}', prev_entry)
-                                    if span and any(i in temp for i in range(
-                                            item, int(span.group(1)))):
-                                        self._latex[item][column - 1] = \
-                                            prev_entry.replace(
-                                                '\\barrier{',
-                                                '\\barrier[-0.65em]{')
-
                             if nm == "ccx":
                                 self._latex[pos_1][column] = "\\ctrl{" + str(
                                     pos_2 - pos_1) + "}"
@@ -741,17 +715,6 @@ class QCircuitImage:
 
                     try:
                         self._latex[pos_1][column] = "\\meter"
-                        prev_column = [x[column - 1] for x in self._latex]
-                        for item, prev_entry in enumerate(prev_column):
-                            if 'barrier' in prev_entry:
-                                span = re.search('barrier{(.*)}', prev_entry)
-                                if span and (
-                                        item + int(span.group(1))) - pos_1 >= 0:
-                                    self._latex[item][column - 1] = \
-                                        prev_entry.replace(
-                                            '\\barrier{',
-                                            '\\barrier[-1.15em]{')
-
                         self._latex[pos_2][column] = \
                             "\\cw \\cwx[-" + str(pos_2 - pos_1) + "]"
                     except Exception as e:
@@ -769,8 +732,9 @@ class QCircuitImage:
                         start = self.img_regs[start_bit]
                         span = len(op.qargs) - 1
 
-                        self._latex[start][column] = "\\qw \\barrier{" + str(
+                        self._latex[start][column - 1] += " \\barrier[0em]{" + str(
                             span) + "}"
+                        self._latex[start][column] = "\\qw"
                 else:
                     raise exceptions.VisualizationError("bad node data")
 

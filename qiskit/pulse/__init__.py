@@ -14,7 +14,7 @@
 
 """Module for Pulses."""
 
-from .channels import (DeviceSpecification, PulseChannelSpec, DriveChannel,
+from .channels import (PulseChannelSpec, DriveChannel,
                        MeasureChannel, AcquireChannel,
                        ControlChannel, RegisterSlot, MemorySlot)
 from .cmd_def import CmdDef

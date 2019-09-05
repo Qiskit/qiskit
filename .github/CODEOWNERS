@@ -1,23 +1,31 @@
-# This file defines the persons that will be assigned as reviewers for PRs that
-# modify a particular file in the repo. Please note it is just a convention
-# for the GitHub interface, and any member of the Qiskit team can (and should!)
-# review as well.
-
-# Real code owners.
-#* @jaygambetta @ismaelfaro
-
-# Generic rule for the repository. This pattern is actually the one that will
-# apply unless specialized by a later rule
-* @ajavadia @ewinston @atilag @delapuente @diego-plan9 @nonhermitian @mtreinish @1ucian0 @taalexander @jaygambetta @kdk @chriseclectic @lcapelluto
+# This file defines the persons who will be assigned as reviewers for PRs that
+# modify particular files in the repo. The PR can be merged when approved by at 
+# least one codeowner. However, all Qiskit team members can (and should!) review the PRs.
 
 # Individual folders on root directory
-# /cmake     @ajavadia @atilag @diego-plan9
-# /doc       @jaygambetta @ajavadia @atilag @diego-plan9
-# /examples  @jaygambetta @ajavadia @atilag @diego-plan9
-# /src       @chriseclectic @ajavadia @atilag @diego-plan9
+/tools/               @mtreinish @kdk
+/examples/            @jaygambetta @mtreinish @maddy-tod
+/releasenotes/        @mtreinish
 
-# qiskit folders
-# qiskit/qasm/*        @1ucian0 @ajavadia @ewinston @atilag @delapuente @diego-plan9
-# qiskit/tools/*       @antoniomezzacapo @chriseclectic @ajavadia @ewinston @atilag @delapuente @diego-plan9
-# qiskit/schemas/*     @jaygambetta @ajavadia @ewinston @atilag @delapuente @diego-plan9 @dcmckayibm
-# qiskit/transpiler/*  @1ucian0 @ajavadia @delapuente @atilag @diego-plan9 @nonhermitian @kdk
+# Qiskit folders (also their corresponding tests)
+assembler/            @diego-plan @taalexander @mtreinish
+circuit/              @ajavadia @kdk @ewinston @jaygambetta
+compiler/             @jaygambetta @ajavadia @kdk
+converters/           @mtreinish @1ucian0
+dagcircuit/           @ajavadia @kdk @1ucian0 @maddy-tod
+extensions/           @ajavadia @kdk @ewinston
+providers/            @diego-plan9
+basicaer/             @chriseclectic @ajavadia
+pulse/                @lcapelluto @taalexander @eggerdj @nkanazawa1989
+qobj/                 @diego-plan9 @jyu00 @taalexander
+quantum_info/         @chriseclectic @jaygambetta @levbishop
+qi/                   @chriseclectic
+result/               @diego-plan9 @jyu00 @taalexander
+schemas/              @diego-plan9 @dcmckayibm
+qiskit/tools/         @nonhermitian
+transpiler/           @ajavadia @kdk @1ucian0 @itoko
+validation/           @diego-plan9 @atilag
+visualization/        @nonhermitian @mtreinish @1ucian0 @maddy-tod
+
+# Other things in test
+test/                 @ajavadia @mtreinish @kdk @1ucian0

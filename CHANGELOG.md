@@ -15,6 +15,15 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Fixed
+-   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
+
+### Removed
+
+-   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
+-   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
+    methods directly.
+
 ## [0.9.0] - 2019-08-22
 
 ### Changed
