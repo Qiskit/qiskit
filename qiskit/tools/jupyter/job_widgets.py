@@ -56,9 +56,9 @@ def make_labels():
         widget: The labels widget.
     """
     labels0 = widgets.HTML(value="<h5>Job ID</h5>",
-                           layout=widgets.Layout(width='65px'))
+                           layout=widgets.Layout(width='190px'))
     labels1 = widgets.HTML(value='<h5>Backend</h5>',
-                           layout=widgets.Layout(width='135px'))
+                           layout=widgets.Layout(width='145px'))
     labels2 = widgets.HTML(value='<h5>Status</h5>',
                            layout=widgets.Layout(width='95px'))
     labels3 = widgets.HTML(value='<h5>Queue</h5>',
@@ -66,7 +66,7 @@ def make_labels():
     labels4 = widgets.HTML(value='<h5>Message</h5>')
 
     labels = widgets.HBox(children=[labels0, labels1, labels2, labels3, labels4],
-                          layout=widgets.Layout(width='560px',
+                          layout=widgets.Layout(width='600px',
                                                 margin='0px 0px 0px 35px'))
     return labels
 
@@ -85,10 +85,10 @@ def create_job_widget(watcher, job_id, backend, status='', queue_pos=None, msg='
     Returns:
         widget: The job widget
     """
-    id_label = widgets.HTML(value="{}".format(job_id[-7:]),
-                            layout=widgets.Layout(width='65px'))
+    id_label = widgets.HTML(value="{}".format(job_id),
+                            layout=widgets.Layout(width='190px'))
     backend_label = widgets.HTML(value="{}".format(backend),
-                                 layout=widgets.Layout(width='135px'))
+                                 layout=widgets.Layout(width='145px'))
     status_label = widgets.HTML(value="{}".format(status),
                                 layout=widgets.Layout(width='95px'))
     if queue_pos is None:
@@ -112,8 +112,8 @@ def create_job_widget(watcher, job_id, backend, status='', queue_pos=None, msg='
 
     job_grid = widgets.HBox(children=[close_button, id_label, backend_label,
                                       status_label, queue_label, msg_label],
-                            layout=widgets.Layout(min_width='600px',
-                                                  max_width='600px'))
+                            layout=widgets.Layout(min_width='700px',
+                                                  max_width='700px'))
     job_grid.job_id = job_id
     return job_grid
 
@@ -124,10 +124,10 @@ def build_job_viewer():
     Returns:
         widget: Job viewer.
     """
-    acc = widgets.Accordion(children=[widgets.VBox(layout=widgets.Layout(max_width='610px',
-                                                                         min_width='610px'))],
+    acc = widgets.Accordion(children=[widgets.VBox(layout=widgets.Layout(max_width='710px',
+                                                                         min_width='710px'))],
                             layout=widgets.Layout(width='auto',
-                                                  max_width='650px',
+                                                  max_width='750px',
                                                   max_height='500px',
                                                   overflow_y='scroll',
                                                   overflow_x='hidden'))
