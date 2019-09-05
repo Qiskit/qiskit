@@ -387,8 +387,8 @@ class TimeslotCollection:
 
         stop_time = stop_time or self.stop_time
 
-        curr_time = 0
         for channel in self.channels:
+            curr_time = 0
             for timeslot in self.ch_timeslots(channel):
                 next_time = timeslot.interval.start
                 if next_time-curr_time > 0:

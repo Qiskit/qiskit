@@ -177,8 +177,30 @@ class TestPad(QiskitTestCase):
         ref_sched = (sched |
                      delay(pulse.DriveChannel(0)) |
                      delay(pulse.DriveChannel(0)).shift(20) |
+                     delay(pulse.DriveChannel(1)) |
                      double_delay(pulse.DriveChannel(1)).shift(20))
-        print(pad(sched), ref_sched)
+
+        self.assertEqual(pad(sched), ref_sched)
+
+    def test_padding_schedule_inverse_order(self):
+        """Test padding schedule is insensitive to order in which commands were added.
+
+        This test is the same as `test_adding_schedule` but the order by channel
+        in which commands were added to the schedule to be padded has been reversed.
+        """
+        delay = pulse.Delay(10)
+        double_delay = pulse.Delay(20)
+
+        sched = (delay(pulse.DriveChannel(1)).shift(10) +
+                 delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(0)).shift(10))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     delay(pulse.DriveChannel(0)).shift(20) |
+                     delay(pulse.DriveChannel(1)) |
+                     double_delay(pulse.DriveChannel(1)).shift(20))
+
         self.assertEqual(pad(sched), ref_sched)
 
     def test_padding_until_less(self):
