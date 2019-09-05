@@ -38,11 +38,13 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 
 # pylint: disable=missing-return-doc
-# TODO:
-#  - __getattr__
+# Questions
+#   - CmdDef should be separate so that backend can be required?
+#   - Memoize? Or make QobjToInstructionConverter faster?
+#   - __getattr__ and get_property are not stable, and should also have more tests
 
 
-class SystemInfo(object):
+class SystemInfo():
     """A resource for getting information from a backend, tailored for Pulse users."""
 
     def __init__(self,
@@ -55,10 +57,12 @@ class SystemInfo(object):
             backend: A Pulse enabled backend returned by a Qiskit provider.
             default_ops: {(op_name, *qubits): `Schedule` or `ParameterizedSchedule`}
         """
+        # FIXME
         # This stores the circuit operation definitions
         self._ops_definition = defaultdict(dict)
         # This is a helpful backwards mapping from qubits -> defined operations
         self._qubit_ops = defaultdict(list)
+        # Both of the above definitions will be filled in by defaults if backend is provided
 
         self._backend = backend
         if backend:
@@ -263,7 +267,7 @@ class SystemInfo(object):
         Raises:
             PulseError: If error is True and the property is not found.
         """
-        # TODO fixme
+        # FIXME
         try:
             ret = self._props.get(name)
             for arg in args:
@@ -542,21 +546,24 @@ class SystemInfo(object):
                 system.backend_name <=> system.get_property(backend_name)
                 system.t1(0) <=> system.get_property('t1', 0)
         """
+        # FIXME
         if self._backend is None:
             raise PulseError("Please instantiate the SystemInfo with a backend to get this "
                              "information.")
-        raise AttributeError("")
 
-        # def fancy_get(qubits: Union[int, Iterable[int]] = None,
-        #               *params: List[Union[int, float, complex]],
-        #               **kwparams: Dict[str, Union[int, float, complex]]):
-        #     try:
-        #         return self.get(attr, qubits=qubits, *params, **kwparams)
-        #     except PulseError:
-        #         # return self.get_property(attr, args)
-        #         raise AttributeError("{} object has no attribute "
-        #                              "'{}'".format(self.__class__.__name__, attr))
-    #     return fancy_get
+        def fancy_get(qubits: Union[int, Iterable[int]] = None,
+                      *params: List[Union[int, float, complex]],
+                      **kwparams: Dict[str, Union[int, float, complex]]):
+            try:
+                qubits = _to_tuple(qubits)
+                return self.get(attr, qubits, *params, **kwparams)
+            except PulseError:
+                try:
+                    return self.get_property(attr, *params, error=True)
+                except PulseError:
+                    raise AttributeError("{} object has no attribute "
+                                         "'{}'".format(self.__class__.__name__, attr))
+        return fancy_get
 
 
 def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int]:

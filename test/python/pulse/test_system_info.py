@@ -234,3 +234,7 @@ class TestSystemInfo(QiskitTestCase):
             " 'conditional', 'open_pulse', 'memory', 'max_shots', 'coupling_map', 'n_reg"
             "isters', 'meas_level', 'meas_map', 'channel_bandwidth', 'acquisition_latenc"
             "y', 'conditional_latency', 'hamiltonian']\n    Hamiltonian:\nNone)")
+
+    def test___getattr__(self):
+        """Test the fancy get method."""
+        self.assertIsInstance(self.sysinfo.u1(qubits=0, P1=np.pi), Schedule)
