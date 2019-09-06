@@ -225,6 +225,37 @@ class TestTimeslotCollection(QiskitTestCase):
             TimeslotCollection(Timeslot(Interval(0, 10), AcquireChannel(0)),
                                Timeslot(Interval(5, 5), AcquireChannel(0)))
 
+    def test_complement(self):
+        """Test complement of TimeslotCollection is properly created."""
+        test_collection = TimeslotCollection(
+            Timeslot(Interval(5, 7), DriveChannel(0)),
+            Timeslot(Interval(10, 12), DriveChannel(0)),
+            Timeslot(Interval(0, 3), DriveChannel(1)))
+        ref_complement = TimeslotCollection(
+            Timeslot(Interval(0, 5), DriveChannel(0)),
+            Timeslot(Interval(7, 10), DriveChannel(0)),
+            Timeslot(Interval(3, 12), DriveChannel(1)))
+        complement_collection = test_collection.complement()
+
+        self.assertEqual(ref_complement, complement_collection)
+
+    def test_complement_set_stop_time(self):
+        """Test complement of TimeslotCollection obeys stop_time."""
+        stop_time = 20
+
+        test_collection = TimeslotCollection(
+            Timeslot(Interval(5, 7), DriveChannel(0)),
+            Timeslot(Interval(10, 12), DriveChannel(0)),
+            Timeslot(Interval(0, 3), DriveChannel(1)))
+        ref_complement = TimeslotCollection(
+            Timeslot(Interval(0, 5), DriveChannel(0)),
+            Timeslot(Interval(7, 10), DriveChannel(0)),
+            Timeslot(Interval(12, stop_time), DriveChannel(0)),
+            Timeslot(Interval(3, stop_time), DriveChannel(1)))
+        complement_collection = test_collection.complement(stop_time=stop_time)
+
+        self.assertEqual(ref_complement, complement_collection)
+
 
 if __name__ == '__main__':
     unittest.main()
