@@ -77,6 +77,7 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
+-   `Schedule.instructions` now returns with time-ordering.
 -   Intervals are now defined by start and stop, rather than begin and end.
 -   TimeslotCollections now are sorted by default and have more efficient merges.
 -   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
