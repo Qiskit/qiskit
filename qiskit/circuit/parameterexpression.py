@@ -64,7 +64,6 @@ class ParameterExpression():
             ParameterExpression: a new expession parameterized by any parameters
                 which were not bound by parameter_values.
         """
-
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
         self._raise_if_passed_non_real_value(parameter_values)
 

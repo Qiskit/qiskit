@@ -60,7 +60,7 @@ class TestParameters(QiskitTestCase):
         vparams = qc._parameter_table
         self.assertEqual(len(vparams), 1)
         self.assertIs(theta, next(iter(vparams)))
-        self.assertIs(rxg, vparams[theta][0][0])
+        self.assertIs(rxg, vparams[theta].pop()[0])
 
     def test_fix_variable(self):
         """Test setting a variable to a constant value"""
@@ -168,7 +168,7 @@ class TestParameters(QiskitTestCase):
         theta = Parameter('theta')
         gate = RZGate(theta)
         qc.append(gate, [0], [])
-        import ipdb;ipdb.set_trace()
+        #import ipdb;ipdb.set_trace()
         qc.append(gate, [0], [])
         qc.bind_parameters({theta: 1.0})
 

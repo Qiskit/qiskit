@@ -410,12 +410,12 @@ class QuantumCircuit:
 
                 for parameter in param.parameters:
                     if parameter in current_parameters:
-                        self._parameter_table[parameter].append((instruction, param_index))
+                        self._parameter_table[parameter].add((instruction, param_index))
                     else:
                         if parameter.name in {p.name for p in current_parameters}:
                             raise QiskitError(
                                 'Name conflict on adding parameter: {}'.format(parameter.name))
-                        self._parameter_table[parameter] = [(instruction, param_index)]
+                        self._parameter_table[parameter] = {(instruction, param_index)}
 
         return instruction
 

@@ -36,6 +36,7 @@ import copy
 from itertools import zip_longest
 import sympy
 import numpy
+from uuid import uuid4
 
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
@@ -49,6 +50,26 @@ _CUTOFF_PRECISION = 1E-10
 
 class Instruction:
     """Generic quantum instruction."""
+
+    def __new__(cls, *args, uuid=None, **kwargs):
+        # Parameter relies on self._uuid being set prior to other attributes
+        # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
+        # or __eq__ functions.
+
+        obj = object.__new__(cls)
+
+        if uuid is None:
+            obj._uuid = uuid4()
+        else:
+            obj._uuid = uuid
+
+        return obj
+
+    def __getnewargs__(self):
+        # Unpickling won't in general call __init__ but will always call
+        # __new__. Specify arguments to be passed to __new__ when unpickling.
+
+        return (self.name, self._uuid)
 
     def __init__(self, name, num_qubits, num_clbits, params):
         """Create a new instruction.
@@ -340,3 +361,6 @@ class Instruction:
 
         instruction.definition = [(self, qargs[:], cargs[:])] * n
         return instruction
+
+    def __hash__(self):
+        return hash(self._uuid)
