@@ -64,6 +64,7 @@ class ParameterExpression():
             ParameterExpression: a new expession parameterized by any parameters
                 which were not bound by parameter_values.
         """
+
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
         self._raise_if_passed_non_real_value(parameter_values)
 
@@ -130,7 +131,6 @@ class ParameterExpression():
     def _raise_if_passed_unknown_parameters(self, parameters):
         unknown_parameters = parameters - self.parameters
         if unknown_parameters:
-            import ipdb;ipdb.set_trace()
             raise QiskitError('Cannot bind Parameters ({}) not present in '
                               'expression.'.format(
                                   [str(p) for p in unknown_parameters]))

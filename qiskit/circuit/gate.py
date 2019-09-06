@@ -13,7 +13,6 @@
 # that they have been altered from the originals.
 
 """Unitary gate."""
-from uuid import uuid4
 
 from qiskit.exceptions import QiskitError
 from .instruction import Instruction
