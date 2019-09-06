@@ -67,6 +67,8 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
@@ -141,6 +143,8 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
@@ -196,6 +200,8 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
@@ -246,6 +252,8 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run
           displayName: 'Run tests'
         - task: CopyFiles@2
@@ -296,6 +304,8 @@ stages:
           displayName: 'Install dependencies'
         - bash: |
             set -e
+            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
             stestr run --concurrency 2
           displayName: 'Run tests'
         - task: CopyFiles@2
