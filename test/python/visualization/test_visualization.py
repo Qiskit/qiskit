@@ -211,7 +211,16 @@ class TestVisualizationUtils(QiskitTestCase):
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
     def test_get_layered_instructions_left_justification_simple(self):
-        """ Test _get_layered_instructions left justification simple since #2802 """
+        """ Test _get_layered_instructions left justification simple since #2802
+q_0: |0>───────■──
+        ┌───┐  │
+q_1: |0>┤ H ├──┼──
+        ├───┤  │
+q_2: |0>┤ H ├──┼──
+        └───┘┌─┴─┐
+q_3: |0>─────┤ X ├
+             └───┘
+"""
         qc = QuantumCircuit(4)
         qc.h(1)
         qc.h(2)
@@ -230,7 +239,16 @@ class TestVisualizationUtils(QiskitTestCase):
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
     def test_get_layered_instructions_right_justification_simple(self):
-        """ Test _get_layered_instructions right justification simple since #2802 """
+        """ Test _get_layered_instructions right justification simple since #2802
+q_0: |0>──■───────
+          │  ┌───┐
+q_1: |0>──┼──┤ H ├
+          │  ├───┤
+q_2: |0>──┼──┤ H ├
+        ┌─┴─┐└───┘
+q_3: |0>┤ X ├─────
+        └───┘
+"""
         qc = QuantumCircuit(4)
         qc.h(1)
         qc.h(2)
@@ -251,6 +269,18 @@ class TestVisualizationUtils(QiskitTestCase):
     def test_get_layered_instructions_left_justification_less_simple(self):
         """ Test _get_layered_instructions left justification
         less simple example since #2802
+        ┌────────────┐┌───┐┌────────────┐              ┌─┐┌────────────┐┌───┐┌────────────┐
+q_0: |0>┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├──────────────┤M├┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├
+        ├────────────┤└─┬─┘├────────────┤┌────────────┐└╥┘└────────────┘└─┬─┘├────────────┤
+q_1: |0>┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├┤ U2(0,pi/1) ├─╫─────────────────■──┤ U2(0,pi/1) ├
+        └────────────┘     └────────────┘└────────────┘ ║                    └────────────┘
+q_2: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                        ║
+q_3: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                        ║
+q_4: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                        ║
+c1_0: 0 ════════════════════════════════════════════════╩══════════════════════════════════
         """
         qasm = """
         OPENQASM 2.0;
@@ -297,6 +327,18 @@ class TestVisualizationUtils(QiskitTestCase):
     def test_get_layered_instructions_right_justification_less_simple(self):
         """ Test _get_layered_instructions right justification
         less simple example since #2802
+        ┌────────────┐┌───┐┌────────────┐┌─┐┌────────────┐┌───┐┌────────────┐
+q_0: |0>┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├┤M├┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├
+        ├────────────┤└─┬─┘├────────────┤└╥┘├────────────┤└─┬─┘├────────────┤
+q_1: |0>┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├─╫─┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├
+        └────────────┘     └────────────┘ ║ └────────────┘     └────────────┘
+q_2: |0>──────────────────────────────────╫──────────────────────────────────
+                                          ║
+q_3: |0>──────────────────────────────────╫──────────────────────────────────
+                                          ║
+q_4: |0>──────────────────────────────────╫──────────────────────────────────
+                                          ║
+c1_0: 0 ══════════════════════════════════╩══════════════════════════════════
         """
         qasm = """
         OPENQASM 2.0;
