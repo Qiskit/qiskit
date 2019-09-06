@@ -87,7 +87,7 @@ def next_power_of_2_base(n):
     Return the base of the smallest power of 2 no less than the input number
     """
     base = 0
-    if n and not n & (n - 1):
+    if n and not (n & (n - 1)):  # pylint: disable=superfluous-parens
         return log2(n)
 
     while n != 0:

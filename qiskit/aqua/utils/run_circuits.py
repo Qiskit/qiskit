@@ -437,19 +437,19 @@ def compile_and_run_circuits(circuits, backend, backend_config=None,
     This wrapper will try to get the result no matter how long it costs.
 
     Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
+        circuits (Union(QuantumCircuit,list[QuantumCircuit])): circuits to execute
         backend (BaseBackend): backend instance
-        backend_config (dict, optional): configuration for backend
-        compile_config (dict, optional): configuration for compilation
-        run_config (RunConfig, optional): configuration for running a circuit
-        qjob_config (dict, optional): configuration for quantum job object
-        backend_options (dict, optional): configuration for simulator
-        noise_config (dict, optional): configuration for noise model
-        show_circuit_summary (bool, optional): showing the summary of submitted circuits.
-        circuit_cache (CircuitCache, optional): A CircuitCache to use when
+        backend_config (Optional(dict)): configuration for backend
+        compile_config (Optional(dict)): configuration for compilation
+        run_config (Optional(RunConfig)): configuration for running a circuit
+        qjob_config (Optional(dict)): configuration for quantum job object
+        backend_options (Optional(dict)): configuration for simulator
+        noise_config (Optional(dict)): configuration for noise model
+        show_circuit_summary (Optional(bool)): showing the summary of submitted circuits.
+        circuit_cache (Optional(CircuitCache)): A CircuitCache to use when
                                                 calling compile_and_run_circuits
-        skip_qobj_validation (bool, optional): Bypass Qobj validation to decrease submission time
-        kwargs (object): additional parameters
+        skip_qobj_validation (Optional(bool)): Bypass Qobj validation to decrease submission time
+        kwargs (dict): additional parameters
 
     Returns:
         Result: Result object
