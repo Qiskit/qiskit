@@ -1030,6 +1030,7 @@ class Z2Symmetries:
             Z2Symmetries: a z2_symmetries object contains symmetries,
                         single-qubit X, single-qubit list.
         """
+        # pylint: disable=invalid-name
         pauli_symmetries = []
         sq_paulis = []
         sq_list = []
@@ -1061,12 +1062,12 @@ class Z2Symmetries:
             stacked_symm_del = np.delete(stacked_symmetries, row, axis=0)
             for col in range(symm_shape[1] // 2):
                 # case symmetries other than one at (row) have Z or I on col qubit
-                z_or_i = True
+                Z_or_I = True
                 for symm_idx in range(symm_shape[0] - 1):
                     if not (stacked_symm_del[symm_idx, col] == 0
                             and stacked_symm_del[symm_idx, col + symm_shape[1] // 2] in (0, 1)):
-                        z_or_i = False
-                if z_or_i:
+                        Z_or_I = False
+                if Z_or_I:
                     if ((stacked_symmetries[row, col] == 1 and
                          stacked_symmetries[row, col + symm_shape[1] // 2] == 0) or
                             (stacked_symmetries[row, col] == 1 and
@@ -1079,12 +1080,12 @@ class Z2Symmetries:
                         break
 
                 # case symmetries other than one at (row) have X or I on col qubit
-                x_or_i = True
+                X_or_I = True
                 for symm_idx in range(symm_shape[0] - 1):
                     if not (stacked_symm_del[symm_idx, col] in (0, 1) and
                             stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0):
-                        x_or_i = False
-                if x_or_i:
+                        X_or_I = False
+                if X_or_I:
                     if ((stacked_symmetries[row, col] == 0 and
                          stacked_symmetries[row, col + symm_shape[1] // 2] == 1) or
                             (stacked_symmetries[row, col] == 1 and
@@ -1097,14 +1098,14 @@ class Z2Symmetries:
                         break
 
                 # case symmetries other than one at (row)  have Y or I on col qubit
-                y_or_i = True
+                Y_or_I = True
                 for symm_idx in range(symm_shape[0] - 1):
                     if not ((stacked_symm_del[symm_idx, col] == 1 and
                              stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 1)
                             or (stacked_symm_del[symm_idx, col] == 0 and
                                 stacked_symm_del[symm_idx, col + symm_shape[1] // 2] == 0)):
-                        y_or_i = False
-                if y_or_i:
+                        Y_or_I = False
+                if Y_or_I:
                     if ((stacked_symmetries[row, col] == 0 and
                          stacked_symmetries[row, col + symm_shape[1] // 2] == 1) or
                             (stacked_symmetries[row, col] == 1 and
