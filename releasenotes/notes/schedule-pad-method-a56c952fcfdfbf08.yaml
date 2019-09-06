@@ -11,10 +11,12 @@ features:
       from qiskit.pulse.utils import pad
 
       dc0 = pulse.DriveChannel(0)
+
       delay = pulse.Delay(1)
+      test_pulse = pulse.SamplePulse([1.0])
 
       sched = pulse.Schedule()
-      sched += delay(dc0).shift(1)
+      sched += test_pulse(dc0).shift(1)
 
       # build padded schedule by hand
       ref_sched = delay(dc0) | sched
@@ -34,9 +36,10 @@ features:
       dc1 = pulse.DriveChannel(1)
 
       delay = pulse.Delay(1)
+      test_pulse = pulse.SamplePulse([1.0])
 
       sched = pulse.Schedule()
-      sched += delay(dc0).shift(1)
+      sched += test_pulse(dc0).shift(1)
 
       # build padded schedule by hand
       ref_sched = delay(dc0) | delay(dc1) |  sched
