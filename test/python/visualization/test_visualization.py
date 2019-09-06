@@ -210,8 +210,8 @@ class TestVisualizationUtils(QiskitTestCase):
         self.assertEqual(exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
-    def test_get_layered_instructions_left_right_justification(self):
-        """ _get_layered_instructions illustrate left/right justification since #2802 """
+    def test_get_layered_instructions_left_justification_simple(self):
+        """ Test _get_layered_instructions left justification simple since #2802 """
         qc = QuantumCircuit(4)
         qc.h(1)
         qc.h(2)
@@ -229,6 +229,13 @@ class TestVisualizationUtils(QiskitTestCase):
         self.assertEqual(l_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
+    def test_get_layered_instructions_right_justification_simple(self):
+        """ Test _get_layered_instructions right justification simple since #2802 """
+        qc = QuantumCircuit(4)
+        qc.h(1)
+        qc.h(2)
+        qc.cx(0, 3)
+
         (_, _, layered_ops) = utils._get_layered_instructions(qc, justify='right')
 
         r_exp = [[('cx', [Qubit(QuantumRegister(4, 'q'), 0),
@@ -241,6 +248,10 @@ class TestVisualizationUtils(QiskitTestCase):
         self.assertEqual(r_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
+    def test_get_layered_instructions_left_justification_less_simple(self):
+        """ Test _get_layered_instructions left justification
+        less simple example since #2802
+        """
         qasm = """
         OPENQASM 2.0;
         include "qelib1.inc";
@@ -282,6 +293,29 @@ class TestVisualizationUtils(QiskitTestCase):
 
         self.assertEqual(l_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_get_layered_instructions_right_justification_less_simple(self):
+        """ Test _get_layered_instructions right justification
+        less simple example since #2802
+        """
+        qasm = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[5];
+        creg c1[1];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        cx q[1],q[0];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        u2(0,3.14159265358979) q[1];
+        measure q[0] -> c1[0];
+        u2(0,3.14159265358979) q[0];
+        cx q[1],q[0];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        """
+        qc = QuantumCircuit.from_qasm_str(qasm)
 
         (_, _, layered_ops) = utils._get_layered_instructions(qc, justify='right')
 
