@@ -48,9 +48,12 @@ def minimize(name, objective_function, variable_bounds=None, initial_point=None,
 
     Args:
         name (str): NLopt optimizer name
-        objective_function (object): Objective function to evaluate
-        variable_bounds (object): Bounds
-        initial_point (object): Initial point for optimizer
+        objective_function (callable) : handle to a function that
+                                        computes the objective function.
+        variable_bounds (list[(float, float)]) : list of variable
+                            bounds, given as pairs (lower, upper). None means
+                            unbounded.
+        initial_point (numpy.ndarray[float]) : initial point.
         max_evals (int): Maximum evaluations
 
     Returns:
