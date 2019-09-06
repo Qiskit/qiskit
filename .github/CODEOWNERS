@@ -5,7 +5,6 @@
 # Individual folders on root directory
 /tools/               @mtreinish @kdk
 /examples/            @jaygambetta @mtreinish @maddy-tod
-/releasenotes/        @mtreinish
 test/                 @ajavadia @mtreinish @kdk @1ucian0
 
 # Qiskit folders (also their corresponding tests)
