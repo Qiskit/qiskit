@@ -307,7 +307,8 @@ class MatrixOperator(BaseOperator):
         Carry out the eoh evolution for the operator under supplied specifications.
 
         Args:
-            state_in (InitialState): The initial state for the evolution
+            state_in (Union(list,numpy.array)): A vector representing the initial state
+                                            for the evolution
             evo_time (int): The evolution time
             num_time_slices (int): The number of time slices for the expansion
             expansion_mode (str): The mode under which the expansion is to be done.
