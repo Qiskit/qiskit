@@ -6,6 +6,7 @@
 /tools/               @mtreinish @kdk
 /examples/            @jaygambetta @mtreinish @maddy-tod
 /releasenotes/        @mtreinish
+test/                 @ajavadia @mtreinish @kdk @1ucian0
 
 # Qiskit folders (also their corresponding tests)
 assembler/            @diego-plan @taalexander @mtreinish
@@ -26,6 +27,3 @@ qiskit/tools/         @nonhermitian
 transpiler/           @ajavadia @kdk @1ucian0 @itoko
 validation/           @diego-plan9 @atilag
 visualization/        @nonhermitian @mtreinish @1ucian0 @maddy-tod
-
-# Other things in test
-test/                 @ajavadia @mtreinish @kdk @1ucian0
