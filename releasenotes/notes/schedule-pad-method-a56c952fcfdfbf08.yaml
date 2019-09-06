@@ -24,7 +24,7 @@ features:
 
       assert padded_sched == ref_sched
 
-    One may also pass addditional channels to be padded and a time to pad until,
+    One may also pass additional channels to be padded and a time to pad until,
     for example::
 
       from qiskit import pulse
