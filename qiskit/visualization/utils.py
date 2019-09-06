@@ -14,9 +14,7 @@
 
 """Common visualization utilities."""
 
-from enum import Enum
 import numpy as np
-from qiskit.circuit import ClassicalRegister
 from qiskit.converters import circuit_to_dag
 from qiskit.visualization.exceptions import VisualizationError
 
@@ -97,35 +95,8 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
         for node in dag.topological_op_nodes():
             ops.append([node])
 
-    if justify == 'left':
-        spooler = LayerSpooler(qregs, Justification.LEFT)
-
-        for dag_layer in dag.layers():
-            current_index = spooler.last_index()
-            dag_nodes = _sorted_nodes(dag_layer)
-            for node in dag_nodes:
-                spooler.add(node, current_index)
-
-        ops = spooler.as_list()
-
-    if justify == 'right':
-        spooler = LayerSpooler(qregs, Justification.RIGHT)
-
-        dag_layers = []
-
-        for dag_layer in dag.layers():
-            dag_layers.append(dag_layer)
-
-        # going right to left!
-        dag_layers.reverse()
-
-        for dag_layer in dag_layers:
-            current_index = 0
-            dag_nodes = _sorted_nodes(dag_layer)
-            for node in dag_nodes:
-                spooler.add(node, current_index)
-
-        ops = spooler.as_list()
+    else:
+        ops = LayerSpooler(dag, justify).as_list()
 
     if reverse_bits:
         qregs.reverse()
@@ -151,18 +122,10 @@ def _sorted_nodes(dag_layer):
     return dag_instructions
 
 
-def _is_multibit_gate(node):
-    """Return True .IFF. node spans multiple qubits
-    qiskit-terra #2802
-    """
-    return len(node.qargs) + len(node.cargs) > 1
-
-
 def _get_gate_span(qregs, instruction):
     """Get the list of qubits drawing this gate would cover
     qiskit-terra #2802
     """
-
     min_index = len(qregs)
     max_index = 0
     for qreg in instruction.qargs:
@@ -175,7 +138,7 @@ def _get_gate_span(qregs, instruction):
 
     if instruction.cargs:
         return qregs[min_index:]
-    if instruction.condition and isinstance(instruction.condition[0], ClassicalRegister):
+    if instruction.condition:
         return qregs[min_index:]
 
     return qregs[min_index:max_index + 1]
@@ -193,24 +156,40 @@ def _any_crossover(qregs, node, nodes):
     return any(i in gate_span for i in all_indices)
 
 
-class Justification(Enum):
-    """Enumerate justification types used in LayerSpooler
-    qiskit-terra #2802
-    """
-    LEFT = 1
-    RIGHT = 2
-
-
 class LayerSpooler():
     """Manipulate list of layer dicts for _get_layered_instructions
     qiskit-terra #2802
     """
 
-    def __init__(self, qregs, justification):
+    def __init__(self, dag, justification):
         """Create spool"""
-        self.qregs = qregs
+        self.dag = dag
+        self.qregs = dag.qubits()
         self.justification = justification
         self.spool = []
+
+        if self.justification == 'left':
+
+            for dag_layer in dag.layers():
+                current_index = self.last_index()
+                dag_nodes = _sorted_nodes(dag_layer)
+                for node in dag_nodes:
+                    self.add(node, current_index)
+
+        else:
+            dag_layers = []
+
+            for dag_layer in dag.layers():
+                dag_layers.append(dag_layer)
+
+            # going right to left!
+            dag_layers.reverse()
+
+            for dag_layer in dag_layers:
+                current_index = 0
+                dag_nodes = _sorted_nodes(dag_layer)
+                for node in dag_nodes:
+                    self.add(node, current_index)
 
     def size(self):
         """Return number of entries in spool"""
@@ -318,7 +297,7 @@ class LayerSpooler():
     def add(self, node, index):
         """Add 'node' where it belongs, starting the try at 'index'
         """
-        if self.justification == Justification.LEFT:
+        if self.justification == "left":
             self.slide_from_left(node, index)
         else:
             self.slide_from_right(node, index)
