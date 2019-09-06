@@ -181,8 +181,10 @@ def suzuki_expansion_slice_pauli_list(pauli_list, lam_coef, expansion_order):
     https://arxiv.org/pdf/quant-ph/0508139.pdf.
 
     Args:
-        pauli_list (list[list[complex, Pauli]]): the weighted pauli list
-        lam_coef (float): lam coefficient
+        pauli_list (list[list[complex, Pauli]]): The slice's weighted Pauli list for the
+                                                 suzuki expansion
+        lam_coef (float): The parameter lambda as defined in said paper,
+                          adjusted for the evolution time and the number of time slices
         expansion_order (int): The order for suzuki expansion
     Returns:
         list: slice pauli list
