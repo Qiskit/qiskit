@@ -14,16 +14,16 @@
 
 """Models for PassManagerConfig and its related components."""
 
-from qiskit.transpiler.models import TranspileConfigSchema
+from qiskit.transpiler.models import PassManagerConfigSchema
 from qiskit.validation import BaseModel, bind_schema
 
 
-@bind_schema(TranspileConfigSchema)
+@bind_schema(PassManagerConfigSchema)
 class PassManagerConfig(BaseModel):
     """Model for PassManagerConfig.
 
     Please note that this class only describes the required fields. For the
-    full description of the model, please check ``TranspileConfigSchema``.
+    full description of the model, please check ``PassManagerConfigSchema``.
 
     Attributes:
         optimization_level (int): a non-negative integer indicating the

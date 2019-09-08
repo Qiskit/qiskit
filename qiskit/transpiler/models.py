@@ -17,7 +17,7 @@
 from qiskit.validation import BaseSchema
 
 
-class TranspileConfigSchema(BaseSchema):
+class PassManagerConfigSchema(BaseSchema):
     """Schema for PassManagerConfig."""
 
     # Required properties.
