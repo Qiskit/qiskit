@@ -181,12 +181,12 @@ def transpile(circuits,
     # Get transpiler argument(s) to configure the circuit transpilation job(s)
     circuits = circuits if isinstance(circuits, list) else [circuits]
     transpile_args = _parse_transpile_args(circuits, backend, basis_gates, coupling_map,
-                                              backend_properties, initial_layout,
-                                              seed_transpiler, optimization_level,
-                                              pass_manager, callback, output_name)
+                                           backend_properties, initial_layout,
+                                           seed_transpiler, optimization_level,
+                                           pass_manager, callback, output_name)
 
     # Transpile circuits in parallel
-    circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_args))) # TODO Merge circuits in
+    circuits = parallel_map(_transpile_circuit, transpile_args)
 
     if len(circuits) == 1:
         return circuits[0]
@@ -194,20 +194,16 @@ def transpile(circuits,
 
 
 # FIXME: This is a helper function because of parallel tools.
-def _transpile_circuit(circuit_config_tuple):
+def _transpile_circuit(transpile_params):
     """Select a PassManager and run a single circuit through it.
 
     Args:
-        circuit_config_tuple (tuple):
-            circuit (QuantumCircuit): circuit to transpile
-            transpile_config (dict): transpile params
+        transpile_params (dict):
 
     Returns:
         QuantumCircuit: transpiled circuit
     """
-    circuit, transpile_config = circuit_config_tuple
-
-    return transpile_circuit(circuit, transpile_config)
+    return transpile_circuit(transpile_params)
 
 
 def _parse_transpile_args(circuits, backend,
@@ -223,8 +219,7 @@ def _parse_transpile_args(circuits, backend,
     arg has more priority than the arg set by backend)
 
     Returns:
-        list[dicts]: a transpile config for each circuit, which is a standardized
-            object that configures the transpiler and determines the pass manager to use.
+        list[dicts]: a list of transpile parameters.
     """
     # Each arg could be single or a list. If list, it must be the same size as
     # number of circuits. If single, duplicate to create a list of that size.
@@ -249,7 +244,7 @@ def _parse_transpile_args(circuits, backend,
     transpile_configs = []
     for args in zip(basis_gates, coupling_map, backend_properties,
                     initial_layout, seed_transpiler, optimization_level,
-                    pass_manager, output_name):
+                    pass_manager, output_name, circuits):
         # PassManagerConfig
         transpile_config = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                      coupling_map=args[1],
@@ -259,7 +254,8 @@ def _parse_transpile_args(circuits, backend,
                             'optimization_level': args[5],
                             'pass_manager': args[6],
                             'output_name': args[7],
-                            'callback': callback}
+                            'callback': callback,
+                            'circuit': args[8]}
         transpile_configs.append(transpile_config)
 
     return transpile_configs

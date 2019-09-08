@@ -21,12 +21,11 @@ from qiskit.transpiler.preset_passmanagers import (level_0_pass_manager,
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-def transpile_circuit(circuit, transpile_config):
+def transpile_circuit(transpile_config):
     """Select a PassManager and run a single circuit through it.
 
     Args:
-        circuit (QuantumCircuit): circuit to transpile
-        transpile_config (PassManagerConfig): configuration dictating how to transpile
+        transpile_config (dict): configuration dictating how to transpile
 
     Returns:
         QuantumCircuit: transpiled circuit
@@ -55,7 +54,8 @@ def transpile_circuit(circuit, transpile_config):
         else:
             raise TranspilerError("optimization_level can range from 0 to 3.")
 
-    out_circuit = pass_manager.run(circuit, callback=transpile_config['callback'],
+    out_circuit = pass_manager.run(transpile_config['circuit'],
+                                   callback=transpile_config['callback'],
                                    output_name=transpile_config['output_name'])
 
     return out_circuit
