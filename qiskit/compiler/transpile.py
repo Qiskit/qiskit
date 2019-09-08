@@ -213,36 +213,29 @@ def _parse_transpile_args(circuits, backend,
     num_circuits = len(circuits)
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
-
     coupling_map = _parse_coupling_map(coupling_map, backend, circuits)
-
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
-
     initial_layout = _parse_initial_layout(initial_layout, circuits)
-
     seed_transpiler = _parse_seed_transpiler(seed_transpiler, num_circuits)
-
     optimization_level = _parse_optimization_level(optimization_level, num_circuits)
-
     pass_manager = _parse_pass_manager(pass_manager, num_circuits)
-
     output_name = _parse_output_name(output_name, circuits)
 
     transpile_configs = []
     for args in zip(basis_gates, coupling_map, backend_properties,
                     initial_layout, seed_transpiler, optimization_level,
                     pass_manager, output_name, circuits):
-        # PassManagerConfig
         transpile_config = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
                                                                      coupling_map=args[1],
                                                                      backend_properties=args[2],
                                                                      initial_layout=args[3],
-                                                                     seed_transpiler=args[4]),
+                                                                     seed_transpiler=args[4],
+                                                                     callback=callback),
                             'optimization_level': args[5],
                             'pass_manager': args[6],
                             'output_name': args[7],
-                            'callback': callback,
-                            'circuit': args[8]}
+                            'circuit': args[8],
+                            'callback': callback}
         transpile_configs.append(transpile_config)
 
     return transpile_configs

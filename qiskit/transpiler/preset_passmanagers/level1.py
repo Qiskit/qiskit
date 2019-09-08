@@ -112,7 +112,7 @@ def level_1_pass_manager(pass_manager_config):
 
     _opt = [Optimize1qGates(), CXCancellation()]
 
-    pm1 = PassManager()
+    pm1 = PassManager(callback=pass_manager_config.callback)
     if coupling_map:
         pm1.append(_given_layout)
         pm1.append(_choose_layout, condition=_choose_layout_condition)

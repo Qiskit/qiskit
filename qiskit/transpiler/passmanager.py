@@ -157,6 +157,7 @@ class PassManager():
 
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
+            output_name (str):
 
         Returns:
             QuantumCircuit: Transformed circuit.

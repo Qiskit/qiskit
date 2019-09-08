@@ -124,7 +124,7 @@ def level_3_pass_manager(pass_manager_config):
         _opt.append(CXDirection(coupling_map))
         # if a coupling map has been provided, match coupling
 
-    pm3 = PassManager()
+    pm3 = PassManager(callback=pass_manager_config.callback)
     pm3.append(_unroll)
     if coupling_map:
         pm3.append(_given_layout)
