@@ -35,12 +35,12 @@ def transpile_circuit(circuit, transpile_config):
         TranspilerError: if transpile_config is not valid or transpilation incurs error
     """
     # either the pass manager is already selected...
-    if transpile_config.pass_manager:
-        pass_manager = transpile_config.pass_manager
+    if transpile_config['pass_manager']:
+        pass_manager = transpile_config['pass_manager']
 
     # or we choose an appropriate one based on desired optimization level (default: level 1)
     else:
-        level = transpile_config.optimization_level
+        level = transpile_config['optimization_level']
         if level is None:
             level = 1
 
@@ -56,10 +56,10 @@ def transpile_circuit(circuit, transpile_config):
             raise TranspilerError("optimization_level can range from 0 to 3.")
 
     # Set a callback on the pass manager there is one
-    if getattr(transpile_config, 'callback', None):
-        pass_manager.callback = transpile_config.callback
+    if transpile_config['callback']:
+        pass_manager.callback = transpile_config['callback']
 
     out_circuit = pass_manager.run(circuit)
-    out_circuit.name = transpile_config.output_name
+    out_circuit.name = transpile_config['output_name']
 
     return out_circuit

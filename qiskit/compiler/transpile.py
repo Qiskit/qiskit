@@ -250,15 +250,16 @@ def _parse_transpile_args(circuits, backend,
     for args in zip(basis_gates, coupling_map, backend_properties,
                     initial_layout, seed_transpiler, optimization_level,
                     pass_manager, output_name):
-        transpile_config = TranspileConfig(basis_gates=args[0],
-                                           coupling_map=args[1],
-                                           backend_properties=args[2],
-                                           initial_layout=args[3],
-                                           seed_transpiler=args[4],
-                                           optimization_level=args[5],
-                                           pass_manager=args[6],
-                                           callback=callback,
-                                           output_name=args[7])
+        # TranspileConfig
+        transpile_config = {'basis_gates': args[0],
+                            'coupling_map': args[1],
+                            'backend_properties': args[2],
+                            'initial_layout': args[3],
+                            'seed_transpiler': args[4],
+                            'optimization_level': args[5],
+                            'pass_manager': args[6],
+                            'callback': callback,
+                            'output_name': args[7]}
         transpile_configs.append(transpile_config)
 
     return transpile_configs

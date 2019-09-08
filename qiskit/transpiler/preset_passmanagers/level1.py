@@ -60,10 +60,10 @@ def level_1_pass_manager(transpile_config):
     Returns:
         PassManager: a level 1 pass manager.
     """
-    basis_gates = transpile_config.basis_gates
-    coupling_map = transpile_config.coupling_map
-    initial_layout = transpile_config.initial_layout
-    seed_transpiler = transpile_config.seed_transpiler
+    basis_gates = transpile_config['basis_gates']
+    coupling_map = transpile_config['coupling_map']
+    initial_layout = transpile_config['initial_layout']
+    seed_transpiler = transpile_config['seed_transpiler']
 
     # 1. Use trivial layout if no layout given
     _given_layout = SetLayout(initial_layout)
