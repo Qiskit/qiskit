@@ -186,24 +186,11 @@ def transpile(circuits,
                                            pass_manager, callback, output_name)
 
     # Transpile circuits in parallel
-    circuits = parallel_map(_transpile_circuit, transpile_args)
+    circuits = parallel_map(transpile_circuit, transpile_args)
 
     if len(circuits) == 1:
         return circuits[0]
     return circuits
-
-
-# FIXME: This is a helper function because of parallel tools.
-def _transpile_circuit(transpile_params):
-    """Select a PassManager and run a single circuit through it.
-
-    Args:
-        transpile_params (dict):
-
-    Returns:
-        QuantumCircuit: transpiled circuit
-    """
-    return transpile_circuit(transpile_params)
 
 
 def _parse_transpile_args(circuits, backend,

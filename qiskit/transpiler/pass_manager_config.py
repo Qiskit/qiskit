@@ -30,6 +30,7 @@ class PassManagerConfig(BaseModel):
             optimization level. 0 means no transformation on the circuit. Higher
             levels may produce more optimized circuits, but may take longer.
     """
+
     def __init__(self,
                  initial_layout=None,
                  basis_gates=None,
