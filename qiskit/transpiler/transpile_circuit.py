@@ -26,7 +26,7 @@ def transpile_circuit(circuit, transpile_config):
 
     Args:
         circuit (QuantumCircuit): circuit to transpile
-        transpile_config (TranspileConfig): configuration dictating how to transpile
+        transpile_config (PassManagerConfig): configuration dictating how to transpile
 
     Returns:
         QuantumCircuit: transpiled circuit
@@ -45,21 +45,17 @@ def transpile_circuit(circuit, transpile_config):
             level = 1
 
         if level == 0:
-            pass_manager = level_0_pass_manager(transpile_config)
+            pass_manager = level_0_pass_manager(transpile_config['pass_manager_config'])
         elif level == 1:
-            pass_manager = level_1_pass_manager(transpile_config)
+            pass_manager = level_1_pass_manager(transpile_config['pass_manager_config'])
         elif level == 2:
-            pass_manager = level_2_pass_manager(transpile_config)
+            pass_manager = level_2_pass_manager(transpile_config['pass_manager_config'])
         elif level == 3:
-            pass_manager = level_3_pass_manager(transpile_config)
+            pass_manager = level_3_pass_manager(transpile_config['pass_manager_config'])
         else:
             raise TranspilerError("optimization_level can range from 0 to 3.")
 
-    # Set a callback on the pass manager there is one
-    if transpile_config['callback']:
-        pass_manager.callback = transpile_config['callback']
-
-    out_circuit = pass_manager.run(circuit)
-    out_circuit.name = transpile_config['output_name']
+    out_circuit = pass_manager.run(circuit, callback=transpile_config['callback'],
+                                   output_name=transpile_config['output_name'])
 
     return out_circuit

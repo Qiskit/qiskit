@@ -12,15 +12,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Models for TranspileConfig and its related components."""
+"""Models for PassManagerConfig and its related components."""
 
 from qiskit.transpiler.models import TranspileConfigSchema
 from qiskit.validation import BaseModel, bind_schema
 
 
 @bind_schema(TranspileConfigSchema)
-class TranspileConfig(BaseModel):
-    """Model for TranspileConfig.
+class PassManagerConfig(BaseModel):
+    """Model for PassManagerConfig.
 
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``TranspileConfigSchema``.
