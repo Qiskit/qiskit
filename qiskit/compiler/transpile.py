@@ -184,18 +184,7 @@ def transpile(circuits,
                                               backend_properties, initial_layout,
                                               seed_transpiler, optimization_level,
                                               pass_manager, callback, output_name)
-    # Check circuit width against number of qubits in coupling_map(s)
-    coupling_maps_list = list(config.coupling_map for config in transpile_configs)
-    for circuit, parsed_coupling_map in zip(circuits, coupling_maps_list):
-        # If coupling_map is not None
-        if isinstance(parsed_coupling_map, CouplingMap):
-            n_qubits = len(circuit.qubits)
-            max_qubits = parsed_coupling_map.size()
-            if n_qubits > max_qubits:
-                raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
-                                      'in {} '.format(circuit.name) +
-                                      'is greater than maximum ({}) '.format(max_qubits) +
-                                      'in the coupling_map')
+
     # Transpile circuits in parallel
     circuits = parallel_map(_transpile_circuit, list(zip(circuits, transpile_configs)))
 
@@ -243,7 +232,7 @@ def _parse_transpile_args(circuits, backend,
 
     basis_gates = _parse_basis_gates(basis_gates, backend, circuits)
 
-    coupling_map = _parse_coupling_map(coupling_map, backend, num_circuits)
+    coupling_map = _parse_coupling_map(coupling_map, backend, circuits)
 
     backend_properties = _parse_backend_properties(backend_properties, backend, num_circuits)
 
@@ -301,18 +290,29 @@ def _parse_basis_gates(basis_gates, backend, circuits):
     return basis_gates
 
 
-def _parse_coupling_map(coupling_map, backend, num_circuits):
+def _parse_coupling_map(coupling_map, backend, circuits):
+    num_circuits = len(circuits)
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         if getattr(backend, 'configuration', None):
             coupling_map = getattr(backend.configuration(), 'coupling_map', None)
-    # coupling_map could be None, or a list of lists, e.g. [[0, 1], [2, 1]]
-    if coupling_map is None or isinstance(coupling_map, CouplingMap):
-        coupling_map = [coupling_map] * num_circuits
-    elif isinstance(coupling_map, list) and all(isinstance(i, list) and len(i) == 2
-                                                for i in coupling_map):
-        coupling_map = [coupling_map] * num_circuits
-    coupling_map = [CouplingMap(cm) if isinstance(cm, list) else cm for cm in coupling_map]
+
+    coupling_map = [coupling_map] * num_circuits
+
+    for index, parsed_coupling_map in enumerate(coupling_map):
+        if isinstance(parsed_coupling_map, list):
+            parsed_coupling_map = CouplingMap(parsed_coupling_map)
+        # If coupling_map is not None
+        if isinstance(parsed_coupling_map, CouplingMap):
+            n_qubits = len(circuits[index].qubits)
+            max_qubits = parsed_coupling_map.size()
+            if n_qubits > max_qubits:
+                raise TranspilerError('Number of qubits ({}) '.format(n_qubits) +
+                                      'in {} '.format(circuits[index].name) +
+                                      'is greater than maximum ({}) '.format(max_qubits) +
+                                      'in the coupling_map')
+        coupling_map[index] = parsed_coupling_map
+
     return coupling_map
 
 
