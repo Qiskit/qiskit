@@ -37,7 +37,7 @@ from types import SimpleNamespace, MethodType
 from marshmallow import ValidationError
 from marshmallow import Schema, post_dump, post_load
 from marshmallow import fields as _fields
-from marshmallow.utils import is_collection
+from marshmallow.utils import is_collection, INCLUDE
 
 from .exceptions import ModelValidationError
 
@@ -103,9 +103,7 @@ class BaseSchema(Schema):
     """
 
     class Meta:
-        """In marshmallow3, all schemas are strict."""
-        # TODO: remove when upgrading to marshmallow3
-        strict = True
+        unknown = INCLUDE
 
     model_cls = SimpleNamespace
 
