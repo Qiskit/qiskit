@@ -157,7 +157,11 @@ class PassManager():
 
         Args:
             circuit (QuantumCircuit): circuit to transform via all the registered passes
-            output_name (str):
+            output_name (str): The output circuit name. If not given, the same as the
+                               input circuit
+            callback (func): A callback function that will be called after each
+                pass execution. See PassManager() for more details. This parameter will
+                override the one given at construction-time if given.
 
         Returns:
             QuantumCircuit: Transformed circuit.
