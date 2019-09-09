@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog].
 ### Fixed
 -   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
 
+### Changed
+-   Returned `matplotlib.figure.Figure` objects are only closed in jupyter
+    notebooks configured with an inline backend (\#3051)
+
 ### Removed
 
 -   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
@@ -38,6 +42,7 @@ The format is based on [Keep a Changelog].
 
 ### Added
 
+-   Added in tests for `ccx` and `crz` under `test_gate_definitions`. (\#2964)
 -   A new pulse instruction, `Delay`. A `Delay` occupies a pulse channel for a
     duration of time, blocking other instructions from being inserted in this time.
 -   Ability to check for equality of pulse `Schedule` and `Instruction`.
