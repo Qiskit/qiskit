@@ -30,16 +30,16 @@ class External(Node):
         """Create the external node."""
         super().__init__('external', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return self.children[0].qasm(prec) + "(" + \
-            self.children[1].qasm(prec) + ")"
+        return self.children[0].qasm() + "(" + \
+            self.children[1].qasm() + ")"
 
-    def latex(self, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        return sympy.latex(self.sym(nested_scope))
+        return sympy.latex(self.sym())
 
-    def real(self, nested_scope=None):
+    def real(self):
         """Return the correspond floating point number."""
         op = self.children[0].name
         expr = self.children[1]
@@ -55,12 +55,12 @@ class External(Node):
             'sqrt': sympy.sqrt
         }
         if op in dispatch:
-            arg = expr.real(nested_scope)
+            arg = expr.real()
             return dispatch[op](arg)
         else:
             raise NodeException("internal error: undefined external")
 
-    def sym(self, nested_scope=None):
+    def sym(self):
         """Return the corresponding symbolic expression."""
         op = self.children[0].name
         expr = self.children[1]
@@ -76,7 +76,7 @@ class External(Node):
             'sqrt': sympy.sqrt
         }
         if op in dispatch:
-            arg = expr.sym(nested_scope)
+            arg = expr.sym()
             return dispatch[op](arg)
         else:
             raise NodeException("internal error: undefined external")

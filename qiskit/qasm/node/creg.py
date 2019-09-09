@@ -45,6 +45,6 @@ class Creg(Node):
         print(ind, 'creg')
         self.children[0].to_string(indent + 3)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return "creg " + self.id.qasm(prec) + ";"
+        return "creg " + self.id.qasm() + ";"

@@ -27,6 +27,6 @@ class Barrier(Node):
         """Create the barrier node."""
         super().__init__('barrier', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return "barrier " + self.children[0].qasm(prec) + ";"
+        return "barrier " + self.children[0].qasm() + ";"

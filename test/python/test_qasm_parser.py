@@ -22,14 +22,14 @@ from qiskit.qasm.node.node import Node
 from qiskit.test import QiskitTestCase, Path
 
 
-def parse(file_path, prec=15):
+def parse(file_path):
     """
       Simple helper
       - file_path: Path to the OpenQASM file
       - prec: Precision for the returned string
     """
     qasm = Qasm(file_path)
-    return qasm.parse().qasm(prec)
+    return qasm.parse().qasm()
 
 
 class TestParser(QiskitTestCase):

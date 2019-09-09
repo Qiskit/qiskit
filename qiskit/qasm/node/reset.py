@@ -27,6 +27,6 @@ class Reset(Node):
         """Create the reset node."""
         super().__init__('reset', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return "reset " + self.children[0].qasm(prec) + ";"
+        return "reset " + self.children[0].qasm() + ";"

@@ -30,22 +30,22 @@ class Prefix(Node):
         """Create the prefix node."""
         super().__init__('prefix', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return self.children[0].value + "(" + self.children[1].qasm(prec) + ")"
+        return self.children[0].value + "(" + self.children[1].qasm() + ")"
 
-    def latex(self, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        return sympy.latex(self.sym(nested_scope))
+        return sympy.latex(self.sym())
 
-    def real(self, nested_scope=None):
+    def real(self):
         """Return the correspond floating point number."""
         operation = self.children[0].operation()
-        expr = self.children[1].real(nested_scope)
+        expr = self.children[1].real()
         return operation(expr)
 
-    def sym(self, nested_scope=None):
+    def sym(self):
         """Return the correspond symbolic number."""
         operation = self.children[0].operation()
-        expr = self.children[1].sym(nested_scope)
+        expr = self.children[1].sym()
         return operation(expr)

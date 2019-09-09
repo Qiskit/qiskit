@@ -45,6 +45,6 @@ class Qreg(Node):
         print(ind, 'qreg')
         self.children[0].to_string(indent + 3)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return "qreg " + self.id.qasm(prec) + ";"
+        return "qreg " + self.id.qasm() + ";"

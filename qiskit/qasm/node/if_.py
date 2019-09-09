@@ -30,8 +30,8 @@ class If(Node):
         """Create the if node."""
         super().__init__('if', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return "if(" + self.children[0].qasm(prec) + "==" \
+        return "if(" + self.children[0].qasm() + "==" \
                + str(self.children[1].value) + ") " + \
-               self.children[2].qasm(prec)
+               self.children[2].qasm()

@@ -45,10 +45,10 @@ class CustomUnitary(Node):
             self.arguments = None
             self.bitlist = children[1]
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
         string = self.name
         if self.arguments is not None:
-            string += "(" + self.arguments.qasm(prec) + ")"
-        string += " " + self.bitlist.qasm(prec) + ";"
+            string += "(" + self.arguments.qasm() + ")"
+        string += " " + self.bitlist.qasm() + ";"
         return string

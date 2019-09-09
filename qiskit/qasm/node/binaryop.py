@@ -31,25 +31,25 @@ class BinaryOp(Node):
         """Create the binaryop node."""
         super().__init__('binop', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return "(" + self.children[1].qasm(prec) + self.children[0].value + \
-               self.children[2].qasm(prec) + ")"
+        return "(" + self.children[1].qasm() + self.children[0].value + \
+               self.children[2].qasm() + ")"
 
-    def latex(self, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        return sympy.latex(self.sym(nested_scope))
+        return sympy.latex(self.sym())
 
-    def real(self, nested_scope=None):
+    def real(self):
         """Return the correspond floating point number."""
         operation = self.children[0].operation()
-        lhs = self.children[1].real(nested_scope)
-        rhs = self.children[2].real(nested_scope)
+        lhs = self.children[1].real()
+        rhs = self.children[2].real()
         return operation(lhs, rhs)
 
-    def sym(self, nested_scope=None):
+    def sym(self):
         """Return the correspond symbolic number."""
         operation = self.children[0].operation()
-        lhs = self.children[1].sym(nested_scope)
-        rhs = self.children[2].sym(nested_scope)
+        lhs = self.children[1].sym()
+        rhs = self.children[2].sym()
         return operation(lhs, rhs)

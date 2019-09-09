@@ -28,7 +28,7 @@ class Cnot(Node):
         """Create the cnot node."""
         super().__init__('cnot', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return "CX " + self.children[0].qasm(prec) + "," + \
-               self.children[1].qasm(prec) + ";"
+        return "CX " + self.children[0].qasm() + "," + \
+               self.children[1].qasm() + ";"

@@ -31,7 +31,7 @@ class ExpressionList(Node):
         """Return the number of expressions."""
         return len(self.children)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        return ",".join([self.children[j].qasm(prec)
+        return ",".join([self.children[j].qasm()
                          for j in range(self.size())])

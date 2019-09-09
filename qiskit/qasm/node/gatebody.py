@@ -28,11 +28,11 @@ class GateBody(Node):
         """Create the gatebody node."""
         super().__init__('gate_body', children, None)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
         string = ""
         for children in self.children:
-            string += "  " + children.qasm(prec) + "\n"
+            string += "  " + children.qasm() + "\n"
         return string
 
     def calls(self):
