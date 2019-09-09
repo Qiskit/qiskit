@@ -166,7 +166,6 @@ class _SchemaBinder:
         model_cls.schema = self._schema_cls()
 
         # Append the methods to the Model class.
-        model_cls._validate = self._validate
         model_cls.__init__ = self._validate_after_init(model_cls.__init__)
 
         # Add a Schema that performs minimal validation to the Model.
@@ -201,22 +200,14 @@ class _SchemaBinder:
         return validation_schema
 
     @staticmethod
-    def _validate(instance):
-        """Validate the internal representation of the instance."""
-        try:
-            _ = instance.schema.validate(instance.to_dict())
-        except ValidationError as ex:
-            raise ModelValidationError(
-                ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
-
-    @staticmethod
     def _validate_after_init(init_method):
         """Add validation after instantiation."""
 
         @wraps(init_method)
         def _decorated(self, **kwargs):
             try:
-                _ = self.shallow_schema.validate(kwargs)
+                _ = self.shallow_schema._do_load(kwargs,
+                                                 postprocess=False)
             except ValidationError as ex:
                 raise ModelValidationError(
                     ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
@@ -301,7 +292,7 @@ class BaseModel(SimpleNamespace):
         ``@bind_schema``.
         """
         try:
-            data, _ = self.schema.dump(self)
+            data = self.schema.dump(self)
         except ValidationError as ex:
             raise ModelValidationError(
                 ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
@@ -316,7 +307,7 @@ class BaseModel(SimpleNamespace):
         ``@bind_schema``.
         """
         try:
-            data, _ = cls.schema.load(dict_)
+            data = cls.schema.load(dict_)
         except ValidationError as ex:
             raise ModelValidationError(
                 ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
