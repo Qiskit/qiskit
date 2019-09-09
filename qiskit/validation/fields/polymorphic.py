@@ -65,7 +65,7 @@ class BasePolyField(PolyField, ModelTypeValidator):
         """Return an schema in ``choices`` for deserialization."""
         raise NotImplementedError
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         """Override ``_deserialize`` for customizing the exception raised."""
         try:
             return super()._deserialize(value, attr, data)
@@ -74,7 +74,7 @@ class BasePolyField(PolyField, ModelTypeValidator):
                 ex.messages[0] = 'Cannot find a valid schema among the choices'
             raise
 
-    def _serialize(self, value, key, obj):
+    def _serialize(self, value, key, obj, **kwargs):
         """Override ``_serialize`` for customizing the exception raised."""
         try:
             return super()._serialize(value, key, obj)
@@ -86,7 +86,7 @@ class BasePolyField(PolyField, ModelTypeValidator):
     def _expected_types(self):
         return tuple(schema.model_cls for schema in self._choices)
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Check if the type of the value is one of the possible choices.
 
         Possible choices are the model classes bound to the possible schemas.
@@ -144,7 +144,7 @@ class TryFrom(BasePolyField):
         # pylint: disable=arguments-differ
         for schema_cls in choices:
             try:
-                schema = schema_cls(strict=True)
+                schema = schema_cls()
                 schema.load(base_dict)
 
                 return schema_cls()
@@ -215,7 +215,7 @@ class ByType(ModelTypeValidator):
         self.choices = choices
         super().__init__(*args, **kwargs)
 
-    def _serialize(self, value, attr, obj):
+    def _serialize(self, value, attr, obj, **kwargs):
         for field in self.choices:
             try:
                 return field._serialize(value, attr, obj)
@@ -224,7 +224,7 @@ class ByType(ModelTypeValidator):
 
         self.fail('invalid', value=value, types=self.choices)
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         for field in self.choices:
             try:
                 return field._deserialize(value, attr, data)
@@ -233,7 +233,7 @@ class ByType(ModelTypeValidator):
 
         self.fail('invalid', value=value, types=self.choices)
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Check if at least one of the possible choices validates the value.
 
         Possible choices are assumed to be ``ModelTypeValidator`` fields.

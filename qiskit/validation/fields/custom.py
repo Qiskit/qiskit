@@ -16,10 +16,10 @@
 
 import numpy
 import sympy
+from marshmallow.fields import Mapping
 
 from marshmallow.utils import is_collection
 from marshmallow.exceptions import ValidationError
-from marshmallow.compat import Mapping
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.validation import ModelTypeValidator
@@ -40,13 +40,13 @@ class Complex(ModelTypeValidator):
         'format': '"{input}" cannot be formatted as complex number.',
     }
 
-    def _serialize(self, value, attr, obj):
+    def _serialize(self, value, attr, obj, **kwargs):
         try:
             return [value.real, value.imag]
         except AttributeError:
             self.fail('format', input=value)
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if not is_collection(value) or len(value) != 2:
             self.fail('invalid', input=value)
 
@@ -80,7 +80,7 @@ class InstructionParameter(ModelTypeValidator):
         'format': '"{input}" cannot be formatted as a parameter.'
     }
 
-    def _serialize(self, value, attr, obj):
+    def _serialize(self, value, attr, obj, **kwargs):
         # pylint: disable=too-many-return-statements
         if is_collection(value):
             return [self._serialize(item, attr, obj) for item in value]
@@ -114,7 +114,7 @@ class InstructionParameter(ModelTypeValidator):
 
         return self.fail('format', input=value)
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if is_collection(value):
             return [self._deserialize(item, attr, data) for item in value]
 
@@ -123,7 +123,7 @@ class InstructionParameter(ModelTypeValidator):
 
         return self.fail('invalid', input=value)
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Customize check_type for handling containers."""
         # Check the type in the standard way first, in order to fail quickly
         # in case of invalid values.
@@ -159,7 +159,7 @@ class DictParameters(ModelTypeValidator):
     def _expected_types(self):
         return self.valid_value_types
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         if value is None:
             return None
 
@@ -198,7 +198,7 @@ class DictParameters(ModelTypeValidator):
 
         return self.fail('invalid', input=value)
 
-    def _serialize(self, value, attr, obj):
+    def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
             return None
         if isinstance(value, Mapping):
@@ -206,7 +206,7 @@ class DictParameters(ModelTypeValidator):
 
         return self.fail('invalid_mapping')
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
             return None
         if isinstance(value, Mapping):
