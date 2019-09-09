@@ -14,9 +14,10 @@
 
 """Fields custom to Terra to be used with Qiskit validated classes."""
 
+from collections.abc import Mapping
+
 import numpy
 import sympy
-from marshmallow.fields import Mapping
 
 from marshmallow.utils import is_collection
 from marshmallow.exceptions import ValidationError

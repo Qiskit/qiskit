@@ -73,7 +73,7 @@ class List(_fields.List, ModelTypeValidator):
         errors = []
         for idx, v in enumerate(value):
             try:
-                self.container.check_type(v, idx, value)
+                self.inner.check_type(v, idx, value)
             except ValidationError as err:
                 errors.append(err.messages)
 

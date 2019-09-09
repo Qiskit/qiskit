@@ -219,7 +219,7 @@ class ByType(ModelTypeValidator):
         for field in self.choices:
             try:
                 return field._serialize(value, attr, obj)
-            except ValidationError:
+            except (ValidationError, ValueError):
                 pass
 
         self.fail('invalid', value=value, types=self.choices)
@@ -228,7 +228,7 @@ class ByType(ModelTypeValidator):
         for field in self.choices:
             try:
                 return field._deserialize(value, attr, data)
-            except ValidationError:
+            except (ValidationError, ValueError):
                 pass
 
         self.fail('invalid', value=value, types=self.choices)
