@@ -18,6 +18,10 @@ The format is based on [Keep a Changelog].
 ### Fixed
 -   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
 
+### Changed
+-   Returned `matplotlib.figure.Figure` objects are only closed in jupyter
+    notebooks configured with an inline backend (\#3051)
+
 ### Removed
 
 -   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
