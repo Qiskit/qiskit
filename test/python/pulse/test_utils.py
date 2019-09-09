@@ -24,7 +24,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
-from qiskit.pulse.utils import add_implicit_acquires, align_measures
+from qiskit.pulse.utils import add_implicit_acquires, align_measures, pad
 
 
 class TestAutoMerge(QiskitTestCase):
@@ -156,6 +156,95 @@ class TestAddImplicitAcquires(QiskitTestCase):
             if isinstance(inst, AcquireInstruction):
                 acquired_qubits.update({a.index for a in inst.acquires})
         self.assertEqual(acquired_qubits, {0, 1, 2, 3})
+
+
+class TestPad(QiskitTestCase):
+    """Test padding of schedule with delays."""
+
+    def test_padding_empty_schedule(self):
+        """Test padding of empty schedule."""
+        self.assertEqual(pulse.Schedule(), pad(pulse.Schedule()))
+
+    def test_padding_schedule(self):
+        """Test padding schedule."""
+        delay = pulse.Delay(10)
+        double_delay = pulse.Delay(20)
+
+        sched = (delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(1)).shift(10))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     delay(pulse.DriveChannel(0)).shift(20) |
+                     delay(pulse.DriveChannel(1)) |
+                     double_delay(pulse.DriveChannel(1)).shift(20))
+
+        self.assertEqual(pad(sched), ref_sched)
+
+    def test_padding_schedule_inverse_order(self):
+        """Test padding schedule is insensitive to order in which commands were added.
+
+        This test is the same as `test_adding_schedule` but the order by channel
+        in which commands were added to the schedule to be padded has been reversed.
+        """
+        delay = pulse.Delay(10)
+        double_delay = pulse.Delay(20)
+
+        sched = (delay(pulse.DriveChannel(1)).shift(10) +
+                 delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(0)).shift(10))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     delay(pulse.DriveChannel(0)).shift(20) |
+                     delay(pulse.DriveChannel(1)) |
+                     double_delay(pulse.DriveChannel(1)).shift(20))
+
+        self.assertEqual(pad(sched), ref_sched)
+
+    def test_padding_until_less(self):
+        """Test padding until time that is less than schedule duration."""
+        delay = pulse.Delay(10)
+
+        sched = (delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(1)))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     pulse.Delay(5)(pulse.DriveChannel(1)).shift(10))
+
+        self.assertEqual(pad(sched, until=15), ref_sched)
+
+    def test_padding_until_greater(self):
+        """Test padding until time that is greater than schedule duration."""
+        delay = pulse.Delay(10)
+
+        sched = (delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(1)))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     pulse.Delay(30)(pulse.DriveChannel(0)).shift(20) |
+                     pulse.Delay(40)(pulse.DriveChannel(1)).shift(10))
+
+        self.assertEqual(pad(sched, until=50), ref_sched)
+
+    def test_padding_supplied_channels(self):
+        """Test padding of only specified channels."""
+        delay = pulse.Delay(10)
+        double_delay = pulse.Delay(20)
+
+        sched = (delay(pulse.DriveChannel(0)).shift(10) +
+                 delay(pulse.DriveChannel(1)))
+
+        ref_sched = (sched |
+                     delay(pulse.DriveChannel(0)) |
+                     double_delay(pulse.DriveChannel(2)))
+
+        channels = [pulse.DriveChannel(0), pulse.DriveChannel(2)]
+
+        self.assertEqual(pad(sched, channels=channels), ref_sched)
 
 
 if __name__ == '__main__':
