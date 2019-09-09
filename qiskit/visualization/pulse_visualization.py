@@ -22,6 +22,9 @@ from qiskit.pulse import Schedule, Instruction, SamplePulse
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse import matplotlib as _matplotlib
 
+if _matplotlib.HAS_MATPLOTLIB:
+    from matplotlib import get_backend
+
 
 def pulse_drawer(data, dt=1, style=None, filename=None,
                  interp_method=None, scaling=None, channels_to_plot=None,
@@ -50,7 +53,10 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
         matplotlib.figure: A matplotlib figure object for the pulse envelope
     Raises:
         VisualizationError: when invalid data is given or lack of information
+        ImportError: when matplotlib is not installed
     """
+    if not _matplotlib.HAS_MATPLOTLIB:
+        raise ImportError('Must have Matplotlib installed.')
     if isinstance(data, SamplePulse):
         drawer = _matplotlib.SamplePulseDrawer(style=style)
         image = drawer.draw(data, dt=dt, interp_method=interp_method, scaling=scaling)
@@ -66,7 +72,9 @@ def pulse_drawer(data, dt=1, style=None, filename=None,
     if filename:
         image.savefig(filename, dpi=drawer.style.dpi, bbox_inches='tight')
 
-    _matplotlib.plt.close(image)
+    if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                         'nbAgg']:
+        _matplotlib.plt.close(image)
     if image and interactive:
         image.show()
     return image
