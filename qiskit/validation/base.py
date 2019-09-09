@@ -136,35 +136,6 @@ class BaseSchema(Schema):
 
         return valid_data
 
-    @post_load(pass_original=True, pass_many=True)
-    def load_additional_data(self, valid_data, many, original_data):
-        """Include unknown fields after load.
-
-        Unknown fields are added with no processing at all.
-
-        Args:
-            valid_data (dict or list): validated data returned by ``load()``.
-            many (bool): if True, data and original_data are a list.
-            original_data (dict or list): data passed to ``load()`` in the
-                first place.
-
-        Returns:
-            dict: the same ``valid_data`` extended with the unknown attributes.
-
-        Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
-        """
-        if many:
-            for i, _ in enumerate(valid_data):
-                additional_keys = set(original_data[i]) - set(valid_data[i])
-                for key in additional_keys:
-                    valid_data[i][key] = original_data[i][key]
-        else:
-            additional_keys = set(original_data) - set(valid_data)
-            for key in additional_keys:
-                valid_data[key] = original_data[key]
-
-        return valid_data
-
     @post_load
     def make_model(self, data):
         """Make ``load`` return a ``model_cls`` instance instead of a dict."""
