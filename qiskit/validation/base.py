@@ -50,7 +50,7 @@ class ModelTypeValidator(_fields.Field):
     def _expected_types(self):
         return self.valid_types
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **kwargs):
         """Validates a value against the correct type of the field.
 
         It calls ``_expected_types`` to get a list of valid types.
@@ -108,7 +108,7 @@ class BaseSchema(Schema):
     model_cls = SimpleNamespace
 
     @post_dump(pass_original=True, pass_many=True)
-    def dump_additional_data(self, valid_data, many, original_data):
+    def dump_additional_data(self, valid_data, original_data, **kwargs):
         """Include unknown fields after dumping.
 
         Unknown fields are added with no processing at all.
@@ -124,7 +124,7 @@ class BaseSchema(Schema):
 
         Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
         """
-        if many:
+        if kwargs.get('many'):
             for i, _ in enumerate(valid_data):
                 additional_keys = set(original_data[i].__dict__) - set(valid_data[i])
                 for key in additional_keys:
@@ -137,7 +137,7 @@ class BaseSchema(Schema):
         return valid_data
 
     @post_load
-    def make_model(self, data):
+    def make_model(self, data, **kwargs):
         """Make ``load`` return a ``model_cls`` instance instead of a dict."""
         return self.model_cls(**data)
 
