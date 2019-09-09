@@ -447,7 +447,7 @@ class TestDelay(BaseTestSchedule):
 
 
 class TestScheduleFilter(BaseTestSchedule):
-    """Test filtering of schedules."""
+    """Test Schedule filtering methods."""
 
     def test_filter_channels(self):
         """Test filtering over channels."""
@@ -560,41 +560,8 @@ class TestScheduleFilter(BaseTestSchedule):
         self.assertEqual(len(sched._filter([lambda x: False]).instructions), 0)
         self.assertEqual(len(sched._filter([lambda x: x[0] < 30]).instructions), 2)
 
-        def my_test_par_sched_one(x, y, z):
-            result = PulseInstruction(
-                SamplePulse(np.array([x, y, z]), name='sample'),
-                device.drives[0]
-            )
-            return 0, result
 
-        def my_test_par_sched_two(x, y, z):
-            result = PulseInstruction(
-                SamplePulse(np.array([x, y, z]), name='sample'),
-                device.drives[0]
-            )
-            return 5, result
-
-        par_sched_in_0 = ParameterizedSchedule(
-            my_test_par_sched_one, parameters={'x': 0, 'y': 1, 'z': 2}
-        )
-        par_sched_in_1 = ParameterizedSchedule(
-            my_test_par_sched_two, parameters={'x': 0, 'y': 1, 'z': 2}
-        )
-        par_sched = ParameterizedSchedule(par_sched_in_0, par_sched_in_1)
-
-        cmd_def = CmdDef()
-        cmd_def.add('test', 0, par_sched)
-
-        actual = cmd_def.get('test', 0, 0.01, 0.02, 0.03)
-        expected = par_sched_in_0.bind_parameters(0.01, 0.02, 0.03) |\
-            par_sched_in_1.bind_parameters(0.01, 0.02, 0.03)
-        self.assertEqual(actual.start_time, expected.start_time)
-        self.assertEqual(actual.stop_time, expected.stop_time)
-
-        self.assertEqual(cmd_def.get_parameters('test', 0), ('x', 'y', 'z'))
-
-
-class TestScheduleEquality(QiskitTestCase):
+class TestScheduleEquality(BaseTestSchedule):
     """Test equality of schedules."""
 
     def test_different_channels(self):

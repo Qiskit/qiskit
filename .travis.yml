@@ -87,43 +87,6 @@ stage_osx: &stage_osx
 # using it with stages and some variables/sections cannot be overridden.
 jobs:
   include:
-    # Wheel builds
-    - sudo: required
-      services:
-        - docker
-      env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython"
-        - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_USERNAME=qiskit
-        - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
-      if: tag IS present
-      script:
-        - sudo pip install cibuildwheel==0.10.2
-        - sudo pip install -U twine
-        - cibuildwheel --output-dir wheelhouse
-        - twine upload wheelhouse/*
-    - if: tag IS present
-      env:
-        - TWINE_USERNAME=qiskit
-      python: 3.6
-      install: pip install -U twine
-      script:
-        - python3 setup.py sdist
-        - twine upload dist/qiskit-terra*tar.gz
-    - os: osx
-      language: generic
-      if: tag IS present
-      env:
-        - CIBW_BEFORE_BUILD="pip install -U Cython"
-        - CIBW_SKIP="cp27-* cp34-*"
-        - TWINE_USERNAME=qiskit
-        - CIBW_TEST_COMMAND="python3 {project}/examples/python/stochastic_swap.py"
-      script:
-        - sudo pip2 install cibuildwheel==0.10.2
-        - sudo pip2 install -U twine
-        - cibuildwheel --output-dir wheelhouse
-        - twine upload wheelhouse/*
-
     # GNU/Linux, Python 3.6 with coverage
     - name: Python 3.6 Tests and Coverage Linux
       <<: *stage_linux
