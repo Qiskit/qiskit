@@ -41,9 +41,8 @@ class Id(Node):
         ind = indent * ' '
         print(ind, 'id', self.name)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        del prec  # prec ignored
         return self.name
 
     def latex(self, nested_scope=None):

@@ -49,7 +49,6 @@ class BinaryOperator(Node):
             raise NodeException("internal error: undefined operator '%s'" %
                                 self.value)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the QASM representation."""
-        del prec  # prec ignored
         return self.value

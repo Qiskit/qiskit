@@ -36,22 +36,18 @@ class Int(Node):
         ind = indent * ' '
         print(ind, 'int', self.value)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        del prec  # prec ignored
         return "%d" % self.value
 
-    def latex(self, prec=15, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        del prec, nested_scope  # ignored
         return "%d" % self.value
 
-    def sym(self, nested_scope=None):
+    def sym(self):
         """Return the correspond symbolic number."""
-        del nested_scope  # ignored
         return N(self.value)
 
-    def real(self, nested_scope=None):
+    def real(self):
         """Return the correspond floating point number."""
-        del nested_scope  # ignored
         return float(self.value)

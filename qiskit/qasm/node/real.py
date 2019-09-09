@@ -43,17 +43,14 @@ class Real(Node):
 
         return ccode(self.value, precision=prec)
 
-    def latex(self, prec=15, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        del prec, nested_scope  # unused
         return latex(self.value)
 
-    def sym(self, nested_scope=None):
+    def sym(self):
         """Return the correspond symbolic number."""
-        del nested_scope  # unused
         return self.value
 
-    def real(self, nested_scope=None):
+    def real(self):
         """Return the correspond floating point number."""
-        del nested_scope  # unused
         return float(self.value.evalf())

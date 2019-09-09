@@ -40,7 +40,6 @@ class IndexedId(Node):
         ind = indent * ' '
         print(ind, 'indexed_id', self.name, self.index)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        del prec  # prec ignored
         return self.name + "[%d]" % self.index

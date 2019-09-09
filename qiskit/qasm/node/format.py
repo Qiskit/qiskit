@@ -34,7 +34,6 @@ class Format(Node):
         """Return the version."""
         return "%s.%s" % (self.majorversion, self.minorversion)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding format string."""
-        del prec  # prec ignored
         return "%s %s;" % (self.language, self.version())

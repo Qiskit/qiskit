@@ -46,7 +46,6 @@ class UnaryOperator(Node):
             raise NodeException("internal error: undefined prefix '%s'" %
                                 self.value)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return QASM representation."""
-        del prec  # prec ignored
         return self.value
