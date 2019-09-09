@@ -19,10 +19,10 @@ from marshmallow import ValidationError
 from qiskit.exceptions import QiskitError
 
 
-class ModelValidationError(ValidationError, QiskitError):
+class ModelValidationError(QiskitError, ValidationError):
     """Raised when a sequence subscript is out of range."""
-    def __init__(self, message, field_names=None, fields=None, data=None,
+    def __init__(self, message, field_name=None, data=None, valid_data=None,
                  **kwargs):
-        super().__init__(message, field_names, fields, data, **kwargs)
-        # Populate self.message, as it is required by QiskitError.
-        self.message = message
+        # Call ValidationError.__init__ manually, as the signatures differ.
+        ValidationError.__init__(self, message, field_name, data, valid_data, **kwargs)
+        super().__init__(str(message))
