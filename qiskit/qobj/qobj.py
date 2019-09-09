@@ -38,7 +38,7 @@ class QobjSchema(BaseSchema):
     """Schema for Qobj."""
     # Required properties.
     qobj_id = String(required=True)
-    schema_version = String(required=True, missing=QOBJ_VERSION)
+    schema_version = String(required=True)
 
     # Required properties depend on Qobj type.
     config = Nested(QobjConfigSchema, required=True)
@@ -54,8 +54,7 @@ class QasmQobjSchema(QobjSchema):
     config = Nested(QasmQobjConfigSchema, required=True)
     experiments = Nested(QasmQobjExperimentSchema, required=True, many=True)
 
-    type = String(required=True, validate=Equal(QobjType.QASM),
-                  missing=QobjType.QASM)
+    type = String(required=True, validate=Equal(QobjType.QASM))
 
 
 class PulseQobjSchema(QobjSchema):
@@ -65,8 +64,7 @@ class PulseQobjSchema(QobjSchema):
     config = Nested(PulseQobjConfigSchema, required=True)
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
 
-    type = String(required=True, validate=Equal(QobjType.PULSE),
-                  missing=QobjType.PULSE)
+    type = String(required=True, validate=Equal(QobjType.PULSE))
 
 
 @bind_schema(QobjSchema)

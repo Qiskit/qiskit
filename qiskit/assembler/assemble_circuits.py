@@ -15,7 +15,8 @@
 """Assemble function for converting a list of circuits into a qobj"""
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig, QasmQobjExperiment,
-                         QasmQobjConfig)
+                         QasmQobjConfig,
+                         QOBJ_VERSION)
 
 
 def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
@@ -139,4 +140,5 @@ def assemble_circuits(circuits, run_config, qobj_id, qobj_header):
     return QasmQobj(qobj_id=qobj_id,
                     config=qobj_config,
                     experiments=experiments,
-                    header=qobj_header)
+                    header=qobj_header,
+                    schema_version=QOBJ_VERSION)

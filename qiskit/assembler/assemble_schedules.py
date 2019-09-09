@@ -18,7 +18,8 @@ from qiskit.pulse.commands import (PulseInstruction, AcquireInstruction,
                                    DelayInstruction, SamplePulse)
 from qiskit.qobj import (PulseQobj, QobjExperimentHeader,
                          PulseQobjInstruction, PulseQobjExperimentConfig,
-                         PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem)
+                         PulseQobjExperiment, PulseQobjConfig, PulseLibraryItem,
+                         QOBJ_VERSION)
 from qiskit.qobj.converters import InstructionToQobjConverter, LoConfigConverter
 
 
@@ -165,7 +166,8 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
     return PulseQobj(qobj_id=qobj_id,
                      config=qobj_config,
                      experiments=experiments,
-                     header=qobj_header)
+                     header=qobj_header,
+                     schema_version=QOBJ_VERSION)
 
 
 def _validate_meas_map(acquire, meas_map):

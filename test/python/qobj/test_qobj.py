@@ -28,7 +28,7 @@ from qiskit.qobj import (QasmQobj, PulseQobj, QobjHeader,
                          PulseQobjInstruction, PulseQobjExperiment,
                          PulseQobjConfig, QobjMeasurementOption,
                          PulseLibraryItem, QasmQobjInstruction,
-                         QasmQobjExperiment, QasmQobjConfig)
+                         QasmQobjExperiment, QasmQobjConfig, QOBJ_VERSION)
 from qiskit.qobj import validate_qobj_against_schema
 from qiskit.validation.jsonschema.exceptions import SchemaValidationError
 
@@ -170,7 +170,8 @@ class TestPulseQobj(QiskitTestCase):
                                                                            "stop_window": 5})
                                          ])
                     ])
-            ]
+            ],
+            schema_version=QOBJ_VERSION
         )
         self.valid_dict = {
             'qobj_id': '12345',
