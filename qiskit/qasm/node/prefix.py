@@ -34,9 +34,8 @@ class Prefix(Node):
         """Return the corresponding OPENQASM string."""
         return self.children[0].value + "(" + self.children[1].qasm(prec) + ")"
 
-    def latex(self, prec=15, nested_scope=None):
+    def latex(self, nested_scope=None):
         """Return the corresponding math mode latex string."""
-        del prec  # TODO prec ignored
         return sympy.latex(self.sym(nested_scope))
 
     def real(self, nested_scope=None):

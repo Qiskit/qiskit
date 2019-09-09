@@ -46,7 +46,7 @@ class Id(Node):
         del prec  # prec ignored
         return self.name
 
-    def latex(self, prec=15, nested_scope=None):
+    def latex(self, nested_scope=None):
         """Return the correspond math mode latex string."""
         if not nested_scope:
             return "\textrm{" + self.name + "}"
@@ -57,8 +57,7 @@ class Id(Node):
                                     "line=%s, " % self.line,
                                     "file=%s" % self.file)
 
-            return nested_scope[-1][self.name].latex(prec,
-                                                     nested_scope[0:-1])
+            return nested_scope[-1][self.name].latex(nested_scope[0:-1])
 
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
