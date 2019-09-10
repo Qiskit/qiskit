@@ -37,7 +37,7 @@ class TestUnrollCX(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         dag = circuit_to_dag(circuit)
-        pass_ = Unroller(['cz','h'])
+        pass_ = Unroller(['cz', 'h'])
         unrolled_dag = pass_.run(dag)
         op_nodes = unrolled_dag.op_nodes()
         self.assertEqual(len(op_nodes), 3)
