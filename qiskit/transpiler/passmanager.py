@@ -18,6 +18,7 @@ from functools import partial
 from collections import OrderedDict
 import logging
 from time import time
+import warnings
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -43,36 +44,15 @@ class PassManager():
                 None.
             max_iteration (int): The schedule looping iterates until the condition is met or until
                 max_iteration is reached.
-            callback (func): A callback function that will be called after each
-                pass execution. The function will be called with 5 keyword
-                arguments:
-                    pass_ (Pass): the pass being run
-                    dag (DAGCircuit): the dag output of the pass
-                    time (float): the time to execute the pass
-                    property_set (PropertySet): the property set
-                    count (int): the index for the pass execution
-
-                The exact arguments pass expose the internals of the pass
-                manager and are subject to change as the pass manager internals
-                change. If you intend to reuse a callback function over
-                multiple releases be sure to check that the arguments being
-                passed are the same.
-
-                To use the callback feature you define a function that will
-                take in kwargs dict and access the variables. For example::
-
-                    def callback_func(**kwargs):
-                        pass_ = kwargs['pass_']
-                        dag = kwargs['dag']
-                        time = kwargs['time']
-                        property_set = kwargs['property_set']
-                        count = kwargs['count']
-                        ...
-
-                    PassManager(callback=callback_func)
+            callback (func): DEPRECATED - A callback function that will be called after each
+                pass execution.
 
         """
-        self.callback = callback
+        self.callback = None
+        if callback:
+            warnings.warn("Setting a callback at construction time is being deprecated in favor of"
+                          "PassManager.run(..., callback=callback,...)", DeprecationWarning, 2)
+            self.callback = callback
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
         self.working_list = []
@@ -160,8 +140,33 @@ class PassManager():
             output_name (str): The output circuit name. If not given, the same as the
                                input circuit
             callback (func): A callback function that will be called after each
-                pass execution. See PassManager() for more details. This parameter will
-                override the one given at construction-time if given.
+                pass execution. The function will be called with 5 keyword
+                arguments:
+                    pass_ (Pass): the pass being run
+                    dag (DAGCircuit): the dag output of the pass
+                    time (float): the time to execute the pass
+                    property_set (PropertySet): the property set
+                    count (int): the index for the pass execution
+
+                The exact arguments pass expose the internals of the pass
+                manager and are subject to change as the pass manager internals
+                change. If you intend to reuse a callback function over
+                multiple releases be sure to check that the arguments being
+                passed are the same.
+
+                To use the callback feature you define a function that will
+                take in kwargs dict and access the variables. For example::
+
+                    def callback_func(**kwargs):
+                        pass_ = kwargs['pass_']
+                        dag = kwargs['dag']
+                        time = kwargs['time']
+                        property_set = kwargs['property_set']
+                        count = kwargs['count']
+                        ...
+
+                    PassManager(callback=callback_func)
+
 
         Returns:
             QuantumCircuit: Transformed circuit.

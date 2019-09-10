@@ -117,7 +117,7 @@ def level_2_pass_manager(pass_manager_config):
 
     _opt = [Optimize1qGates(), CommutativeCancellation()]
 
-    pm2 = PassManager(callback=pass_manager_config.callback)
+    pm2 = PassManager()
     pm2.append(_unroll)
     if coupling_map:
         pm2.append(_given_layout)

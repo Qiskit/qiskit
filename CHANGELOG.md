@@ -40,6 +40,8 @@ The format is based on [Keep a Changelog].
 -   The decorator `requires_qe_access` is being deprecated in favor of
     `online_test`.
 -   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
+-   The `TranspileConfig` was restructured to include only the information
+    needed to construct a `PassManager`.
 
 ### Added
 

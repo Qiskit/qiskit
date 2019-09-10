@@ -36,11 +36,9 @@ class PassManagerConfig(BaseModel):
                  basis_gates=None,
                  coupling_map=None,
                  backend_properties=None,
-                 seed_transpiler=None,
-                 callback=None):
+                 seed_transpiler=None):
         super().__init__(initial_layout=initial_layout,
                          basis_gates=basis_gates,
                          coupling_map=coupling_map,
                          backend_properties=backend_properties,
-                         seed_transpiler=seed_transpiler,
-                         callback=callback)
+                         seed_transpiler=seed_transpiler)

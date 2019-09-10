@@ -93,7 +93,7 @@ def level_0_pass_manager(pass_manager_config):
     # 6. Remove zero-state reset
     _reset = RemoveResetInZeroState()
 
-    pm0 = PassManager(callback=pass_manager_config.callback)
+    pm0 = PassManager()
     if coupling_map:
         pm0.append(_given_layout)
         pm0.append(_choose_layout, condition=_choose_layout_condition)
