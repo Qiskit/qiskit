@@ -28,7 +28,8 @@ The format is based on [Keep a Changelog].
 
 ### Changed
 
--   The `TranspileConfig` was extended to have `None` defaults for 
+-   The `TranspileConfig` was restructured to include only the information
+    needed to construct a `PassManager`.
 
 ### Deprecated
 
