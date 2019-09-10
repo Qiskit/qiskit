@@ -226,15 +226,15 @@ def _parse_transpile_args(circuits, backend,
                     initial_layout, seed_transpiler, optimization_level,
                     pass_manager, output_name, circuits):
         transpile_args = {'pass_manager_config': PassManagerConfig(basis_gates=args[0],
-                                                                     coupling_map=args[1],
-                                                                     backend_properties=args[2],
-                                                                     initial_layout=args[3],
-                                                                     seed_transpiler=args[4]),
-                            'optimization_level': args[5],
-                            'pass_manager': args[6],
-                            'output_name': args[7],
-                            'circuit': args[8],
-                            'callback': callback}
+                                                                   coupling_map=args[1],
+                                                                   backend_properties=args[2],
+                                                                   initial_layout=args[3],
+                                                                   seed_transpiler=args[4]),
+                          'optimization_level': args[5],
+                          'pass_manager': args[6],
+                          'output_name': args[7],
+                          'circuit': args[8],
+                          'callback': callback}
         transpile_args_circuits.append(transpile_args)
 
     return transpile_args_circuits
