@@ -26,7 +26,6 @@ from qiskit.quantum_info.operators.pauli import pauli_group, Pauli
 from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
-    from matplotlib import get_backend
     from matplotlib.ticker import MaxNLocator
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
@@ -128,9 +127,7 @@ def plot_state_hinton(rho, title='', figsize=None):
     if title:
         fig.suptitle(title, fontsize=16)
     plt.tight_layout()
-    if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                         'nbAgg']:
-        plt.close(fig)
+    plt.close(fig)
     return fig
 
 
@@ -161,9 +158,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None):
     if ax is None:
         fig = B.fig
         fig.set_size_inches(figsize[0], figsize[1])
-        if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                             'nbAgg']:
-            plt.close(fig)
+        plt.close(fig)
         return fig
     return None
 
@@ -203,9 +198,7 @@ def plot_bloch_multivector(rho, title='', figsize=None):
         plot_bloch_vector(bloch_state, "qubit " + str(i), ax=ax,
                           figsize=figsize)
     fig.suptitle(title, fontsize=16)
-    if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                         'nbAgg']:
-        plt.close(fig)
+    plt.close(fig)
     return fig
 
 
@@ -318,45 +311,45 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     ax1.set_yticks(np.arange(0.5, ly+0.5, 1))
     max_dzr = max(dzr)
     min_dzr = min(dzr)
+    min_dzi = np.min(dzi)
+    max_dzi = np.max(dzi)
+
     if max_dzr != min_dzr:
-        ax1.axes.set_zlim3d(np.min(dzr), np.max(dzr)+1e-9)
+        ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr)+1e-9, np.max(dzi)))
     else:
         if min_dzr == 0:
-            ax1.axes.set_zlim3d(np.min(dzr), np.max(dzr)+1e-9)
+            ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr)+1e-9, np.max(dzi)))
         else:
             ax1.axes.set_zlim3d(auto=True)
-    ax1.zaxis.set_major_locator(MaxNLocator(5))
+    ax1.get_autoscalez_on()
     ax1.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
     ax1.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
-    ax1.set_zlabel("Real[rho]", fontsize=14)
+    ax1.set_zlabel(r'Re[$\rho$]', fontsize=14)
     for tick in ax1.zaxis.get_major_ticks():
         tick.label.set_fontsize(14)
 
     ax2.set_xticks(np.arange(0.5, lx+0.5, 1))
     ax2.set_yticks(np.arange(0.5, ly+0.5, 1))
-    min_dzi = np.min(dzi)
-    max_dzi = np.max(dzi)
     if min_dzi != max_dzi:
         eps = 0
-        ax2.zaxis.set_major_locator(MaxNLocator(5))
-        ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
+        ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr)+1e-9, np.max(dzi)+eps))
     else:
         if min_dzi == 0:
             ax2.set_zticks([0])
             eps = 1e-9
-            ax2.axes.set_zlim3d(np.min(dzi), np.max(dzi)+eps)
+            ax2.axes.set_zlim3d(np.min(dzi), max(np.max(dzr)+1e-9, np.max(dzi)+eps))
         else:
             ax2.axes.set_zlim3d(auto=True)
     ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
     ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
-    ax2.set_zlabel("Imag[rho]", fontsize=14)
+    ax2.set_zlabel(r'Im[$\rho$]', fontsize=14)
     for tick in ax2.zaxis.get_major_ticks():
         tick.label.set_fontsize(14)
+    ax2.get_autoscalez_on()
+
     plt.suptitle(title, fontsize=16)
     plt.tight_layout()
-    if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                         'nbAgg']:
-        plt.close(fig)
+    plt.close(fig)
     return fig
 
 
@@ -405,9 +398,7 @@ def plot_state_paulivec(rho, title="", figsize=None, color=None):
     for tick in ax.xaxis.get_major_ticks()+ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(14)
     ax.set_title(title, fontsize=16)
-    if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                         'nbAgg']:
-        plt.close(fig)
+    plt.close(fig)
     return fig
 
 
@@ -637,9 +628,8 @@ def plot_state_qsphere(rho, figsize=None):
              verticalalignment='center', fontsize=14)
 
     fig.tight_layout()
-    if get_backend() in ['module://ipykernel.pylab.backend_inline',
-                         'nbAgg']:
-        plt.close(fig)
+    plt.close(fig)
+
     return fig
 
 
