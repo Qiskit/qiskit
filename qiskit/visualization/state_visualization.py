@@ -347,7 +347,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
             ax2.axes.set_zlim3d(auto=True)
     ax2.w_xaxis.set_ticklabels(row_names, fontsize=14, rotation=45)
     ax2.w_yaxis.set_ticklabels(column_names, fontsize=14, rotation=-22.5)
-    ax2.set_zlabel(r'Im[$\rho$]', fontsize=14)
+    ax2.set_zlabel('Im[$\\rho$]', fontsize=14)
     for tick in ax2.zaxis.get_major_ticks():
         tick.label.set_fontsize(14)
     ax2.get_autoscalez_on()
