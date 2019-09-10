@@ -26,35 +26,35 @@ The format is based on [Keep a Changelog].
 
 -   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
-    methods directly.
+    methods directly. (\#3034)
 
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
 
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
-    `cx`.
+    `cx`. (\#2380)
 -   The gate `u0` is being deprecated in favor of using multiple `id` gates
     to insert delays (\#2664)
 -   The decorator `requires_qe_access` is being deprecated in favor of
     `online_test`.
--   The `as_dict` method of Qobj is deprecated in favor of `to_dict`.
+-   The `as_dict` method of Qobj is deprecated in favor of `to_dict`. (\#2556)
 
 ### Added
 
 -   Added in tests for `ccx` and `crz` under `test_gate_definitions`. (\#2964)
 -   A new pulse instruction, `Delay`. A `Delay` occupies a pulse channel for a
-    duration of time, blocking other instructions from being inserted in this time.
--   Ability to check for equality of pulse `Schedule` and `Instruction`.
+    duration of time, blocking other instructions from being inserted in this time. (\#2869)
+-   Ability to check for equality of pulse `Schedule` and `Instruction`. (\#2873)
 -   Added tests for `gate_map` and reference images for testing `plot_gate_map`
 -   New `CountOpsLongest` analysis pass to retrieve the number of operations
-    on the longest path of the DAGCircuit.
+    on the longest path of the DAGCircuit. (\#2734)
 -   Added `sech` and `sech_deriv` pulses in `qiskit.pulse.pulse_lib`.
 -   The option `vertical_compression` was added to the text drawer and
     to the `QuantumCircuit.draw` method. The option allows to control
     how much room the text circuit drawing takes.
 -   The option `idle_wires` was added to the drawers to control
-    if wires without any operation should be included in the drawing.
+    if wires without any operation should be included in the drawing. (\#2692)
 -   Introduced a visualization for the Pass Manager. (\#2445)
 -   New pulse schedule method `Schedule.filter` to filter by instruction
     channel, time, and type. (\#2597)
@@ -74,23 +74,22 @@ The format is based on [Keep a Changelog].
 -   Added ``output_name`` as a transpiler parameter to set the name of
     output circuits (\#2745)
 -   Simple expressions of Parameters can now be created via the four basic math
-    operations (+,-,*,/). (#2537)
+    operations (+,-,\*,/). (\#2537)
 -   A `ParmeterVector` class has been added to ease the construction of circuits
-    requiring a large number of parameters. (#2379)
--   dag.draw() method to visualize DAGCircuit objects (#3016)
+    requiring a large number of parameters. (\#2379)
+-   dag.draw() method to visualize DAGCircuit objects (\#3016)
 
 
 ### Changed
 
--   `Schedule.instructions` now returns with time-ordering.
--   Intervals are now defined by start and stop, rather than begin and end.
--   TimeslotCollections now are sorted by default and have more efficient merges.
+-   Intervals are now defined by start and stop, rather than begin and end. (\#2870)
+-   TimeslotCollections now are sorted by default and have more efficient merges. (\#2870)
 -   Pulse samples are now clipped if their norm is between 1 and 1+epsilon.
     Otherwise an error is raised.
 -   `Schedule.instructions` now returns with time-ordering.
 -   More informative errors are now raised if `qubit_lo_freq` and
-    `meas_lo_freq` are not supplied to `assemble_schedules`.
--   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`.
+    `meas_lo_freq` are not supplied to `assemble_schedules`. (\#2833)
+-   `pulse.samplers` module has now been moved to `pulse.pulse_lib.samplers`. (\#2881)
 -   The number of memory slots required will now be inferred from the supplied
     schedules if `memory_slots` is not supplied.
 -   All circuit drawers now express most commonly used fractions
@@ -100,12 +99,12 @@ The format is based on [Keep a Changelog].
 -   The `pylatexenc` and `pillow` requirements are now optional. These
     are only used by the `latex` and `latex_source` circuit
     visualization backends. To continue using them ensure these are
-    installed.
+    installed. (\#2451)
 -   When adding a register to a circuit, an error will now be raised if
     a register of the same name is already present. Previously, an error
     would only be raised if the same register was added twice.
 -   Qubits and classical bits are not represented as a tuples anymore,
-    but as instances of `Qubit` and `Clbit` respectively.
+    but as instances of `Qubit` and `Clbit` respectively. (\#2414)
 -   The ApplyLayout pass is incorporated in all preset pass managers to
     delineate a virtual circuit from a physical circuit (\#2672)
 -   Mapping passes (`CXDirection`, Swap passes, `CheckMap`, `CheckCnotDirection`)
@@ -134,7 +133,7 @@ The format is based on [Keep a Changelog].
 ### Removed
 -   The ability to set the `Timeslot`s for a pulse `Instruction` at initialization.
 -   The previously deprecated functions
-    `qiksit.visualization.plot_state` and
+    `qiskit.visualization.plot_state` and
     `qiskit.visualization.iplot_state` have been removed. Instead use
     the specific functions for each plot type (\#2325).
 -   International documentation of outdated readme etc (\#2302)
