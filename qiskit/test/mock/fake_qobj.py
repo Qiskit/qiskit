@@ -18,7 +18,7 @@ Base Fake Qobj.
 
 from qiskit.qobj import (QasmQobj, QobjExperimentHeader, QobjHeader,
                          QasmQobjInstruction, QasmQobjExperimentConfig,
-                         QasmQobjExperiment, QasmQobjConfig, QOBJ_VERSION)
+                         QasmQobjExperiment, QasmQobjConfig)
 from .fake_qasm_simulator import FakeQasmSimulator
 
 
@@ -35,7 +35,5 @@ class FakeQobj(QasmQobj):
             header=QobjExperimentHeader(),
             config=QasmQobjExperimentConfig(seed=123456)
         )]
-        schema_version = QOBJ_VERSION
         super().__init__(qobj_id=qobj_id, config=config,
-                         experiments=experiments, header=header,
-                         schema_version=QOBJ_VERSION)
+                         experiments=experiments, header=header)

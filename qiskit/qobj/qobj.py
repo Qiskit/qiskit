@@ -14,6 +14,7 @@
 
 """Model for Qobj."""
 
+from marshmallow import pre_load
 from marshmallow.validate import Equal, OneOf
 
 from qiskit.qobj.models.base import QobjExperimentSchema, QobjConfigSchema, QobjHeaderSchema
@@ -46,6 +47,12 @@ class QobjSchema(BaseSchema):
     header = Nested(QobjHeaderSchema, required=True)
     type = String(required=True, validate=OneOf(choices=(QobjType.QASM, QobjType.PULSE)))
 
+    @pre_load
+    def add_schema_version(self, data, **_):
+        """Add the schema version on loading."""
+        data['schema_version'] = QOBJ_VERSION
+        return data
+
 
 class QasmQobjSchema(QobjSchema):
     """Schema for QasmQobj."""
@@ -56,6 +63,12 @@ class QasmQobjSchema(QobjSchema):
 
     type = String(required=True, validate=Equal(QobjType.QASM))
 
+    @pre_load
+    def add_type(self, data, **_):
+        """Add the Qobj type (QASM) on loading."""
+        data['type'] = QobjType.QASM.value
+        return data
+
 
 class PulseQobjSchema(QobjSchema):
     """Schema for PulseQobj."""
@@ -65,6 +78,12 @@ class PulseQobjSchema(QobjSchema):
     experiments = Nested(PulseQobjExperimentSchema, required=True, many=True)
 
     type = String(required=True, validate=Equal(QobjType.PULSE))
+
+    @pre_load
+    def add_type(self, data, **_):
+        """Add the Qobj type (PULSE) on loading."""
+        data['type'] = QobjType.PULSE.value
+        return data
 
 
 @bind_schema(QobjSchema)
@@ -88,7 +107,6 @@ class Qobj(BaseModel):
         self.experiments = experiments
         self.header = header
         self.type = type
-        self.schema_version = QOBJ_VERSION
 
         super().__init__(**kwargs)
 
@@ -107,15 +125,10 @@ class QasmQobj(Qobj):
         header (QobjHeader): headers.
     """
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
-
-        # to avoid specifying 'type' here within from_dict()
-        kwargs.pop('type', None)
-
         super().__init__(qobj_id=qobj_id,
                          config=config,
                          experiments=experiments,
                          header=header,
-                         type=QobjType.QASM.value,
                          **kwargs)
 
 
@@ -133,13 +146,8 @@ class PulseQobj(Qobj):
         header (QobjHeader): headers.
     """
     def __init__(self, qobj_id, config, experiments, header, **kwargs):
-
-        # to avoid specifying 'type' here within from_dict()
-        kwargs.pop('type', None)
-
         super().__init__(qobj_id=qobj_id,
                          config=config,
                          experiments=experiments,
                          header=header,
-                         type=QobjType.PULSE.value,
                          **kwargs)

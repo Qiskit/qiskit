@@ -25,4 +25,4 @@ class ModelValidationError(QiskitError, ValidationError):
                  **kwargs):
         # Call ValidationError.__init__ manually, as the signatures differ.
         ValidationError.__init__(self, message, field_name, data, valid_data, **kwargs)
-        super().__init__(str(message))
+        self.message = str(message)
