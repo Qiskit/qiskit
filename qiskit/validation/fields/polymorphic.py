@@ -222,7 +222,7 @@ class ByType(ModelTypeValidator):
             except (ValidationError, ValueError):
                 pass
 
-        self.fail('invalid', value=value, types=self.choices)
+        raise self.make_error('invalid', value=value, types=self.choices)
 
     def _deserialize(self, value, attr, data, **kwargs):
         for field in self.choices:
@@ -231,7 +231,7 @@ class ByType(ModelTypeValidator):
             except (ValidationError, ValueError):
                 pass
 
-        self.fail('invalid', value=value, types=self.choices)
+        raise self.make_error('invalid', value=value, types=self.choices)
 
     def check_type(self, value, attr, data, **kwargs):
         """Check if at least one of the possible choices validates the value.

@@ -45,16 +45,16 @@ class Complex(ModelTypeValidator):
         try:
             return [value.real, value.imag]
         except AttributeError:
-            self.fail('format', input=value)
+            raise self.make_error('format', input=value)
 
     def _deserialize(self, value, attr, data, **kwargs):
         if not is_collection(value) or len(value) != 2:
-            self.fail('invalid', input=value)
+            raise self.make_error('invalid', input=value)
 
         try:
             return complex(*value)
         except (ValueError, TypeError):
-            self.fail('invalid', input=value)
+            raise self.make_error('invalid', input=value)
 
 
 class InstructionParameter(ModelTypeValidator):
@@ -113,7 +113,7 @@ class InstructionParameter(ModelTypeValidator):
         if hasattr(value, 'to_dict'):
             return value.to_dict()
 
-        return self.fail('format', input=value)
+        raise self.make_error('format', input=value)
 
     def _deserialize(self, value, attr, data, **kwargs):
         if is_collection(value):
@@ -122,7 +122,7 @@ class InstructionParameter(ModelTypeValidator):
         if isinstance(value, (float, int, str)):
             return value
 
-        return self.fail('invalid', input=value)
+        raise self.make_error('invalid', input=value)
 
     def check_type(self, value, attr, data, **kwargs):
         """Customize check_type for handling containers."""
@@ -168,7 +168,7 @@ class DictParameters(ModelTypeValidator):
 
         errors = []
         if not isinstance(data[attr], Mapping):
-            self.fail('invalid_mapping')
+            raise self.make_error('invalid_mapping')
 
         try:
             if isinstance(value, Mapping):
@@ -197,7 +197,7 @@ class DictParameters(ModelTypeValidator):
         if isinstance(value, Mapping):
             return {str(k): self._validate_values(v) for k, v in value.items()}
 
-        return self.fail('invalid', input=value)
+        raise self.make_error('invalid', input=value)
 
     def _serialize(self, value, attr, obj, **kwargs):
         if value is None:
@@ -205,7 +205,7 @@ class DictParameters(ModelTypeValidator):
         if isinstance(value, Mapping):
             return {str(k): self._validate_values(v) for k, v in value.items()}
 
-        return self.fail('invalid_mapping')
+        raise self.make_error('invalid_mapping')
 
     def _deserialize(self, value, attr, data, **kwargs):
         if value is None:
@@ -213,4 +213,4 @@ class DictParameters(ModelTypeValidator):
         if isinstance(value, Mapping):
             return value
 
-        return self.fail('invalid_mapping')
+        raise self.make_error('invalid_mapping')
