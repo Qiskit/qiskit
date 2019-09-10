@@ -539,8 +539,8 @@ class TestPulseAssemblerMissingKwargs(QiskitTestCase):
         self.backend = FakeOpenPulse2Q()
         self.config = self.backend.configuration()
         self.defaults = self.backend.defaults()
-        self.qubit_lo_freq = self.defaults.qubit_freq_est
-        self.meas_lo_freq = self.defaults.meas_freq_est
+        self.qubit_lo_freq = [freq / 1e9 for freq in self.defaults.qubit_freq_est]
+        self.meas_lo_freq = [freq / 1e9 for freq in self.defaults.meas_freq_est]
         self.qubit_lo_range = self.config.qubit_lo_range
         self.meas_lo_range = self.config.meas_lo_range
         self.schedule_los = {pulse.DriveChannel(0): self.qubit_lo_freq[0],
