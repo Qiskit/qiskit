@@ -152,16 +152,17 @@ class PulseDefaults(BaseModel):
 
     @property
     def pulse_library(self):
-        warnings.warn("Deprecation Warning: Direct access to the pulse_library is being "
-                      "deprecated. Please use the `replace_pulse` method to modify pulse "
-                      "specifications.")
+        warnings.warn("Direct access to the pulse_library is being deprecated. Please use "
+                      "the `replace_pulse` method to modify pulse specifications.",
+                      DeprecationWarning)
         return self._pulse_library
 
     @property
     def cmd_def(self):
-        warnings.warn("Deprecation Warning: Direct access to cmd_def is being deprecated. "
-                      "Please use the various operation methods (such as ops, get, and add) "
-                      "to modify or extract circuit operation definitions.")
+        warnings.warn("Direct access to cmd_def is being deprecated. Please use the various "
+                      "operation methods (such as ops, get, and add) to modify or extract "
+                      "circuit operation definitions.",
+                      DeprecationWarning)
         return self._cmd_def
 
     def qubit_freq_est(self, qubit):
@@ -175,8 +176,8 @@ class PulseDefaults(BaseModel):
         Returns:
             float: The frequency of the qubit resonance in Hz.
         """
-        warnings.warn("***The qubit frequency estimation was previously returned in GHz, and "
-                      "now is returned in Hz.***")
+        warnings.warn("The qubit frequency estimation was previously returned in GHz, and "
+                      "now is returned in Hz.")
         try:
             return self._qubit_freq_est[qubit] * 1e9
         except IndexError:
@@ -194,8 +195,8 @@ class PulseDefaults(BaseModel):
         Returns:
             float: The measurement stimulus frequency in Hz.
         """
-        warnings.warn("***The measurement frequency estimation was previously returned in GHz, and "
-                      "now is returned in Hz.***")
+        warnings.warn("The measurement frequency estimation was previously returned in GHz, and "
+                      "now is returned in Hz.")
         try:
             return self._meas_freq_est[qubit] * 1e9
         except IndexError:

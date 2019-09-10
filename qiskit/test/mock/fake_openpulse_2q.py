@@ -89,10 +89,11 @@ class FakeOpenPulse2Q(FakeBackend):
                                        PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
                                        PulseQobjInstruction(name='fc', ch='d1',
                                                             t0=20, phase=2.1)]),
-                     Command(name='measure', qubits=[0],
+                     Command(name='measure', qubits=[0, 1],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='m0', t0=0),
+                                       PulseQobjInstruction(name='test_pulse_1', ch='m1', t0=0),
                                        PulseQobjInstruction(name='acquire', duration=10, t0=0,
-                                                            qubits=[0], memory_slot=[0])])]
+                                                            qubits=[0, 1], memory_slot=[0, 1])])]
         )
 
         super().__init__(configuration)
