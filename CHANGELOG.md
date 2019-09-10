@@ -15,6 +15,11 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Fixed
+
+-   Classical registers are drawn to use the same parameters as the
+    quantum ones. (#3039)
+
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
