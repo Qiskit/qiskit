@@ -25,6 +25,6 @@ from .models.pulse import (PulseQobjInstruction, PulseQobjExperimentConfig,
 from .models.qasm import (QasmQobjInstruction, QasmQobjExperimentConfig,
                           QasmQobjExperiment, QasmQobjConfig)
 
-from .qobj import Qobj, QasmQobj, PulseQobj, QOBJ_VERSION
+from .qobj import Qobj, QasmQobj, PulseQobj
 
 from .utils import validate_qobj_against_schema
