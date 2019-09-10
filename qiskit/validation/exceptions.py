@@ -23,6 +23,9 @@ class ModelValidationError(QiskitError, ValidationError):
     """Raised when a sequence subscript is out of range."""
     def __init__(self, message, field_name=None, data=None, valid_data=None,
                  **kwargs):
-        # Call ValidationError.__init__ manually, as the signatures differ.
+        # pylint: disable=super-init-not-called
+        # ValidationError.__init__ is called manually instead of calling super,
+        # as the signatures of ValidationError and QiskitError constructors
+        # differ.
         ValidationError.__init__(self, message, field_name, data, valid_data, **kwargs)
         self.message = str(message)

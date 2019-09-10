@@ -45,7 +45,7 @@ class Nested(_fields.Nested, ModelTypeValidator):
         values = value if self.many else [value]
         for idx, v in enumerate(values):
             try:
-                _check_type(v, idx, values)
+                _check_type(v, idx, values, **kwargs)
             except ValidationError as err:
                 errors.append(err.messages)
 
@@ -68,12 +68,12 @@ class List(_fields.List, ModelTypeValidator):
         Check if each element in the list can be validated by the item-field
         passed during construction.
         """
-        super().check_type(value, attr, data)
+        super().check_type(value, attr, data, **kwargs)
 
         errors = []
         for idx, v in enumerate(value):
             try:
-                self.inner.check_type(v, idx, value)
+                self.inner.check_type(v, idx, value, **kwargs)
             except ValidationError as err:
                 errors.append(err.messages)
 

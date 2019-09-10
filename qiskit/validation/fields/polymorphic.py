@@ -57,18 +57,19 @@ class BasePolyField(PolyField, ModelTypeValidator):
 
         super().__init__(to_dict_selector, from_dict_selector, many=many, **metadata)
 
-    def to_dict_selector(self, choices, *args, **kwargs):
+    def to_dict_selector(self, choices, *args, **_):
         """Return an schema in ``choices`` for serialization."""
         raise NotImplementedError
 
-    def from_dict_selector(self, choices, *args, **kwargs):
+    def from_dict_selector(self, choices, *args, **_):
         """Return an schema in ``choices`` for deserialization."""
         raise NotImplementedError
 
     def _deserialize(self, value, attr, data, **kwargs):
         """Override ``_deserialize`` for customizing the exception raised."""
+        # pylint: disable=arguments-differ
         try:
-            return super()._deserialize(value, attr, data)
+            return super()._deserialize(value, attr, data, **kwargs)
         except ValidationError as ex:
             if 'deserialization_schema_selector' in ex.messages[0]:
                 ex.messages[0] = 'Cannot find a valid schema among the choices'
@@ -77,7 +78,7 @@ class BasePolyField(PolyField, ModelTypeValidator):
     def _serialize(self, value, key, obj, **kwargs):
         """Override ``_serialize`` for customizing the exception raised."""
         try:
-            return super()._serialize(value, key, obj)
+            return super()._serialize(value, key, obj, **kwargs)
         except TypeError as ex:
             if 'serialization_schema_selector' in str(ex):
                 raise ValidationError('Data from an invalid schema')
@@ -101,7 +102,7 @@ class BasePolyField(PolyField, ModelTypeValidator):
         values = value if self.many else [value]
         for idx, v in enumerate(values):
             try:
-                _check_type(v, idx, values)
+                _check_type(v, idx, values, **kwargs)
             except ValidationError as err:
                 errors.append(err.messages)
 
@@ -218,7 +219,7 @@ class ByType(ModelTypeValidator):
     def _serialize(self, value, attr, obj, **kwargs):
         for field in self.choices:
             try:
-                return field._serialize(value, attr, obj)
+                return field._serialize(value, attr, obj, **kwargs)
             except (ValidationError, ValueError):
                 pass
 
@@ -227,7 +228,7 @@ class ByType(ModelTypeValidator):
     def _deserialize(self, value, attr, data, **kwargs):
         for field in self.choices:
             try:
-                return field._deserialize(value, attr, data)
+                return field._deserialize(value, attr, data, **kwargs)
             except (ValidationError, ValueError):
                 pass
 
@@ -241,7 +242,7 @@ class ByType(ModelTypeValidator):
         for field in self.choices:
             if isinstance(field, ModelTypeValidator):
                 try:
-                    return field.check_type(value, attr, data)
+                    return field.check_type(value, attr, data, **kwargs)
                 except ValidationError:
                     pass
 

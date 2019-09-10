@@ -50,7 +50,7 @@ class ModelTypeValidator(_fields.Field):
     def _expected_types(self):
         return self.valid_types
 
-    def check_type(self, value, attr, data, **kwargs):
+    def check_type(self, value, attr, data, **_):
         """Validates a value against the correct type of the field.
 
         It calls ``_expected_types`` to get a list of valid types.
@@ -103,6 +103,7 @@ class BaseSchema(Schema):
     """
 
     class Meta:
+        """Add extra fields to the schema."""
         unknown = INCLUDE
 
     model_cls = SimpleNamespace
@@ -115,9 +116,9 @@ class BaseSchema(Schema):
 
         Args:
             valid_data (dict or list): data collected and returned by ``dump()``.
-            many (bool): if True, data and original_data are a list.
             original_data (object or list): object passed to ``dump()`` in the
                 first place.
+            **kwargs: extra arguments from the decorators.
 
         Returns:
             dict: the same ``valid_data`` extended with the unknown attributes.
@@ -137,7 +138,7 @@ class BaseSchema(Schema):
         return valid_data
 
     @post_load
-    def make_model(self, data, **kwargs):
+    def make_model(self, data, **_):
         """Make ``load`` return a ``model_cls`` instance instead of a dict."""
         return self.model_cls(**data)
 
