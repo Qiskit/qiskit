@@ -64,9 +64,9 @@ class UnitaryGate(Gate):
             raise ExtensionError(
                 "Input matrix is not an N-qubit operator.")
 
-        self.qasm_name = None
-        self.qasm_definiton = None
-        self.qasm_def_written = False
+        self._qasm_name = None
+        self._qasm_definiton = None
+        self._qasm_def_written = False
         # Store instruction params
         super().__init__('unitary', n_qubits, [data], label=label)
 
@@ -118,19 +118,19 @@ class UnitaryGate(Gate):
         """
         # if this is true then we have written the gate definition already
         # so we only need to write the name
-        if self.qasm_def_written:
-            return self._qasmif(self.qasm_name)
+        if self._qasm_def_written:
+            return self._qasmif(self._qasm_name)
 
         # we have worked out the definition before, but haven't written it yet
         # so we need to write definition + name
-        if self.qasm_definiton:
-            self.qasm_def_written = True
-            return self.qasm_definiton + self._qasmif(self.qasm_name)
+        if self._qasm_definiton:
+            self._qasm_def_written = True
+            return self._qasm_definiton + self._qasmif(self._qasm_name)
 
         # need to work out the definition and then write it
 
         # give this unitary a name
-        self.qasm_name = self.label if self.label else "unitary" + str(id(self))
+        self._qasm_name = self.label if self.label else "unitary" + str(id(self))
 
         # map from gates in the definition to params in the method
         reg_to_qasm = OrderedDict()
@@ -151,14 +151,14 @@ class UnitaryGate(Gate):
             gates_def += curr_gate
 
         # name of gate + params + {definition}
-        overall = "gate " + self.qasm_name + \
+        overall = "gate " + self._qasm_name + \
                   " " + ",".join(reg_to_qasm.values()) + \
                   " {\n" + gates_def + "}\n"
 
-        self.qasm_def_written = True
-        self.qasm_definiton = overall
+        self._qasm_def_written = True
+        self._qasm_definiton = overall
 
-        return self.qasm_definiton + self._qasmif(self.qasm_name)
+        return self._qasm_definiton + self._qasmif(self._qasm_name)
 
 
 def unitary(self, obj, qubits, label=None):
