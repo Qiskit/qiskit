@@ -19,7 +19,7 @@ The format is based on [Keep a Changelog].
 
 - Assignments and modifications to `QuantumCircuit.data` will now be broadcast
   and validated following the same rules used throughout the
-  QuantumCircuit` API. (\#2826)
+  `QuantumCircuit` API. (\#2826)
 
 ### Fixed
 -   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
