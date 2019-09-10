@@ -27,7 +27,6 @@ from .matplotlib import HAS_MATPLOTLIB
 
 if HAS_MATPLOTLIB:
     from matplotlib import get_backend
-    from matplotlib.ticker import MaxNLocator
     from matplotlib import pyplot as plt
     from matplotlib.patches import FancyArrowPatch
     from matplotlib.patches import Circle
