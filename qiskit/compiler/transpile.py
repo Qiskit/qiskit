@@ -271,7 +271,9 @@ def _parse_coupling_map(coupling_map, backend, circuits):
     # try getting coupling_map from user, else backend
     if coupling_map is None:
         if getattr(backend, 'configuration', None):
-            coupling_map = getattr(backend.configuration(), 'coupling_map', None)
+            configuration = backend.configuration()
+            if hasattr(configuration, 'coupling_map') and configuration.coupling_map:
+                coupling_map = CouplingMap(configuration.coupling_map)
 
     coupling_map = [coupling_map] * num_circuits
 
