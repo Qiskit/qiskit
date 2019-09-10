@@ -98,15 +98,13 @@ class FakeBackend(BaseBackend):
         return BackendProperties.from_dict(properties)
 
     def run(self, qobj):
+        del qobj
         job_id = str(uuid.uuid4())
-        job = FakeJob(self, job_id, self.run_job, qobj)
+        job = FakeJob(self, job_id, self.run_job)
         job.submit()
         return job
 
-    def run_job(self, job_id, qobj):
+    def run_job(self, job_id):
         """Main dummy run loop"""
-        del qobj  # unused
         time.sleep(self.time_alive)
-
-        return Result.from_dict(
-            {'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
+        return Result.from_dict({'job_id': job_id, 'result': [], 'status': 'COMPLETED'})
