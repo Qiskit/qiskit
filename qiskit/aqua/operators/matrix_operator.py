@@ -23,6 +23,7 @@ from scipy import sparse as scisparse
 from scipy import linalg as scila
 from qiskit import QuantumCircuit  # pylint: disable=unused-import
 
+from qiskit.aqua import AquaError
 from .base_operator import BaseOperator
 
 logger = logging.getLogger(__name__)
@@ -240,7 +241,12 @@ class MatrixOperator(BaseOperator):
         Returns:
             float: the mean value
             float: the standard deviation
+        Raises:
+            AquaError: if Operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
+
         del use_simulator_operator_mode  # unused
         avg, std_dev = 0.0, 0.0
         quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
@@ -257,7 +263,12 @@ class MatrixOperator(BaseOperator):
         Returns:
             float: the mean value
             float: the standard deviation
+        Raises:
+            AquaError: if Operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
+
         avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
         return avg, 0.0
 
@@ -322,8 +333,13 @@ class MatrixOperator(BaseOperator):
             numpy.array: Return the matrix vector multiplication result.
         Raises:
             ValueError: Invalid arguments
+            AquaError: if Operator is empty
         """
         from .op_converter import to_weighted_pauli_operator
+
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
+
         # pylint: disable=no-member
         if num_time_slices < 0 or not isinstance(num_time_slices, int):
             raise ValueError('Number of time slices should be a non-negative integer.')

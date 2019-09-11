@@ -594,7 +594,11 @@ class WeightedPauliOperator(BaseOperator):
         Returns:
             float: the mean value
             float: the standard deviation
+        Raises:
+            AquaError: if Operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
         # convert to matrix first?
         from .op_converter import to_matrix_operator
         mat_op = to_matrix_operator(self)
@@ -627,10 +631,14 @@ class WeightedPauliOperator(BaseOperator):
                                   circuit_name_prefix + Pauli string
 
         Raises:
+            AquaError: if Operator is empty
             AquaError: Can not find quantum register with `q` as the name and do not provide
                        quantum register explicitly
             AquaError: The provided qr is not in the wave_function
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
+
         from qiskit.aqua.utils.run_circuits import find_regs_by_name
 
         if qr is None:
@@ -685,7 +693,12 @@ class WeightedPauliOperator(BaseOperator):
 
         Returns:
             dict: Pauli-instruction pair.
+
+        Raises:
+            AquaError: if Operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
         instructions = {}
         qr = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(qr)
@@ -729,7 +742,12 @@ class WeightedPauliOperator(BaseOperator):
         Returns:
             float: the mean value
             float: the standard deviation
+
+        Raises:
+            AquaError: if Operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
 
         avg, std_dev, variance = 0.0, 0.0, 0.0
         if statevector_mode:
@@ -837,7 +855,11 @@ class WeightedPauliOperator(BaseOperator):
             QuantumCircuit: The constructed circuit.
         Raises:
             AquaError: quantum_registers must be in the provided state_in circuit
+            AquaError: if operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, can not evolve.")
+
         if state_in is not None and quantum_registers is not None:
             if not state_in.has_register(quantum_registers):
                 raise AquaError("quantum_registers must be in the provided state_in circuit.")
@@ -877,8 +899,10 @@ class WeightedPauliOperator(BaseOperator):
         Raises:
             ValueError: Number of time slices should be a non-negative integer
             NotImplementedError: expansion mode not supported
-
+            AquaError: if operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, can not build evolve instruction.")
         # pylint: disable=no-member
         if num_time_slices <= 0 or not isinstance(num_time_slices, int):
             raise ValueError('Number of time slices should be a non-negative integer.')
