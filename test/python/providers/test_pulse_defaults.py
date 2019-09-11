@@ -49,7 +49,9 @@ class TestPulseDefaults(QiskitTestCase):
 
     def test_ops(self):
         """Test `ops`."""
-        self.assertEqual(self.defs.ops(), ['u1', 'u3', 'cx', 'measure'])
+        ops = self.defs.ops()
+        for op in ['u1', 'u3', 'cx', 'measure']:
+            self.assertTrue(op in ops)
 
     def test_has(self):
         """Test `has` and `assert_has`."""
