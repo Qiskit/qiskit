@@ -41,9 +41,9 @@ class TestPulseDefaults(QiskitTestCase):
     def test_freq_est(self):
         """Test extracting qubit frequencies."""
         warnings.simplefilter("ignore")
-        self.assertEqual(self.defs.qubit_freq_est(1),
+        self.assertEqual(self.defs.qubit_freq_est[1],
                          5.0 * 1e9)
-        self.assertEqual(self.defs.meas_freq_est(0),
+        self.assertEqual(self.defs.meas_freq_est[0],
                          6.5 * 1e9)
         warnings.simplefilter("default")
 
@@ -201,6 +201,5 @@ class TestPulseDefaults(QiskitTestCase):
         self.assertEqual(
             repr(self.defs),
             "<PulseDefaults(1Q operations:\n  q0: ['u1', 'u3']\n  q1: ['u3']\nMulti qubit "
-            "operations:\n  (0, 1): ['cx', 'measure']\n___________________________________"
-            "_____________________________________________\nQubit Frequencies [GHz]\n[4.9,"
-            " 5.0]\nMeasurement Frequencies [GHz]\n[6.5, 6.6] )>")
+            "operations:\n  (0, 1): ['cx', 'measure']\nQubit Frequencies [GHz]\n[4.9, 5.0]"
+            "\nMeasurement Frequencies [GHz]\n[6.5, 6.6] )>")

@@ -24,6 +24,7 @@ from qiskit.validation.base import ObjSchema
 from qiskit.validation.fields import (Integer, List, Nested, Number, String)
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
+from qiskit.pulse import CmdDef
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 from qiskit.pulse.exceptions import PulseError
 
@@ -132,12 +133,13 @@ class PulseDefaults(BaseModel):
         super().__init__(**kwargs)
 
         self.buffer = buffer
-        self._qubit_freq_est = qubit_freq_est
-        self._meas_freq_est = meas_freq_est
-        # TODO: getting and inspecting the pulse lib and cmd def is still useful :/
-        self._pulse_library = pulse_library
-        # self.pulse_library = {pulse.name: pulse.samples for pulse in pulse_library}
-        self._cmd_def = cmd_def
+        self._qubit_freq_est_ghz = qubit_freq_est
+        self._meas_freq_est_ghz = meas_freq_est
+        self._qubit_freq_est_hz = [freq * 1e9 for freq in qubit_freq_est]
+        self._meas_freq_est_hz = [freq * 1e9 for freq in meas_freq_est]
+        # TODO: These should be massaged for the user
+        self.pulse_library = pulse_library
+        self.cmd_def = cmd_def
 
         # The processed and reformatted circuit operation definitions
         self._ops_def = defaultdict(dict)
@@ -159,67 +161,27 @@ class PulseDefaults(BaseModel):
             self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
 
     @property
-    def pulse_library(self):
-        """
-        Returns:
-            list[PulseLibraryItem]: A list of named items with pulse samples.
-        """
-        warnings.warn("Direct access to the pulse_library is being deprecated. Please use "
-                      "the `replace_pulse` method to modify pulse specifications. In place "
-                      "of CmdDef, you can use this PulseDefaults instance.",
-                      DeprecationWarning)
-        return self._pulse_library
-
-    @property
-    def cmd_def(self):
-        """
-        Returns:
-            list[Command]: A list of circuit op -> instruction list definitions.
-        """
-        warnings.warn("Direct access to cmd_def is being deprecated. Please use the various "
-                      "operation methods on the PulseDefaults (such as ops, get, and add) to "
-                      "modify or extract circuit operation definitions. You can use defaults "
-                      "in place of CmdDef.",
-                      DeprecationWarning)
-        return self._cmd_def
-
-    def qubit_freq_est(self, qubit):
+    def qubit_freq_est(self):
         """
         Return the estimated resonant frequency for the given qubit in Hz.
 
-        Args:
-            qubit (int): Index of the qubit of interest.
-        Raises:
-            PulseError: If the frequency is not available.
         Returns:
-            float: The frequency of the qubit resonance in Hz.
+            list[float]: The frequency of the qubit resonance in Hz.
         """
-        warnings.warn("The qubit frequency estimation was previously returned in GHz, and "
-                      "now is returned in Hz.")
-        try:
-            return self._qubit_freq_est[qubit] * 1e9
-        except IndexError:
-            raise PulseError("Cannot get the qubit frequency for qubit {qub}, this system only "
-                             "has {num} qubits.".format(qub=qubit, num=self.n_qubits))
+        warnings.warn("The qubit frequency estimation was previously in GHz, and now is in Hz.")
+        return self._qubit_freq_est_hz
 
-    def meas_freq_est(self, qubit):
+    @property
+    def meas_freq_est(self):
         """
         Return the estimated measurement stimulus frequency to readout from the given qubit.
 
-        Args:
-            qubit (int): Index of the qubit of interest.
-        Raises:
-            PulseError: If the frequency is not available.
         Returns:
-            float: The measurement stimulus frequency in Hz.
+            list[float]: The measurement stimulus frequency in Hz.
         """
-        warnings.warn("The measurement frequency estimation was previously returned in GHz, and "
-                      "now is returned in Hz.")
-        try:
-            return self._meas_freq_est[qubit] * 1e9
-        except IndexError:
-            raise PulseError("Cannot get the measurement frequency for qubit {qub}, this system "
-                             "only has {num} qubits.".format(qub=qubit, num=self.n_qubits))
+        warnings.warn("The measurement frequency estimation was previously in GHz, "
+                      "and now is in Hz.")
+        return self._meas_freq_est_hz
 
     def replace_pulse(self, name, samples):
         """
@@ -432,14 +394,10 @@ class PulseDefaults(BaseModel):
             else:
                 multi_qops += "  {qubits}: {ops}\n".format(qubits=qubits, ops=ops)
         ops = single_qops + multi_qops
-        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=self._qubit_freq_est)
-        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=self._meas_freq_est)
-        return ("<{name}({ops}{delim}\n{qfreq}\n{mfreq})>"
-                "".format(name=self.__class__.__name__,
-                          ops=ops,
-                          delim="_" * 80,
-                          qfreq=qfreq,
-                          mfreq=mfreq))
+        qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=self._qubit_freq_est_ghz)
+        mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=self._meas_freq_est_ghz)
+        return ("<{name}({ops}{qfreq}\n{mfreq})>"
+                "".format(name=self.__class__.__name__, ops=ops, qfreq=qfreq, mfreq=mfreq))
 
     def cmds(self):
         """
@@ -464,3 +422,14 @@ class PulseDefaults(BaseModel):
         """
         warnings.warn("Please use op_qubits() instead of cmd_qubits().", DeprecationWarning)
         return self.op_qubits(cmd_name)
+
+    def build_cmd_def(self):
+        """
+        Construct the `CmdDef` object for the backend.
+
+        Returns:
+            CmdDef: `CmdDef` instance generated from defaults
+        """
+        warnings.warn("Please use this PulseDefaults instance instead of CmdDef.",
+                      DeprecationWarning)
+        return CmdDef.from_defaults(self.cmd_def, self.pulse_library, buffer=self.buffer)
