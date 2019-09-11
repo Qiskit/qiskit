@@ -66,7 +66,6 @@ class WeightedPauliOperator(BaseOperator):
             [(pauli[1], [i]) for i, pauli in enumerate(paulis)] if basis is None else basis
         # combine the paulis and remove those with zero weight
         self.simplify()
-        self._z2_symmetries = z2_symmetries
         self._aer_paulis = None
         self._atol = atol
 
