@@ -36,12 +36,12 @@ class Real(Node):
         ind = indent * ' '
         print(ind, 'real', self.value)
 
-    def qasm(self, prec=15):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
         if self.value == pi:
             return "pi"
 
-        return ccode(self.value, precision=prec)
+        return ccode(self.value)
 
     def latex(self):
         """Return the corresponding math mode latex string."""
