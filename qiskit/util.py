@@ -102,7 +102,7 @@ def _to_tuple(values):
     Return the input, sorted, and as a tuple.
 
     Args:
-        values: An integer, a list of ints, or a tuple of ints.
+        values (Union[int, Iterable[int]]): An integer, or iterable of integers.
     Returns:
         tuple: The input values as a sorted tuple.
     """

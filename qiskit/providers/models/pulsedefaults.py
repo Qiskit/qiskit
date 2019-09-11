@@ -22,7 +22,7 @@ from qiskit.util import _to_tuple
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.base import ObjSchema
 from qiskit.validation.fields import (Integer, List, Nested, Number, String)
-from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema
+from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
 from qiskit.pulse.exceptions import PulseError
@@ -127,41 +127,59 @@ class PulseDefaults(BaseModel):
             buffer (int): Default buffer time (in units of dt) between pulses.
             pulse_library (list[PulseLibraryItem]): Pulse name and sample definitions.
             cmd_def (list[Command]): Operation name and definition in terms of Commands.
+            **kwargs (Dict[str, Any]]): Other attributes for the super class.
         """
-        
         super().__init__(**kwargs)
-        
+
         self.buffer = buffer
         self._qubit_freq_est = qubit_freq_est
         self._meas_freq_est = meas_freq_est
+        # TODO: getting and inspecting the pulse lib and cmd def is still useful :/
         self._pulse_library = pulse_library
+        # self.pulse_library = {pulse.name: pulse.samples for pulse in pulse_library}
         self._cmd_def = cmd_def
 
         # The processed and reformatted circuit operation definitions
         self._ops_def = defaultdict(dict)
         # A backwards mapping from qubit to supported operation
         self._qubit_ops = defaultdict(list)
+        # To enable pulse replacement, track where each pulse item is used
+        self.__pulse_library_usage = defaultdict(list)
+
         # Build the above dictionaries from pulse_library and cmd_def
-        converter = QobjToInstructionConverter(pulse_library, buffer)
+        self.converter = QobjToInstructionConverter(pulse_library, buffer)
         for op in cmd_def:
             qubits = _to_tuple(op.qubits)
             self._qubit_ops[qubits].append(op.name)
-            sched = ParameterizedSchedule(*[converter(inst) for inst in op.sequence],
-                                          name=op.name)
-            self._ops_def[op.name][qubits] = sched
+            pulse_insts = []
+            for inst in op.sequence:
+                if inst.name not in ['pv', 'fc', 'acquire', 'snapshot']:
+                    self.__pulse_library_usage[inst.name].append(op)
+                pulse_insts.append(self.converter(inst))
+            self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
 
     @property
     def pulse_library(self):
+        """
+        Returns:
+            list[PulseLibraryItem]: A list of named items with pulse samples.
+        """
         warnings.warn("Direct access to the pulse_library is being deprecated. Please use "
-                      "the `replace_pulse` method to modify pulse specifications.",
+                      "the `replace_pulse` method to modify pulse specifications. In place "
+                      "of CmdDef, you can use this PulseDefaults instance.",
                       DeprecationWarning)
         return self._pulse_library
 
     @property
     def cmd_def(self):
+        """
+        Returns:
+            list[Command]: A list of circuit op -> instruction list definitions.
+        """
         warnings.warn("Direct access to cmd_def is being deprecated. Please use the various "
-                      "operation methods (such as ops, get, and add) to modify or extract "
-                      "circuit operation definitions.",
+                      "operation methods on the PulseDefaults (such as ops, get, and add) to "
+                      "modify or extract circuit operation definitions. You can use defaults "
+                      "in place of CmdDef.",
                       DeprecationWarning)
         return self._cmd_def
 
@@ -203,46 +221,35 @@ class PulseDefaults(BaseModel):
             raise PulseError("Cannot get the measurement frequency for qubit {qub}, this system "
                              "only has {num} qubits.".format(qub=qubit, num=self.n_qubits))
 
-
-    def replace(self, pulse_name, samples):
+    def replace_pulse(self, name, samples):
         """
         Replace the named pulse with the given samples.
         Note: This will update existing operation definitions which are dependent on the
               modified pulse!
 
         Args:
-            pulse_name (str):
-            samples (list(complex)):
+            name (str): The name of the pulse to replace.
+            samples (list(complex)): The complex values to assign to the pulse.
         Returns:
             None
         Raises:
-            PulseError:
+            PulseError: If there was no pulse with the given name by default.
         """
-        # TODO: need to lazy build schedules so we can have the following function, OR rebuild when this executes
-        if not hasattr(self, '__pulse_library'):
-            # Is this the right time to do this? probably?
-            self.__pulse_library = {}
-            for pulse in self.pulse_library:
-                self.__pulse_library[pulse.name] = pulse.samples
-        if pulse_name not in self.__pulse_library:
+        try:
+            self.converter.bind_name.get_bound_method(name)
+        except PulseError:
             raise PulseError("Tried to replace pulse '{}' but it is not present in the pulse "
-                             "library.".format(pulse_name))
-        self.__pulse_library[pulse_name] = samples
-        # Need to look into either making the following faster, or modifying when scheds are built
-        # or, modify get, get_parameters, and pop
-        # Probably, get happens many more times, so `replace` should be the slower function.
-        converter = QobjToInstructionConverter(self.__pulse_library, buffer)
-        for op in cmd_def:
-            # want to only do this for ops with the replaced pulse!!!!!!!!!!!
-            sched = ParameterizedSchedule(*[converter(inst) for inst in op.sequence],
-                                          name=op.name)
-            self._ops_def[op.name][_to_tuple(op.qubits)] = sched
+                             "library.".format(name))
+        self.converter.bind_pulse(PulseLibraryItem(name=name, samples=samples))
+        for op in self.__pulse_library_usage[name]:
+            schedule = ParameterizedSchedule(*[self.converter(inst) for inst in op.sequence],
+                                             name=op.name)
+            self._ops_def[op.name][_to_tuple(op.qubits)] = schedule
 
-    @property
     def ops(self):
         """
-        Return all operations which are defined by default. (This is essentially the basis gates
-        along with measure and reset.)
+        Return all operations which are defined. By default, these are typically the basis gates
+        along with other operations such as measure and reset.
 
         Returns:
             list: The names of all the circuit operations which have Schedule definitions in this.
@@ -252,7 +259,7 @@ class PulseDefaults(BaseModel):
     def op_qubits(self, operation):
         """
         Return a list of the qubits for which the given operation is defined. Single qubit
-        operations return a flat list, and multiqubit operations return a list of tuples.
+        operations return a flat list, and multiqubit operations return a list of ordered tuples.
 
         Args:
             operation (str): The name of the circuit operation.
@@ -329,10 +336,10 @@ class PulseDefaults(BaseModel):
             PulseError: If the operation is not defined on the qubits.
         """
         self.assert_has(operation, qubits)
-        sched = self._ops_def[operation].get(_to_tuple(qubits))
-        if isinstance(sched, ParameterizedSchedule):
-            sched = sched.bind_parameters(*params, **kwparams)
-        return sched
+        schedule = self._ops_def[operation].get(_to_tuple(qubits))
+        if isinstance(schedule, ParameterizedSchedule):
+            schedule = schedule.bind_parameters(*params, **kwparams)
+        return schedule
 
     def get_parameters(self, operation, qubits):
         """
@@ -366,8 +373,13 @@ class PulseDefaults(BaseModel):
         qubits = _to_tuple(qubits)
         if qubits == ():
             raise PulseError("Cannot add definition {} with no target qubits.".format(operation))
-        if not (isinstance(schedule, Schedule) or isinstance(schedule, ParameterizedSchedule)):
+        if not isinstance(schedule, (Schedule, ParameterizedSchedule)):
             raise PulseError("Attemping to add an invalid schedule type.")
+        if self.has(operation, qubits):
+            warnings.warn("Replacing previous definition of {} on qubit{} "
+                          "{}.".format(operation,
+                                       's' if len(qubits) > 1 else '',
+                                       qubits if len(qubits) > 1 else qubits[0]))
         self._ops_def[operation][qubits] = schedule
 
     def remove(self, operation, qubits):
@@ -406,10 +418,10 @@ class PulseDefaults(BaseModel):
             PulseError: If command for qubits is not available
         """
         self.assert_has(operation, qubits)
-        sched = self._ops_def[operation].pop(_to_tuple(qubits))
+        schedule = self._ops_def[operation].pop(_to_tuple(qubits))
         if isinstance(schedule, ParameterizedSchedule):
-            return sched.bind_parameters(*params, **kwparams)
-        return sched
+            return schedule.bind_parameters(*params, **kwparams)
+        return schedule
 
     def __repr__(self):
         single_qops = "1Q operations:\n"
@@ -422,9 +434,33 @@ class PulseDefaults(BaseModel):
         ops = single_qops + multi_qops
         qfreq = "Qubit Frequencies [GHz]\n{freqs}".format(freqs=self._qubit_freq_est)
         mfreq = "Measurement Frequencies [GHz]\n{freqs} ".format(freqs=self._meas_freq_est)
-        return ("<{name}({ops}{delim}\n{qfreq}\n{mfreq})\n>"
+        return ("<{name}({ops}{delim}\n{qfreq}\n{mfreq})>"
                 "".format(name=self.__class__.__name__,
                           ops=ops,
                           delim="_" * 80,
                           qfreq=qfreq,
                           mfreq=mfreq))
+
+    def cmds(self):
+        """
+        Deprecated.
+
+        Returns:
+            list: The names of all the circuit operations which have Schedule definitions in this.
+        """
+        warnings.warn("Please use ops() instead of cmds().", DeprecationWarning)
+        return self.ops()
+
+    def cmd_qubits(self, cmd_name):
+        """
+        Deprecated.
+
+        Args:
+            cmd_name (str): The name of the circuit operation.
+        Returns:
+            list[Union[int, Tuple[int]]]: Qubit indices which have the given operation defined.
+                This is a list of tuples if the operation has an arity greater than 1, or a flat
+                list of ints otherwise.
+        """
+        warnings.warn("Please use op_qubits() instead of cmd_qubits().", DeprecationWarning)
+        return self.op_qubits(cmd_name)
