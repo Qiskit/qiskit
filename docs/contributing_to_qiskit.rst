@@ -121,19 +121,19 @@ You can build a local copy of the documentation from your local clone of the
 
       cd qiskit
 
-3. Install the required dependencies by running the following
-   in a terminal window:
-
-   .. code-block:: sh
-
-      pip install -r requirements-dev.txt
-
-4. Build the documentation by navigating to your local clone of `Qiskit/qiskit`
+3. Build the documentation by navigating to your local clone of `Qiskit/qiskit`
    and running the following command in a terminal window:
 
    .. code-block:: sh
 
-      make doc
+      tox -edocs
+
+  If you do not already have the `tox <https://tox.readthedocs.io/en/latest/>`_
+  command installed you can install by running:
+
+   .. code:: sh
+
+      pip install tox
 
 As you make changes to your local RST files, you can update your
 HTML files by navigating to `/doc/` and running the following in a terminal
@@ -141,7 +141,7 @@ window:
 
 .. code-block:: sh
 
-   make html
+   tox -edocs
 
 This will build a styled, HTML version of your local documentation repository
 in the subdirectory `/docs/_build/html/`.
