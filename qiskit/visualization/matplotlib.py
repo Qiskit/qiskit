@@ -26,6 +26,7 @@ import math
 import numpy as np
 
 try:
+    from matplotlib import get_backend
     from matplotlib import patches
     from matplotlib import pyplot as plt
     HAS_MATPLOTLIB = True
@@ -484,7 +485,9 @@ class MatplotlibDrawer:
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        plt.close(self.figure)
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(self.figure)
         return self.figure
 
     def _draw_regs(self):
@@ -589,12 +592,12 @@ class MatplotlibDrawer:
                              color=self._style.tc,
                              clip_on=True,
                              zorder=PORDER_TEXT)
-            self.ax.text(-0.5, y, this_creg['label'], ha='right', va='center',
+            self.ax.text(self.x_offset, y, this_creg['label'], ha='right', va='center',
                          fontsize=1.5*self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([0, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
@@ -727,7 +730,7 @@ class MatplotlibDrawer:
                             ii in self._creg_dict]
                     mask = 0
                     for index, cbit in enumerate(self._creg):
-                        if cbit.reg == op.condition[0]:
+                        if cbit.register == op.condition[0]:
                             mask |= (1 << index)
                     val = op.condition[1]
                     # cbit list to consider
