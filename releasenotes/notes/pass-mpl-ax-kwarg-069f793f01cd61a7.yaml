@@ -28,7 +28,7 @@ features:
     one of the components instead of always doing both. For example::
 
         from matplotlib import pyplot as plt
-        from qiskit.visualization.plot_state_hinton
+        from qiskit.visualization import plot_state_hinton
 
         ax = plt.gca()
 
