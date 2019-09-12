@@ -29,7 +29,7 @@ class Channel(metaclass=ABCMeta):
         """Channel class.
 
         Args:
-            index: Index of channel. Channels in Pulse map arbitrarily to qubit index
+            index: Index of channel
             buffer: Buffer that should be placed between instructions on channel
 
         Raises:
@@ -64,7 +64,13 @@ class Channel(metaclass=ABCMeta):
         return '%s(%s)' % (self.__class__.__name__, self._index)
 
     def __eq__(self, other: 'Channel') -> bool:
-        """Return True iff this and other are of the same type, and have the same index."""
+        """
+        Channels are the same iff they are of the same type, and have the same index.
+
+        Args:
+            other: The channel to compare to this channel.
+        """
+
         return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):
