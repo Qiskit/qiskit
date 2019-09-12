@@ -69,6 +69,8 @@ class Channel(metaclass=ABCMeta):
 
         Args:
             other: The channel to compare to this channel.
+        Returns:
+            bool: equality
         """
 
         return type(self) is type(other) and self._index == other._index
