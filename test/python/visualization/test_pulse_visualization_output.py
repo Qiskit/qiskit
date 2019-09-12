@@ -20,7 +20,8 @@ import os
 import unittest
 
 from qiskit.tools.visualization import HAS_MATPLOTLIB, pulse_drawer
-from qiskit.pulse.channels import PulseChannelSpec
+from qiskit.pulse.channels import (DriveChannel, MeasureChannel, ControlChannel, AcquireChannel,
+                                   MemorySlot, RegisterSlot)
 from qiskit.pulse.commands import FrameChange, Acquire, PersistentValue, Snapshot, Delay
 from qiskit.pulse.schedule import Schedule
 from qiskit.pulse import pulse_lib
@@ -37,7 +38,6 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
 
     def setUp(self):
         self.schedule = Schedule()
-        self.device = PulseChannelSpec(n_qubits=2, n_control=1, n_registers=2)
 
     def sample_pulse(self):
         """Generate a sample pulse."""
@@ -45,7 +45,7 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
 
     def sample_instruction(self):
         """Generate a sample instruction."""
-        return self.sample_pulse()(self.device.drives[0])
+        return self.sample_pulse()(DriveChannel(0))
 
     def sample_schedule(self):
         """Generate a sample schedule that includes the most common elements of
@@ -58,17 +58,17 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         acquire = Acquire(10)
         delay = Delay(100)
         sched = Schedule()
-        sched = sched.append(gp0(self.device.drives[0]))
-        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(self.device.controls[0]))
-        sched = sched.insert(60, FrameChange(phase=-1.57)(self.device.drives[0]))
-        sched = sched.insert(30, gp1(self.device.drives[1]))
-        sched = sched.insert(60, gp0(self.device.controls[0]))
-        sched = sched.insert(60, gs0(self.device.measures[0]))
-        sched = sched.insert(90, fc_pi_2(self.device.drives[0]))
-        sched = sched.insert(90, acquire(self.device.acquires[1],
-                                         self.device.memoryslots[1],
-                                         self.device.registers[1]))
-        sched = sched.append(delay(self.device.drives[0]))
+        sched = sched.append(gp0(DriveChannel(0)))
+        sched = sched.insert(0, PersistentValue(value=0.2 + 0.4j)(ControlChannel(0)))
+        sched = sched.insert(60, FrameChange(phase=-1.57)(DriveChannel(0)))
+        sched = sched.insert(30, gp1(DriveChannel(1)))
+        sched = sched.insert(60, gp0(ControlChannel(0)))
+        sched = sched.insert(60, gs0(MeasureChannel(0)))
+        sched = sched.insert(90, fc_pi_2(DriveChannel(0)))
+        sched = sched.insert(90, acquire(AcquireChannel(1),
+                                         MemorySlot(1),
+                                         RegisterSlot(1)))
+        sched = sched.append(delay(DriveChannel(0)))
         sched = sched + sched
         sched |= Snapshot("snapshot_1", "snap_type") << 60
         sched |= Snapshot("snapshot_2", "snap_type") << 120
