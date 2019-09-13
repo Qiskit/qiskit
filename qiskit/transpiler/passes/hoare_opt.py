@@ -35,11 +35,20 @@ class HoareOptimizer(TransformationPass):
             self.solver.add(x == 0)
             self.variables[i] = x
 
-    def _add_postconditions(self, gate, ctrl_ones, trgtvar):
+    def _add_postconditions(self, gate, ctrl_ones, trgtqb, trgtvar):
         """ create boolean variables for each qubit the gate is applied to
             and apply the relevant post conditions
         """
-        pass
+        new_vars = []
+        for qb in trgtqb:
+            new_vars.append(self._gen_variable(qb[1]))  # id
+        self.solver.add(
+            Implies(ctrl_ones, gate.postconditions(*(trgtvar + new_vars)))
+        )
+        for i in range(len(trgtvar)):
+            self.solver.add(
+                Implies(Not(ctrl_ones), new_vars[i] == trgtvar[i])
+            )
 
     def _test_gate(self, gate, ctrl_ones, trgtvar):
         self.solver.push()
@@ -59,7 +68,7 @@ class HoareOptimizer(TransformationPass):
             nodes = l['graph'].gate_nodes()
             if len(nodes) != 1:
                 continue
-            gate = nodes[0]
+            gate = nodes[0].op
 
             if isinstance(gate, ControlledGate):
                 numctrl = gate.num_ctrl_qubits
@@ -74,9 +83,9 @@ class HoareOptimizer(TransformationPass):
 
             trivial = self._test_gate(gate, ctrl_ones, trgtvar)
             if trivial:
-                dag.remove_op_node(gate)
+                dag.remove_op_node(nodes[0])
 
-            self._add_postconditions(gate, ctrl_ones, trgtvar)
+            self._add_postconditions(gate, ctrl_ones, trgtqb, trgtvar)
 
     def run(self, dag):
         """
