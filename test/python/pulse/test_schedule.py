@@ -23,9 +23,8 @@ from qiskit.pulse.commands import (FrameChange, Acquire, PersistentValue, Snapsh
                                    functional_pulse, Instruction, AcquireInstruction,
                                    PulseInstruction, FrameChangeInstruction)
 from qiskit.pulse import pulse_lib, SamplePulse, CmdDef
-from qiskit.pulse.timeslots import TimeslotCollection, Interval
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ParameterizedSchedule
+from qiskit.pulse.schedule import Schedule, ParameterizedSchedule, Interval
 from qiskit.test import QiskitTestCase
 
 
@@ -52,6 +51,7 @@ class TestScheduleBuilding(BaseTestSchedule):
 
         sched = Schedule()
         sched = sched.append(lp0(device.drives[0]))
+
         self.assertEqual(0, sched.start_time)
         self.assertEqual(3, sched.stop_time)
 
@@ -181,12 +181,12 @@ class TestScheduleBuilding(BaseTestSchedule):
     def test_empty_schedule(self):
         """Test empty schedule."""
         sched = Schedule()
-        self.assertEqual(0, sched.start_time)
-        self.assertEqual(0, sched.stop_time)
-        self.assertEqual(0, sched.duration)
-        self.assertEqual((), sched._children)
-        self.assertEqual(TimeslotCollection(), sched.timeslots)
-        self.assertEqual([], list(sched.instructions))
+        self.assertEqual(sched.start_time, 0)
+        self.assertEqual(sched.stop_time, 0)
+        self.assertEqual(sched.duration, 0)
+        self.assertEqual(sched._children, ())
+        self.assertEqual(sched.timeslots, {})
+        self.assertEqual(list(sched.instructions), [])
 
     def test_flat_instruction_sequence_returns_instructions(self):
         """Test if `flat_instruction_sequence` returns `Instruction`s."""
@@ -505,7 +505,8 @@ class TestScheduleFilter(BaseTestSchedule):
         intervals_a = sched.filter(time_ranges=((0, 13),))
         for time, inst in intervals_a.instructions:
             self.assertTrue(0 <= time <= 13)
-            self.assertTrue(inst.timeslots.timeslots[0].interval.stop <= 13)
+            for intervals in inst.timeslots.values():
+                self.assertTrue(intervals[0].stop <= 13)
         self.assertEqual(len(intervals_a.instructions), 2)
 
         intervals_b = sched.filter(time_ranges=[(59, 65)])

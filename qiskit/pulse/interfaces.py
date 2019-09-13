@@ -16,11 +16,10 @@
 ScheduleComponent, a common interface for components of schedule (Instruction and Schedule).
 """
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, List, Union, Optional
+from typing import Tuple, List, Union, Optional, Dict
 
 from qiskit.pulse.channels import Channel
-
-from .timeslots import TimeslotCollection
+from qiskit.pulse.utils import Interval
 
 # pylint: disable=missing-type-doc
 
@@ -80,7 +79,7 @@ class ScheduleComponent(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def timeslots(self) -> TimeslotCollection:
+    def timeslots(self) -> Dict[Channel, List[Interval]]:
         """Occupied time slots by this schedule component."""
         pass
 
