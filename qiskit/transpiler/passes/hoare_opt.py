@@ -3,7 +3,7 @@
 """Pass for hoare circuit optimization.
 """
 from qiskit.transpiler.basepasses import TransformationPass
-from z3 import And, Not, Implies, Solver
+from z3 import And, Not, Implies, Solver, Bool
 
 
 class HoareOptimizer(TransformationPass):
@@ -14,13 +14,16 @@ class HoareOptimizer(TransformationPass):
     def __init__(self):
         self.solver = Solver()
         self.variables = dict()
+	self.gatenum = dict()
 
-    def _gen_var_name(self, qb):
+    def _gen_variable(self, qb):
         """ After each gate generate a new unique variable name for each of the
             qubits, using scheme: 'q[id]_[gatenum]', e.g. q1_0 -> q1_1 -> q1_2,
                                                           q2_0 -> q2_1
         """
-        pass
+        str = "q"+qb +"_"+self.gatenum[qb]
+        self.gatenum[qb] += 1
+	return Bool(str)
 
     def _initialize(self, dag):
         """ create boolean variables for each qubit and apply qb == 0 condition
