@@ -17,8 +17,7 @@ Physical qubit.
 """
 from typing import Tuple, Optional
 
-from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
-from .channels import AcquireChannel
+from .channels import AcquireChannel, DriveChannel, ControlChannel, MeasureChannel
 
 
 class Qubit:
