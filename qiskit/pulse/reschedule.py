@@ -180,19 +180,19 @@ def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
         Schedule: The padded schedule
     """
     until = until or schedule.duration
-
     channels = channels or schedule.channels
-    occupied_channels = schedule.channels
-
-    unoccupied_channels = set(channels) - set(occupied_channels)
-
-    empty_timeslot_collection = schedule.timeslots.complement(until)
 
     for channel in channels:
-        for timeslot in empty_timeslot_collection.ch_timeslots(channel):
-            schedule |= Delay(timeslot.duration)(timeslot.channel).shift(timeslot.start)
+        if channel not in schedule.timeslots:
+            schedule |= Delay(until)(channel)
+            continue
 
-    for channel in unoccupied_channels:
-        schedule |= Delay(until)(channel)
+        curr_time = 0
+        for interval in schedule.timeslots[channel]:
+            if interval.start != curr_time:
+                schedule |= Delay(interval.start - curr_time)(channel).shift(curr_time)
+            curr_time = interval.stop
+        if curr_time < until:
+            schedule |= Delay(until - curr_time)(channel).shift(curr_time)
 
     return schedule

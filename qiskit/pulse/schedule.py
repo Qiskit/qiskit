@@ -13,16 +13,16 @@
 # that they have been altered from the originals.
 
 """Schedule."""
+import warnings
 
 import abc
 from typing import List, Tuple, Iterable, Union, Dict, Callable, Set, Optional, Type
 import warnings
 
-from .timeslots import Interval
 from .channels import Channel
 from .interfaces import ScheduleComponent
-from .timeslots import TimeslotCollection
 from .exceptions import PulseError
+from .utils import Interval, insertion_index
 
 # pylint: disable=missing-return-doc
 
@@ -40,27 +40,23 @@ class Schedule(ScheduleComponent):
             name: Name of this schedule
 
         Raises:
-            PulseError: If timeslots intercept.
+            PulseError: If schedules overlap.
         """
         self._name = name
+        self._duration = 0
 
-        timeslots = []
+        self._timeslots = {}  # Dict[Channel: List[Interval]]
         _children = []
         for sched_pair in schedules:
-            # recreate as sequence starting at 0.
-            if not isinstance(sched_pair, (list, tuple)):
+            if isinstance(sched_pair, list):
+                sched_pair = tuple(sched_pair)
+            if not isinstance(sched_pair, tuple):
+                # recreate as sequence starting at 0.
                 sched_pair = (0, sched_pair)
-            # convert to tuple
-            sched_pair = tuple(sched_pair)
-            insert_time, sched = sched_pair
-            sched_timeslots = sched.timeslots
-            if insert_time:
-                sched_timeslots = sched_timeslots.shift(insert_time)
-            timeslots.append(sched_timeslots)
             _children.append(sched_pair)
-
-        try:
-            self._timeslots = TimeslotCollection(*timeslots)
+            insert_time, sched = sched_pair
+            try:
+                self._add_timeslots(insert_time, sched)
         except PulseError as ts_err:
             formatted_schedules = []
             for sched_pair in schedules:
@@ -79,25 +75,25 @@ class Schedule(ScheduleComponent):
         return self._name
 
     @property
-    def timeslots(self) -> TimeslotCollection:
+    def timeslots(self) -> Dict[Channel, Interval]:
         return self._timeslots
 
     @property
     def duration(self) -> int:
-        return self.timeslots.duration
+        return self._duration
 
     @property
     def start_time(self) -> int:
-        return self.timeslots.start_time
+        return self.ch_start_time(*self.channels)
 
     @property
     def stop_time(self) -> int:
-        return self.timeslots.stop_time
+        return self.duration
 
     @property
     def channels(self) -> Tuple[Channel]:
         """Returns channels that this schedule uses."""
-        return self.timeslots.channels
+        return tuple(self._timeslots.keys())
 
     @property
     def _children(self) -> Tuple[Tuple[int, ScheduleComponent], ...]:
@@ -120,23 +116,35 @@ class Schedule(ScheduleComponent):
         Args:
             *channels: Supplied channels
         """
-        return self.timeslots.ch_duration(*channels)
+        warnings.warn("ch_duration is deprecated, use ch_stop_time instead.",
+                      DeprecationWarning)
+        return self.ch_stop_time(channels)
 
     def ch_start_time(self, *channels: List[Channel]) -> int:
-        """Return minimum start time over supplied channels.
+        """
+        Return minimum start time over supplied channels. Return 0 if none of the channels
+        have been scheduled on.
 
         Args:
             *channels: Supplied channels
         """
-        return self.timeslots.ch_start_time(*channels)
+        chan_intervals = [self._timeslots[chan] for chan in channels if chan in self._timeslots]
+        if chan_intervals:
+            return min([intervals[0].start for intervals in chan_intervals])
+        return 0
 
     def ch_stop_time(self, *channels: List[Channel]) -> int:
-        """Return maximum start time over supplied channels.
+        """
+        Return maximum start time over supplied channels. Return 0 if none of the channels
+        have been scheduled on.
 
         Args:
             *channels: Supplied channels
         """
-        return self.timeslots.ch_stop_time(*channels)
+        chan_intervals = [self._timeslots[chan] for chan in channels if chan in self._timeslots]
+        if chan_intervals:
+            return max(intervals[-1].stop for intervals in chan_intervals)
+        return 0
 
     def _instructions(self, time: int = 0) -> Iterable[Tuple[int, 'Instruction']]:
         """Iterable for flattening Schedule tree.
@@ -176,6 +184,9 @@ class Schedule(ScheduleComponent):
             other: Schedule with shift time to be take the union with this `Schedule`.
         """
         shift_time, sched = other
+        self._add_timeslots(shift_time, sched)
+        self._buffer = max(self.buffer, sched.buffer)
+
         if isinstance(sched, Schedule):
             shifted_children = sched._children
             if shift_time != 0:
@@ -183,9 +194,6 @@ class Schedule(ScheduleComponent):
             self.__children += shifted_children
         else:  # isinstance(sched, Instruction)
             self.__children += (other,)
-
-        sched_timeslots = sched.timeslots if shift_time == 0 else sched.timeslots.shift(shift_time)
-        self._timeslots = self.timeslots.merge(sched_timeslots)
 
     def shift(self, time: int, name: Optional[str] = None) -> 'Schedule':
         """Return a new schedule shifted forward by `time`.
@@ -337,9 +345,9 @@ class Schedule(ScheduleComponent):
         def only_intervals(ranges: Iterable[Interval]) -> Callable:
             def interval_filter(time_inst: Tuple[int, 'Instruction']) -> bool:
                 for i in ranges:
-                    if all([(i.start <= ts.interval.shift(time_inst[0]).start
-                             and ts.interval.shift(time_inst[0]).stop <= i.stop)
-                            for ts in time_inst[1].timeslots.timeslots]):
+                    inst_start = time_inst[0]
+                    inst_stop = inst_start + time_inst[1].duration
+                    if i.start <= inst_start and inst_stop <= i.stop:
                         return True
                 return False
             return interval_filter
@@ -410,6 +418,35 @@ class Schedule(ScheduleComponent):
                                           framechange=framechange, channels=channels,
                                           show_framechange_channels=show_framechange_channels)
 
+    def _add_timeslots(self, time: int, schedule: ScheduleComponent) -> None:
+        """
+        Update all time tracking within this schedule based on the given schedule. A PulseError
+        will be raised when looking for an insertion index if timeslots overlap.
+
+        Args:
+            time: The time to insert the schedule into this.
+            schedule: The schedule to insert into this.
+        """
+        self._duration = max(self._duration, time + schedule.duration)
+
+        for channel in schedule.channels:
+            channel_intervals = schedule._timeslots[channel]
+            channel_intervals = [Interval(start=i.start + time, stop=i.stop + time)
+                                 for i in channel_intervals]
+
+            if channel not in self._timeslots:
+                self._timeslots[channel] = channel_intervals
+                continue
+
+            for idx, interval in enumerate(channel_intervals):
+                if interval.start >= self._timeslots[channel][-1].stop:
+                    # Can append the remaining intervals
+                    self._timeslots[channel].extend(channel_intervals[idx:])
+                    break
+                else:
+                    index = insertion_index(self._timeslots[channel], interval)
+                    self._timeslots[channel].insert(index, interval)
+
     def __eq__(self, other: ScheduleComponent) -> bool:
         """Test if two ScheduleComponents are equal.
 
@@ -423,11 +460,8 @@ class Schedule(ScheduleComponent):
             False
             ```
         """
-        channels = set(self.channels)
-        other_channels = set(other.channels)
-
         # first check channels are the same
-        if channels != other_channels:
+        if set(self.channels) != set(other.channels):
             return False
 
         # then verify same number of instructions in each
