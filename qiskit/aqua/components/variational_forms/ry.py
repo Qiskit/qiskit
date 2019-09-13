@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Layers of Y rotations followed by entangling gates."""
+
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 
@@ -25,7 +27,7 @@ class RY(VariationalForm):
         'name': 'RY',
         'description': 'RY Variational Form',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'ry_schema',
             'type': 'object',
             'properties': {

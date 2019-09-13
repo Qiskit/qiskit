@@ -16,8 +16,11 @@
 
 import unittest
 from test.aqua.common import QiskitAquaTestCase
+
 from scipy.optimize import rosen
 import numpy as np
+
+from qiskit.aqua import aqua_globals
 from qiskit.aqua.components.optimizers import (ADAM, CG, COBYLA, L_BFGS_B, NELDER_MEAD,
                                                POWELL, SLSQP, SPSA, TNC)
 
@@ -26,7 +29,7 @@ class TestOptimizers(QiskitAquaTestCase):
     """ Test Optimizers """
     def setUp(self):
         super().setUp()
-        np.random.seed(50)
+        aqua_globals.random_seed = 50
         pass
 
     def _optimize(self, optimizer):

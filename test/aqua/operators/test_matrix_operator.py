@@ -16,7 +16,9 @@
 
 import unittest
 from test.aqua.common import QiskitAquaTestCase
+
 import numpy as np
+
 from qiskit.aqua.operators import MatrixOperator
 from qiskit.aqua import aqua_globals
 
@@ -27,12 +29,11 @@ class TestMatrixOperator(QiskitAquaTestCase):
     def setUp(self):
         super().setUp()
         seed = 0
-        np.random.seed(seed)
         aqua_globals.random_seed = seed
 
         self.num_qubits = 3
         m_size = np.power(2, self.num_qubits)
-        matrix = np.random.rand(m_size, m_size)
+        matrix = aqua_globals.random.rand(m_size, m_size)
         self.qubit_op = MatrixOperator(matrix=matrix)
 
     def test_num_qubits(self):

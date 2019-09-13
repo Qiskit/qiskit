@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Limited-memory BFGS algorithm."""
+
 import logging
 
 from scipy import optimize as sciopt
@@ -19,6 +21,8 @@ from scipy import optimize as sciopt
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=invalid-name
 
 
 class L_BFGS_B(Optimizer):
@@ -32,7 +36,7 @@ class L_BFGS_B(Optimizer):
         'name': 'L_BFGS_B',
         'description': 'L_BFGS_B Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'l_bfgs_b_schema',
             'type': 'object',
             'properties': {
@@ -68,6 +72,7 @@ class L_BFGS_B(Optimizer):
         'optimizer': ['local']
     }
 
+    # pylint: disable=unused-argument
     def __init__(self, maxfun=1000, maxiter=15000, factr=10, iprint=-1, epsilon=1e-08):
         """
         Constructor.
@@ -100,15 +105,21 @@ class L_BFGS_B(Optimizer):
             if k in self._configuration['options']:
                 self._options[k] = v
 
-    def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
+    def optimize(self, num_vars, objective_function, gradient_function=None,
+                 variable_bounds=None, initial_point=None):
+        super().optimize(num_vars, objective_function, gradient_function,
+                         variable_bounds, initial_point)
 
         if gradient_function is None and self._max_evals_grouped > 1:
             epsilon = self._options['epsilon']
-            gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped))
+            gradient_function = Optimizer.wrap_function(Optimizer.gradient_num_diff,
+                                                        (objective_function,
+                                                         epsilon, self._max_evals_grouped))
 
-        approx_grad = True if gradient_function is None else False
-        sol, opt, info = sciopt.fmin_l_bfgs_b(objective_function, initial_point, bounds=variable_bounds,
-                                              fprime=gradient_function, approx_grad=approx_grad, **self._options)
+        approx_grad = bool(gradient_function is None)
+        sol, opt, info = sciopt.fmin_l_bfgs_b(objective_function,
+                                              initial_point, bounds=variable_bounds,
+                                              fprime=gradient_function,
+                                              approx_grad=approx_grad, **self._options)
 
         return sol, opt, info['funcalls']

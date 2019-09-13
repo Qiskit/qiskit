@@ -12,10 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-import numpy as np
+""" Minimize using objective function """
+
 import importlib
 import logging
+import numpy as np
+
 from qiskit.aqua import AquaError
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -25,13 +29,15 @@ except ImportError:
 
 
 def check_pluggable_valid(name):
-    err_msg = "Unable to instantiate '{}', nlopt is not installed. Please install it if you want to use them.".format(name)
+    """ check pluggable valid """
+    err_msg = "Unable to instantiate '{}', nlopt is not installed. " \
+        "Please install it if you want to use them.".format(name)
     try:
         spec = importlib.util.find_spec('nlopt')
         if spec is not None:
             return
     except Exception as ex:  # pylint: disable=broad-except
-        logger.debug('{} {}'.format(err_msg, str(ex)))
+        logger.debug('%s %s', err_msg, str(ex))
         raise AquaError(err_msg) from ex
 
     raise AquaError(err_msg)
@@ -41,14 +47,18 @@ def minimize(name, objective_function, variable_bounds=None, initial_point=None,
     """Minimize using objective function
 
     Args:
-        name: NLopt optimizer name
-        objective_function: Objective function to evaluate
-        variable_bounds: Bounds
-        initial_point: Initial point for optimizer
-        max_evals: Maximum evaluations
+        name (str): NLopt optimizer name
+        objective_function (callable) : handle to a function that
+                                        computes the objective function.
+        variable_bounds (list[(float, float)]) : list of variable
+                            bounds, given as pairs (lower, upper). None means
+                            unbounded.
+        initial_point (numpy.ndarray[float]) : initial point.
+        max_evals (int): Maximum evaluations
 
     Returns:
-        Solution at minimum found, value at minimum found, num evaluations performed
+        tuple(float, float, int): Solution at minimum found,
+                value at minimum found, num evaluations performed
     """
     threshold = 3*np.pi
     low = [(l if l is not None else -threshold) for (l, u) in variable_bounds]
@@ -73,5 +83,5 @@ def minimize(name, objective_function, variable_bounds=None, initial_point=None,
     xopt = opt.optimize(initial_point)
     minf = opt.last_optimum_value()
 
-    logger.debug('Global minimize found {} eval count {}'.format(minf, eval_count))
+    logger.debug('Global minimize found %s eval count %s', minf, eval_count)
     return xopt, minf, eval_count

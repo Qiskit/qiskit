@@ -12,6 +12,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Analytic Quantum Gradient Descent (AQGD) optimizer """
 
 import logging
 from copy import deepcopy
@@ -20,6 +21,8 @@ from numpy import pi, absolute, array, zeros
 from qiskit.aqua.components.optimizers import Optimizer
 
 logger = logging.getLogger(__name__)
+
+# pylint: disable=invalid-name
 
 
 class AQGD(Optimizer):
@@ -33,7 +36,7 @@ class AQGD(Optimizer):
         'name': 'AQGD',
         'description': 'Analytic Quantum Gradient Descent Optimizer',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'aqgd_schema',
             'type': 'object',
             'properties': {
@@ -52,7 +55,7 @@ class AQGD(Optimizer):
                 'disp': {
                     'type': 'boolean',
                     'default': False
-                 },
+                },
                 'momentum': {
                     'type': 'number',
                     'default': 0.25,
@@ -97,6 +100,7 @@ class AQGD(Optimizer):
         self._tol = tol if tol is not None else 1e-6
         self._disp = disp
         self._momentum_coeff = momentum
+        self._previous_loss = None
 
     def deriv(self, j, params, obj):
         """
@@ -110,7 +114,7 @@ class AQGD(Optimizer):
             obj (callable): Objective function.
 
         Returns:
-            (float) The derivative of the objective function w.r.t. j
+            float: The derivative of the objective function w.r.t. j
         """
         # create a copy of the parameters with the positive shift
         plus_params = deepcopy(params)
@@ -133,6 +137,8 @@ class AQGD(Optimizer):
                             the objective function at.
             deriv (float): Value of the derivative w.r.t. the jth parameter
             mprev (array): Array containing all of the parameter momentums
+        Returns:
+            tuple: params, new momentums
         """
         mnew = self._eta * (deriv * (1-self._momentum_coeff) + mprev[j] * self._momentum_coeff)
         params[j] -= mnew
@@ -150,7 +156,7 @@ class AQGD(Optimizer):
                      the optimizer from stopping early.
 
         Returns:
-            (bool) Whether or not the optimization has converged.
+            bool: Whether or not the optimization has converged.
         """
         if not hasattr(self, '_previous_loss'):
             self._previous_loss = [objval + 2 * self._tol] * n
@@ -168,8 +174,10 @@ class AQGD(Optimizer):
 
         return False
 
-    def optimize(self, num_vars, objective_function, gradient_function=None, variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds, initial_point)
+    def optimize(self, num_vars, objective_function, gradient_function=None,
+                 variable_bounds=None, initial_point=None):
+        super().optimize(num_vars, objective_function, gradient_function,
+                         variable_bounds, initial_point)
 
         params = array(initial_point)
         it = 0

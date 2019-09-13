@@ -12,6 +12,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Layers of Y+Z rotations followed by entangling gates."""
+
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.aqua.components.variational_forms import VariationalForm
@@ -24,7 +26,7 @@ class RYRZ(VariationalForm):
         'name': 'RYRZ',
         'description': 'RYRZ Variational Form',
         'input_schema': {
-            '$schema': 'http://json-schema.org/schema#',
+            '$schema': 'http://json-schema.org/draft-07/schema#',
             'id': 'ryrz_schema',
             'type': 'object',
             'properties': {
@@ -136,7 +138,7 @@ class RYRZ(VariationalForm):
                 circuit.u1(parameters[param_idx + 1], q[qubit])  # rz
                 param_idx += 2
 
-        for block in range(self._depth):
+        for _ in range(self._depth):
             circuit.barrier(q)
             for src, targ in self._entangler_map:
                 if self._entanglement_gate == 'cz':
