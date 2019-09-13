@@ -33,6 +33,13 @@ class Gate(Instruction):
         self._label = label
         super().__init__(name, num_qubits, 0, params)
 
+    
+    def decomposition():
+        """Return a list of decomposition of basis gates"""
+        if self._decomposition is None:
+            self._decomposition()
+        return self._decomposition
+
     def to_matrix(self):
         """Return a Numpy.array for the gate unitary matrix.
 
@@ -41,6 +48,9 @@ class Gate(Instruction):
                 exception will be raised when this base class method is called.
         """
         raise QiskitError("to_matrix not defined for this {}".format(type(self)))
+
+    
+
 
     def _return_repeat(self, exponent):
         return Gate(name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits,
