@@ -4,7 +4,7 @@
 """
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate
-from z3 import And, Not, Implies, Solver, Bool
+from z3 import And, Not, Implies, Solver, Bool, unsat
 
 
 class HoareOptimizer(TransformationPass):
@@ -42,7 +42,11 @@ class HoareOptimizer(TransformationPass):
         pass
 
     def _test_gate(self, gate, ctrl_ones, trgtvar):
-        pass
+        self.solver.push()
+        self.solver.add(And(ctrl_ones, Not(gate.trivial_if(*trgtvar))))
+        trivial = self.solver.check() == unsat
+        self.solver.pop()
+        return trivial
 
     def _traverse_dag(self, dag):
         """ traverse DAG
