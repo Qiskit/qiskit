@@ -41,12 +41,13 @@ class MSGate(Gate):
         definition = []
         q = QuantumRegister(2, "q")
         rule = [
+            (RYGate(numpy.pi/2), [q[0]], []),
             (HGate(), [q[1]], []),
-            (Cu1Gate(self.params[0]), [q[0]], [q[1]]),
+            (Cu1Gate(self.params[0]), [q[0], q[1]], []),
             (HGate(), [q[1]], []),
-            (RYGate(-self.params[0]), [q[0]]),
-            (RXGate(self.params[0]), [q[0]]),
-            (RXGate(-self.params[0]), [q[1]])
+            (RYGate(-numpy.pi/2), [q[0]], []),
+            (RXGate(self.params[0]/2), [q[0]], []),
+            (RXGate(-self.params[0]/2), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
@@ -56,10 +57,10 @@ class MSGate(Gate):
         """Invert this gate."""
         return MSGate()  # self-inverse
 
-    def to_matrix(self):
-        """Return a Numpy.array for the Cx gate."""
-        # ToDo
-        return numpy.array([[1]])
+    #def to_matrix(self):
+    #    """Return a Numpy.array for the MS gate."""
+    #    # ToDo
+    #    return numpy.array([[1]])
 
 
 
