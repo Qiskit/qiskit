@@ -12,37 +12,49 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" matrix operator """
+
 from copy import deepcopy
 from functools import reduce
 import logging
-import warnings
 
 import numpy as np
 from scipy import sparse as scisparse
 from scipy import linalg as scila
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit  # pylint: disable=unused-import
 
-from qiskit.aqua.operators.base_operator import BaseOperator
 from qiskit.aqua import AquaError
+from .base_operator import BaseOperator
 
 logger = logging.getLogger(__name__)
 
 
 class MatrixOperator(BaseOperator):
-
     """
     Operators relevant for quantum applications
 
     Note:
-        For grouped paulis representation, all operations will always convert it to paulis and then convert it back.
+        For grouped paulis representation, all operations will always convert
+        it to paulis and then convert it back.
         (It might be a performance issue.)
     """
 
     def __init__(self, matrix, basis=None, z2_symmetries=None, atol=1e-12, name=None):
         """
         Args:
-            matrix (numpy.ndarray or scipy.sparse.csr_matrix): a 2-D sparse matrix represents operator
-                                                               (using CSR format internally)
+            matrix (numpy.ndarray or scipy.sparse.csr_matrix):
+                    a 2-D sparse matrix represents operator (using CSR format internally)
+            basis (list[tuple(object, [int])], optional): the grouping basis, each element is a
+                                                          tuple composed of the basis
+                                                          and the indices to paulis which are
+                                                          belonged to that group.
+                                                          e.g., if tpb basis is used, the object
+                                                          will be a pauli.
+                                                          by default, the group is equal to
+                                                          non-grouping, each pauli is its own basis.
+            z2_symmetries (Z2Symmetries): represent the Z2 symmetries
+            atol (float): atol
+            name (str): name
         """
         super().__init__(basis, z2_symmetries, name)
         if matrix is not None:
@@ -53,18 +65,22 @@ class MatrixOperator(BaseOperator):
 
     @property
     def atol(self):
+        """ return atol """
         return self._atol
 
     @atol.setter
     def atol(self, new_value):
+        """ sets atol """
         self._atol = new_value
 
     def add(self, other, copy=False):
+        """ add """
         out = self.copy() if copy else self
         out._matrix += other._matrix
         return out
 
     def sub(self, other, copy=False):
+        """ sub """
         out = self.copy() if copy else self
         out._matrix -= other._matrix
         return out
@@ -109,13 +125,17 @@ class MatrixOperator(BaseOperator):
     def chop(self, threshold=None, copy=False):
         """
         Eliminate the real and imagine part of coeff in each pauli by `threshold`.
-        If pauli's coeff is less then `threshold` in both real and imagine parts, the pauli is removed.
+        If pauli's coeff is less then `threshold` in both real and imagine parts,
+        the pauli is removed.
         To align the internal representations, all available representations are chopped.
         The chopped result is stored back to original property.
         Note: if coeff is real-only, the imag part is skipped.
 
         Args:
             threshold (float): threshold chops the paulis
+            copy (bool): copy or self
+        Returns:
+            MatrixOperator: self or copy
         """
         threshold = self._atol if threshold is None else threshold
 
@@ -136,16 +156,12 @@ class MatrixOperator(BaseOperator):
         op._matrix.eliminate_zeros()
         return op
 
-    def _scaling_weight(self, scaling_factor):
-        # TODO: existed for supporting the deprecated method, will remove it.
-        self._matrix = scaling_factor * self._matrix
-
     def __mul__(self, other):
         """
         Overload * operation. Only support two Operators have the same representation mode.
 
         Returns:
-            MatrixOperator: the multipled Operator.
+            MatrixOperator: the multiplied Operator.
 
         Raises:
             TypeError, if two Operators do not have the same representations.
@@ -155,6 +171,7 @@ class MatrixOperator(BaseOperator):
 
     @property
     def dia_matrix(self):
+        """ diagonal matrix """
         dia_matrix = self._matrix.diagonal()
         if not scisparse.csr_matrix(dia_matrix).nnz == self._matrix.nnz:
             dia_matrix = None
@@ -191,68 +208,46 @@ class MatrixOperator(BaseOperator):
         ret = str(self._matrix)
         return ret
 
-    def construct_evaluation_circuit(self, operator_mode=None, input_circuit=None, backend=None, qr=None, cr=None,
-                                     use_simulator_operator_mode=False, wave_function=None, statevector_mode=None,
-                                     circuit_name_prefix=''):
+    # pylint: disable=arguments-differ
+    def construct_evaluation_circuit(self, wave_function, statevector_mode=True,
+                                     use_simulator_operator_mode=None, circuit_name_prefix=''):
         """
         Construct the circuits for evaluation.
 
         Args:
             wave_function (QuantumCircuit): the quantum circuit.
+            statevector_mode (bool): mode
+            use_simulator_operator_mode (bool): uses simulator operator mode
             circuit_name_prefix (str, optional): a prefix of circuit name
 
         Returns:
-            [QuantumCircuit]: the circuits for computing the expectation of the operator over
+            list[QuantumCircuit]: the circuits for computing the expectation of the operator over
                               the wavefunction evaluation.
         """
-        if operator_mode is not None:
-            warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-
-        if input_circuit is not None:
-            warnings.warn("input_circuit option is deprecated and it will be removed after 0.6, "
-                          "Use `wave_function` instead.",
-                          DeprecationWarning)
-            wave_function = input_circuit
-        else:
-            if wave_function is None:
-                raise AquaError("wave_function must not be None.")
-
-        if backend is not None:
-            warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "No need for backend when using matrix operator",
-                          DeprecationWarning)
-
+        del use_simulator_operator_mode  # unused
         return [wave_function.copy(name=circuit_name_prefix + 'psi')]
 
-    def evaluate_with_result(self, operator_mode=None, circuits=None, backend=None, result=None,
-                             use_simulator_operator_mode=False, statevector_mode=None,
-                             circuit_name_prefix=''):
+    def evaluate_with_result(self, result, statevector_mode=True,
+                             use_simulator_operator_mode=None, circuit_name_prefix=''):
         """
         Use the executed result with operator to get the evaluated value.
 
         Args:
-            result (qiskit.Result): the result from the backend.
+            result (qiskit.Result): the result from the backend
+            statevector_mode (bool): mode
+            use_simulator_operator_mode (bool): uses simulator operator mode
             circuit_name_prefix (str, optional): a prefix of circuit name
 
         Returns:
             float: the mean value
             float: the standard deviation
+        Raises:
+            AquaError: if Operator is empty
         """
-        if operator_mode is not None:
-            warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-        if circuits is not None:
-            warnings.warn("circuits option is deprecated and it will be removed after 0.6, "
-                          "we will retrieve the circuit via its unique name directly.",
-                          DeprecationWarning)
-        if backend is not None:
-            warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "No need for backend when using matrix operator",
-                          DeprecationWarning)
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
 
+        del use_simulator_operator_mode  # unused
         avg, std_dev = 0.0, 0.0
         quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
         avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
@@ -263,12 +258,17 @@ class MatrixOperator(BaseOperator):
         """
 
         Args:
-            quantum_state (numpy.ndarray):
+            quantum_state (numpy.ndarray): quantum state
 
         Returns:
             float: the mean value
             float: the standard deviation
+        Raises:
+            AquaError: if Operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
+
         avg = np.vdot(quantum_state, self._matrix.dot(quantum_state))
         return avg, 0.0
 
@@ -284,7 +284,7 @@ class MatrixOperator(BaseOperator):
             expansion_order (int): The order for the suzuki expansion
 
         Returns:
-            numpy array: The matrix representation corresponding to the specified suzuki expansion
+            numpy.array: The matrix representation corresponding to the specified suzuki expansion
         """
         # pylint: disable=no-member
         if expansion_order == 1:
@@ -298,27 +298,28 @@ class MatrixOperator(BaseOperator):
             )
             return left @ right
         else:
-            pk = (4 - 4 ** (1 / (2 * expansion_order - 1))) ** -1
+            p_k = (4 - 4 ** (1 / (2 * expansion_order - 1))) ** -1
             side_base = MatrixOperator._suzuki_expansion_slice_matrix(
                 pauli_list,
-                lam * pk,
+                lam * p_k,
                 expansion_order - 1
             )
             side = side_base @ side_base
             middle = MatrixOperator._suzuki_expansion_slice_matrix(
                 pauli_list,
-                lam * (1 - 4 * pk),
+                lam * (1 - 4 * p_k),
                 expansion_order - 1
             )
             return side @ middle @ side
 
-    def evolve(self, state_in, evo_time=0, evo_mode=None, num_time_slices=0, quantum_registers=None,
-               expansion_mode='trotter', expansion_order=1):
+    def evolve(self, state_in, evo_time=0, num_time_slices=0, expansion_mode='trotter',
+               expansion_order=1):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
 
         Args:
-            state_in: The initial state for the evolution
+            state_in (Union(list,numpy.array)): A vector representing the initial state
+                                            for the evolution
             evo_time (int): The evolution time
             num_time_slices (int): The number of time slices for the expansion
             expansion_mode (str): The mode under which the expansion is to be done.
@@ -329,19 +330,16 @@ class MatrixOperator(BaseOperator):
             expansion_order (int): The order for suzuki expansion
 
         Returns:
-            Return the matrix vector multiplication result.
+            numpy.array: Return the matrix vector multiplication result.
+        Raises:
+            ValueError: Invalid arguments
+            AquaError: if Operator is empty
         """
-        if evo_mode is not None:
-            warnings.warn("evo_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-
-        if quantum_registers is not None:
-            warnings.warn("quantum_registers option is not required by `MatrixOperator` and it will be removed "
-                          "after 0.6.",
-                          DeprecationWarning)
-
         from .op_converter import to_weighted_pauli_operator
+
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
+
         # pylint: disable=no-member
         if num_time_slices < 0 or not isinstance(num_time_slices, int):
             raise ValueError('Number of time slices should be a non-negative integer.')
@@ -357,14 +355,16 @@ class MatrixOperator(BaseOperator):
 
             if len(pauli_list) == 1:
                 approx_matrix_slice = scila.expm(
-                    -1.j * evo_time / num_time_slices * pauli_list[0][0] * pauli_list[0][1].to_spmatrix().tocsc()
+                    -1.j * evo_time / num_time_slices * pauli_list[0][0] *
+                    pauli_list[0][1].to_spmatrix().tocsc()
                 )
             else:
                 if expansion_mode == 'trotter':
                     approx_matrix_slice = reduce(
                         lambda x, y: x @ y,
                         [
-                            scila.expm(-1.j * evo_time / num_time_slices * c * p.to_spmatrix().tocsc())
+                            scila.expm(-1.j * evo_time /
+                                       num_time_slices * c * p.to_spmatrix().tocsc())
                             for c, p in pauli_list
                         ]
                     )
@@ -386,7 +386,4 @@ class MatrixOperator(BaseOperator):
         Returns:
             bool: is empty?
         """
-        if self._matrix is None or self._matrix.nnz == 0:
-            return True
-        else:
-            return False
+        return bool(self._matrix is None or self._matrix.nnz == 0)

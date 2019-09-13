@@ -12,13 +12,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" Weighted Pauli Operator """
+
 from copy import deepcopy
 import itertools
 import logging
 import json
 from operator import add as op_add, sub as op_sub
 import sys
-import warnings
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
@@ -27,28 +28,32 @@ from qiskit.tools import parallel_map
 from qiskit.tools.events import TextProgressBar
 
 from qiskit.aqua import AquaError, aqua_globals
-from qiskit.aqua.utils.backend_utils import is_statevector_backend
-from qiskit.aqua.operators.base_operator import BaseOperator
-from qiskit.aqua.operators.common import (measure_pauli_z, covariance, pauli_measurement,
-                                          kernel_F2, suzuki_expansion_slice_pauli_list,
-                                          check_commutativity, evolution_instruction)
+from .base_operator import BaseOperator
+from .common import (measure_pauli_z, covariance, pauli_measurement,
+                     kernel_F2, suzuki_expansion_slice_pauli_list,
+                     check_commutativity, evolution_instruction)
 
 
 logger = logging.getLogger(__name__)
 
 
 class WeightedPauliOperator(BaseOperator):
-
+    """ Weighted Pauli Operator """
     def __init__(self, paulis, basis=None, z2_symmetries=None, atol=1e-12, name=None):
         """
         Args:
-            paulis ([[complex, Pauli]]): the list of weighted Paulis, where a weighted pauli is composed of
+            paulis (list[[complex, Pauli]]): the list of weighted Paulis, where a weighted pauli is
+                                            composed of
                                          a length-2 list and the first item is the weight and
                                          the second item is the Pauli object.
-            basis (list[tuple(object, [int])], optional): the grouping basis, each element is a tuple composed of the basis
-                                                          and the indices to paulis which are belonged to that group.
-                                                          e.g., if tpb basis is used, the object will be a pauli.
-                                                          by default, the group is equal to non-grouping, each pauli is its own basis.
+            basis (list[tuple(object, [int])], optional): the grouping basis, each element is a
+                                                          tuple composed of the basis
+                                                          and the indices to paulis which are
+                                                          belonged to that group.
+                                                          e.g., if tpb basis is used, the object
+                                                          will be a pauli.
+                                                          by default, the group is equal to
+                                                          non-grouping, each pauli is its own basis.
             z2_symmetries (Z2Symmetires): recording the z2 symmetries info
             atol (float, optional): the threshold used in truncating paulis
             name (str, optional): the name of operator.
@@ -57,10 +62,10 @@ class WeightedPauliOperator(BaseOperator):
         # plain store the paulis, the group information is store in the basis
         self._paulis_table = None
         self._paulis = paulis
-        self._basis = [(pauli[1], [i]) for i, pauli in enumerate(paulis)] if basis is None else basis
+        self._basis = \
+            [(pauli[1], [i]) for i, pauli in enumerate(paulis)] if basis is None else basis
         # combine the paulis and remove those with zero weight
         self.simplify()
-        self._z2_symmetries = z2_symmetries
         self._aer_paulis = None
         self._atol = atol
 
@@ -70,12 +75,15 @@ class WeightedPauliOperator(BaseOperator):
         Create a WeightedPauliOperator via a pair of list.
 
         Args:
-            paulis ([Pauli]): the list of Paulis
-            weights ([complex], optional): the list of weights, if it is None, all weights are 1.
+            paulis (list[Pauli]): the list of Paulis
+            weights (list[complex], optional): the list of weights,
+                    if it is None, all weights are 1.
             name (str, optional): name of the operator.
 
         Returns:
-            WeightedPauliOperator
+            WeightedPauliOperator: operator
+        Raises:
+            ValueError: The length of weights and paulis must be the same
         """
         if weights is not None and len(weights) != len(paulis):
             raise ValueError("The length of weights and paulis must be the same.")
@@ -85,14 +93,17 @@ class WeightedPauliOperator(BaseOperator):
 
     @property
     def paulis(self):
+        """ get paulis """
         return self._paulis
 
     @property
     def atol(self):
+        """ get atol """
         return self._atol
 
     @atol.setter
     def atol(self, new_value):
+        """ set atol """
         self._atol = new_value
 
     @property
@@ -148,7 +159,7 @@ class WeightedPauliOperator(BaseOperator):
     def _add_or_sub(self, other, operation, copy=True):
         """
         Add two operators either extend (in-place) or combine (copy) them.
-        The addition performs optimized combiniation of two operators.
+        The addition performs optimized combination of two operators.
         If `other` has identical basis, the coefficient are combined rather than
         appended.
 
@@ -158,7 +169,7 @@ class WeightedPauliOperator(BaseOperator):
             copy (bool): working on a copy or self
 
         Returns:
-            WeightedPauliOperator
+            WeightedPauliOperator: operator
 
         Raises:
             AquaError: two operators have different number of qubits.
@@ -188,10 +199,10 @@ class WeightedPauliOperator(BaseOperator):
 
         Args:
             other (WeightedPauliOperator): to-be-combined operator
-            copy (bool): working on a copy or self, if True, the results are written back to self.
+            copy (bool): working on a copy or self, if False, the results are written back to self.
 
         Returns:
-            WeightedPauliOperator
+            WeightedPauliOperator: operator
         """
 
         return self._add_or_sub(other, op_add, copy=copy)
@@ -201,10 +212,10 @@ class WeightedPauliOperator(BaseOperator):
 
         Args:
             other (WeightedPauliOperator): to-be-combined operator
-            copy (bool): working on a copy or self, if True, the results are written back to self.
+            copy (bool): working on a copy or self, if False, the results are written back to self.
 
         Returns:
-            WeightedPauliOperator
+            WeightedPauliOperator: operator
         """
 
         return self._add_or_sub(other, op_sub, copy=copy)
@@ -240,7 +251,9 @@ class WeightedPauliOperator(BaseOperator):
             ValueError: the scaling factor is not a valid type.
         """
         if not isinstance(scaling_factor, (int, float, complex, np.int, np.float, np.complex)):
-            raise ValueError("Type of scaling factor is a valid type. {} if given.".format(scaling_factor.__class__))
+            raise ValueError(
+                "Type of scaling factor is a valid type. {} if given.".format(
+                    scaling_factor.__class__))
         ret = self.copy() if copy else self
         for idx in range(len(ret._paulis)):
             ret._paulis[idx] = [ret._paulis[idx][0] * scaling_factor, ret._paulis[idx][1]]
@@ -288,7 +301,9 @@ class WeightedPauliOperator(BaseOperator):
         curr_repr = 'paulis'
         length = len(self._paulis)
         name = "" if self._name == '' else "{}: ".format(self._name)
-        ret = "{}Representation: {}, qubits: {}, size: {}".format(name, curr_repr, self.num_qubits, length)
+        ret = "{}Representation: {}, qubits: {}, size: {}".format(name,
+                                                                  curr_repr,
+                                                                  self.num_qubits, length)
         return ret
 
     def print_details(self):
@@ -316,7 +331,8 @@ class WeightedPauliOperator(BaseOperator):
         would be removed.
 
         Notes:
-            This behavior of this method is slightly changed, it will remove the paulis whose weights are zero.
+            This behavior of this method is slightly changed,
+            it will remove the paulis whose weights are zero.
 
         Args:
             copy (bool): simplify on a copy or self
@@ -346,14 +362,15 @@ class WeightedPauliOperator(BaseOperator):
         op._paulis = new_paulis
         op._paulis_table = new_paulis_table
 
-        # update the grouping info, since this method only reduce the number of paulis, we can handle it here for both
+        # update the grouping info, since this method only reduce the number
+        # of paulis, we can handle it here for both
         # pauli and tpb grouped pauli
         # should have a better way to rebuild the basis here.
         new_basis = []
         for basis, indices in op.basis:
             new_indices = []
             found = False
-            if len(new_basis) > 0:
+            if new_basis:
                 for b, ind in new_basis:
                     if b == basis:
                         new_indices = ind
@@ -364,7 +381,7 @@ class WeightedPauliOperator(BaseOperator):
                 if new_idx is not None:
                     new_indices.append(new_idx)
             new_indices = list(set(new_indices))
-            if len(new_indices) > 0 and not found:
+            if new_indices and not found:
                 new_basis.append((basis, new_indices))
         op._basis = new_basis
         op.chop(0.0)
@@ -378,7 +395,7 @@ class WeightedPauliOperator(BaseOperator):
             copy (bool): chop on a copy or self
 
         Returns:
-            WeightedPauliOperator
+            WeightedPauliOperator: operator
         """
         op = self.copy() if copy else self
 
@@ -389,7 +406,8 @@ class WeightedPauliOperator(BaseOperator):
     def chop(self, threshold=None, copy=False):
         """
         Eliminate the real and imagine part of weight in each pauli by `threshold`.
-        If pauli's weight is less then `threshold` in both real and imagine parts, the pauli is removed.
+        If pauli's weight is less then `threshold` in both real and imagine parts,
+        the pauli is removed.
 
         Note:
             If weight is real-only, the imag part is skipped.
@@ -430,8 +448,10 @@ class WeightedPauliOperator(BaseOperator):
                 paulis.append([new_weight, pauli])
 
         op._paulis = paulis
-        op._paulis_table = {weighted_pauli[1].to_label(): i for i, weighted_pauli in enumerate(paulis)}
-        # update the grouping info, since this method only remove pauli, we can handle it here for both
+        op._paulis_table = \
+            {weighted_pauli[1].to_label(): i for i, weighted_pauli in enumerate(paulis)}
+        # update the grouping info, since this method only remove pauli,
+        # we can handle it here for both
         # pauli and tpb grouped pauli
         new_basis = []
         for basis, indices in op.basis:
@@ -440,15 +460,17 @@ class WeightedPauliOperator(BaseOperator):
                 new_idx = old_to_new_indices.get(idx, None)
                 if new_idx is not None:
                     new_indices.append(new_idx)
-            if len(new_indices) > 0:
+            if new_indices:
                 new_basis.append((basis, new_indices))
         op._basis = new_basis
         return op
 
     def commute_with(self, other):
+        """ commute with """
         return check_commutativity(self, other)
 
     def anticommute_with(self, other):
+        """ anti commute with """
         return check_commutativity(self, other, anti=True)
 
     def is_empty(self):
@@ -458,11 +480,9 @@ class WeightedPauliOperator(BaseOperator):
         Returns:
             bool: is empty?
         """
-        if self._paulis is None:
+        if not self._paulis:
             return True
-        elif len(self._paulis) == 0:
-            return True
-        elif len(self._paulis[0]) == 0:
+        elif not self._paulis[0]:
             return True
         else:
             return False
@@ -477,7 +497,7 @@ class WeightedPauliOperator(BaseOperator):
             before_04 (bool): support the format before Aqua 0.4.
 
         Returns:
-            Operator class: the loaded operator.
+            WeightedPauliOperator: the loaded operator.
         """
         with open(file_name, 'r') as file:
             return cls.from_dict(json.load(file), before_04=before_04)
@@ -490,8 +510,8 @@ class WeightedPauliOperator(BaseOperator):
             file_name (str): path to the file
 
         """
-        with open(file_name, 'w') as f:
-            json.dump(self.to_dict(), f)
+        with open(file_name, 'w') as file:
+            json.dump(self.to_dict(), file)
 
     @classmethod
     def from_dict(cls, dictionary, before_04=False):
@@ -514,7 +534,9 @@ class WeightedPauliOperator(BaseOperator):
             before_04 (bool): support the format before Aqua 0.4.
 
         Returns:
-            Operator: the loaded operator.
+            WeightedPauliOperator: the loaded operator.
+        Raises:
+            AquaError: Invalid dictionary
         """
         if 'paulis' not in dictionary:
             raise AquaError('Dictionary missing "paulis" key')
@@ -571,32 +593,36 @@ class WeightedPauliOperator(BaseOperator):
         Returns:
             float: the mean value
             float: the standard deviation
+        Raises:
+            AquaError: if Operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
         # convert to matrix first?
         from .op_converter import to_matrix_operator
         mat_op = to_matrix_operator(self)
         avg = np.vdot(quantum_state, mat_op._matrix.dot(quantum_state))
         return avg, 0.0
 
-    def construct_evaluation_circuit(self, operator_mode=None, input_circuit=None, backend=None, qr=None, cr=None,
-                                     use_simulator_operator_mode=False, wave_function=None, statevector_mode=None,
+    # pylint: disable=arguments-differ
+    def construct_evaluation_circuit(self, wave_function, statevector_mode,
+                                     qr=None, cr=None, use_simulator_operator_mode=False,
                                      circuit_name_prefix=''):
         """
         Construct the circuits for evaluation, which calculating the expectation <psi|H|psi>.
 
-        At statevector mode: to simplify the computation, we do not build the whole circuit for <psi|H|psi>, instead of
+        At statevector mode: to simplify the computation, we do not build the whole
+        circuit for <psi|H|psi>, instead of
         that we construct an individual circuit <psi|, and a bundle circuit for H|psi>
 
         Args:
-            operator_mode (str): representation of operator, including paulis, grouped_paulis and matrix
-            input_circuit (QuantumCircuit): the quantum circuit.
             wave_function (QuantumCircuit): the quantum circuit.
-            backend (BaseBackend, optional): backend selection for quantum machine.
-            statevector_mode (bool, optional): indicate which type of simulator are going to use.
+            statevector_mode (bool): indicate which type of simulator are going to use.
             qr (QuantumRegister, optional): the quantum register associated with the input_circuit
-            cr (ClassicalRegister, optional): the classical register associated with the input_circuit
+            cr (ClassicalRegister, optional): the classical register associated
+                                                with the input_circuit
             use_simulator_operator_mode (bool, optional): if aer_provider is used, we can do faster
-                                                evaluation for pauli mode on statevector simualtion
+                                                evaluation for pauli mode on statevector simulation
             circuit_name_prefix (str, optional): a prefix of circuit name
 
         Returns:
@@ -604,27 +630,15 @@ class WeightedPauliOperator(BaseOperator):
                                   circuit_name_prefix + Pauli string
 
         Raises:
+            AquaError: if Operator is empty
             AquaError: Can not find quantum register with `q` as the name and do not provide
                        quantum register explicitly
-            AquaError: The provided qr is not in the input_circuit
-            AquaError: Neither backend nor statevector_mode is provided
+            AquaError: The provided qr is not in the wave_function
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
+
         from qiskit.aqua.utils.run_circuits import find_regs_by_name
-
-        # TODO: re-use the `evaluation_instruction` method after terra#2858
-        if operator_mode is not None:
-            warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-
-        if input_circuit is not None:
-            warnings.warn("input_circuit option is deprecated and it will be removed after 0.6, "
-                          "Use `wave_function` instead.",
-                          DeprecationWarning)
-            wave_function = input_circuit
-        else:
-            if wave_function is None:
-                raise AquaError("wave_function must not be None.")
 
         if qr is None:
             qr = find_regs_by_name(wave_function, 'q')
@@ -635,17 +649,8 @@ class WeightedPauliOperator(BaseOperator):
             if not wave_function.has_register(qr):
                 raise AquaError("The provided QuantumRegister (qr) is not in the circuit.")
 
-        if backend is not None:
-            warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "Use `statevector_mode` instead",
-                          DeprecationWarning)
-            statevector_mode = is_statevector_backend(backend)
-        else:
-            if statevector_mode is None:
-                raise AquaError("Either backend or statevector_mode need to be provided.")
-
         n_qubits = self.num_qubits
-        # instructions = self.evaluation_instruction(statevector_mode, use_simulator_operator_mode)
+        instructions = self.evaluation_instruction(statevector_mode, use_simulator_operator_mode)
         circuits = []
         if statevector_mode:
             if use_simulator_operator_mode:
@@ -653,17 +658,12 @@ class WeightedPauliOperator(BaseOperator):
             else:
                 circuits.append(wave_function.copy(name=circuit_name_prefix + 'psi'))
                 for _, pauli in self._paulis:
-                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
-                        continue
-                    circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
-                    circuit.barrier([x for x in range(self.num_qubits)])
-                    circuit.append(pauli, [x for x in range(self.num_qubits)])
-                    circuits.append(circuit)
-                    # inst = instructions.get(pauli.to_label(), None)
-                    # if inst is not None:
-                    #     circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
-                    #     circuit.append(inst, qr)
-                    #     circuits.append(circuit)
+                    inst = instructions.get(pauli.to_label(), None)
+                    if inst is not None:
+                        circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
+                        circuit.append(inst, qr)
+                        # TODO: this decompose is used because of cache
+                        circuits.append(circuit.decompose())
         else:
             base_circuit = wave_function.copy()
             if cr is not None:
@@ -675,11 +675,11 @@ class WeightedPauliOperator(BaseOperator):
                     cr = ClassicalRegister(n_qubits, name='c')
                     base_circuit.add_register(cr)
 
-            for basis, indices in self._basis:
+            for basis, _ in self._basis:
                 circuit = base_circuit.copy(name=circuit_name_prefix + basis.to_label())
-                # circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
-                circuit = pauli_measurement(circuit, basis, qr, cr, barrier=True)
-                circuits.append(circuit)
+                circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
+                # TODO: this decompose is used because of cache
+                circuits.append(circuit.decompose())
 
         return circuits
 
@@ -688,87 +688,83 @@ class WeightedPauliOperator(BaseOperator):
 
         Args:
             statevector_mode (bool): will it be run on statevector simulator or not
-            use_simulator_operator_mode: will it use qiskit aer simulator operator mode
+            use_simulator_operator_mode (bool): will it use qiskit aer simulator operator mode
 
         Returns:
             dict: Pauli-instruction pair.
+
+        Raises:
+            AquaError: if Operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
         instructions = {}
         qr = QuantumRegister(self.num_qubits)
         qc = QuantumCircuit(qr)
-        if statevector_mode:
-            if use_simulator_operator_mode:
-                pass
-            else:
-                for _, pauli in self._paulis:
-                    tmp_qc = qc.copy(name=pauli.to_label())
-                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
-                        continue
-                    tmp_qc.barrier([x for x in range(self.num_qubits)])
-                    tmp_qc.append(pauli, [x for x in range(self.num_qubits)])
-                    instructions[pauli.to_label()] = tmp_qc.to_instruction()
+        if statevector_mode and not use_simulator_operator_mode:
+            for _, pauli in self._paulis:
+                tmp_qc = qc.copy(name="Pauli " + pauli.to_label())
+                if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
+                    continue
+                # This explicit barrier is needed for statevector simulator since Qiskit-terra
+                # will remove global phase at default compilation level but the results here
+                # rely on global phase.
+                tmp_qc.barrier([x for x in range(self.num_qubits)])
+                tmp_qc.append(pauli, [x for x in range(self.num_qubits)])
+                instructions[pauli.to_label()] = tmp_qc.to_instruction()
         else:
             cr = ClassicalRegister(self.num_qubits)
             qc.add_register(cr)
             for basis, _ in self._basis:
-                tmp_qc = qc.copy(name=basis.to_label())
+                tmp_qc = qc.copy(name="Pauli " + basis.to_label())
                 tmp_qc = pauli_measurement(tmp_qc, basis, qr, cr, barrier=True)
                 instructions[basis.to_label()] = tmp_qc.to_instruction()
         return instructions
 
-    def evaluate_with_result(self, operator_mode=None, circuits=None, backend=None, result=None,
-                             use_simulator_operator_mode=False, statevector_mode=None,
+    # pylint: disable=arguments-differ
+    def evaluate_with_result(self, result, statevector_mode, use_simulator_operator_mode=False,
                              circuit_name_prefix=''):
         """
-        This method can be only used with the circuits generated by the `construct_evaluation_circuit` method
-        with the same `circuit_name_prefix` since the circuit names are tied to some meanings.
+        This method can be only used with the circuits generated by the
+        `construct_evaluation_circuit` method with the same `circuit_name_prefix`
+        since the circuit names are tied to some meanings.
 
         Calculate the evaluated value with the measurement results.
 
         Args:
-            operator_mode (str): representation of operator, including paulis, grouped_paulis and matrix
-            circuits (list of qiskit.QuantumCircuit): the quantum circuits.
             result (qiskit.Result): the result from the backend.
-            backend (BaseBackend, optional): backend for quantum machine.
-            statevector_mode (bool, optional): indicate which type of simulator are used.
+            statevector_mode (bool): indicate which type of simulator are used.
             use_simulator_operator_mode (bool): if aer_provider is used, we can do faster
-                           evaluation for pauli mode on statevector simualtion
+                           evaluation for pauli mode on statevector simulation
             circuit_name_prefix (str): a prefix of circuit name
 
         Returns:
             float: the mean value
             float: the standard deviation
+
+        Raises:
+            AquaError: if Operator is empty
         """
-        if operator_mode is not None:
-            warnings.warn("operator_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-        if circuits is not None:
-            warnings.warn("circuits option is deprecated and it will be removed after 0.6, "
-                          "we will retrieve the circuit via its unique name directly.",
-                          DeprecationWarning)
+        if self.is_empty():
+            raise AquaError("Operator is empty, check the operator.")
 
         avg, std_dev, variance = 0.0, 0.0, 0.0
-        if backend is not None:
-            warnings.warn("backend option is deprecated and it will be removed after 0.6, "
-                          "Use `statevector_mode` instead",
-                          DeprecationWarning)
-            statevector_mode = is_statevector_backend(backend)
-        else:
-            if statevector_mode is None:
-                raise AquaError("Either backend or statevector_mode need to be provided.")
-
         if statevector_mode:
             if use_simulator_operator_mode:
-                temp = result.data(circuit_name_prefix + 'aer_mode')['snapshots']['expectation_value']['test'][0]['value']
+                temp = \
+                    result.data(
+                        circuit_name_prefix + 'aer_mode')[
+                            'snapshots']['expectation_value']['test'][0]['value']
                 avg = temp[0] + 1j * temp[1]
             else:
                 quantum_state = np.asarray(result.get_statevector(circuit_name_prefix + 'psi'))
                 for weight, pauli in self._paulis:
-                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):  # all I
+                    # all I
+                    if np.all(np.logical_not(pauli.z)) and np.all(np.logical_not(pauli.x)):
                         avg += weight
                     else:
-                        quantum_state_i = result.get_statevector(circuit_name_prefix + pauli.to_label())
+                        quantum_state_i = \
+                            result.get_statevector(circuit_name_prefix + pauli.to_label())
                         avg += (weight * (np.vdot(quantum_state, quantum_state_i)))
         else:
             if logger.isEnabledFor(logging.DEBUG):
@@ -781,9 +777,9 @@ class WeightedPauliOperator(BaseOperator):
                                      result.get_counts(circuit_name_prefix + basis.to_label()))
                                     for basis, indices in self._basis],
                                    num_processes=aqua_globals.num_processes)
-            for result in results:
-                avg += result[0]
-                variance += result[1]
+            for res in results:
+                avg += res[0]
+                variance += res[1]
             std_dev = np.sqrt(variance / num_shots)
         return avg, std_dev
 
@@ -812,7 +808,7 @@ class WeightedPauliOperator(BaseOperator):
         Reorder the paulis based on the basis and return the reordered paulis.
 
         Returns:
-            [[complex, paulis]]: the ordered paulis based on the basis.
+            list[list[complex, paulis]]: the ordered paulis based on the basis.
         """
 
         # if each pauli belongs to its group, no reordering it needed.
@@ -835,7 +831,8 @@ class WeightedPauliOperator(BaseOperator):
 
         return self._paulis
 
-    def evolve(self, state_in=None, evo_time=0, evo_mode=None, num_time_slices=1, quantum_registers=None,
+    # pylint: disable=arguments-differ
+    def evolve(self, state_in=None, evo_time=0, num_time_slices=1, quantum_registers=None,
                expansion_mode='trotter', expansion_order=1):
         """
         Carry out the eoh evolution for the operator under supplied specifications.
@@ -844,7 +841,8 @@ class WeightedPauliOperator(BaseOperator):
             state_in (QuantumCircuit): a circuit describes the input state
             evo_time (int): The evolution time
             num_time_slices (int): The number of time slices for the expansion
-            quantum_registers (QuantumRegister): The QuantumRegister to build the QuantumCircuit off of
+            quantum_registers (QuantumRegister): The QuantumRegister to build
+                                                the QuantumCircuit off of
             expansion_mode (str): The mode under which the expansion is to be done.
                 Currently support 'trotter', which follows the expansion as discussed in
                 http://science.sciencemag.org/content/273/5278/1073,
@@ -853,19 +851,13 @@ class WeightedPauliOperator(BaseOperator):
             expansion_order (int): The order for suzuki expansion
 
         Returns:
-            The constructed QuantumCircuit.
-
+            QuantumCircuit: The constructed circuit.
+        Raises:
+            AquaError: quantum_registers must be in the provided state_in circuit
+            AquaError: if operator is empty
         """
-        # pylint: disable=no-member
-        if evo_mode is not None:
-            warnings.warn("evo_mode option is deprecated and it will be removed after 0.6, "
-                          "Every operator knows which mode is using, not need to indicate the mode.",
-                          DeprecationWarning)
-
-        if num_time_slices <= 0 or not isinstance(num_time_slices, int):
-            raise ValueError('Number of time slices should be a non-negative integer.')
-        if expansion_mode not in ['trotter', 'suzuki']:
-            raise NotImplementedError('Expansion mode {} not supported.'.format(expansion_mode))
+        if self.is_empty():
+            raise AquaError("Operator is empty, can not evolve.")
 
         if state_in is not None and quantum_registers is not None:
             if not state_in.has_register(quantum_registers):
@@ -880,24 +872,11 @@ class WeightedPauliOperator(BaseOperator):
         else:
             qc = QuantumCircuit(quantum_registers)
 
-        pauli_list = self.reorder_paulis()
-
-        if len(pauli_list) == 1:
-            slice_pauli_list = pauli_list
-        else:
-            if expansion_mode == 'trotter':
-                slice_pauli_list = pauli_list
-            # suzuki expansion
-            else:
-                slice_pauli_list = suzuki_expansion_slice_pauli_list(
-                    pauli_list,
-                    1,
-                    expansion_order
-                )
-        instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
-
+        instruction = self.evolve_instruction(evo_time, num_time_slices,
+                                              expansion_mode, expansion_order)
         qc.append(instruction, quantum_registers)
-        return qc
+        # TODO: this decompose is used because of cache
+        return qc.decompose()
 
     def evolve_instruction(self, evo_time=0, num_time_slices=1,
                            expansion_mode='trotter', expansion_order=1):
@@ -915,9 +894,14 @@ class WeightedPauliOperator(BaseOperator):
             expansion_order (int): The order for suzuki expansion
 
         Returns:
-            The constructed QuantumCircuit.
-
+            QuantumCircuit: The constructed QuantumCircuit.
+        Raises:
+            ValueError: Number of time slices should be a non-negative integer
+            NotImplementedError: expansion mode not supported
+            AquaError: if operator is empty
         """
+        if self.is_empty():
+            raise AquaError("Operator is empty, can not build evolve instruction.")
         # pylint: disable=no-member
         if num_time_slices <= 0 or not isinstance(num_time_slices, int):
             raise ValueError('Number of time slices should be a non-negative integer.')
@@ -941,73 +925,35 @@ class WeightedPauliOperator(BaseOperator):
         instruction = evolution_instruction(slice_pauli_list, evo_time, num_time_slices)
         return instruction
 
-    @classmethod
-    def load_from_file(cls, file_name, before_04=False):
-        warnings.warn("load_from_file is deprecated and it will be removed after 0.6, "
-                      "Use `from_file` instead",
-                      DeprecationWarning)
-        return cls.from_file(file_name, before_04)
-
-    def save_to_file(self, file_name):
-        warnings.warn("save_to_file is deprecated and it will be removed after 0.6, "
-                      "Use `to_file` instead",
-                      DeprecationWarning)
-        self.to_file(file_name)
-
-    @classmethod
-    def load_from_dict(cls, dictionary, before_04=False):
-        warnings.warn("load_from_dict is deprecated and it will be removed after 0.6, "
-                      "Use `from_dict` instead",
-                      DeprecationWarning)
-        return cls.from_dict(dictionary, before_04)
-
-    def save_to_dict(self):
-        warnings.warn("save_to_dict is deprecated and it will be removed after 0.6, "
-                      "Use `to_dict` instead",
-                      DeprecationWarning)
-        return self.to_dict()
-
-    def _simplify_paulis(self):
-        warnings.warn("_simplify_paulis() is deprecated and it will be removed after 0.6, "
-                      "Use `simplify()` instead",
-                      DeprecationWarning)
-        self.simplify()
-        return self
-
-    def _eval_directly(self, quantum_state):
-        warnings.warn("_eval_directly() is deprecated and it will be removed after 0.6, "
-                      "Use `evaluate_with_statevector()` instead, and it returns tuple (mean, std) now.",
-                      DeprecationWarning)
-        return self.evaluate_with_statevector(quantum_state)
-
-    def get_flat_pauli_list(self):
-        warnings.warn("get_flat_pauli_list() is deprecated and it will be removed after 0.6. "
-                      "Use `reorder_paulis()` instead",
-                      DeprecationWarning)
-        return self.reorder_paulis()
-
 
 class Z2Symmetries:
-
+    """ Z2 Symmetries """
     def __init__(self, symmetries, sq_paulis, sq_list, tapering_values=None):
         """
         Constructor.
 
         Args:
-            symmetries ([Pauli]): the list of Pauli objects representing the Z_2 symmetries
-            sq_paulis ([Pauli]): the list of single - qubit Pauli objects to construct the Cliffors operators
-            sq_list ([int]): the list of support of the single-qubit Pauli objects used to build the clifford operators
-            tapering_values ([int], optional): values determines the sector.
+            symmetries (list[Pauli]): the list of Pauli objects representing the Z_2 symmetries
+            sq_paulis (list[Pauli]): the list of single - qubit Pauli objects to construct the
+                                    Clifford operators
+            sq_list (list[int]): the list of support of the single-qubit Pauli objects used to build
+                                    the clifford operators
+            tapering_values (list[int], optional): values determines the sector.
+        Raises:
+            AquaError: Invalid paulis
         """
         if len(symmetries) != len(sq_paulis):
-            raise AquaError("Number of Z2 symmetries has to be the same as number of single-qubit pauli x.")
+            raise AquaError("Number of Z2 symmetries has to be the same as number "
+                            "of single-qubit pauli x.")
 
         if len(sq_paulis) != len(sq_list):
-            raise AquaError("Number of single-qubit pauli x has to be the same as length of single-qubit list.")
+            raise AquaError("Number of single-qubit pauli x has to be the same "
+                            "as length of single-qubit list.")
 
         if tapering_values is not None:
             if len(sq_list) != len(tapering_values):
-                raise AquaError("The length of single-qubit list has to be the same as length of tapering values.")
+                raise AquaError("The length of single-qubit list has "
+                                "to be the same as length of tapering values.")
 
         self._symmetries = symmetries
         self._sq_paulis = sq_paulis
@@ -1016,10 +962,12 @@ class Z2Symmetries:
 
     @property
     def symmetries(self):
+        """ return symmetries """
         return self._symmetries
 
     @property
     def sq_paulis(self):
+        """ returns sq paulis """
         return self._sq_paulis
 
     @property
@@ -1027,29 +975,33 @@ class Z2Symmetries:
         """
         Get clifford operators, build based on symmetries and single-qubit X.
         Returns:
-            [WeightedPauliOperator]: a list of unitaries used to digonalize the Hamiltonian.
+            list[WeightedPauliOperator]: a list of unitaries used to diagonalize the Hamiltonian.
         """
-        cliffords = [WeightedPauliOperator(paulis=[[1 / np.sqrt(2), pauli_symm], [1 / np.sqrt(2), sq_pauli]])
+        cliffords = [WeightedPauliOperator(paulis=[[1 / np.sqrt(2), pauli_symm],
+                                                   [1 / np.sqrt(2), sq_pauli]])
                      for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)]
         return cliffords
 
     @property
     def sq_list(self):
+        """ returns sq list """
         return self._sq_list
 
     @property
     def tapering_values(self):
+        """ returns tapering values """
         return self._tapering_values
 
     @tapering_values.setter
     def tapering_values(self, new_value):
+        """ set tapering values """
         self._tapering_values = new_value
 
     def __str__(self):
         ret = ["Z2 symmetries:"]
         ret.append("Symmetries:")
-        for s in self._symmetries:
-            ret.append(s.to_label())
+        for symmetry in self._symmetries:
+            ret.append(symmetry.to_label())
         ret.append("Single-Qubit Pauli X:")
         for x in self._sq_paulis:
             ret.append(x.to_label())
@@ -1060,7 +1012,9 @@ class Z2Symmetries:
         ret.append(str(self._sq_list))
         ret.append("Tapering values:")
         if self._tapering_values is None:
-            possible_values = [str(list(coeff)) for coeff in itertools.product([1, -1], repeat=len(self._sq_list))]
+            possible_values = \
+                [str(list(coeff)) for coeff in itertools.product([1, -1],
+                                                                 repeat=len(self._sq_list))]
             possible_values = ', '.join(x for x in possible_values)
             ret.append("  - Possible values: " + possible_values)
         else:
@@ -1074,7 +1028,7 @@ class Z2Symmetries:
         Get a copy of self.
 
         Returns:
-            Z2Symmetries
+            Z2Symmetries: copy
         """
         return deepcopy(self)
 
@@ -1083,7 +1037,7 @@ class Z2Symmetries:
         Check the z2_symmetries is empty or not.
 
         Returns:
-            bool:
+            bool: empty
         """
         if self._symmetries != [] and self._sq_paulis != [] and self._sq_list != []:
             return False
@@ -1091,14 +1045,15 @@ class Z2Symmetries:
             return True
 
     @classmethod
-    def find_Z2_symmetries(cls, operator):
+    def find_Z2_symmetries(cls, operator):  # pylint: disable=invalid-name
         """
         Finds Z2 Pauli-type symmetries of an Operator.
 
         Returns:
-            Z2Symmetries: a z2_symmetries object contains symmetries, single-qubit X, single-qubit list.
+            Z2Symmetries: a z2_symmetries object contains symmetries,
+                        single-qubit X, single-qubit list.
         """
-
+        # pylint: disable=invalid-name
         pauli_symmetries = []
         sq_paulis = []
         sq_list = []
@@ -1115,7 +1070,7 @@ class Z2Symmetries:
         stacked_matrix = np.array(np.stack(stacked_paulis))
         symmetries = kernel_F2(stacked_matrix)
 
-        if len(symmetries) == 0:
+        if not symmetries:
             logger.info("No symmetry is found.")
             return cls([], [], [], None)
 
@@ -1158,7 +1113,8 @@ class Z2Symmetries:
                          stacked_symmetries[row, col + symm_shape[1] // 2] == 1) or
                             (stacked_symmetries[row, col] == 1 and
                              stacked_symmetries[row, col + symm_shape[1] // 2] == 1)):
-                        sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
+                        sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2),
+                                               np.zeros(symm_shape[1] // 2)))
                         sq_paulis[row].z[col] = True
                         sq_paulis[row].x[col] = False
                         sq_list.append(col)
@@ -1177,7 +1133,8 @@ class Z2Symmetries:
                          stacked_symmetries[row, col + symm_shape[1] // 2] == 1) or
                             (stacked_symmetries[row, col] == 1 and
                              stacked_symmetries[row, col + symm_shape[1] // 2] == 0)):
-                        sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
+                        sq_paulis.append(Pauli(np.zeros(symm_shape[1] // 2),
+                                               np.zeros(symm_shape[1] // 2)))
                         sq_paulis[row].z[col] = True
                         sq_paulis[row].x[col] = True
                         sq_list.append(col)
@@ -1192,14 +1149,19 @@ class Z2Symmetries:
 
         Args:
             operator (WeightedPauliOperator): the to-be-tapered operator.
-            tapering_values ([int], optional): if None, returns operators at each sector; otherwise, returns
+            tapering_values (list[int], optional): if None, returns operators at each sector;
+                                                otherwise, returns
                                                the operator located in that sector.
         Returns:
-            [WeightedPauliOperator] or WeightedPauliOperator:
-                - if tapering_values is None: [WeightedPauliOperator]; otherwise, WeightedPauliOperator
+            list[WeightedPauliOperator] or WeightedPauliOperator:
+                - if tapering_values is None: [WeightedPauliOperator];
+                    otherwise, WeightedPauliOperator
+        Raises:
+            AquaError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
         """
-        if len(self._symmetries) == 0 or len(self._sq_paulis) == 0 or len(self._sq_list) == 0:
-            raise AquaError("Z2 symmetries, single qubit pauli and single qubit list cannot be empty.")
+        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+            raise AquaError("Z2 symmetries, single qubit pauli and "
+                            "single qubit list cannot be empty.")
 
         if operator.is_empty():
             logger.warning("The operator is empty, return the empty operator directly.")
@@ -1224,7 +1186,8 @@ class Z2Symmetries:
 
             z2_symmetries = self.copy()
             z2_symmetries.tapering_values = curr_tapering_values
-            return WeightedPauliOperator(operator_out, z2_symmetries=z2_symmetries, name=operator.name)
+            return WeightedPauliOperator(operator_out,
+                                         z2_symmetries=z2_symmetries, name=operator.name)
 
         if tapering_values is None:
             tapered_ops = []
@@ -1248,15 +1211,17 @@ class Z2Symmetries:
 
         Args:
             operator (WeightedPauliOperator): the operator
-            num_particles (list, int): number of particles, if it is a list, the first number is alpha
+            num_particles (Union(list, int)): number of particles, if it is a list,
+                                        the first number is alpha
                                         and the second number if beta.
 
         Returns:
-            Operator: a new operator whose qubit number is reduced by 2.
+            WeightedPauliOperator: a new operator whose qubit number is reduced by 2.
 
         """
         if operator.is_empty():
-            logger.info("Operator is empty, can not do two qubit reduction. Return the empty operator back.")
+            logger.info("Operator is empty, can not do two qubit reduction. "
+                        "Return the empty operator back.")
             return operator
 
         if isinstance(num_particles, list):
@@ -1293,7 +1258,8 @@ class Z2Symmetries:
 
     def consistent_tapering(self, operator):
         """
-        Tapering the `operator` with the same manner of how this tapered operator is created. i.e., using the same
+        Tapering the `operator` with the same manner of how this tapered operator
+        is created. i.e., using the same
         cliffords and tapering values.
 
         Args:
@@ -1301,12 +1267,15 @@ class Z2Symmetries:
 
         Returns:
             TaperedWeightedPauliOperator: the tapered operator
+        Raises:
+            AquaError: The given operator does not commute with the symmetry
         """
         if operator.is_empty():
             raise AquaError("Can not taper an empty operator.")
 
         for symmetry in self._symmetries:
             if not operator.commute_with(symmetry):
-                raise AquaError("The given operator does not commute with the symmetry, can not taper it.")
+                raise AquaError("The given operator does not commute with "
+                                "the symmetry, can not taper it.")
 
         return self.taper(operator)
