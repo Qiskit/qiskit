@@ -40,6 +40,18 @@ class ZGate(Gate):
             definition.append(inst)
         self.definition = definition
 
+    def decomposition(self):
+        definition = []
+        q = QuantumRegister(1, "q")
+        rule = [
+            (HGate, [q[0]], []),
+            (XGate, [q[0]], []),
+            (HGate, [q[0]], [])
+        ]
+        for inst in rule:
+            definition.append(inst)
+        self.definition = definition
+
     def inverse(self):
         """Invert this gate."""
         return ZGate()  # self-inverse
