@@ -11,6 +11,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 Arithmetic Utilities
 """
@@ -51,6 +52,7 @@ def is_power(num, return_decomposition=False):
     """
     Check if num is a perfect power in O(n^3) time, n=ceil(logN)
     """
+    # pylint: disable=invalid-name
     b = 2
     while (2 ** b) <= num:
         a = 1
@@ -85,7 +87,7 @@ def next_power_of_2_base(n):
     Return the base of the smallest power of 2 no less than the input number
     """
     base = 0
-    if n and not (n & (n - 1)):
+    if n and not (n & (n - 1)):  # pylint: disable=superfluous-parens
         return log2(n)
 
     while n != 0:

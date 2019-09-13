@@ -12,9 +12,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+""" sub system """
+
+from collections import defaultdict
 import numpy as np
 from scipy.linalg import sqrtm
-from collections import defaultdict
 
 from qiskit.tools.qi.qi import partial_trace
 
@@ -28,7 +30,7 @@ def get_subsystem_density_matrix(statevector, trace_systems):
         trace_systems (list|range): The indices of the qubits to be traced out.
 
     Returns:
-        The reduced density matrix for the desired subsystem
+        numpy.ndarray: The reduced density matrix for the desired subsystem
     """
     rho = np.outer(statevector, np.conj(statevector))
     rho_sub = partial_trace(rho, trace_systems)
@@ -46,7 +48,7 @@ def get_subsystem_fidelity(statevector, trace_systems, subsystem_state):
         subsystem_state (list|array): The ground-truth state vector of the subsystem
 
     Returns:
-        The subsystem fidelity
+        numpy.ndarray: The subsystem fidelity
     """
     rho = np.outer(np.conj(statevector), statevector)
     rho_sub = partial_trace(rho, trace_systems)
@@ -81,12 +83,13 @@ def get_subsystems_counts(complete_system_counts):
             keys have space delimiters.
 
     Returns:
-        A list of measurement count dictionaries corresponding to each of the subsystems measured.
+        list: A list of measurement count dictionaries corresponding to
+                each of the subsystems measured.
     """
     mixed_measurements = list(complete_system_counts)
     subsystems_counts = [defaultdict(int) for _ in mixed_measurements[0].split()]
     for mixed_measurement in mixed_measurements:
         count = complete_system_counts[mixed_measurement]
-        for k, d in zip(mixed_measurement.split(), subsystems_counts):
-            d[k] += count
+        for k, d_l in zip(mixed_measurement.split(), subsystems_counts):
+            d_l[k] += count
     return [dict(d) for d in subsystems_counts]
