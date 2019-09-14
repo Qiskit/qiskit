@@ -43,11 +43,11 @@ class MSGate(Gate):
         rule = [
             (RYGate(numpy.pi/2), [q[0]], []),
             (HGate(), [q[1]], []),
-            (Cu1Gate(self.params[0]), [q[0], q[1]], []),
+            (Cu1Gate(2*self.params[0]), [q[0], q[1]], []),
             (HGate(), [q[1]], []),
             (RYGate(-numpy.pi/2), [q[0]], []),
-            (RXGate(self.params[0]/2), [q[0]], []),
-            (RXGate(-self.params[0]/2), [q[1]], [])
+            (RXGate(self.params[0]), [q[0]], []),
+            (RXGate(-self.params[0]), [q[1]], [])
         ]
         for inst in rule:
             definition.append(inst)
