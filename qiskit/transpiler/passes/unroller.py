@@ -85,7 +85,5 @@ class Unroller(TransformationPass):
                 decomposition.apply_operation_back(*inst)
 
             unrolled_dag = self.run(decomposition)  # recursively unroll ops
-            from qiskit.converters import dag_to_circuit
-            print(dag_to_circuit(unrolled_dag))
             dag.substitute_node_with_dag(node, unrolled_dag)
         return dag
