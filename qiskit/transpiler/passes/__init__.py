@@ -154,3 +154,5 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
+
+from .hoare_opt import HoareOptimizer

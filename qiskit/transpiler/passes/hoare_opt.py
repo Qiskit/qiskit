@@ -13,6 +13,7 @@ class HoareOptimizer(TransformationPass):
     """
 
     def __init__(self, l=10):
+        super().__init__()
         self.solver = Solver()
         self.variables = dict()
         self.gatenum = dict()
@@ -24,17 +25,18 @@ class HoareOptimizer(TransformationPass):
             qubits, using scheme: 'q[id]_[gatenum]', e.g. q1_0 -> q1_1 -> q1_2,
                                                           q2_0 -> q2_1
         """
-        str = "q" + qb + "_" + self.gatenum[qb]
+        varname = "q" + str(qb) + "_" + str(self.gatenum[qb])
         self.gatenum[qb] += 1
-        return Bool(str)
+        return Bool(varname)
 
     def _initialize(self, dag):
         """ create boolean variables for each qubit and apply qb == 0 condition
         """
         for qb in dag.qubits():
             i = qb[1]  # id: Qubit(QuantumRegister(3, 'q'), 0)
+            self.gatenum[i] = 0
             x = self._gen_variable(i)
-            self.solver.add(x == 0)
+            self.solver.add(x == False)
             self.variables[i] = x
             self.gatecache[i] = []
 
@@ -57,7 +59,11 @@ class HoareOptimizer(TransformationPass):
         """ use z3 sat solver to determine triviality of gate
         """
         self.solver.push()
-        self.solver.add(And(ctrl_ones, Not(gate.trivial_if(*trgtvar))))
+        try:
+            self.solver.add(And(ctrl_ones, Not(gate.trivial_if(*trgtvar))))
+        except AttributeError as e:
+            print('Trivial_if not defined: ', e)
+
         trivial = self.solver.check() == unsat
         self.solver.pop()
         return trivial
@@ -75,7 +81,7 @@ class HoareOptimizer(TransformationPass):
                 continue
             node, gate = nodes[0], nodes[0].op
 
-            var = self._seperate_ctrl_trgt(gate)
+            var = self._seperate_ctrl_trgt(node)
             ctrlvar = var[1]
             trgtqb, trgtvar = var[2], var[3]
 
@@ -160,13 +166,14 @@ class HoareOptimizer(TransformationPass):
                 # for other qubits remove all up to & including above gate
                 self.gatecache[qb[1]] = self.gatecache[qb[1]][idx+1:]
 
-    def _seperate_ctrl_trgt(self, gate):
+    def _seperate_ctrl_trgt(self, node):
+        gate = node.op
         if isinstance(gate, ControlledGate):
             numctrl = gate.num_ctrl_qubits
         else:
             numctrl = 0
-        ctrlqb = gate.qargs[:numctrl]
-        trgtqb = gate.qargs[numctrl:]
+        ctrlqb = node.qargs[:numctrl]
+        trgtqb = node.qargs[numctrl:]
         ctrlvar = [self.variables[qb[1]] for qb in ctrlqb]
         trgtvar = [self.variables[qb[1]] for qb in trgtqb]
         return (ctrlqb, ctrlvar, trgtqb, trgtvar)
