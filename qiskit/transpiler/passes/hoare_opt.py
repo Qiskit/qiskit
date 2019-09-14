@@ -5,6 +5,7 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate
 from z3 import And, Or, Not, Implies, Solver, Bool, sat, unsat
+import qiskit.transpiler.passes._gate_extension
 
 
 class HoareOptimizer(TransformationPass):
