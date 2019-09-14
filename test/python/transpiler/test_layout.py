@@ -332,11 +332,10 @@ class LayoutTest(QiskitTestCase):
         qr1 = QuantumRegister(1, 'qr1')
         qr2 = QuantumRegister(2, 'qr2')
         qr3 = QuantumRegister(3, 'qr3')
-        intlist_layout = list(numpy.array([0, 1, 2, 3, 4, 5]))
+        intlist_layout = numpy.array([0, 1, 2, 3, 4, 5])
         layout = Layout.from_intlist(intlist_layout, qr1, qr2, qr3)
 
         expected = Layout.generate_trivial_layout(qr1, qr2, qr3)
-        self.maxDiff = None
         self.assertDictEqual(layout._p2v, expected._p2v)
         self.assertDictEqual(layout._v2p, expected._v2p)
 
