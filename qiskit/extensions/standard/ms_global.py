@@ -29,27 +29,29 @@ from qiskit.extensions.standard.rx import RXGate
 from qiskit.extensions.standard.ry import RYGate
 
 
-class MSGate(Gate):
+class MSGlobalGate(Gate):
     """ Global Molmer-Sorensen gate."""
 
     def __init__(self, N_qubits, theta):
         """Create new MS gate."""
-        super().__init__("ms", N_qubits, [theta])
+        super().__init__("ms_global", N_qubits, [N_qubits, theta])
 
     def _define(self):
         definition = []
-        q = QuantumRegister(N_qubits, "q")
+        q = QuantumRegister(self.params[0], "q")
         rule = []
-        for i in range(N_qubits):
-            for j in range(i, N_qubits):
-                rule += (RYGate(numpy.pi / 2), [q[i]], [])
-                (HGate(), [q[j]], [])
-                (Cu1Gate(2 * self.params[0]), [q[i], q[j]], [])
-                (HGate(), [q[i]], [])
-                (RYGate(-numpy.pi / 2), [q[i]], [])
-                (RXGate(self.params[0]), [q[i]], [])
-                (RXGate(-self.params[0]), [q[j]], [])
+        for i in range(self.params[0]):
+            for j in range(i, self.params[0]):
+                rule += [(RYGate(numpy.pi / 2), [q[i]], [])]
+                rule += [(HGate(), [q[j]], [])]
+                rule += [(Cu1Gate(2 * self.params[1]), [q[i], q[j]], [])]
+                rule += [(HGate(), [q[j]], [])]
+                rule += [(RYGate(-numpy.pi / 2), [q[i]], [])]
+                rule += [(RXGate(self.params[1]), [q[i]], [])]
+                rule += [(RXGate(-self.params[1]), [q[j]], [])]
 
+        print("=====================================")
+        print(rule)
         for inst in rule:
             definition.append(inst)
         self.definition = definition
@@ -62,10 +64,9 @@ class MSGate(Gate):
     #    return numpy.array([[1]])
 
 
-
-def ms(self, theta,  qubits):
+def ms_global(self, theta,  qubits):
     """Apply MS to q1 and q2."""
-    return self.append(MSGate(len(qubits), theta), qubits)
+    return self.append(MSGlobalGate(len(qubits), theta), qubits)
 
 
-QuantumCircuit.ms = ms
+QuantumCircuit.ms_global = ms_global

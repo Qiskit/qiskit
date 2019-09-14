@@ -45,3 +45,4 @@ from .crz import CrzGate
 from .cu3 import Cu3Gate
 from .rzz import RZZGate
 from .ms import MSGate
+from .ms_global import MSGlobalGate
