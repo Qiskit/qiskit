@@ -43,6 +43,9 @@ class CnotGate(Gate):
                             [0, 1, 0, 0]], dtype=complex)
 
 
+
+
+
 def cx(self, ctl, tgt):
     """Apply CX from ctl to tgt."""
     return self.append(CnotGate(), [ctl, tgt], [])
