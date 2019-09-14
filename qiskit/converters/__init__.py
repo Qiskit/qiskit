@@ -33,6 +33,7 @@ def isinstanceint(obj):
     except TypeError:
         return False
 
+
 def isinstancelist(obj):
     """ Like isinstance(obj, list), but with casting. Except for strings and dicts."""
     if isinstance(obj, (str, dict)):

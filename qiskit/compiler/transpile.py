@@ -26,6 +26,7 @@ from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import isinstanceint, isinstancelist
 
+
 def transpile(circuits,
               backend=None,
               basis_gates=None, coupling_map=None, backend_properties=None,
