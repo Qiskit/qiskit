@@ -50,8 +50,6 @@ class MSGlobalGate(Gate):
                 rule += [(RXGate(self.params[1]), [q[i]], [])]
                 rule += [(RXGate(-self.params[1]), [q[j]], [])]
 
-        print("=====================================")
-        print(rule)
         for inst in rule:
             definition.append(inst)
         self.definition = definition
