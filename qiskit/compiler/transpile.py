@@ -331,7 +331,7 @@ def _parse_initial_layout(initial_layout, circuits):
     # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
     # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
     def _layout_from_raw(initial_layout, circuit):
-        if initial_layout is None:
+        if initial_layout is None or isinstance(initial_layout, Layout):
             return initial_layout
         elif isinstancelist(initial_layout):
             if all(isinstanceint(elem) for elem in initial_layout):
