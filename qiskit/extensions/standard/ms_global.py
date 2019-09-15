@@ -24,9 +24,7 @@ from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.extensions.standard.cu1 import Cu1Gate
-from qiskit.extensions.standard.h import HGate
-from qiskit.extensions.standard.rx import RXGate
-from qiskit.extensions.standard.ry import RYGate
+from qiskit.extensions.standard.ms import MSGate
 
 
 class MSGlobalGate(Gate):
@@ -40,19 +38,16 @@ class MSGlobalGate(Gate):
         definition = []
         q = QuantumRegister(self.params[0], "q")
         rule = []
-        for i in range(self.params[0]):
-            for j in range(i, self.params[0]):
-                rule += [(RYGate(numpy.pi / 2), [q[i]], [])]
-                rule += [(HGate(), [q[j]], [])]
-                rule += [(Cu1Gate(2 * self.params[1]), [q[i], q[j]], [])]
-                rule += [(HGate(), [q[j]], [])]
-                rule += [(RYGate(-numpy.pi / 2), [q[i]], [])]
-                rule += [(RXGate(self.params[1]), [q[i]], [])]
-                rule += [(RXGate(-self.params[1]), [q[j]], [])]
+        for i in range(self.num_qubits):
+            for j in range(i, self.num_qubits):
+                rule += [(MSGate(self.params[0]), [q[i], q[j]], [])]
 
         for inst in rule:
             definition.append(inst)
         self.definition = definition
+
+        print(self.num_qubits)
+        print(self.definition)
 
 
 
