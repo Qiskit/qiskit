@@ -22,6 +22,9 @@ The format is based on [Keep a Changelog].
 ### Changed
 -   Returned `matplotlib.figure.Figure` objects are only closed in jupyter
     notebooks configured with an inline backend (\#3051)
+-   Layering of instructions which underlies all types of circuit drawing has changed.
+    This sometimes results in output which is topologically equivalent to prior versions
+    but visually different. (\#2802)
 
 ### Removed
 
@@ -29,10 +32,11 @@ The format is based on [Keep a Changelog].
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
     methods directly. (\#3034)
 
-### Changed
--   Layering instructions which underlies all types of circuit drawing has changed.
-    This sometimes results in output which is topologically equivalent to prior versions
-    but visually different. (\#2802)
+### Deprecated
+
+-   Comparing tuples to `Bit`s is being deprecated. Representing a qubit or
+    a classical bit as a tuple is being abandoned in favor of `Qubit` and `Clbit`
+    objects.
 
 ## [0.9.0] - 2019-08-22
 
