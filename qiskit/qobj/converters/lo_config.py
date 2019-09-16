@@ -14,7 +14,7 @@
 
 """Helper class used to convert a user lo configuration into a list of frequencies."""
 
-from qiskit.pulse.channels.pulse_channels import DriveChannel, MeasureChannel
+from qiskit.pulse.channels import DriveChannel, MeasureChannel
 from qiskit.pulse.configuration import LoConfig
 
 

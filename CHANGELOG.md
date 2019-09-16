@@ -28,10 +28,19 @@ The format is based on [Keep a Changelog].
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
     methods directly. (\#3034)
 
+### Deprecated
+
+-   Comparing tuples to `Bit`s is being deprecated. Representing a qubit or
+    a classical bit as a tuple is being abandon in favor of `Qubit` and `Clbit`
+    objects.
+
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
 
+-   The full import path `qiskit.pulse.channels.pulse_channels` is deprecated;
+    code is moved to `qiskit.pulse.channels.channels` instead. Users should
+    keep importing from `qiskit.pulse.channels` (\#3094).
 -   The gates `U` and `CX` are being deprecated in favor of `u3` and
     `cx`. (\#2380)
 -   The gate `u0` is being deprecated in favor of using multiple `id` gates
