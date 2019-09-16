@@ -21,7 +21,7 @@ import numpy as np
 from qiskit.quantum_info import Pauli  # pylint: disable=unused-import
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterExpression
 
 from qiskit.aqua import AquaError
 
@@ -318,7 +318,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
             # the following tricks to generate parameterized instruction.
             # We assume the coefficient in the pauli is always real. and can not do imaginary time
             # evolution
-            if isinstance(evo_time, Parameter):
+            if isinstance(evo_time, Parameter) or isinstance(evo_time, ParameterExpression):
                 lam = 2.0 * pauli[0] / num_time_slices
                 lam = lam.real if lam.imag == 0 else lam
                 lam = lam * evo_time
