@@ -16,6 +16,7 @@
 
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.circuit import Parameter
 from qiskit.aqua.components.variational_forms import VariationalForm
 
 
@@ -106,6 +107,8 @@ class RYRZ(VariationalForm):
         # for repeated block
         self._num_parameters += len(self._entangled_qubits) * depth * 2
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
+        self._parameters = [Parameter('x{}'.format(i)) for i in range(self._num_parameters)]
+        self._is_parameterized_circuits = True
 
     def construct_circuit(self, parameters, q=None):
         """
