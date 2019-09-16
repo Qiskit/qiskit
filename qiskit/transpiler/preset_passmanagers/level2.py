@@ -80,9 +80,7 @@ def level_2_pass_manager(transpile_config):
     def _choose_layout_condition(property_set):
         return not property_set['layout']
 
-    _choose_layout = DenseLayout(coupling_map)
-    if backend_properties:
-        _choose_layout = NoiseAdaptiveLayout(backend_properties)
+    _choose_layout = DenseLayout(coupling_map, backend_properties)
 
     # 3. Extend dag/layout with ancillas using the full coupling map
     _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
