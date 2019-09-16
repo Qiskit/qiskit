@@ -92,7 +92,7 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = 25
+        self.fold = None   # To be removed after 0.10 is released
         self.bundle = True
         self.index = False
         self.figwidth = -1
@@ -115,9 +115,6 @@ class DefaultStyle:
         self.disptex = dic.pop('displaytext', self.disptex)
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.fold = dic.pop('fold', self.fold)
-        if self.fold < 2:
-            self.fold = -1
         self.bundle = dic.pop('cregbundle', self.bundle)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
@@ -128,6 +125,12 @@ class DefaultStyle:
             warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
                           ' argument "plot_barriers"', DeprecationWarning, 5)
             dic.pop('plotbarrier')
+        if 'fold' in dic:
+            warnings.warn('The key "fold" in the argument "style" is being replaced by the'
+                          ' argument "fold"', DeprecationWarning, 5)
+            self.fold = dic.pop('fold', self.fold)
+            if self.fold < 2:
+                self.fold = -1
         if dic:
             raise VisualizationError('style option/s ({}) is/are not '
                                      'supported'.format(', '.join(dic.keys())))
@@ -219,9 +222,6 @@ class BWStyle:
             self.dispcol[key] = self.gc
         self.dispcol = dic.pop('displaycolor', self.dispcol)
         self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
-        self.fold = dic.pop('fold', self.fold)
-        if self.fold < 2:
-            self.fold = -1
         self.bundle = dic.pop('cregbundle', self.bundle)
         self.index = dic.pop('showindex', self.index)
         self.figwidth = dic.pop('figwidth', self.figwidth)
@@ -229,8 +229,16 @@ class BWStyle:
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
         if 'plotbarrier' in dic:
+            # To be removed after 0.10 is released
             warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
                           ' argument "plot_barriers"', DeprecationWarning, 5)
+        if 'fold' in dic:
+            # To be removed after 0.10 is released
+            warnings.warn('The key "fold" in the argument "style" is being replaced by the'
+                          ' argument "fold"', DeprecationWarning, 5)
+            self.fold = dic.pop('fold', self.fold)
+            if self.fold < 2:
+                self.fold = -1
         if dic:
             raise VisualizationError('style option/s ({}) is/are not '
                                      'supported'.format(', '.join(dic.keys())))
