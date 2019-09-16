@@ -44,14 +44,21 @@ class HoareOptimizer(TransformationPass):
 
     def _add_postconditions(self, gate, ctrl_ones, trgtqb, trgtvar):
         """ create boolean variables for each qubit the gate is applied to
-            and apply the relevant post conditions
+            and apply the relevant post conditions.
+            a gate rotating out of the z-basis will not have any valid
+            post-conditions, in which case the qubit state is unknown
         """
         new_vars = []
         for qb in trgtqb:
-            new_vars.append(self._gen_variable(qb[1]))  # id
-        self.solver.add(
-            Implies(ctrl_ones, gate.postconditions(*(trgtvar + new_vars)))
-        )
+            new_vars.append(self._gen_variable(qb[1]))  # qb[1] = qubit id
+
+        try:
+            self.solver.add(
+                Implies(ctrl_ones, gate.postconditions(*(trgtvar + new_vars)))
+            )
+        except AttributeError:
+            pass
+
         for i in range(len(trgtvar)):
             self.solver.add(
                 Implies(Not(ctrl_ones), new_vars[i] == trgtvar[i])
@@ -60,13 +67,25 @@ class HoareOptimizer(TransformationPass):
     def _test_gate(self, gate, ctrl_ones, trgtvar):
         """ use z3 sat solver to determine triviality of gate
         """
-        self.solver.push()
         try:
-            self.solver.add(And(ctrl_ones, Not(gate.trivial_if(*trgtvar))))
-        except AttributeError as e:
-            print('Trivial_if not defined: ', e)
+            triv_cond = gate.trivial_if(*trgtvar)
+        except AttributeError:
+            return False
 
-        trivial = self.solver.check() == unsat
+        trivial = False
+        self.solver.push()
+        if isinstance(triv_cond, bool):
+            if triv_cond and len(trgtvar) == 1:
+                self.solver.add(And(ctrl_ones, Not(trgtvar[0])))
+                s1 = self.solver.check() == unsat
+                self.solver.pop()
+                self.solver.push()
+                self.solver.add(And(ctrl_ones, trgtvar[0]))
+                s2 = self.solver.check() == unsat
+                trivial = s1 or s2
+        else:
+            self.solver.add(And(ctrl_ones, Not(triv_cond)))
+            trivial = self.solver.check() == unsat
         self.solver.pop()
         return trivial
 
