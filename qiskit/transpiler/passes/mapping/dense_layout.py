@@ -52,8 +52,8 @@ class DenseLayout(AnalysisPass):
         self.backend_prop = backend_prop
         self.cx_mat = None
         self.meas_arr = None
-        self.avg_cx = None
-        self.avg_meas = None
+        self.num_cx = None
+        self.num_meas = None
 
     def run(self, dag):
         """
@@ -73,9 +73,9 @@ class DenseLayout(AnalysisPass):
         # Get avg number of cx and meas per qubit
         ops = dag.count_ops()
         if 'cx' in ops.keys():
-            self.avg_cx = ops['cx'] / num_dag_qubits
+            self.num_cx = ops['cx']
         if 'measure' in ops.keys():
-            self.avg_meas = ops['measure'] / num_dag_qubits
+            self.num_meas = ops['measure']
 
         # Compute the sparse cx_err matrix and meas array
         device_qubits = self.coupling_map.size()
@@ -159,17 +159,20 @@ class DenseLayout(AnalysisPass):
                             break
 
             if self.backend_prop:
-                current_error = 0
+                curr_error = 0
                 # commpute meas error for subset
-                current_error += self.avg_meas*np.mean(self.meas_arr[bfs[0:n_qubits]])
+                avg_meas_err = np.mean(self.meas_arr)
+                meas_diff = np.mean(self.meas_arr[bfs[0:n_qubits]])-avg_meas_err
+                if meas_diff > 0:
+                    curr_error += self.num_meas*meas_diff
 
                 cx_err = np.mean([self.cx_mat[edge[0], edge[1]] for edge in sub_graph])
                 if self.coupling_map.is_symmetric:
                     cx_err /= 2
-                current_error += self.avg_cx*cx_err
-                if connection_count >= best and current_error < best_error:
+                curr_error += self.num_cx*cx_err
+                if connection_count >= best and curr_error < best_error:
                     best = connection_count
-                    best_error = current_error
+                    best_error = curr_error
                     best_map = bfs[0:n_qubits]
                     best_sub = sub_graph
 
