@@ -108,7 +108,7 @@ class RYRZ(VariationalForm):
         self._num_parameters += len(self._entangled_qubits) * depth * 2
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
         self._parameters = [Parameter('x{}'.format(i)) for i in range(self._num_parameters)]
-        self._is_parameterized_circuits = True
+        self._is_paramterized_circuit = True
 
     def construct_circuit(self, parameters, q=None):
         """
