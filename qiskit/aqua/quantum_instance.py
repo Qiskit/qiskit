@@ -20,10 +20,12 @@ import time
 import os
 
 from qiskit.assembler.run_config import RunConfig
+from qiskit import compiler
 
 from .aqua_error import AquaError
 from .utils import CircuitCache
 from .utils.backend_utils import (is_ibmq_provider,
+                                  is_aer_provider,
                                   is_statevector_backend,
                                   is_simulator_backend,
                                   is_local_backend,
@@ -242,28 +244,47 @@ class QuantumInstance:
 
         return info
 
-    def execute(self, circuits, **kwargs):
+    def transpile(self, circuits):
+        """
+        A wrapper to transpile circuits to allow algorithm access the transpiled circuits.
+        Args:
+            circuits (QuantumCircuit or list[QuantumCircuit]): circuits to transpile
+
+        Returns:
+            list[QuantumCircuit]: the transpiled circuits, it is always a list even though
+                                  the length is one.
+        """
+        transpiled_circuits = compiler.transpile(circuits, self._backend, **self._backend_config,
+                                                 **self._compile_config)
+        if not isinstance(transpiled_circuits, list):
+            transpiled_circuits = [transpiled_circuits]
+        return transpiled_circuits
+
+    def execute(self, circuits, had_transpiled=False, **kwargs):
         """
         A wrapper to interface with quantum backend.
 
         Args:
             circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
-            kwargs (list): additional parameters
+            had_transpiled (bool, optional): whether or not circuits had been transpiled
+            kwargs (dict, optional): additional parameters
 
         Returns:
             Result: Result object
         """
         from .utils.run_circuits import (run_qobj,
-                                         compile_circuits)
+                                         maybe_add_aer_expectation_instruction)
 
         from .utils.measurement_error_mitigation import (get_measured_qubits_from_qobj,
                                                          build_measurement_error_mitigation_qobj)
+        # maybe compile
+        if not had_transpiled:
+            circuits = self.transpile(circuits)
 
-        qobj = compile_circuits(circuits, self._backend, self._backend_config,
-                                self._compile_config, self._run_config,
-                                show_circuit_summary=self._circuit_summary,
-                                circuit_cache=self._circuit_cache,
-                                **kwargs)
+        # assemble
+        qobj = compiler.assemble(circuits, **self._run_config.to_dict())
+        if is_aer_provider(self._backend):
+            qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
 
         if self._meas_error_mitigation_cls is not None:
             qubit_index = get_measured_qubits_from_qobj(qobj)

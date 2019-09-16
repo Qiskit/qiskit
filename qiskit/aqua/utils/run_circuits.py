@@ -93,7 +93,7 @@ def _combine_result_objects(results):
 
 
 # pylint: disable=invalid-name
-def _maybe_add_aer_expectation_instruction(qobj, options):
+def maybe_add_aer_expectation_instruction(qobj, options):
     if 'expectation' in options:
         from qiskit.providers.aer.utils.qobj_utils \
             import snapshot_instr, append_instr, get_instr_pos
@@ -203,7 +203,7 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
                                            compile_config, run_config)
 
                 if is_aer_provider(backend):
-                    qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
+                    qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
                 circuit_cache.cache_circuit(qobj, [circuits[0]], 0)
 
     transpiled_circuits = None
@@ -218,7 +218,7 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
                 qobj = circuit_cache.load_qobj_from_cache(circuits, 0, run_config=run_config)
 
             if is_aer_provider(backend):
-                qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
+                qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
         # cache miss, fail gracefully
         except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
             circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
@@ -232,7 +232,7 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
             qobj, transpiled_circuits = _compile_wrapper(circuits, backend, backend_config,
                                                          compile_config, run_config)
             if is_aer_provider(backend):
-                qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
+                qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
             try:
                 circuit_cache.cache_circuit(qobj, circuits, 0)
             except (TypeError, IndexError, AquaError, AttributeError, KeyError):
@@ -248,7 +248,7 @@ def compile_circuits(circuits, backend, backend_config=None, compile_config=None
                                                      backend_config, compile_config,
                                                      run_config)
         if is_aer_provider(backend):
-            qobj = _maybe_add_aer_expectation_instruction(qobj, kwargs)
+            qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
 
     if logger.isEnabledFor(logging.DEBUG) and show_circuit_summary:
         logger.debug("==== Before transpiler ====")
