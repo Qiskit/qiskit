@@ -129,7 +129,8 @@ class DefaultStyle:
                           ' argument "plot_barriers"', DeprecationWarning, 5)
             dic.pop('plotbarrier')
         if dic:
-            raise VisualizationError('style option/s {} are/is not supported'.format(dic))
+            raise VisualizationError('style option/s ({}) is/are not '
+                                     'supported'.format(', '.join(dic.keys())))
 
 
 class BWStyle:
@@ -231,4 +232,6 @@ class BWStyle:
             warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
                           ' argument "plot_barriers"', DeprecationWarning, 5)
         if dic:
-            raise VisualizationError('style option/s {} are/is not supported'.format(dic))
+            raise VisualizationError('style option/s ({}) is/are not '
+                                     'supported'.format(', '.join(dic.keys())))
+
