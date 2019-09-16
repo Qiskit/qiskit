@@ -131,6 +131,8 @@ class DenseLayout(AnalysisPass):
         """
         if n_qubits == 1:
             return np.array([0])
+        if n_qubits == 0:
+            return []
 
         device_qubits = self.coupling_map.size()
 
