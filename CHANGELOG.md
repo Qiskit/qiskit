@@ -28,6 +28,12 @@ The format is based on [Keep a Changelog].
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
     methods directly. (\#3034)
 
+### Deprecated
+
+-   Comparing tuples to `Bit`s is being deprecated. Representing a qubit or
+    a classical bit as a tuple is being abandon in favor of `Qubit` and `Clbit`
+    objects.
+
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
