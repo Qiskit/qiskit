@@ -4,6 +4,7 @@
 """
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate
+from qiskit.dagcircuit import DAGCircuit
 from z3 import And, Or, Not, Implies, Solver, Bool, sat, unsat
 import qiskit.transpiler.passes._gate_extension
 
@@ -76,8 +77,10 @@ class HoareOptimizer(TransformationPass):
             if yes remove gate from dag
             apply postconditions of gate
         """
+        new_dag = DAGCircuit()
         for l in dag.serial_layers():
-            nodes = l['graph'].gate_nodes()
+            layer_dag = l['graph']
+            nodes = layer_dag.gate_nodes()
             if len(nodes) != 1:
                 continue
             node, gate = nodes[0], nodes[0].op
@@ -90,7 +93,7 @@ class HoareOptimizer(TransformationPass):
 
             trivial = self._test_gate(gate, ctrl_ones, trgtvar)
             if trivial:
-                dag.remove_op_node(node)
+                layer_dag.remove_op_node(node)
             else:
                 for qb in node.qargs:
                     self.gatecache[qb[1]].append(node)
@@ -98,6 +101,8 @@ class HoareOptimizer(TransformationPass):
                         self._multigate_opt(qb[1])
 
             self._add_postconditions(gate, ctrl_ones, trgtqb, trgtvar)
+            new_dag.extend_back(layer_dag)
+        return new_dag
 
     def _target_successive_seq(self, dag, qb, max_idx):
         """ gates are target successive if they have the same set of target
@@ -187,8 +192,8 @@ class HoareOptimizer(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
         self._initialize(dag)
-        self._traverse_dag(dag)
+        new_dag = self._traverse_dag(dag)
         for qb in dag.qubits():
             self._multigate_opt(dag, qb)
 
-        return dag
+        return new_dag
