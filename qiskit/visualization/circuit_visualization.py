@@ -327,7 +327,6 @@ def qx_color_scheme():
         "latexdrawerstyle": True,
         "usepiformat": False,
         "cregbundle": False,
-        "plotbarrier": False,
         "showindex": False,
         "compress": True,
         "margin": [2.0, 0.0, 0.0, 0.3],

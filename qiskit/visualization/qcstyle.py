@@ -14,6 +14,7 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
+import warnings
 
 class DefaultStyle:
     """IBM Design Style colors
@@ -88,7 +89,6 @@ class DefaultStyle:
         self.latexmode = False
         self.fold = 25
         self.bundle = True
-        self.barrier = True
         self.index = False
         self.figwidth = -1
         self.dpi = 150
@@ -113,12 +113,14 @@ class DefaultStyle:
         if self.fold < 2:
             self.fold = -1
         self.bundle = dic.get('cregbundle', self.bundle)
-        self.barrier = dic.get('plotbarrier', self.barrier)
         self.index = dic.get('showindex', self.index)
         self.figwidth = dic.get('figwidth', self.figwidth)
         self.dpi = dic.get('dpi', self.dpi)
         self.margin = dic.get('margin', self.margin)
         self.cline = dic.get('creglinestyle', self.cline)
+        if 'plotbarrier' in dic:
+            warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
+                          ' argument "plot_barriers"', DeprecationWarning, 5)
 
 
 class BWStyle:
@@ -184,7 +186,6 @@ class BWStyle:
         self.latexmode = False
         self.fold = 25
         self.bundle = True
-        self.barrier = True
         self.index = False
         self.figwidth = -1
         self.dpi = 150
@@ -211,9 +212,11 @@ class BWStyle:
         if self.fold < 2:
             self.fold = -1
         self.bundle = dic.get('cregbundle', self.bundle)
-        self.barrier = dic.get('plotbarrier', self.barrier)
         self.index = dic.get('showindex', self.index)
         self.figwidth = dic.get('figwidth', self.figwidth)
         self.dpi = dic.get('dpi', self.dpi)
         self.margin = dic.get('margin', self.margin)
         self.cline = dic.get('creglinestyle', self.cline)
+        if 'plotbarrier' in dic:
+            warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
+                          ' argument "plot_barriers"', DeprecationWarning, 5)
