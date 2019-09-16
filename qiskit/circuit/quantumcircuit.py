@@ -355,24 +355,8 @@ class QuantumCircuit:
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
         instructions = InstructionSet()
-
-        # When broadcasting was handled by decorators (prior to #2282), append
-        # received multiple distinct instruction instances, one for each expanded
-        # arg. With broadcasting as part of QuantumCircuit.append, the
-        # instruction instance is constructed before append is called. However,
-        # (at least) ParameterTable expects instruction instances to be unique
-        # within a circuit, so make instruction deepcopies for expanded_args[1:].
-
-        first_instruction = True
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
-            if first_instruction:
-                instructions.add(
-                    self._append(instruction, qarg, carg), qarg, carg)
-                first_instruction = False
-            else:
-                instructions.add(
-                    self._append(deepcopy(instruction), qarg, carg), qarg, carg)
-
+            instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
 
     def _append(self, instruction, qargs, cargs):
@@ -410,7 +394,9 @@ class QuantumCircuit:
 
                 for parameter in param.parameters:
                     if parameter in current_parameters:
-                        self._parameter_table[parameter].append((instruction, param_index))
+                        if not self._check_dup_param_spec(self._parameter_table[parameter],
+                                                          instruction, param_index):
+                            self._parameter_table[parameter].append((instruction, param_index))
                     else:
                         if parameter.name in {p.name for p in current_parameters}:
                             raise QiskitError(
@@ -418,6 +404,12 @@ class QuantumCircuit:
                         self._parameter_table[parameter] = [(instruction, param_index)]
 
         return instruction
+
+    def _check_dup_param_spec(self, parameter_spec_list, instruction, param_index):
+        for spec in parameter_spec_list:
+            if spec[0] is instruction and spec[1] == param_index:
+                return True
+        return False
 
     def add_register(self, *regs):
         """Add registers."""
