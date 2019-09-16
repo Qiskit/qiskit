@@ -359,9 +359,9 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
                         the circuit should be justified.
         fold (int): Optional. Breaks the circuit drawing to this length. This
-                   useful when the drawing does not fit in the console. If
-                   None (default), it will try to guess the console width using
-                   `shutil.get_terminal_size()`. If you don't want pagination
+                    useful when the drawing does not fit in the console. If
+                    None (default), it will try to guess the console width using
+                    `shutil.get_terminal_size()`. If you don't want pagination
                    at all, set `fold=-1`.
         vertical_compression (string): `high`, `medium`, or `low`. It merges the
             lines so the drawing will take less vertical room. Default is `high`.
