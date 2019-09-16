@@ -62,5 +62,7 @@ class Bit:
         if isinstance(other, Bit):
             return other.index == self.index and other.register == self.register
         if isinstance(other, tuple):
+            warn('Equality check between a tuple and a Bit instances is deprecated. '
+                 'Convert your tuples to a Bit object.', DeprecationWarning, stacklevel=2)
             return other[1] == self.index and other[0] == self.register
         return False
