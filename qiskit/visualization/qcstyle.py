@@ -92,7 +92,7 @@ class DefaultStyle:
             'meas': non_gate_color
         }
         self.latexmode = False
-        self.fold = None   # To be removed after 0.10 is released
+        self.fold = None  # To be removed after 0.10 is released
         self.bundle = True
         self.index = False
         self.figwidth = -1
@@ -242,4 +242,3 @@ class BWStyle:
         if dic:
             raise VisualizationError('style option/s ({}) is/are not '
                                      'supported'.format(', '.join(dic.keys())))
-
