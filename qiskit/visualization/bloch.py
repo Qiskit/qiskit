@@ -53,6 +53,7 @@ __all__ = ['Bloch']
 
 import os
 import numpy as np
+from matplotlib import get_backend
 import matplotlib.pyplot as plt  # pylint: disable=import-error
 from matplotlib.patches import FancyArrowPatch  # pylint: disable=import-error
 from mpl_toolkits.mplot3d import (Axes3D, proj3d)  # pylint: disable=import-error
@@ -626,7 +627,9 @@ class Bloch():
             self.fig.savefig(name)
         self.savenum += 1
         if self.fig:
-            plt.close(self.fig)
+            if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                                 'nbAgg']:
+                plt.close(self.fig)
 
 
 def _hide_tick_lines_and_labels(axis):

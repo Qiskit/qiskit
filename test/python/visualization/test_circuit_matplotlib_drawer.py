@@ -48,8 +48,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         expected.set_size_inches(2.508333333333333, 0.2508333333333333)
         return expected
 
-    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
-                     'matplotlib not available.')
+    @unittest.skipIf(not visualization.HAS_MATPLOTLIB, 'matplotlib not available.')
     def test_empty_circuit(self):
         qc = QuantumCircuit()
         filename = self._get_resource_path('current_pulse_matplotlib_ref.png')
@@ -63,9 +62,7 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
         self.assertImagesAreEqual(filename, expected_filename)
 
-    @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
-                     'matplotlib not available.')
-    @unittest.skip('Test is unreliable on some platforms')
+    @unittest.skipIf(not visualization.HAS_MATPLOTLIB, 'matplotlib not available.')
     def test_plot_barriers(self):
         """Test to see that plotting barriers works.
         If it is set to False, no blank columns are introduced"""
@@ -117,8 +114,6 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
-    @unittest.skip('Test is unreliable on some platforms')
-    @unittest.skipIf(os.name == 'nt', 'Rendered image differs on windows')
     def test_long_name(self):
         """Test to see that long register names can be seen completely
         As reported in #2605
@@ -135,20 +130,17 @@ class TestMatplotlibDrawer(QiskitVisualizationTestCase):
         circuit.h(qr)
         circuit.h(qr)
 
-        long_name_filename = self._get_resource_path('current_long_name_matplotlib_ref.png')
-        visualization.circuit_drawer(circuit, output='mpl',
-                                     filename=long_name_filename)
-        self.addCleanup(os.remove, long_name_filename)
+        filename = self._get_resource_path('current_%s_long_name_matplotlib.png' % os.name)
+        visualization.circuit_drawer(circuit, output='mpl', filename=filename)
+        # self.addCleanup(os.remove, filename)
 
         ref_filename = self._get_resource_path(
-            'visualization/references/matplotlib_long_name_ref.png')
+            'visualization/references/%s_long_name_matplotlib.png' % os.name)
 
-        self.assertImagesAreEqual(ref_filename, long_name_filename)
+        self.assertImagesAreEqual(ref_filename, filename)
 
     @unittest.skipIf(not visualization.HAS_MATPLOTLIB,
                      'matplotlib not available.')
-    @unittest.skip('Test is unreliable on some platforms')
-    @unittest.skipIf(os.name == 'nt', 'Rendered image differs on windows')
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly
         """
