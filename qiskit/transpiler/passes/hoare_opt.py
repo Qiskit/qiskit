@@ -67,25 +67,28 @@ class HoareOptimizer(TransformationPass):
     def _test_gate(self, gate, ctrl_ones, trgtvar):
         """ use z3 sat solver to determine triviality of gate
         """
+        trivial = False
+        self.solver.push()
+
         try:
             triv_cond = gate.trivial_if(*trgtvar)
         except AttributeError:
-            return False
-
-        trivial = False
-        self.solver.push()
-        if isinstance(triv_cond, bool):
-            if triv_cond and len(trgtvar) == 1:
-                self.solver.add(And(ctrl_ones, Not(trgtvar[0])))
-                s1 = self.solver.check() == unsat
-                self.solver.pop()
-                self.solver.push()
-                self.solver.add(And(ctrl_ones, trgtvar[0]))
-                s2 = self.solver.check() == unsat
-                trivial = s1 or s2
-        else:
-            self.solver.add(And(ctrl_ones, Not(triv_cond)))
+            self.solver.add(ctrl_ones)
             trivial = self.solver.check() == unsat
+        else:
+            if isinstance(triv_cond, bool):
+                if triv_cond and len(trgtvar) == 1:
+                    self.solver.add(And(ctrl_ones, Not(trgtvar[0])))
+                    s1 = self.solver.check() == unsat
+                    self.solver.pop()
+                    self.solver.push()
+                    self.solver.add(And(ctrl_ones, trgtvar[0]))
+                    s2 = self.solver.check() == unsat
+                    trivial = s1 or s2
+            else:
+                self.solver.add(And(ctrl_ones, Not(triv_cond)))
+                trivial = self.solver.check() == unsat
+
         self.solver.pop()
         return trivial
 
