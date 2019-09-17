@@ -16,7 +16,6 @@
 Base class for dummy backends.
 """
 
-
 import uuid
 import time
 
@@ -40,7 +39,6 @@ class FakeBackend(BaseBackend):
 
     def properties(self):
         """Return backend properties"""
-
         coupling_map = self.configuration().coupling_map
         unique_qubits = list(set().union(*coupling_map))
 
