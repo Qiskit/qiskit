@@ -15,6 +15,9 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Fixed
+-   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
+
 ## [0.9.0] - 2019-08-22
 
 ### Deprecated
