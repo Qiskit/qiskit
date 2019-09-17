@@ -484,6 +484,11 @@ class QuantumCircuit:
         from qiskit.converters.circuit_to_instruction import circuit_to_instruction
         return circuit_to_instruction(self, parameter_map)
 
+    def to_matrix(self):
+        """Convert to a matrix representation, if possible."""
+        from qiskit.quantum_info.operators.operator import Operator
+        return Operator(self).data
+
     def decompose(self):
         """Call a decomposition pass on this circuit,
         to decompose one level (shallow decompose).
