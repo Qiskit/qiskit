@@ -127,3 +127,41 @@ class BackendProperties(BaseModel):
         self.general = general
 
         super().__init__(**kwargs)
+
+    def get(self,
+            searchVal : Union[int, str],
+            optVal : str = None) -> Union[None, List[Union[Any, datetime.datetime]]]:
+        """
+        Return the properties of the search value, if it was given by the backend, otherwise, return `None` or raise an error.
+
+        Args:
+            searchVal (Union[int, str]): The property to look for.
+            optVal (str): Optionally used to specify within the heirarchy which property to return.
+
+        Raises:
+	        PulseError: If error is True and the property is not found.
+        """
+        # FIXME - Pass properties (properties = backend.properties()) for this code to work
+        # _props = properties.__dict__
+        try:
+            for key in _props.keys():
+                temp = _props.get(key)
+                if key == searchVal:
+                    print(searchVal, " = ", _props[key])
+                if (isinstance(_props.get(key), list)):
+                    for i in range(len(temp)):
+                        if key == "gates":
+                            if temp[i].gate == searchVal:
+                                ret = str(searchVal) + " = " + str(temp[i])
+                        elif key == "qubits":
+                            for j in temp[i]:
+                                index = j.__dict__
+                                if i == searchVal:
+                                    if index.get('name') == optVal:
+                                        ret = str(optVal) + " of qubit " + str(searchVal) + " = " + str(index)
+        except (KeyError, TypeError):
+            if error:
+                raise PulseError("Could not find the desired property.")
+            else:
+                return None
+        return ret
