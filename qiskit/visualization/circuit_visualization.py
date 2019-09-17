@@ -346,7 +346,7 @@ def qx_color_scheme():
 
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
-                         plot_barriers=True, justify=None, fold=None, cregbundle=False,
+                         plot_barriers=True, justify=None, fold=None,
                          vertical_compression='high', idle_wires=True, with_layout=True):
     """
     Draws a circuit using ascii art.
@@ -386,7 +386,6 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
     text_drawing.vertical_compression = vertical_compression
-    text_drawing.cregbundle = cregbundle
 
     if filename:
         text_drawing.dump(filename)
