@@ -27,9 +27,6 @@ The format is based on [Keep a Changelog].
 ### Changed
 -   Returned `matplotlib.figure.Figure` objects are only closed in jupyter
     notebooks configured with an inline backend (\#3051)
--   Layering of instructions which underlies all types of circuit drawing has changed.
-    This sometimes results in output which is topologically equivalent to prior versions
-    but visually different. (\#2802)
 
 ### Removed
 
