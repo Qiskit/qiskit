@@ -28,19 +28,19 @@ class HoareOptimizer(TransformationPass):
                                                           q2_0 -> q2_1
         """
         varname = "q" + str(qb) + "_" + str(self.gatenum[qb])
+        var = Bool(varname)
         self.gatenum[qb] += 1
-        return Bool(varname)
+        self.variables[qb] = var
+        return var
 
     def _initialize(self, dag):
         """ create boolean variables for each qubit and apply qb == 0 condition
         """
         for qb in dag.qubits():
-            i = qb[1]  # id: Qubit(QuantumRegister(3, 'q'), 0)
-            self.gatenum[i] = 0
-            x = self._gen_variable(i)
+            self.gatenum[qb.index] = 0
+            x = self._gen_variable(qb.index)
             self.solver.add(x == False)
-            self.variables[i] = x
-            self.gatecache[i] = []
+            self.gatecache[qb.index] = []
 
     def _add_postconditions(self, gate, ctrl_ones, trgtqb, trgtvar):
         """ create boolean variables for each qubit the gate is applied to
@@ -50,7 +50,7 @@ class HoareOptimizer(TransformationPass):
         """
         new_vars = []
         for qb in trgtqb:
-            new_vars.append(self._gen_variable(qb[1]))  # qb[1] = qubit id
+            new_vars.append(self._gen_variable(qb.index))
 
         try:
             self.solver.add(
@@ -113,11 +113,11 @@ class HoareOptimizer(TransformationPass):
             trivial = self._test_gate(gate, ctrl_ones, trgtvar)
             if trivial:
                 layer_dag.remove_op_node(node)
-            else:
+            elif self.l > 1:
                 for qb in node.qargs:
-                    self.gatecache[qb[1]].append(node)
-                    if len(self.gatecache[qb[1]]) >= self.l:
-                        self._multigate_opt(qb[1])
+                    self.gatecache[qb.index].append(node)
+                    if len(self.gatecache[qb.index]) >= self.l:
+                        self._multigate_opt(qb.index)
 
             self._add_postconditions(gate, ctrl_ones, trgtqb, trgtvar)
             new_dag.extend_back(layer_dag)
@@ -129,11 +129,12 @@ class HoareOptimizer(TransformationPass):
             (consider sequences of length 2 for now)
         """
         if max_idx is None:
-            max_idx = len(self.gatecache[qb[1]])-1
+            max_idx = len(self.gatecache[qb.index])-1
         if max_idx >= 1:
             seqs = []
             for i in range(1, max_idx+1):
-                g1, g2 = self.gatecache[qb[1]][i-1], self.gatecache[qb[1]][i]
+                g1 = self.gatecache[qb.index][i-1]
+                g2 = self.gatecache[qb.index][i]
                 if g1.qargs == g2.qargs:
                     seqs.append([g1, g2])
             return seqs
@@ -178,18 +179,18 @@ class HoareOptimizer(TransformationPass):
                 for node in seq:
                     dag.remove_op_node(node)
                     for qb in node.qargs:
-                        self.gatecache[qb[1]].remove(node)
+                        self.gatecache[qb.index].remove(node)
                 rem = True
         if not rem and not rec:
             # need to remove at least one gate from cache, so remove oldest
-            first_gate = self.gatecache[qb[1]][0]
+            first_gate = self.gatecache[qb.index][0]
             for qb in first_gate.qargs:
-                idx = self.gatecache[qb[1]].index(first_gate)
+                idx = self.gatecache[qb.index].index(first_gate)
                 # optimize first if older gates exist before removing
                 if idx >= 1:
                     self._multigate_opt(dag, qb, rec=True, max_idx=idx)
                 # for other qubits remove all up to & including above gate
-                self.gatecache[qb[1]] = self.gatecache[qb[1]][idx+1:]
+                self.gatecache[qb.index] = self.gatecache[qb.index][idx+1:]
 
     def _seperate_ctrl_trgt(self, node):
         gate = node.op
@@ -199,8 +200,8 @@ class HoareOptimizer(TransformationPass):
             numctrl = 0
         ctrlqb = node.qargs[:numctrl]
         trgtqb = node.qargs[numctrl:]
-        ctrlvar = [self.variables[qb[1]] for qb in ctrlqb]
-        trgtvar = [self.variables[qb[1]] for qb in trgtqb]
+        ctrlvar = [self.variables[qb.index] for qb in ctrlqb]
+        trgtvar = [self.variables[qb.index] for qb in trgtqb]
         return (ctrlqb, ctrlvar, trgtqb, trgtvar)
 
     def run(self, dag):
@@ -212,7 +213,8 @@ class HoareOptimizer(TransformationPass):
         """
         self._initialize(dag)
         new_dag = self._traverse_dag(dag)
-        for qb in dag.qubits():
-            self._multigate_opt(dag, qb)
+        if self.l > 1:
+            for qb in dag.qubits():
+                self._multigate_opt(dag, qb)
 
         return new_dag
