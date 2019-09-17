@@ -1,0 +1,13 @@
+---
+prelude:
+  - |
+    Right/left justification of gates in circuit drawing was incorrect in
+    previous releases.
+
+fixes:
+  - |
+    instructions layering which underlies all types of circuit drawing has
+    changed to address right/left justification. This sometimes results in
+    output which is topologically equivalent to the rendering in prior versions
+    but visually different than previously rendered. The change in layering
+    fixes qiskit-terra issue \#2802
