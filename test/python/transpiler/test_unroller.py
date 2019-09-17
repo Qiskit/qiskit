@@ -17,14 +17,17 @@
 """Test the Unroller pass"""
 
 from sympy import pi
+import numpy
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.extensions.simulator import snapshot
+from qiskit.extensions.unitary import UnitaryGate
 from qiskit.transpiler.passes import Unroller
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, Gate
+from qiskit.quantum_info import Operator
 
 
 class TestUnroller(QiskitTestCase):
@@ -353,3 +356,38 @@ class TestUnroller(QiskitTestCase):
         expected.u1(gamma, qr2[3])
 
         self.assertEqual(circuit_to_dag(expected), out_dag)
+
+    def test_unroll_operator(self):
+        """test unrolling of gate without definition but a unitary
+        representation"""
+        sigmax = numpy.array([[0, 1], [1, 0]])
+        sigmay = numpy.array([[0, -1j], [1j, 0]])
+        matrix = numpy.kron(sigmay, numpy.kron(sigmax, sigmay))
+
+        class MyGate(Gate):
+            """Create new gate."""
+            def __init__(self, label=None):
+                super().__init__('mygate', 3, [], label=label)
+
+            def to_matrix(self):
+                """Return a Numpy.array for the X gate."""
+                return matrix
+
+        mygate = MyGate()
+        qr = QuantumRegister(3)
+        qc = QuantumCircuit(qr)
+        qc.append(mygate, qr, [])
+        dag = circuit_to_dag(qc)
+
+        pass_ = Unroller(['u1', 'u2', 'u3', 'unitary'])
+        out_dag = pass_.run(dag)
+        self.assertEqual(len(out_dag.gate_nodes()), 1)
+        dag_op = out_dag.gate_nodes()[0].op
+        # assume decomposition of 3-qubit unitary is not in define for UnitaryGate
+        self.assertEqual(dag_op._definition, None)
+        self.assertTrue(numpy.array_equal(dag_op.to_matrix(), matrix))
+        self.assertEqual(dag_op.name, 'unitary')
+
+        pass_ = Unroller(['u1', 'u2', 'u3'])
+        self.assertRaisesRegex(NotImplementedError, 'Not able to generate a subcircuit*',
+                               pass_.run, dag)

@@ -17,7 +17,9 @@
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import ParameterExpression, QuantumRegister
+from qiskit.extensions.unitary import UnitaryGate
+from qiskit.quantum_info import Operator
 
 
 class Unroller(TransformationPass):
@@ -68,9 +70,13 @@ class Unroller(TransformationPass):
                 raise QiskitError('Error decomposing node {}: {}'.format(node.name, err))
 
             if not rule:
-                raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
-                                  "No rule to expand instruction %s." %
-                                  (str(self.basis), node.op.name))
+                if 'unitary' in self.basis:
+                    rule = [(UnitaryGate(Operator(node.op), label=node.name),
+                             QuantumRegister(node.op.num_qubits), [])]
+                else:
+                    raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
+                                      "No rule to expand instruction %s." %
+                                      (str(self.basis), node.op.name))
 
             # hacky way to build a dag on the same register as the rule is defined
             # TODO: need anonymous rules to address wires by index
