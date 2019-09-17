@@ -14,7 +14,6 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-import warnings
 from copy import copy
 
 from qiskit.visualization.exceptions import VisualizationError
