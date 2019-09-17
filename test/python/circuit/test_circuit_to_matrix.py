@@ -25,7 +25,7 @@ from math import sqrt
 @ddt
 class TestCircuitToMatrix(QiskitTestCase):
     """QuantumCircuit to_matrix tests."""
-    
+
     def setUp(self):
         self._2 = 1 / sqrt(2)  # Normalization coefficient for a matrix with determinant 2.
 
@@ -165,42 +165,45 @@ class TestCircuitToMatrix(QiskitTestCase):
         """
         qc = QuantumCircuit(3)
         qc.h(0)
-        self.assertNumpyArrayEqual(qc.to_matrix(), np.array([[self._2, self._2, 0, 0, 0, 0, 0, 0],
-                                                             [self._2, -self._2, 0, 0, 0, 0, 0, 0],
-                                                             [0, 0, self._2, self._2, 0, 0, 0, 0],
-                                                             [0, 0, self._2, -self._2, 0, 0, 0, 0],
-                                                             [0, 0, 0, 0, self._2, self._2, 0, 0],
-                                                             [0, 0, 0, 0, self._2, -self._2, 0, 0],
-                                                             [0, 0, 0, 0, 0, 0, self._2, self._2],
-                                                             [0, 0, 0, 0, 0, 0, self._2, -self._2]]))
+        self.assertNumpyArrayEqual(qc.to_matrix(),
+                                   np.array([[self._2, self._2, 0, 0, 0, 0, 0, 0],
+                                             [self._2, -self._2, 0, 0, 0, 0, 0, 0],
+                                             [0, 0, self._2, self._2, 0, 0, 0, 0],
+                                             [0, 0, self._2, -self._2, 0, 0, 0, 0],
+                                             [0, 0, 0, 0, self._2, self._2, 0, 0],
+                                             [0, 0, 0, 0, self._2, -self._2, 0, 0],
+                                             [0, 0, 0, 0, 0, 0, self._2, self._2],
+                                             [0, 0, 0, 0, 0, 0, self._2, -self._2]]))
 
     def test_circuit_size_3_gate_h1_to_matrix(self):
         """xTest a 3-qubit QuantumCircuit.to_matrix after applying the gate H on qubit 1.
         """
         qc = QuantumCircuit(3)
         qc.h(1)
-        self.assertNumpyArrayEqual(qc.to_matrix(), np.array([[self._2, 0, self._2, 0, 0, 0, 0, 0],
-                                                             [0, self._2, 0, self._2, 0, 0, 0, 0],
-                                                             [self._2, 0, -self._2, 0, 0, 0, 0, 0],
-                                                             [0, self._2, 0, -self._2, 0, 0, 0, 0],
-                                                             [0, 0, 0, 0, self._2, 0, self._2, 0],
-                                                             [0, 0, 0, 0, 0, self._2, 0, self._2],
-                                                             [0, 0, 0, 0, self._2, 0, -self._2, 0],
-                                                             [0, 0, 0, 0, 0, self._2, 0, -self._2]]))
+        self.assertNumpyArrayEqual(qc.to_matrix(),
+                                   np.array([[self._2, 0, self._2, 0, 0, 0, 0, 0],
+                                             [0, self._2, 0, self._2, 0, 0, 0, 0],
+                                             [self._2, 0, -self._2, 0, 0, 0, 0, 0],
+                                             [0, self._2, 0, -self._2, 0, 0, 0, 0],
+                                             [0, 0, 0, 0, self._2, 0, self._2, 0],
+                                             [0, 0, 0, 0, 0, self._2, 0, self._2],
+                                             [0, 0, 0, 0, self._2, 0, -self._2, 0],
+                                             [0, 0, 0, 0, 0, self._2, 0, -self._2]]))
 
     def test_circuit_size_3_gate_h2_to_matrix(self):
         """xTest a 3-qubit QuantumCircuit.to_matrix after applying the gate H on qubit 2.
         """
         qc = QuantumCircuit(3)
         qc.h(2)
-        self.assertNumpyArrayEqual(qc.to_matrix(), np.array([[self._2, 0, 0, 0, self._2, 0, 0, 0],
-                                                             [0, self._2, 0, 0, 0, self._2, 0, 0],
-                                                             [0, 0, self._2, 0, 0, 0, self._2, 0],
-                                                             [0, 0, 0, self._2, 0, 0, 0, self._2],
-                                                             [self._2, 0, 0, 0, -self._2, 0, 0, 0],
-                                                             [0, self._2, 0, 0, 0, -self._2, 0, 0],
-                                                             [0, 0, self._2, 0, 0, 0, -self._2, 0],
-                                                             [0, 0, 0, self._2, 0, 0, 0, -self._2]]))
+        self.assertNumpyArrayEqual(qc.to_matrix(),
+                                   np.array([[self._2, 0, 0, 0, self._2, 0, 0, 0],
+                                             [0, self._2, 0, 0, 0, self._2, 0, 0],
+                                             [0, 0, self._2, 0, 0, 0, self._2, 0],
+                                             [0, 0, 0, self._2, 0, 0, 0, self._2],
+                                             [self._2, 0, 0, 0, -self._2, 0, 0, 0],
+                                             [0, self._2, 0, 0, 0, -self._2, 0, 0],
+                                             [0, 0, self._2, 0, 0, 0, -self._2, 0],
+                                             [0, 0, 0, self._2, 0, 0, 0, -self._2]]))
 
     def assertNumpyArrayEqual(self, x, y):
         np.testing.assert_array_equal(x, y)
