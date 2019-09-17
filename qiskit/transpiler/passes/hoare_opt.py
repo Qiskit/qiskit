@@ -20,6 +20,7 @@ class HoareOptimizer(TransformationPass):
         self.variables = dict()
         self.gatenum = dict()
         self.gatecache = dict()
+        self.varnum = dict()
         self.l = l
 
     def _gen_variable(self, qb):
@@ -30,7 +31,7 @@ class HoareOptimizer(TransformationPass):
         varname = "q" + str(qb) + "_" + str(self.gatenum[qb])
         var = Bool(varname)
         self.gatenum[qb] += 1
-        self.variables[qb] = var
+        self.variables[qb].append(var)
         return var
 
     def _initialize(self, dag):
@@ -38,9 +39,11 @@ class HoareOptimizer(TransformationPass):
         """
         for qb in dag.qubits():
             self.gatenum[qb.index] = 0
+            self.variables[qb.index] = []
+            self.gatecache[qb.index] = []
+            self.varnum[qb.index] = dict()
             x = self._gen_variable(qb.index)
             self.solver.add(x == False)
-            self.gatecache[qb.index] = []
 
     def _add_postconditions(self, gate, ctrl_ones, trgtqb, trgtvar):
         """ create boolean variables for each qubit the gate is applied to
@@ -119,6 +122,7 @@ class HoareOptimizer(TransformationPass):
             elif self.l > 1:
                 for qb in node.qargs:
                     self.gatecache[qb.index].append(node)
+                    self.varnum[qb.index][node] = self.gatenum[qb.index]-1
                     if len(self.gatecache[qb.index]) >= self.l:
                         self._multigate_opt(qb.index)
 
@@ -203,8 +207,14 @@ class HoareOptimizer(TransformationPass):
             numctrl = 0
         ctrlqb = node.qargs[:numctrl]
         trgtqb = node.qargs[numctrl:]
-        ctrlvar = [self.variables[qb.index] for qb in ctrlqb]
-        trgtvar = [self.variables[qb.index] for qb in trgtqb]
+        try:
+            ctrlvar = [self.variables[qb.index][self.varnum[qb.index][node]]
+                       for qb in ctrlqb]
+            trgtvar = [self.variables[qb.index][self.varnum[qb.index][node]]
+                       for qb in trgtqb]
+        except KeyError:
+            ctrlvar = [self.variables[qb.index][-1] for qb in ctrlqb]
+            trgtvar = [self.variables[qb.index][-1] for qb in trgtqb]
         return (ctrlqb, ctrlvar, trgtqb, trgtvar)
 
     def run(self, dag):
