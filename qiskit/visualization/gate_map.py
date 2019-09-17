@@ -23,6 +23,7 @@ from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
     import matplotlib
+    from matplotlib import get_backend
     import matplotlib.pyplot as plt  # pylint: disable=import-error
     import matplotlib.patches as mpatches
     import matplotlib.cm as cm
@@ -232,7 +233,9 @@ def plot_gate_map(backend, figsize=None,
     ax.set_xlim([-1, x_max+1])
     ax.set_ylim([-(y_max+1), 1])
     if not input_axes:
-        plt.close(fig)
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(fig)
         return fig
     return None
 
@@ -448,6 +451,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
     if show_title:
         fig.suptitle('{name} Error Map'.format(name=backend.name()),
                      fontsize=24, y=0.9)
-
-    plt.close(fig)
+    if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                         'nbAgg']:
+        plt.close(fig)
     return fig
