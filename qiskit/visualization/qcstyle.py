@@ -124,10 +124,6 @@ class DefaultStyle:
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
-        if 'plotbarrier' in dic:
-            warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
-                          ' argument "plot_barriers"', DeprecationWarning, 5)
-            dic.pop('plotbarrier')
         if dic:
             raise VisualizationError('style option/s ({}) is/are not '
                                      'supported'.format(', '.join(dic.keys())))
@@ -228,9 +224,6 @@ class BWStyle:
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
-        if 'plotbarrier' in dic:
-            warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
-                          ' argument "plot_barriers"', DeprecationWarning, 5)
         if dic:
             raise VisualizationError('style option/s ({}) is/are not '
                                      'supported'.format(', '.join(dic.keys())))
