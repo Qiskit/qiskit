@@ -234,4 +234,3 @@ class BWStyle:
         if dic:
             raise VisualizationError('style option/s ({}) is/are not '
                                      'supported'.format(', '.join(dic.keys())))
-
