@@ -26,8 +26,8 @@ except ImportError:
 
 REQUIREMENTS = [
     "jsonschema>=2.6",
-    "marshmallow>=2.17.0,<3",
-    "marshmallow_polyfield>=3.2,<4",
+    "marshmallow>=3,<4",
+    "marshmallow_polyfield>=5.7,<6",
     "networkx>=2.2",
     "numpy>=1.13",
     "ply>=3.10",
