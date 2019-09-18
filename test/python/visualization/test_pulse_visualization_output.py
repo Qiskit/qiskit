@@ -107,6 +107,19 @@ class TestPulseVisualizationImplementation(QiskitVisualizationTestCase):
         self.assertImagesAreEqual(filename, self.schedule_matplotlib_reference)
         os.remove(filename)
 
+    # TODO: Enable for refactoring purposes and enable by default when we can
+    # decide if the backend is available or not.
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    @unittest.skip('Useful for refactoring purposes, skipping by default.')
+    def test_truncate_acquisition(self):
+        sched = Schedule()
+        acquire = Acquire(30)
+        sched = sched.insert(0, acquire(self.device.acquires[1],
+                                        self.device.memoryslots[1],
+                                        self.device.registers[1]))
+        # Check ValueError is not thrown
+        sched.draw(plot_range=(0, 15))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
