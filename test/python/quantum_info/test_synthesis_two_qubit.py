@@ -26,86 +26,11 @@ from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, U3Gate,
 from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.quantum_info.random import random_unitary
-from qiskit.quantum_info.synthesis import (two_qubit_cnot_decompose, euler_angles_1q,
+from qiskit.quantum_info.synthesis import (two_qubit_cnot_decompose,
                                            TwoQubitBasisDecomposer)
 from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecomposition,
                                                                Ud)
 from qiskit.test import QiskitTestCase
-
-
-def make_oneq_cliffords():
-    """Make as list of 1q Cliffords"""
-    ixyz_list = [g().to_matrix() for g in (IdGate, XGate, YGate, ZGate)]
-    ih_list = [g().to_matrix() for g in (IdGate, HGate)]
-    irs_list = [IdGate().to_matrix(),
-                SdgGate().to_matrix() @ HGate().to_matrix(),
-                HGate().to_matrix() @ SGate().to_matrix()]
-    oneq_cliffords = [Operator(ixyz @ ih @ irs) for ixyz in ixyz_list
-                      for ih in ih_list
-                      for irs in irs_list]
-    return oneq_cliffords
-
-
-ONEQ_CLIFFORDS = make_oneq_cliffords()
-
-
-def make_hard_thetas_oneq(smallest=1e-18, factor=3.2, steps=22, phi=0.7, lam=0.9):
-    """Make 1q gates with theta/2 close to 0, pi/2, pi, 3pi/2"""
-    return ([U3Gate(smallest * factor**i, phi, lam) for i in range(steps)] +
-            [U3Gate(-smallest * factor**i, phi, lam) for i in range(steps)] +
-            [U3Gate(np.pi/2 + smallest * factor**i, phi, lam) for i in range(steps)] +
-            [U3Gate(np.pi/2 - smallest * factor**i, phi, lam) for i in range(steps)] +
-            [U3Gate(np.pi + smallest * factor**i, phi, lam) for i in range(steps)] +
-            [U3Gate(np.pi - smallest * factor**i, phi, lam) for i in range(steps)] +
-            [U3Gate(3*np.pi/2 + smallest * factor**i, phi, lam) for i in range(steps)] +
-            [U3Gate(3*np.pi/2 - smallest * factor**i, phi, lam) for i in range(steps)])
-
-
-HARD_THETA_ONEQS = make_hard_thetas_oneq()
-
-
-# It's too slow to use all 24**4 Clifford combos. If we can make it faster, use a larger set
-K1K2S = [(ONEQ_CLIFFORDS[3], ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[2], ONEQ_CLIFFORDS[21]),
-         (ONEQ_CLIFFORDS[5], ONEQ_CLIFFORDS[6], ONEQ_CLIFFORDS[9], ONEQ_CLIFFORDS[7]),
-         (ONEQ_CLIFFORDS[2], ONEQ_CLIFFORDS[1], ONEQ_CLIFFORDS[0], ONEQ_CLIFFORDS[4]),
-         [Operator(U3Gate(x, y, z)) for x, y, z in
-          [(0.2, 0.3, 0.1), (0.7, 0.15, 0.22), (0.001, 0.97, 2.2), (3.14, 2.1, 0.9)]]]
-
-
-class TestEulerAngles1Q(QiskitTestCase):
-    """Test euler_angles_1q()"""
-
-    def check_one_qubit_euler_angles(self, operator, tolerance=1e-14):
-        """Check euler_angles_1q works for the given unitary
-        """
-        with self.subTest(operator=operator):
-            target_unitary = operator.data
-            angles = euler_angles_1q(target_unitary)
-            decomp_unitary = U3Gate(*angles).to_matrix()
-            target_unitary *= la.det(target_unitary)**(-0.5)
-            decomp_unitary *= la.det(decomp_unitary)**(-0.5)
-            maxdist = np.max(np.abs(target_unitary - decomp_unitary))
-            if maxdist > 0.1:
-                maxdist = np.max(np.abs(target_unitary + decomp_unitary))
-            self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
-
-    def test_one_qubit_euler_angles_clifford(self):
-        """Verify euler_angles_1q produces correct Euler angles for all Cliffords.
-        """
-        for clifford in ONEQ_CLIFFORDS:
-            self.check_one_qubit_euler_angles(clifford)
-
-    def test_one_qubit_hard_thetas(self):
-        """Verify euler_angles_1q for close-to-degenerate theta"""
-        for gate in HARD_THETA_ONEQS:
-            self.check_one_qubit_euler_angles(Operator(gate))
-
-    def test_one_qubit_euler_angles_random(self, nsamples=100):
-        """Verify euler_angles_1q produces correct Euler angles for random unitaries.
-        """
-        for _ in range(nsamples):
-            unitary = random_unitary(2)
-            self.check_one_qubit_euler_angles(unitary)
 
 
 # FIXME: streamline the set of test cases
