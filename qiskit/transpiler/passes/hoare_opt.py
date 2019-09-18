@@ -22,15 +22,15 @@ class HoareOptimizer(TransformationPass):
         self.varnum = dict()
         self.l = l
 
-    def _gen_variable(self, qb):
+    def _gen_variable(self, qb_id):
         """ After each gate generate a new unique variable name for each of the
             qubits, using scheme: 'q[id]_[gatenum]', e.g. q1_0 -> q1_1 -> q1_2,
                                                           q2_0 -> q2_1
         """
-        varname = "q" + str(qb) + "_" + str(self.gatenum[qb])
+        varname = "q" + str(qb_id) + "_" + str(self.gatenum[qb_id])
         var = Bool(varname)
-        self.gatenum[qb] += 1
-        self.variables[qb].append(var)
+        self.gatenum[qb_id] += 1
+        self.variables[qb_id].append(var)
         return var
 
     def _initialize(self, dag):
@@ -115,22 +115,22 @@ class HoareOptimizer(TransformationPass):
                     self.gatecache[qb.index].append(node)
                     self.varnum[qb.index][node] = self.gatenum[qb.index]-1
                     if len(self.gatecache[qb.index]) >= self.l:
-                        self._multigate_opt(qb.index)
+                        self._multigate_opt(dag, qb.index)
 
             self._add_postconditions(gate, ctrl_ones, trgtqb, trgtvar)
 
-    def _target_successive_seq(self, dag, qb, max_idx):
+    def _target_successive_seq(self, dag, qb_id, max_idx):
         """ gates are target successive if they have the same set of target
             qubits and follow each other immediately on these target qubits
             (consider sequences of length 2 for now)
         """
         if max_idx is None:
-            max_idx = len(self.gatecache[qb.index])-1
+            max_idx = len(self.gatecache[qb_id])-1
         if max_idx >= 1:
             seqs = []
             for i in range(1, max_idx+1):
-                g1 = self.gatecache[qb.index][i-1]
-                g2 = self.gatecache[qb.index][i]
+                g1 = self.gatecache[qb_id][i-1]
+                g2 = self.gatecache[qb_id][i]
                 if g1.qargs == g2.qargs:
                     seqs.append([g1, g2])
             return seqs
@@ -142,7 +142,7 @@ class HoareOptimizer(TransformationPass):
             (consider sequences of length 2 for now)
         """
         assert len(sequence) == 2
-        return isinstance(sequence[0], type(sequence[1].inverse()))
+        return isinstance(sequence[0].op, type(sequence[1].op.inverse()))
 
     def _seq_as_one(self, sequence):
         """ use z3 solver to determine if the gates in the sequence are either
@@ -150,9 +150,8 @@ class HoareOptimizer(TransformationPass):
             (consider sequences of length 2 for now)
         """
         assert len(sequence) == 2
-        g1, g2 = sequence[0], sequence[1]
-        v1, v2 = self._seperate_ctrl_trgt(g1), self._seperate_ctrl_trgt(g2)
-        ctrlvar1, ctrlvar2 = v1[1], v2[1]
+        ctrlvar1 = self._seperate_ctrl_trgt(sequence[0])[1]
+        ctrlvar2 = self._seperate_ctrl_trgt(sequence[1])[1]
 
         self.solver.push()
         self.solver.add(
@@ -166,11 +165,11 @@ class HoareOptimizer(TransformationPass):
 
         return res
 
-    def _multigate_opt(self, dag, qb, rec=False, max_idx=None):
+    def _multigate_opt(self, dag, qb_id, rec=False, max_idx=None):
         """
         """
         removed = False
-        for seq in self._target_successive_seq(dag, qb, max_idx):
+        for seq in self._target_successive_seq(dag, qb_id, max_idx):
             if self._is_identity(seq) and self._seq_as_one(seq):
                 for node in seq:
                     dag.remove_op_node(node)
@@ -179,12 +178,12 @@ class HoareOptimizer(TransformationPass):
                 removed = True
         if not removed and not rec:
             # need to remove at least one gate from cache, so remove oldest
-            first_gate = self.gatecache[qb.index][0]
+            first_gate = self.gatecache[qb_id][0]
             for qb in first_gate.qargs:
                 idx = self.gatecache[qb.index].index(first_gate)
                 # optimize first if older gates exist before removing
                 if idx >= 1:
-                    self._multigate_opt(dag, qb, rec=True, max_idx=idx)
+                    self._multigate_opt(dag, qb.index, rec=True, max_idx=idx)
                 # for other qubits remove all up to & including above gate
                 self.gatecache[qb.index] = self.gatecache[qb.index][idx+1:]
 
@@ -217,5 +216,5 @@ class HoareOptimizer(TransformationPass):
         self._traverse_dag(dag)
         if self.l > 1:
             for qb in dag.qubits():
-                self._multigate_opt(dag, qb)
+                self._multigate_opt(dag, qb.index)
         return dag
