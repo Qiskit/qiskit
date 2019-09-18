@@ -26,6 +26,8 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
+DEFAULT_ATOL = 1e-12
+
 
 class OneQubitEulerDecomposer:
     """A class for decomposing 1-qubit unitaries into Eular angle rotations.
@@ -42,7 +44,10 @@ class OneQubitEulerDecomposer:
             raise QiskitError("OneQubitEulerDecomposer: unsupported basis")
         self._basis = basis
 
-    def __call__(self, unitary_mat, validate=True, simplify=True, atol=1e-12):
+    def __call__(self, unitary_mat,
+                 validate=True,
+                 simplify=True,
+                 atol=DEFAULT_ATOL):
         """Decompose single qubit gate into a circuit"""
         if hasattr(unitary_mat, 'to_operator'):
             # If input is a BaseOperator subclass this attempts to convert
@@ -63,21 +68,18 @@ class OneQubitEulerDecomposer:
         if validate and not is_unitary_matrix(unitary_mat):
             raise QiskitError("OneQubitEulerDecomposer: "
                               "input matrix is not unitary.")
-        return self._circuit(unitary_mat, simplify=simplify, atol=atol)
+        circuit = self._circuit(unitary_mat, simplify=simplify, atol=atol)
+        return circuit
 
-    def _angles(self, unitary_mat, atol=1e-12):
+    def _angles(self, unitary_mat, atol=DEFAULT_ATOL):
         """Return Euler angles"""
-        # Add phase to matrix to make it special unitary
-        # This ensure that the quaternion representation is real
-        su_phase = self._special_unitary_phase(unitary_mat)
-        quats = self._quaternions(su_phase * unitary_mat)
         if self._basis in ['U3', 'U1X', 'ZYZ']:
-            return self._quaternions2euler_zyz(quats, atol=atol)
+            return self._angles_zyz(unitary_mat)
         if self._basis == 'XYX':
-            return self._quaternions2euler_xyx(quats, atol=atol)
+            return self._angles_xyx(unitary_mat, atol=atol)
         raise QiskitError("OneQubitEulerDecomposer: invalid basis")
 
-    def _circuit(self, unitary_mat, simplify=True, atol=1e-12):
+    def _circuit(self, unitary_mat, simplify=True, atol=DEFAULT_ATOL):
         # Add phase to matrix to make it special unitary
         # This ensure that the quaternion representation is real
         angles = self._angles(unitary_mat)
@@ -92,63 +94,50 @@ class OneQubitEulerDecomposer:
         raise QiskitError("OneQubitEulerDecomposer: invalid basis")
 
     @staticmethod
-    def _special_unitary_phase(unitary_mat):
-        """Return phase to make unitary special unitary.
+    def _angles_zyz(unitary_matrix):
+        """Return euler angles for unitary matrix in ZYZ basis.
 
-        This means that det(phase * unitary_mat) = 1
+        In this representation U = Rz(phi).Ry(theta).Rz(lam)
         """
-        return 1.0 / np.sqrt(la.det(unitary_mat))
+        if unitary_matrix.shape != (2, 2):
+            raise QiskitError("euler_angles_1q: expected 2x2 matrix")
+        phase = la.det(unitary_matrix)**(-1.0/2.0)
+        U = phase * unitary_matrix  # U in SU(2)
+        # OpenQASM SU(2) parameterization:
+        # U[0, 0] = exp(-i(phi+lambda)/2) * cos(theta/2)
+        # U[0, 1] = -exp(-i(phi-lambda)/2) * sin(theta/2)
+        # U[1, 0] = exp(i(phi-lambda)/2) * sin(theta/2)
+        # U[1, 1] = exp(i(phi+lambda)/2) * cos(theta/2)
+        theta = 2 * math.atan2(abs(U[1, 0]), abs(U[0, 0]))
+        phiplambda = 2 * np.angle(U[1, 1])
+        phimlambda = 2 * np.angle(U[1, 0])
+        phi = (phiplambda + phimlambda) / 2.0
+        lam = (phiplambda - phimlambda) / 2.0
+        return theta, phi, lam
 
     @staticmethod
-    def _quaternions(su_mat):
+    def _quaternions(unitary_matrix):
         """Return quaternions for a special unitary matrix"""
         # Get quaternions (q0, q1, q2, q3)
         # so that su_mat =  q0*I - 1j * (q1*X + q2*Y + q3*Z)
+        # We get them from the canonical ZYZ euler angles
+        theta, phi, lam = OneQubitEulerDecomposer._angles_zyz(
+            unitary_matrix)
         quats = np.zeros(4, dtype=complex)
-        quats[0] = 0.5 * (su_mat[0, 0] + su_mat[1, 1])
-        quats[1] = 0.5j * (su_mat[0, 1] + su_mat[1, 0])
-        quats[2] = 0.5 * (-su_mat[0, 1] + su_mat[1, 0])
-        quats[3] = 0.5j * (su_mat[0, 0] - su_mat[1, 1])
-        # Discard imaginary part (which should be zero)
-        return quats.real
+        quats[0] = math.cos(0.5 * theta) * math.cos(0.5 * (lam + phi))
+        quats[1] = math.sin(0.5 * theta) * math.sin(0.5 * (lam - phi))
+        quats[2] = math.sin(0.5 * theta) * math.cos(0.5 * (lam - phi))
+        quats[3] = math.cos(0.5 * theta) * math.sin(0.5 * (lam + phi))
+        return quats
 
     @staticmethod
-    def _quaternions2euler_zyz(quats, atol=1e-12):
-        # pylint: too-many-return-statements
-        # Check quaternions for pure Pauli rotations
-        if np.allclose(abs(quats), np.array([1., 0., 0., 0.]), atol=atol):
-            # Identity
-            return np.zeros(3, dtype=float)
-        if np.allclose(abs(quats), np.array([0., 1., 0., 0.]), atol=atol):
-            # +/- RX180
-            return np.array([np.pi, 0., -quats[1] * np.pi])
-        if np.allclose(abs(quats), np.array([0., 0., 1., 0.]), atol=atol):
-            # +/- RY180
-            return np.array([quats[2] * np.pi, 0., 0.])
-        if np.allclose(abs(quats), np.array([0., 0., 0., 1.]), atol=atol):
-            # +/- RZ180
-            return np.array([0., 0., quats[3] * np.pi])
-        if np.allclose(quats[[1, 3]], np.array([0., 0.]), atol=atol):
-            # RY rotation
-            arg = np.clip(2 * quats[0] * quats[2], -1., 1.)
-            return np.array([math.asin(arg), 0., 0.])
-        if np.allclose(quats[[1, 2]], np.array([0., 0.]), atol=atol):
-            # RZ rotation
-            arg = np.clip(2 * quats[0] * quats[3], -1., 1.)
-            return np.array([0., 0., math.asin(arg)])
-        # General case
-        return np.array([
-            math.acos(np.clip(quats[0] * quats[0] - quats[1] * quats[1]
-                              - quats[2] * quats[2] + quats[3] * quats[3],
-                              -1., 1.)),
-            math.atan2(quats[2] * quats[3] - quats[0] * quats[1],
-                       quats[0] * quats[2] + quats[1] * quats[3]),
-            math.atan2(quats[2] * quats[3] + quats[0] * quats[1],
-                       quats[0] * quats[2] - quats[1] * quats[3])])
+    def _angles_xyx(unitary_matrix, atol=DEFAULT_ATOL):
+        """Return euler angles for unitary matrix in XYX basis.
 
-    @staticmethod
-    def _quaternions2euler_xyx(quats, atol=1e-12):
+        In this representation U = Rx(phi).Ry(theta).Rx(lam)
+        """
         # pylint: too-many-return-statements
+        quats = OneQubitEulerDecomposer._quaternions(unitary_matrix)
         # Check quaternions for pure Pauli rotations
         if np.allclose(abs(quats), np.array([1., 0., 0., 0.]), atol=atol):
             # Identity
@@ -164,18 +153,21 @@ class OneQubitEulerDecomposer:
             return np.array([np.pi, quats[3] * np.pi, 0.])
         if np.allclose(quats[[1, 3]], np.array([0., 0.]), atol=atol):
             # RY rotation
-            return np.array([math.asin(2 * quats[0] * quats[2]), 0., 0.])
+            arg = np.clip(np.real(2 * quats[0] * quats[2]), -1., 1.)
+            return np.array([math.asin(arg), 0., 0.])
         if np.allclose(quats[[2, 3]], np.array([0., 0.]), atol=atol):
             # RX rotation
-            return np.array([0., 0., math.asin(2 * quats[0] * quats[1])])
+            arg = np.clip(np.real(2 * quats[0] * quats[1]), -1., 1.)
+            return np.array([0., 0., math.asin(arg)])
         # General case
         return np.array([
-            math.acos(quats[0] * quats[0] + quats[1] * quats[1]
-                      - quats[2] * quats[2] - quats[3] * quats[3]),
-            math.atan2(quats[1] * quats[2] + quats[0] * quats[3],
-                       quats[0] * quats[2] - quats[1] * quats[3]),
-            math.atan2(quats[1] * quats[2] - quats[0] * quats[3],
-                       quats[0] * quats[2] + quats[1] * quats[3])])
+            math.acos(np.clip(np.real(quats[0] * quats[0] + quats[1] * quats[1]
+                              - quats[2] * quats[2] - quats[3] * quats[3]),
+                              -1., 1.)),
+            math.atan2(np.real(quats[1] * quats[2] + quats[0] * quats[3]),
+                       np.real(quats[0] * quats[2] - quats[1] * quats[3])),
+            math.atan2(np.real(quats[1] * quats[2] - quats[0] * quats[3]),
+                       np.real(quats[0] * quats[2] + quats[1] * quats[3]))])
 
     @staticmethod
     def _circuit_u3(angles):
@@ -185,7 +177,7 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_u1x(angles, simplify=True, atol=1e-12):
+    def _circuit_u1x(angles, simplify=True, atol=DEFAULT_ATOL):
         # Check for U1 and U2 decompositions into minimimal
         # required X90 pulses
         theta, phi, lam = angles
@@ -211,7 +203,7 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_zyz(angles, simplify=True, atol=1e-12):
+    def _circuit_zyz(angles, simplify=True, atol=DEFAULT_ATOL):
         theta, phi, lam = angles
         circuit = QuantumCircuit(1)
         if not simplify or not np.isclose(lam, 0.0, atol=atol):
@@ -223,7 +215,7 @@ class OneQubitEulerDecomposer:
         return circuit
 
     @staticmethod
-    def _circuit_xyx(angles, simplify=True, atol=1e-12):
+    def _circuit_xyx(angles, simplify=True, atol=DEFAULT_ATOL):
         theta, phi, lam = angles
         circuit = QuantumCircuit(1)
         if not simplify or not np.isclose(lam, 0.0, atol=atol):
