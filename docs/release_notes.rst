@@ -9,124 +9,13 @@ Version History
 
 This table tracks the meta-package versions and the version of each Qiskit element installed:
 
-.. list-table:: **Version History**
-   :header-rows: 1
-
-   * - Qiskit Metapackage Version
-     - qiskit-terra
-     - qiskit-aer
-     - qiskit-ignis
-     - qiskit-ibmq-provider
-     - qiskit-aqua
-   * - 0.12.0
-     - 0.9.0
-     - 0.3.0
-     - 0.2.0
-     - 0.3.2
-     - 0.6.0
-   * - 0.11.2
-     - 0.8.2
-     - 0.2.3
-     - 0.1.1
-     - 0.3.2
-     - 0.5.5
-   * - 0.11.1
-     - 0.8.2
-     - 0.2.3
-     - 0.1.1
-     - 0.3.1
-     - 0.5.3
-   * - 0.11.0
-     - 0.8.2
-     - 0.2.3
-     - 0.1.1
-     - 0.3.0
-     - 0.5.2
-   * - 0.10.5
-     - 0.8.2
-     - 0.2.1
-     - 0.1.1
-     - 0.2.2
-     - 0.5.2
-   * - 0.10.4
-     - 0.8.2
-     - 0.2.1
-     - 0.1.1
-     - 0.2.2
-     - 0.5.1
-   * - 0.10.3
-     - 0.8.1
-     - 0.2.1
-     - 0.1.1
-     - 0.2.2
-     - 0.5.1
-   * - 0.10.2
-     - 0.8.0
-     - 0.2.1
-     - 0.1.1
-     - 0.2.2
-     - 0.5.1
-   * - 0.10.1
-     - 0.8.0
-     - 0.2.0
-     - 0.1.1
-     - 0.2.2
-     - 0.5.0
-   * - 0.10.0
-     - 0.8.0
-     - 0.2.0
-     - 0.1.1
-     - 0.2.1
-     - 0.5.0
-   * - 0.9.0
-     - 0.8.0
-     - 0.2.0
-     - 0.1.1
-     - 0.1.1
-     - 0.5.0
-   * - 0.8.1
-     - 0.7.2
-     - 0.1.1
-     - 0.1.0
-     -
-     -
-   * - 0.8.0
-     - 0.7.1
-     - 0.1.1
-     - 0.1.0
-     -
-     -
-   * - 0.7.3
-     - 0.7.x
-     - 0.1.x
-     -
-     -
-     -
-   * - 0.7.2
-     - 0.7.x
-     - 0.1.x
-     -
-     -
-     -
-   * - 0.7.1
-     - 0.7.x
-     - 0.1.x
-     -
-     -
-     -
-   * - 0.7.0
-     - 0.7.x
-     - 0.1.x
-     -
-     -
-     -
+.. version-history:: **Version History**
 
 .. note::
 
-  ``0.7.x`` and ``0.1.x`` mean any patch version on that minor version. For,
-  example ``0.7.x`` will install the latest ``0.7`` version found on pypi which
-  would be ``0.7.2``. For the ``0.7.0``, ``0.7.1``, and ``0.7.2`` meta-package
-  releases the :ref:`versioning_strategy` policy was formalized yet.
+   For the ``0.7.0``, ``0.7.1``, and ``0.7.2`` meta-package releases the
+   :ref:`versioning_strategy` policy was not formalized yet.
+
 
 ###############
 Notable Changes
