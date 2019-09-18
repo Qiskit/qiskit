@@ -56,7 +56,7 @@ class OneQubitEulerDecomposer:
         Returns:
             QuantumCircuit: the decomposed single-qubit gate circuit
 
-        Raise:
+        Raises:
             QiskitError: if input is invalid or synthesis fails.
         """
         if hasattr(unitary_mat, 'to_operator'):
@@ -150,7 +150,7 @@ class OneQubitEulerDecomposer:
 
         In this representation U = Rx(phi).Ry(theta).Rx(lam)
         """
-        # pylint: too-many-return-statements
+        # pylint: disable=too-many-return-statements
         quats = OneQubitEulerDecomposer._quaternions(unitary_matrix)
         # Check quaternions for pure Pauli rotations
         if np.allclose(abs(quats), np.array([1., 0., 0., 0.]), atol=atol):
@@ -176,7 +176,7 @@ class OneQubitEulerDecomposer:
         # General case
         return np.array([
             math.acos(np.clip(np.real(quats[0] * quats[0] + quats[1] * quats[1]
-                              - quats[2] * quats[2] - quats[3] * quats[3]),
+                                      - quats[2] * quats[2] - quats[3] * quats[3]),
                               -1., 1.)),
             math.atan2(np.real(quats[1] * quats[2] + quats[0] * quats[3]),
                        np.real(quats[0] * quats[2] - quats[1] * quats[3])),
