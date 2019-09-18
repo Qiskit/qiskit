@@ -58,3 +58,35 @@ class ProviderTestCase(QiskitTestCase):
         """Test getting a backend from the provider."""
         backend = self.provider.get_backend(name=self.backend_name)
         self.assertEqual(backend.name(), self.backend_name)
+
+    def test_gate_error(self):
+        """Test getting the gate errors."""
+        self.assertEqual(self.backend.properties().gate_error('u1', 0),
+                         1.0)
+        self.assertEqual(self.backend.properties().gate_error('u1', [0]),
+                         1.0)
+        self.assertEqual(self.backend.properties().gate_error('cx', [0, 1]),
+                         1.0)
+
+    def test_gate_length(self):
+        """Test getting the gate duration."""
+        self.assertEqual(self.backend.properties().gate_length('u1', 0),
+                         0.)
+        self.assertEqual(self.backend.properties().gate_length('u3', qubits=[0]),
+                         2 * 1.3333 * 1e-9)
+
+    #TODO
+
+    # def test_t1(self):
+
+    # def test_get_gate_property(self):
+    #     self.assertEqual(self.backend.properties().qubits['cx'][0,1]['gate_error'],
+    #                      71.9500421005539*1e-6)
+    #     self.assertEqual(self.backend.properties().qubits[0]['frequency'][0],
+    #                      4919.96800692*1e6)
+
+    # def test_get_qubit_property(self):
+    #     self.assertEqual(self.backend.properties().qubits[0]['T1'][0],
+    #                      71.9500421005539*1e-6)
+    #     self.assertEqual(self.backend.properties().qubits[0]['frequency'][0],
+    #                      4919.96800692*1e6)
