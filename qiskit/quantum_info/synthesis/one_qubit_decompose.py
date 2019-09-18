@@ -24,6 +24,7 @@ import scipy.linalg as la
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
 DEFAULT_ATOL = 1e-12
@@ -44,11 +45,20 @@ class OneQubitEulerDecomposer:
             raise QiskitError("OneQubitEulerDecomposer: unsupported basis")
         self._basis = basis
 
-    def __call__(self, unitary_mat,
-                 validate=True,
-                 simplify=True,
-                 atol=DEFAULT_ATOL):
-        """Decompose single qubit gate into a circuit"""
+    def __call__(self, unitary_mat, simplify=True, atol=DEFAULT_ATOL):
+        """Decompose single qubit gate into a circuit.
+
+        Args:
+            unitary_mat (array_like): 1-qubit unitary matrix
+            simplify (bool): remove zero-angle rotations [Default: True]
+            atol (float): absolute tolerance for checking angles zero.
+
+        Returns:
+            QuantumCircuit: the decomposed single-qubit gate circuit
+
+        Raise:
+            QiskitError: if input is invalid or synthesis fails.
+        """
         if hasattr(unitary_mat, 'to_operator'):
             # If input is a BaseOperator subclass this attempts to convert
             # the object to an Operator so that we can extract the underlying
@@ -65,14 +75,18 @@ class OneQubitEulerDecomposer:
         if unitary_mat.shape != (2, 2):
             raise QiskitError("OneQubitEulerDecomposer: "
                               "expected 2x2 input matrix")
-        if validate and not is_unitary_matrix(unitary_mat):
+        if not is_unitary_matrix(unitary_mat):
             raise QiskitError("OneQubitEulerDecomposer: "
                               "input matrix is not unitary.")
         circuit = self._circuit(unitary_mat, simplify=simplify, atol=atol)
+        # Check circuit is correct
+        if not Operator(circuit).equiv(unitary_mat):
+            raise QiskitError("OneQubitEulerDecomposer: "
+                              "synthesis failed within required accuracy.")
         return circuit
 
     def _angles(self, unitary_mat, atol=DEFAULT_ATOL):
-        """Return Euler angles"""
+        """Return Euler angles for given basis."""
         if self._basis in ['U3', 'U1X', 'ZYZ']:
             return self._angles_zyz(unitary_mat)
         if self._basis == 'XYX':
@@ -205,6 +219,10 @@ class OneQubitEulerDecomposer:
     @staticmethod
     def _circuit_zyz(angles, simplify=True, atol=DEFAULT_ATOL):
         theta, phi, lam = angles
+        if simplify and np.isclose(theta, 0.0, atol=atol):
+            circuit = QuantumCircuit(1)
+            circuit.rz(phi + lam, 0)
+            return circuit
         circuit = QuantumCircuit(1)
         if not simplify or not np.isclose(lam, 0.0, atol=atol):
             circuit.rz(lam, 0)
