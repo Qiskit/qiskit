@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Until Qiskit-terra 8.0, bits (qubits and classical bits) used to be represented as a tuple.
+    In 0.8, qubits and classical bits are instances of `Qubit` and `Clbit` classes respectably.
+    Therefore, all the tuples had been converted to instances. Additionally, comparing tuples and
+    `Qubits`/`Clbits` is also being deprecated now.
