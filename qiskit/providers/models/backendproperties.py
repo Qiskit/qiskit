@@ -156,7 +156,7 @@ class BackendProperties(BaseModel):
             qubits: The specific qubits for the operation.
         """
         try:
-            result = self._gates.get(operation, {}).get(qubits, {}).get('gate_error')
+            result = self._gates.get(operation, {}).get(qubits, {}).get('gate_error')[0]
             if result is None:
                 raise error
             # return self.gates[operation][_to_tuple(qubits)]['gate_error'][0]
@@ -176,13 +176,13 @@ class BackendProperties(BaseModel):
         """
         try:
             # Throw away datetime at index 1
-            result = self._gates.get(operation, {}).get(qubits, {}).get('gate_length')
+            result = self._gates.get(operation).get(_to_tuple(qubits)).get('gate_length')[0]
             if result is None:
                 raise error
             # return self.gates[operation][_to_tuple(qubits)]['gate_length'][0]
         except KeyError:
+            #TODO - add a better and clear error message
             if error:
-                #TODO - check again
                 raise PulseError("Could bit find the desired property")
             raise PulseError("Could bit find the desired property")
         return result
@@ -190,7 +190,7 @@ class BackendProperties(BaseModel):
     def get_gate_property(self,
                           gate: str = None,
                           qubits: Union[int, Iterable[int]] = None,
-                          gate_property: str = None):
+                          gate_property: str = None) -> Tuple[Any, datetime.datetime]:
         """
         Return the gate properties of the given qubit and property, if it was given by the backend, otherwise,
         return `None` or raise an error.
@@ -214,9 +214,8 @@ class BackendProperties(BaseModel):
             else:
                 raise error
         except (KeyError, TypeError):
-            #TODO - add a better and clear error message
             if error:
-                raise PulseError("Could not find the desired property.")
+                raise PulseError("Could not find the desired property as your gate is ", gate)
             raise PulseError("Could not find the desired property.")
         return result
 
@@ -232,7 +231,6 @@ class BackendProperties(BaseModel):
         Raises:
 	        PulseError: If error is True and the property is not found.
         """
-        #TODO - if qubit is None and get_qubit_property(,'T1') is called, then we should be able to show the 'T1' of all the qubits (?)
         result = self._qubits
         try:
             if qubit is not None:
@@ -242,13 +240,12 @@ class BackendProperties(BaseModel):
             else:
                 raise error
         except (KeyError, TypeError):
-            #TODO - add a better and clear error message
             if error:
-                raise PulseError("Could not find the desired property.")
+                raise PulseError("Could not find the desired property as your qubit is ", qubit)
             raise PulseError("Could not find the desired property.")
         return result
 
-    def t1(self, qubit):
+    def t1(self, qubit: int):
         """
         Return the properties of T1 of the given qubit, if it was given by the backend, otherwise,
         return `None` or raise an error.
@@ -279,42 +276,3 @@ class BackendProperties(BaseModel):
             return value * prefixes[unit[0]]
         except KeyError:
             raise PulseError("Could not understand units: {}".format(unit))
-
-    def get(self,
-            searchVal: Union[int, str],
-            optVal: str = None) -> Union[None, List[Union[Any, datetime.datetime]]]:
-        """
-        Return the properties of the search value, if it was given by the backend, otherwise, return `None` or raise an error.
-
-        Args:
-            searchVal (Union[int, str]): The property to look for.
-            optVal (str): Optionally used to specify within the heirarchy which property to return.
-
-        Raises:
-	        PulseError: If error is True and the property is not found.
-        """
-        # FIXME - Pass properties (properties = backend.properties()) for this code to work
-        # _props = properties.__dict__
-        # this doesn't give the right output when get('cx', 'parameters') is called. it simply returns gate 'cx'
-        try:
-            for key in _props.keys():
-                temp = _props.get(key)
-                if key == searchVal:
-                    print(searchVal, " = ", _props[key])
-                if (isinstance(_props.get(key), list)):
-                    for i in range(len(temp)):
-                        if key == "gates":
-                            if temp[i].gate == searchVal:
-                                ret = str(searchVal) + " = " + str(temp[i])
-                        elif key == "qubits":
-                            for j in temp[i]:
-                                index = j.__dict__
-                                if i == searchVal:
-                                    if index.get('name') == optVal:
-                                        ret = str(optVal) + " of qubit " + str(searchVal) + " = " + str(index)
-        except (KeyError, TypeError):
-            if error:
-                raise PulseError("Could not find the desired property.")
-            else:
-                return None
-        return ret
