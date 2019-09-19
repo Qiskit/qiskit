@@ -161,9 +161,6 @@ class BackendProperties(BaseModel):
                 raise error
             # return self.gates[operation][_to_tuple(qubits)]['gate_error'][0]
         except KeyError:
-            #TODO - add a better and clear error message
-            if error:
-                raise PulseError("Could not find the desired property.")
             raise PulseError("Could not find the desired property.")
         return result
 
@@ -181,9 +178,6 @@ class BackendProperties(BaseModel):
                 raise error
             # return self.gates[operation][_to_tuple(qubits)]['gate_length'][0]
         except KeyError:
-            #TODO - add a better and clear error message
-            if error:
-                raise PulseError("Could bit find the desired property")
             raise PulseError("Could bit find the desired property")
         return result
 
@@ -214,8 +208,6 @@ class BackendProperties(BaseModel):
             else:
                 raise error
         except (KeyError, TypeError):
-            if error:
-                raise PulseError("Could not find the desired property as your gate is ", gate)
             raise PulseError("Could not find the desired property.")
         return result
 
@@ -240,8 +232,6 @@ class BackendProperties(BaseModel):
             else:
                 raise error
         except (KeyError, TypeError):
-            if error:
-                raise PulseError("Could not find the desired property as your qubit is ", qubit)
             raise PulseError("Could not find the desired property.")
         return result
 
