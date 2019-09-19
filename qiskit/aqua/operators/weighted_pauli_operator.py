@@ -655,8 +655,7 @@ class WeightedPauliOperator(BaseOperator):
                     if inst is not None:
                         circuit = wave_function.copy(name=circuit_name_prefix + pauli.to_label())
                         circuit.append(inst, qr)
-                        # TODO: this decompose is used because of cache
-                        circuits.append(circuit.decompose())
+                        circuits.append(circuit)
         else:
             base_circuit = wave_function.copy()
             if cr is not None:
@@ -671,8 +670,7 @@ class WeightedPauliOperator(BaseOperator):
             for basis, _ in self._basis:
                 circuit = base_circuit.copy(name=circuit_name_prefix + basis.to_label())
                 circuit.append(instructions[basis.to_label()], qargs=qr, cargs=cr)
-                # TODO: this decompose is used because of cache
-                circuits.append(circuit.decompose())
+                circuits.append(circuit)
 
         return circuits
 
@@ -854,8 +852,7 @@ class WeightedPauliOperator(BaseOperator):
         instruction = self.evolve_instruction(evo_time, num_time_slices,
                                               expansion_mode, expansion_order)
         qc.append(instruction, quantum_registers)
-        # TODO: this decompose is used because of cache
-        return qc.decompose()
+        return qc
 
     def evolve_instruction(self, evo_time=0, num_time_slices=1,
                            expansion_mode='trotter', expansion_order=1):
