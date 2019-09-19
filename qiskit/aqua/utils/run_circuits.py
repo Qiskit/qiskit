@@ -22,13 +22,11 @@ import os
 import uuid
 
 import numpy as np
-from qiskit import compiler
 from qiskit.providers import BaseBackend, JobStatus, JobError
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.providers.basicaer import BasicAerJob
 from qiskit.qobj import QasmQobj
 from qiskit.aqua.aqua_error import AquaError
-from qiskit.aqua.utils import summarize_circuits
 from qiskit.aqua.utils.backend_utils import (is_aer_provider,
                                              is_basicaer_provider,
                                              is_simulator_backend,
@@ -60,21 +58,6 @@ def find_regs_by_name(circuit, name, qreg=True):
     return found_reg
 
 
-def _avoid_empty_circuits(circuits):
-    new_circuits = []
-    for qc in circuits:
-        if not qc:
-            tmp_q = None
-            for q in qc.qregs:
-                tmp_q = q
-                break
-            if tmp_q is None:
-                raise NameError("A QASM without any quantum register is invalid.")
-            qc.iden(tmp_q[0])
-        new_circuits.append(qc)
-    return new_circuits
-
-
 def _combine_result_objects(results):
     """Temporary helper function.
 
@@ -94,6 +77,14 @@ def _combine_result_objects(results):
 
 # pylint: disable=invalid-name
 def maybe_add_aer_expectation_instruction(qobj, options):
+    """
+    Add aer expectation instruction if `expectation` in the options.
+    Args:
+        qobj (QasmQobj): qobj
+        options (dict): the setting for aer expectation instruction
+    Returns:
+        QasmQobj: a mutated qobj with aer expectation instruction inserted
+    """
     if 'expectation' in options:
         from qiskit.providers.aer.utils.qobj_utils \
             import snapshot_instr, append_instr, get_instr_pos
@@ -119,14 +110,6 @@ def maybe_add_aer_expectation_instruction(qobj, options):
     return qobj
 
 
-def _compile_wrapper(circuits, backend, backend_config, compile_config, run_config):
-    transpiled_circuits = compiler.transpile(circuits, backend, **backend_config, **compile_config)
-    if not isinstance(transpiled_circuits, list):
-        transpiled_circuits = [transpiled_circuits]
-    qobj = compiler.assemble(transpiled_circuits, **run_config.to_dict())
-    return qobj, transpiled_circuits
-
-
 def _split_qobj_to_qobjs(qobj, chunk_size):
     qobjs = []
     num_chunks = int(np.ceil(len(qobj.experiments) / chunk_size))
@@ -145,119 +128,6 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
             raise AquaError("Only support QasmQobj now.")
 
     return qobjs
-
-
-def compile_circuits(circuits, backend, backend_config=None, compile_config=None, run_config=None,
-                     show_circuit_summary=False, circuit_cache=None, **kwargs):
-    """
-    An execution wrapper with Qiskit-Terra, with job auto recover capability.
-
-    The autorecovery feature is only applied for non-simulator backend.
-    This wrapper will try to get the result no matter how long it costs.
-
-    Args:
-        circuits (QuantumCircuit or list[QuantumCircuit]): circuits to execute
-        backend (BaseBackend): backend instance
-        backend_config (dict, optional): configuration for backend
-        compile_config (dict, optional): configuration for compilation
-        run_config (RunConfig, optional): configuration for running a circuit
-        show_circuit_summary (bool, optional): showing the summary of submitted circuits.
-        circuit_cache (CircuitCache, optional): A CircuitCache to use
-                    when calling compile_and_run_circuits
-        kwargs (optional): special aer instructions to evaluation the expectation of a hamiltonian
-
-    Returns:
-        QasmObj: compiled qobj.
-
-    Raises:
-        ValueError: backend type is wrong or not given
-        ValueError: no circuit in the circuits
-
-    """
-    backend_config = backend_config or {}
-    compile_config = compile_config or {}
-    run_config = run_config or {}
-
-    if backend is None or not isinstance(backend, BaseBackend):
-        raise ValueError('Backend is missing or not an instance of BaseBackend')
-
-    if not isinstance(circuits, list):
-        circuits = [circuits]
-
-    if not circuits:
-        raise ValueError("The input circuit is empty.")
-
-    if is_simulator_backend(backend):
-        circuits = _avoid_empty_circuits(circuits)
-
-    if circuit_cache is not None and circuit_cache.try_reusing_qobjs:
-        # Check if all circuits are the same length.
-        # If not, don't try to use the same qobj.experiment for all of them.
-        if len({len(circ.data) for circ in circuits}) > 1:
-            circuit_cache.try_reusing_qobjs = False
-        else:  # Try setting up the reusable qobj
-            # Compile and cache first circuit if cache is empty.
-            # The load method will try to reuse it
-            if circuit_cache.qobjs is None:
-                qobj, _ = _compile_wrapper([circuits[0]], backend, backend_config,
-                                           compile_config, run_config)
-
-                if is_aer_provider(backend):
-                    qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
-                circuit_cache.cache_circuit(qobj, [circuits[0]], 0)
-
-    transpiled_circuits = None
-    if circuit_cache is not None and circuit_cache.misses < circuit_cache.allowed_misses:
-        try:
-            if circuit_cache.cache_transpiled_circuits:
-                transpiled_circuits = compiler.transpile(circuits, backend, **backend_config,
-                                                         **compile_config)
-                qobj = circuit_cache.load_qobj_from_cache(transpiled_circuits,
-                                                          0, run_config=run_config)
-            else:
-                qobj = circuit_cache.load_qobj_from_cache(circuits, 0, run_config=run_config)
-
-            if is_aer_provider(backend):
-                qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
-        # cache miss, fail gracefully
-        except (TypeError, IndexError, FileNotFoundError, EOFError, AquaError, AttributeError) as e:
-            circuit_cache.try_reusing_qobjs = False  # Reusing Qobj didn't work
-            if circuit_cache.qobjs:
-                logger.info('Circuit cache miss, recompiling. Cache miss reason: %s', repr(e))
-                circuit_cache.misses += 1
-            else:
-                logger.info('Circuit cache is empty, compiling from scratch.')
-            circuit_cache.clear_cache()
-
-            qobj, transpiled_circuits = _compile_wrapper(circuits, backend, backend_config,
-                                                         compile_config, run_config)
-            if is_aer_provider(backend):
-                qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
-            try:
-                circuit_cache.cache_circuit(qobj, circuits, 0)
-            except (TypeError, IndexError, AquaError, AttributeError, KeyError):
-                try:
-                    circuit_cache.cache_transpiled_circuits = True
-                    circuit_cache.cache_circuit(qobj, transpiled_circuits, 0)
-                except (TypeError, IndexError, AquaError, AttributeError, KeyError) as e:
-                    logger.info('Circuit could not be cached for reason: %s', repr(e))
-                    logger.info('Transpilation may be too aggressive. Try skipping transpiler.')
-
-    else:
-        qobj, transpiled_circuits = _compile_wrapper(circuits, backend,
-                                                     backend_config, compile_config,
-                                                     run_config)
-        if is_aer_provider(backend):
-            qobj = maybe_add_aer_expectation_instruction(qobj, kwargs)
-
-    if logger.isEnabledFor(logging.DEBUG) and show_circuit_summary:
-        logger.debug("==== Before transpiler ====")
-        logger.debug(summarize_circuits(circuits))
-        if transpiled_circuits is not None:
-            logger.debug("====  After transpiler ====")
-            logger.debug(summarize_circuits(transpiled_circuits))
-
-    return qobj
 
 
 def _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation):
@@ -422,45 +292,6 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
 
     result = _combine_result_objects(results) if results else None
 
-    return result
-
-
-def compile_and_run_circuits(circuits, backend, backend_config=None,
-                             compile_config=None, run_config=None,
-                             qjob_config=None, backend_options=None,
-                             noise_config=None, show_circuit_summary=False,
-                             circuit_cache=None, skip_qobj_validation=False, **kwargs):
-    """
-    An execution wrapper with Qiskit-Terra, with job auto recover capability.
-
-    The autorecovery feature is only applied for non-simulator backend.
-    This wrapper will try to get the result no matter how long it costs.
-
-    Args:
-        circuits (Union(QuantumCircuit,list[QuantumCircuit])): circuits to execute
-        backend (BaseBackend): backend instance
-        backend_config (Optional(dict)): configuration for backend
-        compile_config (Optional(dict)): configuration for compilation
-        run_config (Optional(RunConfig)): configuration for running a circuit
-        qjob_config (Optional(dict)): configuration for quantum job object
-        backend_options (Optional(dict)): configuration for simulator
-        noise_config (Optional(dict)): configuration for noise model
-        show_circuit_summary (Optional(bool)): showing the summary of submitted circuits.
-        circuit_cache (Optional(CircuitCache)): A CircuitCache to use when
-                                                calling compile_and_run_circuits
-        skip_qobj_validation (Optional(bool)): Bypass Qobj validation to decrease submission time
-        kwargs (dict): additional parameters
-
-    Returns:
-        Result: Result object
-
-    Raises:
-        AquaError: Any error except for JobError raised by Qiskit Terra
-    """
-    qobjs = compile_circuits(circuits, backend, backend_config, compile_config, run_config,
-                             show_circuit_summary, circuit_cache, **kwargs)
-    result = run_qobj(qobjs, backend, qjob_config,
-                      backend_options, noise_config, skip_qobj_validation)
     return result
 
 
