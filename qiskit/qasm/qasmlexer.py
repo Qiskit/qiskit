@@ -141,7 +141,6 @@ class QasmLexer:
         # When we hit eof (the t_eof) rule, we pop.
         next_token = self.lexer.token()
         lineno = next_token.lineno
-        # print('NEXT', next, "next.value", next.value, type(next))
         if isinstance(next_token.value, str):
             incfile = next_token.value.strip('"')
         else:
@@ -200,6 +199,5 @@ class QasmLexer:
     t_ignore = ' \t\r'
 
     def t_error(self, t):
-        print("Unable to match any token rule, got -->%s<--" % t.value[0])
-        print("Check your OPENQASM source and any include statements.")
-        # t.lexer.skip(1)
+        raise QasmError("Unable to match any token rule, got -->%s<-- "
+                        "Check your OPENQASM source and any include statements." % t.value[0])
