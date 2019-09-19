@@ -13,7 +13,9 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
+import datetime
 from collections import defaultdict
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union
 from marshmallow.validate import Length, Regexp
 
 from qiskit.pulse.exceptions import PulseError
