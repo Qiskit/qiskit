@@ -134,15 +134,15 @@ class BackendProperties(BaseModel):
                 formatted_props[prop.name] = (value, prop.date)
                 self._qubits[qubit] = formatted_props
 
-        self.gates = defaultdict(dict)
-        for gate in gates:
+        self._gates = defaultdict(dict)
+        for gate in _gates:
             qubits = _to_tuple(gate.qubits)
             formatted_props = {}
             formatted_props['name'] = gate.name
             for param in gate.parameters:
                 value = self._apply_prefix(param.value, param.unit)
                 formatted_props[param.name] = (value, param.date)
-            self.gates[gate.gate][qubits] = formatted_props
+            self._gates[gate.gate][qubits] = formatted_props
 
         super().__init__(**kwargs)
 
@@ -154,11 +154,15 @@ class BackendProperties(BaseModel):
             qubits: The specific qubits for the operation.
         """
         try:
-            result = self.gates.get(operation, {}).get(qubits, {}).get('gate_error')
+            result = self._gates.get(operation, {}).get(qubits, {}).get('gate_error')
+            if result is None:
+                raise error
             # return self.gates[operation][_to_tuple(qubits)]['gate_error'][0]
         except KeyError:
-            raise PulseError("")
-
+            #TODO - add a better and clear error message
+            if error:
+                raise PulseError("Could not find the desired property.")
+            raise PulseError("Could not find the desired property.")
         return result
 
     def gate_length(self, operation, qubits):
@@ -170,17 +174,21 @@ class BackendProperties(BaseModel):
         """
         try:
             # Throw away datetime at index 1
-            result = self.gates.get(operation, {}).get(qubits, {}).get('gate_length')
+            result = self._gates.get(operation, {}).get(qubits, {}).get('gate_length')
+            if result is None:
+                raise error
             # return self.gates[operation][_to_tuple(qubits)]['gate_length'][0]
         except KeyError:
-            raise PulseError("")
-
+            if error:
+                #TODO - check again
+                raise PulseError("Could bit find the desired property")
+            raise PulseError("Could bit find the desired property")
         return result
 
     def get_gate_property(self,
-                        gate : str = None,
-                        qubits : Union[int, Iterable[int]] = None,
-                        property = None):
+                          gate: str = None,
+                          qubits: Union[int, Iterable[int]] = None,
+                          gate_property: str = None):
         """
         Return the gate properties of the given qubit and property, if it was given by the backend, otherwise,
         return `None` or raise an error.
@@ -188,14 +196,29 @@ class BackendProperties(BaseModel):
         Args:
             gate (str) : Name of the gate
             qubit (Union[int, Iterable[int]]): The property to look for.
-            property (str): Optionally used to specify within the heirarchy which property to return.
+            gate_property (str): Optionally used to specify within the heirarchy which property to return.
 
         Raises:
 	        PulseError: If error is True and the property is not found.
         """
-        #TODO
+        result = self._gates
+        try:
+            if gate is not None:
+                result = result[gate]
+                if qubits is not None:
+                    result = result[_to_tuple(qubits)]
+                    if gate_property is not None:
+                        result = result[gate_property]
+            else:
+                raise error
+        except (KeyError, TypeError):
+            #TODO - add a better and clear error message
+            if error:
+                raise PulseError("Could not find the desired property.")
+            raise PulseError("Could not find the desired property.")
+        return result
 
-    def get_qubit_property(self, qubit : int = None, name : str = None) -> tuple(Number, DateTime):
+    def get_qubit_property(self, qubit: int = None, name: str = None) -> Tuple[Any, datetime.datetime]:
         """
         Return the qubit properties of the given qubit and name, if it was given by the backend, otherwise,
         return `None` or raise an error.
@@ -207,14 +230,20 @@ class BackendProperties(BaseModel):
         Raises:
 	        PulseError: If error is True and the property is not found.
         """
+        #TODO - if qubit is None and get_qubit_property(,'T1') is called, then we should be able to show the 'T1' of all the qubits (?)
         result = self._qubits
         try:
             if qubit is not None:
                 result = result[qubit]
                 if name is not None:
                     result = result[name]
-        except KeyError:
-            raise Error
+            else:
+                raise error
+        except (KeyError, TypeError):
+            #TODO - add a better and clear error message
+            if error:
+                raise PulseError("Could not find the desired property.")
+            raise PulseError("Could not find the desired property.")
         return result
 
     def t1(self, qubit):
@@ -233,7 +262,6 @@ class BackendProperties(BaseModel):
             ret = get_qubit_property(qubit, 'T1')
         except:
             raise PulseError("Could not find the desired property")
-
         return ret
 
     def _apply_prefix(self, value, unit):
@@ -251,8 +279,8 @@ class BackendProperties(BaseModel):
             raise PulseError("Could not understand units: {}".format(unit))
 
     def get(self,
-            searchVal : Union[int, str],
-            optVal : str = None) -> Union[None, List[Union[Any, datetime.datetime]]]:
+            searchVal: Union[int, str],
+            optVal: str = None) -> Union[None, List[Union[Any, datetime.datetime]]]:
         """
         Return the properties of the search value, if it was given by the backend, otherwise, return `None` or raise an error.
 
