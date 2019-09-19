@@ -21,9 +21,9 @@ import scipy.linalg as la
 from qiskit import execute
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.extensions import UnitaryGate
-from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.extensions.standard import (HGate, IdGate, SdgGate, SGate, U3Gate,
-                                        XGate, YGate, ZGate)
+                                        XGate, YGate, ZGate, CnotGate)
+from qiskit.providers.basicaer import UnitarySimulatorPy
 from qiskit.quantum_info.operators import Operator, Pauli
 from qiskit.quantum_info.random import random_unitary
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
@@ -32,6 +32,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (TwoQubitWeylDecom
                                                                TwoQubitBasisDecomposer,
                                                                Ud,
                                                                euler_angles_1q)
+from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 from qiskit.test import QiskitTestCase
 
 
@@ -376,6 +377,17 @@ class TestTwoQubitDecomposeExact(QiskitTestCase):
                         for phase in [1, 1j, -1, -1j]]
             maxdist = np.min(maxdists)
             self.assertTrue(np.abs(maxdist) < tolerance, "Worst distance {}".format(maxdist))
+
+    def test_cnot_rxx_decompose(self):
+        """Verify CNOT decomposition into RXX gate is correct"""
+        cnot = Operator(CnotGate())
+        decomps = [cnot_rxx_decompose(),
+                   cnot_rxx_decompose(plus_ry=True, plus_rxx=True),
+                   cnot_rxx_decompose(plus_ry=True, plus_rxx=False),
+                   cnot_rxx_decompose(plus_ry=False, plus_rxx=True),
+                   cnot_rxx_decompose(plus_ry=False, plus_rxx=False)]
+        for decomp in decomps:
+            self.assertTrue(cnot.equiv(decomp))
 
     def test_exact_two_qubit_cnot_decompose_random(self, nsamples=10):
         """Verify exact CNOT decomposition for random Haar 4x4 unitaries.
