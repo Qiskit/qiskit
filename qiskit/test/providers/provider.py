@@ -75,18 +75,15 @@ class ProviderTestCase(QiskitTestCase):
         self.assertEqual(self.backend.properties().gate_length('u3', qubits=[0]),
                          2 * 1.3333 * 1e-9)
 
-    #TODO
+    def test_t1(self):
+        self.assertEqual(self.backend.properties().test_t1(0),
+                         (7.195004210055389e-05, datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
 
-    # def test_t1(self):
+    def test_get_gate_property(self):
+        self.assertEqual(self.backend.properties().get_gate_property('cx', (0,1), 'gate_error'), 1.0)
 
-    # def test_get_gate_property(self):
-    #     self.assertEqual(self.backend.properties().qubits['cx'][0,1]['gate_error'],
-    #                      71.9500421005539*1e-6)
-    #     self.assertEqual(self.backend.properties().qubits[0]['frequency'][0],
-    #                      4919.96800692*1e6)
-
-    # def test_get_qubit_property(self):
-    #     self.assertEqual(self.backend.properties().qubits[0]['T1'][0],
-    #                      71.9500421005539*1e-6)
-    #     self.assertEqual(self.backend.properties().qubits[0]['frequency'][0],
-    #                      4919.96800692*1e6)
+    def test_get_qubit_property(self):
+        self.assertEqual(self.backend.properties().get_qubit_property(0,'T1'),
+                         (7.195004210055389e-05, datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
+        self.assertEqual(self.backend.properties().get_qubit_property(0,'frequency'),
+                         (4919968006.92, datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
