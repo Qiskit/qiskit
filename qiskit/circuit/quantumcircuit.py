@@ -31,6 +31,7 @@ from .parametervector import ParameterVector
 from .instructionset import InstructionSet
 from .register import Register
 from .bit import Bit
+from .quantumcircuitdata import QuantumCircuitData
 
 
 def _is_bit(obj):
@@ -89,7 +90,7 @@ class QuantumCircuit:
 
         # Data contains a list of instructions and their contexts,
         # in the order they were applied.
-        self.data = []
+        self._data = []
 
         # This is a map of registers bound to this circuit, by name.
         self.qregs = []
@@ -100,6 +101,38 @@ class QuantumCircuit:
         self._parameter_table = ParameterTable()
 
         self._layout = None
+
+    @property
+    def data(self):
+        """Return the circuit data (instructions and context)
+
+        Returns:
+            QuantumCircuitData: a list-like object containing the tuples for the
+               circuit's data. Each tuple is in the format (instruction, qargs,
+               cargs). Where instruction is an Instruction (or subclass) object,
+               qargs is a list of Qubit objects, and cargs is a list of Clbit
+               objects.
+        """
+        return QuantumCircuitData(self)
+
+    @data.setter
+    def data(self, data_input):
+        """Sets the circuit data from a list of instructions and context.
+
+        Args:
+            data_input (list): A list of instructions with context
+                in the format (instruction, qargs, cargs). Where Instruction
+                is an Instruction (or subclass) object, qargs is a list of
+                Qubit objects, and cargs is a list of Clbit objects.
+        """
+
+        # If data_input is QuantumCircuitData(self), clearing self._data
+        # below will also empty data_input, so make a shallow copy first.
+        data_input = data_input.copy()
+        self._data = []
+
+        for inst, qargs, cargs in data_input:
+            self.append(inst, qargs, cargs)
 
     def __str__(self):
         return str(self.draw(output='text'))
@@ -153,9 +186,9 @@ class QuantumCircuit:
             QuantumCircuit: the mirrored circuit
         """
         reverse_circ = self.copy(name=self.name + '_mirror')
-        reverse_circ.data = []
+        reverse_circ._data = []
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ.data.append((inst.mirror(), qargs, cargs))
+            reverse_circ.append((inst.mirror(), qargs, cargs))
         return reverse_circ
 
     def inverse(self):
@@ -170,9 +203,9 @@ class QuantumCircuit:
             QiskitError: if the circuit cannot be inverted.
         """
         inverse_circ = self.copy(name=self.name + '_dg')
-        inverse_circ.data = []
-        for inst, qargs, cargs in reversed(self.data):
-            inverse_circ.data.append((inst.inverse(), qargs, cargs))
+        inverse_circ._data = []
+        for inst, qargs, cargs in reversed(self._data):
+            inverse_circ._data.append((inst.inverse(), qargs, cargs))
         return inverse_circ
 
     def combine(self, rhs):
@@ -255,11 +288,11 @@ class QuantumCircuit:
 
     def __len__(self):
         """Return number of operations in circuit."""
-        return len(self.data)
+        return len(self._data)
 
     def __getitem__(self, item):
         """Return indexed operation."""
-        return self.data[item]
+        return self._data[item]
 
     @staticmethod
     def cast(value, _type):
@@ -355,24 +388,8 @@ class QuantumCircuit:
         expanded_cargs = [self.cbit_argument_conversion(carg) for carg in cargs or []]
 
         instructions = InstructionSet()
-
-        # When broadcasting was handled by decorators (prior to #2282), append
-        # received multiple distinct instruction instances, one for each expanded
-        # arg. With broadcasting as part of QuantumCircuit.append, the
-        # instruction instance is constructed before append is called. However,
-        # (at least) ParameterTable expects instruction instances to be unique
-        # within a circuit, so make instruction deepcopies for expanded_args[1:].
-
-        first_instruction = True
         for (qarg, carg) in instruction.broadcast_arguments(expanded_qargs, expanded_cargs):
-            if first_instruction:
-                instructions.add(
-                    self._append(instruction, qarg, carg), qarg, carg)
-                first_instruction = False
-            else:
-                instructions.add(
-                    self._append(deepcopy(instruction), qarg, carg), qarg, carg)
-
+            instructions.add(self._append(instruction, qarg, carg), qarg, carg)
         return instructions
 
     def _append(self, instruction, qargs, cargs):
@@ -401,16 +418,22 @@ class QuantumCircuit:
 
         # add the instruction onto the given wires
         instruction_context = instruction, qargs, cargs
-        self.data.append(instruction_context)
+        self._data.append(instruction_context)
 
-        # track variable parameters in instruction
+        self._update_parameter_table(instruction)
+
+        return instruction
+
+    def _update_parameter_table(self, instruction):
         for param_index, param in enumerate(instruction.params):
             if isinstance(param, ParameterExpression):
                 current_parameters = self.parameters
 
                 for parameter in param.parameters:
                     if parameter in current_parameters:
-                        self._parameter_table[parameter].append((instruction, param_index))
+                        if not self._check_dup_param_spec(self._parameter_table[parameter],
+                                                          instruction, param_index):
+                            self._parameter_table[parameter].append((instruction, param_index))
                     else:
                         if parameter.name in {p.name for p in current_parameters}:
                             raise QiskitError(
@@ -418,6 +441,12 @@ class QuantumCircuit:
                         self._parameter_table[parameter] = [(instruction, param_index)]
 
         return instruction
+
+    def _check_dup_param_spec(self, parameter_spec_list, instruction, param_index):
+        for spec in parameter_spec_list:
+            if spec[0] is instruction and spec[1] == param_index:
+                return True
+        return False
 
     def add_register(self, *regs):
         """Add registers."""
@@ -517,7 +546,7 @@ class QuantumCircuit:
         for register in self.cregs:
             string_temp += register.qasm() + "\n"
         unitary_gates = []
-        for instruction, qargs, cargs in self.data:
+        for instruction, qargs, cargs in self._data:
             if instruction.name == 'measure':
                 qubit = qargs[0]
                 clbit = cargs[0]
@@ -616,7 +645,7 @@ class QuantumCircuit:
             int: Total number of gate operations.
         """
         gate_ops = 0
-        for instr, _, _ in self.data:
+        for instr, _, _ in self._data:
             if instr.name not in ['barrier', 'snapshot']:
                 gate_ops += 1
         return gate_ops
@@ -655,7 +684,7 @@ class QuantumCircuit:
         # We treat barriers or snapshots different as
         # They are transpiler and simulator directives.
         # The max stack height is the circuit depth.
-        for instr, qargs, cargs in self.data:
+        for instr, qargs, cargs in self._data:
             levels = []
             reg_ints = []
             # If count then add one to stack heights
@@ -713,7 +742,7 @@ class QuantumCircuit:
             OrderedDict: a breakdown of how many operations of each kind, sorted by amount.
         """
         count_ops = {}
-        for instr, _, _ in self.data:
+        for instr, _, _ in self._data:
             if instr.name in count_ops.keys():
                 count_ops[instr.name] += 1
             else:
@@ -748,7 +777,7 @@ class QuantumCircuit:
 
         # Here we are traversing the gates and looking to see
         # which of the sub_graphs the gate joins together.
-        for instr, qargs, cargs in self.data:
+        for instr, qargs, cargs in self._data:
             if unitary_only:
                 args = qargs
                 num_qargs = len(args)

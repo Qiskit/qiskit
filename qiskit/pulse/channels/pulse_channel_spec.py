@@ -20,8 +20,8 @@ Pulse channel wrapper object for the system.
 from typing import List
 
 from qiskit.pulse.exceptions import PulseError
-from .channels import AcquireChannel, MemorySlot, RegisterSlot
-from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
+from .channels import (AcquireChannel, MemorySlot, RegisterSlot, DriveChannel, ControlChannel,
+                       MeasureChannel)
 from .qubit import Qubit
 from .system_topology import SystemTopology
 
