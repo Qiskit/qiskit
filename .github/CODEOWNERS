@@ -20,12 +20,9 @@ pulse/                @lcapelluto @taalexander @eggerdj @nkanazawa1989
 qobj/                 @diego-plan9 @jyu00 @taalexander
 quantum_info/         @chriseclectic @jaygambetta @levbishop @ajavadia
 qi/                   @chriseclectic @ajavadia
-result/               @diego-plan9 @jyu00 @taalexander
+result/               @diego-plan9 @jyu00 @taalexander @mtreinish
 schemas/              @diego-plan9 @dcmckayibm
 qiskit/tools/         @nonhermitian
-transpiler/           @ajavadia @kdk @1ucian0 @itoko
+transpiler/           @ajavadia @kdk @1ucian0 @itoko @mtreinish
 validation/           @diego-plan9 @atilag
 visualization/        @nonhermitian @mtreinish @1ucian0 @maddy-tod
-
-# catch-all
-* @mtreinish @ajavadia @kdk
