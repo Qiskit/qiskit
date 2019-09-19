@@ -190,7 +190,7 @@ class EventsOutputChannels:
                         last_pv = None
 
                 elif isinstance(command, Acquire):
-                    wf[time:tf] = np.ones(command.duration)
+                    wf[time:tf] = np.ones(tf - time)
                     self._labels[time] = (tf, command)
         self._waveform = wf + pv
 
