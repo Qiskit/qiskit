@@ -148,12 +148,12 @@ class BackendProperties(BaseModel):
 
         super().__init__(**kwargs)
 
-    def gate_error(self, operation, qubits):
+    def gate_error(self, operation: str, qubits: Union[int, Iterable[int]]):
         """
         Return gate error estimates from backend properties.
         Args:
-            operation: The operation for which to get the error.
-            qubits: The specific qubits for the operation.
+            operation (str): The operation for which to get the error.
+            qubits (Union[int, Iterable[int]]): The specific qubits for the operation.
         """
         try:
             result = self._gates.get(operation, {}).get(qubits, {}).get('gate_error')[0]
@@ -164,12 +164,12 @@ class BackendProperties(BaseModel):
             raise PulseError("Could not find the desired property.")
         return result
 
-    def gate_length(self, operation, qubits):
+    def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]):
         """
         Return the duration of the gate in units of seconds.
         Args:
-            operation: The operation for which to get the duration.
-            qubits: The specific qubits for the operation.
+            operation (str): The operation for which to get the duration.
+            qubits (Union[int, Iterable[int]]): The specific qubits for the operation.
         """
         try:
             # Throw away datetime at index 1
