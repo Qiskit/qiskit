@@ -15,6 +15,7 @@
 """Base TestCase for testing Providers."""
 
 import unittest
+import datetime
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
@@ -34,11 +35,6 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.backend = self.provider.get_backend('fake_openpulse_2q')
         self.properties = self.backend.properties()
 
-    def test_simple_properties(self):
-        """Test the most basic getters."""
-        self.assertEqual(self.get_property(backend_name), self.properties.backend_name)
-        self.assertEqual(self.get_property(backend_version), self.properties.backend_version)
-
     def test_gate_error(self):
         """Test getting the gate errors."""
         self.assertEqual(self.properties.gate_error('u1', 0),
@@ -50,25 +46,27 @@ class BackendpropertiesTestCase(QiskitTestCase):
 
     def test_gate_length(self):
         """Test getting the gate duration."""
-        self.assertEqual(self.backend.properties().gate_length('u1', 0),
+        self.assertEqual(self.properties.gate_length('u1', 0),
                          0.)
-        self.assertEqual(self.backend.properties().gate_length('u3', qubits=[0]),
+        self.assertEqual(self.properties.gate_length('u3', qubits=[0]),
                          2 * 1.3333 * 1e-9)
 
     def test_t1(self):
         """Test getting the t1 of given qubit."""
-        self.assertEqual(self.backend.properties().t1(0),
-                         (7.195004210055389e-05, datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
+        self.assertEqual(self.properties.t1(0),
+                         (7.195004210055389e-05,
+                          datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
 
     def test_get_gate_property(self):
         """Test getting the gate properties."""
-        self.assertEqual(self.backend.properties().get_gate_property('cx', (0,1), 'gate_error'),
+        self.assertEqual(self.properties.get_gate_property('cx', (0, 1), 'gate_error'),
                          1.0)
 
     def test_get_qubit_property(self):
         """Test getting the qubit properties."""
-        backend = FakeOpenPulse2Q()
-        self.assertEqual(self.backend.properties().get_qubit_property(0,'T1'),
-                         (7.195004210055389e-05, datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
-        self.assertEqual(self.backend.properties().get_qubit_property(0,'frequency'),
-                         (4919968006.92, datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
+        self.assertEqual(self.properties.get_qubit_property(0, 'T1'),
+                         (7.195004210055389e-05,
+                          datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
+        self.assertEqual(self.properties.get_qubit_property(0, 'frequency'),
+                         (4919968006.92,
+                          datetime.datetime(2019, 9, 17, 11, 59, 48, 147267)))
