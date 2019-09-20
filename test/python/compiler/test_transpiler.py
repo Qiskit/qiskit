@@ -17,6 +17,7 @@
 import math
 import unittest
 from unittest.mock import patch
+from ddt import ddt, data
 
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
@@ -31,8 +32,10 @@ from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, CXDirection
+from qiskit.quantum_info import Operator
 
 
+@ddt
 class TestTranspile(QiskitTestCase):
     """Test transpile function."""
 
@@ -636,3 +639,42 @@ class TestTranspile(QiskitTestCase):
 
         with self.assertRaises(TranspilerError):
             transpile(qc, coupling_map=cmap)
+
+    @data(0, 1, 2, 3)
+    def test_ms_unrolls_to_cx(self, optimization_level):
+        """Verify a Rx,Ry,Rxx circuit transpile to a U3,CX target."""
+
+        qc = QuantumCircuit(2)
+        qc.rx(math.pi/2, 0)
+        qc.ry(math.pi/4, 1)
+        qc.rxx(math.pi/4, 0, 1)
+
+        out = transpile(qc, basis_gates=['u3', 'cx'], optimization_level=optimization_level)
+
+        self.assertTrue(Operator(qc).equiv(out))
+
+    @data(0, 1, 2, 3)
+    def test_ms_can_target_ms(self, optimization_level):
+        """Verify a Rx,Ry,Rxx circuit can transpile to an Rx,Ry,Rxx target."""
+
+        qc = QuantumCircuit(2)
+        qc.rx(math.pi/2, 0)
+        qc.ry(math.pi/4, 1)
+        qc.rxx(math.pi/4, 0, 1)
+
+        out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
+
+        self.assertTrue(Operator(qc).equiv(out))
+
+    @data(0, 1, 2, 3)
+    def test_cx_can_target_ms(self, optimization_level):
+        """Verify a U3,CX circuit can transpiler to a Rx,Ry,Rxx target."""
+
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.rz(math.pi/4, [0, 1])
+
+        out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
+
+        self.assertTrue(Operator(qc).equiv(out))
