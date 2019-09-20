@@ -34,6 +34,11 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.backend = self.provider.get_backend('fake_openpulse_2q')
         self.properties = self.backend.properties()
 
+    def test_simple_properties(self):
+        """Test the most basic getters."""
+        self.assertEqual(self.get_property(backend_name), self.properties.backend_name)
+        self.assertEqual(self.get_property(backend_version), self.properties.backend_version)
+
     def test_gate_error(self):
         """Test getting the gate errors."""
         self.assertEqual(self.properties.gate_error('u1', 0),
