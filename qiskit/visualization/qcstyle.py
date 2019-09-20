@@ -15,8 +15,7 @@
 # pylint: disable=invalid-name,missing-docstring
 
 from copy import copy
-
-from qiskit.visualization.exceptions import VisualizationError
+from warnings import warn
 
 
 class DefaultStyle:
@@ -124,8 +123,8 @@ class DefaultStyle:
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
         if dic:
-            raise VisualizationError('style option/s ({}) is/are not '
-                                     'supported'.format(', '.join(dic.keys())))
+            warn('style option/s ({}) is/are not '
+                 'supported'.format(', '.join(dic.keys())), DeprecationWarning, 2)
 
 
 class BWStyle:
@@ -224,5 +223,5 @@ class BWStyle:
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
         if dic:
-            raise VisualizationError('style option/s ({}) is/are not '
-                                     'supported'.format(', '.join(dic.keys())))
+            warn('style option/s ({}) is/are not '
+                 'supported'.format(', '.join(dic.keys())), DeprecationWarning, 2)
