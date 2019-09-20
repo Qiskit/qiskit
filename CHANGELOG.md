@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog].
 
 -   Classical registers are drawn to use the same parameters as the
     quantum ones. (#3039)
+-   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
 
 ## [0.9.0] - 2019-08-22
 
