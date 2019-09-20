@@ -15,6 +15,16 @@ The format is based on [Keep a Changelog].
 
 ## [UNRELEASED]
 
+### Changed
+
+- Assignments and modifications to `QuantumCircuit.data` will now be broadcast
+  and validated following the same rules used throughout the
+  `QuantumCircuit` API. (\#2826)
+
+### Added
+-   The mock backends in `qiskit.test.mock` now have a snapshot of real
+    calibration data, returned via `backend.properties()`.
+
 ### Fixed
 -   Fixed a bug in drawing conditional gates with matplotlib circuit drawer.
 
@@ -27,6 +37,12 @@ The format is based on [Keep a Changelog].
 -   Removed `DeviceSpecification` in favor of `PulseChannelSpec`. (\#3033)
 -   Removed deprecated `ops.py` from pulse. Use `Schedule` and `Instruction`
     methods directly. (\#3034)
+
+### Deprecated
+
+-   Comparing tuples to `Bit`s is being deprecated. Representing a qubit or
+    a classical bit as a tuple is being abandon in favor of `Qubit` and `Clbit`
+    objects.
 
 ## [0.9.0] - 2019-08-22
 
