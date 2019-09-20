@@ -13,8 +13,10 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
+import datetime
 from collections import defaultdict
 from marshmallow.validate import Length, Regexp
+from typing import Any, Iterable, List, Tuple, Union
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.util import _to_tuple
@@ -151,10 +153,12 @@ class BackendProperties(BaseModel):
 	        PulseError: If error is True and the property is not found.
         """
         try:
+            result = self._gates.get(operation).get(_to_tuple(qubits)).get('gate_error')[0]
             # Throw away datetime at index 1
-            return self.gates[operation][_to_tuple(qubits)]['gate_error'][0]
-        except KeyError:
+            # return self.gates[operation][_to_tuple(qubits)]['gate_error'][0]
+        except (KeyError, TypeError):
             raise PulseError("Could not find the desired property.")
+        return result
 
     def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]):
         """
@@ -167,10 +171,12 @@ class BackendProperties(BaseModel):
 	        PulseError: If error is True and the property is not found.
         """
         try:
+            result = self._gates.get(operation).get(_to_tuple(qubits)).get('gate_length')[0]
             # Throw away datetime at index 1
-            return self.gates[operation][_to_tuple(qubits)]['gate_length'][0]
+            # return self.gates[operation][_to_tuple(qubits)]['gate_length'][0]
         except KeyError:
             raise PulseError("Could not find the desired property.")
+        return result
 
     def get_gate_property(self,
                           gate: str = None,
@@ -237,10 +243,9 @@ class BackendProperties(BaseModel):
         """
         #TODO investigate the possibilites of errors
         try:
-            ret = get_qubit_property(qubit, 'T1')
+            return self.get_qubit_property(qubit, 'T1')
         except:
             raise PulseError("Could not find the desired property")
-        return ret
 
     def _apply_prefix(self, value, unit):
         prefixes = {
