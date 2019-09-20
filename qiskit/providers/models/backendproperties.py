@@ -266,14 +266,3 @@ class BackendProperties(BaseModel):
             return value * prefixes[unit[0]]
         except KeyError:
             raise PulseError("Could not understand units: {}".format(unit))
-
-    def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int]:
-    """
-    Return the input, sorted, and as a tuple.
-    Args:
-        values: An integer, a list of ints, or a tuple of ints.
-    """
-    try:
-        return tuple(sorted(values))
-    except TypeError:
-        return (values,)
