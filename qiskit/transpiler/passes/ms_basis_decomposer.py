@@ -68,6 +68,12 @@ class MSBasisDecomposer(TransformationPass):
         cnot_decomposition = cnot_rxx_decompose()
 
         for node in dag.op_nodes():
+            basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
+            if node.name in basic_insts:
+                # TODO: this is legacy behavior.Basis_insts should be removed that these
+                #  instructions should be part of the device-reported basis. Currently, no
+                #  backend reports "measure", for example.
+                continue
 
             if not isinstance(node.op, self.supported_input_gates):
                 raise QiskitError("Cannot convert the circuit to the given basis, %s. "
