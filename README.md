@@ -111,18 +111,20 @@ to the project at different levels. If you use Qiskit, please cite as per the in
 
 ## Changelog and Release Notes
 
-The changelog for a particular release is dynamically generated and get's
+The changelog for a particular release is dynamically generated and gets
 written to the release page on Github for each release. For example, you can
 find the page for the `0.9.0` release here:
 
 https://github.com/Qiskit/qiskit-terra/releases/tag/0.9.0
 
-The releases page for the current release are linked off a tag at the beginning
-of the README. The changelog provides a quick overview of noteable changes for
-a given release. Additionally, as part of each release detailed release notes
-are written to document in detail what has changed as part of a release. This
-includes any documentation on potential breaking changes on upgrade and new features.
+The changelog for the current release can be found in the releases tab:
+![](https://img.shields.io/github/release/Qiskit/qiskit-terra.svg?style=popout-square)
+The changelog provides a quick overview of noteable changes for a given
+release.
 
+Additionally, as part of each release detailed release notes are written to
+document in detail what has changed as part of a release. This includes any
+documentation on potential breaking changes on upgrade and new features.
 For example, You can find the release notes for the `0.9.0` release in the
 Qiskit documentation here:
 
