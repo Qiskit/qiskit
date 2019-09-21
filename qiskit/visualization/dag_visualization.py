@@ -28,7 +28,7 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
 
     Note this function leverages
     `pydot <https://github.com/erocarrera/pydot>`_ (via
-    `nxpd <https://github.com/chebee7i/nxpd`_) to generate the graph, which
+    `nxpd <https://github.com/chebee7i/nxpd>`_) to generate the graph, which
     means that having `Graphviz <https://www.graphviz.org/>`_ installed on your
     system is required for this to work.
 
@@ -45,14 +45,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
 
     Raises:
         VisualizationError: when style is not recognized.
-        ImportError: when nxpd or pydot not installed.
     """
-    try:
-        import nxpd
-        import pydot  # pylint: disable=unused-import
-    except ImportError:
-        raise ImportError("dag_drawer requires nxpd and pydot. "
-                          "Run 'pip install nxpd pydot'.")
+    import nxpd
+    import pydot  # pylint: disable=unused-import
 
     G = dag.to_networkx()
     G.graph['dpi'] = 100 * scale
@@ -87,9 +82,4 @@ def dag_drawer(dag, scale=0.7, filename=None, style='color'):
     else:
         show = True
 
-    try:
-        return nxpd.draw(G, filename=filename, show=show)
-    except nxpd.pydot.InvocationException:
-        raise VisualizationError("dag_drawer requires GraphViz installed in the system. "
-                                 "Check https://www.graphviz.org/download/ for details on "
-                                 "how to install GraphViz in your system.")
+    return nxpd.draw(G, filename=filename, show=show)
