@@ -15,7 +15,7 @@
 """ algorithms package """
 
 from .quantum_algorithm import QuantumAlgorithm
-from .adaptive import VQE, QAOA, VQC, QGAN, VQEAdapt
+from .adaptive import VQE, QAOA, VQC, QGAN
 from .classical import ExactEigensolver, ExactLSsolver, SVM_Classical
 from .many_sample import EOH, QSVM
 from .single_sample import Grover, IQPE, QPE, AmplitudeEstimation, \
@@ -29,7 +29,6 @@ __all__ = [
     'QAOA',
     'VQC',
     'QGAN',
-    'VQEAdapt',
     'ExactEigensolver',
     'ExactLSsolver',
     'SVM_Classical',
