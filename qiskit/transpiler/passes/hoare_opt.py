@@ -2,9 +2,14 @@
 
 """Pass for hoare circuit optimization.
 """
+import sys
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate
-from z3 import And, Or, Not, Implies, Solver, Bool, unsat
+try:
+    from z3 import And, Or, Not, Implies, Solver, Bool, unsat
+except ModuleNotFoundError:
+    print("Please install Z3 via 'pip install z3-solver'.")
+    sys.exit(1)
 import qiskit.transpiler.passes._gate_extension
 
 
@@ -55,7 +60,7 @@ class HoareOptimizer(TransformationPass):
 
         try:
             self.solver.add(
-                Implies(ctrl_ones, gate.postconditions(*(trgtvar + new_vars)))
+                Implies(ctrl_ones, gate._postconditions(*(trgtvar + new_vars)))
             )
         except AttributeError:
             pass
@@ -72,7 +77,7 @@ class HoareOptimizer(TransformationPass):
         self.solver.push()
 
         try:
-            triv_cond = gate.trivial_if(*trgtvar)
+            triv_cond = gate._trivial_if(*trgtvar)
         except AttributeError:
             self.solver.add(ctrl_ones)
             trivial = self.solver.check() == unsat
@@ -152,6 +157,7 @@ class HoareOptimizer(TransformationPass):
             (consider sequences of length 2 for now)
         """
         assert len(sequence) == 2
+        # DOESN'T WORK FOR GATES WITH DIFFERENT CONTROL QUBITS YET
         return isinstance(sequence[0].op, type(sequence[1].op.inverse()))
 
     def _seq_as_one(self, sequence):
@@ -222,6 +228,9 @@ class HoareOptimizer(TransformationPass):
         self.gatecache[qb_id] = self.gatecache[qb_id][max_idx+1:]
 
     def _seperate_ctrl_trgt(self, node):
+        """ Get the target qubits and control qubits if available,
+            as well as their respective z3 variables.
+        """
         gate = node.op
         if isinstance(gate, ControlledGate):
             numctrl = gate.num_ctrl_qubits

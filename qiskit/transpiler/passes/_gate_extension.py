@@ -16,45 +16,45 @@ from z3 import Not, And
 
 # FLIP GATES #
 # XGate
-XGate.postconditions = lambda self, x1, y1: y1 == Not(x1)
-CnotGate.postconditions = lambda self, x1, y1: y1 == Not(x1)
-ToffoliGate.postconditions = lambda self, x1, y1: y1 == Not(x1)
+XGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
+CnotGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
+ToffoliGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
 
 # YGate
-YGate.postconditions = lambda self, x1, y1: y1 == Not(x1)
-CyGate.postconditions = lambda self, x1, y1: y1 == Not(x1)
+YGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
+CyGate._postconditions = lambda self, x1, y1: y1 == Not(x1)
 
 # PHASE GATES #
 # IdGate
-IdGate.postconditions = lambda self, x1, y1: y1 == x1
+IdGate._postconditions = lambda self, x1, y1: y1 == x1
 
 # ZGate
-ZGate.trivial_if = lambda self, x1: True
-ZGate.postconditions = lambda self, x1, y1: y1 == x1
-CzGate.trivial_if = lambda self, x1: True
-CzGate.postconditions = lambda self, x1, y1: y1 == x1
+ZGate._trivial_if = lambda self, x1: True
+ZGate._postconditions = lambda self, x1, y1: y1 == x1
+CzGate._trivial_if = lambda self, x1: True
+CzGate._postconditions = lambda self, x1, y1: y1 == x1
 
 # SGate
-SGate.trivial_if = lambda self, x1: True
-SGate.postconditions = lambda self, x1, y1: y1 == x1
+SGate._trivial_if = lambda self, x1: True
+SGate._postconditions = lambda self, x1, y1: y1 == x1
 
 # TGate
-TGate.trivial_if = lambda self, x1: True
-TGate.postconditions = lambda self, x1, y1: y1 == x1
+TGate._trivial_if = lambda self, x1: True
+TGate._postconditions = lambda self, x1, y1: y1 == x1
 
 # RzGate = U1Gate
-RZGate.trivial_if = lambda self, x1: True
-RZGate.postconditions = lambda self, x1, y1: y1 == x1
-CrzGate.trivial_if = lambda self, x1: True
-CrzGate.postconditions = lambda self, x1, y1: y1 == x1
-U1Gate.trivial_if = lambda self, x1: True
-U1Gate.postconditions = lambda self, x1, y1: y1 == x1
-Cu1Gate.trivial_if = lambda self, x1: True
-Cu1Gate.postconditions = lambda self, x1, y1: y1 == x1
+RZGate._trivial_if = lambda self, x1: True
+RZGate._postconditions = lambda self, x1, y1: y1 == x1
+CrzGate._trivial_if = lambda self, x1: True
+CrzGate._postconditions = lambda self, x1, y1: y1 == x1
+U1Gate._trivial_if = lambda self, x1: True
+U1Gate._postconditions = lambda self, x1, y1: y1 == x1
+Cu1Gate._trivial_if = lambda self, x1: True
+Cu1Gate._postconditions = lambda self, x1, y1: y1 == x1
 
 # MULTI-QUBIT GATES #
 # SwapGate
-SwapGate.trivial_if = lambda self, x1, x2: x1 == x2
-SwapGate.postconditions = lambda self, x1, x2, y1, y2: And(x1 == y2, x2 == y1)
-FredkinGate.trivial_if = lambda self, x1, x2: x1 == x2
-FredkinGate.postconditions = lambda self, x1, x2, y1, y2: And(x1 == y2, x2 == y1)
+SwapGate._trivial_if = lambda self, x1, x2: x1 == x2
+SwapGate._postconditions = lambda self, x1, x2, y1, y2: And(x1 == y2, x2 == y1)
+FredkinGate._trivial_if = lambda self, x1, x2: x1 == x2
+FredkinGate._postconditions = lambda self, x1, x2, y1, y2: And(x1 == y2, x2 == y1)
