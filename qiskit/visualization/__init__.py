@@ -29,6 +29,7 @@ from .circuit_visualization import circuit_drawer, qx_color_scheme
 from .dag_visualization import dag_drawer
 from .pass_manager_visualization import pass_manager_drawer
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map
+from .qv_logo import plot_qv_logo
 
 from .exceptions import VisualizationError
 from .matplotlib import HAS_MATPLOTLIB
