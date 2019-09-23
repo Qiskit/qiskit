@@ -37,7 +37,7 @@ from types import SimpleNamespace, MethodType
 from marshmallow import ValidationError
 from marshmallow import Schema, post_dump, post_load
 from marshmallow import fields as _fields
-from marshmallow.utils import is_collection
+from marshmallow.utils import is_collection, INCLUDE
 
 from .exceptions import ModelValidationError
 
@@ -50,7 +50,7 @@ class ModelTypeValidator(_fields.Field):
     def _expected_types(self):
         return self.valid_types
 
-    def check_type(self, value, attr, data):
+    def check_type(self, value, attr, data, **_):
         """Validates a value against the correct type of the field.
 
         It calls ``_expected_types`` to get a list of valid types.
@@ -103,30 +103,29 @@ class BaseSchema(Schema):
     """
 
     class Meta:
-        """In marshmallow3, all schemas are strict."""
-        # TODO: remove when upgrading to marshmallow3
-        strict = True
+        """Add extra fields to the schema."""
+        unknown = INCLUDE
 
     model_cls = SimpleNamespace
 
     @post_dump(pass_original=True, pass_many=True)
-    def dump_additional_data(self, valid_data, many, original_data):
+    def dump_additional_data(self, valid_data, original_data, **kwargs):
         """Include unknown fields after dumping.
 
         Unknown fields are added with no processing at all.
 
         Args:
             valid_data (dict or list): data collected and returned by ``dump()``.
-            many (bool): if True, data and original_data are a list.
             original_data (object or list): object passed to ``dump()`` in the
                 first place.
+            **kwargs: extra arguments from the decorators.
 
         Returns:
             dict: the same ``valid_data`` extended with the unknown attributes.
 
         Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
         """
-        if many:
+        if kwargs.get('many'):
             for i, _ in enumerate(valid_data):
                 additional_keys = set(original_data[i].__dict__) - set(valid_data[i])
                 for key in additional_keys:
@@ -138,37 +137,8 @@ class BaseSchema(Schema):
 
         return valid_data
 
-    @post_load(pass_original=True, pass_many=True)
-    def load_additional_data(self, valid_data, many, original_data):
-        """Include unknown fields after load.
-
-        Unknown fields are added with no processing at all.
-
-        Args:
-            valid_data (dict or list): validated data returned by ``load()``.
-            many (bool): if True, data and original_data are a list.
-            original_data (dict or list): data passed to ``load()`` in the
-                first place.
-
-        Returns:
-            dict: the same ``valid_data`` extended with the unknown attributes.
-
-        Inspired by https://github.com/marshmallow-code/marshmallow/pull/595.
-        """
-        if many:
-            for i, _ in enumerate(valid_data):
-                additional_keys = set(original_data[i]) - set(valid_data[i])
-                for key in additional_keys:
-                    valid_data[i][key] = original_data[i][key]
-        else:
-            additional_keys = set(original_data) - set(valid_data)
-            for key in additional_keys:
-                valid_data[key] = original_data[key]
-
-        return valid_data
-
     @post_load
-    def make_model(self, data):
+    def make_model(self, data, **_):
         """Make ``load`` return a ``model_cls`` instance instead of a dict."""
         return self.model_cls(**data)
 
@@ -197,7 +167,6 @@ class _SchemaBinder:
         model_cls.schema = self._schema_cls()
 
         # Append the methods to the Model class.
-        model_cls._validate = self._validate
         model_cls.__init__ = self._validate_after_init(model_cls.__init__)
 
         # Add a Schema that performs minimal validation to the Model.
@@ -232,25 +201,17 @@ class _SchemaBinder:
         return validation_schema
 
     @staticmethod
-    def _validate(instance):
-        """Validate the internal representation of the instance."""
-        try:
-            _ = instance.schema.validate(instance.to_dict())
-        except ValidationError as ex:
-            raise ModelValidationError(
-                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs)
-
-    @staticmethod
     def _validate_after_init(init_method):
         """Add validation after instantiation."""
 
         @wraps(init_method)
         def _decorated(self, **kwargs):
             try:
-                _ = self.shallow_schema.validate(kwargs)
+                _ = self.shallow_schema._do_load(kwargs,
+                                                 postprocess=False)
             except ValidationError as ex:
                 raise ModelValidationError(
-                    ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
+                    ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
             init_method(self, **kwargs)
 
@@ -332,10 +293,10 @@ class BaseModel(SimpleNamespace):
         ``@bind_schema``.
         """
         try:
-            data, _ = self.schema.dump(self)
+            data = self.schema.dump(self)
         except ValidationError as ex:
             raise ModelValidationError(
-                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
+                ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
         return data
 
@@ -347,10 +308,10 @@ class BaseModel(SimpleNamespace):
         ``@bind_schema``.
         """
         try:
-            data, _ = cls.schema.load(dict_)
+            data = cls.schema.load(dict_)
         except ValidationError as ex:
             raise ModelValidationError(
-                ex.messages, ex.field_names, ex.fields, ex.data, **ex.kwargs) from None
+                ex.messages, ex.field_name, ex.data, ex.valid_data, **ex.kwargs) from None
 
         return data
 
