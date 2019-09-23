@@ -64,7 +64,8 @@ def _trim(image):
     return image
 
 
-def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wires=True):
+def _get_layered_instructions(circuit, reverse_bits=False,
+                              justify=None, idle_wires=True):
     """
     Given a circuit, return a tuple (qregs, cregs, ops) where
     qregs and cregs are the quantum and classical registers
@@ -96,7 +97,7 @@ def _get_layered_instructions(circuit, reverse_bits=False, justify=None, idle_wi
             ops.append([node])
 
     else:
-        ops = LayerSpooler(dag, justify).as_list()
+        ops = _LayerSpooler(dag, justify).as_list()
 
     if reverse_bits:
         qregs.reverse()
@@ -156,7 +157,7 @@ def _any_crossover(qregs, node, nodes):
     return any(i in gate_span for i in all_indices)
 
 
-class LayerSpooler():
+class _LayerSpooler():
     """Manipulate list of layer dicts for _get_layered_instructions
     qiskit-terra #2802
     """
