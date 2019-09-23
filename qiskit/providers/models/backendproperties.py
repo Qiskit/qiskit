@@ -179,9 +179,9 @@ class BackendProperties(BaseModel):
         return self.gate_property(operation, qubits, 'gate_length')[0]
 
     def gate_property(self,
-                          gate: str = None,
-                          qubits: Union[int, Iterable[int]] = None,
-                          gate_property: str = None) -> Tuple[Any, datetime.datetime]:
+                      gate: str = None,
+                      qubits: Union[int, Iterable[int]] = None,
+                      gate_property: str = None) -> Tuple[Any, datetime.datetime]:
         """
         Return the gate properties of the given qubit and property.
 
