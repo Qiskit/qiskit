@@ -181,14 +181,14 @@ class BackendProperties(BaseModel):
     def gate_property(self,
                       operation: str,
                       qubits: Union[int, Iterable[int]] = None,
-                      gate_property: str = None) -> Tuple[Any, datetime.datetime]:
+                      name: str = None) -> Tuple[Any, datetime.datetime]:
         """
         Return the gate properties of the given qubit and property.
 
         Args:
             operation (str) : Name of the gate
             qubits (Union[int, Iterable[int]]): The property to look for.
-            gate_property (str): Optionally used to specify within the heirarchy which
+            name (str): Optionally used to specify within the heirarchy which
             property to return.
 
         Return:
@@ -196,16 +196,17 @@ class BackendProperties(BaseModel):
             backend, otherwise, return `None`.
 
         Raises:
-	        PulseError: If error is True and the property is not found.
+	        PulseError: If `qubits` is `None` and `name` is `not None` or
+            if the property is not found.
         """
         result = self._gates
         try:
             if operation is not None:
                 result = result[operation]
-                if qubits is not None:
-                    result = result[_to_tuple(qubits)]
-                    if gate_property is not None:
-                        result = result[gate_property]
+                if qubits is not None and name is not None:
+                    result = result[_to_tuple(qubits)][name]
+                elif qubits is None and name is not None:
+                    raise PulseError("Qubit cannot be none when you have passed an argument for name")
         except (KeyError, TypeError):
             raise PulseError("Could not find the desired property.")
         return result
@@ -224,14 +225,17 @@ class BackendProperties(BaseModel):
             the backend, otherwise, return `None`.
 
         Raises:
-	        PulseError: If error is True and the property is not found.
+	        PulseError: If `qubit` is `None` and `name` is `not None` or
+            if the property is not found.
         """
         result = self._qubits
         try:
-            if qubit is not None:
-                result = result[qubit]
-                if name is not None:
-                    result = result[name]
+            if qubit is not None and name is not None:
+                result = result[qubit][name]
+                # if name is not None:
+                #     result = result[name]
+            elif qubit is None and name is not None:
+                raise PulseError("Qubit cannot be none when you have passed an argument for name")
         except (KeyError, TypeError):
             raise PulseError("Could not find the desired property.")
         return result
