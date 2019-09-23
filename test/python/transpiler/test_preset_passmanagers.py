@@ -291,7 +291,15 @@ class TestFinalLayouts(QiskitTestCase):
         expected_layout_level2 = dense_layout
         # NoiseAdaptiveLayout (in FakeTokyo, no errors. Therefore, TrivialLayout)
         # TODO See https://github.com/Qiskit/qiskit-terra/issues/2970
-        expected_layout_level3 = trivial_layout
+        noise_adaptive_layout = {6: qr1[0], 11: qr1[1], 5: qr1[2],
+                                 0: qr2[0], 1: qr2[1],
+                                 2: ancilla[0], 3: ancilla[1], 4: ancilla[2],
+                                 7: ancilla[3], 8: ancilla[4], 9: ancilla[5],
+                                 10: ancilla[6], 12: ancilla[7], 13: ancilla[8],
+                                 14: ancilla[9], 15: ancilla[10], 16: ancilla[11],
+                                 17: ancilla[12], 18: ancilla[13], 19: ancilla[14]}
+
+        expected_layout_level3 = noise_adaptive_layout
         expected_layouts = [expected_layout_level0,
                             expected_layout_level1,
                             expected_layout_level2,
