@@ -210,8 +210,8 @@ class BackendProperties(BaseModel):
             raise PulseError("Could not find the desired property.")
         return result
 
-    def get_qubit_property(self, qubit: int = None,
-                           name: str = None) -> Tuple[Any, datetime.datetime]:
+    def qubit_property(self, qubit: int = None,
+                       name: str = None) -> Tuple[Any, datetime.datetime]:
         """
         Return the qubit properties of the given qubit and name.
 
@@ -250,7 +250,7 @@ class BackendProperties(BaseModel):
         Raises:
 	        PulseError: If error is True and the property is not found.
         """
-        return self.get_qubit_property(qubit, 'T1')
+        return self.qubit_property(qubit, 'T1')
 
     def _apply_prefix(self, value, unit):
         prefixes = {
