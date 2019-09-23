@@ -64,8 +64,10 @@ class BackendPropertiesSchema(BaseSchema):
 @bind_schema(NduvSchema)
 class Nduv(BaseModel):
     """Model for name-date-unit-value.
+
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``NduvSchema``.
+
     Attributes:
         date (datetime): date.
         name (str): name.
@@ -85,8 +87,10 @@ class Nduv(BaseModel):
 @bind_schema(GateSchema)
 class Gate(BaseModel):
     """Model for Gate.
+
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``GateSchema``.
+
     Attributes:
         qubits (list[Number]): qubits.
         gate (str): gate.
@@ -104,8 +108,10 @@ class Gate(BaseModel):
 @bind_schema(BackendPropertiesSchema)
 class BackendProperties(BaseModel):
     """Model for BackendProperties.
+
     Please note that this class only describes the required fields. For the
     full description of the model, please check ``BackendPropertiesSchema``.
+
     Attributes:
         backend_name (str): backend name.
         backend_version (str): backend version in the form X.Y.Z.
@@ -145,6 +151,7 @@ class BackendProperties(BaseModel):
     def gate_error(self, operation: str, qubits: Union[int, Iterable[int]]):
         """
         Return gate error estimates from backend properties.
+
         Args:
             operation (str): The operation for which to get the error.
             qubits (Union[int, Iterable[int]]): The specific qubits for the operation.
@@ -158,6 +165,7 @@ class BackendProperties(BaseModel):
     def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]):
         """
         Return the duration of the gate in units of seconds.
+
         Args:
             operation (str): The operation for which to get the duration.
             qubits (Union[int, Iterable[int]]): The specific qubits for the operation.
@@ -173,14 +181,17 @@ class BackendProperties(BaseModel):
                           qubits: Union[int, Iterable[int]] = None,
                           gate_property: str = None) -> Tuple[Any, datetime.datetime]:
         """
-        Return the gate properties of the given qubit and property, if it was given by the
-        backend, otherwise, return `None` or raise an error.
+        Return the gate properties of the given qubit and property.
 
         Args:
             gate (str) : Name of the gate
             qubits (Union[int, Iterable[int]]): The property to look for.
             gate_property (str): Optionally used to specify within the heirarchy which
             property to return.
+
+        Return:
+            Gate properties of the given qubit and property, if it was given by the
+            backend, otherwise, return `None`.
 
         Raises:
 	        PulseError: If error is True and the property is not found.
@@ -200,12 +211,15 @@ class BackendProperties(BaseModel):
     def get_qubit_property(self, qubit: int = None,
                            name: str = None) -> Tuple[Any, datetime.datetime]:
         """
-        Return the qubit properties of the given qubit and name, if it was given by
-        the backend, otherwise, return `None` or raise an error.
+        Return the qubit properties of the given qubit and name.
 
         Args:
             qubit (int): The property to look for.
             name (str): Optionally used to specify within the heirarchy which property to return.
+
+        Return:
+            Qubit properties of the given qubit and name, if it was given by
+            the backend, otherwise, return `None`.
 
         Raises:
 	        PulseError: If error is True and the property is not found.
@@ -222,20 +236,19 @@ class BackendProperties(BaseModel):
 
     def t1(self, qubit: int):
         """
-        Return the properties of T1 of the given qubit, if it was given by the backend, otherwise,
-        return `None` or raise an error.
+        Return the properties of T1 of the given qubit.
 
         Args:
             qubit (int): The property to look for.
 
+        Return:
+            Properties of T1 of the given qubit, if it was given by the backend, otherwise,
+            return `None`.
+
         Raises:
 	        PulseError: If error is True and the property is not found.
         """
-        #TODO investigate the possibilites of errors
-        try:
-            return self.get_qubit_property(qubit, 'T1')
-        except:
-            raise PulseError("Could not find the desired property")
+        return self.get_qubit_property(qubit, 'T1')
 
     def _apply_prefix(self, value, unit):
         prefixes = {
