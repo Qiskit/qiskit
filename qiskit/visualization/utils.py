@@ -97,7 +97,7 @@ def _get_layered_instructions(circuit, reverse_bits=False,
             ops.append([node])
 
     else:
-        ops = _LayerSpooler(dag, justify).as_list()
+        ops = _LayerSpooler(dag, justify)
 
     if reverse_bits:
         qregs.reverse()
@@ -146,9 +146,7 @@ def _get_gate_span(qregs, instruction):
 
 
 def _any_crossover(qregs, node, nodes):
-    """Return True .IFF. 'node' crosses over any in 'nodes'
-    qiskit-terra #2802
-    """
+    """Return True .IFF. 'node' crosses over any in 'nodes',"""
     gate_span = _get_gate_span(qregs, node)
     all_indices = []
     for check_node in nodes:
@@ -157,22 +155,20 @@ def _any_crossover(qregs, node, nodes):
     return any(i in gate_span for i in all_indices)
 
 
-class _LayerSpooler():
-    """Manipulate list of layer dicts for _get_layered_instructions
-    qiskit-terra #2802
-    """
+class _LayerSpooler(list):
+    """Manipulate list of layer dicts for _get_layered_instructions."""
 
     def __init__(self, dag, justification):
         """Create spool"""
+        super(_LayerSpooler, self).__init__()
         self.dag = dag
         self.qregs = dag.qubits()
         self.justification = justification
-        self.spool = []
 
         if self.justification == 'left':
 
             for dag_layer in dag.layers():
-                current_index = self.last_index()
+                current_index = len(self) - 1
                 dag_nodes = _sorted_nodes(dag_layer)
                 for node in dag_nodes:
                     self.add(node, current_index)
@@ -192,28 +188,8 @@ class _LayerSpooler():
                 for node in dag_nodes:
                     self.add(node, current_index)
 
-    def size(self):
-        """Return number of entries in spool"""
-        return len(self.spool)
-
-    def last_index(self):
-        """Return last index in spool"""
-        return len(self.spool) - 1
-
-    def as_list(self):
-        """Get the spool as a list of layer values"""
-        return list(self.spool)
-
-    def append(self, layer):
-        """Append to spool"""
-        self.spool.append(layer)
-
-    def prepend(self, layer):
-        """Prepend layer to spool"""
-        self.spool.insert(0, layer)
-
     def is_found_in(self, node, nodes):
-        """ Is any qreq in node found in any of nodes?"""
+        """Is any qreq in node found in any of nodes?"""
         all_qargs = []
         for a_node in nodes:
             for qarg in a_node.qargs:
@@ -225,9 +201,8 @@ class _LayerSpooler():
         return not _any_crossover(self.qregs, node, nodes)
 
     def slide_from_left(self, node, index):
-        """Insert node into first layer where there is no conflict going l > r
-        """
-        if self.size() == 0:
+        """Insert node into first layer where there is no conflict going l > r"""
+        if not self:
             self.append([node])
             inserted = True
 
@@ -237,22 +212,22 @@ class _LayerSpooler():
             last_insertable_index = None
 
             while curr_index > -1:
-                if self.is_found_in(node, self.spool[curr_index]):
+                if self.is_found_in(node, self[curr_index]):
                     break
-                if self.insertable(node, self.spool[curr_index]):
+                if self.insertable(node, self[curr_index]):
                     last_insertable_index = curr_index
                 curr_index = curr_index - 1
 
             if last_insertable_index:
-                self.spool[last_insertable_index].append(node)
+                self[last_insertable_index].append(node)
                 inserted = True
 
             else:
                 inserted = False
                 curr_index = index
-                while curr_index < self.size():
-                    if self.insertable(node, self.spool[curr_index]):
-                        self.spool[curr_index].append(node)
+                while curr_index < len(self):
+                    if self.insertable(node, self[curr_index]):
+                        self[curr_index].append(node)
                         inserted = True
                         break
                     curr_index = curr_index + 1
@@ -261,10 +236,9 @@ class _LayerSpooler():
             self.append([node])
 
     def slide_from_right(self, node, index):
-        """Insert node into rightmost layer as long there is no conflict
-        """
-        if self.size() == 0:
-            self.prepend([node])
+        """Insert node into rightmost layer as long there is no conflict."""
+        if not self:
+            self.insert(0, [node])
             inserted = True
 
         else:
@@ -272,32 +246,31 @@ class _LayerSpooler():
             curr_index = index
             last_insertable_index = None
 
-            while curr_index < self.size():
-                if self.is_found_in(node, self.spool[curr_index]):
+            while curr_index < len(self):
+                if self.is_found_in(node, self[curr_index]):
                     break
-                if self.insertable(node, self.spool[curr_index]):
+                if self.insertable(node, self[curr_index]):
                     last_insertable_index = curr_index
                 curr_index = curr_index + 1
 
             if last_insertable_index:
-                self.spool[last_insertable_index].append(node)
+                self[last_insertable_index].append(node)
                 inserted = True
 
             else:
                 curr_index = index
                 while curr_index > -1:
-                    if self.insertable(node, self.spool[curr_index]):
-                        self.spool[curr_index].append(node)
+                    if self.insertable(node, self[curr_index]):
+                        self[curr_index].append(node)
                         inserted = True
                         break
                     curr_index = curr_index - 1
 
         if not inserted:
-            self.prepend([node])
+            self.insert(0, [node])
 
     def add(self, node, index):
-        """Add 'node' where it belongs, starting the try at 'index'
-        """
+        """Add 'node' where it belongs, starting the try at 'index'."""
         if self.justification == "left":
             self.slide_from_left(node, index)
         else:
