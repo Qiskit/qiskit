@@ -162,7 +162,7 @@ class BackendProperties(BaseModel):
 	        PulseError: If error is True and the property is not found.
         """
         # Throw away datetime at index 1
-        return self.get_gate_property(operation, qubits, 'gate_error')[0]
+        return self.gate_property(operation, qubits, 'gate_error')[0]
 
     def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]):
         """
@@ -176,9 +176,9 @@ class BackendProperties(BaseModel):
 	        PulseError: If error is True and the property is not found.
         """
         # Throw away datetime at index 1
-        return self.get_gate_property(operation, qubits, 'gate_length')[0]
+        return self.gate_property(operation, qubits, 'gate_length')[0]
 
-    def get_gate_property(self,
+    def gate_property(self,
                           gate: str = None,
                           qubits: Union[int, Iterable[int]] = None,
                           gate_property: str = None) -> Tuple[Any, datetime.datetime]:

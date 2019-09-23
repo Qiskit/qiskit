@@ -56,9 +56,9 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.t1(0),
                          self.properties.get_qubit_property(0, 'T1'))
 
-    def test_get_gate_property(self):
+    def test_gate_property(self):
         """Test getting the gate properties."""
-        self.assertEqual(self.properties.get_gate_property('cx', (0, 1), 'gate_error'),
+        self.assertEqual(self.properties.gate_property('cx', (0, 1), 'gate_error'),
                          self.properties._gates['cx'][(0,1)]['gate_error'])
 
     def test_get_qubit_property(self):
