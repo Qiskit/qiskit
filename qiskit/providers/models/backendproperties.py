@@ -127,6 +127,8 @@ class BackendProperties(BaseModel):
         self.backend_version = backend_version
         self.last_update_date = last_update_date
         self.general = general
+        self.qubits = qubits
+        self.gates = gates
 
         self._qubits = defaultdict(dict)
         for qubit, props in enumerate(qubits):
