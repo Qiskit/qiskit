@@ -179,14 +179,14 @@ class BackendProperties(BaseModel):
         return self.gate_property(operation, qubits, 'gate_length')[0]
 
     def gate_property(self,
-                      gate: str = None,
+                      operation: str,
                       qubits: Union[int, Iterable[int]] = None,
                       gate_property: str = None) -> Tuple[Any, datetime.datetime]:
         """
         Return the gate properties of the given qubit and property.
 
         Args:
-            gate (str) : Name of the gate
+            operation (str) : Name of the gate
             qubits (Union[int, Iterable[int]]): The property to look for.
             gate_property (str): Optionally used to specify within the heirarchy which
             property to return.
@@ -200,8 +200,8 @@ class BackendProperties(BaseModel):
         """
         result = self._gates
         try:
-            if gate is not None:
-                result = result[gate]
+            if operation is not None:
+                result = result[operation]
                 if qubits is not None:
                     result = result[_to_tuple(qubits)]
                     if gate_property is not None:
