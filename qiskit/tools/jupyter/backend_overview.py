@@ -131,15 +131,15 @@ def backend_widget(backend):
 
     n_qubits = config['n_qubits']
 
-    qv = '-'
+    qv_val = '-'
     if 'quantum_volume' in config.keys():
         if config['quantum_volume']:
-            qv = config['quantum_volume']
+            qv_val = config['quantum_volume']
 
     qubit_count = widgets.HTML(value="<h5><b>{qubits}</b></h5>".format(qubits=n_qubits),
                                layout=widgets.Layout(justify_content='center'))
 
-    qv_value = widgets.HTML(value="<h5>{qubits}</h5>".format(qubits=qv),
+    qv_value = widgets.HTML(value="<h5>{qubits}</h5>".format(qubits=qv_val),
                             layout=widgets.Layout(justify_content='center'))
 
     cmap = widgets.Output(layout=widgets.Layout(min_width='250px', max_width='250px',
