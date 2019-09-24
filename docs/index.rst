@@ -7,6 +7,7 @@ Qiskit Terra documentation
   :hidden:
 
   API References <apidocs/qiskit>
+  Release Notes <release_notes>
 
 .. Hiding - Indices and tables
    :ref:`genindex`

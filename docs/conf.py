@@ -61,7 +61,8 @@ extensions = [
     'sphinx_tabs.tabs',
     'sphinx_automodapi.automodapi',
     'IPython.sphinxext.ipython_console_highlighting',
-    'IPython.sphinxext.ipython_directive'
+    'IPython.sphinxext.ipython_directive',
+    'reno.sphinxext',
 ]
 
 
