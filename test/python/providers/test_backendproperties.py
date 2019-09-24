@@ -49,7 +49,7 @@ class BackendpropertiesTestCase(QiskitTestCase):
         """Test getting the gate duration."""
         self.assertEqual(self.properties.gate_length('u1', 0),
                          self.properties._gates['u1'][(0,)]['gate_length'][0])
-        self.assertEqual(self.properties.gate_length('u3', qubits=[0]),
+        self.assertEqual(self.properties.gate_length('u3', [0]),
                          self.properties._gates['u3'][(0,)]['gate_length'][0])
 
     def test_t1(self):
