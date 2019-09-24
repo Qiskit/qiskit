@@ -130,7 +130,7 @@ class BackendProperties(BaseModel):
         self.qubits = qubits
         self.gates = gates
 
-        self._qubits = defaultdict(dict)
+        self._qubits = {}
         for qubit, props in enumerate(qubits):
             formatted_props = {}
             for prop in props:
@@ -138,7 +138,9 @@ class BackendProperties(BaseModel):
                 formatted_props[prop.name] = (value, prop.date)
                 self._qubits[qubit] = formatted_props
 
-        self._gates = defaultdict(dict)
+        self._gates = {}
+        _temp = {} # To add nested dictionaries
+        _temp_name = str # To check for list of dictionaries
         for gate in gates:
             qubits = _to_tuple(gate.qubits)
             formatted_props = {}
@@ -146,7 +148,11 @@ class BackendProperties(BaseModel):
             for param in gate.parameters:
                 value = self._apply_prefix(param.value, param.unit)
                 formatted_props[param.name] = (value, param.date)
-            self._gates[gate.gate][qubits] = formatted_props
+            if _temp_name != gate.gate:
+                _temp = {}
+            _temp_name = gate.gate
+            _temp[qubits] = formatted_props
+            self._gates[gate.gate] = _temp
 
         super().__init__(**kwargs)
 
@@ -199,19 +205,18 @@ class BackendProperties(BaseModel):
         """
         result = self._gates
         try:
-            if operation is not None:
-                result = result[operation]
-                if qubits is not None and name is not None:
-                    result = result[_to_tuple(qubits)][name]
-                elif qubits is None and name is not None:
-                    raise PulseError("Qubit cannot be none when you have passed an argument for name")
-            else:
-                raise PulseError("Operation cannot be none.")
-        except (KeyError, TypeError):
+            result = result[operation]
+            if qubits is not None:
+                result = result[_to_tuple(qubits)]
+                if name:
+                    result = result[name]
+            elif name:
+                raise PulseError("Please provide qubits in order to get the {name} property of '{op}'.".format(name=name, op=operation))
+        except KeyError:
             raise PulseError("Could not find the desired property.")
         return result
 
-    def qubit_property(self, qubit: int = None,
+    def qubit_property(self, qubit: int,
                        name: str = None) -> Tuple[Any, datetime.datetime]:
         """
         Return the qubit properties of the given qubit and name.
@@ -230,12 +235,11 @@ class BackendProperties(BaseModel):
         """
         result = self._qubits
         try:
-            if qubit is not None and name is not None:
-                result = result[qubit][name]
-            elif qubit is None and name is not None:
-                raise PulseError("Qubit cannot be none when you have passed an argument for name")
-        except (KeyError, TypeError):
-            raise PulseError("Could not find the desired property.")
+            result = result[qubit]
+            if name is not None:
+                result = result[name]
+        except KeyError:
+            raise PulseError("Please check your arguments again. Could not find the desired property.")
         return result
 
     def t1(self, qubit: int):
