@@ -38,7 +38,6 @@ class VariationalForm(Pluggable):
         self._num_qubits = 0
         self._bounds = list()
         self._is_parameterized_circuit = False
-        self._parameters = None
         pass
 
     @classmethod
@@ -76,15 +75,6 @@ class VariationalForm(Pluggable):
             int: An integer indicating the number of parameters.
         """
         return self._num_parameters
-
-    @property
-    def parameters(self):
-        """Parameters of the variational form.
-
-        Returns:
-            list[Parameter]: the Parameter for the variational form.
-        """
-        return self._parameters
 
     @property
     def is_parameterized_circuit(self):

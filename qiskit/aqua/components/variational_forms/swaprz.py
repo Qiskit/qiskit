@@ -16,7 +16,6 @@
 
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import Parameter
 
 from qiskit.aqua.components.variational_forms import VariationalForm
 
@@ -101,7 +100,6 @@ class SwapRZ(VariationalForm):
         # for repeated block
         self._num_parameters += (len(self._entangled_qubits) + len(self._entangler_map)) * depth
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
-        self._parameters = [Parameter('x{}'.format(i)) for i in range(self._num_parameters)]
         self._is_parameterized_circuit = True
 
     def construct_circuit(self, parameters, q=None):
@@ -109,7 +107,7 @@ class SwapRZ(VariationalForm):
         Construct the variational form, given its parameters.
 
         Args:
-            parameters (numpy.ndarray): circuit parameters
+            parameters (Union(numpy.ndarray, list[Parameter], ParameterVector)): circuit parameters
             q (QuantumRegister): Quantum Register for the circuit.
 
         Returns:
