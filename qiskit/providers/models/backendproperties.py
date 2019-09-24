@@ -207,6 +207,8 @@ class BackendProperties(BaseModel):
                     result = result[_to_tuple(qubits)][name]
                 elif qubits is None and name is not None:
                     raise PulseError("Qubit cannot be none when you have passed an argument for name")
+            else:
+                raise PulseError("Operation cannot be none.")
         except (KeyError, TypeError):
             raise PulseError("Could not find the desired property.")
         return result
