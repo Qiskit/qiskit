@@ -68,6 +68,7 @@ class BackendOverview(Magics):
                 _backends = _backends + [back]
 
         qubit_label = widgets.Label(value='Num. Qubits')
+        qv_label = widgets.Label(value='Quantum Vol.')
         pend_label = widgets.Label(value='Pending Jobs')
         least_label = widgets.Label(value='Least Busy')
         oper_label = widgets.Label(
@@ -79,7 +80,7 @@ class BackendOverview(Magics):
         meas_label = widgets.Label(
             value='Avg. Meas. Err.', layout=widgets.Layout(margin='10px 0px 0px 0px'))
 
-        labels_widget = widgets.VBox([qubit_label, pend_label, oper_label,
+        labels_widget = widgets.VBox([qubit_label, qv_label, pend_label, oper_label,
                                       least_label, t12_label, cx_label, meas_label],
                                      layout=widgets.Layout(margin='295px 0px 0px 0px',
                                                            min_width='100px'))
@@ -130,7 +131,15 @@ def backend_widget(backend):
 
     n_qubits = config['n_qubits']
 
+    qv = '-'
+    if 'quantum_volume' in config.keys():
+        if config['quantum_volume']:
+            qv = config['quantum_volume']
+
     qubit_count = widgets.HTML(value="<h5><b>{qubits}</b></h5>".format(qubits=n_qubits),
+                               layout=widgets.Layout(justify_content='center'))
+
+    qv_value = widgets.HTML(value="<h5>{qubits}</h5>".format(qubits=qv),
                                layout=widgets.Layout(justify_content='center'))
 
     cmap = widgets.Output(layout=widgets.Layout(min_width='250px', max_width='250px',
@@ -188,7 +197,7 @@ def backend_widget(backend):
     meas_widget = widgets.HTML(value="<h5>{meas_err}</h5>".format(meas_err=avg_meas_err),
                                layout=widgets.Layout())
 
-    out = widgets.VBox([name, cmap, qubit_count, pending, is_oper, least_busy,
+    out = widgets.VBox([name, cmap, qubit_count, qv_value, pending, is_oper, least_busy,
                         t12_widget, cx_widget, meas_widget],
                        layout=widgets.Layout(display='inline-flex',
                                              flex_flow='column',
@@ -236,17 +245,17 @@ def update_backend_info(self, interval=60):
 
             for var in idx:
                 if var == least_pending_idx:
+                    self.children[var].children[6].value = "<h5 style='color:#34bc6e'>True</h5>"
+                else:
+                    self.children[var].children[6].value = "<h5 style='color:#dc267f'>False</h5>"
+
+                self.children[var].children[4].children[1].value = pending[var]
+                self.children[var].children[4].children[1].max = max(
+                    self.children[var].children[4].children[1].max, pending[var]+10)
+                if stati[var].operational:
                     self.children[var].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
                     self.children[var].children[5].value = "<h5 style='color:#dc267f'>False</h5>"
-
-                self.children[var].children[3].children[1].value = pending[var]
-                self.children[var].children[3].children[1].max = max(
-                    self.children[var].children[3].children[1].max, pending[var]+10)
-                if stati[var].operational:
-                    self.children[var].children[4].value = "<h5 style='color:#34bc6e'>True</h5>"
-                else:
-                    self.children[var].children[4].value = "<h5 style='color:#dc267f'>False</h5>"
 
             started = True
             current_interval = 0
