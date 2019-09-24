@@ -140,7 +140,7 @@ def backend_widget(backend):
                                layout=widgets.Layout(justify_content='center'))
 
     qv_value = widgets.HTML(value="<h5>{qubits}</h5>".format(qubits=qv),
-                               layout=widgets.Layout(justify_content='center'))
+                            layout=widgets.Layout(justify_content='center'))
 
     cmap = widgets.Output(layout=widgets.Layout(min_width='250px', max_width='250px',
                                                 max_height='250px',
