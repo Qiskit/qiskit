@@ -128,7 +128,6 @@ def plot_state_hinton(rho, title='', figsize=None):
     ax2.set_title('Im[$\\rho$]', fontsize=14)
     if title:
         fig.suptitle(title, fontsize=16)
-    plt.tight_layout()
     if get_backend() in ['module://ipykernel.pylab.backend_inline',
                          'nbAgg']:
         plt.close(fig)
@@ -354,7 +353,6 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     for tick in ax2.zaxis.get_major_ticks():
         tick.label.set_fontsize(14)
     plt.suptitle(title, fontsize=16)
-    plt.tight_layout()
     if get_backend() in ['module://ipykernel.pylab.backend_inline',
                          'nbAgg']:
         plt.close(fig)
@@ -637,7 +635,6 @@ def plot_state_qsphere(rho, figsize=None):
     ax2.text(0, -offset, r'$3\pi/2$', horizontalalignment='center',
              verticalalignment='center', fontsize=14)
 
-    fig.tight_layout()
     if get_backend() in ['module://ipykernel.pylab.backend_inline',
                          'nbAgg']:
         plt.close(fig)
