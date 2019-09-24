@@ -190,6 +190,7 @@ stages:
           Python37:
             python.version: '3.7'
       steps:
+        - checkout: self
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '$(python.version)'
