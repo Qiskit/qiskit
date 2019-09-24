@@ -21,3 +21,25 @@ from .circuit_to_dag import circuit_to_dag
 from .dag_to_circuit import dag_to_circuit
 from .ast_to_dag import ast_to_dag
 from .circuit_to_instruction import circuit_to_instruction
+
+
+def isinstanceint(obj):
+    """ Like isinstance(obj,int), but with casting. Except for strings."""
+    if isinstance(obj, str):
+        return False
+    try:
+        int(obj)
+        return True
+    except TypeError:
+        return False
+
+
+def isinstancelist(obj):
+    """ Like isinstance(obj, list), but with casting. Except for strings and dicts."""
+    if isinstance(obj, (str, dict)):
+        return False
+    try:
+        list(obj)
+        return True
+    except TypeError:
+        return False
