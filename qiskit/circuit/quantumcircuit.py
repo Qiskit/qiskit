@@ -188,7 +188,7 @@ class QuantumCircuit:
         reverse_circ = self.copy(name=self.name + '_mirror')
         reverse_circ._data = []
         for inst, qargs, cargs in reversed(self.data):
-            reverse_circ.append((inst.mirror(), qargs, cargs))
+            reverse_circ.append(inst.mirror(), qargs, cargs)
         return reverse_circ
 
     def inverse(self):
