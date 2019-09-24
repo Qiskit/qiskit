@@ -25,6 +25,7 @@ from .matplotlib import HAS_MATPLOTLIB
 from .exceptions import VisualizationError
 
 if HAS_MATPLOTLIB:
+    from matplotlib import get_backend
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
@@ -187,5 +188,7 @@ def plot_histogram(data, figsize=(7, 5), color=None, number_to_keep=None,
         ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.0), ncol=1,
                   borderaxespad=0, frameon=True, fontsize=12)
     if fig:
-        plt.close(fig)
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(fig)
     return fig

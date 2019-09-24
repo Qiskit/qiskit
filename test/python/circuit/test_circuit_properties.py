@@ -16,9 +16,7 @@
 
 """Test Qiskit's inverse gate operation."""
 
-from collections import OrderedDict
 import unittest
-import numpy as np
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 # pylint: disable=unused-import
@@ -352,12 +350,8 @@ class TestCircuitProperties(QiskitTestCase):
 
     def test_circuit_size_ignores_barriers_snapshots(self):
         """Circuit.size should not count barriers or snapshots."""
-
-        import qiskit.extensions.simulator  # pylint: disable=unused-import
-
-        size = 4
-        q = QuantumRegister(size, 'q')
-        c = ClassicalRegister(size, 'c')
+        q = QuantumRegister(4, 'q')
+        c = ClassicalRegister(4, 'c')
         qc = QuantumCircuit(q, c)
 
         qc.h(q[0])
@@ -379,18 +373,17 @@ class TestCircuitProperties(QiskitTestCase):
         qc.z(q[3:])
         result = qc.count_ops()
 
-        expected = OrderedDict([('h', 6), ('z', 3), ('y', 2), ('x', 1)])
+        expected = dict([('h', 6), ('z', 3), ('y', 2), ('x', 1)])
 
-        self.assertIsInstance(result, OrderedDict)
+        self.assertIsInstance(result, dict)
         self.assertEqual(expected, result)
 
     def test_circuit_connected_components_empty(self):
         """Verify num_connected_components is width for empty
         """
-        size = np.random.randint(1, 10)
-        q = QuantumRegister(size, 'q')
+        q = QuantumRegister(7, 'q')
         qc = QuantumCircuit(q)
-        self.assertEqual(size, qc.num_connected_components())
+        self.assertEqual(7, qc.num_connected_components())
 
     def test_circuit_connected_components_multi_reg(self):
         """Test tensor factors works over multi registers

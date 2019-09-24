@@ -19,9 +19,76 @@
 import unittest
 import numpy as np
 
-from qiskit.pulse import (Acquire, FrameChange, PersistentValue,
-                          Snapshot, Kernel, Discriminator, functional_pulse)
+from qiskit.pulse import (SamplePulse, Acquire, FrameChange, PersistentValue,
+                          Snapshot, Kernel, Discriminator, functional_pulse,
+                          Delay, PulseError)
 from qiskit.test import QiskitTestCase
+
+
+class TestSamplePulse(QiskitTestCase):
+    """SamplePulse tests."""
+
+    def test_sample_pulse(self):
+        """Test pulse initialization."""
+        n_samples = 100
+        samples = np.linspace(0, 1., n_samples, dtype=np.complex128)
+        name = 'test'
+        sample_pulse = SamplePulse(samples, name=name)
+
+        self.assertEqual(sample_pulse.samples.dtype, np.complex128)
+        np.testing.assert_almost_equal(sample_pulse.samples, samples)
+
+        self.assertEqual(sample_pulse.duration, n_samples)
+        self.assertEqual(sample_pulse.name, name)
+
+    def test_type_casting(self):
+        """Test casting of input samples to numpy array."""
+        n_samples = 100
+        samples_f64 = np.linspace(0, 1., n_samples, dtype=np.float64)
+
+        sample_pulse_f64 = SamplePulse(samples_f64)
+        self.assertEqual(sample_pulse_f64.samples.dtype, np.complex128)
+
+        samples_c64 = np.linspace(0, 1., n_samples, dtype=np.complex64)
+
+        sample_pulse_c64 = SamplePulse(samples_c64)
+        self.assertEqual(sample_pulse_c64.samples.dtype, np.complex128)
+
+        samples_list = np.linspace(0, 1., n_samples).tolist()
+
+        sample_pulse_list = SamplePulse(samples_list)
+        self.assertEqual(sample_pulse_list.samples.dtype, np.complex128)
+
+    def test_pulse_limits(self):
+        """Test that limits of pulse norm of one are enforced properly."""
+
+        # test norm is correct for complex128 numpy data
+        unit_pulse_c128 = np.exp(1j*2*np.pi*np.linspace(0, 1, 1000), dtype=np.complex128)
+        # test does not raise error
+        try:
+            SamplePulse(unit_pulse_c128)
+        except PulseError:
+            self.fail('SamplePulse incorrectly failed on approximately unit norm samples.')
+
+        invalid_const = 1.1
+        with self.assertRaises(PulseError):
+            SamplePulse(invalid_const*np.exp(1j*2*np.pi*np.linspace(0, 1, 1000)))
+
+        # Test case where data is converted to python types with complex as a list
+        # with form [re, im] and back to a numpy array.
+        # This is how the transport layer handles samples in the qobj so it is important
+        # to test.
+        unit_pulse_c64 = np.exp(1j*2*np.pi*np.linspace(0, 1, 1000), dtype=np.complex64)
+        sample_components = np.stack(np.transpose([np.real(unit_pulse_c64),
+                                                   np.imag(unit_pulse_c64)]))
+        pulse_list = sample_components.tolist()
+        recombined_pulse = [sample[0]+sample[1]*1j for sample in pulse_list]
+
+        # test does not raise error
+        try:
+            SamplePulse(recombined_pulse)
+        except PulseError:
+            self.fail('SamplePulse incorrectly failed to approximately unit norm samples.')
 
 
 class TestAcquire(QiskitTestCase):
@@ -66,7 +133,7 @@ class TestAcquire(QiskitTestCase):
         self.assertEqual(acq_command_b.name, 'acq' + str(int(acq_command_a.name[3:]) + 1))
 
 
-class TestFrameChange(QiskitTestCase):
+class TestFrameChangeCommand(QiskitTestCase):
     """FrameChange tests."""
 
     def test_default(self):
@@ -77,6 +144,43 @@ class TestFrameChange(QiskitTestCase):
         self.assertEqual(fc_command.phase, 1.57)
         self.assertEqual(fc_command.duration, 0)
         self.assertTrue(fc_command.name.startswith('fc'))
+
+
+class TestPersistentValueCommand(QiskitTestCase):
+    """PersistentValue tests."""
+
+    def test_default(self):
+        """Test default persistent value.
+        """
+        pv_command = PersistentValue(value=0.5 - 0.5j)
+
+        self.assertEqual(pv_command.value, 0.5-0.5j)
+        self.assertEqual(pv_command.duration, 0)
+        self.assertTrue(pv_command.name.startswith('pv'))
+
+
+class TestSnapshotCommand(QiskitTestCase):
+    """Snapshot tests."""
+
+    def test_default(self):
+        """Test default snapshot.
+        """
+        snap_command = Snapshot(label='test_name', snapshot_type='state')
+
+        self.assertEqual(snap_command.name, "test_name")
+        self.assertEqual(snap_command.type, "state")
+        self.assertEqual(snap_command.duration, 0)
+
+
+class TestDelayCommand(QiskitTestCase):
+    """Delay tests."""
+
+    def test_delay(self):
+        """Test delay."""
+        delay_command = Delay(10, name='test_name')
+
+        self.assertEqual(delay_command.name, "test_name")
+        self.assertEqual(delay_command.duration, 10)
 
 
 class TestFunctionalPulse(QiskitTestCase):
@@ -118,42 +222,26 @@ class TestFunctionalPulse(QiskitTestCase):
             self.assertEqual(len(pulse_command.samples), _duration)
 
 
-class TestPersistentValue(QiskitTestCase):
-    """PersistentValue tests."""
-
-    def test_default(self):
-        """Test default persistent value.
-        """
-        pv_command = PersistentValue(value=0.5 - 0.5j)
-
-        self.assertEqual(pv_command.value, 0.5-0.5j)
-        self.assertEqual(pv_command.duration, 0)
-        self.assertTrue(pv_command.name.startswith('pv'))
-
-
-class TestSnapshot(QiskitTestCase):
-    """Snapshot tests."""
-
-    def test_default(self):
-        """Test default snapshot.
-        """
-        snap_command = Snapshot(label='test_name', snapshot_type='state')
-
-        self.assertEqual(snap_command.name, "test_name")
-        self.assertEqual(snap_command.type, "state")
-        self.assertEqual(snap_command.duration, 0)
-
-
 class TestKernel(QiskitTestCase):
     """Kernel tests."""
 
     def test_can_construct_kernel_with_default_values(self):
-        """Test if Kernel can be constructed with default name and params.
-        """
+        """Test if Kernel can be constructed with default name and params."""
         kernel = Kernel()
 
         self.assertEqual(kernel.name, None)
         self.assertEqual(kernel.params, {})
+
+
+class TestDiscriminator(QiskitTestCase):
+    """Discriminator tests."""
+
+    def test_can_construct_discriminator_with_default_values(self):
+        """Test if Discriminator can be constructed with default name and params."""
+        discriminator = Discriminator()
+
+        self.assertEqual(discriminator.name, None)
+        self.assertEqual(discriminator.params, {})
 
 
 if __name__ == '__main__':

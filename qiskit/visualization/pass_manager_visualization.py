@@ -11,29 +11,30 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
+# pylint: disable=invalid-name
+
 """
 Visualization function for a pass manager. Passes are grouped based on their
 flow controller, and coloured based on the type of pass.
 """
+import os
 import inspect
-from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
-DEFAULT_STYLE = {AnalysisPass: 'red',
-                 TransformationPass: 'blue'}
-
+import tempfile
 
 try:
-    import subprocess
-    _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-    _PROC.communicate()
-    if _PROC.returncode != 0:
-        HAS_GRAPHVIZ = False
-    else:
-        HAS_GRAPHVIZ = True
-except Exception:  # pylint: disable=broad-except
-    # this is raised when the dot command cannot be found, which means GraphViz
-    # isn't installed
-    HAS_GRAPHVIZ = False
+    from PIL import Image
+
+    HAS_PIL = True
+except ImportError:
+    HAS_PIL = False
+
+from qiskit.visualization import utils
+from qiskit.visualization.exceptions import VisualizationError
+from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
+
+DEFAULT_STYLE = {AnalysisPass: 'red',
+                 TransformationPass: 'blue'}
 
 
 def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
@@ -53,10 +54,28 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
             the default dict
         raw (Bool) : True if you want to save the raw Dot output not an image. The
             default is False.
-
+    Returns:
+        PIL.Image or None: an in-memory representation of the pass manager. Or None if
+                           no image was generated or PIL is not installed.
     Raises:
         ImportError: when nxpd or pydot not installed.
+        VisualizationError: If raw=True and filename=None.
     """
+
+    try:
+        import subprocess
+
+        _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        _PROC.communicate()
+        if _PROC.returncode != 0:
+            HAS_GRAPHVIZ = False
+        else:
+            HAS_GRAPHVIZ = True
+    except Exception:  # pylint: disable=broad-except
+        # this is raised when the dot command cannot be found, which means GraphViz
+        # isn't installed
+        HAS_GRAPHVIZ = False
 
     try:
         import pydot
@@ -137,16 +156,33 @@ def pass_manager_drawer(pass_manager, filename, style=None, raw=False):
 
         graph.add_subgraph(subgraph)
 
-    if filename:
-        if not raw:
-            # linter says this isn't a method - it is
-            graph.write_png(filename)  # pylint: disable=no-member
-        else:
+    if raw:
+        if filename:
             graph.write(filename, format='raw')
+            return None
+        else:
+            raise VisualizationError("if format=raw, then a filename is required.")
+
+    if not HAS_PIL and filename:
+        # linter says this isn't a method - it is
+        graph.write_png(filename)  # pylint: disable=no-member
+        return None
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        tmppath = os.path.join(tmpdirname, 'pass_manager.png')
+
+        # linter says this isn't a method - it is
+        graph.write_png(tmppath)  # pylint: disable=no-member
+
+        image = Image.open(tmppath)
+        image = utils._trim(image)
+        os.remove(tmppath)
+        if filename:
+            image.save(filename, 'PNG')
+        return image
 
 
 def _get_node_color(pss, style):
-
     # look in the user provided dict first
     for typ, color in style.items():
         if isinstance(pss, typ):

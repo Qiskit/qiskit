@@ -15,38 +15,60 @@
 """A test for visualizing device coupling maps"""
 import unittest
 import os
-import matplotlib.pyplot as plt
+
+from ddt import ddt, data
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
-from qiskit.visualization.gate_map import _GraphDist, plot_gate_map
+from qiskit.visualization.gate_map import _GraphDist, plot_gate_map, plot_circuit_layout
+from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit import QuantumRegister, QuantumCircuit
+from qiskit.transpiler import Layout
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
 
+if HAS_MATPLOTLIB:
+    import matplotlib.pyplot as plt
 
+
+@ddt
 class TestGateMap(QiskitVisualizationTestCase):
     """ visual tests for plot_gate_map """
-    backends = []
+    backends = list(filter(lambda x:
+                           not (x.configuration().simulator or x.configuration().n_qubits == 2),
+                           FakeProvider().backends()))
 
-    def setUp(self):
-        """ setup for backend """
-        self.backends = list(filter(lambda x:
-                                    not (x.configuration().simulator
-                                         or x.configuration().n_qubits == 2),
-                                    FakeProvider().backends()))
-
-    def test_plot_gate_map(self):
+    @data(*backends)
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    def test_plot_gate_map(self, backend):
         """ tests plotting of gate map of a device (20 qubit, 16 qubit, 14 qubit and 5 qubit)"""
-        for backend in self.backends:
-            n = backend.configuration().n_qubits
-            img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
-            filename = "temp.png"
-            fig = plot_gate_map(backend)
-            fig.savefig(filename, bbox_inches="tight")
-            self.assertImagesAreEqual(filename, img_ref, 0.1)
-            os.remove(filename)
+        n = backend.configuration().n_qubits
+        img_ref = path_to_diagram_reference(str(n) + "bit_quantum_computer.png")
+        filename = "temp.png"
+        fig = plot_gate_map(backend)
+        fig.savefig(filename)
+        self.assertImagesAreEqual(filename, img_ref, 0.2)
+        os.remove(filename)
+
+    @data(*backends)
+    @unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
+    def test_plot_circuit_layout(self, backend):
+        """ tests plot_circuit_layout for each device"""
+        layout_length = int(backend._configuration.n_qubits / 2)
+        qr = QuantumRegister(layout_length, 'qr')
+        circuit = QuantumCircuit(qr)
+        circuit._layout = Layout({qr[i]: i * 2 for i in range(layout_length)})
+        n = backend.configuration().n_qubits
+        img_ref = path_to_diagram_reference(str(n) + "_plot_circuit_layout.png")
+        filename = str(n) + "_plot_circuit_layout_result.png"
+        fig = plot_circuit_layout(circuit, backend)
+        fig.savefig(filename)
+        self.assertImagesAreEqual(filename, img_ref, 0.1)
+        os.remove(filename)
 
 
+@unittest.skipIf(not HAS_MATPLOTLIB, 'matplotlib not available.')
 class TestGraphDist(QiskitTestCase):
     """ tests _GraphdDist functions """
+
     def setUp(self):
         """ setup plots for _GraphDist """
         ax1 = plt.subplots(figsize=(5, 5))[1]
@@ -62,12 +84,12 @@ class TestGraphDist(QiskitTestCase):
         self.ax1_bounds_x, self.ax1_bounds_y = ax1.get_xlim(), ax1.get_ylim()
         self.ax2_bounds_x, self.ax2_bounds_y = ax2.get_xlim(), ax2.get_ylim()
         self.size = 4
-        self.real_values = [self.ax1_x1-self.ax1_x0, self.ax1_y1-self.ax1_y0,
-                            self.ax2_x1-self.ax2_x0, self.ax2_y1-self.ax2_y0]
-        self.abs_values = [self.ax1_bounds_x[0]-self.ax1_bounds_x[1],
-                           self.ax1_bounds_y[0]-self.ax1_bounds_y[1],
-                           self.ax2_bounds_x[0]-self.ax2_bounds_x[1],
-                           self.ax2_bounds_y[0]-self.ax2_bounds_y[1]]
+        self.real_values = [self.ax1_x1 - self.ax1_x0, self.ax1_y1 - self.ax1_y0,
+                            self.ax2_x1 - self.ax2_x0, self.ax2_y1 - self.ax2_y0]
+        self.abs_values = [self.ax1_bounds_x[0] - self.ax1_bounds_x[1],
+                           self.ax1_bounds_y[0] - self.ax1_bounds_y[1],
+                           self.ax2_bounds_x[0] - self.ax2_bounds_x[1],
+                           self.ax2_bounds_y[0] - self.ax2_bounds_y[1]]
         self.val = []
         for i in range(4):
             val = (self.size / self.real_values[i]) * self.abs_values[i]

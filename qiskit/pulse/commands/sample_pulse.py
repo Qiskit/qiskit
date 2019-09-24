@@ -31,27 +31,60 @@ class SamplePulse(Command):
 
     prefix = 'p'
 
-    def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None):
+    def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None,
+                 epsilon: float = 1e-6):
         """Create new sample pulse command.
 
         Args:
             samples: Complex array of pulse envelope
             name: Unique name to identify the pulse
-        Raises:
-            PulseError: when pulse envelope amplitude exceeds 1
+            epsilon: Pulse sample norm tolerance for clipping.
+                If any sample's norm exceeds unity by less than or equal to epsilon
+                it will be clipped to unit norm. If the sample
+                norm is greater than 1+epsilon an error will be raised
         """
         super().__init__(duration=len(samples))
 
-        if np.any(np.abs(samples) > 1):
-            raise PulseError('Absolute value of pulse envelope amplitude exceeds 1.')
+        samples = np.asarray(samples, dtype=np.complex_)
 
-        self._samples = np.asarray(samples, dtype=np.complex_)
+        self._samples = self._clip(samples, epsilon=epsilon)
         self._name = SamplePulse.create_name(name)
 
     @property
     def samples(self):
         """Return sample values."""
         return self._samples
+
+    def _clip(self, samples: np.ndarray, epsilon: float = 1e-6):
+        """If samples are within epsilon of unit norm, clip sample by reducing norm by (1-epsilon).
+
+        If difference is greater than epsilon error is raised.
+
+        Args:
+            samples: Complex array of pulse envelope
+            epsilon: Pulse sample norm tolerance for clipping.
+                If any sample's norm exceeds unity by less than or equal to epsilon
+                it will be clipped to unit norm. If the sample
+                norm is greater than 1+epsilon an error will be raised
+
+        Returns:
+            np.ndarray: Clipped pulse samples
+        Raises:
+            PulseError: If there exists a pulse sample with a norm greater than 1+epsilon
+        """
+        samples_norm = np.abs(samples)
+        to_clip = (samples_norm > 1.) & (samples_norm <= 1. + epsilon)
+
+        if np.any(to_clip):
+            clip_where = np.argwhere(to_clip)
+            clipped_samples = np.exp(1j*np.angle(samples[clip_where]), dtype=np.complex_)
+            samples[clip_where] = clipped_samples
+            samples_norm[clip_where] = np.abs(clipped_samples)
+
+        if np.any(samples_norm > 1.):
+            raise PulseError('Pulse contains sample with norm greater than 1+epsilon.')
+
+        return samples
 
     def draw(self, dt: float = 1, style: Optional['PulseStyle'] = None,
              filename: Optional[str] = None, interp_method: Optional[Callable] = None,
@@ -88,13 +121,10 @@ class SamplePulse(Command):
         Returns:
             bool: are self and other equal
         """
-        if super().__eq__(other) and \
-                (self._samples == other._samples).all():
-            return True
-        return False
+        return super().__eq__(other) and (self.samples == other.samples).all()
 
     def __hash__(self):
-        return hash((super().__hash__(), self._samples.tostring()))
+        return hash((super().__hash__(), self.samples.tostring()))
 
     def __repr__(self):
         return '%s(%s, duration=%d)' % (self.__class__.__name__, self.name, self.duration)

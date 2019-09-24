@@ -279,15 +279,17 @@ class TestDagOperations(QiskitTestCase):
 
         successor_measure = self.dag.quantum_successors(
             self.dag.named_nodes('measure').pop())
-        self.assertEqual(len(successor_measure), 1)
-        cnot_node = successor_measure[0]
+        cnot_node = next(successor_measure)
+        with self.assertRaises(StopIteration):
+            next(successor_measure)
 
         self.assertIsInstance(cnot_node.op, CnotGate)
 
         successor_cnot = self.dag.quantum_successors(cnot_node)
-        self.assertEqual(len(successor_cnot), 2)
-        self.assertEqual(successor_cnot[0].type, 'out')
-        self.assertIsInstance(successor_cnot[1].op, Reset)
+        self.assertEqual(next(successor_cnot).type, 'out')
+        self.assertIsInstance(next(successor_cnot).op, Reset)
+        with self.assertRaises(StopIteration):
+            next(successor_cnot)
 
     def test_quantum_predecessors(self):
         """The method dag.quantum_predecessors() returns predecessors connected by quantum edges"""
@@ -297,15 +299,17 @@ class TestDagOperations(QiskitTestCase):
 
         predecessor_measure = self.dag.quantum_predecessors(
             self.dag.named_nodes('measure').pop())
-        self.assertEqual(len(predecessor_measure), 1)
-        cnot_node = predecessor_measure[0]
+        cnot_node = next(predecessor_measure)
+        with self.assertRaises(StopIteration):
+            next(predecessor_measure)
 
         self.assertIsInstance(cnot_node.op, CnotGate)
 
         predecessor_cnot = self.dag.quantum_predecessors(cnot_node)
-        self.assertEqual(len(predecessor_cnot), 2)
-        self.assertEqual(predecessor_cnot[1].type, 'in')
-        self.assertIsInstance(predecessor_cnot[0].op, Reset)
+        self.assertIsInstance(next(predecessor_cnot).op, Reset)
+        self.assertEqual(next(predecessor_cnot).type, 'in')
+        with self.assertRaises(StopIteration):
+            next(predecessor_cnot)
 
     def test_get_gates_nodes(self):
         """The method dag.gate_nodes() returns all gate nodes"""
@@ -369,12 +373,12 @@ class TestDagOperations(QiskitTestCase):
 
         expected = [('qr[0]', []),
                     ('qr[1]', []),
-                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
+                    ('cx', [self.qubit0, self.qubit1]),
+                    ('h', [self.qubit0]),
                     ('qr[2]', []),
-                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
-                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 2)]),
+                    ('cx', [self.qubit2, self.qubit1]),
+                    ('cx', [self.qubit0, self.qubit2]),
+                    ('h', [self.qubit2]),
                     ('qr[0]', []),
                     ('qr[1]', []),
                     ('qr[2]', []),
@@ -394,11 +398,11 @@ class TestDagOperations(QiskitTestCase):
 
         named_nodes = self.dag.topological_op_nodes()
 
-        expected = [('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 1)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 0)]),
-                    ('cx', [(QuantumRegister(3, 'qr'), 2), (QuantumRegister(3, 'qr'), 1)]),
-                    ('cx', [(QuantumRegister(3, 'qr'), 0), (QuantumRegister(3, 'qr'), 2)]),
-                    ('h', [(QuantumRegister(3, 'qr'), 2)])]
+        expected = [('cx', [self.qubit0, self.qubit1]),
+                    ('h', [self.qubit0]),
+                    ('cx', [self.qubit2, self.qubit1]),
+                    ('cx', [self.qubit0, self.qubit2]),
+                    ('h', [self.qubit2])]
         self.assertEqual(expected, [(i.name, i.qargs) for i in named_nodes])
 
     def test_dag_nodes_on_wire(self):
