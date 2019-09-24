@@ -187,7 +187,7 @@ class BackendProperties(BaseModel):
             operation (str) : Name of the gate
             qubits (Union[int, Iterable[int]]): The qubit to find properties for.
             name (str): Optionally used to specify within the heirarchy which
-            property to return.
+                        property to return.
 
         Return:
             Gate properties of the given qubit and property, if it was given by the
