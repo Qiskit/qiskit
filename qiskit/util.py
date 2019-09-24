@@ -111,6 +111,6 @@ def _to_tuple(values):
         tuple: The input values as a sorted tuple.
     """
     try:
-        return tuple(sorted(values))
+        return tuple(values)
     except TypeError:
         return (values,)
