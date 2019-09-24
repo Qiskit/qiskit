@@ -161,8 +161,7 @@ class BackendProperties(BaseModel):
         Raises:
 	        PulseError: If error is True and the property is not found.
         """
-        # Throw away datetime at index 1
-        return self.gate_property(operation, qubits, 'gate_error')[0]
+        return self.gate_property(operation, qubits, 'gate_error')[0] # Throw away datetime at index 1
 
     def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]):
         """
@@ -175,8 +174,7 @@ class BackendProperties(BaseModel):
         Raises:
 	        PulseError: If error is True and the property is not found.
         """
-        # Throw away datetime at index 1
-        return self.gate_property(operation, qubits, 'gate_length')[0]
+        return self.gate_property(operation, qubits, 'gate_length')[0] # Throw away datetime at index 1
 
     def gate_property(self,
                       operation: str,
@@ -234,8 +232,6 @@ class BackendProperties(BaseModel):
         try:
             if qubit is not None and name is not None:
                 result = result[qubit][name]
-                # if name is not None:
-                #     result = result[name]
             elif qubit is None and name is not None:
                 raise PulseError("Qubit cannot be none when you have passed an argument for name")
         except (KeyError, TypeError):
