@@ -364,11 +364,11 @@ class DAGCircuit:
                     # If mapping to a register not in valregs, add it.
                     # (k,0) exists in edge_map because edge_map doesn't
                     # fragment k
-                    if not edge_map[(k, 0)].register.name in valregs:
+                    if not edge_map[k[0]].register.name in valregs:
                         size = max(map(lambda x: x.index,
-                                       filter(lambda x: x.register == edge_map[(k, 0)].register,
+                                       filter(lambda x: x.register == edge_map[k[0]].register,
                                               edge_map.values())))
-                        qreg = QuantumRegister(size + 1, edge_map[(k, 0)].register.name)
+                        qreg = QuantumRegister(size + 1, edge_map[k[0]].register.name)
                         add_regs.add(qreg)
         return add_regs
 
@@ -718,8 +718,7 @@ class DAGCircuit:
         Returns:
             generator(DAGNode): node in topological order
         """
-        return nx.lexicographical_topological_sort(self._multi_graph,
-                                                   key=lambda x: str(x.qargs))
+        return nx.lexicographical_topological_sort(self._multi_graph, key=lambda x: str(x.qargs))
 
     def topological_op_nodes(self):
         """
@@ -1261,3 +1260,23 @@ class DAGCircuit:
                    "factors": self.num_tensor_factors(),
                    "operations": self.count_ops()}
         return summary
+
+    def draw(self, scale=0.7, filename=None, style='color'):
+        """
+        Draws the dag circuit.
+
+        This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
+        Graphviz <https://www.graphviz.org/>` to be installed.
+
+        Args:
+            scale (float): scaling factor
+            filename (str): file path to save image to (format inferred from name)
+            style (str): 'plain': B&W graph
+                         'color' (default): color input/output/op nodes
+
+        Returns:
+            Ipython.display.Image: if in Jupyter notebook and not saving to file,
+                otherwise None.
+        """
+        from qiskit.visualization.dag_visualization import dag_drawer
+        return dag_drawer(dag=self, scale=scale, filename=filename, style=style)

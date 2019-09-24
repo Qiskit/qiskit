@@ -120,7 +120,7 @@ def level_3_pass_manager(transpile_config):
             Optimize1qGates(), CommutativeCancellation(),
             OptimizeSwapBeforeMeasure(), RemoveDiagonalGatesBeforeMeasure()]
 
-    if coupling_map:
+    if coupling_map and not coupling_map.is_symmetric:
         _opt.append(CXDirection(coupling_map))
         # if a coupling map has been provided, match coupling
 

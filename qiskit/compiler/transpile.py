@@ -14,7 +14,6 @@
 
 """Circuit transpile function"""
 
-import logging
 import warnings
 
 from qiskit.transpiler import Layout, CouplingMap
@@ -25,6 +24,7 @@ from qiskit.pulse import Schedule
 from qiskit.circuit.quantumregister import Qubit
 from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.converters import isinstanceint, isinstancelist
 
 
 def transpile(circuits,
@@ -32,8 +32,7 @@ def transpile(circuits,
               basis_gates=None, coupling_map=None, backend_properties=None,
               initial_layout=None, seed_transpiler=None,
               optimization_level=None,
-              pass_manager=None, callback=None, output_name=None,
-              log_level=logging.INFO):
+              pass_manager=None, callback=None, output_name=None):
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     All arguments may be given as either singleton or list. In case of list,
@@ -165,19 +164,12 @@ def transpile(circuits,
             A list with strings to identify the output circuits. The length of
             `list[str]` should be exactly the length of `circuits` parameter.
 
-        log_level (int): The python logging level to use for the transpiler
-            passes. You should use the logging level attributes from the stdlib
-            module, for example something like: 'logging.DEBUG'.
-
     Returns:
         QuantumCircuit or list[QuantumCircuit]: transpiled circuit(s).
 
     Raises:
         TranspilerError: in case of bad inputs to transpiler or errors in passes
     """
-    logger = logging.getLogger(name='qiskit.transpiler.passmanager')
-    logger.setLevel(log_level)
-
     # transpiling schedules is not supported yet.
     if isinstance(circuits, Schedule) or \
             (isinstance(circuits, list) and all(isinstance(c, Schedule) for c in circuits)):
@@ -339,13 +331,17 @@ def _parse_initial_layout(initial_layout, circuits):
     # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
     # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
     def _layout_from_raw(initial_layout, circuit):
-        if isinstance(initial_layout, list):
-            if all(isinstance(elem, int) for elem in initial_layout):
+        if initial_layout is None or isinstance(initial_layout, Layout):
+            return initial_layout
+        elif isinstancelist(initial_layout):
+            if all(isinstanceint(elem) for elem in initial_layout):
                 initial_layout = Layout.from_intlist(initial_layout, *circuit.qregs)
             elif all(elem is None or isinstance(elem, Qubit) for elem in initial_layout):
                 initial_layout = Layout.from_qubit_list(initial_layout)
         elif isinstance(initial_layout, dict):
             initial_layout = Layout(initial_layout)
+        else:
+            raise TranspilerError("The initial_layout parameter could not be parsed")
         return initial_layout
 
     # multiple layouts?
