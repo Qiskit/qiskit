@@ -244,7 +244,7 @@ class MatplotlibDrawer:
             _fc = fc
         elif self._style.gc != DefaultStyle().gc:
             _fc = self._style.gc
-        elif text and text in self._style.dispcol :
+        elif text and text in self._style.dispcol:
             _fc = self._style.dispcol[text]
         else:
             _fc = self._style.gc
