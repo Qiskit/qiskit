@@ -92,7 +92,7 @@ def plot_state_hinton(rho, title='', figsize=None, ax_real=None, ax_imag=None):
     if figsize is None:
         figsize = (8, 5)
     num = int(np.log2(len(rho)))
-    if ax_real or ax_imag:
+    if not ax_real and not ax_imag:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     else:
         if ax_real:
