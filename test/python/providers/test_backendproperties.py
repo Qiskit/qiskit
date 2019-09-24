@@ -19,14 +19,12 @@ import datetime
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
+from qiskit.pulse.exceptions import PulseError
 
 from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
 
 class BackendpropertiesTestCase(QiskitTestCase):
-    """Test case for Get methods of Backend Properties.
-    """
 
-    provider_cls = None
     backend = FakeOpenPulse2Q()
     backend_name = 'fake_openpulse_2q'
 
@@ -42,7 +40,10 @@ class BackendpropertiesTestCase(QiskitTestCase):
         self.assertEqual(self.properties.gate_error('u1', [0]),
                          self.properties._gates['u1'][(0,)]['gate_error'][0])
         self.assertEqual(self.properties.gate_error('cx', [0, 1]),
-                         self.properties._gates['cx'][(0,1)]['gate_error'][0])
+                         self.properties._gates['cx'][(0, 1)]['gate_error'][0])
+
+        with self.assertRaises(PulseError):
+            self.properties.gate_error('u1', 4)
 
     def test_gate_length(self):
         """Test getting the gate duration."""
@@ -59,7 +60,10 @@ class BackendpropertiesTestCase(QiskitTestCase):
     def test_gate_property(self):
         """Test getting the gate properties."""
         self.assertEqual(self.properties.gate_property('cx', (0, 1), 'gate_error'),
-                         self.properties._gates['cx'][(0,1)]['gate_error'])
+                         self.properties._gates['cx'][(0, 1)]['gate_error'])
+
+        with self.assertRaises(PulseError):
+            self.properties.gate_property('u1', None, 'gate_error')
 
     def test_get_qubit_property(self):
         """Test getting the qubit properties."""
