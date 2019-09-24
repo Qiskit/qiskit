@@ -678,3 +678,17 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
 
         self.assertTrue(Operator(qc).equiv(out))
+
+    @data(0, 1, 2, 3)
+    def test_measure_doesnt_unroll_ms(self, optimization_level):
+        """Verify a measure doesn't cause an Rx,Ry,Rxx circuit to unroll to U3,CX."""
+
+        qc = QuantumCircuit(2, 2)
+        qc.rx(math.pi/2, 0)
+        qc.ry(math.pi/4, 1)
+        qc.rxx(math.pi/4, 0, 1)
+        qc.measure([0, 1], [0, 1])
+
+        out = transpile(qc, basis_gates=['rx', 'ry', 'rxx'], optimization_level=optimization_level)
+
+        self.assertEqual(qc, out)

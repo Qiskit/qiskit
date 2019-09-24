@@ -44,10 +44,13 @@ def transpile_circuit(circuit, transpile_config):
         # Workaround for ion trap support: If basis gates includes
         # Mølmer-Sørensen (rxx) and the circuit includes gates outside the basis,
         # first unroll to u3, cx, then run MSBasisDecomposer to target basis.
+        basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
+        device_insts = set(transpile_config.basis_gates).union(basic_insts)
+
         ms_basis_swap = None
         if (
                 'rxx' in transpile_config.basis_gates
-                and not set(transpile_config.basis_gates) >= circuit.count_ops().keys()
+                and not device_insts >= circuit.count_ops().keys()
         ):
             ms_basis_swap = transpile_config.basis_gates
             transpile_config.basis_gates = ['u3', 'cx']
