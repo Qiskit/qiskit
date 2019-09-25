@@ -32,7 +32,7 @@ class SamplePulse(Command):
     prefix = 'p'
 
     def __init__(self, samples: Union[np.ndarray, List[complex]], name: Optional[str] = None,
-                 epsilon: float = 1e-6):
+                 epsilon: float = 1e-4):
         """Create new sample pulse command.
 
         Args:
