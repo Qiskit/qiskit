@@ -55,7 +55,7 @@ class SamplePulse(Command):
         """Return sample values."""
         return self._samples
 
-    def _clip(self, samples: np.ndarray, epsilon: float = 1e-6):
+    def _clip(self, samples: np.ndarray, epsilon: float = 1e-5):
         """If samples are within epsilon of unit norm, clip sample by reducing norm by (1-epsilon).
 
         If difference is greater than epsilon error is raised.
@@ -86,8 +86,10 @@ class SamplePulse(Command):
 
         return samples
 
-    def draw(self, dt: float = 1, style: Optional['PulseStyle'] = None,
-             filename: Optional[str] = None, interp_method: Optional[Callable] = None,
+    def draw(self, dt: float = 1,
+             style: Optional['PulseStyle'] = None,
+             filename: Optional[str] = None,
+             interp_method: Optional[Callable] = None,
              scaling: float = 1, interactive: bool = False):
         """Plot the interpolated envelope of pulse.
 

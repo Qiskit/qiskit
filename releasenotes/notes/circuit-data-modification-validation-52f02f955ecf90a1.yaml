@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    Assignments and modifications to the ``data`` attribute of
+    ``qiskit.QuantumCircuit`` objects are no validated following the same
+    rules used throughout the ``QuantumCircuit`` API. This was done to
+    improve the performance of the circuits API since we can now assume the
+    ``data`` attribute is in a known format. If you were manually modifying
+    the ``data`` attribute of a circuit object before this may no longer work
+    if your modifications resulted in an data structure other than the list
+    of instructions with context in the format ``[(instruction, qargs, cargs)]``

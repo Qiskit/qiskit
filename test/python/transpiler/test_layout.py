@@ -17,6 +17,7 @@
 import copy
 import unittest
 import warnings
+import numpy
 
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.transpiler.layout import Layout
@@ -322,6 +323,19 @@ class LayoutTest(QiskitTestCase):
                            9: qr3[1],
                            10: qr3[2]
                            })
+        self.assertDictEqual(layout._p2v, expected._p2v)
+        self.assertDictEqual(layout._v2p, expected._v2p)
+
+    def test_layout_from_intlist_numpy(self):
+        """Create a layout from a list of numpy integers. See #3097
+        """
+        qr1 = QuantumRegister(1, 'qr1')
+        qr2 = QuantumRegister(2, 'qr2')
+        qr3 = QuantumRegister(3, 'qr3')
+        intlist_layout = numpy.array([0, 1, 2, 3, 4, 5])
+        layout = Layout.from_intlist(intlist_layout, qr1, qr2, qr3)
+
+        expected = Layout.generate_trivial_layout(qr1, qr2, qr3)
         self.assertDictEqual(layout._p2v, expected._p2v)
         self.assertDictEqual(layout._v2p, expected._v2p)
 
