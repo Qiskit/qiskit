@@ -66,8 +66,7 @@ class ParameterExpression():
         """
 
         self._raise_if_passed_unknown_parameters(parameter_values.keys())
-        #self._raise_if_passed_non_real_value(parameter_values)
-        self._raise_if_passed_non_complex_value(parameter_values)
+        self._raise_if_passed_non_real_value(parameter_values)
 
         symbol_values = {self._parameter_symbols[parameter]: value
                          for parameter, value in parameter_values.items()}
@@ -143,13 +142,6 @@ class ParameterExpression():
             raise QiskitError('Expression cannot bind non-real or non-numeric '
                               'values ({}).'.format(nonreal_parameter_values))
 
-    def _raise_if_passed_non_complex_value(self, parameter_values):
-        noncomplex_parameter_values = {p: v for p, v in parameter_values.items()
-                                    if not isinstance(v, numbers.Complex)}
-        if noncomplex_parameter_values:
-            raise QiskitError('Expression cannot bind non-complex or non-numeric '
-                              'values ({}).'.format(noncomplex_parameter_values))
-
     def _raise_if_parameter_names_conflict(self, other_parameters):
         self_names = {p.name: p for p in self.parameters}
         other_names = {p.name: p for p in other_parameters}
@@ -167,7 +159,7 @@ class ParameterExpression():
 
         Args:
             operation (function): One of operator.{add,sub,mul,truediv}.
-            other (Parameter or number.Complex): The second argument to be used
+            other (Parameter or numbers.Real): The second argument to be used
                with self in operation.
             reflected (bool): Optional - The default ordering is
                 "self operator other". If reflected is True, this is switched
@@ -191,7 +183,7 @@ class ParameterExpression():
 
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
-        elif isinstance(other, numbers.Complex) and numpy.isfinite(other):
+        elif isinstance(other, numbers.Real) and numpy.isfinite(other):
             parameter_symbols = self._parameter_symbols.copy()
             other_expr = other
         else:
@@ -244,12 +236,6 @@ class ParameterExpression():
             raise TypeError('ParameterExpression with unbound parameters ({}) '
                             'cannot be cast to a float.'.format(self.parameters))
         return float(self._symbol_expr)
-
-    def __complex__(self):
-        if self.parameters:
-            raise TypeError('ParameterExpression with unbound parameters ({}) '
-                            'cannot be cast to a complex.'.format(self.parameters))
-        return complex(self._symbol_expr)
 
     def __copy__(self):
         return self

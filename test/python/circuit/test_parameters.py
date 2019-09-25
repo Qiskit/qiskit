@@ -421,8 +421,8 @@ class TestParameterExpressions(QiskitTestCase):
                 self.assertEqual(float(bound_expr),
                                  op(2.3, const))
 
-    def test_operating_on_a_parameter_with_a_non_complex_will_raise(self):
-        """Verify operations between a Parameter and a non-complex will raise."""
+    def test_operating_on_a_parameter_with_a_non_float_will_raise(self):
+        """Verify operations between a Parameter and a non-float will raise."""
 
         bad_constants = ['1', numpy.Inf, numpy.NaN, None, {}, []]
 
@@ -535,30 +535,6 @@ class TestParameterExpressions(QiskitTestCase):
 
         self.assertEqual(float(bound_expr2), 3)
 
-    def test_complex_expression(self):
-        """Verify ParameterExpressions can be negated."""
-
-        x = Parameter('x')
-        y = Parameter('y')
-        z = Parameter('z')
-
-        expr1 = (x + 1j * y) * z
-        bound_expr = expr1.bind({x: 1, y: 2, z: 3j})
-
-        self.assertEqual(complex(bound_expr), 3j-6)
-
-    def test_complex_gate_binding(self):
-        """Verify ParameterExpressions can be negated."""
-        from qiskit import transpile
-        from qiskit import QuantumRegister, QuantumCircuit
-        from qiskit.circuit import Parameter
-
-        qc = QuantumCircuit(2)
-        qc.cu3(Parameter('a'), Parameter('b'), Parameter('c'), 0, 1)
-        qc = transpile(qc, basis_gates=['u1', 'u2', 'u3', 'cx'])
-        qobj = assemble(qc, parameter_binds=[
-            {x:1j*ix for ix, x in enumerate(qc.parameters)}])
-        
     def test_name_collision(self):
         """Verify Expressions of distinct Parameters of shared name raises."""
 
