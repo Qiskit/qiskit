@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog].
   `QuantumCircuit` API. (\#2826)
 
 ### Added
+-   Added quantum volume logo (#3128).
 -   The mock backends in `qiskit.test.mock` now have a snapshot of real
     calibration data, returned via `backend.properties()`.
 
