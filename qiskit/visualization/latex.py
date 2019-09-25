@@ -721,15 +721,24 @@ class QCircuitImage:
                     if self.plot_barriers:
                         qarglist = op.qargs
                         indexes = [self._get_qubit_index(x) for x in qarglist]
-                        start_bit = self.qubit_list[min(indexes)]
+                        indexes.sort()
                         if aliases is not None:
                             qarglist = map(lambda x: aliases[x], qarglist)
-                        start = self.img_regs[start_bit]
-                        span = len(op.qargs) - 1
 
-                        self._latex[start][column - 1] += " \\barrier[0em]{" + str(
-                            span) + "}"
-                        self._latex[start][column] = "\\qw"
+                        first = last = indexes[0]
+                        for index in indexes[1:]:
+                            if index - 1 == last:
+                                last = index
+                            else:
+                                pos = self.img_regs[self.qubit_list[first]]
+                                self._latex[pos][column - 1] += " \\barrier[0em]{" + str(
+                                    last - first) + "}"
+                                self._latex[pos][column] = "\\qw"
+                                first = last = index
+                        pos = self.img_regs[self.qubit_list[first]]
+                        self._latex[pos][column - 1] += " \\barrier[0em]{" + str(
+                            last - first) + "}"
+                        self._latex[pos][column] = "\\qw"
                 else:
                     raise exceptions.VisualizationError("bad node data")
 
