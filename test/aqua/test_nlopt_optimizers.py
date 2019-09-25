@@ -29,7 +29,7 @@ class TestNLOptOptimizers(QiskitAquaTestCase):
     def setUp(self):
         super().setUp()
         try:
-            import nlopt  # pylint: disable=unused-import
+            import nlopt  # pylint: disable=unused-import,import-outside-toplevel
         except ImportError:
             self.skipTest('NLOpt dependency does not appear to be installed')
         pass
