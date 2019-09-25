@@ -70,6 +70,7 @@ stage_osx: &stage_osx
     pip: true
     directories:
       - ~/python-interpreters/
+      - .stestr
   before_install:
     # Travis does not provide support for Python 3 under osx - it needs to be
     # installed manually.
