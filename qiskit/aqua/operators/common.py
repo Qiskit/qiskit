@@ -235,7 +235,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
     Args:
         pauli_list (list([[complex, Pauli]])): The list of pauli terms corresponding
                             to a single time slice to be evolved
-        evo_time (Union(complex, float, Parameter)): The evolution time
+        evo_time (Union(complex, float, Parameter, ParameterExpression)): The evolution time
         num_time_slices (int): The number of time slices for the expansion
         controlled (bool, optional): Controlled circuit or not
         power (int, optional): The power to which the unitary operator is to be raised
