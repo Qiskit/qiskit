@@ -241,7 +241,7 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
                         if job_callback is not None:
                             job_callback(job_id, job_status, queue_position, job)
                         break
-                    elif job_status == JobStatus.QUEUED:
+                    if job_status == JobStatus.QUEUED:
                         queue_position = job.queue_position()
                         logger.info("Job id: %s is queued at position %s", job_id, queue_position)
                     else:
@@ -258,33 +258,32 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
                             results.append(result)
                             logger.info("COMPLETED the %s-th qobj, job id: %s", idx, job_id)
                             break
-                        else:
-                            logger.warning("FAILURE: Job id: %s", job_id)
-                            logger.warning("Job (%s) is completed anyway, retrieve result "
-                                           "from backend again.", job_id)
-                            job = backend.retrieve_job(job_id)
+
+                        logger.warning("FAILURE: Job id: %s", job_id)
+                        logger.warning("Job (%s) is completed anyway, retrieve result "
+                                       "from backend again.", job_id)
+                        job = backend.retrieve_job(job_id)
                     break
                 # for other cases, resubmit the qobj until the result is available.
                 # since if there is no result returned, there is no way algorithm can do any process
+                # get back the qobj first to avoid for job is consumed
+                qobj = job.qobj()
+                if job_status == JobStatus.CANCELLED:
+                    logger.warning("FAILURE: Job id: %s is cancelled. Re-submit the Qobj.",
+                                   job_id)
+                elif job_status == JobStatus.ERROR:
+                    logger.warning("FAILURE: Job id: %s encounters the error. "
+                                   "Error is : %s. Re-submit the Qobj.",
+                                   job_id, job.error_message())
                 else:
-                    # get back the qobj first to avoid for job is consumed
-                    qobj = job.qobj()
-                    if job_status == JobStatus.CANCELLED:
-                        logger.warning("FAILURE: Job id: %s is cancelled. Re-submit the Qobj.",
-                                       job_id)
-                    elif job_status == JobStatus.ERROR:
-                        logger.warning("FAILURE: Job id: %s encounters the error. "
-                                       "Error is : %s. Re-submit the Qobj.",
-                                       job_id, job.error_message())
-                    else:
-                        logging.warning("FAILURE: Job id: %s. Unknown status: %s. "
-                                        "Re-submit the Qobj.", job_id, job_status)
+                    logging.warning("FAILURE: Job id: %s. Unknown status: %s. "
+                                    "Re-submit the Qobj.", job_id, job_status)
 
-                    job, job_id = _safe_submit_qobj(qobj, backend,
-                                                    backend_options,
-                                                    noise_config, skip_qobj_validation)
-                    jobs[idx] = job
-                    job_ids[idx] = job_id
+                job, job_id = _safe_submit_qobj(qobj, backend,
+                                                backend_options,
+                                                noise_config, skip_qobj_validation)
+                jobs[idx] = job
+                job_ids[idx] = job_id
     else:
         results = []
         for job in jobs:
