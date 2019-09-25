@@ -69,16 +69,18 @@ class BackendOverview(Magics):
 
         qubit_label = widgets.Label(value='Num. Qubits')
         qv_label = widgets.Label(value='Quantum Vol.')
-        pend_label = widgets.Label(value='Pending Jobs')
-        least_label = widgets.Label(value='Least Busy')
+        pend_label = widgets.Label(value='Pending Jobs',
+                                   layout=widgets.Layout(margin='5px 0px 0px 0px'))
+        least_label = widgets.Label(value='Least Busy',
+                                    layout=widgets.Layout(margin='10px 0px 0px 0px'))
         oper_label = widgets.Label(
             value='Operational', layout=widgets.Layout(margin='5px 0px 0px 0px'))
         t12_label = widgets.Label(
             value='Avg. T1 / T2', layout=widgets.Layout(margin='10px 0px 0px 0px'))
         cx_label = widgets.Label(
-            value='Avg. CX Err.', layout=widgets.Layout(margin='10px 0px 0px 0px'))
+            value='Avg. CX Err.', layout=widgets.Layout(margin='8px 0px 0px 0px'))
         meas_label = widgets.Label(
-            value='Avg. Meas. Err.', layout=widgets.Layout(margin='10px 0px 0px 0px'))
+            value='Avg. Meas. Err.', layout=widgets.Layout(margin='8px 0px 0px 0px'))
 
         labels_widget = widgets.VBox([qubit_label, qv_label, pend_label, oper_label,
                                       least_label, t12_label, cx_label, meas_label],
