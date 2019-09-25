@@ -249,9 +249,9 @@ def update_backend_info(self, interval=60):
                 else:
                     self.children[var].children[6].value = "<h5 style='color:#dc267f'>False</h5>"
 
-                self.children[var].children[4].children[1].value = pending[var]
                 self.children[var].children[4].children[1].max = max(
                     self.children[var].children[4].children[1].max, pending[var]+10)
+                self.children[var].children[4].children[1].value = pending[var]
                 if stati[var].operational:
                     self.children[var].children[5].value = "<h5 style='color:#34bc6e'>True</h5>"
                 else:
