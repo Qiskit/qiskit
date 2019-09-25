@@ -589,12 +589,12 @@ class MatplotlibDrawer:
                              color=self._style.tc,
                              clip_on=True,
                              zorder=PORDER_TEXT)
-            self.ax.text(-0.5, y, this_creg['label'], ha='right', va='center',
+            self.ax.text(self.x_offset, y, this_creg['label'], ha='right', va='center',
                          fontsize=1.5*self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([0, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
