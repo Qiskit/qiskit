@@ -31,21 +31,21 @@ class MSBasisDecomposer(TransformationPass):
     """
 
     supported_input_gates = (U3Gate, CnotGate)
-    supported_basis_names = ('rx', 'ry', 'rxx')
+    supported_basis_names = ('rx', 'ry', 'rxx', 'ms')
 
     def __init__(self, basis):
         """
         Args:
-            basis (list[str]): Target basis names, e.g. `['rx', 'ry', 'rxx']` .
+            basis (list[str]): Target basis names, e.g. `['rx', 'ry', 'rxx', 'ms']` .
 
         Raises:
-            QiskitError: if target basis is not [ 'rx', 'ry', 'rxx' ]
+            QiskitError: if target basis is not [ 'rx', 'ry', 'rxx', 'ms' ]
 
         """
         super().__init__()
 
         self.basis = basis
-        self.requires = [Unroller(['u3', 'cx'])]
+        self.requires = [Unroller(list(set(basis).union(['u3', 'cx'])))]
 
         if set(basis) != {gate_name for gate_name in self.supported_basis_names}:
             raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
@@ -70,9 +70,11 @@ class MSBasisDecomposer(TransformationPass):
         for node in dag.op_nodes():
             basic_insts = ['measure', 'reset', 'barrier', 'snapshot']
             if node.name in basic_insts:
-                # TODO: this is legacy behavior.Basis_insts should be removed that these
+                # TODO: this is legacy behavior. basic_insts should be removed and these
                 #  instructions should be part of the device-reported basis. Currently, no
                 #  backend reports "measure", for example.
+                continue
+            if node.name in self.basis:  # If already a base, ignore.
                 continue
 
             if not isinstance(node.op, self.supported_input_gates):
