@@ -124,11 +124,11 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
                                     (p_2[1].z[__i] == p_1[1].z[__i] and
                                      p_2[1].x[__i] == p_1[1].x[__i])):
                                 break
-                            else:
-                                # update master, if p_2 is not identity
-                                if p_2[1].z[__i] or p_2[1].x[__i]:
-                                    paulis_temp[0][1].update_z(p_2[1].z[__i], __i)
-                                    paulis_temp[0][1].update_x(p_2[1].x[__i], __i)
+
+                            # update master, if p_2 is not identity
+                            if p_2[1].z[__i] or p_2[1].x[__i]:
+                                paulis_temp[0][1].update_z(p_2[1].z[__i], __i)
+                                paulis_temp[0][1].update_x(p_2[1].x[__i], __i)
                             j += 1
                         if j == n:
                             paulis_temp.append(p_2)
