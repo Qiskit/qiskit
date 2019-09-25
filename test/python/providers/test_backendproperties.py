@@ -15,15 +15,13 @@
 """Base TestCase for testing Providers."""
 
 import unittest
-import datetime
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
 from qiskit.pulse.exceptions import PulseError
 
-from qiskit.providers.models.backendproperties import Nduv, Gate, BackendProperties
-
 class BackendpropertiesTestCase(QiskitTestCase):
+    """Test usability methods of backend.properties()."""
 
     backend = FakeOpenPulse2Q()
     backend_name = 'fake_openpulse_2q'
