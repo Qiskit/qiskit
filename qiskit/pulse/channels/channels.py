@@ -63,33 +63,49 @@ class Channel(metaclass=ABCMeta):
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self._index)
 
-    def __eq__(self, other):
-        """Two channels are the same if they are of the same type, and have the same index.
+    def __eq__(self, other: 'Channel') -> bool:
+        """
+        Channels are the same iff they are of the same type, and have the same index.
 
         Args:
-            other (Channel): other Channel
-
+            other: The channel to compare to this channel.
         Returns:
-            bool: are self and other equal.
+            bool: equality
         """
-        if type(self) is type(other) and \
-                self._index == other._index:
-            return True
-        return False
+
+        return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):
         return hash((type(self), self._index))
 
 
+class PulseChannel(Channel, metaclass=ABCMeta):
+    """Base class of Channel supporting pulse output."""
+    pass
+
+
+class DriveChannel(PulseChannel):
+    """Drive Channel."""
+    prefix = 'd'
+
+
+class MeasureChannel(PulseChannel):
+    """Measure Channel."""
+    prefix = 'm'
+
+
+class ControlChannel(PulseChannel):
+    """Control Channel."""
+    prefix = 'u'
+
+
 class AcquireChannel(Channel):
     """Acquire channel."""
-
     prefix = 'a'
 
 
 class SnapshotChannel(Channel):
     """Snapshot channel."""
-
     prefix = 's'
 
     def __init__(self):
@@ -99,11 +115,9 @@ class SnapshotChannel(Channel):
 
 class MemorySlot(Channel):
     """Memory slot channel."""
-
     prefix = 'm'
 
 
 class RegisterSlot(Channel):
     """Classical resister slot channel."""
-
     prefix = 'c'
