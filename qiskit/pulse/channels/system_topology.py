@@ -19,8 +19,7 @@ Topology of system.
 """
 from typing import List
 
-from .channels import AcquireChannel
-from .pulse_channels import DriveChannel, ControlChannel, MeasureChannel
+from .channels import AcquireChannel, DriveChannel, ControlChannel, MeasureChannel
 from .qubit import Qubit
 
 

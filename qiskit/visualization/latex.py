@@ -372,8 +372,7 @@ class QCircuitImage:
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)
                     if len(qarglist) == 1:
-                        pos_1 = self.img_regs[(qarglist[0].register,
-                                               qarglist[0].index)]
+                        pos_1 = self.img_regs[qarglist[0]]
 
                         if op.condition:
                             mask = self._get_mask(op.condition[0])
@@ -486,8 +485,8 @@ class QCircuitImage:
                                 self._latex[pos_1][column] = ("\\gate{%s}" % nm)
 
                     elif len(qarglist) == 2:
-                        pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
-                        pos_2 = self.img_regs[(qarglist[1].register, qarglist[1].index)]
+                        pos_1 = self.img_regs[qarglist[0]]
+                        pos_2 = self.img_regs[qarglist[1]]
 
                         if op.condition:
                             pos_3 = self.img_regs[(if_reg, 0)]
@@ -611,9 +610,9 @@ class QCircuitImage:
                                                                      nm)
 
                     elif len(qarglist) == 3:
-                        pos_1 = self.img_regs[(qarglist[0].register, qarglist[0].index)]
-                        pos_2 = self.img_regs[(qarglist[1].register, qarglist[1].index)]
-                        pos_3 = self.img_regs[(qarglist[2].register, qarglist[2].index)]
+                        pos_1 = self.img_regs[qarglist[0]]
+                        pos_2 = self.img_regs[qarglist[1]]
+                        pos_3 = self.img_regs[qarglist[2]]
 
                         if op.condition:
                             pos_4 = self.img_regs[(if_reg, 0)]
@@ -701,17 +700,13 @@ class QCircuitImage:
                         raise exceptions.VisualizationError(
                             "If controlled measures currently not supported.")
 
-                    qname = op.qargs[0].register
-                    qindex = op.qargs[0].index
-                    cname = op.cargs[0].register
-                    cindex = op.cargs[0].index
                     if aliases:
                         newq = aliases[(qname, qindex)]
                         qname = newq[0]
                         qindex = newq[1]
 
-                    pos_1 = self.img_regs[(qname, qindex)]
-                    pos_2 = self.img_regs[(cname, cindex)]
+                    pos_1 = self.img_regs[op.qargs[0]]
+                    pos_2 = self.img_regs[op.cargs[0]]
 
                     try:
                         self._latex[pos_1][column] = "\\meter"

@@ -17,20 +17,20 @@ Pulse utilities.
 """
 import warnings
 
-from typing import List, Optional
+from typing import List, Optional, Iterable
 
 import numpy as np
 
-from .channels import AcquireChannel, MemorySlot
+from .channels import Channel, AcquireChannel, MemorySlot
 from .cmd_def import CmdDef
-from .commands import Acquire, AcquireInstruction
+from .commands import Acquire, AcquireInstruction, Delay
 from .exceptions import PulseError
 from .interfaces import ScheduleComponent
 from .schedule import Schedule
 
 
-def align_measures(schedules: List[ScheduleComponent], cmd_def: CmdDef, cal_gate: str = 'u3',
-                   max_calibration_duration: Optional[int] = None,
+def align_measures(schedules: Iterable[ScheduleComponent], cmd_def: CmdDef,
+                   cal_gate: str = 'u3', max_calibration_duration: Optional[int] = None,
                    align_time: Optional[int] = None) -> Schedule:
     """Return new schedules where measurements occur at the same physical time. Minimum measurement
     wait time (to allow for calibration pulses) is enforced.
@@ -131,3 +131,36 @@ def add_implicit_acquires(schedule: ScheduleComponent, meas_map: List[List[int]]
             new_schedule |= inst << time
 
     return new_schedule
+
+
+def pad(schedule: Schedule, channels: Optional[Iterable[Channel]] = None,
+        until: Optional[int] = None) -> Schedule:
+    """Pad the input Schedule with `Delay`s on all unoccupied timeslots until
+    `schedule.duration` or `until` if not `None`.
+
+    Args:
+        schedule: Schedule to pad.
+        channels: Channels to pad. Defaults to all channels in
+            `schedule` if not provided. If the supplied channel is not a member
+            of `schedule` it will be added.
+        until: Time to pad until. Defaults to `schedule.duration` if not provided.
+    Returns:
+        Schedule: The padded schedule
+    """
+    until = until or schedule.duration
+
+    channels = channels or schedule.channels
+    occupied_channels = schedule.channels
+
+    unoccupied_channels = set(channels) - set(occupied_channels)
+
+    empty_timeslot_collection = schedule.timeslots.complement(until)
+
+    for channel in channels:
+        for timeslot in empty_timeslot_collection.ch_timeslots(channel):
+            schedule |= Delay(timeslot.duration)(timeslot.channel).shift(timeslot.start)
+
+    for channel in unoccupied_channels:
+        schedule |= Delay(until)(channel)
+
+    return schedule

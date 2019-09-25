@@ -24,6 +24,7 @@ from qiskit.pulse import Schedule
 from qiskit.circuit.quantumregister import Qubit
 from qiskit import user_config
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.converters import isinstanceint, isinstancelist
 
 
 def transpile(circuits,
@@ -330,13 +331,17 @@ def _parse_initial_layout(initial_layout, circuits):
     # initial_layout could be None, or a list of ints, e.g. [0, 5, 14]
     # or a list of tuples/None e.g. [qr[0], None, qr[1]] or a dict e.g. {qr[0]: 0}
     def _layout_from_raw(initial_layout, circuit):
-        if isinstance(initial_layout, list):
-            if all(isinstance(elem, int) for elem in initial_layout):
+        if initial_layout is None or isinstance(initial_layout, Layout):
+            return initial_layout
+        elif isinstancelist(initial_layout):
+            if all(isinstanceint(elem) for elem in initial_layout):
                 initial_layout = Layout.from_intlist(initial_layout, *circuit.qregs)
             elif all(elem is None or isinstance(elem, Qubit) for elem in initial_layout):
                 initial_layout = Layout.from_qubit_list(initial_layout)
         elif isinstance(initial_layout, dict):
             initial_layout = Layout(initial_layout)
+        else:
+            raise TranspilerError("The initial_layout parameter could not be parsed")
         return initial_layout
 
     # multiple layouts?

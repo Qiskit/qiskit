@@ -26,6 +26,7 @@ import math
 import numpy as np
 
 try:
+    from matplotlib import get_backend
     from matplotlib import patches
     from matplotlib import pyplot as plt
     HAS_MATPLOTLIB = True
@@ -185,7 +186,10 @@ class MatplotlibDrawer:
             _fc = fc
         else:
             if self._style.name != 'bw':
-                _fc = self._style.dispcol['multi']
+                if self._style.gc != DefaultStyle().gc:
+                    _fc = self._style.gc
+                else:
+                    _fc = self._style.dispcol['multi']
                 _ec = self._style.dispcol['multi']
             else:
                 _fc = self._style.gc
@@ -238,6 +242,8 @@ class MatplotlibDrawer:
             wid = WID
         if fc:
             _fc = fc
+        elif self._style.gc != DefaultStyle().gc:
+            _fc = self._style.gc
         elif text and text in self._style.dispcol:
             _fc = self._style.dispcol[text]
         else:
@@ -382,6 +388,9 @@ class MatplotlibDrawer:
         self.ax.add_patch(box)
 
     def _ctrl_qubit(self, xy, fc=None, ec=None):
+        if self._style.gc != DefaultStyle().gc:
+            fc = self._style.gc
+            ec = self._style.gc
         if fc is None:
             fc = self._style.lc
         if ec is None:
@@ -394,6 +403,9 @@ class MatplotlibDrawer:
 
     def _tgt_qubit(self, xy, fc=None, ec=None, ac=None,
                    add_width=None):
+        if self._style.gc != DefaultStyle().gc:
+            fc = self._style.gc
+            ec = self._style.gc
         if fc is None:
             fc = self._style.dispcol['target']
         if ec is None:
@@ -484,7 +496,9 @@ class MatplotlibDrawer:
         if filename:
             self.figure.savefig(filename, dpi=self._style.dpi,
                                 bbox_inches='tight')
-        plt.close(self.figure)
+        if get_backend() in ['module://ipykernel.pylab.backend_inline',
+                             'nbAgg']:
+            plt.close(self.figure)
         return self.figure
 
     def _draw_regs(self):
@@ -589,12 +603,12 @@ class MatplotlibDrawer:
                              color=self._style.tc,
                              clip_on=True,
                              zorder=PORDER_TEXT)
-            self.ax.text(-0.5, y, this_creg['label'], ha='right', va='center',
+            self.ax.text(self.x_offset, y, this_creg['label'], ha='right', va='center',
                          fontsize=1.5*self._style.fs,
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([0, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
