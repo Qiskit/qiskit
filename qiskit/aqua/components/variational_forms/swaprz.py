@@ -100,7 +100,7 @@ class SwapRZ(VariationalForm):
         # for repeated block
         self._num_parameters += (len(self._entangled_qubits) + len(self._entangler_map)) * depth
         self._bounds = [(-np.pi, np.pi)] * self._num_parameters
-        self._is_parameterized_circuit = True
+        self._support_parameterized_circuit = True
 
     def construct_circuit(self, parameters, q=None):
         """

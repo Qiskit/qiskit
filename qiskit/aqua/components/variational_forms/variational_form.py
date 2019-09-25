@@ -37,7 +37,7 @@ class VariationalForm(Pluggable):
         self._num_parameters = 0
         self._num_qubits = 0
         self._bounds = list()
-        self._is_parameterized_circuit = False
+        self._support_parameterized_circuit = False
         pass
 
     @classmethod
@@ -77,18 +77,18 @@ class VariationalForm(Pluggable):
         return self._num_parameters
 
     @property
-    def is_parameterized_circuit(self):
+    def support_parameterized_circuit(self):
         """ Whether or not the sub-class support parameterized circuit.
 
         Returns:
             boolean: indicate the sub-class support parameterized circuit
         """
-        return self._is_parameterized_circuit
+        return self._support_parameterized_circuit
 
-    @is_parameterized_circuit.setter
-    def is_parameterized_circuit(self, new_value):
+    @support_parameterized_circuit.setter
+    def support_parameterized_circuit(self, new_value):
         """ set whether or not the sub-class support parameterized circuit """
-        self._is_parameterized_circuit = new_value
+        self._support_parameterized_circuit = new_value
 
     @property
     def num_qubits(self):
