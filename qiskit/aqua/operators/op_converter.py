@@ -83,8 +83,7 @@ def to_weighted_pauli_operator(operator):
             logger.debug("Converting a MatrixOperator to a Pauli-type Operator:")
             TextProgressBar(sys.stderr)
         results = parallel_map(_conversion,
-                               [basis for basis in itertools.product(possible_basis,
-                                                                     repeat=num_qubits)],
+                               list(itertools.product(possible_basis, repeat=num_qubits)),
                                task_kwargs={"matrix": operator._matrix},
                                num_processes=aqua_globals.num_processes)
         for trace_value, pauli in results:
