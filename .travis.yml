@@ -49,9 +49,9 @@ stage_generic: &stage_generic
     - python tools/report_ci_failure.py
   before_script:
     - |
-    if [ ! "$(ls -A .stestr)" ]; then
-        rm -r .stestr
-    fi
+      if [ ! "$(ls -A .stestr)" ]; then
+          rm -r .stestr
+      fi
 
 
 stage_linux: &stage_linux
