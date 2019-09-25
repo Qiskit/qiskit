@@ -83,7 +83,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
                     instruction = PulseInstruction(
                         command=SamplePulse(name=name, samples=instruction.command.samples),
                         name=instruction.name,
-                        channel=instruction.timeslots.channels[0])
+                        channel=instruction.channels[0])
                 # add samples to pulse library
                 user_pulselib[name] = instruction.command
 
