@@ -104,7 +104,7 @@ def plot_state_hinton(rho, title='', figsize=None):
     ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
     ax1.autoscale_view()
     ax1.invert_yaxis()
-    ax1.set_title('Real[rho]', fontsize=14)
+    ax1.set_title('Re[$\\rho$]', fontsize=14)
     # Imaginary
     ax2.patch.set_facecolor('gray')
     ax2.set_aspect('equal', 'box')
@@ -117,14 +117,15 @@ def plot_state_hinton(rho, title='', figsize=None):
         rect = plt.Rectangle([x - size / 2, y - size / 2], size, size,
                              facecolor=color, edgecolor=color)
         ax2.add_patch(rect)
-    if np.any(dataimag != 0):
-        ax2.set_xticks(np.arange(0, lx+0.5, 1))
-        ax2.set_yticks(np.arange(0, ly+0.5, 1))
-        ax2.set_yticklabels(row_names, fontsize=14)
-        ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
+
+    ax2.set_xticks(np.arange(0, lx+0.5, 1))
+    ax2.set_yticks(np.arange(0, ly+0.5, 1))
+    ax2.set_yticklabels(row_names, fontsize=14)
+    ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
+
     ax2.autoscale_view()
     ax2.invert_yaxis()
-    ax2.set_title('Imag[rho]', fontsize=14)
+    ax2.set_title('Im[$\\rho$]', fontsize=14)
     if title:
         fig.suptitle(title, fontsize=16)
     if get_backend() in ['module://ipykernel.pylab.backend_inline',
