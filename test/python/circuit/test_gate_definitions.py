@@ -31,3 +31,19 @@ class TestGateDefinitions(QiskitTestCase):
         circ.ch(0, 1)
         decomposed_circ = circ.decompose()
         self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_ccx_definition(self):
+        """Test ccx gate matrix and definition.
+        """
+        circ = QuantumCircuit(3)
+        circ.ccx(0, 1, 2)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
+
+    def test_crz_definition(self):
+        """Test crz gate matrix and defintion.
+        """
+        circ = QuantumCircuit(2)
+        circ.crz(1, 0, 1)
+        decomposed_circ = circ.decompose()
+        self.assertTrue(Operator(circ).equiv(Operator(decomposed_circ)))
