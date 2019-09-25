@@ -562,5 +562,4 @@ def plot_job_history(jobs, interval='year'):
     ax.add_artist(Circle((0, 0), 0.7, color='white', zorder=1))
     ax.text(0, 0, total_jobs, horizontalalignment='center',
             verticalalignment='center', fontsize=26)
-    fig.tight_layout()
     return fig
