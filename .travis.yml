@@ -13,7 +13,10 @@
 notifications:
   email: false
 
-cache: pip
+cache:
+  pip: true
+  directories:
+    - .stestr
 
 ###############################################################################
 # Anchored and aliased definitions.
@@ -40,9 +43,16 @@ stage_generic: &stage_generic
     # Compile the executables and run the tests.
     - python setup.py build_ext --inplace
     - export PYTHONHASHSEED=$(python -S -c "import random; print(random.  randint(1, 4294967295))")
+    - echo "PYTHONHASHSEED=$PYTHONHASHSEED"
     - stestr run
   after_failure:
     - python tools/report_ci_failure.py
+  before_script:
+    - |
+    if [ ! "$(ls -A .stestr)" ]; then
+        rm -r .stestr
+    fi
+
 
 stage_linux: &stage_linux
   <<: *stage_generic
