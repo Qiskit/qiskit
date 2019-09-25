@@ -20,7 +20,6 @@ import sys
 import warnings
 
 import psutil
-from marshmallow.warnings import ChangedInMarshmallow3Warning
 
 
 def _check_python_version():
@@ -53,11 +52,6 @@ def _filter_deprecation_warnings():
     except AttributeError:
         # ._add_filter is internal and not available in some Python versions.
         pass
-
-    # Add a filter for ignoring ChangedInMarshmallow3Warning, as we depend on
-    # marhsmallow 2 explicitly. 2.17.0 introduced new deprecation warnings that
-    # are useful for eventually migrating, but too verbose for our purposes.
-    warnings.simplefilter('ignore', category=ChangedInMarshmallow3Warning)
 
 
 _check_python_version()

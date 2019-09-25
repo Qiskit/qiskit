@@ -161,7 +161,6 @@ def plot_gate_map(backend, figsize=None,
     if ax is None:
         fig, ax = plt.subplots(figsize=figsize)  # pylint: disable=invalid-name
         ax.axis('off')
-        fig.set_tight_layout(True)
 
     # set coloring
     if qubit_color is None:

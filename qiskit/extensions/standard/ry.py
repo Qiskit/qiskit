@@ -17,6 +17,8 @@
 """
 Rotation around the y-axis.
 """
+import math
+import numpy
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
@@ -49,6 +51,13 @@ class RYGate(Gate):
         ry(theta)^dagger = ry(-theta)
         """
         return RYGate(-self.params[0])
+
+    def to_matrix(self):
+        """Return a Numpy.array for the RY gate."""
+        cos = math.cos(self.params[0] / 2)
+        sin = math.sin(self.params[0] / 2)
+        return numpy.array([[cos, -sin],
+                            [sin, cos]], dtype=complex)
 
 
 def ry(self, theta, q):
