@@ -707,8 +707,8 @@ class WeightedPauliOperator(BaseOperator):
                 # This explicit barrier is needed for statevector simulator since Qiskit-terra
                 # will remove global phase at default compilation level but the results here
                 # rely on global phase.
-                tmp_qc.barrier([x for x in range(self.num_qubits)])
-                tmp_qc.append(pauli, [x for x in range(self.num_qubits)])
+                tmp_qc.barrier(list(range(self.num_qubits)))
+                tmp_qc.append(pauli, list(range(self.num_qubits)))
                 instructions[pauli.to_label()] = tmp_qc.to_instruction()
         else:
             cr = ClassicalRegister(self.num_qubits)

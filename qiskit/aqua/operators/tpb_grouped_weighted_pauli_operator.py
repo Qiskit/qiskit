@@ -124,11 +124,11 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
                                     (p_2[1].z[__i] == p_1[1].z[__i] and
                                      p_2[1].x[__i] == p_1[1].x[__i])):
                                 break
-                            else:
-                                # update master, if p_2 is not identity
-                                if p_2[1].z[__i] or p_2[1].x[__i]:
-                                    paulis_temp[0][1].update_z(p_2[1].z[__i], __i)
-                                    paulis_temp[0][1].update_x(p_2[1].x[__i], __i)
+
+                            # update master, if p_2 is not identity
+                            if p_2[1].z[__i] or p_2[1].x[__i]:
+                                paulis_temp[0][1].update_z(p_2[1].z[__i], __i)
+                                paulis_temp[0][1].update_x(p_2[1].x[__i], __i)
                             j += 1
                         if j == n:
                             paulis_temp.append(p_2)
@@ -207,6 +207,7 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
         """
         # perform add or sub in paulis and then re-group it again
         ret_op = super()._add_or_sub(other, operation, copy)
+        # pylint: disable=no-member
         ret_op = ret_op._grouping_func(ret_op, **self._kwargs)
         return ret_op
 
@@ -221,5 +222,6 @@ class TPBGroupedWeightedPauliOperator(WeightedPauliOperator):
             TPBGroupedWeightedPauliOperator: the multiplied operator
         """
         ret_op = super().multiply(other)
+        # pylint: disable=no-member
         ret_op = ret_op._grouping_func(ret_op, **self._kwargs)
         return ret_op
