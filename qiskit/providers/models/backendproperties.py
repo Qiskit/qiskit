@@ -278,4 +278,4 @@ class BackendProperties(BaseModel):
         try:
             return value * prefixes[unit[0]]
         except KeyError:
-            raise PulseError("Could not understand units: {}".format(unit))
+            raise PulseError("Could not understand units: {u}".format(u=unit))
