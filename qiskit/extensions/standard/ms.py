@@ -45,16 +45,6 @@ class MSGate(Gate):
             definition.append(inst)
         self.definition = definition
 
-        print(self.num_qubits)
-        print(self.definition)
-
-
-
-    #def to_matrix(self):
-    #    """Return a Numpy.array for the MS gate."""
-    #    # ToDo
-    #    return numpy.array([[1]])
-
 
 def ms(self, theta,  qubits):
     """Apply MS to q1 and q2."""
