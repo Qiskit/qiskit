@@ -20,6 +20,7 @@ from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase
 from qiskit.pulse.exceptions import PulseError
 
+
 class BackendpropertiesTestCase(QiskitTestCase):
     """Test usability methods of backend.properties()."""
 
