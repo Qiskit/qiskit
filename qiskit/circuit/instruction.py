@@ -34,8 +34,8 @@ The circuit itself keeps this context.
 """
 import copy
 from itertools import zip_longest
-import sympy
 import numpy
+import warnings
 
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
@@ -56,7 +56,7 @@ class Instruction:
             name (str): instruction name
             num_qubits (int): instruction's qubit width
             num_clbits (int): instruction's clbit width
-            params (list[sympy.Basic|qasm.Node|int|float|complex|str|ndarray]): list of parameters
+            params (list[qasm.Node|int|float|complex|str|ndarray]): list of parameters
         Raises:
             QiskitError: when the register is not in the correct format.
         """
@@ -136,34 +136,36 @@ class Instruction:
         self._params = []
         for single_param in parameters:
             # example: u2(pi/2, sin(pi/4))
-            if isinstance(single_param, (ParameterExpression, sympy.Basic)):
+            if isinstance(single_param, (ParameterExpression)):
                 self._params.append(single_param)
             # example: OpenQASM parsed instruction
             elif isinstance(single_param, node.Node):
-                self._params.append(single_param.sym())
+                self._params.append(single_param.num())
             # example: u3(0.1, 0.2, 0.3)
             elif isinstance(single_param, (int, float)):
-                self._params.append(sympy.Number(single_param))
+                self._params.append(single_param)
             # example: Initialize([complex(0,1), complex(0,0)])
             elif isinstance(single_param, complex):
-                self._params.append(single_param.real +
-                                    single_param.imag * sympy.I)
+                self._params.append(single_param)
             # example: snapshot('label')
             elif isinstance(single_param, str):
-                self._params.append(sympy.Symbol(single_param))
+                self._params.append(float(single_param))
             # example: numpy.array([[1, 0], [0, 1]])
             elif isinstance(single_param, numpy.ndarray):
                 self._params.append(single_param)
-            # example: sympy.Matrix([[1, 0], [0, 1]])
-            elif isinstance(single_param, sympy.Matrix):
-                self._params.append(single_param)
-            elif isinstance(single_param, sympy.Expr):
-                self._params.append(single_param)
             elif isinstance(single_param, numpy.number):
-                self._params.append(sympy.Number(single_param.item()))
+                self._params.append(single_param)
             else:
-                raise QiskitError("invalid param type {0} in instruction "
-                                  "{1}".format(type(single_param), self.name))
+                try:
+                    param = float(single_param)
+                    self._params.append(param)
+                    warnings.warn("Passing messages of type %s is deprecated "
+                                  "ensure your parameters of type: "
+                                  "qasm.Node|int|float|complex|str|ndarray"
+                                  % type(single_param))
+                except TypeError:
+                    raise QiskitError("invalid param type {0} in instruction "
+                                      "{1}".format(type(single_param), self.name))
 
     @property
     def definition(self):
@@ -182,13 +184,7 @@ class Instruction:
         instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
-            params = [
-                x.evalf() if hasattr(x, 'evalf') else x for x in self.params
-            ]
-            params = [
-                sympy.matrix2numpy(x, dtype=complex) if isinstance(
-                    x, sympy.Matrix) else x for x in params
-            ]
+            params = [x for x in self.params]
             instruction.params = params
         # Add placeholder for qarg and carg params
         if self.num_qubits:
