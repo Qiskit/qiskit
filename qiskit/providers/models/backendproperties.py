@@ -38,7 +38,7 @@ class GateSchema(BaseSchema):
 
     # Required properties.
     qubits = QList(Integer(), required=True,
-             validate=Length(min=1))
+                   validate=Length(min=1))
     gate = String(required=True)
     parameters = Nested(NduvSchema, required=True, many=True,
                         validate=Length(min=1))
@@ -167,7 +167,7 @@ class BackendProperties(BaseModel):
             name: Optionally used to specify within the heirarchy which
                   property to return.
 
-        Return:
+        Returns:
             Gate property.
 
         Raises:
@@ -193,7 +193,7 @@ class BackendProperties(BaseModel):
             operation: The operation for which to get the error.
             qubits: The specific qubits for the operation.
 
-        Return:
+        Returns:
             Gate error of the given operation and qubit(s).
         """
         return self.gate_property(operation, qubits,
@@ -207,7 +207,7 @@ class BackendProperties(BaseModel):
             operation: The operation for which to get the duration.
             qubits: The specific qubits for the operation.
 
-        Return:
+        Returns:
             Gate length of the given operation and qubit(s).
         """
         return self.gate_property(operation, qubits,
@@ -223,7 +223,7 @@ class BackendProperties(BaseModel):
             qubit: The property to look for.
             name: Optionally used to specify within the heirarchy which property to return.
 
-        Return:
+        Returns:
             Qubit property.
 
         Raises:
@@ -244,7 +244,7 @@ class BackendProperties(BaseModel):
         Args:
             qubit: Qubit for which to return the T1 time of.
 
-        Return:
+        Returns:
             T1 time of the given qubit.
         """
         return self.qubit_property(qubit, 'T1')
@@ -257,7 +257,7 @@ class BackendProperties(BaseModel):
             value: The number to apply prefix to.
             unit: String prefix.
 
-        Return:
+        Returns:
             Converted value.
 
         Raises:
