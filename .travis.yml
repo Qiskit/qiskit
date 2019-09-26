@@ -137,6 +137,7 @@ jobs:
         - cibuildwheel --output-dir wheelhouse
         - twine upload wheelhouse/*
 
+
     # "lint and and pure python test" stage
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
@@ -164,6 +165,7 @@ jobs:
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.4
+
 
 matrix:
   fast_finish: true
