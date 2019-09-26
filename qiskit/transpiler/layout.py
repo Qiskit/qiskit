@@ -23,6 +23,7 @@ from warnings import warn
 
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.transpiler.exceptions import LayoutError
+from qiskit.converters import isinstanceint
 
 
 class Layout():
@@ -87,11 +88,11 @@ class Layout():
     @staticmethod
     def order_based_on_type(value1, value2):
         """decides which one is physical/virtual based on the type. Returns (virtual, physical)"""
-        if isinstance(value1, int) and isinstance(value2, (Qubit, type(None))):
-            physical = value1
+        if isinstanceint(value1) and isinstance(value2, (Qubit, type(None))):
+            physical = int(value1)
             virtual = value2
-        elif isinstance(value2, int) and isinstance(value1, (Qubit, type(None))):
-            physical = value2
+        elif isinstanceint(value2) and isinstance(value1, (Qubit, type(None))):
+            physical = int(value2)
             virtual = value1
         else:
             raise LayoutError('The map (%s -> %s) has to be a (Bit -> integer)'
@@ -272,7 +273,7 @@ class Layout():
         Raises:
             LayoutError: Invalid input layout.
         """
-        if not all(isinstance(i, int) for i in int_list):
+        if not all(isinstanceint(i) for i in int_list):
             raise LayoutError('Expected a list of ints')
         if len(int_list) != len(set(int_list)):
             raise LayoutError('Duplicate values not permitted; Layout is bijective.')

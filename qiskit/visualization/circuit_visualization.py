@@ -12,8 +12,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# TODO: Remove after 0.7 and the deprecated methods are removed
-
 
 """
 Two quantum circuit drawers based on:

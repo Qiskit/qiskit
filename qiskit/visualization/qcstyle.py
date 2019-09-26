@@ -14,10 +14,8 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
-import warnings
 from copy import copy
-
-from qiskit.visualization.exceptions import VisualizationError
+from warnings import warn
 
 
 class DefaultStyle:
@@ -121,19 +119,16 @@ class DefaultStyle:
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
-        if 'plotbarrier' in dic:
-            warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
-                          ' argument "plot_barriers"', DeprecationWarning, 5)
-            dic.pop('plotbarrier')
         if 'fold' in dic:
-            warnings.warn('The key "fold" in the argument "style" is being replaced by the'
-                          ' argument "fold"', DeprecationWarning, 5)
+            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
+                 DeprecationWarning, 5)
             self.fold = dic.pop('fold', self.fold)
             if self.fold < 2:
                 self.fold = -1
+
         if dic:
-            raise VisualizationError('style option/s ({}) is/are not '
-                                     'supported'.format(', '.join(dic.keys())))
+            warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
+                 DeprecationWarning, 2)
 
 
 class BWStyle:
@@ -228,17 +223,13 @@ class BWStyle:
         self.dpi = dic.pop('dpi', self.dpi)
         self.margin = dic.pop('margin', self.margin)
         self.cline = dic.pop('creglinestyle', self.cline)
-        if 'plotbarrier' in dic:
-            # To be removed after 0.10 is released
-            warnings.warn('The key "plotbarrier" in the argument "style" is being replaced by the'
-                          ' argument "plot_barriers"', DeprecationWarning, 5)
         if 'fold' in dic:
-            # To be removed after 0.10 is released
-            warnings.warn('The key "fold" in the argument "style" is being replaced by the'
-                          ' argument "fold"', DeprecationWarning, 5)
+            warn('The key "fold" in the argument "style" is being replaced by the argument "fold"',
+                 DeprecationWarning, 5)
             self.fold = dic.pop('fold', self.fold)
             if self.fold < 2:
                 self.fold = -1
+
         if dic:
-            raise VisualizationError('style option/s ({}) is/are not '
-                                     'supported'.format(', '.join(dic.keys())))
+            warn('style option/s ({}) is/are not supported'.format(', '.join(dic.keys())),
+                 DeprecationWarning, 2)

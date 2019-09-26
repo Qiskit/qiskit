@@ -172,11 +172,14 @@ class MatplotlibDrawer:
     def ast(self):
         return self._ast
 
-    def _custom_multiqubit_gate(self, xy, fc=None, wide=True, text=None,
+    def _custom_multiqubit_gate(self, xy, cxy=None, fc=None, wide=True, text=None,
                                 subtext=None):
         xpos = min([x[0] for x in xy])
         ypos = min([y[1] for y in xy])
         ypos_max = max([y[1] for y in xy])
+
+        if cxy:
+            ypos = min([y[1] for y in cxy])
         if wide:
             if subtext:
                 boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
@@ -190,7 +193,10 @@ class MatplotlibDrawer:
             _fc = fc
         else:
             if self._style.name != 'bw':
-                _fc = self._style.dispcol['multi']
+                if self._style.gc != DefaultStyle().gc:
+                    _fc = self._style.gc
+                else:
+                    _fc = self._style.dispcol['multi']
                 _ec = self._style.dispcol['multi']
             else:
                 _fc = self._style.gc
@@ -243,6 +249,8 @@ class MatplotlibDrawer:
             wid = WID
         if fc:
             _fc = fc
+        elif self._style.gc != DefaultStyle().gc:
+            _fc = self._style.gc
         elif text and text in self._style.dispcol:
             _fc = self._style.dispcol[text]
         else:
@@ -387,6 +395,9 @@ class MatplotlibDrawer:
         self.ax.add_patch(box)
 
     def _ctrl_qubit(self, xy, fc=None, ec=None):
+        if self._style.gc != DefaultStyle().gc:
+            fc = self._style.gc
+            ec = self._style.gc
         if fc is None:
             fc = self._style.lc
         if ec is None:
@@ -399,6 +410,9 @@ class MatplotlibDrawer:
 
     def _tgt_qubit(self, xy, fc=None, ec=None, ac=None,
                    add_width=None):
+        if self._style.gc != DefaultStyle().gc:
+            fc = self._style.gc
+            ec = self._style.gc
         if fc is None:
             fc = self._style.dispcol['target']
         if ec is None:
@@ -877,7 +891,7 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['swap'])
                     # Custom gate
                     else:
-                        self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                        self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
                                                      text=op.name)
                 #
                 # draw multi-qubit gates (n=3)
@@ -910,12 +924,12 @@ class MatplotlibDrawer:
                         self._line(qreg_b, qreg_t, lc=self._style.dispcol['multi'])
                     # custom gate
                     else:
-                        self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                        self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
                                                      text=op.name)
 
                 # draw custom multi-qubit gate
                 elif len(q_xy) > 3:
-                    self._custom_multiqubit_gate(q_xy, wide=_iswide,
+                    self._custom_multiqubit_gate(q_xy, c_xy, wide=_iswide,
                                                  text=op.name)
                 else:
                     logger.critical('Invalid gate %s', op)
