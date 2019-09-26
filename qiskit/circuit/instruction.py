@@ -34,8 +34,9 @@ The circuit itself keeps this context.
 """
 import copy
 from itertools import zip_longest
-import numpy
 import warnings
+
+import numpy
 
 from qiskit.qasm.node import node
 from qiskit.exceptions import QiskitError
