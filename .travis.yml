@@ -95,7 +95,6 @@ stage_osx: &stage_osx
 # Define the order of the stages.
 stages:
   - lint and pure python test
-  - test
 
 # Define the job matrix explicitly, as matrix expansion causes issues when
 # using it with stages and some variables/sections cannot be overridden.
@@ -141,43 +140,9 @@ jobs:
     # "lint and and pure python test" stage
     ###########################################################################
     # Linter and style check (GNU/Linux, Python 3.5)
-    - stage: lint and pure python test
-      name: Python Style and Linter
-      <<: *stage_linux
-      script:
-        - pycodestyle --max-line-length=100 qiskit test
-        - pylint -rn qiskit test
-
-    # Run the tests against without compilation (GNU/Linux, Python 3.5)
-    - stage: lint and pure python test
-      name: Python 3.5 Tests Linux
-      <<: *stage_linux
-
-    # "test" stage
-    ###########################################################################
-
-    # GNU/Linux, Python 3.6
-    - stage: test
-      name: Python 3.6 Tests and Coverage Linux
-      <<: *stage_linux
-      python: 3.6
-      env:
-        - PYTHON="coverage run --source qiskit --parallel-mode"
-      after_success:
-        - coverage combine || true
-        - coveralls || true
-        - coverage xml || true
-        - pip install diff-cover || true
-        - diff-cover --compare-branch master coverage.xml || true
-
-    # GNU/Linux, Python 3.7
-    - stage: test
-      name: Python 3.7 Tests Linux
-      <<: *stage_linux
-      python: 3.7
 
     # OSX, Python 3.5.6 (via pyenv)
-    - stage: test
+    - stage: lint and pure python test
       <<: *stage_osx
       name: Python 3.5 Tests OSX
       env:
@@ -185,7 +150,7 @@ jobs:
         - PYTHON_VERSION=3.5.7
 
     # OSX, Python 3.6.5 (via pyenv)
-    - stage: test
+    - stage: lint and pure python test
       name: Python 3.6 Tests OSX
       <<: *stage_osx
       env:
@@ -193,43 +158,12 @@ jobs:
         - PYTHON_VERSION=3.6.9
 
     # OSX, Python 3.7.2 (via pyenv)
-    - stage: test
+    - stage: lint and pure python test
       name: Python 3.7 Tests OSX
       <<: *stage_osx
       env:
         - MPLBACKEND=ps
         - PYTHON_VERSION=3.7.4
-
-    # Randomized testing
-    - stage: test
-      name: Randomized tests
-      <<: *stage_linux
-      cache:
-        pip: true
-        directories:
-        - .hypothesis
-      script:
-      - python setup.py build_ext --inplace
-      - pip install "qiskit-aer"
-      - make test_randomized
-
-    - stage: test
-      name: Benchmarks
-      <<: *stage_linux
-      script:
-      - python setup.py build_ext --inplace
-      - pip install "qiskit-aer"
-      - pip install "asv"
-      - git clone "https://www.github.com/Qiskit/qiskit" meta-qiskit
-      - >-
-        sed -i
-        -e 's/"repo": "https:\/\/github.com\/Qiskit\/qiskit-terra.git",/"repo": "..",/'
-        meta-qiskit/asv.conf.json
-      - cat meta-qiskit/asv.conf.json
-      - echo $TRAVIS_BRANCH
-      - echo $TRAVIS_PULL_REQUEST_BRANCH
-      - asv --config meta-qiskit/asv.conf.json machine --machine travis-ci
-      - travis_wait 45 asv --config meta-qiskit/asv.conf.json continuous --interleave-processes --machine travis-ci --no-only-changed --python 3.5 --bench '^(qft|transpiler_benchmarks|state_tomography|isometry)\.' $([ "$TRAVIS_BRANCH" == "master" ] || echo "$TRAVIS_BRANCH") HEAD
 
 matrix:
   fast_finish: true
