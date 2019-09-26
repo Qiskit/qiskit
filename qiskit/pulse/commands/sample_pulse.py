@@ -80,9 +80,10 @@ class SamplePulse(Command):
             clipped_samples = np.exp(1j*np.angle(samples[clip_where]), dtype=np.complex_)
             samples[clip_where] = clipped_samples
             samples_norm[clip_where] = np.abs(clipped_samples)
-
+            if np.any(samples_norm > 1.):
+                raise PulseError('inner: Pulse contains sample with norm greater than 1+epsilon.')
         if np.any(samples_norm > 1.):
-            raise PulseError('Pulse contains sample with norm greater than 1+epsilon.')
+            raise PulseError('outer: Pulse contains sample with norm greater than 1+epsilon.')
 
         return samples
 
