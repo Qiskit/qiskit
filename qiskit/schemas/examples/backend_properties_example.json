@@ -16,13 +16,13 @@
     ],
     "gates": [
         {"qubits": [0], "gate": "u2", "parameters": [
-                {"name": "gateerr", "date": "2018-04-02 15:00:00Z", "unit": "None", "value": 0.002}]
+                {"name": "gate_error", "date": "2018-04-02 15:00:00Z", "unit": "", "value": 0.002}]
         },
         {"qubits": [1], "gate": "u2", "parameters": [
-                {"name": "gateerr", "date": "2018-04-02 15:00:00Z", "unit": "None", "value": 0.002}]
+                {"name": "gate_error", "date": "2018-04-02 15:00:00Z", "unit": "", "value": 0.002}]
         },
         {"qubits": [0,1], "gate": "cx", "parameters": [
-                {"name": "gateerr", "date": "2018-04-02 15:00:00Z", "unit": "None", "value": 0.02}]
+                {"name": "gate_error", "date": "2018-04-02 15:00:00Z", "unit": "", "value": 0.02}]
         }],
     "general": [{"name": "fridge_temperature", "date": "2018-04-02 15:00:00Z", "unit": "mK", "value": 10}]
 }
