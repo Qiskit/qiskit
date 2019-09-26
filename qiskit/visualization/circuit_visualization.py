@@ -225,7 +225,7 @@ def circuit_drawer(circuit,
         return _text_circuit_drawer(circuit, filename=filename,
                                     line_length=line_length,
                                     reverse_bits=reverse_bits,
-                                    plotbarriers=plot_barriers,
+                                    plot_barriers=plot_barriers,
                                     justify=justify,
                                     vertical_compression=vertical_compression,
                                     idle_wires=idle_wires,
@@ -327,7 +327,6 @@ def qx_color_scheme():
         "latexdrawerstyle": True,
         "usepiformat": False,
         "cregbundle": False,
-        "plotbarrier": False,
         "showindex": False,
         "compress": True,
         "margin": [2.0, 0.0, 0.0, 0.3],
@@ -342,7 +341,7 @@ def qx_color_scheme():
 
 
 def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=False,
-                         plotbarriers=True, justify=None, vertical_compression='high',
+                         plot_barriers=True, justify=None, vertical_compression='high',
                          idle_wires=True, with_layout=True):
     """
     Draws a circuit using ascii art.
@@ -355,7 +354,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
                    shutil.get_terminal_size(). If you don't want pagination
                    at all, set line_length=-1.
         reverse_bits (bool): Rearrange the bits in reverse order.
-        plotbarriers (bool): Draws the barriers when they are there.
+        plot_barriers (bool): Draws the barriers when they are there.
         justify (str) : `left`, `right` or `none`. Defaults to `left`. Says how
                         the circuit should be justified.
         vertical_compression (string): `high`, `medium`, or `low`. It merges the
@@ -375,7 +374,7 @@ def _text_circuit_drawer(circuit, filename=None, line_length=None, reverse_bits=
     else:
         layout = None
     text_drawing = _text.TextDrawing(qregs, cregs, ops, layout=layout)
-    text_drawing.plotbarriers = plotbarriers
+    text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = line_length
     text_drawing.vertical_compression = vertical_compression
 
