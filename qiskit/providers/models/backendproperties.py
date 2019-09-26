@@ -14,11 +14,11 @@
 
 """Model and schema for backend configuration."""
 import datetime
-from typing import Any, Iterable, Tuple, Union
+from typing import Any, Iterable, Tuple, Union, List
 
 from marshmallow.validate import Length, Regexp
 from qiskit.util import _to_tuple
-from qiskit.validation.fields import DateTime, List, Nested, Number, String, Integer
+from qiskit.validation.fields import DateTime, List as QList, Nested, Number, String, Integer
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.pulse.exceptions import PulseError
 
@@ -37,8 +37,8 @@ class GateSchema(BaseSchema):
     """Schema for Gate."""
 
     # Required properties.
-    qubits = List(Integer(), required=True,
-                  validate=Length(min=1))
+    qubits = QList(Integer(), required=True,
+             validate=Length(min=1))
     gate = String(required=True)
     parameters = Nested(NduvSchema, required=True, many=True,
                         validate=Length(min=1))
@@ -52,9 +52,9 @@ class BackendPropertiesSchema(BaseSchema):
     backend_version = String(required=True,
                              validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
     last_update_date = DateTime(required=True)
-    qubits = List(Nested(NduvSchema, many=True,
-                         validate=Length(min=1)), required=True,
-                  validate=Length(min=1))
+    qubits = QList(Nested(NduvSchema, many=True,
+                          validate=Length(min=1)), required=True,
+                   validate=Length(min=1))
     gates = Nested(GateSchema, required=True, many=True,
                    validate=Length(min=1))
     general = Nested(NduvSchema, required=True, many=True)
@@ -68,13 +68,18 @@ class Nduv(BaseModel):
     full description of the model, please check ``NduvSchema``.
 
     Attributes:
-        date (datetime): date.
-        name (str): name.
-        unit (str): unit.
-        value (Number): value.
+        date: date.
+        name: name.
+        unit: unit.
+        value: value.
     """
 
-    def __init__(self, date, name, unit, value, **kwargs):
+    def __init__(self,
+                 date: datetime.datetime,
+                 name: str,
+                 unit: str,
+                 value: float,
+                 **kwargs):
         self.date = date
         self.name = name
         self.unit = unit
@@ -91,12 +96,12 @@ class Gate(BaseModel):
     full description of the model, please check ``GateSchema``.
 
     Attributes:
-        qubits (list[Number]): qubits.
-        gate (str): gate.
-        parameters (Nduv): parameters.
+        qubits: qubits.
+        gate: gate.
+        parameters: parameters.
     """
 
-    def __init__(self, qubits, gate, parameters, **kwargs):
+    def __init__(self, qubits: List[int], gate: str, parameters: Nduv, **kwargs):
         self.qubits = qubits
         self.gate = gate
         self.parameters = parameters
@@ -112,16 +117,16 @@ class BackendProperties(BaseModel):
     full description of the model, please check ``BackendPropertiesSchema``.
 
     Attributes:
-        backend_name (str): backend name.
-        backend_version (str): backend version in the form X.Y.Z.
-        last_update_date (datetime): last date/time that a property was updated.
-        qubits (list[list[Nduv]]): system qubit parameters.
-        gates (list[Gate]): system gate parameters.
-        general (list[Nduv]): general parameters.
+        backend_name: backend name.
+        backend_version: backend version in the form X.Y.Z.
+        last_update_date: last date/time that a property was updated.
+        qubits: system qubit parameters.
+        gates: system gate parameters.
+        general: general parameters.
     """
 
-    def __init__(self, backend_name, backend_version, last_update_date,
-                 qubits, gates, general, **kwargs):
+    def __init__(self, backend_name: str, backend_version: str, last_update_date: datetime.datetime,
+                 qubits: List[List[Nduv]], gates: List[Gate], general: List[Nduv], **kwargs):
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.last_update_date = last_update_date
