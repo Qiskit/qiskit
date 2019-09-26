@@ -17,10 +17,8 @@
 """Contains the terra version."""
 
 import os
-import pkg_resources
 import subprocess
-import sys
-import warnings
+import pkg_resources
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
