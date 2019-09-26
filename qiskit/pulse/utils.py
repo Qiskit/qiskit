@@ -18,8 +18,7 @@ Pulse utilities.
 import warnings
 
 
-def align_measures(schedules, cmd_def, cal_gate, max_calibration_duration = None,
-                   align_time = None):
+def align_measures(schedules, cmd_def, cal_gate, max_calibration_duration=None, align_time=None):
     """
     This function has been moved!
     """
@@ -35,7 +34,7 @@ def add_implicit_acquires(schedule, meas_map):
                   " It cannot be invoked from `utils` anymore (this call returns None).")
 
 
-def pad(schedule, channels = None, until = None):
+def pad(schedule, channels=None, until=None):
     """
     This function has been moved!
     """
