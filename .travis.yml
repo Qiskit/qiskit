@@ -44,7 +44,7 @@ stage_generic: &stage_generic
     - python setup.py build_ext --inplace
     - export PYTHONHASHSEED=$(python -S -c "import random; print(random.  randint(1, 4294967295))")
     - echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-    - stestr run
+    - stestr run -- -n test.python.pulse.test_commands.TestSamplePulse.test_pulse_limits
   after_failure:
     - python tools/report_ci_failure.py
   before_script:
