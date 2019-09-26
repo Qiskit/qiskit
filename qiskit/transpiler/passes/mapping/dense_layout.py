@@ -52,8 +52,8 @@ class DenseLayout(AnalysisPass):
         self.backend_prop = backend_prop
         self.cx_mat = None
         self.meas_arr = None
-        self.num_cx = None
-        self.num_meas = None
+        self.num_cx = 0
+        self.num_meas = 0
 
     def run(self, dag):
         """
@@ -72,10 +72,8 @@ class DenseLayout(AnalysisPass):
 
         # Get avg number of cx and meas per qubit
         ops = dag.count_ops()
-        self.num_cx = 0
         if 'cx' in ops.keys():
             self.num_cx = ops['cx']
-        self.num_meas = 0
         if 'measure' in ops.keys():
             self.num_meas = ops['measure']
 
