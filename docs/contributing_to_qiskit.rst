@@ -56,7 +56,7 @@ document is available for review as a PDF.
 
 .. note::
    If your contribution is part of your employment or your contribution
-   is the property of your employer, then you will likely need to sign a
+   is the property of your employer, then you will more than likely need to sign a
    `corporate CLA <https://qiskit.org/license/qiskit-corporate-cla.pdf>`__ too and
    email it to us at <qiskit@us.ibm.com>.
 
