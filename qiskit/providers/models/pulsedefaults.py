@@ -284,7 +284,10 @@ class PulseDefaults(BaseModel):
             PulseError: If the operation is not defined on the qubits.
         """
         if not self.has(operation, _to_tuple(qubits)):
-            raise PulseError("Operation {op} for qubits {qubits} is not defined for this "
+            if operation in self._ops_def:
+                raise PulseError("Operation '{op}' exists, but is only defined for qubits "
+                                 "{qubits}.".format(op=operation, qubits=self.op_qubits(operation)))
+            raise PulseError("Operation '{op}' is not defined for this "
                              "system.".format(op=operation, qubits=qubits))
 
     def get(self,

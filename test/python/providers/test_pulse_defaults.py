@@ -62,6 +62,8 @@ class TestPulseDefaults(QiskitTestCase):
         self.assertFalse(self.defs.has('u1', [0, 1]))
         with self.assertRaises(PulseError):
             self.defs.assert_has('dne', [0])
+        with self.assertRaises(PulseError):
+            self.defs.assert_has('cx', 100)
 
     def test_op_qubits(self):
         """Test `op_qubits`."""
