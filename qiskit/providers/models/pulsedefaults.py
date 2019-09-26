@@ -54,7 +54,7 @@ class CommandSchema(BaseSchema):
 
     # Optional properties.
     qubits = QList(Integer(validate=Range(min=0)),
-                  validate=Length(min=1))
+                   validate=Length(min=1))
     sequence = Nested(PulseQobjInstructionSchema, many=True)
 
 
@@ -288,7 +288,7 @@ class PulseDefaults(BaseModel):
                 raise PulseError("Operation '{op}' exists, but is only defined for qubits "
                                  "{qubits}.".format(op=operation, qubits=self.op_qubits(operation)))
             raise PulseError("Operation '{op}' is not defined for this "
-                             "system.".format(op=operation, qubits=qubits))
+                             "system.".format(op=operation))
 
     def get(self,
             operation: str,
@@ -402,8 +402,11 @@ class PulseDefaults(BaseModel):
             return schedule.bind_parameters(*params, **kwparams)
         return schedule
 
-    # def __str__(self):
-        # TODO
+    def __str__(self):
+        return ('{name}(operations=[{ops}], n_qubits={n_qubits})'.format(
+            name=self.__class__.__name__,
+            ops=self.ops(),
+            n_qubits=len(self._qubit_freq_est_hz)))
 
     def __repr__(self):
         single_qops = "1Q operations:\n"
