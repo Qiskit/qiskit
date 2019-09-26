@@ -315,13 +315,16 @@ def plot_circuit_layout(circuit, backend, view='virtual'):
     return fig
 
 
-def plot_error_map(backend, figsize=(12, 9), show_title=True):
+def plot_error_map(backend, figsize=(12, 9), show_title=True,
+                   remove_badcal_edges=False):
     """Plots the error map of a given backend.
 
     Args:
         backend (IBMQBackend): Given backend.
         figsize (tuple): Figure size in inches.
         show_title (bool): Show the title or not.
+        remove_badcal_edges (bool): Do not show entangling edges that
+                                    have failed calibrations.
 
     Returns:
         Figure: A matplotlib figure showing error map.
@@ -368,12 +371,23 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True):
 
     # Convert to percent
     cx_errors = 100*np.asarray(cx_errors)
-    avg_cx_err = np.mean(cx_errors)
+
+    if remove_badcal_edges:
+        cx_idx = np.where(cx_errors != 100.0)[0]
+    else:
+        cx_idx = np.arange(len(cx_errors))
+
+    avg_cx_err = np.mean(cx_errors[cx_idx])
 
     cx_norm = matplotlib.colors.Normalize(
-        vmin=min(cx_errors), vmax=max(cx_errors))
-    line_colors = [color_map(cx_norm(err)) for err in cx_errors]
+        vmin=min(cx_errors[cx_idx]), vmax=max(cx_errors[cx_idx]))
 
+    line_colors = []
+    for err in cx_errors:
+        if err != 100.0 or not remove_badcal_edges:
+            line_colors.append(color_map(cx_norm(err)))
+        else:
+            line_colors.append('#FFffffff')
     # Measurement errors
 
     read_err = []
