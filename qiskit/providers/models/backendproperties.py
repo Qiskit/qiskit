@@ -171,7 +171,7 @@ class BackendProperties(BaseModel):
             Gate property.
 
         Raises:
-	        PulseError: If the property is not found or name is specified but qubit is not.
+	    PulseError: If the property is not found or name is specified but qubit is not.
         """
         try:
             result = self._gates[operation]
@@ -227,7 +227,7 @@ class BackendProperties(BaseModel):
             Qubit property.
 
         Raises:
-	        PulseError: If the property is not found.
+	    PulseError: If the property is not found.
         """
         try:
             result = self._qubits[qubit]
