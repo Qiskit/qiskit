@@ -19,6 +19,7 @@ import logging
 import unittest
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+from qiskit.circuit import Qubit, Clbit
 from qiskit.circuit.random import random_circuit
 from qiskit.visualization import utils
 from qiskit.visualization import circuit_drawer
@@ -207,6 +208,178 @@ class TestVisualizationUtils(QiskitTestCase):
         self.assertEqual([qr1[0], qr1[1], qr2[0], qr2[1]], qregs)
         self.assertEqual([cr1[0], cr1[1], cr2[0], cr2[1]], cregs)
         self.assertEqual(exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_get_layered_instructions_left_justification_simple(self):
+        """ Test _get_layered_instructions left justification simple since #2802
+q_0: |0>───────■──
+        ┌───┐  │
+q_1: |0>┤ H ├──┼──
+        ├───┤  │
+q_2: |0>┤ H ├──┼──
+        └───┘┌─┴─┐
+q_3: |0>─────┤ X ├
+             └───┘
+"""
+        qc = QuantumCircuit(4)
+        qc.h(1)
+        qc.h(2)
+        qc.cx(0, 3)
+
+        (_, _, layered_ops) = utils._get_layered_instructions(qc, justify='left')
+
+        l_exp = [[('h', [Qubit(QuantumRegister(4, 'q'), 1)], []),
+                  ('h', [Qubit(QuantumRegister(4, 'q'), 2)], [])],
+                 [('cx', [Qubit(QuantumRegister(4, 'q'), 0),
+                          Qubit(QuantumRegister(4, 'q'), 3)], [])
+                  ]
+                 ]
+
+        self.assertEqual(l_exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_get_layered_instructions_right_justification_simple(self):
+        """ Test _get_layered_instructions right justification simple since #2802
+q_0: |0>──■───────
+          │  ┌───┐
+q_1: |0>──┼──┤ H ├
+          │  ├───┤
+q_2: |0>──┼──┤ H ├
+        ┌─┴─┐└───┘
+q_3: |0>┤ X ├─────
+        └───┘
+"""
+        qc = QuantumCircuit(4)
+        qc.h(1)
+        qc.h(2)
+        qc.cx(0, 3)
+
+        (_, _, layered_ops) = utils._get_layered_instructions(qc, justify='right')
+
+        r_exp = [[('cx', [Qubit(QuantumRegister(4, 'q'), 0),
+                          Qubit(QuantumRegister(4, 'q'), 3)], [])],
+                 [('h', [Qubit(QuantumRegister(4, 'q'), 1)], []),
+                  ('h', [Qubit(QuantumRegister(4, 'q'), 2)], [])
+                  ]
+                 ]
+
+        self.assertEqual(r_exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_get_layered_instructions_left_justification_less_simple(self):
+        """ Test _get_layered_instructions left justification
+        less simple example since #2802
+        ┌────────────┐┌───┐┌────────────┐              ┌─┐┌────────────┐┌───┐┌────────────┐
+q_0: |0>┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├──────────────┤M├┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├
+        ├────────────┤└─┬─┘├────────────┤┌────────────┐└╥┘└────────────┘└─┬─┘├────────────┤
+q_1: |0>┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├┤ U2(0,pi/1) ├─╫─────────────────■──┤ U2(0,pi/1) ├
+        └────────────┘     └────────────┘└────────────┘ ║                    └────────────┘
+q_2: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                        ║
+q_3: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                        ║
+q_4: |0>────────────────────────────────────────────────╫──────────────────────────────────
+                                                        ║
+c1_0: 0 ════════════════════════════════════════════════╩══════════════════════════════════
+        """
+        qasm = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[5];
+        creg c1[1];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        cx q[1],q[0];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        u2(0,3.14159265358979) q[1];
+        measure q[0] -> c1[0];
+        u2(0,3.14159265358979) q[0];
+        cx q[1],q[0];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        """
+        qc = QuantumCircuit.from_qasm_str(qasm)
+
+        (_, _, layered_ops) = utils._get_layered_instructions(qc, justify='left')
+
+        l_exp = [[('u2', [Qubit(QuantumRegister(5, 'q'), 0)], []),
+                  ('u2', [Qubit(QuantumRegister(5, 'q'), 1)], [])],
+                 [('cx',
+                   [Qubit(QuantumRegister(5, 'q'), 1), Qubit(QuantumRegister(5, 'q'), 0)],
+                   [])],
+                 [('u2', [Qubit(QuantumRegister(5, 'q'), 0)], []),
+                  ('u2', [Qubit(QuantumRegister(5, 'q'), 1)], [])],
+                 [('u2', [Qubit(QuantumRegister(5, 'q'), 1)], [])],
+                 [('measure',
+                   [Qubit(QuantumRegister(5, 'q'), 0)],
+                   [Clbit(ClassicalRegister(1, 'c1'), 0)])],
+                 [('u2', [Qubit(QuantumRegister(5, 'q'), 0)], [])],
+                 [('cx',
+                   [Qubit(QuantumRegister(5, 'q'), 1), Qubit(QuantumRegister(5, 'q'), 0)],
+                   [])],
+                 [('u2', [Qubit(QuantumRegister(5, 'q'), 0)], []),
+                  ('u2', [Qubit(QuantumRegister(5, 'q'), 1)], [])]]
+
+        self.assertEqual(l_exp,
+                         [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
+
+    def test_get_layered_instructions_right_justification_less_simple(self):
+        """ Test _get_layered_instructions right justification
+        less simple example since #2802
+        ┌────────────┐┌───┐┌────────────┐┌─┐┌────────────┐┌───┐┌────────────┐
+q_0: |0>┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├┤M├┤ U2(0,pi/1) ├┤ X ├┤ U2(0,pi/1) ├
+        ├────────────┤└─┬─┘├────────────┤└╥┘├────────────┤└─┬─┘├────────────┤
+q_1: |0>┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├─╫─┤ U2(0,pi/1) ├──■──┤ U2(0,pi/1) ├
+        └────────────┘     └────────────┘ ║ └────────────┘     └────────────┘
+q_2: |0>──────────────────────────────────╫──────────────────────────────────
+                                          ║
+q_3: |0>──────────────────────────────────╫──────────────────────────────────
+                                          ║
+q_4: |0>──────────────────────────────────╫──────────────────────────────────
+                                          ║
+c1_0: 0 ══════════════════════════════════╩══════════════════════════════════
+        """
+        qasm = """
+        OPENQASM 2.0;
+        include "qelib1.inc";
+        qreg q[5];
+        creg c1[1];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        cx q[1],q[0];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        u2(0,3.14159265358979) q[1];
+        measure q[0] -> c1[0];
+        u2(0,3.14159265358979) q[0];
+        cx q[1],q[0];
+        u2(0,3.14159265358979) q[0];
+        u2(0,3.14159265358979) q[1];
+        """
+        qc = QuantumCircuit.from_qasm_str(qasm)
+
+        (_, _, layered_ops) = utils._get_layered_instructions(qc, justify='right')
+
+        r_exp = [[('u2', [Qubit(QuantumRegister(5, 'q'), 0)], []),
+                  ('u2', [Qubit(QuantumRegister(5, 'q'), 1)], [])],
+                 [('cx',
+                   [Qubit(QuantumRegister(5, 'q'), 1), Qubit(QuantumRegister(5, 'q'), 0)],
+                   [])],
+                 [('u2', [Qubit(QuantumRegister(5, 'q'), 0)], []),
+                  ('u2', [Qubit(QuantumRegister(5, 'q'), 1)], [])],
+                 [('measure',
+                   [Qubit(QuantumRegister(5, 'q'), 0)],
+                   [Clbit(ClassicalRegister(1, 'c1'), 0)])],
+                 [('u2', [Qubit(QuantumRegister(5, 'q'), 0)], []),
+                  ('u2', [Qubit(QuantumRegister(5, 'q'), 1)], [])],
+                 [('cx',
+                   [Qubit(QuantumRegister(5, 'q'), 1), Qubit(QuantumRegister(5, 'q'), 0)],
+                   [])],
+                 [('u2', [Qubit(QuantumRegister(5, 'q'), 0)], []),
+                  ('u2', [Qubit(QuantumRegister(5, 'q'), 1)], [])]]
+
+        self.assertEqual(r_exp,
                          [[(op.name, op.qargs, op.cargs) for op in ops] for ops in layered_ops])
 
 
