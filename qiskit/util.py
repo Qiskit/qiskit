@@ -101,6 +101,7 @@ def _has_connection(hostname, port):
     except Exception:  # pylint: disable=broad-except
         return False
 
+
 def _to_tuple(values):
     """
     Return the input, sorted, and as a tuple.
