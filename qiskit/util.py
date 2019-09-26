@@ -93,7 +93,6 @@ def _has_connection(hostname, port):
 
     Returns:
         bool: Has connection or not
-
     """
     try:
         host = socket.gethostbyname(hostname)
