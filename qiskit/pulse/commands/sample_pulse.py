@@ -55,7 +55,7 @@ class SamplePulse(Command):
         """Return sample values."""
         return self._samples
 
-    def _clip(self, samples: np.ndarray, epsilon: float = 1e-5):
+    def _clip(self, samples: np.ndarray, epsilon: float = 1e-7):
         """If samples are within epsilon of unit norm, clip sample by reducing norm by (1-epsilon).
 
         If difference is greater than epsilon error is raised.
@@ -76,14 +76,25 @@ class SamplePulse(Command):
         to_clip = (samples_norm > 1.) & (samples_norm <= 1. + epsilon)
 
         if np.any(to_clip):
+            # first try normalizing by the abs value
             clip_where = np.argwhere(to_clip)
             clipped_samples = np.exp(1j*np.angle(samples[clip_where]), dtype=np.complex_)
+
+            # if norm still exceed one subtract epsilon
+            # required for some platforms
+            clipped_sample_norms = np.abs(clipped_samples)
+            to_clip_epsilon = clipped_sample_norms > 1.
+            if np.any(to_clip_epsilon):
+                clip_where_epsilon = np.argwhere(to_clip_epsilon)
+                clipped_samples_epsilon = np.exp(
+                    (1-epsilon)*1j*np.angle(samples[clip_where_epsilon]), dtype=np.complex_)
+                clipped_samples[clip_where_epsilon] = clipped_samples_epsilon
+
             samples[clip_where] = clipped_samples
             samples_norm[clip_where] = np.abs(clipped_samples)
-            if np.any(samples_norm > 1.):
-                raise PulseError('inner: Pulse contains sample with norm greater than 1+epsilon.')
+
         if np.any(samples_norm > 1.):
-            raise PulseError('outer: Pulse contains sample with norm greater than 1+epsilon.')
+            raise PulseError('Pulse contains sample with norm greater than 1+epsilon.')
 
         return samples
 
