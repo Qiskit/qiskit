@@ -194,7 +194,7 @@ steps for each element.
    environment for development. If you do choose to mix an existing installation
    with your development refer to:
    https://github.com/pypa/sample-namespace-packages/blob/master/table.md
-   for the set of of combinations for installation methods that work together.
+   for the set of combinations for installation methods that work together.
 
 Set up the virtual development environment
 ==========================================
