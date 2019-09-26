@@ -82,12 +82,9 @@ def get_version_info():
     return full_version
 
 
-__version__ = get_version_info()
-
-
-def _get_qiskit_versions():
+def _get_qiskit_versions(terra_version):
     out_dict = {}
-    out_dict['qiskit-terra'] = __version__
+    out_dict['qiskit-terra'] = terra_version
     try:
         from qiskit.providers import aer
         out_dict['qiskit-aer'] = aer.__version__
@@ -146,4 +143,34 @@ def _get_qiskit_versions():
     return out_dict
 
 
-__qiskit_version__ = _get_qiskit_versions()
+class QiskitVersionModule():
+    """Emulate qiskit version package as a class so that __version__ can be a
+    @property. Can be converted to a module-level __getattr__ once support is
+    available on all supported python versions (See PEP 562)."""
+
+    VERSION = VERSION
+    ROOT_DIR = ROOT_DIR
+
+    git_version = git_version
+    get_version_info = get_version_info
+
+    __version__cache = None
+
+    @property
+    def __version__(self):
+        if self.__version__cache is None:
+            self.__version__cache = get_version_info()
+
+        return self.__version__cache
+
+    __qiskit_version__cache = None
+
+    @property
+    def __qiskit_version__(self):
+        if self.__qiskit_version__cache is None:
+            self.__qiskit_version__cache = _get_qiskit_versions(self.__version__)
+
+        return self.__qiskit_version__cache
+
+
+sys.modules[__name__] = QiskitVersionModule()

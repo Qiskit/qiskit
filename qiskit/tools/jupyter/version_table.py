@@ -40,7 +40,7 @@ class VersionTable(Magics):
         html += "<tr><th>Qiskit Software</th><th>Version</th></tr>"
 
         packages = []
-        qver = qiskit.__qiskit_version__
+        qver = qiskit.__qiskit_version__  # pylint: disable=no-member
 
         packages.append(('Qiskit', qver['qiskit']))
         packages.append(('Terra', qver['qiskit-terra']))
