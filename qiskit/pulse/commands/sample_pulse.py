@@ -78,7 +78,8 @@ class SamplePulse(Command):
         if np.any(to_clip):
             # first try normalizing by the abs value
             clip_where = np.argwhere(to_clip)
-            clipped_samples = np.exp(1j*np.angle(samples[clip_where]), dtype=np.complex_)
+            clip_angle = np.angle(samples[clip_where])
+            clipped_samples = np.exp(1j*clip_angle, dtype=np.complex_)
 
             # if norm still exceed one subtract epsilon
             # required for some platforms
@@ -87,9 +88,10 @@ class SamplePulse(Command):
             if np.any(to_clip_epsilon):
                 clip_where_epsilon = np.argwhere(to_clip_epsilon)
                 clipped_samples_epsilon = np.exp(
-                    (1-epsilon)*1j*np.angle(samples[clip_where_epsilon]), dtype=np.complex_)
+                    (1-epsilon)*1j*clip_angle[clip_where_epsilon], dtype=np.complex_)
                 clipped_samples[clip_where_epsilon] = clipped_samples_epsilon
 
+            # update samples with clipped values
             samples[clip_where] = clipped_samples
             samples_norm[clip_where] = np.abs(clipped_samples)
 
