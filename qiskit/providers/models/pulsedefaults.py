@@ -16,12 +16,13 @@
 import warnings
 
 from collections import defaultdict
+from typing import Any, Dict, Iterable, List, Tuple, Union
 from marshmallow.validate import Length, Range
 
 from qiskit.util import _to_tuple
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.base import ObjSchema
-from qiskit.validation.fields import (Integer, List, Nested, Number, String)
+from qiskit.validation.fields import Integer, List as QList, Nested, Number, String
 from qiskit.qobj import PulseLibraryItemSchema, PulseQobjInstructionSchema, PulseLibraryItem
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.pulse import CmdDef
@@ -52,7 +53,7 @@ class CommandSchema(BaseSchema):
     name = String(required=True)
 
     # Optional properties.
-    qubits = List(Integer(validate=Range(min=0)),
+    qubits = QList(Integer(validate=Range(min=0)),
                   validate=Length(min=1))
     sequence = Nested(PulseQobjInstructionSchema, many=True)
 
@@ -61,8 +62,8 @@ class PulseDefaultsSchema(BaseSchema):
     """Schema for PulseDefaults."""
 
     # Required properties.
-    qubit_freq_est = List(Number(), required=True, validate=Length(min=1))
-    meas_freq_est = List(Number(), required=True, validate=Length(min=1))
+    qubit_freq_est = QList(Number(), required=True, validate=Length(min=1))
+    meas_freq_est = QList(Number(), required=True, validate=Length(min=1))
     buffer = Integer(required=True, validate=Range(min=0))
     pulse_library = Nested(PulseLibraryItemSchema, required=True, many=True)
     cmd_def = Nested(CommandSchema, many=True, required=True)
@@ -100,9 +101,9 @@ class Command(BaseModel):
     full description of the model, please check ``CommandSchema``.
 
     Attributes:
-        name (str): Pulse command name.
+        name: Pulse command name.
     """
-    def __init__(self, name, **kwargs):
+    def __init__(self, name: str, **kwargs):
         self.name = name
 
         super().__init__(**kwargs)
@@ -116,19 +117,23 @@ class PulseDefaults(BaseModel):
     for building Schedules or converting circuits to Schedules.
     """
 
-    def __init__(self, qubit_freq_est, meas_freq_est, buffer,
-                 pulse_library, cmd_def, **kwargs):
+    def __init__(self,
+                 qubit_freq_est: List[float],
+                 meas_freq_est: List[float],
+                 buffer: int,
+                 pulse_library: List[PulseLibraryItem],
+                 cmd_def: List[Command],
+                 **kwargs: Dict[str, Any]):
         """
         Validate and reformat transport layer inputs to initialize this.
 
         Args:
-            qubit_freq_est (list[number]): Estimated qubit frequencies in GHz.
-            meas_freq_est (list[number]): Estimated measurement cavity frequencies
-                in GHz.
-            buffer (int): Default buffer time (in units of dt) between pulses.
-            pulse_library (list[PulseLibraryItem]): Pulse name and sample definitions.
-            cmd_def (list[Command]): Operation name and definition in terms of Commands.
-            **kwargs (Dict[str, Any]]): Other attributes for the super class.
+            qubit_freq_est: Estimated qubit frequencies in GHz.
+            meas_freq_est: Estimated measurement cavity frequencies in GHz.
+            buffer: Default buffer time (in units of dt) between pulses.
+            pulse_library: Pulse name and sample definitions.
+            cmd_def: Operation name and definition in terms of Commands.
+            **kwargs: Other attributes for the super class.
         """
         super().__init__(**kwargs)
 
@@ -161,39 +166,41 @@ class PulseDefaults(BaseModel):
             self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
 
     @property
-    def qubit_freq_est(self):
+    def qubit_freq_est(self) -> List[float]:
         """
         Return the estimated resonant frequency for the given qubit in Hz.
 
         Returns:
-            list[float]: The frequency of the qubit resonance in Hz.
+            The frequency of the qubit resonance in Hz.
         """
         warnings.warn("The qubit frequency estimation was previously in GHz, and now is in Hz.")
         return self._qubit_freq_est_hz
 
     @property
-    def meas_freq_est(self):
+    def meas_freq_est(self) -> List[float]:
         """
         Return the estimated measurement stimulus frequency to readout from the given qubit.
 
         Returns:
-            list[float]: The measurement stimulus frequency in Hz.
+            The measurement stimulus frequency in Hz.
         """
         warnings.warn("The measurement frequency estimation was previously in GHz, "
                       "and now is in Hz.")
         return self._meas_freq_est_hz
 
-    def replace_pulse(self, name, samples):
+    def replace_pulse(self, name: str, samples: List[complex]) -> None:
         """
         Replace the named pulse with the given samples.
         Note: This will update existing operation definitions which are dependent on the
               modified pulse!
 
         Args:
-            name (str): The name of the pulse to replace.
-            samples (list(complex)): The complex values to assign to the pulse.
+            name: The name of the pulse to replace.
+            samples: The complex values to assign to the pulse.
+
         Returns:
             None
+
         Raises:
             PulseError: If there was no pulse with the given name by default.
         """
@@ -208,67 +215,71 @@ class PulseDefaults(BaseModel):
                                              name=op.name)
             self._ops_def[op.name][_to_tuple(op.qubits)] = schedule
 
-    def ops(self):
+    def ops(self) -> List[str]:
         """
         Return all operations which are defined. By default, these are typically the basis gates
         along with other operations such as measure and reset.
 
         Returns:
-            list: The names of all the circuit operations which have Schedule definitions in this.
+            The names of all the circuit operations which have Schedule definitions in this.
         """
         return list(self._ops_def.keys())
 
-    def op_qubits(self, operation):
+    def op_qubits(self, operation: str) -> List[Union[int, Tuple[int]]]:
         """
         Return a list of the qubits for which the given operation is defined. Single qubit
         operations return a flat list, and multiqubit operations return a list of ordered tuples.
 
         Args:
-            operation (str): The name of the circuit operation.
+            operation: The name of the circuit operation.
+
         Returns:
-            list[Union[int, Tuple[int]]]: Qubit indices which have the given operation defined.
-                This is a list of tuples if the operation has an arity greater than 1, or a flat
-                list of ints otherwise.
+            Qubit indices which have the given operation defined. This is a list of tuples if the
+            operation has an arity greater than 1, or a flat list of ints otherwise.
         """
         return [qs[0] if len(qs) == 1 else qs
                 for qs in sorted(self._ops_def[operation].keys())]
 
-    def qubit_ops(self, qubits):
+    def qubit_ops(self, qubits: Union[int, Iterable[int]]) -> List[str]:
         """
         Return a list of the operation names that are defined by the backend for the given qubit
         or qubits.
 
         Args:
-            qubits (Union[int, Iterable[int]]): A qubit index, or a list or tuple of indices.
+            qubits: A qubit index, or a list or tuple of indices.
+
         Returns:
-            list[str]: All the operations which are defined on the qubits. For 1 qubit, all the 1Q
-                operations defined. For multiple qubits, all the operations which apply to that
-                whole set of qubits (e.g. qubits=[0, 1] may return ['cx']).
+            All the operations which are defined on the qubits. For 1 qubit, all the 1Q
+            operations defined. For multiple qubits, all the operations which apply to that
+            whole set of qubits (e.g. qubits=[0, 1] may return ['cx']).
         """
         return self._qubit_ops[_to_tuple(qubits)]
 
-    def has(self, operation, qubits):
+    def has(self, operation: str, qubits: Union[int, Iterable[int]]) -> bool:
         """
         Is the operation defined for the given qubits?
 
         Args:
-            operation (str): The operation for which to look.
-            qubits (list[Union[int, Tuple[int]]]): The specific qubits for the operation.
+            operation: The operation for which to look.
+            qubits: The specific qubits for the operation.
+
         Returns:
-            bool: True iff the operation is defined.
+            True iff the operation is defined.
         """
         return operation in self._ops_def and \
             _to_tuple(qubits) in self._ops_def[operation]
 
-    def assert_has(self, operation, qubits):
+    def assert_has(self, operation: str, qubits: Union[int, Iterable[int]]) -> None:
         """
         Convenience method to check that the given operation is defined, and error if it is not.
 
         Args:
-            operation (str): The operation for which to look.
-            qubits (list[Union[int, Tuple[int]]]): The specific qubits for the operation.
+            operation: The operation for which to look.
+            qubits: The specific qubits for the operation.
+
         Returns:
             None
+
         Raises:
             PulseError: If the operation is not defined on the qubits.
         """
@@ -277,22 +288,21 @@ class PulseDefaults(BaseModel):
                              "system.".format(op=operation, qubits=qubits))
 
     def get(self,
-            operation,
-            qubits,
-            *params,
-            **kwparams):
+            operation: str,
+            qubits: Union[int, Iterable[int]],
+            *params: List[Union[int, float, complex]],
+            **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """
         Return the defined Schedule for the given operation on the given qubits.
 
         Args:
-            operation (str): Name of the operation.
-            qubits (list[Union[int, Tuple[int]]]): The qubits for the operation.
-            *params (list[Union[int, float, complex]]): Command parameters for generating the
-                                                        output schedule.
-            **kwparams (Dict[str, Union[int, float, complex]]): Keyworded command parameters
-                                                                for generating the schedule.
+            operation: Name of the operation.
+            qubits: The qubits for the operation.
+            *params: Command parameters for generating the output schedule.
+            **kwparams: Keyworded command parameters for generating the schedule.
+
         Returns:
-            Schedule: The Schedule defined for the input.
+            The Schedule defined for the input.
 
         Raises:
             PulseError: If the operation is not defined on the qubits.
@@ -303,15 +313,16 @@ class PulseDefaults(BaseModel):
             schedule = schedule.bind_parameters(*params, **kwparams)
         return schedule
 
-    def get_parameters(self, operation, qubits):
+    def get_parameters(self, operation: str, qubits: Union[int, Iterable[int]]) -> Tuple[str]:
         """
         Return the list of parameters taken by the given operation on the given qubits.
 
         Args:
-            operation (str): Name of the operation.
-            qubits (list[Union[int, Tuple[int]]]): The qubits for the operation.
+            operation: Name of the operation.
+            qubits: The qubits for the operation.
+
         Returns:
-            Tuple[str]: The parameters required by the operation.
+            The names of the parameters required by the operation.
 
         Raises:
             PulseError: If the operation is not defined on the qubits.
@@ -319,16 +330,18 @@ class PulseDefaults(BaseModel):
         self.assert_has(operation, qubits)
         return self._ops_def[operation][_to_tuple(qubits)].parameters
 
-    def add(self, operation, qubits, schedule):
+    def add(self, operation: str, qubits: Union[int, Iterable[int]], schedule: Schedule) -> None:
         """
         Add a new known operation.
 
         Args:
-            operation (str): The name of the operation to add.
-            qubits (list[Union[int, Tuple[int]]]): The qubits which the operation applies to.
-            schedule (Schedule): The Schedule that implements the given operation.
+            operation: The name of the operation to add.
+            qubits: The qubits which the operation applies to.
+            schedule: The Schedule that implements the given operation.
+
         Returns:
             None
+
         Raises:
             PulseError: If the qubits are provided as an empty iterable.
         """
@@ -344,14 +357,16 @@ class PulseDefaults(BaseModel):
                                        qubits if len(qubits) > 1 else qubits[0]))
         self._ops_def[operation][qubits] = schedule
 
-    def remove(self, operation, qubits):
+    def remove(self, operation: str, qubits: Union[int, Iterable[int]]) -> None:
         """Remove the given operation from the defined operations.
 
         Args:
-            operation (str): The name of the operation to add.
-            qubits (list[Union[int, Tuple[int]]]): The qubits which the operation applies to.
+            operation: The name of the operation to add.
+            qubits: The qubits which the operation applies to.
+
         Returns:
             None
+
         Raises:
             PulseError: If the operation is not present.
         """
@@ -359,22 +374,21 @@ class PulseDefaults(BaseModel):
         self._ops_def[operation].pop(_to_tuple(qubits))
 
     def pop(self,
-            operation,
-            qubits,
-            *params,
-            **kwparams):
+            operation: str,
+            qubits: Union[int, Iterable[int]],
+            *params: List[Union[int, float, complex]],
+            **kwparams: Dict[str, Union[int, float, complex]]) -> Schedule:
         """
         Remove and return the defined Schedule for the given operation on the given qubits.
 
         Args:
-            operation (str): Name of the operation.
-            qubits (list[Union[int, Tuple[int]]]): The qubits for the operation.
-            *params (list[Union[int, float, complex]]): Command parameters for generating the
-                                                        output schedule.
-            **kwparams (Dict[str, Union[int, float, complex]]): Keyworded command parameters
-                                                                for generating the schedule.
+            operation: Name of the operation.
+            qubits: The qubits for the operation.
+            *params: Command parameters for generating the output schedule.
+            **kwparams: Keyworded command parameters for generating the schedule.
+
         Returns:
-            Schedule: The Schedule defined for the input.
+            The Schedule defined for the input.
 
         Raises:
             PulseError: If command for qubits is not available
@@ -384,6 +398,9 @@ class PulseDefaults(BaseModel):
         if isinstance(schedule, ParameterizedSchedule):
             return schedule.bind_parameters(*params, **kwparams)
         return schedule
+
+    # def __str__(self):
+        # TODO
 
     def __repr__(self):
         single_qops = "1Q operations:\n"
@@ -399,31 +416,31 @@ class PulseDefaults(BaseModel):
         return ("<{name}({ops}{qfreq}\n{mfreq})>"
                 "".format(name=self.__class__.__name__, ops=ops, qfreq=qfreq, mfreq=mfreq))
 
-    def cmds(self):
+    def cmds(self) -> List[str]:
         """
         Deprecated.
 
         Returns:
-            list: The names of all the circuit operations which have Schedule definitions in this.
+            The names of all the circuit operations which have Schedule definitions in this.
         """
         warnings.warn("Please use ops() instead of cmds().", DeprecationWarning)
         return self.ops()
 
-    def cmd_qubits(self, cmd_name):
+    def cmd_qubits(self, cmd_name: str) -> List[Union[int, Tuple[int]]]:
         """
         Deprecated.
 
         Args:
-            cmd_name (str): The name of the circuit operation.
+            cmd_name: The name of the circuit operation.
+
         Returns:
-            list[Union[int, Tuple[int]]]: Qubit indices which have the given operation defined.
-                This is a list of tuples if the operation has an arity greater than 1, or a flat
-                list of ints otherwise.
+            Qubit indices which have the given operation defined. This is a list of tuples if
+            the operation has an arity greater than 1, or a flat list of ints otherwise.
         """
         warnings.warn("Please use op_qubits() instead of cmd_qubits().", DeprecationWarning)
         return self.op_qubits(cmd_name)
 
-    def build_cmd_def(self):
+    def build_cmd_def(self) -> CmdDef:
         """
         Construct the `CmdDef` object for the backend.
 
