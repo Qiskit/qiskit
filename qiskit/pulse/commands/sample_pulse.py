@@ -89,6 +89,9 @@ class SamplePulse(Command):
                 clip_where_epsilon = np.argwhere(to_clip_epsilon)
                 clipped_samples_epsilon = np.exp(
                     (1-epsilon)*1j*clip_angle[clip_where_epsilon], dtype=np.complex_)
+                print(clipped_samples_epsilon)
+                print(clip_where_epsilon)
+                print(clipped_samples.shape)
                 clipped_samples[clip_where_epsilon] = clipped_samples_epsilon
 
             # update samples with clipped values
