@@ -163,7 +163,7 @@ class Instruction:
                     warnings.warn("Passing messages of type %s is deprecated "
                                   "ensure your parameters of type: "
                                   "qasm.Node|int|float|complex|str|ndarray"
-                                  % type(single_param))
+                                  % type(single_param), DeprecationWarning)
                 except TypeError:
                     raise QiskitError("invalid param type {0} in instruction "
                                       "{1}".format(type(single_param), self.name))
