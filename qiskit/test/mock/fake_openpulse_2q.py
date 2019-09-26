@@ -65,10 +65,7 @@ class FakeOpenPulse2Q(FakeBackend):
             conditional_latency=[
                 [100, 1000], [1000, 100], [100, 1000],
                 [1000, 100], [100, 1000], [1000, 100]
-            ],
-            hamiltonian={
-                'h_latex': "MOCK_HAMILTONIAN_STR"
-            }
+            ]
         )
 
         self._defaults = PulseDefaults(
@@ -94,11 +91,10 @@ class FakeOpenPulse2Q(FakeBackend):
                                        PulseQobjInstruction(name='test_pulse_1', ch='d1', t0=20),
                                        PulseQobjInstruction(name='fc', ch='d1',
                                                             t0=20, phase=2.1)]),
-                     Command(name='measure', qubits=[0, 1],
+                     Command(name='measure', qubits=[0],
                              sequence=[PulseQobjInstruction(name='test_pulse_1', ch='m0', t0=0),
-                                       PulseQobjInstruction(name='test_pulse_1', ch='m1', t0=0),
                                        PulseQobjInstruction(name='acquire', duration=10, t0=0,
-                                                            qubits=[0, 1], memory_slot=[0, 1])])]
+                                                            qubits=[0], memory_slot=[0])])]
         )
 
         mock_time = datetime.datetime.now()
