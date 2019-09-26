@@ -50,7 +50,7 @@ from the Anaconda-Navigator, it is possible that Jupyter Notebook is running
 in the base (root) environment, instead of in your virtual
 environment. Choose a virtual environment in the Anaconda-Navigator from the
 **Applications on** dropdown menu. In this menu, you can see
-see all of the virtual environments within Anaconda, and you can
+all of the virtual environments within Anaconda, and you can
 select the environment where you have Qiskit installed to launch Jupyter
 Notebook.
 
