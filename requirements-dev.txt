@@ -18,4 +18,3 @@ pylatexenc>=1.4
 ddt>=1.2.0
 seaborn>=0.9.0
 reno>=2.11.0
-sympy>=1.3
