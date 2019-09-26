@@ -234,7 +234,7 @@ class QuantumCircuit:
                 combined_cregs.append(element)
         circuit = QuantumCircuit(*combined_qregs, *combined_cregs)
         for instruction_context in itertools.chain(self.data, rhs.data):
-            circuit.append(*instruction_context)
+            circuit._append(*instruction_context)
         return circuit
 
     def extend(self, rhs):
@@ -261,7 +261,7 @@ class QuantumCircuit:
 
         # Add new gates
         for instruction_context in rhs.data:
-            self.append(*instruction_context)
+            self._append(*instruction_context)
         return self
 
     @property
