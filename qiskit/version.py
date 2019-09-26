@@ -109,7 +109,7 @@ def _get_qiskit_versions():
     try:
         out_dict['qiskit'] = pkg_resources.get_distribution('qiskit').version
     except Exception:
-        pass
+        out_dict['qiskit'] = None
 
     return out_dict
 
