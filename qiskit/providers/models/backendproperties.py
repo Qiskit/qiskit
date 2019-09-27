@@ -168,7 +168,7 @@ class BackendProperties(BaseModel):
                   property to return.
 
         Returns:
-            Gate property.
+            Gate property as a tuple of the value and the time it was measured.
 
         Raises:
             PulseError: If the property is not found or name is specified but qubit is not.
