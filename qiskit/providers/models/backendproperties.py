@@ -234,7 +234,9 @@ class BackendProperties(BaseModel):
             if name is not None:
                 result = result[name]
         except KeyError:
-            raise PulseError("Couldn't find the desired property for {q}.".format(q=qubit))
+            raise PulseError("Couldn't find the propert{name} for qubit "
+                             "{qubit}.".format(name="y '" + name + "'" if name else "ies",
+                                               qubit=qubit))
         return result
 
     def t1(self, qubit: int) -> Tuple[Any, datetime.datetime]:  # pylint: disable=invalid-name
