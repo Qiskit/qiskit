@@ -37,9 +37,7 @@ intimate familiarity with qiskit-terra to develop a fix for the issue.
 ### Documentation
 
 If you make a change, make sure you update the associated
-*docstrings* and parts of the
-[documentation](https://github.com/Qiskit/qiskit/tree/master/docs/terra)
-that corresponds to it. You can also make a [documentation issue](
+*docstrings*. You can also make a [documentation issue](
 https://github.com/Qiskit/qiskit/issues/new/choose) if you see doc bugs, have a
 new feature that needs to be documented, or think that material could be added
 to the existing docs.
