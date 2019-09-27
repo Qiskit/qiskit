@@ -17,6 +17,7 @@ import datetime
 from typing import Any, Iterable, Tuple, Union, List
 
 from marshmallow.validate import Length, Regexp
+
 from qiskit.util import _to_tuple
 from qiskit.validation.fields import DateTime, List as QList, Nested, Number, String, Integer
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
@@ -239,7 +240,7 @@ class BackendProperties(BaseModel):
                                                qubit=qubit))
         return result
 
-    def t1(self, qubit: int) -> Tuple[Any, datetime.datetime]:  # pylint: disable=invalid-name
+    def t1(self, qubit: int) -> float:  # pylint: disable=invalid-name
         """
         Return the T1 time of the given qubit.
 
@@ -249,7 +250,7 @@ class BackendProperties(BaseModel):
         Returns:
             T1 time of the given qubit.
         """
-        return self.qubit_property(qubit, 'T1')
+        return self.qubit_property(qubit, 'T1')[0]  # Throw away datetime at index 1
 
     def _apply_prefix(self, value: float, unit: str) -> float:
         """

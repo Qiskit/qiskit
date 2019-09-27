@@ -19,7 +19,6 @@ import socket
 import sys
 import warnings
 
-from typing import Iterable, Union
 import psutil
 
 
@@ -87,7 +86,8 @@ def _has_connection(hostname, port):
         port (int): Port to connect to
 
     Returns:
-        bool: Has connection or not
+        bool: Has connection or not.
+
     """
     try:
         host = socket.gethostbyname(hostname)
@@ -97,12 +97,12 @@ def _has_connection(hostname, port):
         return False
 
 
-def _to_tuple(values: Union[int, Iterable[int]]) -> tuple:
+def _to_tuple(values):
     """
     Return the input, sorted, and as a tuple.
 
     Args:
-        values: An integer, a list of ints, or a tuple of ints.
+        values (Union[int, Iterable[int]]): An integer, a list of ints, or a tuple of ints.
 
     Returns:
         tuple: The input values as a sorted tuple.
