@@ -46,7 +46,7 @@ class MSGate(Gate):
         self.definition = definition
 
 
-def ms(self, theta,  qubits):
+def ms(self, theta, qubits):
     """Apply MS to q1 and q2."""
     return self.append(MSGate(len(qubits), theta), qubits)
 
