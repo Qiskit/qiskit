@@ -184,22 +184,6 @@ class TestPulseDefaults(QiskitTestCase):
         for chan in u1_minus_pi.channels:
             self.assertEqual(chan.buffer, self.defs.buffer)
 
-    def test_replace_pulse(self):
-        """Test that the resulting op definitions are updated when a pulse is replaced by name."""
-        original_sched = self.defs.get('u3', 0)
-        no_change_sched = self.defs.get('u3', 1)
-
-        new_samples = [0.1j, 0.1j]
-        self.defs.replace_pulse('test_pulse_1', new_samples)
-        self.assertEqual(self.defs.get('u3', 1), no_change_sched)
-
-        new_sched = self.defs.get('u3', 0)
-        new_pulse_samples = new_sched.instructions[0][1].command.samples
-        self.assertTrue(np.allclose(new_pulse_samples, new_samples))
-        self.assertFalse(np.allclose(
-            original_sched.instructions[0][1].command.samples,
-            new_pulse_samples))
-
     def test_repr(self):
         """Test that __repr__ method works."""
         self.assertEqual(

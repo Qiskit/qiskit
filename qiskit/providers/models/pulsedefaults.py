@@ -150,19 +150,13 @@ class PulseDefaults(BaseModel):
         self._ops_def = defaultdict(dict)
         # A backwards mapping from qubit to supported operation
         self._qubit_ops = defaultdict(list)
-        # To enable pulse replacement, track where each pulse item is used
-        self.__pulse_library_usage = defaultdict(list)
 
         # Build the above dictionaries from pulse_library and cmd_def
         self.converter = QobjToInstructionConverter(pulse_library, buffer)
         for op in cmd_def:
             qubits = _to_tuple(op.qubits)
             self._qubit_ops[qubits].append(op.name)
-            pulse_insts = []
-            for inst in op.sequence:
-                if inst.name not in ['pv', 'fc', 'acquire', 'snapshot']:
-                    self.__pulse_library_usage[inst.name].append(op)
-                pulse_insts.append(self.converter(inst))
+            pulse_insts = [self.converter(inst) for inst in op.sequence]
             self._ops_def[op.name][qubits] = ParameterizedSchedule(*pulse_insts, name=op.name)
 
     @property
@@ -187,33 +181,6 @@ class PulseDefaults(BaseModel):
         warnings.warn("The measurement frequency estimation was previously in GHz, "
                       "and now is in Hz.")
         return self._meas_freq_est_hz
-
-    def replace_pulse(self, name: str, samples: List[complex]) -> None:
-        """
-        Replace the named pulse with the given samples.
-        Note: This will update existing operation definitions which are dependent on the
-              modified pulse!
-
-        Args:
-            name: The name of the pulse to replace.
-            samples: The complex values to assign to the pulse.
-
-        Returns:
-            None
-
-        Raises:
-            PulseError: If there was no pulse with the given name by default.
-        """
-        try:
-            self.converter.bind_name.get_bound_method(name)
-        except PulseError:
-            raise PulseError("Tried to replace pulse '{}' but it is not present in the pulse "
-                             "library.".format(name))
-        self.converter.bind_pulse(PulseLibraryItem(name=name, samples=samples))
-        for op in self.__pulse_library_usage[name]:
-            schedule = ParameterizedSchedule(*[self.converter(inst) for inst in op.sequence],
-                                             name=op.name)
-            self._ops_def[op.name][_to_tuple(op.qubits)] = schedule
 
     def ops(self) -> List[str]:
         """
