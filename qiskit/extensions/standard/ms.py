@@ -18,7 +18,6 @@
 Molmer-Sorensen gate.
 """
 
-import numpy
 
 from qiskit.circuit import Gate
 from qiskit.circuit import QuantumCircuit
