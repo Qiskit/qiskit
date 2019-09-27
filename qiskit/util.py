@@ -102,7 +102,7 @@ def _has_connection(hostname, port):
         return False
 
 
-def _to_tuple(values):
+def _to_tuple(values: Union[int, Iterable[int]])) -> Tuple[int]:
     """
     Return the input, sorted, and as a tuple.
 
