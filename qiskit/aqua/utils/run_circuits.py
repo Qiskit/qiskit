@@ -142,7 +142,6 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
                 temp_qobj = copy.deepcopy(qobj_template)
                 temp_qobj.qobj_id = str(uuid.uuid4())
                 temp_qobj.experiments = qobj.experiments[i * chunk_size:(i + 1) * chunk_size]
-                print ("len(temp_qobj.experiments): {} ".format(len(temp_qobj.experiments)), flush=True)
                 # Split more by gates
                 if MAX_GATES_PER_JOB is not None:
                     max_gates_per_job = int(MAX_GATES_PER_JOB)
@@ -177,11 +176,6 @@ def _split_qobj_to_qobjs_by_gate(qobj, chunk_size):
             temp_qobj.experiments.append(qobj.experiments[i])
         else:
             tqobjs.append(temp_qobj)
-            print ("len(temp_qobj.experiments): {}, num_gates {} "
-                   .format(len(temp_qobj.experiments), num_gates - len(qobj.experiments[i].instructions)), flush=True)
-            for j in range(len(temp_qobj.experiments)):
-                print ("j {}, len(temp_qobj.experiments[j].instructions) {}"
-                       .format(j, len(temp_qobj.experiments[j].instructions)), flush=True)
             # Initialize for next temp_qobj
             temp_qobj = copy.deepcopy(qobj_template)
             temp_qobj.qobj_id = str(uuid.uuid4())
@@ -189,11 +183,6 @@ def _split_qobj_to_qobjs_by_gate(qobj, chunk_size):
             num_gates = len(qobj.experiments[i].instructions)
 
     tqobjs.append(temp_qobj)
-    print ("len(temp_qobj.experiments): {}, num_gates {} "
-           .format(len(temp_qobj.experiments), num_gates), flush=True)
-    for j in range(len(temp_qobj.experiments)):
-        print ("j {}, len(temp_qobj.experiments[j].instructions) {}"
-               .format(j, len(temp_qobj.experiments[j].instructions)), flush=True)
 
     return tqobjs
 
@@ -396,23 +385,9 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
     qobjs = _split_qobj_to_qobjs(qobj, max_circuits_per_job)
     jobs = []
     job_ids = []
-    #
-    import json
-    from datetime import datetime
-    #
-    for qobj in qobjs:
-        #
-        start = time.time()
-        timestr = datetime.utcnow().strftime('%Y-%m%d-%H-%M-%S.%f_')[:-3]
-        fname = timestr + "_input-qobj_" + qobj.qobj_id
-        json_file = open(fname + ".json", 'w')
-        json.dump(qobj.to_dict(), json_file)
-        logger.info("QasmQobj(inputs): qobj_id: {}".format(qobj.qobj_id))
-        end = time.time()
-        elapsed_time = end - start
-        print ("Elapsed time: Qobj dump time(input): {}".format(elapsed_time) + "[sec]", flush=True)
-        #
-        job, job_id = _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation)
+    for qob in qobjs:
+        job, job_id = _safe_submit_qobj(qob, backend,
+                                        backend_options, noise_config, skip_qobj_validation)
         job_ids.append(job_id)
         jobs.append(job)
 
