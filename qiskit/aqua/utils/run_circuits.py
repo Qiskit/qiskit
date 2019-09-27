@@ -35,6 +35,7 @@ from qiskit.aqua.utils.backend_utils import (is_aer_provider,
                                              is_local_backend)
 
 MAX_CIRCUITS_PER_JOB = os.environ.get('QISKIT_AQUA_MAX_CIRCUITS_PER_JOB', None)
+MAX_GATES_PER_JOB = os.environ.get('QISKIT_AQUA_MAX_GATES_PER_JOB', None)
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,7 @@ def _compile_wrapper(circuits, backend, backend_config, compile_config, run_conf
 
 def _split_qobj_to_qobjs(qobj, chunk_size):
     qobjs = []
+    temp_qobjs = []
     num_chunks = int(np.ceil(len(qobj.experiments) / chunk_size))
     if num_chunks == 1:
         qobjs = [qobj]
@@ -140,12 +142,60 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
                 temp_qobj = copy.deepcopy(qobj_template)
                 temp_qobj.qobj_id = str(uuid.uuid4())
                 temp_qobj.experiments = qobj.experiments[i * chunk_size:(i + 1) * chunk_size]
-                qobjs.append(temp_qobj)
+                print ("len(temp_qobj.experiments): {} ".format(len(temp_qobj.experiments)), flush=True)
+                # Split more by gates
+                if MAX_GATES_PER_JOB is not None:
+                    max_gates_per_job = int(MAX_GATES_PER_JOB)
+                    num_gates = 0
+                    for i in range(len(temp_qobj.experiments)):
+                        num_gates += len(temp_qobj.experiments[i].instructions)
+                    if num_gates > max_gates_per_job:
+                        temp_qobjs = _split_qobj_to_qobjs_by_gate(temp_qobj, max_gates_per_job)
+                    else:
+                        temp_qobjs = [temp_qobj]
+                else:
+                    temp_qobjs = [temp_qobj]
+
+                for temp_qobj in temp_qobjs:
+                    qobjs.append(temp_qobj)
         else:
             raise AquaError("Only support QasmQobj now.")
 
     return qobjs
 
+
+def _split_qobj_to_qobjs_by_gate(qobj, chunk_size):
+    tqobjs = []
+    num_gates = 0
+    qobj_template = QasmQobj(qobj_id=qobj.qobj_id, config=qobj.config, experiments=[], header=qobj.header)
+    temp_qobj = copy.deepcopy(qobj_template)
+    temp_qobj.qobj_id = str(uuid.uuid4())
+    temp_qobj.experiments = []
+    for i in range(len(qobj.experiments)):
+        num_gates += len(qobj.experiments[i].instructions)
+        if num_gates <= chunk_size:
+            temp_qobj.experiments.append(qobj.experiments[i])
+        else:
+            tqobjs.append(temp_qobj)
+            print ("len(temp_qobj.experiments): {}, num_gates {} "
+                   .format(len(temp_qobj.experiments), num_gates - len(qobj.experiments[i].instructions)), flush=True)
+            for j in range(len(temp_qobj.experiments)):
+                print ("j {}, len(temp_qobj.experiments[j].instructions) {}"
+                       .format(j, len(temp_qobj.experiments[j].instructions)), flush=True)
+            # Initialize for next temp_qobj
+            temp_qobj = copy.deepcopy(qobj_template)
+            temp_qobj.qobj_id = str(uuid.uuid4())
+            temp_qobj.experiments.append(qobj.experiments[i])
+            num_gates = len(qobj.experiments[i].instructions)
+
+    tqobjs.append(temp_qobj)
+    print ("len(temp_qobj.experiments): {}, num_gates {} "
+           .format(len(temp_qobj.experiments), num_gates), flush=True)
+    for j in range(len(temp_qobj.experiments)):
+        print ("j {}, len(temp_qobj.experiments[j].instructions) {}"
+               .format(j, len(temp_qobj.experiments[j].instructions)), flush=True)
+
+    return tqobjs
 
 def compile_circuits(circuits, backend, backend_config=None, compile_config=None, run_config=None,
                      show_circuit_summary=False, circuit_cache=None, **kwargs):
@@ -346,9 +396,23 @@ def run_qobj(qobj, backend, qjob_config=None, backend_options=None,
     qobjs = _split_qobj_to_qobjs(qobj, max_circuits_per_job)
     jobs = []
     job_ids = []
-    for qob in qobjs:
-        job, job_id = _safe_submit_qobj(qob, backend,
-                                        backend_options, noise_config, skip_qobj_validation)
+    #
+    import json
+    from datetime import datetime
+    #
+    for qobj in qobjs:
+        #
+        start = time.time()
+        timestr = datetime.utcnow().strftime('%Y-%m%d-%H-%M-%S.%f_')[:-3]
+        fname = timestr + "_input-qobj_" + qobj.qobj_id
+        json_file = open(fname + ".json", 'w')
+        json.dump(qobj.to_dict(), json_file)
+        logger.info("QasmQobj(inputs): qobj_id: {}".format(qobj.qobj_id))
+        end = time.time()
+        elapsed_time = end - start
+        print ("Elapsed time: Qobj dump time(input): {}".format(elapsed_time) + "[sec]", flush=True)
+        #
+        job, job_id = _safe_submit_qobj(qobj, backend, backend_options, noise_config, skip_qobj_validation)
         job_ids.append(job_id)
         jobs.append(job)
 
