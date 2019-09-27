@@ -237,7 +237,7 @@ class BackendProperties(BaseModel):
             raise PulseError("Couldn't find the desired property for {q}.".format(q=qubit))
         return result
 
-    def t1(self, qubit: int) -> Tuple[Any, datetime.datetime]:
+    def t1(self, qubit: int) -> Tuple[Any, datetime.datetime]:  # pylint: disable=invalid-name
         """
         Return the T1 time of the given qubit.
 

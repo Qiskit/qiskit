@@ -14,7 +14,7 @@
 
 """Base TestCase for testing Providers."""
 
-import unittest
+import unittest  # pylint: disable=unused-import
 from qiskit.test.mock import FakeOpenPulse2Q
 from qiskit.test.mock import FakeProvider
 from qiskit.test import QiskitTestCase

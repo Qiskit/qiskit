@@ -19,6 +19,7 @@ import socket
 import sys
 import warnings
 
+from typing import Iterable, Union
 import psutil
 from marshmallow.warnings import ChangedInMarshmallow3Warning
 
@@ -102,7 +103,7 @@ def _has_connection(hostname, port):
         return False
 
 
-def _to_tuple(values: Union[int, Iterable[int]])) -> Tuple[int]:
+def _to_tuple(values: Union[int, Iterable[int]]) -> tuple:
     """
     Return the input, sorted, and as a tuple.
 
