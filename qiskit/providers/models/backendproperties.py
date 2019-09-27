@@ -224,7 +224,7 @@ class BackendProperties(BaseModel):
             name: Optionally used to specify within the heirarchy which property to return.
 
         Returns:
-            Qubit property.
+            Qubit property as a tuple of the value and the time it was measured.
 
         Raises:
             PulseError: If the property is not found.
