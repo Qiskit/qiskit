@@ -17,6 +17,8 @@ Pulse utilities.
 """
 import warnings
 
+# pylint: disable=unused-argument
+
 
 def align_measures(schedules, cmd_def, cal_gate, max_calibration_duration=None, align_time=None):
     """
