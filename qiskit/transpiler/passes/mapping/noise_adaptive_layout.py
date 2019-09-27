@@ -110,7 +110,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
                     self.available_hw_qubits.append(idx)
             idx += 1
         for edge in self.cx_reliability:
-            self.gate_reliability[edge] = self.cx_reliability[edge] * self.readout_reliability[edge[0]] * \
+            self.gate_reliability[edge] = self.cx_reliability[edge] * \
+                                          self.readout_reliability[edge[0]] * \
                                           self.readout_reliability[edge[1]]
         self.swap_paths, swap_costs_temp = nx.algorithms.shortest_paths.dense.\
             floyd_warshall_predecessor_and_distance(self.swap_graph, weight='weight')
