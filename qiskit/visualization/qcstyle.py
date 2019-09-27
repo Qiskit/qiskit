@@ -14,10 +14,14 @@
 
 # pylint: disable=invalid-name,missing-docstring
 
+from copy import copy
+from warnings import warn
+
 
 class DefaultStyle:
     """IBM Design Style colors
     """
+
     def __init__(self):
         # Set colors
         basis_color = '#FA74A6'
@@ -88,37 +92,39 @@ class DefaultStyle:
         self.latexmode = False
         self.fold = 25
         self.bundle = True
-        self.barrier = True
         self.index = False
         self.figwidth = -1
         self.dpi = 150
         self.margin = [2.0, 0.1, 0.1, 0.3]
         self.cline = 'doublet'
 
-    def set_style(self, dic):
-        self.tc = dic.get('textcolor', self.tc)
-        self.sc = dic.get('subtextcolor', self.sc)
-        self.lc = dic.get('linecolor', self.lc)
-        self.cc = dic.get('creglinecolor', self.cc)
-        self.gt = dic.get('gatetextcolor', self.tc)
-        self.gc = dic.get('gatefacecolor', self.gc)
-        self.bc = dic.get('barrierfacecolor', self.bc)
-        self.bg = dic.get('backgroundcolor', self.bg)
-        self.fs = dic.get('fontsize', self.fs)
-        self.sfs = dic.get('subfontsize', self.sfs)
-        self.disptex = dic.get('displaytext', self.disptex)
-        self.dispcol = dic.get('displaycolor', self.dispcol)
-        self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
-        self.fold = dic.get('fold', self.fold)
+    def set_style(self, style_dic):
+        dic = copy(style_dic)
+        self.tc = dic.pop('textcolor', self.tc)
+        self.sc = dic.pop('subtextcolor', self.sc)
+        self.lc = dic.pop('linecolor', self.lc)
+        self.cc = dic.pop('creglinecolor', self.cc)
+        self.gt = dic.pop('gatetextcolor', self.tc)
+        self.gc = dic.pop('gatefacecolor', self.gc)
+        self.bc = dic.pop('barrierfacecolor', self.bc)
+        self.bg = dic.pop('backgroundcolor', self.bg)
+        self.fs = dic.pop('fontsize', self.fs)
+        self.sfs = dic.pop('subfontsize', self.sfs)
+        self.disptex = dic.pop('displaytext', self.disptex)
+        self.dispcol = dic.pop('displaycolor', self.dispcol)
+        self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
+        self.fold = dic.pop('fold', self.fold)
         if self.fold < 2:
             self.fold = -1
-        self.bundle = dic.get('cregbundle', self.bundle)
-        self.barrier = dic.get('plotbarrier', self.barrier)
-        self.index = dic.get('showindex', self.index)
-        self.figwidth = dic.get('figwidth', self.figwidth)
-        self.dpi = dic.get('dpi', self.dpi)
-        self.margin = dic.get('margin', self.margin)
-        self.cline = dic.get('creglinestyle', self.cline)
+        self.bundle = dic.pop('cregbundle', self.bundle)
+        self.index = dic.pop('showindex', self.index)
+        self.figwidth = dic.pop('figwidth', self.figwidth)
+        self.dpi = dic.pop('dpi', self.dpi)
+        self.margin = dic.pop('margin', self.margin)
+        self.cline = dic.pop('creglinestyle', self.cline)
+        if dic:
+            warn('style option/s ({}) is/are not '
+                 'supported'.format(', '.join(dic.keys())), DeprecationWarning, 2)
 
 
 class BWStyle:
@@ -184,36 +190,38 @@ class BWStyle:
         self.latexmode = False
         self.fold = 25
         self.bundle = True
-        self.barrier = True
         self.index = False
         self.figwidth = -1
         self.dpi = 150
         self.margin = [2.0, 0.0, 0.0, 0.3]
         self.cline = 'doublet'
 
-    def set_style(self, dic):
-        self.tc = dic.get('textcolor', self.tc)
-        self.sc = dic.get('subtextcolor', self.sc)
-        self.lc = dic.get('linecolor', self.lc)
-        self.cc = dic.get('creglinecolor', self.cc)
-        self.gt = dic.get('gatetextcolor', self.tc)
-        self.gc = dic.get('gatefacecolor', self.gc)
-        self.bc = dic.get('barrierfacecolor', self.bc)
-        self.bg = dic.get('backgroundcolor', self.bg)
-        self.fs = dic.get('fontsize', self.fs)
-        self.sfs = dic.get('subfontsize', self.sfs)
-        self.disptex = dic.get('displaytext', self.disptex)
+    def set_style(self, style_dic):
+        dic = copy(style_dic)
+        self.tc = dic.pop('textcolor', self.tc)
+        self.sc = dic.pop('subtextcolor', self.sc)
+        self.lc = dic.pop('linecolor', self.lc)
+        self.cc = dic.pop('creglinecolor', self.cc)
+        self.gt = dic.pop('gatetextcolor', self.tc)
+        self.gc = dic.pop('gatefacecolor', self.gc)
+        self.bc = dic.pop('barrierfacecolor', self.bc)
+        self.bg = dic.pop('backgroundcolor', self.bg)
+        self.fs = dic.pop('fontsize', self.fs)
+        self.sfs = dic.pop('subfontsize', self.sfs)
+        self.disptex = dic.pop('displaytext', self.disptex)
         for key in self.dispcol.keys():
             self.dispcol[key] = self.gc
-        self.dispcol = dic.get('displaycolor', self.dispcol)
-        self.latexmode = dic.get('latexdrawerstyle', self.latexmode)
-        self.fold = dic.get('fold', self.fold)
+        self.dispcol = dic.pop('displaycolor', self.dispcol)
+        self.latexmode = dic.pop('latexdrawerstyle', self.latexmode)
+        self.fold = dic.pop('fold', self.fold)
         if self.fold < 2:
             self.fold = -1
-        self.bundle = dic.get('cregbundle', self.bundle)
-        self.barrier = dic.get('plotbarrier', self.barrier)
-        self.index = dic.get('showindex', self.index)
-        self.figwidth = dic.get('figwidth', self.figwidth)
-        self.dpi = dic.get('dpi', self.dpi)
-        self.margin = dic.get('margin', self.margin)
-        self.cline = dic.get('creglinestyle', self.cline)
+        self.bundle = dic.pop('cregbundle', self.bundle)
+        self.index = dic.pop('showindex', self.index)
+        self.figwidth = dic.pop('figwidth', self.figwidth)
+        self.dpi = dic.pop('dpi', self.dpi)
+        self.margin = dic.pop('margin', self.margin)
+        self.cline = dic.pop('creglinestyle', self.cline)
+        if dic:
+            warn('style option/s ({}) is/are not '
+                 'supported'.format(', '.join(dic.keys())), DeprecationWarning, 2)
