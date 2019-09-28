@@ -146,8 +146,8 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
                 if MAX_GATES_PER_JOB is not None:
                     max_gates_per_job = int(MAX_GATES_PER_JOB)
                     num_gates = 0
-                    for i in range(len(temp_qobj.experiments)):
-                        num_gates += len(temp_qobj.experiments[i].instructions)
+                    for j in range(len(temp_qobj.experiments)):
+                        num_gates += len(temp_qobj.experiments[j].instructions)
                     if num_gates > max_gates_per_job:
                         temp_qobjs = _split_qobj_to_qobjs_by_gate(temp_qobj, max_gates_per_job)
                     else:
