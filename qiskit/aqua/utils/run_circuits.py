@@ -166,7 +166,8 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
 def _split_qobj_to_qobjs_by_gate(qobj, chunk_size):
     tqobjs = []
     num_gates = 0
-    qobj_template = QasmQobj(qobj_id=qobj.qobj_id, config=qobj.config, experiments=[], header=qobj.header)
+    qobj_template = QasmQobj(qobj_id=qobj.qobj_id,
+                             config=qobj.config, experiments=[], header=qobj.header)
     temp_qobj = copy.deepcopy(qobj_template)
     temp_qobj.qobj_id = str(uuid.uuid4())
     temp_qobj.experiments = []
@@ -185,6 +186,7 @@ def _split_qobj_to_qobjs_by_gate(qobj, chunk_size):
     tqobjs.append(temp_qobj)
 
     return tqobjs
+
 
 def compile_circuits(circuits, backend, backend_config=None, compile_config=None, run_config=None,
                      show_circuit_summary=False, circuit_cache=None, **kwargs):
