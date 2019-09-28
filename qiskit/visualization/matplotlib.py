@@ -580,7 +580,7 @@ class MatplotlibDrawer:
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y],
+            self._line([self.x_offset + 0.05, y], [self._cond['xmax'], y],
                        zorder=PORDER_REGLINE)
         # classical register
         this_creg_dict = {}
@@ -611,7 +611,7 @@ class MatplotlibDrawer:
                          color=self._style.tc,
                          clip_on=True,
                          zorder=PORDER_TEXT)
-            self._line([self.x_offset + 0.5, y], [self._cond['xmax'], y], lc=self._style.cc,
+            self._line([self.x_offset + 0.05, y], [self._cond['xmax'], y], lc=self._style.cc,
                        ls=self._style.cline, zorder=PORDER_REGLINE)
 
         # lf line
