@@ -36,6 +36,7 @@ def assemble(experiments,
              schedule_los=None, meas_level=MeasLevel.CLASSIFIED,
              meas_return=MeasReturnType.AVERAGE, meas_map=None,
              memory_slot_size=100, rep_time=None, parameter_binds=None,
+             parametric_pulses=None,
              **run_config):
     """Assemble a list of circuits or pulse schedules into a Qobj.
 
@@ -85,12 +86,10 @@ def assemble(experiments,
             `schedule_los` if set.
 
         qubit_lo_range (list):
-            List of drive lo ranges used to validate that the supplied qubit los
-            are valid.
+            List of drive lo ranges used to validate the supplied qubit los.
 
         meas_lo_range (list):
-            List of meas lo ranges used to validate that the supplied measurement los
-            are valid.
+            List of meas lo ranges used to validate the supplied measurement los.
 
         schedule_los (None or list[Union[Dict[PulseChannel, float], LoConfig]] or \
                       Union[Dict[PulseChannel, float], LoConfig]):
@@ -122,6 +121,10 @@ def assemble(experiments,
             executed across all experiments, e.g. if parameter_binds is a
             length-n list, and there are m experiments, a total of m x n
             experiments will be run (one for each experiment/bind pair).
+
+        parametric_pulses (list[str]):
+            A list of pulse shapes which are supported internally on the backend.
+            Example: ['gaussian', 'constant']
 
         **run_config (dict):
             extra arguments used to configure the run (e.g. for Aer configurable
@@ -155,6 +158,7 @@ def assemble(experiments,
                                        qubit_lo_range, meas_lo_range,
                                        schedule_los, meas_level, meas_return,
                                        meas_map, memory_slot_size, rep_time,
+                                       parametric_pulses,
                                        **run_config_common_dict)
 
         return assemble_schedules(schedules=experiments, qobj_id=qobj_id,
@@ -222,6 +226,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                       meas_lo_range, schedule_los, meas_level,
                       meas_return, meas_map,
                       memory_slot_size, rep_time,
+                      parametric_pulses,
                       **run_config):
     """Build a pulse RunConfig replacing unset arguments with defaults derived from the `backend`.
     See `assemble` for more information on the required arguments.
@@ -235,7 +240,6 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     backend_default = None
     if backend:
         backend_config = backend.configuration()
-        # TODO : Remove usage of config.defaults when backend.defaults() is updated.
         try:
             backend_default = backend.defaults()
         except (ModelValidationError, AttributeError):
@@ -269,6 +273,8 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
     if isinstance(rep_time, list):
         rep_time = rep_time[0]
 
+    parametric_pulses = parametric_pulses or getattr(backend_config, 'parametric_pulses', [])
+
     # create run configuration and populate
     run_config_dict = dict(qubit_lo_freq=qubit_lo_freq,
                            meas_lo_freq=meas_lo_freq,
@@ -280,6 +286,7 @@ def _parse_pulse_args(backend, qubit_lo_freq, meas_lo_freq, qubit_lo_range,
                            meas_map=meas_map,
                            memory_slot_size=memory_slot_size,
                            rep_time=rep_time,
+                           parametric_pulses=parametric_pulses,
                            **run_config)
     run_config = RunConfig(**{k: v for k, v in run_config_dict.items() if v is not None})
 

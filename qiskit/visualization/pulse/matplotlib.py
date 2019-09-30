@@ -33,7 +33,7 @@ from qiskit.pulse.channels import (DriveChannel, ControlChannel,
                                    MeasureChannel, AcquireChannel,
                                    SnapshotChannel)
 from qiskit.pulse import (SamplePulse, FrameChange, PersistentValue, Snapshot,
-                          Acquire, PulseError)
+                          Acquire, PulseError, ParametricPulse)
 from qiskit.pulse.commands.frame_change import FrameChangeInstruction
 
 
@@ -182,6 +182,8 @@ class EventsOutputChannels:
             for command in commands:
                 duration = command.duration
                 tf = min(time + duration, self.tf)
+                if isinstance(command, ParametricPulse):
+                    command = command.get_sample_pulse()
                 if isinstance(command, SamplePulse):
                     wf[time:tf] = np.exp(1j*fc) * command.samples[:tf-time]
                     pv[time:] = 0

@@ -177,6 +177,8 @@ class DictParameters(ModelTypeValidator):
     def _validate_values(self, value):
         if value is None:
             return None
+        if isinstance(value, complex):
+            return [value.real, value.imag]
         if isinstance(value, self.valid_value_types):
             return value
         if is_collection(value):

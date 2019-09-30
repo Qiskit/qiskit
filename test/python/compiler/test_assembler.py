@@ -23,11 +23,11 @@ from qiskit.circuit import Instruction, Parameter
 from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler.assemble import assemble
 from qiskit.exceptions import QiskitError
-from qiskit.pulse.channels import MemorySlot, AcquireChannel
+from qiskit.pulse.channels import MemorySlot, AcquireChannel, DriveChannel, MeasureChannel
 from qiskit.qobj import QasmQobj, validate_qobj_against_schema
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.test.mock import FakeOpenPulse2Q, FakeOpenPulse3Q
 
 
 class TestCircuitAssembler(QiskitTestCase):
@@ -570,6 +570,45 @@ class TestPulseAssembler(QiskitTestCase):
         test_dict = qobj.to_dict()
         self.assertEqual(test_dict['config']['meas_return'], 'avg')
         self.assertEqual(test_dict['config']['meas_level'], 2)
+
+    def test_assemble_parametric(self):
+        """Test that parametric pulses can be assembled properly into a PulseQobj."""
+        sched = pulse.Schedule(name='test_parametric')
+        sched += pulse.Gaussian(duration=25, sigma=4, amp=0.5j)(DriveChannel(0))
+        sched += pulse.Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4)(DriveChannel(1))
+        sched += pulse.ConstantPulse(duration=25, amp=1)(DriveChannel(2))
+        sched += pulse.GaussianSquare(duration=150, amp=0.2,
+                                      sigma=8, width=140)(MeasureChannel(0)) << sched.duration
+        backend = FakeOpenPulse3Q()
+        backend.configuration().parametric_pulses = ['gaussian', 'drag',
+                                                     'gaussian_square', 'constant']
+        qobj = assemble(sched, backend)
+
+        self.assertEqual(qobj.config.pulse_library, [])
+        qobj_insts = qobj.experiments[0].instructions
+        self.assertTrue(all(inst.name == 'parametric_pulse'
+                            for inst in qobj_insts))
+        self.assertEqual(qobj_insts[0].pulse_shape, 'gaussian')
+        self.assertDictEqual(qobj_insts[0].params, {'duration': 25, 'sigma': 4, 'amp': 0.5j})
+        self.assertListEqual(qobj.to_dict()['experiments'][0]['instructions'][0]['params']['amp'],
+                             [0.0, 0.5])
+
+    def test_assemble_parametric_unsupported(self):
+        """Test that parametric pulses are translated to SamplePulses if they're not supported
+        by the backend during assemble time.
+        """
+        sched = pulse.Schedule(name='test_parametric_to_sample_pulse')
+        sched += pulse.Drag(duration=25, amp=0.2+0.3j, sigma=7.8, beta=4)(DriveChannel(1))
+        sched += pulse.ConstantPulse(duration=25, amp=1)(DriveChannel(2))
+
+        backend = FakeOpenPulse3Q()
+        backend.configuration().parametric_pulses = ['something_extra']
+
+        qobj = assemble(sched, backend)
+
+        self.assertNotEqual(qobj.config.pulse_library, [])
+        qobj_insts = qobj.experiments[0].instructions
+        self.assertFalse(hasattr(qobj_insts[0], 'pulse_shape'))
 
 
 class TestPulseAssemblerMissingKwargs(QiskitTestCase):
