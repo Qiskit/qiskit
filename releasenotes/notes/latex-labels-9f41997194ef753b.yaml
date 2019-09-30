@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    A new boolean kwarg flag, ``latex_labels``, has been added to
+    ``qiskit.visualization.circuit_drawer`` and ``qiskit.QuantumCircuit.draw``.
+    This flag only is used by the ``latex`` and ``latex_source`` circuit drawer
+    backends. When set on all other backends it will be ignored. When this flag
+    is set to ``True`` with the latex drawers it will disable the automated
+    conversion of input gate names from unicode to a latex encoding. This
+    enables users who want to manually format gate names for rendering in latex
+    to do so.

@@ -45,7 +45,8 @@ class QCircuitImage:
     """
 
     def __init__(self, qubits, clbits, ops, scale, style=None,
-                 plot_barriers=True, reverse_bits=False, layout=None):
+                 plot_barriers=True, reverse_bits=False, layout=None,
+                 latex_labels=False):
         """
         Args:
             qubits (list[Qubit]): list of qubits
@@ -59,6 +60,9 @@ class QCircuitImage:
                circuit. Defaults to True.
             layout (Layout or None): If present, the layout information will be
                included.
+            latex_labels (bool): When set to true input labels from the circuit
+                are treated as already encoded for latex and no conversion is
+                performed.
         Raises:
             ImportError: If pylatexenc is not installed
         """
@@ -122,6 +126,7 @@ class QCircuitImage:
         self.reverse_bits = reverse_bits
         self.layout = layout
         self.plot_barriers = plot_barriers
+        self.latex_labels = latex_labels
 
         #################################
         self.qregs = _get_register_specs(qubits)
@@ -367,7 +372,10 @@ class QCircuitImage:
                                       'b').zfill(self.cregs[if_reg])[::-1]
                 if op.name not in ['measure', 'barrier', 'snapshot', 'load',
                                    'save', 'noise']:
-                    nm = utf8tolatex(op.name).replace(" ", "\\,")
+                    if not self.latex_labels:
+                        nm = utf8tolatex(op.name).replace(" ", "\\,")
+                    else:
+                        nm = op.name
                     qarglist = op.qargs
                     if aliases is not None:
                         qarglist = map(lambda x: aliases[x], qarglist)

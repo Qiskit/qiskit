@@ -561,7 +561,7 @@ class QuantumCircuit:
     def draw(self, scale=0.7, filename=None, style=None, output=None,
              interactive=False, line_length=None, plot_barriers=True,
              reverse_bits=False, justify=None, vertical_compression='medium', idle_wires=True,
-             with_layout=True):
+             with_layout=True, latex_labels=False):
         """Draw the quantum circuit
 
         Using the output parameter you can specify the format. The choices are:
@@ -604,6 +604,10 @@ class QuantumCircuit:
             idle_wires (bool): Include idle wires. Default is True.
             with_layout (bool): Include layout information, with labels on the physical
                 layout. Default is True.
+            latex_labels (bool): When set to true input labels from the circuit
+                are treated as already encoded for latex and no conversion is
+                performed. (latex and latex_source only)
+
         Returns:
             PIL.Image or matplotlib.figure or str or TextDrawing:
                 * PIL.Image: (output `latex`) an in-memory representation of the
@@ -629,7 +633,8 @@ class QuantumCircuit:
                               justify=justify,
                               vertical_compression=vertical_compression,
                               idle_wires=idle_wires,
-                              with_layout=with_layout)
+                              with_layout=with_layout,
+                              latex_labels=latex_labels)
 
     def size(self):
         """Returns total number of gate operations in circuit.

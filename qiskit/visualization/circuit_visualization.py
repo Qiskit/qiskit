@@ -56,7 +56,8 @@ def circuit_drawer(circuit,
                    justify=None,
                    vertical_compression='medium',
                    idle_wires=True,
-                   with_layout=True):
+                   with_layout=True,
+                   latex_labels=False):
     """Draw a quantum circuit to different formats (set by output parameter):
     0. text: ASCII art TextDrawing that can be printed in the console.
     1. latex: high-quality images, but heavy external software dependencies
@@ -102,6 +103,9 @@ def circuit_drawer(circuit,
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout.
+        latex_labels (bool): When set to true input labels from the circuit
+            are treated as already encoded for latex and no conversion is
+            performed. (latex and latex_source only)
     Returns:
         PIL.Image: (output `latex`) an in-memory representation of the image
             of the circuit diagram.
@@ -237,7 +241,8 @@ def circuit_drawer(circuit,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
                                       idle_wires=idle_wires,
-                                      with_layout=with_layout)
+                                      with_layout=with_layout,
+                                      latex_labels=latex_labels)
     elif output == 'latex_source':
         return _generate_latex_source(circuit,
                                       filename=filename, scale=scale,
@@ -246,7 +251,8 @@ def circuit_drawer(circuit,
                                       reverse_bits=reverse_bits,
                                       justify=justify,
                                       idle_wires=idle_wires,
-                                      with_layout=with_layout)
+                                      with_layout=with_layout,
+                                      latex_labels=latex_labels)
     elif output == 'mpl':
         image = _matplotlib_circuit_drawer(circuit, scale=scale,
                                            filename=filename, style=style,
@@ -396,7 +402,8 @@ def _latex_circuit_drawer(circuit,
                           reverse_bits=False,
                           justify=None,
                           idle_wires=True,
-                          with_layout=True):
+                          with_layout=True,
+                          latex_labels=False):
     """Draw a quantum circuit based on latex (Qcircuit package)
 
     Requires version >=2.6.0 of the qcircuit LaTeX package.
@@ -415,6 +422,10 @@ def _latex_circuit_drawer(circuit,
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
+        latex_labels (bool): When set to true input labels from the circuit
+            are treated as already encoded for latex and no conversion is
+            performed.
+
     Returns:
         PIL.Image: an in-memory representation of the circuit diagram
 
@@ -431,7 +442,8 @@ def _latex_circuit_drawer(circuit,
                                scale=scale, style=style,
                                plot_barriers=plot_barriers,
                                reverse_bits=reverse_bits, justify=justify,
-                               idle_wires=idle_wires, with_layout=with_layout)
+                               idle_wires=idle_wires, with_layout=with_layout,
+                               latex_labels=latex_labels)
         try:
 
             subprocess.run(["pdflatex", "-halt-on-error",
@@ -478,7 +490,7 @@ def _latex_circuit_drawer(circuit,
 def _generate_latex_source(circuit, filename=None,
                            scale=0.7, style=None, reverse_bits=False,
                            plot_barriers=True, justify=None, idle_wires=True,
-                           with_layout=True):
+                           with_layout=True, latex_labels=False):
     """Convert QuantumCircuit to LaTeX string.
 
     Args:
@@ -495,6 +507,10 @@ def _generate_latex_source(circuit, filename=None,
         idle_wires (bool): Include idle wires. Default is True.
         with_layout (bool): Include layout information, with labels on the physical
             layout. Default: True
+        latex_labels (bool): When set to true input labels from the circuit
+            are treated as already encoded for latex and no conversion is
+            performed.
+
     Returns:
         str: Latex string appropriate for writing to file.
     """
@@ -508,7 +524,8 @@ def _generate_latex_source(circuit, filename=None,
 
     qcimg = _latex.QCircuitImage(qregs, cregs, ops, scale, style=style,
                                  plot_barriers=plot_barriers,
-                                 reverse_bits=reverse_bits, layout=layout)
+                                 reverse_bits=reverse_bits, layout=layout,
+                                 latex_labels=latex_labels)
     latex = qcimg.latex()
     if filename:
         with open(filename, 'w') as latex_file:
