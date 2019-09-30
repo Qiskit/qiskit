@@ -774,7 +774,7 @@ class TestPassManagerReplace(SchedulerTestCase):
         self.assertScheduler(self.circuit, self.passmanager, expected)
 
     def test_replace_error(self):
-        """ Replace a non-existing key. """
+        """ Replace a non-existing index. """
         self.passmanager.append(PassB_TP_RA_PA())
 
         with self.assertRaises(TranspilerError):

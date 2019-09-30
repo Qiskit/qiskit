@@ -136,11 +136,11 @@ class PassManager():
         self.working_list.append(
             FlowController.controller_factory(passes, options, **flow_controller_conditions))
 
-    def replace(self, key, passes, max_iteration=None, **flow_controller_conditions):
-        """Replace the scheduler key with the given pass(es)
+    def replace(self, index, passes, max_iteration=None, **flow_controller_conditions):
+        """Replace a particular pass in the scheduler
 
         Args:
-            key (int): Key to replace, based on the position in passes().
+            index (int): Pass index to replace, based on the position in passes().
             passes (list[BasePass] or BasePass): pass(es) to be added to schedule
             max_iteration (int): max number of iterations of passes. Default: 1000
             flow_controller_conditions (kwargs): See add_flow_controller(): Dictionary of
@@ -163,13 +163,12 @@ class PassManager():
         flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
 
         try:
-            self.working_list[key] = FlowController.controller_factory(passes, options,
-                                                                       **flow_controller_conditions)
+            self.working_list[index] = FlowController.controller_factory(passes, options, **flow_controller_conditions)
         except IndexError:
             raise TranspilerError('is not a pass instance')
 
-    def __setitem__(self, key, item):
-        self.replace(key, item)
+    def __setitem__(self, index, item):
+        self.replace(index, item)
 
     @staticmethod
     def _normalize_passes(passes):
