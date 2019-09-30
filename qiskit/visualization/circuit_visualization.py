@@ -101,8 +101,8 @@ def circuit_drawer(circuit,
             In `text`, sets the length of the lines. This useful when the
             drawing does not fit in the console. If None (default), it will try to
             guess the console width using `shutil.get_terminal_size()`. However, if
-            you're running in jupyter the default line length is set to 80 characters.
-            In MPL is the amount of operations before folding. Default is 25.
+            running in jupyter, the default line length is set to 80 characters.
+            In `mpl` is the amount of operations before folding. Default is 25.
     Returns:
         PIL.Image: (output `latex`) an in-memory representation of the image
             of the circuit diagram.
