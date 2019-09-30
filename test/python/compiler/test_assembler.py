@@ -310,11 +310,11 @@ class TestPulseAssembler(QiskitTestCase):
         self.schedule = self.schedule.insert(5, acquire(self.device.acquires,
                                                         self.device.memoryslots))
 
-        self.user_lo_config_dict = {self.device.drives[0]: 4.91}
+        self.user_lo_config_dict = {self.device.drives[0]: 4.91*1e9}
         self.user_lo_config = pulse.LoConfig(self.user_lo_config_dict)
 
-        self.default_qubit_lo_freq = [4.9, 5.0]
-        self.default_meas_lo_freq = [6.5, 6.6]
+        self.default_qubit_lo_freq = [4.9*1e9, 5.0*1e9]
+        self.default_meas_lo_freq = [6.5*1e9, 6.6*1e9]
 
         self.config = {
             'meas_level': 1,
