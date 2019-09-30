@@ -86,7 +86,7 @@ def _has_connection(hostname, port):
         port (int): Port to connect to
 
     Returns:
-        bool: Has connection or not.
+        bool: Has connection or not
 
     """
     try:

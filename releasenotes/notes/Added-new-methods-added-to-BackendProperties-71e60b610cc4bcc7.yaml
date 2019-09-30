@@ -10,13 +10,8 @@ features:
       backend = FakeOpenPulse2Q()
       properties = backend.properties()
 
-      result_1 = properties.gate_property('u1')
-      result_2 = properties.gate_error('u1', 0)
-      result_3 = properties.gate_length('u1', 0)
-      result_4 = properties.qubit_property(0)
-      result_5 = properties.t1(0)
-
-    ``result_1`` returns the properties of the gate ``u1``. ``result_2``
-    returns the gate error estimate. ``result_3`` returns duration of the
-    gate in units of seconds. ``result_4`` returns property of qubit 0.
-    ``result_5`` returns T1 time of qubit 0.
+      gate_property = properties.gate_property('u1')
+      gate_error = properties.gate_error('u1', 0)
+      gate_length = properties.gate_length('u1', 0)
+      qubit_0_property = properties.qubit_property(0)
+      t1_time_0 = properties.t1(0)
