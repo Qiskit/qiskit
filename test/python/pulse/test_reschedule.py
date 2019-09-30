@@ -24,7 +24,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
 from qiskit.test.mock import FakeOpenPulse2Q
 
-from qiskit.pulse.utils import add_implicit_acquires, align_measures, pad
+from qiskit.pulse.reschedule import add_implicit_acquires, align_measures, pad
 
 
 class TestAutoMerge(QiskitTestCase):

@@ -17,6 +17,8 @@
 
 import unittest
 
+from ddt import ddt, data
+
 import networkx as nx
 
 from qiskit.dagcircuit import DAGCircuit
@@ -29,12 +31,101 @@ from qiskit.circuit import Gate, Instruction
 from qiskit.extensions.standard.iden import IdGate
 from qiskit.extensions.standard.h import HGate
 from qiskit.extensions.standard.cx import CnotGate
+from qiskit.extensions.standard.cz import CzGate
 from qiskit.extensions.standard.x import XGate
 from qiskit.extensions.standard.u1 import U1Gate
 from qiskit.extensions.standard.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
+
+
+def raise_if_dagcircuit_invalid(dag):
+    """Validates the internal consistency of a DAGCircuit._multi_graph.
+    Intended for use in testing.
+
+    Raises:
+       DAGCircuitError: if DAGCircuit._multi_graph is inconsistent.
+    """
+
+    multi_graph = dag._multi_graph
+
+    if not nx.is_directed_acyclic_graph(multi_graph):
+        raise DAGCircuitError('multi_graph is not a DAG.')
+
+    # Every node should be of type in, out, or op.
+    # All input/output nodes should be present in input_map/output_map.
+    for node in multi_graph.nodes():
+        if node.type == 'in':
+            assert node is dag.input_map[node.wire]
+        elif node.type == 'out':
+            assert node is dag.output_map[node.wire]
+        elif node.type == 'op':
+            continue
+        else:
+            raise DAGCircuitError('Found node of unexpected type: {}'.format(
+                node.type))
+
+    # Shape of node.op should match shape of node.
+    for node in dag.op_nodes():
+        assert len(node.qargs) == node.op.num_qubits
+        assert len(node.cargs) == node.op.num_clbits
+
+    # Every edge should be labled with a known wire.
+    edges_outside_wires = [edge_data['wire']
+                           for source, dest, edge_data
+                           in multi_graph.edges(data=True)
+                           if edge_data['wire'] not in dag.wires]
+    if edges_outside_wires:
+        raise DAGCircuitError('multi_graph contains one or more edges ({}) '
+                              'not found in DAGCircuit.wires ({}).'.format(
+                                  edges_outside_wires, dag.wires))
+
+    # Every wire should have exactly one input node and one output node.
+    for wire in dag.wires:
+        in_node = dag.input_map[wire]
+        out_node = dag.output_map[wire]
+
+        assert in_node.wire == wire
+        assert out_node.wire == wire
+        assert in_node.type == 'in'
+        assert out_node.type == 'out'
+
+    # Every wire should be propagated by exactly one edge between nodes.
+    for wire in dag.wires:
+        cur_node = dag.input_map[wire]
+        out_node = dag.output_map[wire]
+
+        while cur_node != out_node:
+            out_edges = multi_graph.out_edges(cur_node, data=True)
+            edges_to_follow = [(src, dest, data) for (src, dest, data) in out_edges
+                               if data['wire'] == wire]
+
+            assert len(edges_to_follow) == 1
+            cur_node = edges_to_follow[0][1]
+
+    # Wires can only terminate at input/output nodes.
+    for op_node in dag.op_nodes():
+        assert multi_graph.in_degree(op_node) == multi_graph.out_degree(op_node)
+
+    # Node input/output edges should match node qarg/carg/condition.
+    for node in dag.op_nodes():
+        in_edges = multi_graph.in_edges(node, data=True)
+        out_edges = multi_graph.out_edges(node, data=True)
+
+        in_wires = {data['wire'] for src, dest, data in in_edges}
+        out_wires = {data['wire'] for src, dest, data in out_edges}
+
+        node_cond_bits = set(node.condition[0][:] if node.condition is not None else [])
+        node_qubits = set(node.qargs)
+        node_clbits = set(node.cargs)
+
+        all_bits = node_qubits | node_clbits | node_cond_bits
+
+        assert in_wires == all_bits, 'In-edge wires {} != node bits {}'.format(
+            in_wires, all_bits)
+        assert out_wires == all_bits, 'Out-edge wires {} != node bits {}'.format(
+            out_wires, all_bits)
 
 
 class TestDagRegisters(QiskitTestCase):
@@ -796,6 +887,85 @@ class TestDagSubstitute(QiskitTestCase):
 
         with self.assertRaises(DAGCircuitError):
             self.dag.substitute_node_with_dag(instr_node, sub_dag)
+
+
+@ddt
+class TestDagSubstituteNode(QiskitTestCase):
+    """Test substituting a dagnode with a node."""
+
+    def test_substituting_node_with_wrong_width_node_raises(self):
+        """Verify replacing a node with one of a different shape raises."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        dag.add_qreg(qr)
+        node_to_be_replaced = dag.apply_operation_back(CnotGate(), [qr[0], qr[1]])
+
+        with self.assertRaises(DAGCircuitError) as _:
+            dag.substitute_node(node_to_be_replaced, Measure())
+
+    @data(True, False)
+    def test_substituting_io_node_raises(self, inplace):
+        """Verify replacing an io node raises."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(1)
+        dag.add_qreg(qr)
+
+        io_node = next(dag.nodes())
+
+        with self.assertRaises(DAGCircuitError) as _:
+            dag.substitute_node(io_node, HGate(), inplace=inplace)
+
+    @data(True, False)
+    def test_substituting_node_preserves_name_args_condition(self, inplace):
+        """Verify name, args and condition are preserved by a substitution."""
+        dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(1)
+        dag.add_qreg(qr)
+        dag.add_creg(cr)
+        dag.apply_operation_back(HGate(), [qr[1]])
+        node_to_be_replaced = dag.apply_operation_back(CnotGate(), [qr[1], qr[0]],
+                                                       condition=(cr, 1))
+        node_to_be_replaced.name = 'test_name'
+        dag.apply_operation_back(HGate(), [qr[1]])
+
+        replacement_node = dag.substitute_node(node_to_be_replaced, CzGate(),
+                                               inplace=inplace)
+
+        raise_if_dagcircuit_invalid(dag)
+        self.assertEqual(replacement_node.name, 'test_name')
+        self.assertEqual(replacement_node.qargs, [qr[1], qr[0]])
+        self.assertEqual(replacement_node.cargs, [])
+        self.assertEqual(replacement_node.condition, (cr, 1))
+
+        self.assertEqual(replacement_node is node_to_be_replaced, inplace)
+
+    @data(True, False)
+    def test_substituting_node_preserves_parents_children(self, inplace):
+        """Verify parents and children are preserved by a substitution."""
+        qc = QuantumCircuit(3, 2)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.rz(0.1, 2)
+        qc.cx(1, 2)
+        qc.cx(0, 1)
+        dag = circuit_to_dag(qc)
+        node_to_be_replaced = dag.named_nodes('rz')[0]
+        predecessors = set(dag.predecessors(node_to_be_replaced))
+        successors = set(dag.successors(node_to_be_replaced))
+        ancestors = dag.ancestors(node_to_be_replaced)
+        descendants = dag.descendants(node_to_be_replaced)
+
+        replacement_node = dag.substitute_node(node_to_be_replaced, U1Gate(0.1),
+                                               inplace=inplace)
+
+        raise_if_dagcircuit_invalid(dag)
+        self.assertEqual(set(dag.predecessors(replacement_node)), predecessors)
+        self.assertEqual(set(dag.successors(replacement_node)), successors)
+        self.assertEqual(dag.ancestors(replacement_node), ancestors)
+        self.assertEqual(dag.descendants(replacement_node), descendants)
+
+        self.assertEqual(replacement_node is node_to_be_replaced, inplace)
 
 
 class TestDagProperties(QiskitTestCase):
