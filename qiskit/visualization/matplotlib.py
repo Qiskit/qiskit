@@ -952,10 +952,10 @@ class MatplotlibDrawer:
                 else:
                     x_coord = ii + 1
                     y_coord = 0.7
-                # self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
-                #              va='center', fontsize=self._style.sfs,
-                #              color=self._style.tc, clip_on=True,
-                #              zorder=PORDER_TEXT)
+                self.ax.text(x_coord, y_coord, str(ii + 1), ha='center',
+                             va='center', fontsize=self._style.sfs,
+                             color=self._style.tc, clip_on=True,
+                             zorder=PORDER_TEXT)
 
     @staticmethod
     def param_parse(v):
