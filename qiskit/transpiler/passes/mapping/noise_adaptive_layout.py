@@ -71,11 +71,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
         super().__init__()
         self.backend_prop = backend_prop
         self.swap_graph = nx.DiGraph()
-        self.cx_errors = {}
-        self.readout_errors = {}
+        self.cx_reliability = {}
+        self.readout_reliability = {}
         self.available_hw_qubits = []
         self.gate_list = []
-        self.gate_cost = {}
+        self.gate_reliability = {}
         self.swap_paths = {}
         self.swap_costs = {}
         self.prog_graph = nx.Graph()
@@ -100,34 +100,35 @@ class NoiseAdaptiveLayout(AnalysisPass):
                 swap_reliab = -math.log(swap_reliab) if swap_reliab != 0 else -math.inf
                 self.swap_graph.add_edge(ginfo.qubits[0], ginfo.qubits[1], weight=swap_reliab)
                 self.swap_graph.add_edge(ginfo.qubits[1], ginfo.qubits[0], weight=swap_reliab)
-                self.cx_errors[(ginfo.qubits[0], ginfo.qubits[1])] = g_reliab
+                self.cx_reliability[(ginfo.qubits[0], ginfo.qubits[1])] = g_reliab
                 self.gate_list.append((ginfo.qubits[0], ginfo.qubits[1]))
         idx = 0
         for q in backend_prop.qubits:
             for nduv in q:
                 if nduv.name == 'readout_error':
-                    self.readout_errors[idx] = 1.0 - nduv.value
+                    self.readout_reliability[idx] = 1.0 - nduv.value
                     self.available_hw_qubits.append(idx)
             idx += 1
-        for edge in self.cx_errors:
-            self.gate_cost[edge] = self.cx_errors[edge] * self.readout_errors[edge[0]] *\
-                self.readout_errors[edge[1]]
+        for edge in self.cx_reliability:
+            self.gate_reliability[edge] = self.cx_reliability[edge] * \
+                                          self.readout_reliability[edge[0]] * \
+                                          self.readout_reliability[edge[1]]
         self.swap_paths, swap_costs_temp = nx.algorithms.shortest_paths.dense.\
             floyd_warshall_predecessor_and_distance(self.swap_graph, weight='weight')
         for i in swap_costs_temp:
             self.swap_costs[i] = {}
             for j in swap_costs_temp[i]:
-                if (i, j) in self.cx_errors:
-                    self.swap_costs[i][j] = self.cx_errors[(i, j)]
-                elif (j, i) in self.cx_errors:
-                    self.swap_costs[i][j] = self.cx_errors[(j, i)]
+                if (i, j) in self.cx_reliability:
+                    self.swap_costs[i][j] = self.cx_reliability[(i, j)]
+                elif (j, i) in self.cx_reliability:
+                    self.swap_costs[i][j] = self.cx_reliability[(j, i)]
                 else:
                     best_reliab = 0.0
                     for n in self.swap_graph.neighbors(j):
-                        if (n, j) in self.cx_errors:
-                            reliab = math.exp(-swap_costs_temp[i][n])*self.cx_errors[(n, j)]
+                        if (n, j) in self.cx_reliability:
+                            reliab = math.exp(-swap_costs_temp[i][n])*self.cx_reliability[(n, j)]
                         else:
-                            reliab = math.exp(-swap_costs_temp[i][n])*self.cx_errors[(j, n)]
+                            reliab = math.exp(-swap_costs_temp[i][n])*self.cx_reliability[(j, n)]
                         if reliab > best_reliab:
                             best_reliab = reliab
                     self.swap_costs[i][j] = best_reliab
@@ -186,8 +187,8 @@ class NoiseAdaptiveLayout(AnalysisPass):
         best_reliab = 0
         best_item = None
         for item in candidates:
-            if self.gate_cost[item] > best_reliab:
-                best_reliab = self.gate_cost[item]
+            if self.gate_reliability[item] > best_reliab:
+                best_reliab = self.gate_reliability[item]
                 best_item = item
         return best_item
 
@@ -201,7 +202,7 @@ class NoiseAdaptiveLayout(AnalysisPass):
             for n in self.prog_graph.neighbors(prog_qubit):
                 if n in self.prog2hw:
                     reliab *= self.swap_costs[self.prog2hw[n]][hw_qubit]
-            reliab *= self.readout_errors[hw_qubit]
+            reliab *= self.readout_reliability[hw_qubit]
             reliab_store[hw_qubit] = reliab
         max_reliab = 0
         best_hw_qubit = None
@@ -226,16 +227,27 @@ class NoiseAdaptiveLayout(AnalysisPass):
             q2_mapped = edge[1] in self.prog2hw
             if (not q1_mapped) and (not q2_mapped):
                 best_hw_edge = self._select_best_remaining_cx()
+                if best_hw_edge is None:
+                    raise TranspilerError("CNOT({}, {}) could not be placed "
+                                          "in selected device.".format(edge[0], edge[1]))
                 self.prog2hw[edge[0]] = best_hw_edge[0]
                 self.prog2hw[edge[1]] = best_hw_edge[1]
                 self.available_hw_qubits.remove(best_hw_edge[0])
                 self.available_hw_qubits.remove(best_hw_edge[1])
             elif not q1_mapped:
                 best_hw_qubit = self._select_best_remaining_qubit(edge[0])
+                if best_hw_qubit is None:
+                    raise TranspilerError(
+                        "CNOT({}, {}) could not be placed in selected device. "
+                        "No qubit near qr[{}] available".format(edge[0], edge[1], edge[0]))
                 self.prog2hw[edge[0]] = best_hw_qubit
                 self.available_hw_qubits.remove(best_hw_qubit)
             else:
                 best_hw_qubit = self._select_best_remaining_qubit(edge[1])
+                if best_hw_qubit is None:
+                    raise TranspilerError(
+                        "CNOT({}, {}) could not be placed in selected device. "
+                        "No qubit near qr[{}] available".format(edge[0], edge[1], edge[1]))
                 self.prog2hw[edge[1]] = best_hw_qubit
                 self.available_hw_qubits.remove(best_hw_qubit)
             new_edges = [x for x in self.pending_program_edges
