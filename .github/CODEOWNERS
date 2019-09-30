@@ -6,6 +6,7 @@
 /tools/               @mtreinish @kdk
 /examples/            @jaygambetta @mtreinish @maddy-tod
 test/                 @ajavadia @mtreinish @kdk @1ucian0
+docs/                 @nonhermitian @mtreinish
 
 # Qiskit folders (also their corresponding tests)
 assembler/            @diego-plan @taalexander @mtreinish

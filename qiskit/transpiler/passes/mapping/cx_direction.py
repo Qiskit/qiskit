@@ -21,8 +21,9 @@ from math import pi
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
+from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.extensions.standard import U2Gate
+from qiskit.extensions.standard import U2Gate, CnotGate
 
 
 class CXDirection(TransformationPass):
@@ -48,7 +49,9 @@ class CXDirection(TransformationPass):
 
     def run(self, dag):
         """
-        Flips the cx nodes to match the directed coupling map.
+        Flips the cx nodes to match the directed coupling map. Modifies the
+        input dag.
+
         Args:
             dag (DAGCircuit): DAG to map.
         Returns:
@@ -58,39 +61,44 @@ class CXDirection(TransformationPass):
             TranspilerError: If the circuit cannot be mapped just by flipping the
                 cx nodes.
         """
-        new_dag = DAGCircuit()
 
-        for layer in dag.serial_layers():
-            subdag = layer['graph']
+        cmap_edges = set(self.coupling_map.get_edges())
 
-            for cnot_node in subdag.named_nodes('cx', 'CX'):
-                control = cnot_node.qargs[0]
-                target = cnot_node.qargs[1]
+        if len(dag.qregs) > 1:
+            raise TranspilerError('CXDirection expects a single qreg input DAG,'
+                                  'but input DAG had qregs: {}.'.format(
+                                      dag.qregs))
 
-                physical_q0 = control.index
-                physical_q1 = target.index
-                if self.coupling_map.distance(physical_q0, physical_q1) != 1:
-                    raise TranspilerError('The circuit requires a connection between physical '
-                                          'qubits %s and %s' % (physical_q0, physical_q1))
+        for cnot_node in dag.named_nodes('cx', 'CX'):
+            control = cnot_node.qargs[0]
+            target = cnot_node.qargs[1]
 
-                if (physical_q0, physical_q1) not in self.coupling_map.get_edges():
-                    # A flip needs to be done
+            physical_q0 = control.index
+            physical_q1 = target.index
 
-                    # Create the involved registers
-                    if control.register not in subdag.qregs.values():
-                        subdag.add_qreg(control.register)
-                    if target.register not in subdag.qregs.values():
-                        subdag.add_qreg(target.register)
+            if self.coupling_map.distance(physical_q0, physical_q1) != 1:
+                raise TranspilerError('The circuit requires a connection between physical '
+                                      'qubits %s and %s' % (physical_q0, physical_q1))
 
-                    # Add H gates around
-                    subdag.apply_operation_back(U2Gate(0, pi), [target], [])
-                    subdag.apply_operation_back(U2Gate(0, pi), [control], [])
-                    subdag.apply_operation_front(U2Gate(0, pi), [target], [])
-                    subdag.apply_operation_front(U2Gate(0, pi), [control], [])
+            if (physical_q0, physical_q1) not in cmap_edges:
+                # A flip needs to be done
 
-                    # Flips the CX
-                    cnot_node.qargs[0], cnot_node.qargs[1] = target, control
+                # Create the replacement dag and associated register.
+                sub_dag = DAGCircuit()
+                sub_qr = QuantumRegister(2)
+                sub_dag.add_qreg(sub_qr)
 
-            new_dag.extend_back(subdag)
+                # Add H gates before
+                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
+                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
 
-        return new_dag
+                # Flips the cx
+                sub_dag.apply_operation_back(CnotGate(), [sub_qr[1], sub_qr[0]], [])
+
+                # Add H gates after
+                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[0]], [])
+                sub_dag.apply_operation_back(U2Gate(0, pi), [sub_qr[1]], [])
+
+                dag.substitute_node_with_dag(cnot_node, sub_dag)
+
+        return dag
