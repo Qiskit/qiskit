@@ -6,30 +6,30 @@ features:
     pass managers. For example, let's edit the layout selector of the pass manager used at
     optimization level 0:
 
-    ```python
-    from qiskit.transpiler.preset_passmanagers.level0 import level_0_pass_manager
-    from qiskit.transpiler.transpile_config import TranspileConfig
+    .. code-block:: python
+      from qiskit.transpiler.preset_passmanagers.level0 import level_0_pass_manager
+      from qiskit.transpiler.transpile_config import TranspileConfig
 
-    pass_manager = level_0_pass_manager(TranspileConfig(coupling_map=CouplingMap([[0,1]])))
+      pass_manager = level_0_pass_manager(TranspileConfig(coupling_map=CouplingMap([[0,1]])))
 
-    pass_manager.draw()
-    ```
+      pass_manager.draw()
+
     ![passmanager_replace-1.png](passmanager_replace-1.png)
 
     The layout selection is set in the stage `[1]`. Let's replace it with `DenseLayout`:
 
-    ```python
-    from qiskit.transpiler.passes import DenseLayout
+    .. code-block:: python
+      from qiskit.transpiler.passes import DenseLayout
 
-    pass_manager.replace(1, DenseLayout(coupling_map), condition=lambda property_set: not property_set['layout'])
-    pass_manager.draw()
-    ```
+      pass_manager.replace(1, DenseLayout(coupling_map), condition=lambda property_set: not property_set['layout'])
+      pass_manager.draw()
+
     ![passmanager_replace-2.png](passmanager_replace-2.png)
 
     If you want to replace it without any condition, you can use set-item shortcut:
 
-    ```python
-    pass_manager[1] = DenseLayout(coupling_map)
-    pass_manager.draw()
-    ```
+    .. code-block:: python
+      pass_manager[1] = DenseLayout(coupling_map)
+      pass_manager.draw()
+
     ![passmanager_replace-3.png](passmanager_replace-3.png)
