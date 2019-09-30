@@ -162,8 +162,10 @@ class PassManager():
 
         flow_controller_conditions = self._normalize_flow_controller(flow_controller_conditions)
 
+        controller = FlowController.controller_factory(passes, options,
+                                                       **flow_controller_conditions)
         try:
-            self.working_list[index] = FlowController.controller_factory(passes, options, **flow_controller_conditions)
+            self.working_list[index] = controller
         except IndexError:
             raise TranspilerError('Index to replace %s does not exists' % index)
 
