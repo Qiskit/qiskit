@@ -175,7 +175,7 @@ class MatplotlibDrawer:
         ypos_max = max([y[1] for y in xy])
         if wide:
             if subtext:
-                boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
+                boxes_length = round(max([len(text), len(subtext)]) / 6) or 1
             else:
                 boxes_length = math.ceil(len(text) / 6) or 1
             wid = WID * 2.5 * boxes_length
