@@ -47,10 +47,6 @@ class MSBasisDecomposer(TransformationPass):
         self.basis = basis
         self.requires = [Unroller(list(set(basis).union(['u3', 'cx'])))]
 
-        if set(basis) != {gate_name for gate_name in self.supported_basis_names}:
-            raise QiskitError("Cannot unroll the circuit to the given basis, %s. "
-                              % str(self.basis))
-
     def run(self, dag):
         """Replace U3,CX nodes in input dag with equivalent Rx,Ry,Rxx gates.
 
