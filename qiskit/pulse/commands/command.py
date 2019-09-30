@@ -23,7 +23,6 @@ import numpy as np
 
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.channels import Channel
-from qiskit.pulse.timeslots import TimeslotCollection
 
 from .instruction import Instruction
 
@@ -92,7 +91,6 @@ class Command(metaclass=MetaCount):
 
     @abstractmethod
     def to_instruction(self, command, *channels: List[Channel],
-                       timeslots: Optional[TimeslotCollection] = None,
                        name: Optional[str] = None) -> Instruction:
         """Create an instruction from command."""
         pass
