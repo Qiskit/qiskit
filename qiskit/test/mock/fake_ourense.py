@@ -16,7 +16,11 @@
 Fake Ourense device (5 qubit).
 """
 
-from qiskit.providers.models import GateConfig, QasmBackendConfiguration
+import os
+import json
+
+from qiskit.providers.models import (GateConfig, QasmBackendConfiguration,
+                                     BackendProperties)
 from .fake_backend import FakeBackend
 
 
@@ -47,3 +51,12 @@ class FakeOurense(FakeBackend):
         )
 
         super().__init__(configuration)
+
+    def properties(self):
+        """Returns a snapshot of device properties as recorded on 8/30/19.
+        """
+        dirname = os.path.dirname(__file__)
+        filename = "props_ourense.json"
+        with open(os.path.join(dirname, filename), "r") as f_prop:
+            props = json.load(f_prop)
+        return BackendProperties.from_dict(props)
