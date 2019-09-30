@@ -165,7 +165,7 @@ class PassManager():
         try:
             self.working_list[index] = FlowController.controller_factory(passes, options, **flow_controller_conditions)
         except IndexError:
-            raise TranspilerError('is not a pass instance')
+            raise TranspilerError('Index to replace %s does not exists' % index)
 
     def __setitem__(self, index, item):
         self.replace(index, item)
