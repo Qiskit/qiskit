@@ -176,14 +176,17 @@ class MatplotlibDrawer:
 
         if cxy:
             ypos = min([y[1] for y in cxy])
+
+        if subtext:
+            boxes_length = round(max([len(text), 
+                                      len(subtext) * self._style.sfs * 1. / self._style.fs]) / 8) or 1
+        else:
+            boxes_length = round(len(text) / 8) or 1
+
         if wide:
-            if subtext:
-                boxes_length = round(max([len(text), len(subtext)]) / 8) or 1
-            else:
-                boxes_length = round(len(text) / 8) or 1
             wid = WID * 2.2 * boxes_length
         else:
-            wid = WID
+            wid = WID * boxes_length
 
         if fc:
             _fc = fc
@@ -235,14 +238,17 @@ class MatplotlibDrawer:
     def _gate(self, xy, fc=None, wide=False, text=None, subtext=None):
         xpos, ypos = xy
 
-        if wide:
-            if subtext:
-                wid = WID * 2.2
-            else:
-                boxes_wide = round(len(text) / 10) or 1
-                wid = WID * 2.2 * boxes_wide
+        if subtext:
+            boxes_wide = round(max([len(text), 
+                                    len(subtext) * self._style.sfs * 1. / self._style.fs]) / 8) or 1
         else:
-            wid = WID
+            boxes_wide = round(len(text) / 8) or 1
+
+        if wide:
+            wid = WID * 2.2 * boxes_wide
+        else:
+            wid = WID * boxes_wide
+
         if fc:
             _fc = fc
         elif self._style.gc != DefaultStyle().gc:
@@ -802,12 +808,9 @@ class MatplotlibDrawer:
                 elif len(q_xy) == 1:
                     disp = op.name
                     if param:
-                        prm = '({})'.format(param)
-                        if len(prm) < 20:
-                            self._gate(q_xy[0], wide=_iswide, text=disp,
+                        prm = '{}'.format(param)
+                        self._gate(q_xy[0], wide=_iswide, text=disp,
                                        subtext=prm)
-                        else:
-                            self._gate(q_xy[0], wide=_iswide, text=disp)
                     else:
                         self._gate(q_xy[0], wide=_iswide, text=disp)
                 #
