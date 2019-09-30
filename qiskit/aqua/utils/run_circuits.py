@@ -150,12 +150,11 @@ def _split_qobj_to_qobjs(qobj, chunk_size):
                         num_gates += len(temp_qobj.experiments[j].instructions)
                     if num_gates > max_gates_per_job:
                         temp_qobjs = _split_qobj_to_qobjs_by_gate(temp_qobj, max_gates_per_job)
+                        for temp_qobj in temp_qobjs:
+                            qobjs.append(temp_qobj)
                     else:
-                        temp_qobjs = [temp_qobj]
+                        qobjs.append(temp_qobj)
                 else:
-                    temp_qobjs = [temp_qobj]
-
-                for temp_qobj in temp_qobjs:
                     qobjs.append(temp_qobj)
         else:
             raise AquaError("Only support QasmQobj now.")
