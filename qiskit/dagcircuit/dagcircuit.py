@@ -856,6 +856,63 @@ class DAGCircuit:
 
                 self._multi_graph.remove_edge(p[0], self.output_map[w])
 
+    def substitute_node(self, node, op, inplace=False):
+        """Replace a DAGNode with a single instruction. qargs, cargs and
+        conditions for the new instruction will be inferred from the node to be
+        replaced. The new instruction will be checked to match the shape of the
+        replaced instruction.
+
+        Args:
+            node (DAGNode): Node to be replaced
+            op (Instruction): The Instruction instance to be added to the DAG
+            inplace (bool): Optional, default False. If True, existing DAG node
+                will be modified to include op. Otherwise, a new DAG node will
+                be used.
+
+        Returns:
+            DAGNode: the new node containing the added instruction.
+
+        Raises:
+            DAGCircuitError: If replacement instruction was incompatible with
+            location of target node.
+        """
+
+        if node.type != 'op':
+            raise DAGCircuitError('Only DAGNodes of type "op" can be replaced.')
+
+        if (
+                node.op.num_qubits != op.num_qubits
+                or node.op.num_clbits != op.num_clbits
+        ):
+            raise DAGCircuitError(
+                'Cannot replace node of width ({} qubits, {} clbits) with '
+                'instruction of mismatched with ({} qubits, {} clbits).'.format(
+                    node.op.num_qubits, node.op.num_clbits,
+                    op.num_qubits, op.num_clbits))
+
+        if inplace:
+            node.data_dict['op'] = op
+            return node
+
+        self._max_node_id += 1
+        new_data_dict = node.data_dict.copy()
+        new_data_dict['op'] = op
+        new_node = DAGNode(new_data_dict, nid=self._max_node_id)
+
+        self._multi_graph.add_node(new_node)
+
+        in_edges = self._multi_graph.in_edges(node, data=True)
+        out_edges = self._multi_graph.out_edges(node, data=True)
+
+        self._multi_graph.add_edges_from(
+            [(src, new_node, data) for src, dest, data in in_edges])
+        self._multi_graph.add_edges_from(
+            [(new_node, dest, data) for src, dest, data in out_edges])
+
+        self._multi_graph.remove_node(node)
+
+        return new_node
+
     def node(self, node_id):
         """Get the node in the dag.
 
