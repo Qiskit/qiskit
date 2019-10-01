@@ -15,7 +15,6 @@
 """ Test Skip Qobj Validation """
 
 import unittest
-import os
 from test.aqua.common import QiskitAquaTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import BasicAer
@@ -56,12 +55,10 @@ class TestSkipQobjValidation(QiskitAquaTestCase):
 
     def test_wo_backend_options(self):
         """ without backend options test """
-        os.environ.pop('QISKIT_AQUA_CIRCUIT_CACHE', None)
         quantum_instance = QuantumInstance(self.backend,
                                            seed_transpiler=self.random_seed,
                                            seed_simulator=self.random_seed,
-                                           shots=1024,
-                                           circuit_caching=False)
+                                           shots=1024)
         # run without backend_options and without noise
         res_wo_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
 
@@ -72,12 +69,10 @@ class TestSkipQobjValidation(QiskitAquaTestCase):
     def test_w_backend_options(self):
         """ with backend options test """
         # run with backend_options
-        os.environ.pop('QISKIT_AQUA_CIRCUIT_CACHE', None)
         quantum_instance = QuantumInstance(self.backend, seed_transpiler=self.random_seed,
                                            seed_simulator=self.random_seed, shots=1024,
                                            backend_options={
-                                               'initial_statevector': [.5, .5, .5, .5]},
-                                           circuit_caching=False)
+                                               'initial_statevector': [.5, .5, .5, .5]})
         res_w_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
         quantum_instance.skip_qobj_validation = True
         res_w_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
@@ -95,7 +90,6 @@ class TestSkipQobjValidation(QiskitAquaTestCase):
             self.skipTest("Aer doesn't appear to be installed. Error: '{}'".format(str(ex)))
             return
 
-        os.environ.pop('QISKIT_AQUA_CIRCUIT_CACHE', None)
         probs_given0 = [0.9, 0.1]
         probs_given1 = [0.3, 0.7]
         noise_model = NoiseModel()
@@ -103,8 +97,7 @@ class TestSkipQobjValidation(QiskitAquaTestCase):
 
         quantum_instance = QuantumInstance(self.backend, seed_transpiler=self.random_seed,
                                            seed_simulator=self.random_seed, shots=1024,
-                                           noise_model=noise_model,
-                                           circuit_caching=False)
+                                           noise_model=noise_model)
         res_w_noise = quantum_instance.execute(self.qc).get_counts(self.qc)
 
         quantum_instance.skip_qobj_validation = True
