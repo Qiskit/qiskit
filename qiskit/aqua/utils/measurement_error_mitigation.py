@@ -16,10 +16,10 @@
 
 import logging
 
+from qiskit import compiler
 from qiskit.ignis.mitigation.measurement import (complete_meas_cal,
                                                  CompleteMeasFitter, TensoredMeasFitter)
 
-from .run_circuits import compile_circuits
 from ..aqua_error import AquaError
 
 logger = logging.getLogger(__name__)
@@ -121,7 +121,7 @@ def build_measurement_error_mitigation_qobj(qubit_list, fitter_cls, backend,
     else:
         raise AquaError("Unknown fitter {}".format(fitter_cls))
 
-    cals_qobj = compile_circuits(meas_calibs_circuits,
-                                 backend, backend_config, compile_config, run_config)
-
+    t_meas_calibs_circuits = compiler.transpile(meas_calibs_circuits, backend,
+                                                **backend_config, **compile_config)
+    cals_qobj = compiler.assemble(t_meas_calibs_circuits, backend, **run_config.to_dict())
     return cals_qobj, state_labels, circlabel
