@@ -44,7 +44,7 @@ def as_soon_as_possible(circuit: QuantumCircuit,
         circuit: The quantum circuit to translate
         schedule_config: Backend specific parameters used for building the Schedule
     Returns:
-        A final schedule, pulses occuring as early as possible
+        A schedule corresponding to the input `circuit` with pulses occurring as early as possible
     """
     sched = Schedule(name=circuit.name)
 
@@ -82,7 +82,7 @@ def as_late_as_possible(circuit: QuantumCircuit,
         circuit: The quantum circuit to translate
         schedule_config: Backend specific parameters used for building the Schedule
     Returns:
-        A final schedule, pulses occuring as late as possible
+        A schedule corresponding to the input `circuit` with pulses occurring as late as possible
     """
     circuit.barrier()  # Adding a final barrier is an easy way to align the channel end times.
     sched = Schedule(name=circuit.name)

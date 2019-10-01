@@ -28,7 +28,7 @@ def schedule_circuit(circuit: QuantumCircuit,
                      method: Optional[str] = None) -> Schedule:
     """
     Basic scheduling pass from a circuit to a pulse Schedule, using the backend. If no method is
-    specified, then a basic, minimize earliness scheduling pass is performed, meaning pulses are
+    specified, then a basic, as late as possible scheduling pass is performed, i.e. pulses are
     scheduled to occur as late as possible.
 
     Supported methods:
