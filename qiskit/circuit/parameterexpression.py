@@ -159,7 +159,7 @@ class ParameterExpression():
 
         Args:
             operation (function): One of operator.{add,sub,mul,truediv}.
-            other (Parameter or number.real): The second argument to be used
+            other (Parameter or numbers.Real): The second argument to be used
                with self in operation.
             reflected (bool): Optional - The default ordering is
                 "self operator other". If reflected is True, this is switched
@@ -211,6 +211,9 @@ class ParameterExpression():
     def __mul__(self, other):
         return self._apply_operation(operator.mul, other)
 
+    def __neg__(self):
+        return self._apply_operation(operator.mul, -1.0)
+
     def __rmul__(self, other):
         return self._apply_operation(operator.mul, other, reflected=True)
 
@@ -232,7 +235,6 @@ class ParameterExpression():
         if self.parameters:
             raise TypeError('ParameterExpression with unbound parameters ({}) '
                             'cannot be cast to a float.'.format(self.parameters))
-
         return float(self._symbol_expr)
 
     def __copy__(self):
