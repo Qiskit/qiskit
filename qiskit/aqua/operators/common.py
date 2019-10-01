@@ -21,6 +21,7 @@ import numpy as np
 from qiskit.quantum_info import Pauli  # pylint: disable=unused-import
 from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.qasm import pi
+from qiskit.circuit import Parameter, ParameterExpression
 
 from qiskit.aqua import AquaError
 
@@ -234,7 +235,7 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
     Args:
         pauli_list (list([[complex, Pauli]])): The list of pauli terms corresponding
                             to a single time slice to be evolved
-        evo_time (Union(complex, float)): The evolution time
+        evo_time (Union(complex, float, Parameter, ParameterExpression)): The evolution time
         num_time_slices (int): The number of time slices for the expansion
         controlled (bool, optional): Controlled circuit or not
         power (int, optional): The power to which the unitary operator is to be raised
@@ -242,7 +243,6 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
                                     gates when building circuit.
         shallow_slicing (bool, optional): boolean flag for indicating using shallow
                                     qc.data reference repetition for slicing
-
     Returns:
         InstructionSet: The InstructionSet corresponding to specified evolution.
     Raises:
@@ -313,15 +313,24 @@ def evolution_instruction(pauli_list, evo_time, num_time_slices,
 
         # insert Rz gate
         if top_xyz_pauli_indices[pauli_idx] >= 0:
-            lam = (2.0 * pauli[0] * evo_time / num_time_slices).real
-            if not controlled:
 
+            # Because Parameter does not support complexity number operation; thus, we do
+            # the following tricks to generate parameterized instruction.
+            # We assume the coefficient in the pauli is always real. and can not do imaginary time
+            # evolution
+            if isinstance(evo_time, (Parameter, ParameterExpression)):
+                lam = 2.0 * pauli[0] / num_time_slices
+                lam = lam.real if lam.imag == 0 else lam
+                lam = lam * evo_time
+            else:
+                lam = (2.0 * pauli[0] * evo_time / num_time_slices).real
+
+            if not controlled:
                 if use_basis_gates:
                     qc_slice.u1(lam, state_registers[top_xyz_pauli_indices[pauli_idx]])
                 else:
                     qc_slice.rz(lam, state_registers[top_xyz_pauli_indices[pauli_idx]])
             else:
-                # unitary_power = (2 ** ctl_idx) if unitary_power is None else unitary_power
                 if use_basis_gates:
                     qc_slice.u1(lam / 2, state_registers[top_xyz_pauli_indices[pauli_idx]])
                     qc_slice.cx(ancillary_registers[0],
