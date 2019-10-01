@@ -18,7 +18,7 @@ Warning: Currently for both of these methods, the MemorySlots in circuit Measure
 Qubits will be measured into the MemorySlot which matches the measured qubit's index. (Issue #2704)
 """
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from typing import List
 
 from qiskit.circuit.measure import Measure
@@ -28,7 +28,12 @@ from qiskit.extensions.standard.barrier import Barrier
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule
 
-from qiskit.scheduler.models import ScheduleConfig, CircuitPulseDef
+from qiskit.scheduler.config import ScheduleConfig
+
+
+CircuitPulseDef = namedtuple('CircuitPulseDef', [
+    'schedule',  # The schedule which implements the quantum circuit command
+    'qubits'])   # The labels of the qubits involved in the command according to the circuit
 
 
 def as_soon_as_possible(circuit: QuantumCircuit,

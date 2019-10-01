@@ -14,5 +14,5 @@
 
 """Module for scheduling pulse `Schedule`s from `QuantumCircuit`s."""
 
-from qiskit.scheduler.models import ScheduleConfig
+from qiskit.scheduler.config import ScheduleConfig
 from qiskit.scheduler.schedule_circuit import schedule_circuit

@@ -15,7 +15,6 @@
 """Scheduling container classes."""
 
 from typing import List
-from collections import namedtuple
 
 from qiskit.pulse.cmd_def import CmdDef
 
@@ -37,8 +36,3 @@ class ScheduleConfig():
         """
         self.cmd_def = cmd_def
         self.meas_map = format_meas_map(meas_map)
-
-
-CircuitPulseDef = namedtuple('CircuitPulseDef', [
-    'schedule',  # The schedule which implements the quantum circuit command
-    'qubits'])   # The labels of the qubits involved in the command according to the circuit

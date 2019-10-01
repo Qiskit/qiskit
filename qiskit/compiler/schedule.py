@@ -23,8 +23,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.pulse.cmd_def import CmdDef
 from qiskit.pulse.schedule import Schedule
 
-from qiskit.scheduler.schedule_circuit import schedule_circuit
-from qiskit.scheduler.models import ScheduleConfig
+from qiskit.scheduler import schedule_circuit, ScheduleConfig
 
 
 def schedule(circuits: Union[QuantumCircuit, List[QuantumCircuit]],
