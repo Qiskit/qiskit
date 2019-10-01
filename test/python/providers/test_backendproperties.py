@@ -74,3 +74,13 @@ class BackendpropertiesTestCase(QiskitTestCase):
                          self.properties._qubits[0]['frequency'])
         self.assertEqual(self.properties.qubit_property(0),
                          self.properties._qubits[0])
+
+    def test_apply_prefix(self):
+        """Testing unit conversions."""
+        self.assertEqual(self.properties._apply_prefix(71.9500421005539, 'µs'),
+                         7.195004210055389e-05)
+        self.assertEqual(self.properties._apply_prefix(71.9500421005539, 'ms'),
+                         0.0719500421005539)
+
+        with self.assertRaises(PulseError):
+            self.properties._apply_prefix(71.9500421005539, 'ws')
