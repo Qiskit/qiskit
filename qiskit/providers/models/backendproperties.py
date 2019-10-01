@@ -19,7 +19,7 @@ from typing import Any, Iterable, Tuple, Union, List
 from marshmallow.validate import Length, Regexp
 
 from qiskit.util import _to_tuple
-from qiskit.validation.fields import DateTime, List as QList, Nested, Number, String, Integer
+from qiskit.validation import fields
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.pulse.exceptions import PulseError
 
@@ -28,20 +28,20 @@ class NduvSchema(BaseSchema):
     """Schema for name-date-unit-value."""
 
     # Required properties.
-    date = DateTime(required=True)
-    name = String(required=True)
-    unit = String(required=True)
-    value = Number(required=True)
+    date = fields.DateTime(required=True)
+    name = fields.String(required=True)
+    unit = fields.String(required=True)
+    value = fields.Number(required=True)
 
 
 class GateSchema(BaseSchema):
     """Schema for Gate."""
 
     # Required properties.
-    qubits = QList(Integer(), required=True,
+    qubits = fields.List(fields.Integer(), required=True,
                    validate=Length(min=1))
-    gate = String(required=True)
-    parameters = Nested(NduvSchema, required=True, many=True,
+    gate = fields.String(required=True)
+    parameters = fields.Nested(NduvSchema, required=True, many=True,
                         validate=Length(min=1))
 
 
@@ -49,16 +49,16 @@ class BackendPropertiesSchema(BaseSchema):
     """Schema for BackendProperties."""
 
     # Required properties.
-    backend_name = String(required=True)
-    backend_version = String(required=True,
+    backend_name = fields.String(required=True)
+    backend_version = fields.String(required=True,
                              validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
-    last_update_date = DateTime(required=True)
-    qubits = QList(Nested(NduvSchema, many=True,
+    last_update_date = fields.DateTime(required=True)
+    qubits = fields.List(fields.Nested(NduvSchema, many=True,
                           validate=Length(min=1)), required=True,
                    validate=Length(min=1))
-    gates = Nested(GateSchema, required=True, many=True,
+    gates = fields.Nested(GateSchema, required=True, many=True,
                    validate=Length(min=1))
-    general = Nested(NduvSchema, required=True, many=True)
+    general = fields.Nested(NduvSchema, required=True, many=True)
 
 
 @bind_schema(NduvSchema)
@@ -156,16 +156,16 @@ class BackendProperties(BaseModel):
         super().__init__(**kwargs)
 
     def gate_property(self,
-                      operation: str,
+                      gate: str,
                       qubits: Union[int, Iterable[int]] = None,
                       name: str = None) -> Tuple[Any, datetime.datetime]:
         """
-        Return the gate property of the given operation.
+        Return the gate property of the given gate.
 
         Args:
-            operation: Name of the gate.
+            gate: Name of the gate.
             qubits: The qubit to find the property for.
-            name: Optionally used to specify within the heirarchy which
+            name: Optionally used to specify which gate
                   property to return.
 
         Returns:
@@ -175,43 +175,43 @@ class BackendProperties(BaseModel):
             PulseError: If the property is not found or name is specified but qubit is not.
         """
         try:
-            result = self._gates[operation]
+            result = self._gates[gate]
             if qubits is not None:
                 result = result[_to_tuple(qubits)]
                 if name:
                     result = result[name]
             elif name:
-                raise PulseError("Provide qubits to get {n} of '{o}'.".format(n=name, o=operation))
+                raise PulseError("Provide qubits to get {n} of '{g}'.".format(n=name, g=gate))
         except KeyError:
-            raise PulseError("Could not find the desired property for {o}.".format(o=operation))
+            raise PulseError("Could not find the desired property for {g}.".format(g=gate))
         return result
 
-    def gate_error(self, operation: str, qubits: Union[int, Iterable[int]]) -> float:
+    def gate_error(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
         """
         Return gate error estimates from backend properties.
 
         Args:
-            operation: The operation for which to get the error.
-            qubits: The specific qubits for the operation.
+            gate: The gate for which to get the error.
+            qubits: The specific qubits for the gate.
 
         Returns:
-            Gate error of the given operation and qubit(s).
+            Gate error of the given gate and qubit(s).
         """
-        return self.gate_property(operation, qubits,
+        return self.gate_property(gate, qubits,
                                   'gate_error')[0]  # Throw away datetime at index 1
 
-    def gate_length(self, operation: str, qubits: Union[int, Iterable[int]]) -> float:
+    def gate_length(self, gate: str, qubits: Union[int, Iterable[int]]) -> float:
         """
         Return the duration of the gate in units of seconds.
 
         Args:
-            operation: The operation for which to get the duration.
-            qubits: The specific qubits for the operation.
+            gate: The gate for which to get the duration.
+            qubits: The specific qubits for the gate.
 
         Returns:
-            Gate length of the given operation and qubit(s).
+            Gate length of the given gate and qubit(s).
         """
-        return self.gate_property(operation, qubits,
+        return self.gate_property(gate, qubits,
                                   'gate_length')[0]  # Throw away datetime at index 1
 
     def qubit_property(self,
