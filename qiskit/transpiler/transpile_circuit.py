@@ -48,12 +48,11 @@ def transpile_circuit(circuit, transpile_config):
         device_insts = set(transpile_config.basis_gates).union(basic_insts)
 
         ms_basis_swap = None
-        if (
-                'rxx' in transpile_config.basis_gates
-                and not device_insts >= circuit.count_ops().keys()
-        ):
+        if 'rxx' in transpile_config.basis_gates and \
+                not device_insts >= circuit.count_ops().keys():
             ms_basis_swap = transpile_config.basis_gates
-            transpile_config.basis_gates = ['u3', 'cx']
+            transpile_config.basis_gates = list(set(['u3', 'cx']).union(
+                transpile_config.basis_gates))
 
         level = transpile_config.optimization_level
         if level is None:
