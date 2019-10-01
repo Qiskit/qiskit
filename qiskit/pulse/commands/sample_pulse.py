@@ -90,7 +90,7 @@ class SamplePulse(Command):
                 clipped_samples_epsilon = np.exp(
                     (1-epsilon)*1j*clip_angle[clip_where_epsilon], dtype=np.complex_)
                 clipped_samples[clip_where_epsilon] = clipped_samples_epsilon
-
+                raise PulseError('Made it here.')
             # update samples with clipped values
             samples[clip_where] = clipped_samples
             samples_norm[clip_where] = np.abs(clipped_samples)
