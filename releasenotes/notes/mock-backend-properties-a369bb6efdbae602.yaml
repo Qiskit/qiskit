@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The backends in `qiskit.test.mock` now contain a snapshot of real
+    device calibration data. This is accessible via `backend.properties()`.
+    This can be used to test any code that depends on backend properties,
+    such as noise-adaptive transpiler passes or device noise models for
+    simulation. This would create a faster testing and development cycle
+    without the need to go to live backends.
