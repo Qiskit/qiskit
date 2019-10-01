@@ -50,12 +50,7 @@ def assemble_schedules(schedules, qobj_id, qobj_header, run_config):
         raise QiskitError('meas_lo_freq must be supplied.')
 
     qubit_lo_range = qobj_config.pop('qubit_lo_range', None)
-    # TODO: convert this range to Hz on config side
-    if qubit_lo_range:
-        qubit_lo_range = [(low * 1e9, high * 1e9) for low, high in qubit_lo_range]
     meas_lo_range = qobj_config.pop('meas_lo_range', None)
-    if meas_lo_range:
-        meas_lo_range = [(low * 1e9, high * 1e9) for low, high in meas_lo_range]
     meas_map = qobj_config.pop('meas_map', None)
 
     max_memory_slot = 0
