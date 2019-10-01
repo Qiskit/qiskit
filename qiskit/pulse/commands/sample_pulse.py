@@ -86,7 +86,6 @@ class SamplePulse(Command):
             clipped_sample_norms = np.abs(clipped_samples)
             to_clip_epsilon = clipped_sample_norms > 1.
             if np.any(to_clip_epsilon):
-                raise PulseError('Made it here1.')
                 clip_where_epsilon = np.argwhere(to_clip_epsilon)
                 clipped_samples_epsilon = np.exp(
                     (1-epsilon)*1j*clip_angle[clip_where_epsilon], dtype=np.complex_)
