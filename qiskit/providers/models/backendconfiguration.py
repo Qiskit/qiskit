@@ -2,7 +2,7 @@
 
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2018, 2019.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,9 +13,15 @@
 # that they have been altered from the originals.
 
 """Model and schema for backend configuration."""
+from re import findall
+
+from collections import defaultdict
 
 from marshmallow.validate import Length, OneOf, Range, Regexp
 
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.channels import (Channel, DriveChannel, MeasureChannel, ControlChannel,
+                                   AcquireChannel)
 from qiskit.validation import BaseModel, BaseSchema, bind_schema
 from qiskit.validation.fields import (Boolean, DateTime, Integer, List, Nested, String,
                                       Complex, Float, Dict, InstructionParameter)
@@ -205,6 +211,11 @@ class BackendConfiguration(BaseModel):
         self.open_pulse = open_pulse
         self.memory = memory
         self.max_shots = max_shots
+        if kwargs['coupling_map']:
+            self.coupling_map = defaultdict(set)
+            # TODO: if I don't pop, it fails and isn't applied, but if I do, it's not validated
+            for control, target in kwargs.pop('coupling_map'):
+                self.coupling_map[control].add(target)
 
         super().__init__(**kwargs)
 
@@ -285,8 +296,8 @@ class PulseBackendConfiguration(BackendConfiguration):
         self.meas_levels = meas_levels
         self.qubit_lo_range = qubit_lo_range
         self.meas_lo_range = meas_lo_range
-        self.dt = dt  # pylint: disable=invalid-name
-        self.dtm = dtm
+        self._dt = dt  # pylint: disable=invalid-name
+        self._dtm = dtm
         self.rep_times = rep_times
         self.meas_kernels = meas_kernels
         self.discriminators = discriminators
@@ -300,3 +311,119 @@ class PulseBackendConfiguration(BackendConfiguration):
                          meas_lo_range=meas_lo_range, dt=dt, dtm=dtm,
                          rep_times=rep_times, meas_kernels=meas_kernels,
                          discriminators=discriminators, **kwargs)
+
+    @property
+    def dt(self):
+        """Time delta between samples on the signal channels in seconds."""
+        print("Hey")
+        return self._dt * 1.e-9
+
+    @property
+    def dtm(self):
+        """Time delta between samples on the acquisition channels in seconds."""
+        return self._dtm * 1e-9
+
+    @property
+    def sample_rate(self):
+        """Sample rate of the signal channels in Hz (1/dt)."""
+        return 1.0 / self.dt
+
+    def get_hamiltonian(self, description=False):
+        """
+        Return the LaTeX Hamiltonian string for this device. If
+        description is set to True, include the Hamiltonian description.
+
+        Raises:
+            PulseError: If the Hamiltonian is not defined.
+        """
+        ham = self.hamiltonian.get('h_latex')
+        if ham is None:
+            raise PulseError("Hamiltonian not found.")
+                
+        if description:
+            return self.hamiltonian.get('description') + ham
+        else:
+            return ham
+
+    def drives(self, qubit):
+        """
+        Return the drive channel for the given qubit.
+
+        Raises:
+            PulseError: If the qubit is not a part of the system.
+        """
+        if qubit > self.n_qubits:
+            raise PulseError("This system does not have {} qubits.".format(qubit))
+        return DriveChannel(qubit)
+
+    def measures(self, qubit):
+        """
+        Return the measure stimulus channel for the given qubit.
+
+        Raises:
+            PulseError: If the qubit is not a part of the system.
+        """
+        if qubit > self.n_qubits:
+            raise PulseError("This system does not have {} qubits.".format(qubit))
+        return MeasureChannel(qubit)
+
+    def acquires(self, qubit):
+        """
+        Return the acquisition channel for the given qubit.
+
+        Raises:
+            PulseError: If the qubit is not a part of the system.
+        """
+        if qubit > self.n_qubits:
+            raise PulseError("This system does not have {} qubits.".format(qubit))
+        return AcquireChannel(qubit)
+
+    def controls(self, qubit):
+        """
+        Return the control channel for the given qubit.
+
+        Raises:
+            PulseError: If the qubit is not a part of the system.
+        """
+        # TODO: It's probable that controls can't map trivially to qubits.
+        for Jterm in findall('J_\{\d+,\d+\}', self.get_hamiltonian()):
+            q1, q2 = map(int, Jterm.split('_')[1][1:-1].split(','))
+
+        if qubit > self.n_qubits:
+            raise PulseError("This system does not have {} qubits.".format(qubit))
+        return ControlChannel(qubit)
+
+    def describe(self, channel):
+        """
+        Return a basic description of the channel dependency. Derived channels are given weights
+        which describe how their frames are linked to other frames.
+
+        For instance, the backend could be configured with this setting:
+            u_channel_lo = [
+                [UchannelLO(q=0, scale=1. + 0.j)],
+                [UchannelLO(q=0, scale=-1. + 0.j), UchannelLO(q=1, scale=1. + 0.j)]
+            ]
+        Then, given that sysinfo is SystemInfo(backend):
+            sysinfo.describe(ControlChannel(1))
+            >>> {DriveChannel(0): -1, DriveChannel(1): 1}
+
+        Args:
+            channel: The derived channel to describe.
+        Raises:
+            PulseError: If channel is not a ControlChannel.
+        """
+        if not isinstance(channel, ControlChannel):
+            raise PulseError("Can only describe ControlChannels.")
+        result = {}
+        for u_chan_lo in self.u_channel_lo[channel.index]:
+            result[DriveChannel(u_chan_lo.q)] = u_chan_lo.scale
+        return result
+
+    def draw(self):
+        """
+        Visualize the topology of the device, showing qubits, their interconnections, and the
+        channels which interact with them. Optionally print a listing of the supported 1Q and
+        2Q gates.
+        """
+        # TODO: Implement the draw method.
+        raise NotImplementedError
