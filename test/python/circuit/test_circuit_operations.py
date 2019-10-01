@@ -159,76 +159,82 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc, qc.copy())
 
     def test_measure_active(self):
-        """Test measure_active applies measurements only to non-idle qubits. Creates a
-        ClassicalRegister of size equal to the amount of non-idle qubits to store the
-        measured values.
+        """Test measure_active
+        Applies measurements only to non-idle qubits. Creates a ClassicalRegister of size equal to
+        the amount of non-idle qubits to store the measured values.
         """
         qr = QuantumRegister(4)
         cr = ClassicalRegister(2, 'measure')
-        qc1 = QuantumCircuit(qr)
-        qc1.h(qr[0])
-        qc1.h(qr[2])
-        qc1.add_register(cr)
-        qc1.barrier()
-        qc1.measure([qr[0], qr[2]], [cr[0], cr[1]])
 
-        qc2 = QuantumCircuit(qr)
-        qc2.h(qr[0])
-        qc2.h(qr[2])
-        qc2.measure_active()
+        circuit = QuantumCircuit(qr)
+        circuit.h(qr[0])
+        circuit.h(qr[2])
+        circuit.measure_active()
 
-        self.assertEqual(qc1, qc2)
+        expected = QuantumCircuit(qr)
+        expected.h(qr[0])
+        expected.h(qr[2])
+        expected.add_register(cr)
+        expected.barrier()
+        expected.measure([qr[0], qr[2]], [cr[0], cr[1]])
+
+        self.assertEqual(expected, circuit)
 
     def test_measure_all(self):
-        """Test measure_all applies measurements to all qubits. Creates a ClassicalRegister
-        of size equal to the total amount of qubits to store those measured values.
+        """Test measure_all applies measurements to all qubits.
+        Creates a ClassicalRegister of size equal to the total amount of qubits to
+        store those measured values.
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(2, 'measure')
-        qc1 = QuantumCircuit(qr, cr)
-        qc1.barrier()
-        qc1.measure(qr, cr)
 
-        qc2 = QuantumCircuit(qr)
-        qc2.measure_all()
+        circuit = QuantumCircuit(qr)
+        circuit.measure_all()
 
-        self.assertEqual(qc1, qc2)
+        expected = QuantumCircuit(qr, cr)
+        expected.barrier()
+        expected.measure(qr, cr)
+
+        self.assertEqual(expected, circuit)
 
     def test_remove_final_measurements(self):
-        """Test remove_final_measurements removes all measurements at end of circuit and
-        deletes the ClassicalRegisters, if unused, that the measurements would be stored in.
+        """Test remove_final_measurements
+        Removes all measurements at end of circuit.
         """
         qr = QuantumRegister(2)
-        qc1 = QuantumCircuit(qr)
+        cr = ClassicalRegister(2, 'measure')
 
-        qc2 = QuantumCircuit(qr)
-        qc2.measure_all()
-        qc2.remove_final_measurements()
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr, cr)
+        circuit.remove_final_measurements()
 
-        self.assertEqual(qc1, qc2)
+        expected = QuantumCircuit(qr, cr)
+
+        self.assertEqual(expected, circuit)
 
     def test_remove_final_measurements_multiple_measures(self):
         """Test remove_final_measurements only removes measurements at the end of the circuit
-        and not in the beginning or middle of the circuit, and does not remove ClassicalRegister
-        if it is still in use.
+        remove_final_measurements should not remove measurements in the beginning or middle of the
+        circuit.
         """
         qr = QuantumRegister(2)
         cr = ClassicalRegister(1)
-        qc1 = QuantumCircuit(qr, cr)
-        qc1.measure(qr[0], cr)
-        qc1.h(0)
-        qc1.measure(qr[0], cr)
-        qc1.h(0)
 
-        qc2 = QuantumCircuit(qr, cr)
-        qc2.measure(qr[0], cr)
-        qc2.h(0)
-        qc2.measure(qr[0], cr)
-        qc2.h(0)
-        qc2.measure(qr[0], cr)
-        qc2.remove_final_measurements()
+        circuit = QuantumCircuit(qr, cr)
+        circuit.measure(qr[0], cr)
+        circuit.h(0)
+        circuit.measure(qr[0], cr)
+        circuit.h(0)
+        circuit.measure(qr[0], cr)
+        circuit.remove_final_measurements()
 
-        self.assertEqual(qc1, qc2)
+        expected = QuantumCircuit(qr, cr)
+        expected.measure(qr[0], cr)
+        expected.h(0)
+        expected.measure(qr[0], cr)
+        expected.h(0)
+
+        self.assertEqual(expected, circuit)
 
     def test_mirror(self):
         """Test mirror method reverses but does not invert."""
