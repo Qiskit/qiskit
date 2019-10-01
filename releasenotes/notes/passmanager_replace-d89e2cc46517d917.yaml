@@ -14,7 +14,11 @@ features:
 
       pass_manager.draw()
 
-    .. image:: passmanager_replace-1.png
+    .. code-block::
+      [0] FlowLinear: SetLayout
+      [1] Conditional: TrivialLayout
+      [2] FlowLinear: FullAncillaAllocation, EnlargeWithAncilla, ApplyLayout
+      [3] FlowLinear: Unroller
 
     The layout selection is set in the stage `[1]`. Let's replace it with `DenseLayout`:
 
@@ -24,7 +28,11 @@ features:
       pass_manager.replace(1, DenseLayout(coupling_map), condition=lambda property_set: not property_set['layout'])
       pass_manager.draw()
 
-    .. image:: passmanager_replace-2.png
+    .. code-block::
+      [0] FlowLinear: SetLayout
+      [1] Conditional: DenseLayout
+      [2] FlowLinear: FullAncillaAllocation, EnlargeWithAncilla, ApplyLayout
+      [3] FlowLinear: Unroller
 
     If you want to replace it without any condition, you can use set-item shortcut:
 
@@ -32,4 +40,8 @@ features:
       pass_manager[1] = DenseLayout(coupling_map)
       pass_manager.draw()
 
-    .. image:: passmanager_replace-3.png
+    .. code-block::
+      [0] FlowLinear: SetLayout
+      [1] FlowLinear: DenseLayout
+      [2] FlowLinear: FullAncillaAllocation, EnlargeWithAncilla, ApplyLayout
+      [3] FlowLinear: Unroller
