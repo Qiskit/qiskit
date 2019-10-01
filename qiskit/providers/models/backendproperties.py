@@ -114,20 +114,29 @@ class Gate(BaseModel):
 class BackendProperties(BaseModel):
     """Model for BackendProperties.
 
-    Please note that this class only describes the required fields. For the
-    full description of the model, please check ``BackendPropertiesSchema``.
-
-    Attributes:
-        backend_name: backend name.
-        backend_version: backend version in the form X.Y.Z.
-        last_update_date: last date/time that a property was updated.
-        qubits: system qubit parameters.
-        gates: system gate parameters.
-        general: general parameters.
+    Container class which holds backend properties which have been measured by the provider.
+    All properties which are provided are provided optionally. These properties may describe
+    qubits, gates, or other general properties of the backend.
     """
 
-    def __init__(self, backend_name: str, backend_version: str, last_update_date: datetime.datetime,
-                 qubits: List[List[Nduv]], gates: List[Gate], general: List[Nduv], **kwargs):
+    def __init__(self,
+                 backend_name: str,
+                 backend_version: str,
+                 last_update_date: datetime.datetime,
+                 qubits: List[List[Nduv]],
+                 gates: List[Gate],
+                 general: List[Nduv],
+                 **kwargs):  # pylint: disable=missing-param-doc
+        """Initialize a BackendProperties instance.
+
+        Args:
+            backend_name: Backend name.
+            backend_version: Backend version in the form X.Y.Z.
+            last_update_date: Last date/time that a property was updated.
+            qubits: System qubit parameters.
+            gates: System gate parameters.
+            general: General parameters.
+        """
         self.backend_name = backend_name
         self.backend_version = backend_version
         self.last_update_date = last_update_date
