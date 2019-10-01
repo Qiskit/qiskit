@@ -39,10 +39,10 @@ class GateSchema(BaseSchema):
 
     # Required properties.
     qubits = fields.List(fields.Integer(), required=True,
-                   validate=Length(min=1))
+                         validate=Length(min=1))
     gate = fields.String(required=True)
     parameters = fields.Nested(NduvSchema, required=True, many=True,
-                        validate=Length(min=1))
+                               validate=Length(min=1))
 
 
 class BackendPropertiesSchema(BaseSchema):
@@ -51,13 +51,13 @@ class BackendPropertiesSchema(BaseSchema):
     # Required properties.
     backend_name = fields.String(required=True)
     backend_version = fields.String(required=True,
-                             validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
+                                    validate=Regexp("[0-9]+.[0-9]+.[0-9]+$"))
     last_update_date = fields.DateTime(required=True)
     qubits = fields.List(fields.Nested(NduvSchema, many=True,
-                          validate=Length(min=1)), required=True,
-                   validate=Length(min=1))
+                                       validate=Length(min=1)), required=True,
+                         validate=Length(min=1))
     gates = fields.Nested(GateSchema, required=True, many=True,
-                   validate=Length(min=1))
+                          validate=Length(min=1))
     general = fields.Nested(NduvSchema, required=True, many=True)
 
 
@@ -160,13 +160,12 @@ class BackendProperties(BaseModel):
                       qubits: Union[int, Iterable[int]] = None,
                       name: str = None) -> Tuple[Any, datetime.datetime]:
         """
-        Return the gate property of the given gate.
+        Return the property of the given gate.
 
         Args:
             gate: Name of the gate.
             qubits: The qubit to find the property for.
-            name: Optionally used to specify which gate
-                  property to return.
+            name: Optionally used to specify which gate property to return.
 
         Returns:
             Gate property as a tuple of the value and the time it was measured.
