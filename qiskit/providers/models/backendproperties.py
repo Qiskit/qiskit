@@ -251,6 +251,18 @@ class BackendProperties(BaseModel):
         """
         return self.qubit_property(qubit, 'T1')[0]  # Throw away datetime at index 1
 
+    def frequency(self, qubit: int) -> float:
+        """
+        Return the frequency of the given qubit.
+
+        Args:
+            qubit: Qubit for which to return frequency of.
+
+        Returns:
+            Frequency of the given qubit.
+        """
+        return self.qubit_property(qubit, 'frequency')[0]  # Throw away datetime at index 1
+
     def _apply_prefix(self, value: float, unit: str) -> float:
         """
         Given a SI unit prefix and value, apply the prefix to convert to standard SI unit.
