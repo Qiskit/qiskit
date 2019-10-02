@@ -190,7 +190,7 @@ class EventsOutputChannels:
                         last_pv = None
 
                 elif isinstance(command, Acquire):
-                    wf[time:tf] = np.ones(tf - time)
+                    wf[time:tf] = np.ones(command.duration)
                     self._labels[time] = (tf, command)
         self._waveform = wf + pv
 
@@ -365,7 +365,7 @@ class ScheduleDrawer:
         if scaling:
             v_max = 0.5 * scaling
         else:
-            v_max = 0.5 / (1.2 * v_max)
+            v_max = 0.5 / (v_max)
 
         return n_valid_waveform, v_max
 
@@ -487,9 +487,12 @@ class ScheduleDrawer:
                            linestyle=linestyle, alpha=alpha)
 
     def _draw_channels(self, ax, output_channels, interp_method, t0, tf, dt, v_max,
-                       label=False, framechange=True):
+                       label=False, framechange=True,scaling=None):
         y0 = 0
         prev_labels = []
+        #Test if a channel has negative value
+        test = False
+        test2=False
         for channel, events in output_channels.items():
             if events.enable:
                 # plot waveform
@@ -503,9 +506,24 @@ class ScheduleDrawer:
                     # instead, it just returns vector of zero.
                     re, im = np.zeros_like(time), np.zeros_like(time)
                 color = self._get_channel_color(channel)
+
                 # scaling and offset
-                re = v_max * re + y0
-                im = v_max * im + y0
+                print(min(re[~np.isnan(re)]))
+                if (min(re[~np.isnan(re)]) >= 0 and min(im[~np.isnan(re)]) >= 0):
+                    test = True
+                else:
+                    test = False
+                print(test)
+                #if the current channel and previous channel  have not negative values
+                if test and test2 and scaling==None:
+                    re = v_max * re * 1.5 + y0
+                    im = v_max * im * 1.5 + y0
+                else:
+                    re = v_max * re + y0
+                    im = v_max * im + y0
+
+                test2=test
+
                 offset = np.zeros_like(time) + y0
                 # plot
                 ax.fill_between(x=time, y1=re, y2=offset,
@@ -596,7 +614,7 @@ class ScheduleDrawer:
 
         y0 = self._draw_channels(ax, output_channels, interp_method,
                                  t0, tf, dt, v_max, label=label,
-                                 framechange=framechange)
+                                 framechange=framechange,scaling=scaling)
 
         self._draw_snapshots(ax, snapshot_channels, dt, y0)
 
