@@ -317,7 +317,7 @@ class QasmParser:
         """
         program[0] = node.Format(program[1])
 
-    def p_format_0(self, program):
+    def p_format_0(self, _):
         """
            format : FORMAT error
         """
@@ -550,11 +550,10 @@ class QasmParser:
         self.pop_scope()
         self.update_symtab(program[0])
 
-    def p_gate_scope(self, program):
+    def p_gate_scope(self, _):
         """
            gate_scope :
         """
-        del program  # unused
         self.push_scope()
 
     # ----------------------------------------
