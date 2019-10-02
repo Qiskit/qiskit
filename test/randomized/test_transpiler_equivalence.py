@@ -23,7 +23,7 @@ from hypothesis.stateful import Bundle, RuleBasedStateMachine
 
 import hypothesis.strategies as st
 
-from qiskit import execute, transpile, Aer
+from qiskit import execute, transpile, BasicAer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit import Measure, Reset, Gate
 from qiskit.test.mock import \
