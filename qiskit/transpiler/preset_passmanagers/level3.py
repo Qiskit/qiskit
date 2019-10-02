@@ -101,7 +101,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> PassManager:
 
     _swap = [BarrierBeforeFinalMeasurements(),
              Unroll3qOrMore(),
-             StochasticSwap(coupling_map, trials=20, seed=seed_transpiler),
+             StochasticSwap(coupling_map, trials=160, seed=seed_transpiler),
              Decompose(SwapGate)]
 
     _direction_check = [CheckCXDirection(coupling_map)]
