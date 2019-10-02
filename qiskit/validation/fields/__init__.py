@@ -38,7 +38,7 @@ from marshmallow import fields as _fields
 
 from qiskit.validation import ModelTypeValidator
 from qiskit.validation.fields.polymorphic import ByAttribute, ByType, TryFrom
-from qiskit.validation.fields.containers import Nested, List, Dict
+from qiskit.validation.fields.containers import Nested, List, Dict, NumpyArray
 
 from .custom import Complex, InstructionParameter, DictParameters
 

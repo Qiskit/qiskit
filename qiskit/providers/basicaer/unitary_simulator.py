@@ -200,11 +200,8 @@ class UnitarySimulatorPy(BaseBackend):
                                    self._number_of_qubits * [2, 2])
 
     def _get_unitary(self):
-        """Return the current unitary in JSON Result spec format"""
+        """Return the current unitary"""
         unitary = np.reshape(self._unitary, 2 * [2 ** self._number_of_qubits])
-        # Expand complex numbers
-        unitary = np.stack((unitary.real, unitary.imag), axis=-1)
-        # Truncate small values
         unitary[abs(unitary) < self._chop_threshold] = 0.0
         return unitary
 
