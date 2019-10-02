@@ -24,6 +24,7 @@ See arXiv:1811.12926 [quant-ph]"""
 import numpy as np
 
 from qiskit.providers.basicaer import QasmSimulatorPy
+from .utils import build_qv_model_circuit
 
 try:
     from qiskit.mapper import two_qubit_kak
@@ -41,30 +42,8 @@ try:
 except ImportError:
     from qiskit.transpiler import transpile
 
-if NO_KAK:
-    from qiskit.quantum_info.random import random_unitary
-else:
+if not NO_KAK:
     from qiskit.tools.qi.qi import random_unitary_matrix
-
-
-def build_model_circuit(width, depth, seed=None):
-    """
-    The model circuits consist of layers of Haar random
-    elements of SU(4) applied between corresponding pairs
-    of qubits in a random bipartition.
-    """
-    np.random.seed(seed)
-    circuit = QuantumCircuit(width)
-    # For each layer
-    for _ in range(depth):
-        # Generate uniformly random permutation Pj of [0...n-1]
-        perm = np.random.permutation(width)
-        # For each pair p in Pj, generate Haar random SU(4)
-        for k in range(int(np.floor(width/2))):
-            U = random_unitary(4)
-            pair = int(perm[2*k]), int(perm[2*k+1])
-            circuit.append(U, [pair[0], pair[1]])
-    return circuit
 
 
 def build_model_circuit_kak(width, depth, seed=None):
@@ -117,7 +96,7 @@ class QuantumVolumeBenchmark:
     def setup(self, width, depth):
         random_seed = np.random.seed(10)
         if NO_KAK:
-            self.circuit = build_model_circuit(
+            self.circuit = build_qv_model_circuit(
                 width=width, depth=depth, seed=random_seed)
         else:
             self.circuit = build_model_circuit_kak(width, depth, random_seed)
