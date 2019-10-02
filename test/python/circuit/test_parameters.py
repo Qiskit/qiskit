@@ -19,6 +19,7 @@ from operator import add, sub, mul, truediv
 
 import numpy
 
+import qiskit
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Gate, Parameter, ParameterVector, ParameterExpression
@@ -521,6 +522,32 @@ class TestParameterExpressions(QiskitTestCase):
         bound_expr2 = expr2.bind({x: 1, y: 2, z: 3})
 
         self.assertEqual(float(bound_expr2), 5)
+
+    def test_negated_expression(self):
+        """Verify ParameterExpressions can be negated."""
+
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+
+        expr1 = -x + y
+        expr2 = -expr1 * (-z)
+        bound_expr2 = expr2.bind({x: 1, y: 2, z: 3})
+
+        self.assertEqual(float(bound_expr2), 3)
+
+    def test_standard_cu3(self):
+        """This tests parameter negation in standard extension gate cu3."""
+        x = Parameter('x')
+        y = Parameter('y')
+        z = Parameter('z')
+        qc = qiskit.QuantumCircuit(2)
+        qc.cu3(x, y, z, 0, 1)
+        try:
+            qc.decompose()
+        except TypeError:
+            self.fail('failed to decompose cu3 gate with negated parameter '
+                      'expression')
 
     def test_name_collision(self):
         """Verify Expressions of distinct Parameters of shared name raises."""
