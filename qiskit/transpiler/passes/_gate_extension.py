@@ -1,5 +1,17 @@
 # -*- coding: utf-8 -*-
 
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
 """
 Dynamically extend Gate classes with functions required for the Hoare
 optimizer, namely triviality- and post-conditionsto.
@@ -8,11 +20,11 @@ always trivial, provided the qubit is in a classical state.
 Functions/gates that are omitted here are assumed to always be
 non-trivial and/or have unknown post-conditions.
 """
+from z3 import Not, And
 from qiskit.extensions.standard import IdGate, XGate, YGate, ZGate
 from qiskit.extensions.standard import CnotGate, ToffoliGate, CyGate, CzGate
 from qiskit.extensions.standard import TGate, SGate, RZGate, U1Gate
 from qiskit.extensions.standard import SwapGate, FredkinGate, CrzGate, Cu1Gate
-from z3 import Not, And
 
 # FLIP GATES #
 # XGate
