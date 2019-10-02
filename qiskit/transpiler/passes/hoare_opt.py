@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-"""Pass for hoare circuit optimization.
-"""
+""" Pass for hoare logic circuit optimization. """
+
 import sys
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.circuit import ControlledGate
@@ -14,17 +14,18 @@ import qiskit.transpiler.passes._gate_extension
 
 
 class HoareOptimizer(TransformationPass):
-    """ The inner workings of this are detailed in:
+    """ This is a transpiler pass using hoare logic circuit optimization.
+        The inner workings of this are detailed in:
         https://arxiv.org/abs/1810.00375
     """
-    def __init__(self, l=10):
+    def __init__(self, size=10):
         super().__init__()
         self.solver = Solver()
         self.variables = dict()
         self.gatenum = dict()
         self.gatecache = dict()
         self.varnum = dict()
-        self.l = l
+        self.size = size        # gate cache size
 
     def _gen_variable(self, qb_id):
         """ After each gate generate a new unique variable name for each of the
@@ -114,12 +115,12 @@ class HoareOptimizer(TransformationPass):
             trivial = self._test_gate(gate, ctrl_ones, trgtvar)
             if trivial:
                 dag.remove_op_node(node)
-            elif self.l > 1 and not trivial:
+            elif self.size > 1 and not trivial:
                 for qb in node.qargs:
                     self.gatecache[qb.index].append(node)
                     self.varnum[qb.index][node] = self.gatenum[qb.index]-1
                 for qb in node.qargs:
-                    if len(self.gatecache[qb.index]) >= self.l:
+                    if len(self.gatecache[qb.index]) >= self.size:
                         self._multigate_opt(dag, qb.index)
 
             self._add_postconditions(gate, ctrl_ones, trgtqb, trgtvar)
@@ -203,7 +204,7 @@ class HoareOptimizer(TransformationPass):
                         for qb in node.qargs:
                             self.gatecache[qb.index].remove(node)
 
-        if len(self.gatecache[qb_id]) < self.l and max_idx is None:
+        if len(self.gatecache[qb_id]) < self.size and max_idx is None:
             # unless in a rec call, we are done if the cache isn't full
             return
         elif max_idx is None:
@@ -257,7 +258,7 @@ class HoareOptimizer(TransformationPass):
         """
         self._initialize(dag)
         self._traverse_dag(dag)
-        if self.l > 1:
+        if self.size > 1:
             for qb in dag.qubits():
                 self._multigate_opt(dag, qb.index)
         return dag
