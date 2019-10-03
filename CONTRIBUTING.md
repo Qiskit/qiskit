@@ -526,6 +526,44 @@ the following steps:
 The `stable/*` branches should only receive changes in the form of bug
 fixes.
 
+## Deprecation Policy
+
+End users of Qiskit need to know if a feature or an API they are using and rely
+on will still be supported by the software tomorrow. Users rely on existing
+features, knowing under which conditions the project can remove (or change in a
+backwards incompatible manner) a feature or API is important. To manage
+expectations the following policy is how API and feature deprecation and removal
+is handled by Qiskit:
+
+1. Features, APIs or configuration options are marked deprecated in the code.
+Appropriate `DeprecationWarning` class warnings will be sent to the user. The
+deprecated code will be frozen and only receive minimal maintenance (just so
+that it continues to work as-is).
+
+2. A migration path will be documented for current users of the feature. This
+will be outlined in the both the release notes adding the deprecation and the
+release notes removing the feature at the completion of the deprecation cycle.
+In addition if feasible the warning message will also include the migration
+path. A migration path might be "stop using that feature", but in such cases
+it is necessary to first judged how widely used and/or important the feature
+is to end users and decided an obsolescence date based on that.
+
+3. An obsolescence date for the feature will be set. The feature must remain
+intact and working (although with proper warning being emitted) in all releases
+pushed until after that obsolescence date. At the very minimum the feature (or
+API, or configuration option) should be marked as deprecated (and still be
+supported) for at least three months of linear time from the release date of the
+first release to include the deprecation warning. For example, if a feature were
+deprecated in the 0.9.0 release of terra, which was released on August 22, 2019,
+then that feature should still appear in all releases until at least
+November 22, 2019. Since releases do not occur at fixed time intervals this may
+mean that a deprecation warning may only occur in one release prior to removal.
+
+Note that this delay is a minimum. For significant features, it is recommend
+that the deprecated feature appears for at least double that time. Also, per
+the stable branch policy deprecation removals can only occur during minor
+version releases, they are not appropriate for backporting.
+
 ## Stable Branch Policy
 
 The stable branch is intended to be a safe source of fixes for high
