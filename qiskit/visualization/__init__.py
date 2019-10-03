@@ -86,7 +86,7 @@ from .exceptions import VisualizationError
 from .matplotlib import HAS_MATPLOTLIB
 
 if (('ipykernel' in sys.modules) and ('spyder' not in sys.modules)) \
-    or os.getenv('QISKIT_DOCS') == 'TRUE':
+        or os.getenv('QISKIT_DOCS') == 'TRUE':
     if _has_connection('qvisualization.mybluemix.net', 443):
         from qiskit.visualization.interactive import (iplot_bloch_multivector,
                                                       iplot_state_city,
