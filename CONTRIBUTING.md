@@ -37,9 +37,14 @@ intimate familiarity with qiskit-terra to develop a fix for the issue.
 ### Documentation
 
 If you make a change, make sure you update the associated
-*docstrings* and parts of the
-[documentation](https://github.com/Qiskit/qiskit/tree/master/docs/terra)
-that corresponds to it. You can also make a [documentation issue](
+*docstrings* and parts of the documentation under `docs/apidocs` that
+corresponds to it. To locally build the terra specific documentation you
+can run `tox -edocs` which will compile and build the documentation locally
+and save the output to `docs/_build/html`.
+
+If you have an issue with the combined documentation hosted at
+https://qiskit.org/documentation/ that is maintained in the
+[Qiskit/qiskit](https://github.com/Qiskit/qiskit). You can open a [documentation issue](
 https://github.com/Qiskit/qiskit/issues/new/choose) if you see doc bugs, have a
 new feature that needs to be documented, or think that material could be added
 to the existing docs.
@@ -317,6 +322,13 @@ release and the output will be submitted as a pull request to the documentation
 repository's [release notes file](
 https://github.com/Qiskit/qiskit/blob/master/docs/release_notes.rst)
 
+#### Building release notes locally
+
+Building The release notes are part of the standard qiskit-terra documentation
+builds. To check what the rendered html output of the release notes will look
+like for the current state of the repo you can run: `tox -edocs` which will
+build all the documentation into `docs/_build/html` and the release notes in
+particulare will be located at `docs/_build/html/release_notes.html`
 
 ## Installing Qiskit Terra from source
 Please see the [Installing Qiskit Terra from
