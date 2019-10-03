@@ -70,6 +70,10 @@ extensions = [
     'IPython.sphinxext.ipython_directive',
     'reno.sphinxext',
 ]
+html_static_path = ['_static']
+html_css_files = [
+    'style.css',
+]
 
 # -----------------------------------------------------------------------------
 # Autosummary
@@ -109,7 +113,7 @@ language = None
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'sphinx'
 
 # A boolean that decides whether module names are prepended to all object names
 # (for object types where a “module” of some kind is defined), e.g. for
