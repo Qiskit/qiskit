@@ -320,7 +320,7 @@ def plot_state_city(rho, title="", figsize=None, color=None,
     min_dzi = np.min(dzi)
     max_dzi = np.max(dzi)
     if max_dzr != min_dzr:
-        ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr)+1e-9, np.max(dzi)))
+        ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr) + 1e-9, max_dzi))
     else:
         if min_dzr == 0:
             ax1.axes.set_zlim3d(np.min(dzr), max(np.max(dzr)+1e-9, np.max(dzi)))
